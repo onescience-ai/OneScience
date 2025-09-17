@@ -1,8 +1,13 @@
-torch==2.4.1+das.opt2.dtk2504
+# 自定义构建的包版本
+torch==2.4.1+das.opt1.dtk25041
 torchvision==0.19.1+das.opt2.dtk2504
 apex==1.4.0+das.opt2.dtk2504
-jax==0.4.34+das.opt1.dtk2504
-jax-rocm60-pjrt==0.4.34+das.opt1.dtk2504
-jax-rocm60-plugin==0.4.34+das.opt1.dtk2504
-jaxlib==0.4.34+das.opt1.dtk2504
+jax==0.4.34+das.opt1.dtk25041
+jax-rocm60-pjrt==0.4.34+das.opt1.dtk25041
+jax-rocm60-plugin==0.4.34+das.opt1.dtk25041
+jaxlib==0.4.34+das.opt1.dtk25041
 onnxruntime==1.15.0+das.opt1.dtk2504
+jax-triton==0.2.0+das.opt1.dtk25041
+triton==3.0.0+das.opt1.dtk25041
+transformer-engine==1.9.0+das.opt2.dtk2504
+flash_attn==2.6.1+das.opt1.dtk25041

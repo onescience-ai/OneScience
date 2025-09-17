@@ -44,10 +44,10 @@ def discover_package_data():
     return package_data
 
 
-one_deps = parse_requirements("requirements.txt")
+one_deps = parse_requirements("requirements.txt") # ['numpy>=1.25.0,<2.0.0', 'tqdm>=4.65.0,<5.0.0', ...]
 
 # {"numpy": "numpy>=1.25.0,<2.0.0",...}
-deps = {re.split(r"[=<>~!]", dep)[0]: dep for dep in one_deps}
+deps = {re.split(r"[=<>~!]", dep)[0]: dep for dep in one_deps}  # {'numpy': 'numpy>=1.24.0,<2.0.0', ...}
 
 basic_requires = [
     "numpy",
@@ -138,6 +138,16 @@ biology_requires = [
     "pyrsistent",
     "chex",
     "flax",
+    "fiddle",
+    "lightning",
+    "sentencepiece",
+    "datasets",
+    "braceexpand",
+    "webdataset",
+    "nemo_run",
+    "tiktoken",
+    "s3fs",
+    "zarr",
 ]
 
 dev_requires = [
@@ -153,7 +163,7 @@ def parse_requirements_file(filename):
 
 def resolve(requires, deps_dict):
     """Convert a list of dependencies to a set of requirements."""
-    return [deps_dict[require] for require in requires]
+    return [deps_dict[require] for require in requires] # select some values in deps_dict
 
 
 extras = {}
@@ -165,9 +175,18 @@ extras["cfd"] = resolve(cfd_requires, deps)
 extras["chem"] = resolve(chemistry_requires, deps)
 extras["quantum"] = resolve(quantum_requires, deps)
 extras["dev"] = resolve(dev_requires, deps)
-
-
 extras["all"] = one_deps
+
+extras["bio"].append("nemo-toolkit @ file://" + \
+                    os.path.abspath('./examples/proteinrepresent/evo2/3rdparty/NeMo'))
+extras["bio"].append("megatron-core @ file://" + \
+                    os.path.abspath('./examples/proteinrepresent/evo2/3rdparty/Megatron-LM'))
+extras["bio"].append("noodles @ file://" + \
+                    os.path.abspath('./examples/proteinrepresent/evo2/3rdparty/noodles'))
+# extras["bio"].append("mamba_ssm @ file://" + \
+                    # os.path.abspath('./src/onescience/src/onescience/models/evo2/3rdparty/mamba-2.2.2'))
+# extras["bio"].append("causal_conv1d @ file://" + \
+#                     os.path.abspath('./src/onescience/src/onescience/models/evo2/3rdparty/causal-conv1d-1.5.2'))
 
 setup(
     name="onescience",
