@@ -80,6 +80,11 @@ basic_requires = [
     "opt_einsum",
     "prettytable",
     "matplotlib",
+    "torch_geometric",
+    "torch_scatter",
+    "torch_sparse",
+    "torch_cluster",
+    "torch_spline_conv",
 ]
 
 
