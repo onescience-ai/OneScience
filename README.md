@@ -99,3 +99,15 @@ pip install -e .
 ## 支持与建议
 
 如使用过程中遇到问题或想提出开发建议，可直接在超算互联网平台反馈，或在或者在Issue页面新建issue.
+
+## License
+
+This project **Onescience** is licensed under the [Apache License 2.0](LICENSE).
+
+### Third-Party Components
+
+This project also makes use of open-source software:
+
+- [NVIDIA NeMo](https://github.com/NVIDIA/NeMo), licensed under the [Apache License 2.0](licenses/NeMo_LICENSE).
+
+See the [NOTICE](NOTICE) file for details on third-party attributions.
