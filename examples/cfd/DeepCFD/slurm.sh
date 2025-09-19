@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH -p dcu # 指定使用的分区名为 k100ai
-#SBATCH -N 2      # 申请 1 个计算节点
+#SBATCH -p km64 # 指定使用的分区名
+#SBATCH -N 1     # 申请 1 个计算节点
 #SBATCH --gres=dcu:4  # 申请 4 个 DCU 资源，
 #SBATCH --cpus-per-task=32 # 每个任务分配 32 个 CPU 核心
 #SBATCH --ntasks-per-node=1 # 每个节点运行 1 个任务
@@ -13,8 +13,10 @@ echo "START TIME: $(date)"
 module purge
 module load mpi/hpcx/2.12.0/gcc-8.3.1
 module load compiler/dtk/25.04
-source /work/home/onescience2025/anaconda3/bin/activate 
-conda activate onescience2025
+
+source ~/conda.env # 替换为自己的conda路径
+conda activate onescience # 替换为自己的conda环境
+#unset ROCBLAS_TENSILE_LIBPATH
 
 #如果报了rocBLAS warning: No paths matched /opt/rocm/lib/rocblas/library/*gfx928*co. Make sure that ROCBLAS_TENSILE_LIBPATH is set correctly. 这个错误可以加入先这一行
 unset ROCBLAS_TENSILE_LIBPATH

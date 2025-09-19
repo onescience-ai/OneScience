@@ -8,7 +8,7 @@
 
 ## 数据集和代码
 
-简易数据集在DEEPCFD工程中。
+此项目的数据集可以使用以此链接[下载](https://zenodo.org/record/3666056/files/DeepCFD.zip?download=1)
 
 该文件夹包含文件 dataX 和 dataY，其中第一个文件提供了981个管道流样本的几何输入信息，而dataY文件则提供了这些样本的真实CFD解，包括使用simpleFOAM求解器得到的速度（Ux和Uy）场和压力（p）场。图1详细描述了每个文件的结构。
 
