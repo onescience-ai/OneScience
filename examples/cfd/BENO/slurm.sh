@@ -16,9 +16,13 @@ module load compiler/dtk/25.04
 
 source ~/conda.env # 替换为自己的conda路径
 conda activate onescience # 替换为自己的conda环境
+<<<<<<< HEAD
 
 #如果报了rocBLAS warning: No paths matched /opt/rocm/lib/rocblas/library/*gfx928*co. Make sure that ROCBLAS_TENSILE_LIBPATH is set correctly. 这个错误可以加入先这一行
 unset ROCBLAS_TENSILE_LIBPATH
+=======
+#unset ROCBLAS_TENSILE_LIBPATH
+>>>>>>> 1995f159fde42eb1b65ba80085501908c7bf7868
 
 export NCCL_IB_HCA=mlx5_0
 export NCCL_SOCKET_IFNAME=ib0
