@@ -1,568 +1,262 @@
-import torch
-
-from contextlib import nullcontext
-from torch.cuda.amp import GradScaler
-from torch.nn.parallel import DistributedDataParallel
+import os
 import numpy as np
 import time
-import wandb
-import torch.cuda.profiler as profiler
+import torch
+import sys
+import logging
+import torch.distributed as dist
+
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR, LambdaLR
-
-import torch._dynamo
-
-torch._dynamo.config.suppress_errors = True  # TODO check if this can be removed
-
-# import modules
-import os
+from torch.nn.parallel import DistributedDataParallel
 
 from onescience.models.graphcast.graph_cast_net import GraphCastNet
-from onescience.utils.graphcast.loss import (
-    CellAreaWeightedLossFunction,
-    GraphCastLossFunction,
-)
-from onescience.launch.logging import (
-    PythonLogger,
-    initialize_wandb,
-    RankZeroLoggingWrapper,
-)
+from onescience.utils.graphcast.loss import GraphCastLossFunction
+from onescience.utils.fcn.YParams import YParams
 from onescience.launch.utils import load_checkpoint, save_checkpoint
-
-from train_utils import count_trainable_params, prepare_input
-from loss.utils import normalized_grid_cell_area
-from train_base import BaseTrainer
-from validation_base import Validation
-from onescience.datapipes.climate import ERA5HDF5Datapipe, SyntheticWeatherDataLoader
-from onescience.distributed import DistributedManager
 from onescience.utils.graphcast.data_utils import StaticData
+from onescience.utils.graphcast.graph_utils import deg2rad
+from onescience.datapipes.climate import ERA5HDF5Datapipe
 
-import hydra
-from hydra.utils import to_absolute_path
-from omegaconf import DictConfig
-from hydra.core.hydra_config import HydraConfig
-
-
-class GraphCastTrainer(BaseTrainer):
-    """GraphCast Trainer"""
-
-    def __init__(self, cfg: DictConfig, dist, rank_zero_logger):
-        super().__init__()
-        self.dist = dist
-        self.dtype = torch.bfloat16 if cfg.full_bf16 else torch.float32
-        self.enable_scaler = False
-        self.amp = cfg.amp
-        self.amp_dtype = None
-        self.pyt_profiler = cfg.pyt_profiler
-        self.grad_clip_norm = cfg.grad_clip_norm
-        self.static_dataset_path = (
-            to_absolute_path(cfg.static_dataset_path)
-            if cfg.static_dataset_path
-            else None
-        )
-
-        if cfg.full_bf16:
-            assert torch.cuda.is_bf16_supported()
-            rank_zero_logger.info(f"Using {str(self.dtype)} dtype")
-            if cfg.amp:
-                raise ValueError(
-                    "Full bfloat16 training is enabled, switch off amp in config"
-                )
-
-        if cfg.amp:
-            rank_zero_logger.info(f"Using config amp with dtype {cfg.amp_dtype}")
-            if cfg.amp_dtype == "float16" or cfg.amp_dtype == "fp16":
-                self.amp_dtype = torch.float16
-                self.enable_scaler = True
-            elif self.amp_dtype == "bfloat16" or self.amp_dtype == "bf16":
-                self.amp_dtype = torch.bfloat16
-            else:
-                raise ValueError("Invalid dtype for config amp")
-
-        # Handle the number of static channels
-        if not self.static_dataset_path:
-            cfg.num_channels_static = 0
-            rank_zero_logger.warning(
-                "Static dataset path is not provided. Setting num_channels_static to 0."
-            )
-
-        # instantiate the model
-        self.model = GraphCastNet(
-            mesh_level=cfg.mesh_level,
-            multimesh=cfg.multimesh,
-            input_res=tuple(cfg.latlon_res),
-            input_dim_grid_nodes=(
-                cfg.num_channels_climate
-                + cfg.use_cos_zenith
-                + 4 * cfg.use_time_of_year_index
-            )
-            * (cfg.num_history + 1)
-            + cfg.num_channels_static,
-            input_dim_mesh_nodes=3,
-            input_dim_edges=4,
-            output_dim_grid_nodes=cfg.num_channels_climate,
-            processor_type=cfg.processor_type,
-            khop_neighbors=cfg.khop_neighbors,
-            num_attention_heads=cfg.num_attention_heads,
-            processor_layers=cfg.processor_layers,
-            hidden_dim=cfg.hidden_dim,
-            norm_type=cfg.norm_type,
-            do_concat_trick=cfg.concat_trick,
-            use_cugraphops_encoder=cfg.cugraphops_encoder,
-            use_cugraphops_processor=cfg.cugraphops_processor,
-            use_cugraphops_decoder=cfg.cugraphops_decoder,
-            recompute_activation=cfg.recompute_activation,
-        )
-
-        # set gradient checkpointing
-        if cfg.force_single_checkpoint:
-            self.model.set_checkpoint_model(True)
-        if cfg.checkpoint_encoder:
-            self.model.set_checkpoint_encoder(True)
-        if cfg.checkpoint_processor:
-            self.model.set_checkpoint_processor(cfg.segments)
-        if cfg.checkpoint_decoder:
-            self.model.set_checkpoint_decoder(True)
-
-        # JIT compile the model, and specify the device and dtype
-        if cfg.jit:
-            torch.jit.script(self.model).to(dtype=self.dtype).to(device=dist.device)
-            rank_zero_logger.success("JIT compiled the model")
-        else:
-            self.model = self.model.to(dtype=self.dtype).to(device=dist.device)
-        if cfg.watch_model and not cfg.jit and dist.rank == 0:
-            wandb.watch(self.model)
-
-        # Get required model attributes
-        if hasattr(self.model, "module"):
-            self.latitudes = self.model.module.latitudes
-            self.longitudes = self.model.module.longitudes
-            self.lat_lon_grid = self.model.module.lat_lon_grid
-            self.is_distributed = self.model.module.is_distributed
-            self.expect_partitioned_input = self.model.module.expect_partitioned_input
-        else:
-            self.latitudes = self.model.latitudes
-            self.longitudes = self.model.longitudes
-            self.lat_lon_grid = self.model.lat_lon_grid
-            self.is_distributed = self.model.is_distributed
-            self.expect_partitioned_input = self.model.expect_partitioned_input
-
-        # distributed data parallel for multi-node training
-        if dist.world_size > 1:
-            self.model = DistributedDataParallel(
-                self.model,
-                device_ids=[dist.local_rank],
-                output_device=dist.device,
-                broadcast_buffers=dist.broadcast_buffers,
-                find_unused_parameters=dist.find_unused_parameters,
-                gradient_as_bucket_view=True,
-                static_graph=True,
-            )
-        rank_zero_logger.info(
-            f"Model parameter count is {count_trainable_params(self.model)}"
-        )
-
-        # instantiate the training datapipe
-        DataPipe = (
-            SyntheticWeatherDataLoader if cfg.synthetic_dataset else ERA5HDF5Datapipe
-        )
-        self.interpolation_type = (
-            "nearest" if cfg.latlon_res != (721, 1440) else None
-        )  # interpolate if not in native resolution
-        self.cos_zenith_args = {
-            "dt": cfg.dt,
-            "start_year": cfg.start_year,
-        }
-        self.channels_list = [i for i in range(cfg.num_channels_climate)]
-        if not cfg.synthetic_dataset:
-            dataset = DataPipe(
-                data_dir=to_absolute_path(os.path.join(cfg.dataset_path, "train")),
-                stats_dir=to_absolute_path(os.path.join(cfg.dataset_path, "stats")),
-                channels=self.channels_list,
-                latlon_resolution=cfg.latlon_res,
-                interpolation_type=self.interpolation_type,
-                num_samples_per_year=cfg.num_samples_per_year_train,
-                num_steps=1,
-                num_history=cfg.num_history,
-                use_cos_zenith=cfg.use_cos_zenith,
-                use_time_of_year_index=cfg.use_time_of_year_index,
-                cos_zenith_args=self.cos_zenith_args,
-                batch_size=1,
-                num_workers=cfg.num_workers,
-                device=dist.device,
-                process_rank=dist.rank,
-                world_size=dist.world_size,
-            )
-            self.datapipe = dataset.train_dataloader()
-        else:
-            self.datapipe = DataPipe(
-                data_dir=to_absolute_path(os.path.join(cfg.dataset_path, "train")),
-                stats_dir=to_absolute_path(os.path.join(cfg.dataset_path, "stats")),
-                channels=self.channels_list,
-                latlon_resolution=cfg.latlon_res,
-                interpolation_type=self.interpolation_type,
-                num_samples_per_year=cfg.num_samples_per_year_train,
-                num_steps=1,
-                num_history=cfg.num_history,
-                use_cos_zenith=cfg.use_cos_zenith,
-                use_time_of_year_index=cfg.use_time_of_year_index,
-                cos_zenith_args=self.cos_zenith_args,
-                batch_size=1,
-                num_workers=cfg.num_workers,
-                device=dist.device,
-                process_rank=dist.rank,
-                world_size=dist.world_size,
-            )
-        rank_zero_logger.success(
-            f"Loaded training datapipe of size {len(self.datapipe)}"
-        )
-
-        # enable train mode
-        self.model.train()
-
-        # get normalized area
-        self.area = normalized_grid_cell_area(self.lat_lon_grid[:, :, 0], unit="deg")
-        self.area = self.area.to(dtype=self.dtype).to(device=dist.device)
-
-        # instantiate loss, optimizer, and scheduler
-        if cfg.synthetic_dataset:
-            self.criterion = CellAreaWeightedLossFunction(self.area)
-        else:
-            self.criterion = GraphCastLossFunction(
-                self.area,
-                self.channels_list,
-                cfg.dataset_metadata_path,
-                cfg.time_diff_std_path,
-            )
-        try:
-            self.optimizer = apex.optimizers.FusedAdam(
-                self.model.parameters(),
-                lr=cfg.lr,
-                betas=(0.9, 0.95),
-                adam_w_mode=True,
-                weight_decay=0.1,
-            )
-            rank_zero_logger.info("Using FusedAdam optimizer")
-        except:
-            self.optimizer = torch.optim.AdamW(
-                self.model.parameters(), lr=cfg.lr, betas=(0.9, 0.95), weight_decay=0.1
-            )
-        scheduler1 = LinearLR(
-            self.optimizer,
-            start_factor=1e-3,
-            end_factor=1.0,
-            total_iters=cfg.num_iters_step1,
-        )
-        scheduler2 = CosineAnnealingLR(
-            self.optimizer, T_max=cfg.num_iters_step2, eta_min=0.0
-        )
-        scheduler3 = LambdaLR(
-            self.optimizer, lr_lambda=lambda epoch: (cfg.lr_step3 / cfg.lr)
-        )
-        self.scheduler = SequentialLR(
-            self.optimizer,
-            schedulers=[scheduler1, scheduler2, scheduler3],
-            milestones=[cfg.num_iters_step1, cfg.num_iters_step1 + cfg.num_iters_step2],
-        )
-        self.scaler = GradScaler(enabled=self.enable_scaler)
-
-        # load checkpoint
-        if dist.world_size > 1:
-            torch.distributed.barrier()
-        self.iter_init = load_checkpoint(
-            to_absolute_path(cfg.ckpt_path),
-            models=self.model,
-            optimizer=self.optimizer,
-            scheduler=self.scheduler,
-            scaler=self.scaler,
-            device=dist.device,
-        )
-
-        # Get the static data
-        if self.static_dataset_path:
-            self.static_data = StaticData(
-                self.static_dataset_path, self.latitudes, self.longitudes
-            ).get()
-            self.static_data = self.static_data.to(device=dist.device)
-            assert cfg.num_channels_static == self.static_data.size(1), (
-                f"Number of static channels in model ({cfg.num_channels_static}) "
-                + f"does not match the static data ({self.static_data.size(1)})"
-            )
-            if self.is_distributed and self.expect_partitioned_input:  # TODO verify
-                # if input itself is distributed, we also need to distribute static data
-                self.static_data(
-                    self.static_data[0].view(cfg.num_channels_static, -1).permute(1, 0)
-                )
-                self.static_data = self.g2m_graph.get_src_node_features_in_partition(
-                    self.static_data
-                )
-                self.static_data = self.static_data.permute(1, 0).unsqueeze(dim=0)
-                self.static_data = self.static_data.to(device=dist.device)
-
-        else:
-            self.static_data = None
-
-        # instantiate the validation
-        if dist.rank == 0 and not cfg.synthetic_dataset:
-            self.validation = Validation(
-                cfg, self.model, self.dtype, self.dist, self.static_data
-            )
-        else:
-            self.validation = None
+from apex import optimizers
 
 
-@hydra.main(version_base="1.3", config_path="conf", config_name="config")
-def main(cfg: DictConfig) -> None:
+def main():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger()
+    config_file_path = os.path.join(current_path, 'conf/config.yaml')
+    cfg = YParams(config_file_path, 'graphcast')
 
-    # Optionally import apex
-    if cfg.use_apex:
-        try:
-            import apex
-        except:
-            raise ImportError("Apex is not installed.")
+    cfg.world_size = 1
+    if 'WORLD_SIZE' in os.environ:
+        cfg.world_size = int(os.environ['WORLD_SIZE'])
+    world_rank = 0
+    local_rank = 0
 
-    if cfg.cugraphops_encoder or cfg.cugraphops_processor or cfg.cugraphops_decoder:
-        try:
-            import pylibcugraphops
-        except:
-            raise ImportError(
-                "pylibcugraphops is not installed. Refer the Dockerfile for instructions"
-                + "on how to install this package."
-            )
+    if cfg.world_size > 1:
+        dist.init_process_group(backend='nccl', init_method='env://')
+        local_rank = int(os.environ["LOCAL_RANK"])
+        world_rank = dist.get_rank()
+    if not torch.cuda.is_bf16_supported():
+        cfg.full_bf16 = False
 
-    # initialize distributed manager
-    DistributedManager.initialize()
-    dist = DistributedManager()
+    model_dtype = torch.bfloat16 if cfg.full_bf16 else torch.float32
 
-    # initialize loggers
-    if dist.rank == 0:
-        initialize_wandb(
-            project="GraphCast",
-            entity="onescience",
-            name=f"GraphCast-{HydraConfig.get().job.name}",
-            group="group",
-            mode=cfg.wb_mode,
-        )  # Wandb logger
-    logger = PythonLogger("main")  # General python logger
-    rank_zero_logger = RankZeroLoggingWrapper(logger, dist)  # Rank 0 logger
-    rank_zero_logger.file_logging()
+    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
+    train_dataloader, train_sampler = train_dataset.train_dataloader()
+    world_rank == 0 and logger.info(f"Loaded train_dataloader of size {len(train_dataloader)}")
 
-    # print ranks and devices
-    logger.info(f"Rank: {dist.rank}, Device: {dist.device}")
+    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), num_steps=cfg.num_val_steps)
+    val_dataloader, val_sampler = val_dataset.val_dataloader()
+    world_rank == 0 and logger.info(f"Loaded val_dataloader of size {len(val_dataloader)}")
 
-    # specify the datapipe
-    if cfg.synthetic_dataset:
-        DataPipe = SyntheticWeatherDataLoader
-        cfg.static_dataset_path = None
-        cfg.use_cos_zenith = False
-        cfg.use_time_of_year_index = False
-        cfg.num_history = 0
-        cfg.num_workers = 0
-        rank_zero_logger.warning(
-            "Using synthetic dataset. Ignoring static dataset, cosine zenith angle,"
-            + " time of the year, and history. Also setting num_workers to 0."
-        )
+    input_dim_grid_nodes = (len(cfg.channels) + cfg.use_cos_zenith + 4 * cfg.use_time_of_year_index) * \
+                           (cfg.num_history + 1) + cfg.num_channels_static
+    graphcast_model = GraphCastNet(
+        mesh_level=cfg.mesh_level,
+        multimesh=cfg.multimesh,
+        input_res=tuple(cfg.img_size),
+        input_dim_grid_nodes=input_dim_grid_nodes,
+        input_dim_mesh_nodes=3,
+        input_dim_edges=4,
+        output_dim_grid_nodes=len(cfg.channels),
+        processor_type=cfg.processor_type,
+        khop_neighbors=cfg.khop_neighbors,
+        num_attention_heads=cfg.num_attention_heads,
+        processor_layers=cfg.processor_layers,
+        hidden_dim=cfg.hidden_dim,
+        norm_type=cfg.norm_type,
+        do_concat_trick=cfg.concat_trick,
+        recompute_activation=cfg.recompute_activation,
+    )
+
+    graphcast_model.set_checkpoint_encoder(cfg.checkpoint_encoder)
+    graphcast_model.set_checkpoint_decoder(cfg.checkpoint_decoder)
+    graphcast_model = graphcast_model.to(dtype=model_dtype).to(local_rank)
+
+    world_rank == 0 and logger.info(f"Model parameters is {sum(p.numel() for p in graphcast_model.parameters() if p.requires_grad)}")
+    if hasattr(graphcast_model, "module"):
+        latitudes = graphcast_model.module.latitudes
+        longitudes = graphcast_model.module.longitudes
+        lat_lon_grid = graphcast_model.module.lat_lon_grid
     else:
-        DataPipe = ERA5HDF5Datapipe
+        latitudes = graphcast_model.latitudes
+        longitudes = graphcast_model.longitudes
+        lat_lon_grid = graphcast_model.lat_lon_grid
+    static_data = StaticData(cfg.static_dataset_path, latitudes, longitudes).get().to(device=local_rank)
 
-    # initialize trainer
-    trainer = GraphCastTrainer(cfg, dist, rank_zero_logger)
-    start = time.time()
-    rank_zero_logger.info("Training started...")
-    loss_agg, iter, tagged_iter, num_rollout_steps = 0, trainer.iter_init + 1, 1, 1
-    terminate_training, finetune, update_dataloader = False, False, False
+    if cfg.world_size > 1:
+        graphcast_model = DistributedDataParallel(graphcast_model, device_ids=[local_rank], output_device=local_rank)
 
-    with torch.autograd.profiler.emit_nvtx() if cfg.profile else nullcontext():
-        # training loop
-        while True:
-            assert (
-                iter < cfg.num_iters_step1 + cfg.num_iters_step2 + cfg.num_iters_step3
-            ), "Training is already finished!"
-            for _, data in enumerate(trainer.datapipe):
+    channels_list = [i for i in range(len(cfg.channels))]
 
-                # profiling
-                if cfg.profile and iter == cfg.profile_range[0]:
-                    rank_zero_logger.info("Starting profile", "green")
-                    profiler.start()
-                if cfg.profile and iter == cfg.profile_range[1]:
-                    rank_zero_logger.info("Ending profile", "green")
-                    profiler.stop()
-                torch.cuda.nvtx.range_push("Training iteration")
+    area = torch.abs(torch.cos(deg2rad(lat_lon_grid[:, :, 0])))
+    area /= torch.mean(area)
+    area = area.to(dtype=torch.bfloat16 if cfg.full_bf16 else torch.float32).to(device=local_rank)
 
-                if iter >= cfg.num_iters_step1 + cfg.num_iters_step2 and not finetune:
-                    finetune = True
-                    if cfg.force_single_checkpoint_finetune:
-                        if hasattr(trainer.model, "module"):
-                            trainer.model.module.set_checkpoint_model(True)
+    criterion = GraphCastLossFunction(area, channels_list, cfg.dataset_metadata_path, cfg.time_diff_std_path)
+    optimizer = optimizers.FusedAdam(graphcast_model.parameters(),
+                                     lr=cfg.lr, betas=(0.9, 0.95),
+                                     adam_w_mode=True,
+                                     weight_decay=0.1)
+    scheduler1 = LinearLR(optimizer, start_factor=1e-3, end_factor=1.0, total_iters=cfg.num_iters_step1, )
+    scheduler2 = CosineAnnealingLR(optimizer, T_max=cfg.num_iters_step2, eta_min=0.0)
+    scheduler3 = LambdaLR(optimizer, lr_lambda=lambda epoch: (cfg.lr_step3 / cfg.lr))
+    scheduler = SequentialLR(optimizer,
+                             schedulers=[scheduler1, scheduler2, scheduler3],
+                             milestones=[cfg.num_iters_step1, cfg.num_iters_step1 + cfg.num_iters_step2])
+
+    os.makedirs(cfg.checkpoint_dir, exist_ok=True)
+
+    train_loss_file = f"{cfg.checkpoint_dir}/trloss.npy"
+    world_rank == 0 and logger.info(f"start training ...")
+
+    best_valid_loss = 1.e6
+    best_loss_epoch = 0
+    train_losses = np.empty((0,), dtype=np.float32)
+
+    print_length = 1  # also can set it to 'len(train_dataloader) // 64'
+    epoch_start_time = time.perf_counter()
+
+    for epoch in range(cfg.num_iters_step1 + cfg.num_iters_step2):
+        if dist.is_initialized():
+            train_sampler.set_epoch(epoch)
+            val_sampler.set_epoch(epoch)
+        train_loss = 0.0
+        for i, data in enumerate(train_dataloader):
+            batch_start_time = time.perf_counter()
+            graphcast_model.train()
+            invar = data[0].to(device=local_rank)
+            outvar = data[1].to(device=local_rank)
+            cos_zenith = data[2].to(device=local_rank)
+            in_idx = data[3].item()
+
+            cos_zenith = torch.squeeze(cos_zenith, dim=2)
+            cos_zenith = torch.clamp(cos_zenith, min=0.0) - 1.0 / torch.pi
+            day_of_year, time_of_day = divmod(in_idx * cfg.dt, 24)
+            normalized_day_of_year = torch.tensor((day_of_year / 365) * (np.pi / 2), dtype=torch.float32, device=local_rank)
+            normalized_time_of_day = torch.tensor((time_of_day / (24 - cfg.dt)) * (np.pi / 2), dtype=torch.float32, device=local_rank)
+            sin_day_of_year = torch.sin(normalized_day_of_year).expand(1, 1, 721, 1440)
+            cos_day_of_year = torch.cos(normalized_day_of_year).expand(1, 1, 721, 1440)
+            sin_time_of_day = torch.sin(normalized_time_of_day).expand(1, 1, 721, 1440)
+            cos_time_of_day = torch.cos(normalized_time_of_day).expand(1, 1, 721, 1440)
+            invar = torch.concat((invar, cos_zenith, static_data, sin_day_of_year, cos_day_of_year, sin_time_of_day, cos_time_of_day), dim=1)
+
+            invar, outvar = invar.to(dtype=model_dtype), outvar.to(dtype=model_dtype)
+            outvar_pred = graphcast_model(invar)
+            loss = criterion(outvar_pred, outvar)
+
+            optimizer.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(graphcast_model.parameters(), cfg.grad_clip_norm)
+            torch.cuda.nvtx.range_pop()
+            optimizer.step()
+            scheduler.step()
+            train_loss += loss.item()
+
+            if world_rank == 0 and i % print_length == 0:
+                batch_time = time.perf_counter() - batch_start_time
+                logger.info(f"Epoch [{epoch + 1}/{cfg.max_epoch}], Train MiniBatch {i}/{len(train_dataloader)} done, "
+                            f"This MiniBatch Cost: {batch_time / print_length:.2f}s, Current Loss: {loss.item():.4f}")
+
+            if (i + 1) % cfg.val_freq == 0:
+                graphcast_model.eval()
+                valid_loss = 0.0
+                with torch.no_grad():
+                    val_batch_time = time.perf_counter()
+                    for j, data in enumerate(val_dataloader):
+                        invar = data[0].to(device=local_rank)
+                        outvar = data[1].to(device=local_rank)
+                        cos_zenith = data[2].to(device=local_rank)
+                        in_idx = data[3].item()
+
+                        cos_zenith = torch.squeeze(cos_zenith, dim=2)
+                        cos_zenith = torch.clamp(cos_zenith, min=0.0) - 1.0 / torch.pi  # [b, 2, h, w]
+                        outvar = outvar.to(dtype=model_dtype)
+                        loss = 0.0
+                        for t in range(outvar.shape[1]):
+                            day_of_year, time_of_day = divmod(in_idx + t * cfg.dt, 24 // cfg.dt)
+                            normalized_day_of_year = torch.tensor((day_of_year / 365) * (np.pi / 2), dtype=torch.float32, device=local_rank)
+                            normalized_time_of_day = torch.tensor((time_of_day / (24 - cfg.dt)) * (np.pi / 2), dtype=torch.float32, device=local_rank)
+                            sin_day_of_year = torch.sin(normalized_day_of_year).expand(1, 1, 721, 1440)
+                            cos_day_of_year = torch.cos(normalized_day_of_year).expand(1, 1, 721, 1440)
+                            sin_time_of_day = torch.sin(normalized_time_of_day).expand(1, 1, 721, 1440)
+                            cos_time_of_day = torch.cos(normalized_time_of_day).expand(1, 1, 721, 1440)
+                            invar = torch.concat((invar,
+                                                  cos_zenith[:, t:t + 1, :, :],
+                                                  static_data,
+                                                  sin_day_of_year,
+                                                  cos_day_of_year,
+                                                  sin_time_of_day,
+                                                  cos_time_of_day),
+                                                 dim=1)
+                            invar = invar.to(dtype=model_dtype)
+                            outpred = graphcast_model(invar)
+                            invar = outpred
+                            loss += criterion(outpred, outvar[:, t])
+
+                        loss /= outvar.shape[1]
+                        if cfg.world_size > 1:
+                            loss_tensor = loss.detach().to(local_rank)  # torch.tensor(loss, device=local_rank)
+                            dist.all_reduce(loss_tensor)
+                            loss = loss_tensor.item() / cfg.world_size
+                            valid_loss += loss
                         else:
-                            trainer.model.set_checkpoint_model(True)
-                    if cfg.checkpoint_encoder_finetune:
-                        if hasattr(trainer.model, "module"):
-                            trainer.model.module.set_checkpoint_encoder(True)
-                        else:
-                            trainer.model.set_checkpoint_encoder(True)
-                    if cfg.checkpoint_processor_finetune:
-                        if hasattr(trainer.model, "module"):
-                            trainer.model.module.set_checkpoint_processor(cfg.segments)
-                        else:
-                            trainer.model.set_checkpoint_encoder(True)
-                    if cfg.checkpoint_decoder_finetune:
-                        if hasattr(trainer.model, "module"):
-                            trainer.model.module.set_checkpoint_decoder(True)
-                        else:
-                            trainer.model.set_checkpoint_encoder(True)
-                if (
-                    finetune
-                    and (iter - (cfg.num_iters_step1 + cfg.num_iters_step2))
-                    % cfg.step_change_freq
-                    == 0
-                    and iter != tagged_iter
-                ):
-                    update_dataloader = True
-                    tagged_iter = iter
+                            valid_loss += loss.item()
 
-                # update the dataloader for finetuning
-                if update_dataloader:
-                    num_rollout_steps = (
-                        iter - (cfg.num_iters_step1 + cfg.num_iters_step2)
-                    ) // cfg.step_change_freq + 2
-                    trainer.datapipe = DataPipe(
-                        data_dir=os.path.join(cfg.dataset_path, "train"),
-                        stats_dir=os.path.join(cfg.dataset_path, "stats"),
-                        channels=trainer.channels_list,
-                        latlon_resolution=cfg.latlon_res,
-                        interpolation_type=trainer.interpolation_type,
-                        num_samples_per_year=cfg.num_samples_per_year_train,
-                        num_steps=num_rollout_steps,
-                        num_history=cfg.num_history,
-                        use_cos_zenith=cfg.use_cos_zenith,
-                        use_time_of_year_index=cfg.use_time_of_year_index,
-                        cos_zenith_args=trainer.cos_zenith_args,
-                        batch_size=1,
-                        num_workers=cfg.num_workers,
-                        device=dist.device,
-                        process_rank=dist.rank,
-                        world_size=dist.world_size,
-                    )
-                    update_dataloader = False
-                    rank_zero_logger.info(
-                        f"Switching to {num_rollout_steps}-step rollout!"
-                    )
-                    break
+                        if world_rank == 0 and j % print_length == 0:
+                            val_batch_time = time.perf_counter() - val_batch_time
+                            logger.info(f"Epoch [{epoch + 1}/{cfg.max_epoch}], Val MiniBatch {j}/{len(val_dataloader)} done, "
+                                        f"This {cfg.num_val_steps}-step iter val process cost: {val_batch_time / print_length:.2f}s, "
+                                        f"Current Loss: {loss:.4f}")
+                            val_batch_time = time.perf_counter()
 
-                # Prepare the input & output
-                invar = data[0]["invar"].to(device=dist.device)
-                outvar = data[0]["outvar"].to(device=dist.device)
-                try:
-                    cos_zenith = data[0]["cos_zenith"].to(device=dist.device)
-                except KeyError:
-                    cos_zenith = None
-                try:
-                    time_idx = data[0]["time_of_year_idx"].item()
-                except KeyError:
-                    time_idx = None
+                    valid_loss /= len(val_dataloader)
+                    is_save_ckp = False
+                    if valid_loss < best_valid_loss:
+                        best_valid_loss = valid_loss
+                        best_loss_epoch = i
+                        world_rank == 0 and save_checkpoint(graphcast_model,
+                                                            optimizer,
+                                                            scheduler,
+                                                            best_valid_loss,
+                                                            best_loss_epoch,
+                                                            cfg.checkpoint_dir)
+                        is_save_ckp = True
+                        if world_rank == 0:
+                            logger.info(f"Best loss at Minibatch: {i + 1}" + (", saving checkpoint" if is_save_ckp else ""))
 
-                invar_cat = prepare_input(
-                    invar,
-                    cos_zenith,
-                    num_history=cfg.num_history,
-                    static_data=trainer.static_data,
-                    step=1,
-                    time_idx=time_idx,
-                    stride=cfg.stride,
-                    dt=cfg.dt,
-                    num_samples_per_year=cfg.num_samples_per_year_train,
-                    device=dist.device,
-                )
-                invar_cat, outvar = invar_cat.to(dtype=trainer.dtype), outvar.to(
-                    dtype=trainer.dtype
-                )
+        epoch_time = time.perf_counter() - epoch_start_time
+        if world_rank == 0:
+            logger.info(
+                f"Epoch [{epoch + 1}/{cfg.max_epoch}] finished in {epoch_time:.2f}s, "
+                f"Train Loss: {train_loss:.4f}, "
+                f"This Epoch cost {time.perf_counter() - epoch_start_time: .2f}s, "
+                f"Best loss at Minibatch: {i + 1}"
+                + (", saving checkpoint" if is_save_ckp else "")
+            )
+            train_losses = np.append(train_losses, train_loss)
 
-                # training step
-                loss = trainer.train(invar_cat, outvar)
-                if dist.rank == 0:
-                    loss_agg += loss.detach().cpu()
+            np.save(train_loss_file, train_losses)
+        if epoch - best_loss_epoch > cfg.patience:
+            print(f"Loss has not decrease in {cfg.patience} epochs, stopping training...")
+            exit()
 
-                # validation
-                if trainer.validation and iter % cfg.val_freq == 0:
-                    # free up GPU memory
-                    del invar, invar_cat, outvar
-                    torch.cuda.empty_cache()
-                    error = trainer.validation.step(
-                        channels=list(np.arange(cfg.num_channels_val)), iter=iter
-                    )
-                    logger.log(f"iteration {iter}, Validation MSE: {error:.04f}")
-                    wandb.log(
-                        {
-                            "Validation MSE": error,
-                        },
-                        step=iter,
-                    )
-                # distributed barrier
-                if dist.world_size > 1:
-                    torch.distributed.barrier()
-
-                # print logs and save checkpoint
-                if dist.rank == 0 and iter % cfg.save_freq == 0:
-                    save_checkpoint(
-                        to_absolute_path(cfg.ckpt_path),
-                        models=trainer.model,
-                        optimizer=trainer.optimizer,
-                        scheduler=trainer.scheduler,
-                        scaler=trainer.scaler,
-                        epoch=iter,
-                    )
-                    logger.info(f"Saved model on rank {dist.rank}")
-                    logger.log(
-                        f"iteration: {iter}, loss: {loss_agg/cfg.save_freq:10.3e}, \
-                            time per iter: {(time.time()-start)/cfg.save_freq:10.3e}"
-                    )
-                    loss_all = loss_agg / cfg.save_freq
-                    if dist.rank == 0:
-                        wandb.log(
-                            {
-                                "loss": loss_all,
-                                "learning_rate": trainer.scheduler.get_last_lr()[0],
-                            },
-                            step=iter,
-                        )
-                    loss_agg = 0
-                    start = time.time()
-                iter += 1
-
-                torch.cuda.nvtx.range_pop()
-
-                # wrap up & terminate if training is finished
-                if (
-                    iter
-                    >= cfg.num_iters_step1 + cfg.num_iters_step2 + cfg.num_iters_step3
-                ):
-                    if dist.rank == 0:
-                        # del data_x, y
-                        torch.cuda.empty_cache()
-                        error = trainer.validation.step(
-                            channels=list(np.arange(cfg.num_channels_val)), iter=iter
-                        )
-                        logger.log(f"iteration {iter}, Validation MSE: {error:.04f}")
-
-                        save_checkpoint(
-                            to_absolute_path(cfg.ckpt_path),
-                            trainer.model,
-                            trainer.optimizer,
-                            trainer.scheduler,
-                            trainer.scaler,
-                            iter,
-                        )
-                        logger.info(f"Saved model on rank {dist.rank}")
-                        logger.log(
-                            f"iteration: {iter}, loss: {loss_agg/cfg.save_freq:10.3e}, \
-                                time per iter: {(time.time()-start)/cfg.save_freq:10.3e}"
-                        )
-                    terminate_training = True
-                    break
-            if terminate_training:
-                rank_zero_logger.info("Finished training!")
-                break
+    print(f'Graphcast has been well-trained, next step is fine-tune')
 
 
-if __name__ == "__main__":
+def save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path):
+    model_to_save = model.module if hasattr(model, "module") else model
+    state = {
+        "model_state_dict": model_to_save.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "scheduler_state_dict": scheduler.state_dict(),
+        "best_valid_loss": best_valid_loss,
+        "best_loss_epoch": best_loss_epoch,
+    }
+    torch.save(state, f"{model_path}/graphcast.pth")
+
+
+if __name__ == '__main__':
+    current_path = os.getcwd()
+    sys.path.append(current_path)
     main()

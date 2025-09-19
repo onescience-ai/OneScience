@@ -1,0 +1,16 @@
+chat_model:
+  default:
+    factory_name: HttpQwen3
+    model:
+      model_name: qwen3-32b
+
+embeddings:
+  factory_name: QwenLocal
+  model:
+    model_path: ../download/Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-f16.gguf
+    n_ctx: 2048
+    device: cpu
+    verbose: False
+
+application:
+  tool_modules: molsculptor

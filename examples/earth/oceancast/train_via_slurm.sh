@@ -1,0 +1,49 @@
+#!/bin/bash
+#SBATCH -p k100ai
+#SBATCH -N 4
+#SBATCH --gres=dcu:4
+#SBATCH --cpus-per-task=32
+#SBATCH --ntasks-per-node=1
+#SBATCH -J pangu_weather
+#SBATCH -o logs/%j.out
+#SBATCH -e logs/%j.out
+
+unset ROCBLAS_TENSILE_LIBPATH
+echo "START TIME: $(date)"
+
+module purge
+
+source ~/conda.env
+conda activate pangu_weather
+module load compiler/dtk/25.04
+
+which python
+which hipcc
+
+export NCCL_IB_HCA=mlx5_0
+export NCCL_SOCKET_IFNAME=ib0
+export HSA_FORCE_FINE_GRAIN_PCIE=1
+export OMP_NUM_THREADS=1
+export HIP_VISIBLE_DEVICES=0,1,2,3
+nodes=$(scontrol show hostnames $SLURM_JOB_NODELIST)
+nodes_array=($nodes)
+
+# 第一个节点的地址
+master_addr=${nodes_array[0]}
+
+# 主节点的端口（可以根据需要调整）
+master_port=29500
+
+# 在每个节点上启动 torchrun
+echo SLURM_NNODES=$SLURM_NNODES
+echo master_addr=$master_addr
+echo master_port=$master_port
+
+srun --nodes=$SLURM_NNODES --ntasks=$SLURM_NNODES torchrun \
+            --nnodes=$SLURM_NNODES \
+            --node_rank=$SLURM_NODEID \
+            --nproc_per_node=4 \
+            --rdzv_id=$SLURM_JOB_ID \
+            --rdzv_backend=c10d \
+            --rdzv_endpoint=$master_addr:$master_port \
+            train_oceancast.py

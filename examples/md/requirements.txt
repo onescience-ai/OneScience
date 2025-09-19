@@ -1,0 +1,17 @@
+e3nn==0.4.4
+torch_ema
+torchmetrics
+matplotlib
+pandas
+ase
+matscipy
+h5py
+lmdb
+orjson
+python-hostlist
+prettytable
+opt-einsum-fx
+importlib_metadata
+treelib
+requests
+s3fs

@@ -1,0 +1,43 @@
+chat_model:
+  factory_name: HttpQwen3
+  model:
+    model_name: qwen3-32b
+
+embeddings:
+  factory_name: QwenLocal
+  model:
+    model_path: ../download/Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-f16.gguf
+    n_ctx: 2048
+    device: cpu
+    verbose: False
+
+vector_type: milvus
+milvus:
+  local: True
+  database: onescience
+  uri: http://localhost:19530
+  user: "root"
+  password: "milvus"
+  secure: False
+  enable_hybrid_search: True
+
+
+retrieval:
+  semantic_search:
+    top_k: 10
+    score_threshold: 0.1
+  full_text_search:
+    top_k: 10
+    score_threshold: 0.1
+  reranking_enable: False
+  reranking:
+    reranking_mode: weighted_score
+    reranking_model:
+      score_threshold: 0.0
+      factory_name: LLMLayerWiseReranker
+      model:
+        model_name: ../download/Qwen/Qwen3-Reranker-0.6B
+        max_length: 8192
+    weighted_score:
+      score_threshold: 0.0
+      vector_weight: 0.7

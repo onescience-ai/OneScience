@@ -1,29 +1,39 @@
-hydra:
-  job:
-    chdir: True
-  run:
-    dir: ./outputs/
+fourcastnet:
 
-train_dir: ./hdf5_tas_data1/train
-validation_dir: ./hdf5_tas_data1/test
-stats_dir: ./hdf5_tas_data1/statss
+    start_epoch: 0
+    max_epoch: 50
 
-ckpt_path: ./checkpoints
-channels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    lr: 1E-3
 
-num_steps_train: 1
-num_steps_validation: 8
+    num_blocks: 8
 
-wb_artifacts: False
-use_mlflow: True
+    in_channels: [0, 1 ,2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    out_channels: [0, 1 ,2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    channels:  ['10m_u_component_of_wind_0', '10m_v_component_of_wind_0', '2m_temperature_0', 'mean_sea_level_pressure_0',
 
-start_epoch: 0
-max_epoch: 80
+                'geopotential_1000', 'geopotential_925', 'geopotential_850', 'geopotential_700', 'geopotential_600', 'geopotential_500',
+                'geopotential_400', 'geopotential_300', 'geopotential_250', 'geopotential_200', 'geopotential_150', 'geopotential_100', 'geopotential_50',
 
-num_samples_per_year_train: 1456
-num_samples_per_year_validation: 4
-num_workers_train: 8
-num_workers_validation: 8
+                'specific_humidity_1000', 'specific_humidity_925', 'specific_humidity_850'    ]
 
-batch_size_train: 2
-batch_size_validation: 1
+    img_size: [721, 1440]
+    patch_size: [8, 8]
+
+    num_samples_per_year: None
+    num_steps: 1
+    stats_dir: "/work/home/onescience2025/osdatasets/FourcastNet/"
+    # mask_dir: "/work/home/onescience2025/osdatasets/pangu_weather/dataset/static/"
+    checkpoint_dir : "./checkpoints"
+    mask_dtype: "float32"
+    batch_size: 6
+    num_workers: 4
+    patience: 50
+
+    train_data_dir: '/work/home/onescience2025/osdatasets/FourcastNet/train/'# "/work/home/onescience2025/osdatasets/pangu_weather/dataset/train/"
+    val_data_dir: '/work/home/onescience2025/osdatasets/FourcastNet/valid' # "/work/home/onescience2025/osdatasets/pangu_weather/dataset/val/"
+    test_data_dir: "/work/home/onescience2025/osdatasets/FourcastNet/valid"
+
+
+
+
+

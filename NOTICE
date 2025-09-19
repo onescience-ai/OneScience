@@ -1,0 +1,25 @@
+Onescience Copyright 2025 Onescience Authors. All rights reserved.
+
+This product includes software developed by the Onescience team.
+
+
+Third-Party Notices
+=
+This project also includes components from the following open-source projects:
+
+1. NVIDIA NeMo
+   Copyright (c) 2020-2025, NVIDIA CORPORATION. All rights reserved.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Source: https://github.com/NVIDIA/NeMo
+
+   NOTICE: This product includes software developed by NVIDIA as part of
+   the NeMo project.
+
+
+End of Third-Party Notices
+=

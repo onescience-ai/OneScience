@@ -22,3 +22,4 @@ analyze_fail.dat
 *.h5md
 .markdownlint.json
 debug
+/src/ai_core/logs/

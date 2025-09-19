@@ -1,0 +1,16 @@
+numpy<2.0
+ase
+huggingface_hub
+omegaconf
+hydra-core
+torchtnt
+pymatgen
+e3nn
+wandb
+ase_db_backends
+clusterscope
+importlib_metadata
+treelib
+s3fs
+numba
+submitit
