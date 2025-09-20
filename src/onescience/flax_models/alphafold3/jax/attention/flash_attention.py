@@ -522,7 +522,7 @@ def _fwd(
       name="triton_flash_attention",
       out_shape=jax.ShapeDtypeStruct(q.shape, q.dtype),
       grid=(num_heads_q, triton.cdiv(seq_len_q, block_q), batch_size),
-      num_stages=2,
+      num_stages=1,
       num_warps=4,
       is_causal=is_causal,
       use_attention_mask=(mask.size != 0),

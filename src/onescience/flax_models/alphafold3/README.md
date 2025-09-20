@@ -14,9 +14,32 @@ The recommended way to install alphafold3 is as part of the complete OneScience 
 
 ```bash
 # Install OneScience with alphafold3 support
-pip install .
-export ALPHAFOLD3_DEP_DIR=～/osmodels/alphafold3/_dep
-python src/onescience/flax_models/alphafold3/build_extension.py
+
+# install jackhmmer
+mkdir ~/hmmer_build ~/hmmer
+wget http://eddylab.org/software/hmmer/hmmer-3.4.tar.gz --directory-prefix ~/hmmer_build
+cd ~/hmmer_build &&  tar zxf hmmer-3.4.tar.gz && rm hmmer-3.4.tar.gz
+patch -p0 < jackhmmer_seq_limit.patch
+./configure --prefix ~/hmmer
+make -j && make install && cd ./easel && make install
+rm -R /hmmer_build
+
+# install extension
+pip install .[bio] -c constraints.txt
+cp -r /public/onestore/onedatasets/alphafold3/_dep xxx/
+export ALPHAFOLD3_DEP_DIR=/public/onestore/onedatasets/alphafold3/_dep
+cd src/onescience/flax_models/alphafold3/
+python build_extension.py
+
+# optional create mmseqs2 database (please contact ai4s@sugon.com for mmseqs2 program)
+export mmfasta=/root/public_databases
+cd /root/public_databases && mkdir mmseqsDB
+export mmdb=/root/public_databases/mmseqsDB
+export CUDA_VISIBLE_DEVICES=0
+mmseqs createdb $mmfasta/bfd-first_non_consensus_sequences.fasta $mmdb/small_bfd_db --gpu 1 --threads 32 --createdb-mode 2
+mmseqs createdb $mmfasta/mgy_clusters_2022_05.fa $mmdb/mgnify_db --gpu 1 --threads 32 --createdb-mode 2
+mmseqs createdb $mmfasta/uniprot_all_2021_04.fa $mmdb/uniprot_cluster_annot_db --gpu 1 --threads 32 --createdb-mode 2
+mmseqs createdb $mmfasta/uniref90_2022_05.fa $mmdb/uniref90_db --gpu 1 --threads 32 --createdb-mode 2
 ```
 
 ## Usage

@@ -46,10 +46,11 @@ from jax import numpy as jnp
 import numpy as np
 
 
+
 _HOME_DIR = pathlib.Path(os.environ.get('HOME'))
 _DEFAULT_MODEL_DIR = _HOME_DIR / 'models'
 _DEFAULT_DB_DIR = _HOME_DIR / 'public_databases'
-_DEFAULT_MMSEQS_DB_DIR = _HOME_DIR / 'mmseqs_databases'
+_DEFAULT_MMSEQS_DB_DIR = _HOME_DIR / 'public_databases/mmseqsDB'
 
 # Input and output paths.
 _JSON_PATH = flags.DEFINE_string(
@@ -85,9 +86,10 @@ _RUN_INFERENCE = flags.DEFINE_bool(
     'Whether to run inference on the fold inputs.',
 )
 
-# MMSEQS
-_DEFAULT_MMSEQS_OPTIONS ='--num-iterations 1 --db-load-mode 2 -a --max-seqs 10000'
+
+_DEFAULT_MMSEQS_OPTIONS ='--num-iterations 1 --db-load-mode 2 -a --max-seqs 10000 --prefilter-mode 1'
 _DEFAULT_R2MSA_OPTIONS ='--filter-msa 1 --filter-min-enable 1000 --diff 3000 --qid 0.0,0.2,0.4,0.6,0.8,1.0 --qsc 0 --max-seq-id 0.95'
+
 
 _USE_MMSEQS = flags.DEFINE_bool(
     'use_mmseqs',
@@ -109,6 +111,7 @@ _R2MSA_OPTIONS = flags.DEFINE_string(
     _DEFAULT_R2MSA_OPTIONS,
     'mmseqs result2msa options',
 )
+
 
 # Binary paths.
 _JACKHMMER_BINARY_PATH = flags.DEFINE_string(
@@ -203,51 +206,28 @@ _SEQRES_DATABASE_PATH = flags.DEFINE_string(
     'PDB sequence database path, used for template search.',
 )
 
-# MMSEQS CPU Database paths.
-_MMSEQS_CPU_SMALL_BFD_DATABASE_PATH = flags.DEFINE_string(
-    'mmseqs_cpu_small_bfd_database_path',
+# MMSEQS Database paths.
+_MMSEQS_SMALL_BFD_DATABASE_PATH = flags.DEFINE_string(
+    'mmseqs_small_bfd_database_path',
     '${MMSEQS_DB_DIR}/small_bfd_db',
     'Small BFD database path, used for protein MSA search.',
 ) 
-_MMSEQS_CPU_MGNIFY_DATABASE_PATH = flags.DEFINE_string(
-    'mmseqs_cpu_mgnify_database_path',
+_MMSEQS_MGNIFY_DATABASE_PATH = flags.DEFINE_string(
+    'mmseqs_mgnify_database_path',
     '${MMSEQS_DB_DIR}/mgnify_db',
     'Mgnify database path, used for protein MSA search.',
 )
-_MMSEQS_CPU_UNIPROT_CLUSTER_ANNOT_DATABASE_PATH = flags.DEFINE_string(
-    'mmseqs_cpu_uniprot_cluster_annot_database_path',
+_MMSEQS_UNIPROT_CLUSTER_ANNOT_DATABASE_PATH = flags.DEFINE_string(
+    'mmseqs_uniprot_cluster_annot_database_path',
     '${MMSEQS_DB_DIR}/uniprot_cluster_annot_db',
     'UniProt database path, used for protein paired MSA search.',
 )
-_MMSEQS_CPU_UNIREF90_DATABASE_PATH = flags.DEFINE_string(
-    'mmseqs_cpu_uniref90_database_path',
+_MMSEQS_UNIREF90_DATABASE_PATH = flags.DEFINE_string(
+    'mmseqs_uniref90_database_path',
     '${MMSEQS_DB_DIR}/uniref90_db',
-    'UniRef90 database path, used for MSA search. The MSA obtained by '
-    'searching it is used to construct the profile for template search.',
+    'UniRef90 database path, used for MSA search. ',
 )
 
-# MMSEQS GPU Database paths.
-_MMSEQS_GPU_SMALL_BFD_DATABASE_PATH = flags.DEFINE_string(
-    'mmseqs_gpu_small_bfd_database_path',
-    '${MMSEQS_DB_DIR}/small_bfd_gpu_db',
-    'Small BFD database path, used for protein MSA search.',
-)
-_MMSEQS_GPU_MGNIFY_DATABASE_PATH = flags.DEFINE_string(
-    'mmseqs_gpu_mgnify_database_path',
-    '${MMSEQS_DB_DIR}/mgnify_gpu_db',
-    'Mgnify database path, used for protein MSA search.',
-)
-_MMSEQS_GPU_UNIPROT_CLUSTER_ANNOT_DATABASE_PATH = flags.DEFINE_string(
-    'mmseqs_gpu_uniprot_cluster_annot_database_path',
-    '${MMSEQS_DB_DIR}/uniprot_cluster_annot_gpu_db',
-    'UniProt database path, used for protein paired MSA search.',
-)
-_MMSEQS_GPU_UNIREF90_DATABASE_PATH = flags.DEFINE_string(
-    'mmseqs_gpu_uniref90_database_path',
-    '${MMSEQS_DB_DIR}/uniref90_gpu_db',
-    'UniRef90 database path, used for MSA search. The MSA obtained by '
-    'searching it is used to construct the profile for template search.',
-)
 
 # Number of CPUs to use for MSA tools.
 _JACKHMMER_N_CPU = flags.DEFINE_integer(
@@ -564,14 +544,12 @@ def write_outputs(
   ranking_scores = []
   max_ranking_score = None
   max_ranking_result = None
-
   try:
     output_terms = (
         pathlib.Path(onescience.flax_models.alphafold3.cpp.__file__).parent / 'OUTPUT_TERMS_OF_USE.md'
     ).read_text()
   except FileNotFoundError:
-    output_terms = None  # Skip terms of use if file not found
-
+    output_terms = None
   os.makedirs(output_dir, exist_ok=True)
   for results_for_seed in all_inference_results:
     seed = results_for_seed.seed
@@ -589,8 +567,7 @@ def write_outputs(
         max_ranking_score = ranking_score
         max_ranking_result = result
 
-    embeddings = results_for_seed.embeddings
-    if embeddings:
+    if embeddings := results_for_seed.embeddings:
       embeddings_dir = os.path.join(output_dir, f'seed-{seed}_embeddings')
       os.makedirs(embeddings_dir, exist_ok=True)
       post_processing.write_embeddings(
@@ -636,8 +613,7 @@ def replace_db_dir(path_with_db_dir: str, db_dirs: Sequence[str]) -> str:
 def replace_mmseqs_db_dir(
     path_with_db_dir: str, 
     db_dirs: Sequence[str],
-    mmseqs_db_dirs: Sequence[str],
-    use_gpu: bool
+    mmseqs_db_dirs: Sequence[str]
 ) -> str:
   """Replaces the MMSEQS_DB_DIR placeholder in a path with the given MMSEQS_DB_DIR.
   
@@ -652,7 +628,6 @@ def replace_mmseqs_db_dir(
   """
   template = string.Template(path_with_db_dir)
   
-  # 检查是否是 jackhmmer 数据库路径
   is_jackhmmer_db = any(
       path_with_db_dir.endswith(db) for db in [
           'bfd-first_non_consensus_sequences.fasta',
@@ -662,30 +637,24 @@ def replace_mmseqs_db_dir(
       ]
   )
   
-  # 检查是否是 mmseqs 数据库路径
   if 'MMSEQS_DB_DIR' in template.get_identifiers():
-    # 根据 use_gpu 确定要检查的数据库后缀
     db_suffixes = [
-        'small_bfd_gpu_db' if use_gpu else 'small_bfd_db',
-        'mgnify_gpu_db' if use_gpu else 'mgnify_db',
-        'uniprot_cluster_annot_gpu_db' if use_gpu else 'uniprot_cluster_annot_db',
-        'uniref90_gpu_db' if use_gpu else 'uniref90_db'
+        'small_bfd_db',
+        'mgnify_db',
+        'uniprot_cluster_annot_db',
+        'uniref90_db'
     ]
     
-    # 检查是否是 mmseqs 数据库路径
     is_mmseqs_db = any(
         path_with_db_dir.endswith(suffix) for suffix in db_suffixes
     )
     
     for mmseqs_db_dir in mmseqs_db_dirs:
-      # 只替换 MMSEQS_DB_DIR
       path = template.substitute(MMSEQS_DB_DIR=mmseqs_db_dir)
-      # 如果是 mmseqs 数据库路径，检查存在性
       if is_mmseqs_db:
         if os.path.exists(path):
           return path
       else:
-        # 如果不是 mmseqs 数据库路径，直接返回
         return path
     
     if is_mmseqs_db:
@@ -696,14 +665,11 @@ def replace_mmseqs_db_dir(
       
   if 'DB_DIR' in template.get_identifiers():
     for db_dir in db_dirs:
-      # 只替换 DB_DIR
       path = template.substitute(DB_DIR=db_dir)
-      # 如果是 jackhmmer 数据库路径，不检查存在性
       if is_jackhmmer_db:
         return path
       if os.path.exists(path):
         return path
-    # 如果是 jackhmmer 数据库路径，返回第一个路径
     if is_jackhmmer_db:
       return template.substitute(DB_DIR=db_dirs[0])
     raise FileNotFoundError(
@@ -804,11 +770,20 @@ def process_fold_input(
   else:
     print(f'Output will be written in {output_dir}')
 
+   # Create model loader callback function
+  def load_model_callback():
+    if model_runner is not None:
+      _ = model_runner.model_params
+
   if data_pipeline_config is None:
     print('Skipping data pipeline...')
-  else:
-    print('Running data pipeline...')
-    fold_input = pipeline.DataPipeline(data_pipeline_config).process(fold_input)
+    # Load model immediately when skipping pipeline
+    if model_runner is not None:
+      print('Loading model parameters (no pipeline to wait for)...')
+      load_model_callback()
+  else:	
+    print('Running data pipeline...')	
+    fold_input = pipeline.DataPipeline(data_pipeline_config, load_model_callback).process(fold_input)	
 
   write_fold_input_json(fold_input, output_dir)
   if model_runner is None:
@@ -945,36 +920,8 @@ def main(_):
         mmseqs_options=_MMSEQS_OPTIONS.value,
         result2msa_options=_R2MSA_OPTIONS.value,
     )
-    elif not _USE_MMSEQS_GPU.value:
-      expand_path = lambda x: replace_mmseqs_db_dir(x, DB_DIR.value, MMSEQS_DB_DIR.value, False)
-      data_pipeline_config = pipeline.DataPipelineConfig(
-          jackhmmer_binary_path=_JACKHMMER_BINARY_PATH.value,
-          nhmmer_binary_path=_NHMMER_BINARY_PATH.value,
-          hmmalign_binary_path=_HMMALIGN_BINARY_PATH.value,
-          hmmsearch_binary_path=_HMMSEARCH_BINARY_PATH.value,
-          hmmbuild_binary_path=_HMMBUILD_BINARY_PATH.value,
-          mmseqs_binary_path=_MMSEQS_BINARY_PATH.value,
-          small_bfd_database_path=expand_path(_MMSEQS_CPU_SMALL_BFD_DATABASE_PATH.value),
-          mgnify_database_path=expand_path(_MMSEQS_CPU_MGNIFY_DATABASE_PATH.value),
-          uniprot_cluster_annot_database_path=expand_path(
-              _MMSEQS_CPU_UNIPROT_CLUSTER_ANNOT_DATABASE_PATH.value
-          ),
-          uniref90_database_path=expand_path(_MMSEQS_CPU_UNIREF90_DATABASE_PATH.value),
-          ntrna_database_path=expand_path(_NTRNA_DATABASE_PATH.value),
-          rfam_database_path=expand_path(_RFAM_DATABASE_PATH.value),
-          rna_central_database_path=expand_path(_RNA_CENTRAL_DATABASE_PATH.value),
-          pdb_database_path=expand_path(_PDB_DATABASE_PATH.value),
-          seqres_database_path=expand_path(_SEQRES_DATABASE_PATH.value),
-          mmseqs_n_cpu=_MMSEQS_N_CPU.value,
-          nhmmer_n_cpu=_NHMMER_N_CPU.value,
-          max_template_date=max_template_date,
-          use_mmseqs=_USE_MMSEQS.value,
-          use_mmseqs_gpu=_USE_MMSEQS_GPU.value,
-          mmseqs_options=_MMSEQS_OPTIONS.value,
-          result2msa_options=_R2MSA_OPTIONS.value,
-      )
     else:
-      expand_path = lambda x: replace_mmseqs_db_dir(x, DB_DIR.value, MMSEQS_DB_DIR.value, True)
+      expand_path = lambda x: replace_mmseqs_db_dir(x, DB_DIR.value, MMSEQS_DB_DIR.value)
       data_pipeline_config = pipeline.DataPipelineConfig(
           jackhmmer_binary_path=_JACKHMMER_BINARY_PATH.value,
           nhmmer_binary_path=_NHMMER_BINARY_PATH.value,
@@ -982,12 +929,12 @@ def main(_):
           hmmsearch_binary_path=_HMMSEARCH_BINARY_PATH.value,
           hmmbuild_binary_path=_HMMBUILD_BINARY_PATH.value,
           mmseqs_binary_path=_MMSEQS_BINARY_PATH.value,
-          small_bfd_database_path=expand_path(_MMSEQS_GPU_SMALL_BFD_DATABASE_PATH.value),
-          mgnify_database_path=expand_path(_MMSEQS_GPU_MGNIFY_DATABASE_PATH.value),
+          small_bfd_database_path=expand_path(_MMSEQS_SMALL_BFD_DATABASE_PATH.value),
+          mgnify_database_path=expand_path(_MMSEQS_MGNIFY_DATABASE_PATH.value),
           uniprot_cluster_annot_database_path=expand_path(
-              _MMSEQS_GPU_UNIPROT_CLUSTER_ANNOT_DATABASE_PATH.value
+              _MMSEQS_UNIPROT_CLUSTER_ANNOT_DATABASE_PATH.value
           ),
-          uniref90_database_path=expand_path(_MMSEQS_GPU_UNIREF90_DATABASE_PATH.value),
+          uniref90_database_path=expand_path(_MMSEQS_UNIREF90_DATABASE_PATH.value),
           ntrna_database_path=expand_path(_NTRNA_DATABASE_PATH.value),
           rfam_database_path=expand_path(_RFAM_DATABASE_PATH.value),
           rna_central_database_path=expand_path(_RNA_CENTRAL_DATABASE_PATH.value),

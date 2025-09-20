@@ -18,6 +18,7 @@ from onescience.flax_models.alphafold3.data.tools import mmseqs
 import numpy as np
 
 
+
 class Error(Exception):
   """Error indicatating a problem with MSA Search."""
 
@@ -312,7 +313,6 @@ def get_msa_tool(
           use_gpu=msa_tool_config.use_gpu,
           mmseqs_options=msa_tool_config.mmseqs_options,
           result2msa_options=msa_tool_config.result2msa_options,
-          max_sequences=msa_tool_config.max_sequences,
       )
     case _:
       raise ValueError(f'Unknown MSA tool: {msa_tool_config}.')
