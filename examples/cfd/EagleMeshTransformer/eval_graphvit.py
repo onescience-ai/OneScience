@@ -1,0 +1,229 @@
+"""Evaluate the GraphViT model on the Eagle dataset.
+
+Args:
+    --ckpt: path to the model checkpoint
+    --dataset_path: path to the dataset
+    --cluster_path: path to the precomputed clusters
+    --n_cluster: number of clusters to use. Use 1, 10, 20, 30 or 40
+    --w_size: size of the latent representation. Default is 512
+"""
+
+import torch
+import random
+import argparse
+
+import numpy as np
+import torch.nn as nn
+
+from tqdm import tqdm
+from pathlib import Path
+
+from onescience.models.graphvit import GraphViT
+from torch.utils.data import DataLoader
+from onescience.datapipes.eagle import EagleDataset, collate
+import matplotlib.pyplot as plt
+from matplotlib.tri import Triangulation
+import matplotlib.animation as animation
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--ckpt", type=Path)
+parser.add_argument("--dataset-path", default="./Eagle_dataset/", type=Path)
+parser.add_argument("--cluster-path", default="./Eagle_dataset/", type=Path)
+parser.add_argument("--splits-path", default="./splits/", type=Path)
+parser.add_argument("--n-cluster", default=20, type=int)
+parser.add_argument("--w-size", default=512, type=int)
+parser.add_argument(
+    "--max-anim", default=5, type=int, help="Max number of animations to generate"
+)
+args = parser.parse_args()
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+MSE = nn.MSELoss()
+
+
+# 定义可视化函数
+def create_animation(x, velocity, pressure, velocity_hat, pressure_hat, cells, idx):
+    """创建真实值与预测值的对比动图"""
+    # 计算速度幅值
+    v_magnitude = torch.sqrt((velocity**2).sum(-1)).squeeze(0).cpu().numpy()
+    v_hat_magnitude = torch.sqrt((velocity_hat**2).sum(-1)).squeeze(0).cpu().numpy()
+
+    # 获取网格位置
+    mesh_pos = x["mesh_pos"].squeeze(0).cpu().numpy()
+    triangles = cells.squeeze(0).cpu().numpy()[0]  # 形状变为 (7541, 3)
+
+    # 创建图形和轴
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
+    fig.suptitle(f"Simulation Comparison: Ground Truth vs Prediction (Sample {idx})")
+
+    # 创建三角剖分
+    tri = Triangulation(mesh_pos[0, :, 0], mesh_pos[0, :, 1], triangles)
+
+    # 找到颜色范围
+    vmin = min(v_magnitude.min(), v_hat_magnitude.min())
+    vmax = max(v_magnitude.max(), v_hat_magnitude.max())
+
+    # 初始图
+    plot1 = ax1.tripcolor(tri, v_magnitude[0], cmap="jet", vmin=vmin, vmax=vmax)
+    ax1.set_title("Ground Truth Velocity Magnitude")
+    ax1.set_axis_off()
+    ax1.set_aspect("equal")
+    fig.colorbar(plot1, ax=ax1)
+
+    plot2 = ax2.tripcolor(tri, v_hat_magnitude[0], cmap="jet", vmin=vmin, vmax=vmax)
+    ax2.set_title("Predicted Velocity Magnitude")
+    ax2.set_axis_off()
+    ax2.set_aspect("equal")
+    fig.colorbar(plot2, ax=ax2)
+
+    # 更新函数
+    def update(frame):
+        masked_tris = tri.get_masked_triangles()
+        avg_magnitude1 = v_magnitude[frame][masked_tris].mean(axis=1)
+        avg_magnitude2 = v_hat_magnitude[frame][masked_tris].mean(axis=1)
+
+        plot1.set_array(avg_magnitude1)
+        plot2.set_array(avg_magnitude2)
+        fig.suptitle(f"Time Step: {frame}")
+        return plot1, plot2
+
+    # 创建动画
+    anim = animation.FuncAnimation(
+        fig, update, frames=len(v_magnitude), interval=50, blit=True
+    )
+
+    # 检查并创建animation目录
+    animation_dir = Path("animation")
+    animation_dir.mkdir(exist_ok=True)
+
+    # 保存动画到animation目录
+    anim_path = animation_dir / f"comparison_{idx}.gif"
+    anim.save(anim_path, writer="pillow", fps=15)
+    plt.close(fig)
+    print(f"Saved animation to {anim_path}")
+
+
+def evaluate() -> None:
+    """Compute the N-RMSE on the test set of Eagle.
+
+    Predictions are sequences of shape (T, N, 2) (for both velocity and pressure). After
+    denormalization, we compute the RMSE for each time step over the last dimension,
+    and take the mean over the nodes. We then cumulate the RMSE over time and divide by
+    the time step to get the metric at each time step. Finally, we normalize the error
+    by the (norm of) the standard deviation of the velocity and pressure.
+    """
+    torch.manual_seed(3721)
+    torch.cuda.manual_seed(3721)
+    np.random.seed(3721)
+    random.seed(3721)
+
+    L = 251
+    dataset = EagleDataset(
+        data_path=args.dataset_path,
+        cluster_path=args.cluster_path,
+        splits_path=args.splits_path,
+        split="test",
+        window_length=L,
+        n_cluster=args.n_cluster,
+        normalized=True,
+        with_cells=True,
+    )
+
+    dataloader = DataLoader(
+        dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True,
+        collate_fn=collate,
+    )
+    model = GraphViT(state_size=4, w_size=args.w_size).to(device)
+    model.load_state_dict(torch.load(args.ckpt, map_location=device, weights_only=True))
+    anim_count = 0
+    with torch.no_grad(), tqdm(total=len(dataloader)) as pbar:
+        model.eval()
+        arange = torch.arange(1, L).to(device)
+        error_velocity = torch.zeros(L - 1).to(device)
+        error_pressure = torch.zeros(L - 1).to(device)
+
+        p_std = torch.sqrt((dataset.pressure_std**2).sum(-1)).to(device)
+        v_std = torch.sqrt((dataset.velocity_std**2).sum(-1)).to(device)
+
+        for i, x in enumerate(dataloader):
+            mesh_pos = x["mesh_pos"].to(device)
+            edges = x["edges"].to(device).long()
+            velocity = x["velocity"].to(device)
+            pressure = x["pressure"].to(device)
+            node_type = x["node_type"].to(device)
+            mask = x["mask"].to(device)
+            clusters = x["cluster"].to(device).long()
+            clusters_mask = x["cluster_mask"].to(device).long()
+            cells = x["cells"]  # 获取cells用于可视化
+
+            state = torch.cat([velocity, pressure], dim=-1)
+            state_hat, output, target = model(
+                mesh_pos,
+                edges,
+                state,
+                node_type,
+                clusters,
+                clusters_mask,
+                apply_noise=False,
+            )
+
+            # Denormalize
+            velocity_hat, pressure_hat = state_hat[..., :2], state_hat[..., 2:]
+            velocity_hat, pressure_hat = dataset.denormalize(velocity_hat, pressure_hat)
+            velocity, pressure = dataset.denormalize(velocity, pressure)
+
+            # 生成可视化对比 (仅前几个样本)
+            if anim_count < args.max_anim:
+                create_animation(
+                    x,
+                    velocity.detach(),
+                    pressure.detach(),
+                    velocity_hat.detach(),
+                    pressure_hat.detach(),
+                    cells,
+                    anim_count,
+                )
+                anim_count += 1
+
+            # Remove the initial state
+            v_gt, p_gt = velocity[0, 1:], pressure[0, 1:]
+            v_hat, p_hat = velocity_hat[0, 1:], pressure_hat[0, 1:]
+            mask = mask[0, 1:].unsqueeze(-1)
+
+            # Error Norm
+            rmse_velocity = torch.sqrt(((v_gt * mask - v_hat * mask) ** 2).sum(dim=-1))
+            rmse_pressure = torch.sqrt(((p_gt * mask - p_hat * mask) ** 2).sum(dim=-1))
+
+            # Mean over the nodes
+            rmse_velocity = rmse_velocity.mean(1)
+            rmse_pressure = rmse_pressure.mean(1)
+
+            # Cumulative RMSE  计算​​到当前时间步为止​​的平均累积误差
+            rmse_velocity = torch.cumsum(rmse_velocity, dim=0) / arange
+            rmse_pressure = torch.cumsum(rmse_pressure, dim=0) / arange
+
+            # Accumulate the error over the batch 在​​所有测试场景​​上累积误差
+            error_velocity = error_velocity + rmse_velocity
+            error_pressure = error_pressure + rmse_pressure
+
+            # Compute the normalized error
+            error_v = error_velocity / (i + 1) / v_std
+            error_p = error_pressure / (i + 1) / p_std
+            error = error_p + error_v
+            pbar.set_postfix(
+                dict(
+                    error_1=error[0].item(),
+                    error_50=error[49].item(),
+                    error_250=error[249].item(),
+                )
+            )
+            pbar.update(1)
+
+
+if __name__ == "__main__":
+    evaluate()

@@ -61,6 +61,7 @@ pyrsistent
 opencv-python==3.4.18.65
 chex==0.1.90
 flax==0.10.4
+megatron-core==0.14.0rc2
 
 # evo2
 fiddle==0.3.0

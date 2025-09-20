@@ -35,6 +35,8 @@ README.md
 
 ## 训练
 
+单卡训练：
+
 使用以下命令训练BENO，具体使用哪个数据集可以在代码中更改
 
 ```code
@@ -43,7 +45,26 @@ python train.py --dataset_type=32x32 --epochs 1000
 
 运行`python train.py -h`可以查看各参数作用
 
-## 预测
+多卡训练：
+
+```bash
+mpirun -np <num_GPUs> --allow-run-as-root python train.py
+```
+若在 Docker 容器内运行，多GPU命令可能需加 `--allow-run-as-root`。
+
+torchrun启动多节点多卡训练：
+
+```bash
+torchrun --standalone --nnodes=<num_nodes> --nproc_per_node=<num_GPUs> train.py
+```
+
+如果在支持slurm作业调度系统的环境下进行跨节点并行训练，可以执行如下脚本：
+
+```bash
+sbatch slurm.sh
+```
+
+## 推理
 
 要分析结果，请使用以下命令：
 

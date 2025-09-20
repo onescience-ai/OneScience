@@ -85,6 +85,7 @@ basic_requires = [
     # "torch_sparse",
     # "torch_cluster",
     # "torch_spline_conv",
+    "megatron-core",
 ]
 
 
@@ -148,7 +149,9 @@ biology_requires = [
     "tiktoken",
     "s3fs",
     "zarr",
-    "zstandard"
+    "zstandard",
+    "nemo-toolkit", 
+    "bionemo-noodles",
 ]
 
 dev_requires = [
@@ -162,9 +165,18 @@ def parse_requirements_file(filename):
         return [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
 
+# def resolve(requires, deps_dict):
+#     """Convert a list of dependencies to a set of requirements."""
+#     return [deps_dict[require] for require in requires] # select some values in deps_dict
+
 def resolve(requires, deps_dict):
-    """Convert a list of dependencies to a set of requirements."""
-    return [deps_dict[require] for require in requires] # select some values in deps_dict
+    resolved = []
+    for require in requires:
+        if require in deps_dict:
+            resolved.append(deps_dict[require])
+        else:
+            resolved.append(require)  # 没在 requirements.txt 里就用裸名字
+    return resolved
 
 
 extras = {}
