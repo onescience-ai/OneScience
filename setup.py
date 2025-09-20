@@ -80,11 +80,11 @@ basic_requires = [
     "opt_einsum",
     "prettytable",
     "matplotlib",
-    "torch_geometric",
-    "torch_scatter",
-    "torch_sparse",
-    "torch_cluster",
-    "torch_spline_conv",
+    # "torch_geometric",
+    # "torch_scatter",
+    # "torch_sparse",
+    # "torch_cluster",
+    # "torch_spline_conv",
 ]
 
 
@@ -148,6 +148,7 @@ biology_requires = [
     "tiktoken",
     "s3fs",
     "zarr",
+    "zstandard"
 ]
 
 dev_requires = [
@@ -177,12 +178,12 @@ extras["quantum"] = resolve(quantum_requires, deps)
 extras["dev"] = resolve(dev_requires, deps)
 extras["all"] = one_deps
 
-extras["bio"].append("nemo-toolkit @ file://" + \
-                    os.path.abspath('./examples/proteinrepresent/evo2/3rdparty/NeMo'))
-extras["bio"].append("megatron-core @ file://" + \
-                    os.path.abspath('./examples/proteinrepresent/evo2/3rdparty/Megatron-LM'))
-extras["bio"].append("noodles @ file://" + \
-                    os.path.abspath('./examples/proteinrepresent/evo2/3rdparty/noodles'))
+# extras["bio"].append("nemo-toolkit @ file://" + \
+#                     os.path.abspath('./examples/proteinrepresent/evo2/3rdparty/NeMo'))
+# extras["bio"].append("megatron-core @ file://" + \
+#                     os.path.abspath('./examples/proteinrepresent/evo2/3rdparty/Megatron-LM'))
+# extras["bio"].append("noodles @ file://" + \
+#                     os.path.abspath('./examples/proteinrepresent/evo2/3rdparty/noodles'))
 # extras["bio"].append("mamba_ssm @ file://" + \
                     # os.path.abspath('./src/onescience/src/onescience/models/evo2/3rdparty/mamba-2.2.2'))
 # extras["bio"].append("causal_conv1d @ file://" + \

@@ -17,6 +17,7 @@ from onescience.flax_models.alphafold3.data import structure_stores
 from onescience.flax_models.alphafold3.data import templates as templates_lib
 
 
+
 # Cache to avoid re-running template search for the same sequence in homomers.
 @functools.cache
 def _get_protein_templates(
@@ -69,6 +70,7 @@ def _get_protein_msa_and_templates(
     uniprot_msa_config: msa_config.RunConfig,
     templates_config: msa_config.TemplatesConfig,
     pdb_database_path: str,
+    model_loader_callback=None,
 ) -> tuple[msa.Msa, msa.Msa, templates_lib.Templates]:
   """Processes a single protein chain."""
   logging.info('Getting protein MSAs for sequence %s', sequence)
@@ -109,6 +111,11 @@ def _get_protein_msa_and_templates(
       time.time() - msa_start_time,
       sequence,
   )
+  
+  # Load model after protein MSAs are completed
+  if model_loader_callback is not None:
+    logging.info('Protein MSAs completed. Loading model parameters...')
+    model_loader_callback()
 
   logging.info('Deduplicating MSAs for sequence %s', sequence)
   msa_dedupe_start_time = time.time()
@@ -260,7 +267,7 @@ class DataPipelineConfig:
 class DataPipeline:
   """Runs the alignment tools and assembles the input features."""
 
-  def __init__(self, data_pipeline_config: DataPipelineConfig):
+  def __init__(self, data_pipeline_config: DataPipelineConfig, model_loader_callback=None):
     """Initializes the data pipeline with default configurations."""
     if not data_pipeline_config.use_mmseqs:
       self._uniref90_msa_config = msa_config.RunConfig(
@@ -474,6 +481,7 @@ class DataPipeline:
         ),
     )
     self._pdb_database_path = data_pipeline_config.pdb_database_path
+    self._model_loader_callback = model_loader_callback
 
   def process_protein_chain(
       self, chain: folding_input.ProteinChain
@@ -494,6 +502,7 @@ class DataPipeline:
           uniprot_msa_config=self._uniprot_msa_config,
           templates_config=self._templates_config,
           pdb_database_path=self._pdb_database_path,
+          model_loader_callback=self._model_loader_callback,
       )
       unpaired_msa = unpaired_msa.to_a3m()
       paired_msa = paired_msa.to_a3m()
