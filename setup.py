@@ -165,19 +165,9 @@ def parse_requirements_file(filename):
         return [line.strip() for line in f if line.strip() and not line.startswith("#")]
 
 
-# def resolve(requires, deps_dict):
-#     """Convert a list of dependencies to a set of requirements."""
-#     return [deps_dict[require] for require in requires] # select some values in deps_dict
-
 def resolve(requires, deps_dict):
-    resolved = []
-    for require in requires:
-        if require in deps_dict:
-            resolved.append(deps_dict[require])
-        else:
-            resolved.append(require)  # 没在 requirements.txt 里就用裸名字
-    return resolved
-
+    """Convert a list of dependencies to a set of requirements."""
+    return [deps_dict[require] for require in requires] # select some values in deps_dict
 
 extras = {}
 
@@ -189,17 +179,6 @@ extras["chem"] = resolve(chemistry_requires, deps)
 extras["quantum"] = resolve(quantum_requires, deps)
 extras["dev"] = resolve(dev_requires, deps)
 extras["all"] = one_deps
-
-# extras["bio"].append("nemo-toolkit @ file://" + \
-#                     os.path.abspath('./examples/proteinrepresent/evo2/3rdparty/NeMo'))
-# extras["bio"].append("megatron-core @ file://" + \
-#                     os.path.abspath('./examples/proteinrepresent/evo2/3rdparty/Megatron-LM'))
-# extras["bio"].append("noodles @ file://" + \
-#                     os.path.abspath('./examples/proteinrepresent/evo2/3rdparty/noodles'))
-# extras["bio"].append("mamba_ssm @ file://" + \
-                    # os.path.abspath('./src/onescience/src/onescience/models/evo2/3rdparty/mamba-2.2.2'))
-# extras["bio"].append("causal_conv1d @ file://" + \
-#                     os.path.abspath('./src/onescience/src/onescience/models/evo2/3rdparty/causal-conv1d-1.5.2'))
 
 setup(
     name="onescience",
