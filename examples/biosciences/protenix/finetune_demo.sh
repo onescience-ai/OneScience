@@ -1,10 +1,10 @@
-# export LAYERNORM_TYPE=fast_layernorm
-# export USE_DEEPSPEED_EVO_ATTTENTION=true
-# wget -P /af3-dev/release_model/ https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.2.0.pt
 # wget -P /af3-dev/release_model/ https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.5.0.pt
-checkpoint_path="/af3-dev/release_model/model_v0.5.0.pt"
+checkpoint_path="/public/home/onescience2025404/protenix_model/model_v0.5.0.pt"
 
-export PYTHONPATH=<current_path>:$PYTHONPATH
+export PYTHONPATH=$(pwd):$PYTHONPATH
+export DATA_ROOT_DIR=/public/onestore/onedatasets/protenix/
+export HIP_VISIBLE_DEVICES=1 # 指定运行gpu
+
 python3 ./runner/train.py \
 --run_name protenix_finetune \
 --seed 42 \

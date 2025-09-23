@@ -1,16 +1,16 @@
-# export LAYERNORM_TYPE=fast_layernorm
-# export USE_DEEPSPEED_EVO_ATTTENTION=true
-
 N_sample=5
 N_step=200
 N_cycle=10
 seed=101
 use_deepspeed_evo_attention=false
 input_json_path="./infer_datasets/example.json"
-# wget -P /af3-dev/release_model/ https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.2.0.pt
-load_checkpoint_path="/af3-dev/release_model/model_v0.5.0.pt"
+# wget -P /af3-dev/release_model/ https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.5.0.pt
+load_checkpoint_path="/public/home/onescience2025404/protenix_model/model_v0.5.0.pt"
 dump_dir="./output"
-export PYTHONPATH=<current_path>:$PYTHONPATH
+
+export PYTHONPATH=$(pwd):$PYTHONPATH
+export DATA_ROOT_DIR=/public/onestore/onedatasets/protenix/
+export HIP_VISIBLE_DEVICES=0 # 指定运行gpu
 python3 runner/inference.py \
 --seeds ${seed} \
 --dtype bf16 \
