@@ -1,5 +1,5 @@
 # wget -P /af3-dev/release_model/ https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.5.0.pt
-checkpoint_path="/public/home/onescience2025404/protenix_model/model_v0.5.0.pt"
+checkpoint_path="/public/onestore/onemodels/Protenix/model_v0.5.0.pt"
 
 export PYTHONPATH=$(pwd):$PYTHONPATH
 export DATA_ROOT_DIR=/public/onestore/onedatasets/protenix/
