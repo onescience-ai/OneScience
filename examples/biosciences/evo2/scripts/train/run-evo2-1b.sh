@@ -1,10 +1,10 @@
 #/bin/bash
 
-PROJECT_ROOT=$(python -c "from pathlib import Path; print(Path(__name__).resolve().parents[4])")
+PROJECT_ROOT=$(python -c "from pathlib import Path; print(Path(__name__).resolve().parents[5])")
 
 echo "ONESCIENCE_PATH:" $PROJECT_ROOT
 
-cd $PROJECT_ROOT/biosciences/evo2/checkpoint/evo2-1b
+cd $PROJECT_ROOT/examples/biosciences/evo2/checkpoint/evo2-1b
 
 DIRS=(
     "./lightning_logs"
@@ -21,11 +21,11 @@ for DIR in "${DIRS[@]}"; do
 done
 
 # srun -N1 --ntasks-per-node=8 python $PROJECT_ROOT/examples/evo2/example/train_one_node.py\\
-# -d $PROJECT_ROOT/biosciences/evo2/config/training_data_config.yaml\
-# --dataset-dir $PROJECT_ROOT/biosciences/evo2/data/data_evo2_612\
-python  $PROJECT_ROOT/biosciences/evo2/train_one_node.py\
-    -d $PROJECT_ROOT/biosciences/evo2/config/training_data_config.yaml\
-    --dataset-dir $PROJECT_ROOT/biosciences/evo2/data/data_evo2_612\
+# -d $PROJECT_ROOT/examples/biosciences/evo2/config/training_data_config.yaml\
+# --dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data/data_evo2_612\
+python  $PROJECT_ROOT/examples/biosciences/evo2/train_one_node.py\
+    -d $PROJECT_ROOT/examples/biosciences/evo2/config/training_data_config.yaml\
+    --dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data/data_evo2_612\
     --model-size 7b_arc_longcontext\
     --devices 4 \
     --num-nodes 1 \

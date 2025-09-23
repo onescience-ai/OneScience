@@ -9,6 +9,8 @@
 
 source ~/dtk/dtk-25.04.1/env.sh
 source ~/dtk/dtk-25.04.1/cuda/env.sh
+module load compilers/gcc/12.2.0
+source ~/conda.env
 conda activate test-evo2env
 unset ROCBLAS_TENSILE_LIBPATH 
 

@@ -25,11 +25,11 @@ HDO=0.01
 # echo "SLURM_JOB_NUM_NODES: $SLURM_JOB_NUM_NODES"
 # echo "SLURM_NTASKS_PER_NODE: $SLURM_NTASKS_PER_NODE" 
 
-PROJECT_ROOT=$(python -c "from pathlib import Path; print(Path(__name__).resolve().parents[4])")
+PROJECT_ROOT=$(python -c "from pathlib import Path; print(Path(__name__).resolve().parents[5])")
 
 echo "ONESCIENCE_PATH:" $PROJECT_ROOT
 
-cd $PROJECT_ROOT/examples/proteinrepresent/evo2/checkpoint/evo2-7b
+cd $PROJECT_ROOT/examples/biosciences/evo2/checkpoint/evo2-7b
 
 DIRS=(
     "./lightning_logs"
@@ -45,9 +45,9 @@ for DIR in "${DIRS[@]}"; do
     fi
 done
 
-python $PROJECT_ROOT/examples/proteinrepresent/evo2/train_slurm.py\
-    -d $PROJECT_ROOT/examples/proteinrepresent/evo2/config/training_data_config.yaml\
-    --dataset-dir $PROJECT_ROOT2/examples/proteinrepresent/evo2/data_evo2_612\
+python $PROJECT_ROOT/examples/biosciences/evo2/train_slurm.py\
+    -d $PROJECT_ROOT/examples/biosciences/evo2/config/training_data_config.yaml\
+    --dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data/data_evo2_612\
     --model-size 7b_arc_longcontext \
     --devices 4 \
     --num-nodes 4 \
