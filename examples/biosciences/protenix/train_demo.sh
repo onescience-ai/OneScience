@@ -1,6 +1,9 @@
-# export LAYERNORM_TYPE=fast_layernorm
-# export USE_DEEPSPEED_EVO_ATTTENTION=true
-export PYTHONPATH=<current_path>:$PYTHONPATH
+
+export PYTHONPATH=$(pwd):$PYTHONPATH
+export DATA_ROOT_DIR=/public/onestore/onedatasets/protenix/
+export HIP_VISIBLE_DEVICES=2 # 指定运行gpu
+
+
 python3 ./runner/train.py \
 --run_name protenix_train \
 --seed 42 \
