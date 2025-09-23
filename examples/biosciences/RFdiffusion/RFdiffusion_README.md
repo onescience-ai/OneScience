@@ -67,7 +67,7 @@ tar -xvf examples/ppi_scaffolds_subset.tar.gz -C examples/
 - 生成10次
 
 ```shell
-./scripts/run_inference.py 'contigmap.contigs=[100-200]' inference.output_prefix=test_outputs/test inference.num_designs=10
+python ./scripts/run_inference.py 'contigmap.contigs=[100-200]' inference.output_prefix=test_outputs/test inference.num_designs=10
 ```
 
 运行此命令后，RFdiffusion 会生成 10 条扩散轨迹（diffusion trajectories），并将结果保存到您指定的输出文件夹中。

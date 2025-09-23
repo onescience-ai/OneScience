@@ -4,20 +4,18 @@
 
 阅读 [ProteinMPNN 论文](https://www.biorxiv.org/content/10.1101/2022.06.03.494563v1)。
 
-要运行 ProteinMPNN，请克隆该 GitHub 仓库并安装 Python>=3.0、PyTorch 和 Numpy。
-
 ### 全蛋白骨架模型：
 - `vanilla_model_weights/v_48_002.pt, v_48_010.pt, v_48_020.pt, v_48_030.pt`
 - `soluble_model_weights/v_48_010.pt, v_48_020.pt`
 
 ### 仅 CA 模型：
 - `ca_model_weights/v_48_002.pt, v_48_010.pt, v_48_020.pt`
-- 启用 `--ca_only` 标志以使用这些模型。
+- 启用 `--ca_only` 参数以使用这些模型。
 
 ### 辅助脚本：
 - `helper_scripts`：用于解析 PDB 文件的辅助函数，指定需要设计的链、固定的残基、添加氨基酸偏差、绑定残基等。
 
-### 代码组织：
+### 代码结构：
 * `protein_mpnn_run.py` - 初始化并运行模型的主脚本。
 * `protein_mpnn_utils.py` - 主脚本的辅助函数。
 * `examples/` - 简单的代码示例。
@@ -28,13 +26,13 @@
 
 ---
 
-### `protein_mpnn_run.py` 输入标志：
+### `protein_mpnn_run.py` 输入参数：
 ```bash
 argparser.add_argument("--suppress_print", type=int, default=0, help="0 为 False，1 为 True")
 argparser.add_argument("--ca_only", action="store_true", default=False, help="解析仅 CA 的结构并使用仅 CA 的模型（默认：false）")
 argparser.add_argument("--path_to_model_weights", type=str, default="", help="模型权重文件夹的路径；")
 argparser.add_argument("--model_name", type=str, default="v_48_020", help="ProteinMPNN 模型名称：v_48_002, v_48_010, v_48_020, v_48_030；v_48_010=具有 48 条边且噪声为 0.10A 的版本")
-argparser.add_argument("--use_soluble_model", action="store_true", default=False, help="加载仅在可溶蛋白上训练的 ProteinMPNN 权重的标志。")
+argparser.add_argument("--use_soluble_model", action="store_true", default=False, help="加载仅在可溶蛋白上训练的 ProteinMPNN 权重。")
 argparser.add_argument("--seed", type=int, default=0, help="如果设置为 0，则随机选择种子；")
 argparser.add_argument("--save_score", type=int, default=0, help="0 为 False，1 为 True；保存分数 = -log_prob 到 npy 文件")
 argparser.add_argument("--path_to_fasta", type=str, default="", help="以 fasta 格式提供的输入序列的路径；例如：GGGGGG/PPPPS/WWW，链 A、B、C 按字母顺序排序并用 / 分隔")
@@ -65,12 +63,6 @@ argparser.add_argument("--pssm_log_odds_flag", type=int, default=0, help="0 为 
 argparser.add_argument("--pssm_bias_flag", type=int, default=0, help="0 为 False，1 为 True")
 argparser.add_argument("--tied_positions_jsonl", type=str, default='', help="包含绑定位点的字典路径")
 ```
-
------------------------------------------------------------------------------------------------------
-例如，创建一个 Conda 环境来运行 ProteinMPNN：
-* `conda create --name mlfold` - 创建名为 `mlfold` 的 Conda 环境
-* `source activate mlfold` - 激活该环境
-* `conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch` - 安装 PyTorch，参考 https://pytorch.org/
 
 -----------------------------------------------------------------------------------------------------
 提供的 `examples/`:
