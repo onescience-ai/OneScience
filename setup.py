@@ -150,10 +150,9 @@ biology_requires = [
     "s3fs",
     "zarr",
     "zstandard",
-    # "nemo-toolkit",
-    # "noodles",
+    "noodles",
     "psutil",
-    "transformer",
+    "transformers",
 ]
 
 dev_requires = [

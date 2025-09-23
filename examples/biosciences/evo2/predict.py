@@ -35,9 +35,9 @@ from nemo.lightning import NeMoLogger
 from nemo.lightning.data import WrappedDataLoader
 from torch import Tensor
 
-from onescience.models.evo2.src.data.fasta_dataset import SimpleFastaDataset
-from onescience.models.evo2.src.lightning import LightningPassthroughPredictionMixin
-from onescience.models.evo2.src.utils.callbacks import PredictionWriter
+from onescience.models.evo2.data.fasta_dataset import SimpleFastaDataset
+from onescience.models.evo2.lightning import LightningPassthroughPredictionMixin
+from onescience.models.evo2.utils.callbacks import PredictionWriter
 
 # from bionemo.llm.lightning import LightningPassthroughPredictionMixin
 # from bionemo.evo2.data.fasta_dataset import SimpleFastaDataset

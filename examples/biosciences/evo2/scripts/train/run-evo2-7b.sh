@@ -1,7 +1,7 @@
 #/bin/bash
 
 PROJECT_ROOT=$(python -c "from pathlib import Path; print(Path(__name__).resolve().parents[4])")
-# /public/home/onescience2025404/biao.liu/onescience-evo2/examples
+
 echo "ONESCIENCE_PATH:" $PROJECT_ROOT
 
 cd $PROJECT_ROOT/biosciences/evo2/checkpoint/evo2-7b
@@ -25,9 +25,9 @@ done
 # --dataset-dir $PROJECT_ROOT/biosciences/evo2/data/data_evo2_612\
 python  $PROJECT_ROOT/biosciences/evo2/example/train_one_node.py\
     -d $PROJECT_ROOT/biosciences/evo2/config/test_data_config.yaml\
-    --dataset-dir /public/home/onescience2025404/khren/onescience/data/promoters/pretraining_data_promoters\
+    --dataset-dir $PROJECT_ROOT/biosciences/evo2/data/data_evo2_612\
     --model-size 7b_arc_longcontext\
-    --devices 8 \
+    --devices 4 \
     --num-nodes 1 \
     --seq-length 8192 \
     --micro-batch-size 2 \
