@@ -12,37 +12,38 @@ from datetime import datetime, timedelta
 
 
 class ERA5HDF5Datapipe(Datapipe):
-    def __init__(self, params, distributed, num_steps=1):
+    def __init__(self, params, distributed, num_steps=1, input_steps=1):
         self.params = params
         self.distributed = distributed
         self.num_steps = num_steps
+        self.input_steps = input_steps
 
     def train_dataloader(self):
-        data = ERA5Dataset(params=self.params, data_paths=self.params.train_data_dir, num_steps=self.num_steps)
+        data = ERA5Dataset(params=self.params, data_paths=self.params.train_data_dir, num_steps=self.num_steps, input_steps=self.input_steps)
         sampler = DistributedSampler(data, shuffle=True) if self.distributed else None
         data_loader = DataLoader(data,
                                  batch_size=self.params.batch_size,
-                                 drop_last=True,
+                                 drop_last=True if self.distributed else False,
                                  num_workers=self.params.num_workers,
                                  pin_memory=True,
-                                 shuffle=False if self.distributed else True,
+                                 shuffle=False,
                                  sampler=sampler)
         return data_loader, sampler
 
     def val_dataloader(self):
-        data = ERA5Dataset(params=self.params, data_paths=self.params.val_data_dir, num_steps=self.num_steps)
+        data = ERA5Dataset(params=self.params, data_paths=self.params.val_data_dir, num_steps=self.num_steps, input_steps=self.input_steps)
         sampler = DistributedSampler(data, shuffle=False) if self.distributed else None
         data_loader = DataLoader(data,
                                  batch_size=self.params.batch_size,
-                                 drop_last=True,
+                                 drop_last=True if self.distributed else False,
                                  num_workers=self.params.num_workers,
                                  pin_memory=True,
-                                 shuffle=False if self.distributed else True,
+                                 shuffle=False,
                                  sampler=sampler)
         return data_loader, sampler
 
     def test_dataloader(self):
-        data = ERA5Dataset(params=self.params, data_paths=self.params.test_data_dir, num_steps=self.num_steps)
+        data = ERA5Dataset(params=self.params, data_paths=self.params.test_data_dir, num_steps=self.num_steps, input_steps=self.input_steps)
         data_loader = DataLoader(data,
                                  batch_size=self.params.batch_size,
                                  drop_last=False,
@@ -53,7 +54,7 @@ class ERA5HDF5Datapipe(Datapipe):
 
 
 class ERA5Dataset(Dataset):
-    def __init__(self, params, data_paths, num_steps=1, patch_size=[1, 1]):
+    def __init__(self, params, data_paths, num_steps=1, input_steps=1, patch_size=[1, 1]):
         self.params = params
         self.data_files = None
         self.data_dir = data_paths
@@ -62,6 +63,7 @@ class ERA5Dataset(Dataset):
         self.sd = np.load(f'{self.params.stats_dir}/global_stds.npy')
         self.patch_size = patch_size
         self.num_steps = num_steps
+        self.input_steps = input_steps
         self.parse_dataset_files()
 
     def parse_dataset_files(self):
@@ -77,12 +79,12 @@ class ERA5Dataset(Dataset):
             with h5py.File(self.data_paths[i], "r") as f:
                 if data_samples_per_year > f["fields"].shape[0]:
                     data_samples_per_year = f["fields"].shape[0]
-        self.num_samples_per_year = data_samples_per_year - self.num_steps
+        self.num_samples_per_year = data_samples_per_year - self.num_steps - (self.input_steps - 1)
         self.total_length = self.n_years * self.num_samples_per_year
         self.start_year = int(self.data_paths[0][-7:-3])
         self.dt = self.params.time_res
         self.latlon_bounds = ((90, -90), (0, 360))
-        latlon = latlon_grid(bounds=self.latlon_bounds, shape=self.params.img_size)
+        latlon = latlon_grid(bounds=self.latlon_bounds, shape=self.params.img_size[-2:])
         self.latlon_torch = torch.tensor(np.stack(latlon, axis=0), dtype=torch.float32)
 
     def __getitem__(self, idx):
@@ -93,11 +95,11 @@ class ERA5Dataset(Dataset):
         step_idx = idx % self.num_samples_per_year
 
         invar_data = self.data_files[file_idx]["fields"]
-        invar = invar_data[step_idx: step_idx + 1]
+        invar = invar_data[step_idx: step_idx + self.input_steps]
         # shape is [1, N, H, W]
 
         outvar_data = self.data_files[file_idx]["fields"]
-        outvar = outvar_data[step_idx + 1: step_idx + 1 + self.num_steps]
+        outvar = outvar_data[step_idx + self.input_steps: step_idx + self.input_steps + self.num_steps]
         # shape is [self.num_steps, N, H, W]
 
         invar = torch.as_tensor(invar)

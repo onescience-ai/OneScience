@@ -349,3 +349,49 @@ class SSIM(torch.nn.Module):
             ssim = ssim + self.mse(predicted, target)
 
         return ssim
+
+
+class LatitudeWeightedLoss(torch.nn.Module):
+    """
+    Latitude-weighted L1 loss for ERA5 0.25° global grid (721x1440).
+    Weight is computed as cos(latitude), reflecting actual grid cell area.
+    
+    Supports both L1 losses.
+
+    Parameters
+    ----------
+    loss_type : str
+        Either "l1" .
+    normalize : bool
+        Whether to normalize the weights so that their mean is 1.
+    """
+
+    def __init__(self, loss_type="l1", normalize=True):
+        super().__init__()
+        assert loss_type in ["l1"], "Temporarily, only l1 loss is supported."
+        self.loss_type = loss_type
+
+        # 构造纬度加权因子（从 +90° 到 -90° 共 721 行）
+        latitudes = torch.linspace(90, -90, steps=721)
+        weights = torch.cos(torch.deg2rad(latitudes)).clamp(min=0)  # shape: [721]
+
+        if normalize:
+            weights = weights / weights.mean()
+
+        # 注册为 buffer，确保在 .cuda() / .to() 时自动移动设备
+        self.register_buffer("latitude_weights", weights.view(1, 1, 721, 1))  # shape: [1, 1, H, 1]
+
+    def forward(self, pred, target):
+
+        assert pred.shape == target.shape, f"Shape mismatch, var1 shape is :{pred.shape}, while var2 is {target.shape}"
+        assert pred.shape[-2:] == (721, 1440), "Expected spatial shape (721, 1440), if not use this grid, please change this function in src/onescience/metrics/climate/loss.py"
+
+        error = pred - target
+        if self.loss_type == "l1":
+            error = torch.abs(error)
+
+        # 应用纬度权重
+        weighted_error = error * self.latitude_weights
+
+        # 返回加权平均损失
+        return weighted_error.mean()

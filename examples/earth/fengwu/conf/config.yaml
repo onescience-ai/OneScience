@@ -1,0 +1,69 @@
+fengwu:
+
+    start_epoch: 0
+    max_epoch: 50
+
+    lr: 1E-3
+
+    num_blocks: 8
+
+    channels:  ['10m_u_component_of_wind_0', '10m_v_component_of_wind_0', '2m_temperature_0', 'mean_sea_level_pressure_0', 
+                # 上面是4组地面变量，下面是5个大气变量，每个37组气压
+                'geopotential_1', 'geopotential_2', 'geopotential_3', 'geopotential_5', 'geopotential_7', 'geopotential_10', 'geopotential_20', 'geopotential_30', 
+                'geopotential_50', 'geopotential_70', 'geopotential_100', 'geopotential_125', 'geopotential_150', 'geopotential_175', 'geopotential_200', 'geopotential_225', 
+                'geopotential_250', 'geopotential_300', 'geopotential_350', 'geopotential_400', 'geopotential_450', 'geopotential_500', 'geopotential_550', 'geopotential_600', 
+                'geopotential_650', 'geopotential_700', 'geopotential_750', 'geopotential_775', 'geopotential_800', 'geopotential_825', 'geopotential_850', 'geopotential_875', 
+                'geopotential_900', 'geopotential_925', 'geopotential_950', 'geopotential_975', 'geopotential_1000',
+
+                'relative_humidity_1', 'relative_humidity_2', 'relative_humidity_3', 'relative_humidity_5', 'relative_humidity_7', 'relative_humidity_10', 'relative_humidity_20', 
+                'relative_humidity_30', 'relative_humidity_50', 'relative_humidity_70', 'relative_humidity_100', 'relative_humidity_125', 'relative_humidity_150', 'relative_humidity_175', 
+                'relative_humidity_200', 'relative_humidity_225', 'relative_humidity_250', 'relative_humidity_300', 'relative_humidity_350', 'relative_humidity_400', 'relative_humidity_450', 
+                'relative_humidity_500', 'relative_humidity_550', 'relative_humidity_600', 'relative_humidity_650', 'relative_humidity_700', 'relative_humidity_750', 'relative_humidity_775', 
+                'relative_humidity_800', 'relative_humidity_825', 'relative_humidity_850', 'relative_humidity_875', 'relative_humidity_900', 'relative_humidity_925', 'relative_humidity_950', 
+                'relative_humidity_975', 'relative_humidity_1000',
+
+                'u_component_of_wind_1', 'u_component_of_wind_2', 'u_component_of_wind_3', 'u_component_of_wind_5', 'u_component_of_wind_7', 'u_component_of_wind_10', 'u_component_of_wind_20', 
+                'u_component_of_wind_30', 'u_component_of_wind_50', 'u_component_of_wind_70', 'u_component_of_wind_100', 'u_component_of_wind_125', 'u_component_of_wind_150', 'u_component_of_wind_175', 
+                'u_component_of_wind_200', 'u_component_of_wind_225', 'u_component_of_wind_250', 'u_component_of_wind_300', 'u_component_of_wind_350', 'u_component_of_wind_400', 'u_component_of_wind_450', 
+                'u_component_of_wind_500', 'u_component_of_wind_550', 'u_component_of_wind_600', 'u_component_of_wind_650', 'u_component_of_wind_700', 'u_component_of_wind_750', 'u_component_of_wind_775', 
+                'u_component_of_wind_800', 'u_component_of_wind_825', 'u_component_of_wind_850', 'u_component_of_wind_875', 'u_component_of_wind_900', 'u_component_of_wind_925', 'u_component_of_wind_950', 
+                'u_component_of_wind_975', 'u_component_of_wind_1000',
+
+                'v_component_of_wind_1', 'v_component_of_wind_2', 'v_component_of_wind_3', 'v_component_of_wind_5', 'v_component_of_wind_7', 'v_component_of_wind_10', 'v_component_of_wind_20', 
+                'v_component_of_wind_30', 'v_component_of_wind_50', 'v_component_of_wind_70', 'v_component_of_wind_100', 'v_component_of_wind_125', 'v_component_of_wind_150', 'v_component_of_wind_175', 
+                'v_component_of_wind_200', 'v_component_of_wind_225', 'v_component_of_wind_250', 'v_component_of_wind_300', 'v_component_of_wind_350', 'v_component_of_wind_400', 'v_component_of_wind_450', 
+                'v_component_of_wind_500', 'v_component_of_wind_550', 'v_component_of_wind_600', 'v_component_of_wind_650', 'v_component_of_wind_700', 'v_component_of_wind_750', 'v_component_of_wind_775', 
+                'v_component_of_wind_800', 'v_component_of_wind_825', 'v_component_of_wind_850', 'v_component_of_wind_875', 'v_component_of_wind_900', 'v_component_of_wind_925', 'v_component_of_wind_950', 
+                'v_component_of_wind_975', 'v_component_of_wind_1000',
+
+                'temperature_1', 'temperature_2', 'temperature_3', 'temperature_5', 'temperature_7', 'temperature_10', 'temperature_20', 'temperature_30', 'temperature_50', 'temperature_70', 'temperature_100', 
+                'temperature_125', 'temperature_150', 'temperature_175', 'temperature_200', 'temperature_225', 'temperature_250', 'temperature_300', 'temperature_350', 'temperature_400', 'temperature_450', 
+                'temperature_500', 'temperature_550', 'temperature_600', 'temperature_650', 'temperature_700', 'temperature_750', 'temperature_775', 'temperature_800', 'temperature_825', 'temperature_850', 
+                'temperature_875', 'temperature_900', 'temperature_925', 'temperature_950', 'temperature_975', 'temperature_1000'
+                ]
+
+    img_size: [721, 1440]
+    patch_size: [4, 4]
+    embed_dim: 192
+    num_heads: [6, 12, 12, 6]
+    window_size: [2, 6, 12]
+    pressure_level: 37
+
+    num_samples_per_year: None
+    num_steps: 1
+    time_res: 6
+    stats_dir: "/work/share/ac8hkycjba/osdatasets/FengWu/stats"
+    checkpoint_dir : "./checkpoints"
+    mask_dtype: "float32"
+    batch_size: 1
+    num_workers: 1
+    patience: 50
+
+    train_data_dir: '/work/share/ac8hkycjba/osdatasets/FengWu/train/' 
+    val_data_dir: '/work/share/ac8hkycjba/osdatasets/FengWu/valid'
+    test_data_dir: "/work/share/ac8hkycjba/osdatasets/FengWu/test"
+
+
+
+
+

@@ -1,0 +1,67 @@
+fuxi:
+
+    start_epoch: 0
+    max_epoch: 50
+
+    train_lr: 2.5E-4
+    finetune_lr: 1E-7
+
+    num_blocks: 8
+
+    channels:  ['10m_u_component_of_wind_0', '10m_v_component_of_wind_0', '2m_temperature_0', 'mean_sea_level_pressure_0', 'total_precipitation',
+                # 上面是5组地面变量，下面是5个大气变量，每个13组气压，共70
+                
+                'geopotential_50', 'geopotential_100', 'geopotential_150', 'geopotential_200', 'geopotential_250', 
+                'geopotential_300', 'geopotential_400', 'geopotential_500', 'geopotential_600', 'geopotential_700', 
+                'geopotential_850', 'geopotential_925', 'geopotential_1000',
+
+                'relative_humidity_50',  'relative_humidity_100', 'relative_humidity_150', 'relative_humidity_200', 'relative_humidity_250', 
+                'relative_humidity_300', 'relative_humidity_400', 'relative_humidity_500', 'relative_humidity_600', 'relative_humidity_700', 
+                'relative_humidity_850','relative_humidity_925', 'relative_humidity_1000',
+
+                'u_component_of_wind_50', 'u_component_of_wind_100', 'u_component_of_wind_150', 'u_component_of_wind_200', 'u_component_of_wind_250', 
+                'u_component_of_wind_300', 'u_component_of_wind_400', 'u_component_of_wind_500', 'u_component_of_wind_600','u_component_of_wind_700', 
+                'u_component_of_wind_850', 'u_component_of_wind_925', 'u_component_of_wind_1000',
+
+                'v_component_of_wind_50', 'v_component_of_wind_100', 'v_component_of_wind_150', 'v_component_of_wind_200', 'v_component_of_wind_250', 
+                'v_component_of_wind_300', 'v_component_of_wind_400', 'v_component_of_wind_500', 'v_component_of_wind_600','v_component_of_wind_700', 
+                'v_component_of_wind_850', 'v_component_of_wind_925', 'v_component_of_wind_1000',
+
+                'temperature_50', 'temperature_100', 'temperature_150', 'temperature_200', 'temperature_250', 
+                'temperature_300', 'temperature_400', 'temperature_500', 'temperature_600', 'temperature_700', 
+                'temperature_850', 'temperature_925', 'temperature_1000'
+                ]
+
+    img_size: [2, 721, 1440]
+    patch_size: [2, 4, 4]
+    in_chans: 70
+    out_chans: 70
+    embed_dim: 1536
+    num_groups: 32
+    num_heads: 8 
+    window_size: 7
+
+    num_samples_per_year: None
+    num_steps: 1
+    short_num_steps: 20
+    medium_num_steps: 40
+    long_num_steps: 60
+    finetune_step: 40000
+    step_change_freq: 1000
+    input_steps: 2
+    time_res: 6
+    stats_dir: "/work/share/ac8hkycjba/osdatasets/FuXi/stats"
+    checkpoint_dir : "./checkpoints"
+    mask_dtype: "float32"
+    batch_size: 1
+    num_workers: 1
+    patience: 50
+
+    train_data_dir: '/work/share/ac8hkycjba/osdatasets/FuXi/train/' 
+    val_data_dir: '/work/share/ac8hkycjba/osdatasets/FuXi/valid'
+    test_data_dir: "/work/share/ac8hkycjba/osdatasets/FuXi/test"
+
+
+
+
+
