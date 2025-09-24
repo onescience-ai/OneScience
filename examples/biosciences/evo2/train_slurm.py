@@ -685,7 +685,7 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         ckpt_load_strictness="log_all",  # or rebasing to https://github.com/NVIDIA/NeMo/pull/11988/files#diff-7667eae242a8ef776bff78cd08e79bc81df4896a450f0a781f6ed317a3dfb7ffR139
     )
     from lightning.fabric.plugins.environments import LightningEnvironment
-    # import pdb;pdb.set_trace()
+    
     trainer = nl.Trainer(
         devices=args.devices,
         num_nodes=args.num_nodes,
