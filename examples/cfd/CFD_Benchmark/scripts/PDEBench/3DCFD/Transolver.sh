@@ -1,0 +1,31 @@
+mpirun -np 4 python run.py \
+--gpu 1 \
+--data_path ../Neural-Solver-Library/data/3DCFD/3D_CFD_Rand_M1.0_Eta1e-08_Zeta1e-08_periodic_Train.hdf5 \
+--loader cfd3d \
+--geotype structured_3D \
+--task dynamic_autoregressive \
+--teacher_forcing 0 \
+--lr 0.001 \
+--weight_decay 1e-4 \
+--scheduler StepLR \
+--space_dim 3 \
+--fun_dim 50 \
+--out_dim 5 \
+--downsamplex 4 \
+--downsampley 4 \
+--downsamplez 4 \
+--model Transolver \
+--n_hidden 128 \
+--n_heads 8 \
+--n_layers 8 \
+--mlp_ratio 2 \
+--slice_num 32 \
+--unified_pos 0 \
+--ref 8 \
+--batch_size 1 \
+--epochs 500 \
+# --use_checkpoint 1 \
+# --checkpoint_layers blocks.0.Attn,blocks.1.Attn,blocks.2.Attn,blocks.3.Attn,blocks.4.Attn,blocks.5.Attn \
+--eval 0 \
+--max_grad_norm 0.1 \
+--save_name pdebench_Transolver_3DCFD

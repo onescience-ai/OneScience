@@ -1,0 +1,26 @@
+mpirun -np 4 python run.py \
+--gpu 1 \
+--data_path ../Neural-Solver-Library/data/ns/ \
+--loader ns \
+--geotype structured_2D \
+--scheduler StepLR \
+--task dynamic_autoregressive \
+--space_dim 2 \
+--lr 0.0025 \
+--weight_decay 0.0001 \
+--fun_dim 10 \
+--out_dim 1 \
+--model F_FNO \
+--n_hidden 20 \
+--n_heads 8 \
+--n_layers 8 \
+--mlp_ratio 2 \
+--slice_num 32 \
+--unified_pos 0 \
+--ref 8 \
+--batch_size 20 \
+--epochs 100 \
+--eval 0 \
+--max_grad_norm 0.1 \
+--resume \
+--save_name ns_F_FNO

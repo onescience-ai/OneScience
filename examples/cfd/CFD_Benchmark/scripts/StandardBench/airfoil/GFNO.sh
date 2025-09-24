@@ -1,0 +1,22 @@
+mpirun -np 4 python run.py \
+--gpu 0 \
+--data_path ../Neural-Solver-Library/data/airfoil/ \
+--loader airfoil \
+--geotype structured_2D \
+--task steady \
+--space_dim 2 \
+--fun_dim 0 \
+--out_dim 1 \
+--modes 16 \
+--model GFNO \
+--n_hidden 64 \
+--n_heads 8 \
+--n_layers 8 \
+--mlp_ratio 2 \
+--unified_pos 0 \
+--ref 8 \
+--batch_size 20 \
+--vis_bound 40 180 0 35 \
+--epochs 500 \
+--eval 0 \
+--save_name airfoil_GFNO

@@ -1,0 +1,28 @@
+python run.py \
+--gpu 3 \
+--data_path ../Neural-Solver-Library/data/darcy \
+--loader darcy \
+--geotype structured_2D \
+--task steady \
+--normalize 1 \
+--derivloss 1 \
+--downsamplex 5 \
+--downsampley 5 \
+--space_dim 2 \
+--fun_dim 1 \
+--out_dim 1 \
+--model ONO \
+--n_hidden 128 \
+--n_heads 8 \
+--n_layers 10 \
+--mlp_ratio 2 \
+--slice_num 64 \
+--unified_pos 0 \
+--ref 8 \
+--batch_size 4 \
+--epochs 500 \
+--eval 1 \
+--psi_dim 32 \
+--max_grad_norm 0.1 \
+--save_name darcy_ONO
+

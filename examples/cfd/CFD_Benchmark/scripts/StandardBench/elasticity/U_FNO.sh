@@ -1,0 +1,23 @@
+mpirun -np 4 python run.py \
+--gpu 0 \
+--data_path ../Neural-Solver-Library/data/elasticity/ \
+--loader elas \
+--geotype unstructured \
+--scheduler CosineAnnealingLR \
+--space_dim 2 \
+--fun_dim 0 \
+--out_dim 1 \
+--normalize 1 \
+--model U_FNO \
+--n_hidden 128 \
+--n_heads 8 \
+--n_layers 8 \
+--mlp_ratio 2 \
+--slice_num 64 \
+--unified_pos 0 \
+--ref 8 \
+--batch_size 1 \
+--epochs 500 \
+--eval 1 \
+--find_unused_parameters 1 \
+--save_name elas_U_FNO

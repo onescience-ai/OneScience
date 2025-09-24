@@ -1,0 +1,24 @@
+mpirun -np 4 python run.py \
+--gpu 2 \
+--data_path ../Neural-Solver-Library/data/plas/ \
+--loader plas \
+--geotype structured_2D \
+--task dynamic_conditional \
+--ntrain 900 \
+--ntest 80 \
+--T_out 20 \
+--time_input 1 \
+--space_dim 2 \
+--fun_dim 1 \
+--out_dim 4 \
+--model LSM \
+--n_hidden 32 \
+--n_heads 8 \
+--n_layers 8 \
+--slice_num 64 \
+--unified_pos 0 \
+--ref 8 \
+--batch_size 4 \
+--epochs 500 \
+--eval 1 \
+--save_name plas_LSM

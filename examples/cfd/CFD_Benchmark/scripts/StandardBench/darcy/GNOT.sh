@@ -1,0 +1,25 @@
+python run.py \
+--gpu 1 \
+--data_path ./data/darcy  \
+--loader darcy \
+--geotype structured_2D \
+--task steady \
+--normalize 1 \
+--weight_decay 0.00005 \
+--downsamplex 5 \
+--downsampley 5 \
+--space_dim 2 \
+--fun_dim 1 \
+--out_dim 1 \
+--model GNOT \
+--n_hidden 128 \
+--n_heads 8 \
+--n_layers 3 \
+--mlp_ratio 2 \
+--slice_num 64 \
+--unified_pos 0 \
+--ref 8 \
+--batch_size 4 \
+--epochs 500 \
+--eval 0 \
+--save_name darcy_GNOT

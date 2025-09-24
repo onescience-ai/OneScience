@@ -1,0 +1,21 @@
+python run.py \
+--gpu 0 \
+--data_path /data/fno/pipe \
+--loader pipe \
+--geotype structured_2D \
+--scheduler OneCycleLR \
+--space_dim 2 \
+--fun_dim 2 \
+--out_dim 1 \
+--normalize 1 \
+--max_grad_norm 0.1 \
+--model ONO \
+--n_hidden 128 \
+--n_heads 8 \
+--n_layers 8 \
+--mlp_ratio 2 \
+--batch_size 4 \
+--epochs 500 \
+--eval 0 \
+--normalize 1 \
+--save_name pipe_ONO

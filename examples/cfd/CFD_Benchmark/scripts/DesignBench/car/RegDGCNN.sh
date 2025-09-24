@@ -1,0 +1,23 @@
+mpirun -np 4 python run.py \
+--gpu 1 \
+--data_path ../Neural-Solver-Library/data/car/mlcfd_data/ \
+--loader car_design \
+--geotype unstructured \
+--task steady_design \
+--space_dim 3 \
+--fun_dim 7 \
+--out_dim 4 \
+--model RegDGCNN \
+--n_hidden 128 \
+--n_heads 8 \
+--n_layers 8 \
+--mlp_ratio 2 \
+--slice_num 32 \
+--unified_pos 0 \
+--emb_dims 128 \
+--dropout 0.2 \
+--ref 8 \
+--batch_size 1 \
+--epochs 200 \
+--eval 1 \
+--save_name car_design_RegDGCNN

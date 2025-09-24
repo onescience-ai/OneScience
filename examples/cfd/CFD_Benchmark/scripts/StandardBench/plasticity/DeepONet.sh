@@ -1,0 +1,27 @@
+python run.py \
+--gpu 1 \
+--data_path ../Neural-Solver-Library/data/plas/ \
+--loader plas \
+--geotype structured_2D \
+--task dynamic_conditional \
+--act gelu \
+--ntrain 900 \
+--ntest 80 \
+--T_out 20 \
+--time_input 1 \
+--space_dim 2 \
+--fun_dim 1 \
+--out_dim 4 \
+--branch_depth 7 \
+--trunk_depth 8 \
+--space_dim 2 \
+--model DeepONet \
+--n_hidden 128 \
+--unified_pos 0 \
+--n_layers 8 \
+--slice_num 64 \
+--ref 8 \
+--batch_size 8 \
+--epochs 500 \
+--eval 1 \
+--save_name plas_DeepONet

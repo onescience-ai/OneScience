@@ -1,0 +1,24 @@
+python run.py \
+--gpu 0 \
+--data_path ../Neural-Solver-Library/data/airfoil/ \
+--loader airfoil \
+--geotype structured_2D \
+--task steady \
+--space_dim 2 \
+--fun_dim 0 \
+--out_dim 1 \
+--model ONO \
+--n_hidden 128 \
+--n_heads 8 \
+--n_layers 8 \
+--mlp_ratio 2 \
+--slice_num 64 \
+--unified_pos 0 \
+--ref 8 \
+--batch_size 4 \
+--epochs 500 \
+--eval 0 \
+--vis_bound 40 180 0 35 \
+--psi_dim 32 \
+--save_name airfoil_ONO
+

@@ -1,0 +1,23 @@
+python run.py \
+--gpu 0 \
+--data_path ./data/airfoil/ \
+--loader airfoil \
+--geotype structured_2D \
+--lr 0.001 \
+--weight_decay 1e-4 \
+--scheduler StepLR \
+--space_dim 2 \
+--fun_dim 0 \
+--out_dim 1 \
+--model U_FNO \
+--n_hidden 32 \
+--n_heads 8 \
+--n_layers 8 \
+--slice_num 64 \
+--unified_pos 0 \
+--ref 8 \
+--batch_size 20 \
+--epochs 500 \
+--vis_bound 40 180 0 35 \
+--eval 0 \
+--save_name airfoil_U_FNO
