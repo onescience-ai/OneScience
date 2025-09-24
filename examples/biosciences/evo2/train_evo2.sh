@@ -25,7 +25,7 @@ HDO=0.01
 # echo "SLURM_JOB_NUM_NODES: $SLURM_JOB_NUM_NODES"
 # echo "SLURM_NTASKS_PER_NODE: $SLURM_NTASKS_PER_NODE" 
 
-PROJECT_ROOT=$(python -c "from pathlib import Path; print(Path(__name__).resolve().parents[5])")
+PROJECT_ROOT=$(python -c "from pathlib import Path; print(Path(__name__).resolve().parents[3])")
 
 echo "ONESCIENCE_PATH:" $PROJECT_ROOT
 
@@ -46,8 +46,8 @@ for DIR in "${DIRS[@]}"; do
 done
 
 python $PROJECT_ROOT/examples/biosciences/evo2/train_slurm.py\
-    -d $PROJECT_ROOT/examples/biosciences/evo2/config/training_data_config.yaml\
-    --dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data/data_evo2_612\
+    -d $PROJECT_ROOT/examples/biosciences/evo2/config/genome_data_config.yaml\
+    --dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data/genome_data\
     --model-size 7b_arc_longcontext \
     --devices 4 \
     --num-nodes 4 \
