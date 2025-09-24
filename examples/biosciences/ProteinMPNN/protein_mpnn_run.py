@@ -39,20 +39,21 @@ def main(args):
         if model_folder_path[-1] != '/':
             model_folder_path = model_folder_path + '/'
     else: 
-        file_path = os.path.realpath(__file__)
-        k = file_path.rfind("/")
+        # file_path = os.path.realpath(__file__)
+        # k = file_path.rfind("/")
+        file_path = '/public/onestore/onemodels/ProteinMPNN'
         if args.ca_only:
             print("Using CA-ProteinMPNN!")
-            model_folder_path = file_path[:k] + '/ca_model_weights/'
+            model_folder_path = file_path + '/ca_model_weights/'
             if args.use_soluble_model:
                 print("WARNING: CA-SolubleMPNN is not available yet")
                 sys.exit()
         else:
             if args.use_soluble_model:
                 print("Using ProteinMPNN trained on soluble proteins only!")
-                model_folder_path = file_path[:k] + '/soluble_model_weights/'
+                model_folder_path = file_path + '/soluble_model_weights/'
             else:
-                model_folder_path = file_path[:k] + '/vanilla_model_weights/'
+                model_folder_path = file_path + '/vanilla_model_weights/'
 
     checkpoint_path = model_folder_path + f'{args.model_name}.pt'
     folder_for_outputs = args.out_folder

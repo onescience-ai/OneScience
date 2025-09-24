@@ -122,7 +122,12 @@ class Sampler:
         if conf.inference.schedule_directory_path is not None:
             schedule_directory = conf.inference.schedule_directory_path
         else:
-            schedule_directory = f"{SCRIPT_DIR}/../../schedules"
+            schedule_directory = "~/.cache/rfdiffusion_cache/schedules"
+            try:
+                os.makedirs(schedule_directory, exist_ok=True)
+            except PermissionError:
+                schedule_directory = os.path.join("/tmp", "rfdiffusion_cache", "schedules")
+                os.makedirs(schedule_directory, exist_ok=True)
 
         # Check for cache schedule
         if not os.path.exists(schedule_directory):
