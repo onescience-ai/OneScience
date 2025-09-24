@@ -1,10 +1,12 @@
+# @package _global_
+
 defaults:
   - /data@data.train: lagrangian_dataset
   - /data@data.valid: lagrangian_dataset
   - /data@data.test: lagrangian_dataset
   - /model: mgn_2d
   - /loss: mseloss
-  - /optimizer: fused_adam
+  - /optimizer: adam
   - /lr_scheduler: cosine
 
 data:
