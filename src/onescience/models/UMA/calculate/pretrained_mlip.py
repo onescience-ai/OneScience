@@ -1,7 +1,7 @@
 
 
 from __future__ import annotations
-
+import os
 import json
 from dataclasses import dataclass
 from importlib import resources
@@ -31,14 +31,18 @@ class HuggingFaceCheckpoint:
 class PretrainedModels:
     checkpoints: dict[str, HuggingFaceCheckpoint]
 
+# 这里指定新的路径
+pretrained_model_path = os.path.join(os.getcwd(), "models", "pretrained_models.json")
 
-with (resources.files(calculate) / "pretrained_models.json").open("rb") as f:
+# 加载 pretrained_models.json
+with open(pretrained_model_path, "rb") as f:
     _MODEL_CKPTS = PretrainedModels(
         checkpoints={
             model_name: HuggingFaceCheckpoint(**hf_kwargs)
             for model_name, hf_kwargs in json.load(f).items()
         }
     )
+
 
 available_models = tuple(_MODEL_CKPTS.checkpoints.keys())
 

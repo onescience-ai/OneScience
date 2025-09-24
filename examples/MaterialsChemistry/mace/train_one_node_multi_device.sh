@@ -25,12 +25,6 @@ export RCCL_SOCKET_IFNAME=ib0
 export NCCL_IB_HCA=mlx5_0
 export NCCL_SOCKET_IFNAME=ib0
 
-# 可选：打印可见设备数做 sanity check
-python - <<'PY'
-import torch
-print("Visible devices:", torch.cuda.device_count())
-PY
-
 
 torchrun --standalone --nnodes=1 --nproc_per_node=4 \
   run_train.py \

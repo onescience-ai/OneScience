@@ -121,8 +121,15 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
             self.dataset_list
         ), "the dataset list is empty, please add it to the model backbone config"
 
-        # rotation utils
-        Jd_list = torch.load(os.path.join(os.path.dirname(__file__), "Jd.pt"))
+        # rotation utils  修改
+        # 获取当前工作目录
+        current_working_dir = os.getcwd()
+
+        # 拼接 Jd.pt 文件的路径
+        Jd_pt_path = os.path.join(current_working_dir, "models", "Jd.pt")
+
+        # 加载 Jd.pt
+        Jd_list = torch.load(Jd_pt_path)
         for l in range(self.lmax + 1):
             self.register_buffer(f"Jd_{l}", Jd_list[l])
         self.sph_feature_size = int((self.lmax + 1) ** 2)

@@ -16,11 +16,17 @@ MACE (Multiplicative Atomic Cluster Expansion)** 是 2022 年提出的一类 **�
 
 ​     data：下载的数据集文件夹
 
-​     checkpoints → 中间快照（epoch 粒度，方便恢复训练）。
+​    checkpoints :中间快照（epoch 粒度，方便恢复训练）。
 
-​     MACE_models → 最终模型 & 评估结果（成品模型、编译版、评估 extxyz）。也可存放预训练模型可以从/work/share/ac8hkycjba/osmodels/mace 下载。
+​     MACE_models :最终模型 & 评估结果（成品模型、编译版、评估 extxyz）。也可存放预训练模型可以从/work/share/ac8hkycjba/osmodels/mace 下载。
 
-​     results → 训练日志 & 指标记录（loss、mae、rmse、绘图）。
+​     results :训练日志 & 指标记录（loss、mae、rmse、绘图）。
+
+​     logs:  存放训练日志等信息。
+
+​     scripts： 存放脚本：转换为支持lammps的模型
+
+   （注：在examples/MaterialsChemistry/mace文件夹下）
 
 ##   4.模型训练
 
@@ -122,13 +128,13 @@ torchrun \
   DataLoader 的工作线程数（每个进程的 dataloader 开 8 个 CPU worker）。
 
 **在登录节点提交作业：**
-​    1.**单节点多卡**：根据需求修改train_one_node_multi_device.sh，脚本中的资源参数。
+    1.**单节点多卡**：根据需求修改finetune_train_node_multi_device.sh，脚本中的资源参数，配置文件中也可以修改要微调的模型检查点路径。
 
 ```
  sbatch train_one_node_multi_device.sh
 ```
 
-​    2.**多节点多卡**：根据需求修改train_one_node_multi_device.sh，脚本中的资源参数。
+​    2.**多节点多卡**：根据需求修改finetune_multi_node_multi_device.sh，脚本中的资源参数，配置文件中也可以修改要微调的模型检查点路径。
 
 ```
   sbatch train_multi_node_multi_device.sh
