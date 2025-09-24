@@ -71,6 +71,10 @@ sh train_demo.sh
 
 `train_demo.sh`脚本主要参数设置说明，暂不支持`USE_DEEPSPEED_EVO_ATTTENTION`和`fast_layernorm`功能，默认不开启。
 
+DATA_ROOT_DIR：设置数据集路径
+PYTHONPATH：添加当前路径到PYTHONPATH路径中
+HIP_VISIBLE_DEVICES：指定在哪张显卡上运行，默认0号显卡
+
 - run_name：模型名称，训练阶段名称为`protenix_train`
 
 - seed：随机种子，确保训练过程可复现。默认42
@@ -134,6 +138,10 @@ sh inference_demo.sh
 
 `inference_demo.sh`脚本主要参数设置说明，暂不支持`USE_DEEPSPEED_EVO_ATTTENTION`和`fast_layernorm`功能，默认不开启。
 
+DATA_ROOT_DIR：设置数据集路径
+PYTHONPATH：添加当前路径到PYTHONPATH路径中
+HIP_VISIBLE_DEVICES：指定在哪张显卡上运行，默认0号显卡
+
 - input_json_path：输入json文件路径
 - dtype：推理精度，`bf16`和`fp32`可选
 - num_workers：默认16，可根据测试环境cpu资源进行增减
@@ -187,7 +195,7 @@ sh inference_demo.sh
 权重下载方式：
 
 ```shell
-wget -P /af3-dev/release_model/ https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.2.0.pt
+wget -P <下载目标路径> https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.5.0.pt
 ```
 
 
