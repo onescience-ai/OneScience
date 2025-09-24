@@ -68,8 +68,8 @@ ERA5是由欧洲中期天气预报中心开发和维护的一种全球范围内�
 |:-:|:-:|:-:|:-:|
 蛋白质结构预测及设计| [AlphaFold3](examples/biosciences/alphafold3) | mmseqsDB,AF3官方数据集| Pairformer,Diffusion等多种模型集合|
 蛋白质结构预测及设计| [Protenix](examples/biosciences/protenix) | Protenix官方数据集| Transformer,Diffusion等多种模型集合|
-蛋白质设计（骨架设计）| [RFdiffusion]examples/biosciences/RFdiffusion|-|diffusion|
-蛋白质设计（骨架到序列设计）| [ProteinMPNN]examples/biosciences/ProteinMPNN|-|MPNN|
+蛋白质设计（骨架设计）| [RFdiffusion](examples/biosciences/RFdiffusion) |-|diffusion|
+蛋白质设计（骨架到序列设计）| [ProteinMPNN](examples/biosciences/ProteinMPNN) |-|MPNN|
 蛋白质设计及优化| [PT-DiT](examples/biosciences/pt_dit) | - | Diffusion,Transformer|
 突变预测,外显子分类,基因必要性| [Evo2](examples/biosciences/evo2) | OpenGenome2数据集| StripedHyena2|
 药物设计| [MolSculptor](examples/biosciences/molsculptor) | - | Autoencoder，Latent Diffusion等多种模型集合|
