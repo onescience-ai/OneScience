@@ -1,0 +1,17 @@
+python run.py \
+--gpu 0 \
+--data_path /data/fno/ \
+--loader elas \
+--geotype unstructured \
+--space_dim 2 \
+--fun_dim 0 \
+--out_dim 1 \
+--normalize 1 \
+--model LSM \
+--n_hidden 32 \
+--n_heads 8 \
+--n_layers 8 \
+--batch_size 4 \
+--epochs 500 \
+--eval 0 \
+--save_name elas_LSM

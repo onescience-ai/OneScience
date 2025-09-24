@@ -3,7 +3,7 @@
 这是一个用于预测汽车设计任务的模型，它用于预测驾驶汽车周围的风速和表面压力，以此来计算风阻系数。模型参照[Transolver](https://arxiv.org/abs/2402.02366) 中的开源模型代码进行构建。
 
 <p align="center">
-<img src=".\fig\task.png" height = "200" alt="" align=center />
+<img src="../../../doc/transolver_task.png"   height = "200" alt="" align=center />
 <br><br>
 <b>Figure 1.</b> 汽车设计任务. 
 </p>
@@ -11,7 +11,7 @@
 记录了周围风、表面压力和[阻力系数](https://en.wikipedia.org/wiki/Drag_coefficient)的相对误差，以及[斯皮尔曼等级相关性](https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient)，可用于量化模型对不同设计进行排名的能力。
 
 <p align="center">
-<img src=".\fig\results.png" height = "300" alt="" align=center />
+<img src="../../../doc/transolver_results.png" height = "300" alt="" align=center />
 <br><br>
 <b>Table 1.</b> 汽车设计任务的模型比较. 
 </p>
@@ -23,17 +23,12 @@ Transolver是一种基于物理感知令牌的Transformer PDE求解器，通过�
 
 ## 模型训练
 
-1. 安装依赖包。为方便起见，请执行以下命令：
 
-```bash
-pip install -r requirements.txt
-```
-
-2. 数据准备
+1. 数据准备
 
 原始数据可以此处[[下载]](http://www.nobuyuki-umetani.com/publication/mlcfd_data.zip)，由[Nobuyuki Umetani](https://dl.acm.org/doi/abs/10.1145/3197517.3201325)提供。
 
-3. 训练和评估模型
+2. 训练和评估模型
 
 参数说明
 
@@ -87,7 +82,7 @@ torchrun --standalone --nnodes=<num_nodes> --nproc_per_node=<num_GPUs> main.py
 
 加入`--visualize`选项可以直接将模型预测的结果直接进行可视化展示，不过生成的图片为静态的，不能转换视角，这里更建议使用paraview。`--visualize`选项需与`--save_vtk`选项搭配使用。
 
-4.您也可以选择添加自己的模型。以下是说明：
+3.您也可以选择添加自己的模型。以下是说明：
 
 -在文件夹`./models/`下添加模型文件。
 
@@ -100,7 +95,7 @@ torchrun --standalone --nnodes=<num_nodes> --nproc_per_node=<num_GPUs> main.py
 以下可视化结果表明，Transolver可以成功地将相似物理状态下的点归因于同一切片，如挡风玻璃、车牌和前照灯。
 
 <p align="center">
-<img src=".\fig\car_slice_surf.png" height = "300" alt="" align=center />
+<img src="../../../doc/transolver_car_slice_surf.png" height = "300" alt="" align=center />
 <br><br>
 <b>Figure 2.</b> Transolver学习物理状态的可视化. 
 </p>
@@ -112,7 +107,7 @@ torchrun --standalone --nnodes=<num_nodes> --nproc_per_node=<num_GPUs> main.py
 Transolver在复杂几何形状和混合物理中实现了最佳性能。
 
 <p align="center">
-<img src=".\fig\case_study.png" height = "150" alt="" align=center />
+<img src="../../../doc/transolver_case_study.png" height = "150" alt="" align=center />
 <br><br>
 <b>Figure 3.</b>Transolver和其他模型的对比. 
 </p>

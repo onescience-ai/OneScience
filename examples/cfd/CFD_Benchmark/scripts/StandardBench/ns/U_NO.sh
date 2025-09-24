@@ -1,0 +1,22 @@
+python run.py \
+--gpu 4 \
+--data_path /data/fno/ \
+--loader ns \
+--geotype structured_2D \
+--task dynamic_autoregressive \
+--teacher_forcing 0 \
+--scheduler StepLR \
+--optimizer Adam \
+--space_dim 2 \
+--fun_dim 10 \
+--out_dim 1 \
+--model U_NO \
+--n_hidden 64 \
+--n_heads 8 \
+--n_layers 8 \
+--unified_pos 0 \
+--ref 8 \
+--batch_size 16 \
+--epochs 500 \
+--eval 1 \
+--save_name ns_U_NO_Adam

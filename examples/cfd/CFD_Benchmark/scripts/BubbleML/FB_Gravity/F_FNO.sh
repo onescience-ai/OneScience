@@ -1,0 +1,28 @@
+mpirun -np 4 python run.py \
+--gpu 0 \
+--data_path ../BubbleML/data/ \
+--loader FB_Gravity_TempVel \
+--config_name FB_Gravity \
+--geotype structured_2D \
+--task dynamic_multistep_prediction \
+--weight_decay 1e-4 \
+--scheduler StepLR \
+--space_dim 2 \
+--model F_FNO \
+--T_in 5 \
+--T_out 5 \
+--fun_dim 25 \
+--out_dim 5 \
+--downsamplex 1 \
+--downsampley 1 \
+--n_hidden 128 \
+--modes 16 \
+--n_heads 8 \
+--n_layers 8 \
+--slice_num 64 \
+--unified_pos 0 \
+--ref 8 \
+--batch_size 4 \
+--epochs 500 \
+--eval 1 \
+--save_name FB_Gravity_F_FNO

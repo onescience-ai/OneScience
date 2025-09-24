@@ -4,7 +4,7 @@ defaults:
   - /data@data.test: lagrangian_dataset
   - /model: mgn_3d
   - /loss: mseloss
-  - /optimizer: fused_adam
+  - /optimizer: adam
   - /lr_scheduler: cosine
 
 dim: 3

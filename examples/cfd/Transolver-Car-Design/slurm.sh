@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH -p dcu # 指定使用的分区名为 k100ai
-#SBATCH -N 2      # 申请 1 个计算节点
-#SBATCH --gres=dcu:4  # 申请 4 个 DCU 资源，
+#SBATCH -p km64 # 指定使用的分区名
+#SBATCH -N 2      # 申请计算节点数量
+#SBATCH --gres=dcu:4  # 每个申请 4 个 DCU 资源，
 #SBATCH --cpus-per-task=32 # 每个任务分配 32 个 CPU 核心
 #SBATCH --ntasks-per-node=1 # 每个节点运行 1 个任务
-#SBATCH -J deepcfd  # 任务名称为 deepcfd
+#SBATCH -J transolver_car  # 任务名称为 deepcfd
 #SBATCH -o ./%j.out # 标准输出日志文件保存路径
-#SBATCH -e ./%j.err # 标准错误日志文件保存路径
+#SBATCH -e ./%j.out # 标准错误日志文件保存路径
 
 echo "START TIME: $(date)"
 

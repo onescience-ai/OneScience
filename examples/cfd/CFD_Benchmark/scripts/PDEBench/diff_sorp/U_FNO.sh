@@ -1,0 +1,23 @@
+python run.py \
+--gpu 1 \
+--data_path /data/PDEBench/1D/diffusion-sorption/1D_diff-sorp_NA_NA.h5 \
+--loader pdebench_autoregressive \
+--geotype structured_1D \
+--task dynamic_autoregressive \
+--teacher_forcing 0 \
+--lr 0.0005 \
+--weight_decay 1e-4 \
+--scheduler StepLR \
+--space_dim 1 \
+--fun_dim 10 \
+--out_dim 1 \
+--model U_FNO \
+--n_hidden 64 \
+--n_heads 8 \
+--n_layers 8 \
+--unified_pos 0 \
+--ref 8 \
+--batch_size 20 \
+--epochs 500 \
+--eval 0 \
+--save_name diff_sorp_U_FNO

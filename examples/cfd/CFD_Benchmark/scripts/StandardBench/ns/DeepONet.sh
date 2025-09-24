@@ -1,0 +1,26 @@
+python run.py \
+--gpu 1 \
+--data_path ../Neural-Solver-Library/data/ns/ \
+--loader ns \
+--geotype structured_2D \
+--scheduler StepLR \
+--task dynamic_autoregressive \
+--lr 0.0001 \
+--weight_decay 1e-4 \
+--act gelu \
+--scheduler StepLR \
+--branch_depth 7 \
+--trunk_depth 8 \
+--space_dim 2 \
+--fun_dim 10 \
+--out_dim 1 \
+--model DeepONet \
+--n_hidden 128 \
+--unified_pos 0 \
+--n_layers 8 \
+--slice_num 64 \
+--ref 8 \
+--batch_size 50 \
+--epochs 500 \
+--eval 1 \
+--save_name ns_DeepONet
