@@ -1,6 +1,7 @@
 from __future__ import annotations
+
 from functools import lru_cache
-from typing import Tuple, Any, Sequence, Optional
+from typing import Any, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -691,6 +692,7 @@ class Rotation:
         rot_mats = torch.cat(rot_mats, dim=dim if dim >= 0 else dim - 2)
 
         return Rotation(rot_mats=rot_mats, quats=None)
+
     '''
     def map_tensor_fn(self, fn: Callable[torch.Tensor, torch.Tensor]) -> Rotation:
         """
@@ -719,6 +721,7 @@ class Rotation:
         else:
             raise ValueError("Both rotations are None")
     '''
+
     def cuda(self) -> Rotation:
         """
         Analogous to the cuda() method of torch Tensors
@@ -1068,6 +1071,7 @@ class Rigid:
         trn_inv = rot_inv.apply(self._trans)
 
         return Rigid(rot_inv, -1 * trn_inv)
+
     '''
     def map_tensor_fn(self, fn: Callable[torch.Tensor, torch.Tensor]) -> Rigid:
         """
@@ -1088,6 +1092,7 @@ class Rigid:
 
         return Rigid(new_rots, new_trans)
     '''
+
     def to_tensor_4x4(self) -> torch.Tensor:
         """
         Converts a transformation to a homogenous transformation tensor.
@@ -1234,6 +1239,7 @@ class Rigid:
         trans = torch.cat([t._trans for t in ts], dim=dim if dim >= 0 else dim - 1)
 
         return Rigid(rots, trans)
+
     '''
     def apply_rot_fn(self, fn: Callable[Rotation, Rotation]) -> Rigid:
         """
@@ -1260,6 +1266,7 @@ class Rigid:
         """
         return Rigid(self._rots, fn(self._trans))
     '''
+
     def scale_translation(self, trans_scale_factor: float) -> Rigid:
         """
         Scales the translation by a constant factor.
@@ -1311,8 +1318,8 @@ class Rigid:
         norm = torch.sqrt(eps + c_x**2 + c_y**2)
         sin_c1 = -c_y / norm
         cos_c1 = c_x / norm
-        zeros = sin_c1.new_zeros(sin_c1.shape)
-        ones = sin_c1.new_ones(sin_c1.shape)
+        sin_c1.new_zeros(sin_c1.shape)
+        sin_c1.new_ones(sin_c1.shape)
 
         c1_rots = sin_c1.new_zeros((*sin_c1.shape, 3, 3))
         c1_rots[..., 0, 0] = cos_c1

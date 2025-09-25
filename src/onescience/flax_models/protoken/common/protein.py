@@ -1,16 +1,16 @@
+import dataclasses
 import io
 from typing import Any, Mapping, Optional
-import dataclasses
 
-from Bio.PDB import PDBParser
 import numpy as np
+from Bio.PDB import PDBParser
 
 from . import residue_constants
 
 FeatureDict = Mapping[str, np.ndarray]
 ModelOutput = Mapping[str, Any]  # Is a nested dict.
 
-PDB_CHAIN_IDS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+PDB_CHAIN_IDS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 PDB_MAX_CHAINS = len(PDB_CHAIN_IDS)  # := 62.
 
 
@@ -42,25 +42,26 @@ class Protein:
 def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> Protein:
     """Takes a PDB string and constructs a Protein object.
 
-  WARNING: All non-standard residue types will be converted into UNK. All
-    non-standard atoms will be ignored.
+    WARNING: All non-standard residue types will be converted into UNK. All
+      non-standard atoms will be ignored.
 
-  Args:
-    pdb_str: The contents of the pdb file
-    chain_id: If None, then the pdb file must contain a single chain (which
-      will be parsed). If chain_id is specified (e.g. A), then only that chain
-      is parsed.
+    Args:
+      pdb_str: The contents of the pdb file
+      chain_id: If None, then the pdb file must contain a single chain (which
+        will be parsed). If chain_id is specified (e.g. A), then only that chain
+        is parsed.
 
-  Returns:
-    A new `Protein` parsed from the pdb contents.
-  """
+    Returns:
+      A new `Protein` parsed from the pdb contents.
+    """
     pdb_fh = io.StringIO(pdb_str)
     parser = PDBParser()
-    structure = parser.get_structure('none', pdb_fh)
+    structure = parser.get_structure("none", pdb_fh)
     models = list(structure.get_models())
     if len(models) != 1:
         raise ValueError(
-            f'Only single model PDBs are supported. Found {len(models)} models.')
+            f"Only single model PDBs are supported. Found {len(models)} models."
+        )
     model = models[0]
 
     if chain_id is not None:
@@ -69,8 +70,9 @@ def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> Protein:
         chains = list(model.get_chains())
         if len(chains) != 1:
             raise ValueError(
-                'Only single chain PDBs are supported when chain_id not specified. '
-                f'Found {len(chains)} chains.')
+                "Only single chain PDBs are supported when chain_id not specified. "
+                f"Found {len(chains)} chains."
+            )
         chain = chains[0]
 
     atom_positions = []
@@ -80,13 +82,15 @@ def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> Protein:
     b_factors = []
 
     for res in chain:
-        if res.id[2] != ' ':
+        if res.id[2] != " ":
             raise ValueError(
-                f'PDB contains an insertion code at chain {chain.id} and residue '
-                f'index {res.id[1]}. These are not supported.')
-        res_shortname = residue_constants.restype_3to1.get(res.resname, 'X')
+                f"PDB contains an insertion code at chain {chain.id} and residue "
+                f"index {res.id[1]}. These are not supported."
+            )
+        res_shortname = residue_constants.restype_3to1.get(res.resname, "X")
         restype_idx = residue_constants.restype_order.get(
-            res_shortname, residue_constants.restype_num)
+            res_shortname, residue_constants.restype_num
+        )
         pos = np.zeros((residue_constants.atom_type_num, 3))
         mask = np.zeros((residue_constants.atom_type_num,))
         res_b_factors = np.zeros((residue_constants.atom_type_num,))
@@ -94,7 +98,7 @@ def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> Protein:
             if atom.name not in residue_constants.atom_types:
                 continue
             pos[residue_constants.atom_order[atom.name]] = atom.coord
-            mask[residue_constants.atom_order[atom.name]] = 1.
+            mask[residue_constants.atom_order[atom.name]] = 1.0
             res_b_factors[residue_constants.atom_order[atom.name]] = atom.bfactor
         if np.sum(mask) < 0.5:
             # If no known atom positions are reported for the residue then skip it.
@@ -110,20 +114,21 @@ def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> Protein:
         atom_mask=np.array(atom_mask),
         aatype=np.array(aatype),
         residue_index=np.array(residue_index),
-        b_factors=np.array(b_factors))
+        b_factors=np.array(b_factors),
+    )
 
 
 def to_pdb(prot: Protein) -> str:
     """Converts a `Protein` instance to a PDB string.
 
-  Args:
-    prot: The protein to convert to PDB.
+    Args:
+      prot: The protein to convert to PDB.
 
-  Returns:
-    PDB string.
-  """
-    restypes = residue_constants.restypes + ['X']
-    res_1to3 = lambda r: residue_constants.restype_1to3.get(restypes[r], 'UNK')
+    Returns:
+      PDB string.
+    """
+    restypes = residue_constants.restypes + ["X"]
+    res_1to3 = lambda r: residue_constants.restype_1to3.get(restypes[r], "UNK")
     atom_types = residue_constants.atom_types
 
     pdb_lines = []
@@ -135,66 +140,72 @@ def to_pdb(prot: Protein) -> str:
     b_factors = prot.b_factors
 
     if np.any(aatype > residue_constants.restype_num):
-        raise ValueError('Invalid aatypes.')
+        raise ValueError("Invalid aatypes.")
 
-    pdb_lines.append('MODEL     1')
+    pdb_lines.append("MODEL     1")
     atom_index = 1
-    chain_id = 'A'
+    chain_id = "A"
     # Add all atom sites.
     for i in range(aatype.shape[0]):
         res_name_3 = res_1to3(aatype[i])
         for atom_name, pos, mask, b_factor in zip(
-                atom_types, atom_positions[i], atom_mask[i], b_factors[i]):
+            atom_types, atom_positions[i], atom_mask[i], b_factors[i]
+        ):
             if mask < 0.5:
                 continue
 
-            record_type = 'ATOM'
-            name = atom_name if len(atom_name) == 4 else f' {atom_name}'
-            alt_loc = ''
-            insertion_code = ''
+            record_type = "ATOM"
+            name = atom_name if len(atom_name) == 4 else f" {atom_name}"
+            alt_loc = ""
+            insertion_code = ""
             occupancy = 1.00
             element = atom_name[0]  # Protein supports only C, N, O, S, this works.
-            charge = ''
+            charge = ""
             # PDB is a columnar format, every space matters here!
-            atom_line = (f'{record_type:<6}{atom_index:>5} {name:<4}{alt_loc:>1}'
-                         f'{res_name_3:>3} {chain_id:>1}'
-                         f'{residue_index[i]:>4}{insertion_code:>1}   '
-                         f'{pos[0]:>8.3f}{pos[1]:>8.3f}{pos[2]:>8.3f}'
-                         f'{occupancy:>6.2f}{b_factor:>6.2f}          '
-                         f'{element:>2}{charge:>2}')
+            atom_line = (
+                f"{record_type:<6}{atom_index:>5} {name:<4}{alt_loc:>1}"
+                f"{res_name_3:>3} {chain_id:>1}"
+                f"{residue_index[i]:>4}{insertion_code:>1}   "
+                f"{pos[0]:>8.3f}{pos[1]:>8.3f}{pos[2]:>8.3f}"
+                f"{occupancy:>6.2f}{b_factor:>6.2f}          "
+                f"{element:>2}{charge:>2}"
+            )
             pdb_lines.append(atom_line)
             atom_index += 1
 
     # Close the chain.
-    chain_end = 'TER'
+    chain_end = "TER"
     chain_termination_line = (
-        f'{chain_end:<6}{atom_index:>5}      {res_1to3(aatype[-1]):>3} '
-        f'{chain_id:>1}{residue_index[-1]:>4}')
+        f"{chain_end:<6}{atom_index:>5}      {res_1to3(aatype[-1]):>3} "
+        f"{chain_id:>1}{residue_index[-1]:>4}"
+    )
     pdb_lines.append(chain_termination_line)
-    pdb_lines.append('ENDMDL')
+    pdb_lines.append("ENDMDL")
 
-    pdb_lines.append('END')
-    pdb_lines.append('')
-    return '\n'.join(pdb_lines)
+    pdb_lines.append("END")
+    pdb_lines.append("")
+    return "\n".join(pdb_lines)
 
 
 def ideal_atom_mask(prot: Protein) -> np.ndarray:
     """Computes an ideal atom mask.
 
-  `Protein.atom_mask` typically is defined according to the atoms that are
-  reported in the PDB. This function computes a mask according to heavy atoms
-  that should be present in the given sequence of amino acids.
+    `Protein.atom_mask` typically is defined according to the atoms that are
+    reported in the PDB. This function computes a mask according to heavy atoms
+    that should be present in the given sequence of amino acids.
 
-  Args:
-    prot: `Protein` whose fields are `numpy.ndarray` objects.
+    Args:
+      prot: `Protein` whose fields are `numpy.ndarray` objects.
 
-  Returns:
-    An ideal atom mask.
-  """
+    Returns:
+      An ideal atom mask.
+    """
     return residue_constants.STANDARD_ATOM_MASK[prot.aatype]
 
 
-def from_prediction(final_atom_positions, final_atom_mask, aatype, residue_index, b_factors=None) -> Protein:
+def from_prediction(
+    final_atom_positions, final_atom_mask, aatype, residue_index, b_factors=None
+) -> Protein:
     """Assembles a protein from a prediction.
 
     Args:
@@ -213,7 +224,8 @@ def from_prediction(final_atom_positions, final_atom_mask, aatype, residue_index
         atom_positions=final_atom_positions,
         atom_mask=final_atom_mask,
         residue_index=residue_index + 1,
-        b_factors=b_factors)
+        b_factors=b_factors,
+    )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -254,8 +266,8 @@ def to_pdb_v2(prot: ProteinV2) -> str:
     Returns:
       PDB string.
     """
-    restypes = residue_constants.restypes + ['X']
-    res_1to3 = lambda r: residue_constants.restype_1to3.get(restypes[r], 'UNK')
+    restypes = residue_constants.restypes + ["X"]
+    res_1to3 = lambda r: residue_constants.restype_1to3.get(restypes[r], "UNK")
     atom_types = residue_constants.atom_types
 
     pdb_lines = []
@@ -268,72 +280,80 @@ def to_pdb_v2(prot: ProteinV2) -> str:
     b_factors = prot.b_factors
 
     if np.any(aatype > residue_constants.restype_num):
-        raise ValueError('Invalid aatypes.')
+        raise ValueError("Invalid aatypes.")
 
     chain_ids = {}
     for i in np.unique(chain_index):  # np.unique gives sorted output.
         if i >= PDB_MAX_CHAINS:
             raise ValueError(
-                f'The PDB format supports at most {PDB_MAX_CHAINS} chains.')
+                f"The PDB format supports at most {PDB_MAX_CHAINS} chains."
+            )
         chain_ids[i] = PDB_CHAIN_IDS[i]
 
-    pdb_lines.append('MODEL     1')
+    pdb_lines.append("MODEL     1")
     atom_index = 1
     last_chain_index = chain_index[0]
     # Add all atom sites.
     for i in range(aatype.shape[0]):
         if last_chain_index != chain_index[i]:
-            chain_end = 'TER'
+            chain_end = "TER"
             chain_termination_line = (
-                f'{chain_end:<6}{atom_index:>5}      {res_1to3(aatype[i - 1]):>3} '
-                f'{chain_ids[chain_index[i - 1]]:>1}{residue_index[i - 1]:>4}')
+                f"{chain_end:<6}{atom_index:>5}      {res_1to3(aatype[i - 1]):>3} "
+                f"{chain_ids[chain_index[i - 1]]:>1}{residue_index[i - 1]:>4}"
+            )
             pdb_lines.append(chain_termination_line)
             last_chain_index = chain_index[i]
             atom_index += 1  # Atom index increases at the TER symbol.
 
         res_name_3 = res_1to3(aatype[i])
         for atom_name, pos, mask, b_factor in zip(
-                atom_types, atom_positions[i], atom_mask[i], b_factors[i]):
+            atom_types, atom_positions[i], atom_mask[i], b_factors[i]
+        ):
             if mask < 0.5:
                 continue
 
-            record_type = 'ATOM'
-            name = atom_name if len(atom_name) == 4 else f' {atom_name}'
-            alt_loc = ''
-            insertion_code = ''
+            record_type = "ATOM"
+            name = atom_name if len(atom_name) == 4 else f" {atom_name}"
+            alt_loc = ""
+            insertion_code = ""
             occupancy = 1.00
             element = atom_name[0]  # Protein supports only C, N, O, S, this works.
-            charge = ''
+            charge = ""
             # PDB is a columnar format, every space matters here!
-            atom_line = (f'{record_type:<6}{atom_index:>5} {name:<4}{alt_loc:>1}'
-                         f'{res_name_3:>3} {chain_ids[chain_index[i]]:>1}'
-                         f'{residue_index[i]:>4}{insertion_code:>1}   '
-                         f'{pos[0]:>8.3f}{pos[1]:>8.3f}{pos[2]:>8.3f}'
-                         f'{occupancy:>6.2f}{b_factor:>6.2f}          '
-                         f'{element:>2}{charge:>2}')
+            atom_line = (
+                f"{record_type:<6}{atom_index:>5} {name:<4}{alt_loc:>1}"
+                f"{res_name_3:>3} {chain_ids[chain_index[i]]:>1}"
+                f"{residue_index[i]:>4}{insertion_code:>1}   "
+                f"{pos[0]:>8.3f}{pos[1]:>8.3f}{pos[2]:>8.3f}"
+                f"{occupancy:>6.2f}{b_factor:>6.2f}          "
+                f"{element:>2}{charge:>2}"
+            )
             pdb_lines.append(atom_line)
             atom_index += 1
 
     # Close the chain.
-    chain_end = 'TER'
+    chain_end = "TER"
     chain_termination_line = (
-        f'{chain_end:<6}{atom_index:>5}      {res_1to3(aatype[-1]):>3} '
-        f'{chain_ids[chain_index[-1]]:>1}{residue_index[-1]:>4}')
+        f"{chain_end:<6}{atom_index:>5}      {res_1to3(aatype[-1]):>3} "
+        f"{chain_ids[chain_index[-1]]:>1}{residue_index[-1]:>4}"
+    )
     pdb_lines.append(chain_termination_line)
-    pdb_lines.append('ENDMDL')
+    pdb_lines.append("ENDMDL")
 
-    pdb_lines.append('END')
-    pdb_lines.append('')
-    return '\n'.join(pdb_lines)
+    pdb_lines.append("END")
+    pdb_lines.append("")
+    return "\n".join(pdb_lines)
 
 
-def from_prediction_v2(final_atom_positions,
-                       final_atom_mask,
-                       aatype,
-                       residue_index,
-                       b_factors=None,
-                       asym_id=None,
-                       remove_leading_feature_dimension=True) -> ProteinV2:
+def from_prediction_v2(
+    final_atom_positions,
+    final_atom_mask,
+    aatype,
+    residue_index,
+    b_factors=None,
+    asym_id=None,
+    remove_leading_feature_dimension=True,
+) -> ProteinV2:
     """Assembles a protein from a prediction.
 
     Args:
@@ -361,7 +381,8 @@ def from_prediction_v2(final_atom_positions,
         atom_mask=final_atom_mask,
         residue_index=residue_index + 1,
         chain_index=chain_index,
-        b_factors=b_factors)
+        b_factors=b_factors,
+    )
 
 
 def from_prediction_new(features) -> Protein:
@@ -381,4 +402,5 @@ def from_prediction_new(features) -> Protein:
         atom_positions=features[2],
         atom_mask=features[3],
         residue_index=features[1] + 1,
-        b_factors=dist_per_residue)
+        b_factors=dist_per_residue,
+    )

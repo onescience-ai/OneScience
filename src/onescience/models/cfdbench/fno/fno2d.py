@@ -1,14 +1,14 @@
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
-import torch
 import numpy as np
-from torch import Tensor
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch import Tensor
 
+from ..base_model import AutoCfdModel
 from .Adam import Adam
 from .utilities3 import MatReader, count_params
-from ..base_model import AutoCfdModel
 
 torch.manual_seed(0)
 np.random.seed(0)
@@ -209,9 +209,7 @@ class Fno2d(AutoCfdModel):
 
         # Append (x, y) coordinates to every location
         grid = self.get_coords(inputs.shape, inputs.device)  # (b, 2, h, w)
-        inputs = torch.cat(
-            (inputs, grid, props), dim=1
-        )  # (b, c + 2 + 2, h, w)
+        inputs = torch.cat((inputs, grid, props), dim=1)  # (b, c + 2 + 2, h, w)
 
         # Project channels
         inputs = self.fc0(inputs)  # (b, hidden_dim, h, w)

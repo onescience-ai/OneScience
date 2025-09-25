@@ -1,24 +1,25 @@
 # SPADE Module and Block are adapted from Nvidia SPADE project (https://github.com/NVlabs/SPADE).
 
-import re
-import sys
-import numpy as np
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.utils.spectral_norm as spectral_norm
 
+
 class GenBlock(nn.Module):
     def __init__(self, fin, fout, opt, use_se=False, dilation=1, double_conv=False):
         super().__init__()
-        self.learned_shortcut = (fin != fout)
+        self.learned_shortcut = fin != fout
         fmiddle = min(fin, fout)
         self.opt = opt
         self.double_conv = double_conv
 
         self.pad = nn.ReflectionPad2d(dilation)
-        self.conv_0 = nn.Conv2d(fin, fmiddle, kernel_size=3, padding=0, dilation=dilation)
-        self.conv_1 = nn.Conv2d(fmiddle, fout, kernel_size=3, padding=0, dilation=dilation)
+        self.conv_0 = nn.Conv2d(
+            fin, fmiddle, kernel_size=3, padding=0, dilation=dilation
+        )
+        self.conv_1 = nn.Conv2d(
+            fmiddle, fout, kernel_size=3, padding=0, dilation=dilation
+        )
 
         if self.learned_shortcut:
             self.conv_s = nn.Conv2d(fin, fout, kernel_size=1, bias=False)
@@ -29,7 +30,7 @@ class GenBlock(nn.Module):
             self.conv_s = spectral_norm(self.conv_s)
 
         ic = opt.evo_ic
-        
+
         self.norm_0 = SPADE(fin, ic)
         self.norm_1 = SPADE(fmiddle, ic)
         if self.learned_shortcut:
@@ -69,7 +70,7 @@ class SPADE(nn.Module):
         self.mlp_shared = nn.Sequential(
             nn.ReflectionPad2d(pw),
             nn.Conv2d(label_nc, nhidden, kernel_size=ks, padding=0),
-            nn.ReLU()
+            nn.ReLU(),
         )
         self.pad = nn.ReflectionPad2d(pw)
         self.mlp_gamma = nn.Conv2d(nhidden, norm_nc, kernel_size=ks, padding=0)
@@ -87,7 +88,3 @@ class SPADE(nn.Module):
         out = normalized * (1 + gamma) + beta
 
         return out
-
-
-
-

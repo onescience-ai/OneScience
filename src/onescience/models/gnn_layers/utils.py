@@ -351,7 +351,7 @@ def agg_concat_dgl(
 
         # aggregate edge features
         if aggregation == "sum":
-            # print(graph.edata["x"].dtype) 
+            # print(graph.edata["x"].dtype)
             graph.update_all(fn.copy_e("x", "m"), fn.sum("m", "h_dest"))
         elif aggregation == "mean":
             graph.update_all(fn.copy_e("x", "m"), fn.mean("m", "h_dest"))
@@ -360,7 +360,7 @@ def agg_concat_dgl(
 
         # concat dst-node & edge features
         cat_feat = torch.cat((graph.dstdata["h_dest"], dst_nfeat), -1)
-        
+
         return cat_feat
 
 

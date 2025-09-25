@@ -1,4 +1,3 @@
-
 # Elementary Block for Building O(3) Equivariant Higher Order Message Passing Neural Network
 
 

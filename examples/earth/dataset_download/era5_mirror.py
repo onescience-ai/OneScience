@@ -1,17 +1,17 @@
-import os
-import tempfile
-import cdsapi
-import xarray as xr
+import calendar
 import datetime
 import json
+import os
+import tempfile
+from typing import List, Tuple, Union
+
+import cdsapi
 import dask
-import calendar
-from dask.diagnostics import ProgressBar
-from typing import List, Tuple, Dict, Union
-import urllib3
-import logging
-import numpy as np
 import fsspec
+import numpy as np
+import urllib3
+import xarray as xr
+from dask.diagnostics import ProgressBar
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

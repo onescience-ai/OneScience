@@ -1,20 +1,23 @@
 from ase import units
-from ase.io import write, Trajectory, read
-from ase.md.langevin import Langevin
-from ase.md.velocitydistribution import MaxwellBoltzmannDistribution, Stationary, ZeroRotation
 from ase.build import molecule
+from ase.io import Trajectory, write
 from ase.md import MDLogger
-import numpy as np
+from ase.md.langevin import Langevin
+from ase.md.velocitydistribution import (
+    MaxwellBoltzmannDistribution,
+    Stationary,
+    ZeroRotation,
+)
 
-from onescience.models.UMA.units.mlip_unit import load_predict_unit
 from onescience.models.UMA import FAIRChemCalculator
+from onescience.models.UMA.units.mlip_unit import load_predict_unit
 
 # === 本地检查点路径（改成你的实际路径）===
 ckpt = "../checkpoint/uma-s-1p1.pt"
 
 # === 加载预测器与计算器 ===
-predictor = load_predict_unit(ckpt, device="cuda")     # GPU加速
-calc = FAIRChemCalculator(predictor, task_name="omol") # 分子任务
+predictor = load_predict_unit(ckpt, device="cuda")  # GPU加速
+calc = FAIRChemCalculator(predictor, task_name="omol")  # 分子任务
 
 # === 构建体系 ===
 atoms = molecule("H2O")  # 可替换为其它分子
@@ -23,8 +26,8 @@ atoms.calc = calc
 # === 速度初始化（400 K），去线动量/角动量 ===
 T0 = 400  # K
 MaxwellBoltzmannDistribution(atoms, temperature_K=T0)
-Stationary(atoms)       # 去整体平动
-ZeroRotation(atoms)     # 去整体转动
+Stationary(atoms)  # 去整体平动
+ZeroRotation(atoms)  # 去整体转动
 
 # === 动力学设置：Langevin ===
 dt = 0.1 * units.fs
@@ -32,17 +35,22 @@ gamma = 0.001 / units.fs
 dyn = Langevin(atoms, timestep=dt, temperature_K=T0, friction=gamma)
 
 # === 轨迹与日志 ===
-traj = Trajectory("my_md.traj", "w", atoms)            # ASE 原生轨迹
-dyn.attach(traj.write, interval=1)                     # 每步写一帧
+traj = Trajectory("my_md.traj", "w", atoms)  # ASE 原生轨迹
+dyn.attach(traj.write, interval=1)  # 每步写一帧
 logger = MDLogger(dyn, atoms, "md.log", header=True, stress=False, peratom=False)
-dyn.attach(logger, interval=10)                        # 每10步记录一次
+dyn.attach(logger, interval=10)  # 每10步记录一次
+
 
 # 也打印到屏幕（可选）
 def printer():
     epot = atoms.get_potential_energy()
     ekin = atoms.get_kinetic_energy()
     Tinst = 2.0 * ekin / (3 * len(atoms) * units.kB)
-    print(f"Step {dyn.nsteps:5d}  Epot={epot: .6f} eV  Ekin={ekin: .6f} eV  T={Tinst: .1f} K")
+    print(
+        f"Step {dyn.nsteps:5d}  Epot={epot: .6f} eV  Ekin={ekin: .6f} eV  T={Tinst: .1f} K"
+    )
+
+
 dyn.attach(printer, interval=50)
 
 # === 运行MD ===

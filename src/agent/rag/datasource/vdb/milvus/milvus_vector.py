@@ -1,18 +1,25 @@
 import logging
 from typing import Any, Optional
 
-from packaging import version
-from pydantic import BaseModel, model_validator
-from pymilvus import MilvusClient, MilvusException  # type: ignore
-from pymilvus.milvus_client import IndexParams  # type: ignore
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
-from pymilvus import CollectionSchema, DataType, FieldSchema, Function, FunctionType  # type: ignore
+from packaging import version
+from pydantic import BaseModel, model_validator
+from pymilvus import (
+    CollectionSchema,
+    DataType,
+    FieldSchema,  # type: ignore
+    Function,
+    FunctionType,
+    MilvusClient,
+    MilvusException,
+)
+from pymilvus.milvus_client import IndexParams  # type: ignore
 
-from agent.rag.datasource.vdb.vector_base import BaseVector, VectorType
-from agent.rag.datasource.vdb.milvus.schemas import COLLECTION_TO_SCHEMA
-from agent.rag.datasource.vdb.vector_factory import AbstractVectorFactory
 from agent.rag.datasource.vdb.constant import *
+from agent.rag.datasource.vdb.milvus.schemas import COLLECTION_TO_SCHEMA
+from agent.rag.datasource.vdb.vector_base import BaseVector, VectorType
+from agent.rag.datasource.vdb.vector_factory import AbstractVectorFactory
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +73,9 @@ class MilvusVector(BaseVector):
     Milvus vector storage implementation.
     """
 
-    def __init__(self, collection_name: str, embeddings: Embeddings, config: MilvusConfig):
+    def __init__(
+        self, collection_name: str, embeddings: Embeddings, config: MilvusConfig
+    ):
         super().__init__(collection_name, embeddings)
         self._client_config = config
         self._client = self._init_client(config)
@@ -76,16 +85,25 @@ class MilvusVector(BaseVector):
         self._sparse_files: list[str] = []
         if self._client.has_collection(collection_name):
             self._load_collection_fields()
-        self._hybrid_search_enabled = self._check_hybrid_search_support()  # Check if hybrid search is supported
+        self._hybrid_search_enabled = (
+            self._check_hybrid_search_support()
+        )  # Check if hybrid search is supported
 
     def _init_client(self, config: MilvusConfig) -> MilvusClient:
         """
         Initialize and return a Milvus client.
         """
         if config.token:
-            client = MilvusClient(uri=config.uri, token=config.token, db_name=config.database)
+            client = MilvusClient(
+                uri=config.uri, token=config.token, db_name=config.database
+            )
         else:
-            client = MilvusClient(uri=config.uri, user=config.user, password=config.password, db_name=config.database)
+            client = MilvusClient(
+                uri=config.uri,
+                user=config.user,
+                password=config.password,
+                db_name=config.database,
+            )
         return client
 
     def _load_collection_fields(self, fields: Optional[list[str]] = None) -> None:
@@ -94,10 +112,25 @@ class MilvusVector(BaseVector):
             collection_info = self._client.describe_collection(self._collection_name)
             fields = [field["name"] for field in collection_info["fields"]]
         # Since primary field is auto-id, no need to track it
-        self._fields = [f for f in fields if
-                        (f != PRIMARY_KEY and not f.endswith(f"_{DENSE}") and not f.endswith(f"_{SPARSE}"))]
-        self._vec_fields = [field[0:-len(f"_{DENSE}")] for field in fields if field.endswith(f"_{DENSE}")]
-        self._sparse_fields = [field[0:-len(f"_{SPARSE}")] for field in fields if field.endswith(f"_{SPARSE}")]
+        self._fields = [
+            f
+            for f in fields
+            if (
+                f != PRIMARY_KEY
+                and not f.endswith(f"_{DENSE}")
+                and not f.endswith(f"_{SPARSE}")
+            )
+        ]
+        self._vec_fields = [
+            field[0 : -len(f"_{DENSE}")]
+            for field in fields
+            if field.endswith(f"_{DENSE}")
+        ]
+        self._sparse_fields = [
+            field[0 : -len(f"_{SPARSE}")]
+            for field in fields
+            if field.endswith(f"_{SPARSE}")
+        ]
 
     def _check_hybrid_search_support(self) -> bool:
         """
@@ -113,9 +146,14 @@ class MilvusVector(BaseVector):
             if "Zilliz Cloud" in milvus_version:
                 return True
             # For standard Milvus installations, check version number
-            return version.parse(milvus_version).base_version >= version.parse("2.5.0").base_version
+            return (
+                version.parse(milvus_version).base_version
+                >= version.parse("2.5.0").base_version
+            )
         except Exception as e:
-            logger.warning("Failed to check Milvus version: %s. Disabling hybrid search.", str(e))
+            logger.warning(
+                "Failed to check Milvus version: %s. Disabling hybrid search.", str(e)
+            )
             return False
 
     def get_type(self) -> str:
@@ -141,7 +179,9 @@ class MilvusVector(BaseVector):
             insert_dict = {TEXT: doc.page_content, **doc.metadata}
             insert_dict = {k: v for k, v in insert_dict.items() if k in self._fields}
             for vec_field in self._vec_fields:
-                insert_dict[f"{vec_field}_{DENSE}"] = self._embeddings.embed_query(insert_dict[vec_field])
+                insert_dict[f"{vec_field}_{DENSE}"] = self._embeddings.embed_query(
+                    insert_dict[vec_field]
+                )
             insert_dict_list.append(insert_dict)
         # Total insert count
         total_count = len(insert_dict_list)
@@ -149,12 +189,16 @@ class MilvusVector(BaseVector):
 
         for i in range(0, total_count, self._client_config.batch_size):
             # Insert into the collection.
-            batch_insert_list = insert_dict_list[i: i + self._client_config.batch_size]
+            batch_insert_list = insert_dict_list[i : i + self._client_config.batch_size]
             try:
-                ids = self._client.insert(collection_name=self._collection_name, data=batch_insert_list)
+                ids = self._client.insert(
+                    collection_name=self._collection_name, data=batch_insert_list
+                )
                 pks.extend(ids)
             except MilvusException as e:
-                logger.exception("Failed to insert batch starting at entity: %s/%s", i, total_count)
+                logger.exception(
+                    "Failed to insert batch starting at entity: %s/%s", i, total_count
+                )
                 raise e
         return pks
 
@@ -163,7 +207,9 @@ class MilvusVector(BaseVector):
         Get document IDs by metadata field key and value.
         """
         result = self._client.query(
-            collection_name=self._collection_name, filter=f'{key} == "{value}"', output_fields=["id"]
+            collection_name=self._collection_name,
+            filter=f'{key} == "{value}"',
+            output_fields=["id"],
         )
         if result:
             return [item["id"] for item in result]
@@ -185,7 +231,9 @@ class MilvusVector(BaseVector):
         """
         if self._client.has_collection(self._collection_name):
             result = self._client.query(
-                collection_name=self._collection_name, filter=f'metadata["doc_id"] in {doc_ids}', output_fields=["id"]
+                collection_name=self._collection_name,
+                filter=f'metadata["doc_id"] in {doc_ids}',
+                output_fields=["id"],
             )
             if result:
                 ids = [item["id"] for item in result]
@@ -220,7 +268,9 @@ class MilvusVector(BaseVector):
             return False
 
         result = self._client.query(
-            collection_name=self._collection_name, filter=f'metadata["doc_id"] == "{doc_id}"', output_fields=["id"]
+            collection_name=self._collection_name,
+            filter=f'metadata["doc_id"] == "{doc_id}"',
+            output_fields=["id"],
         )
 
         return len(result) > 0
@@ -231,9 +281,9 @@ class MilvusVector(BaseVector):
         """
         return field in self._fields
 
-    def _process_search_results(self, results: list[Any],
-                                output_fields: list[str],
-                                score_threshold: float = 0.0) -> list[Document]:
+    def _process_search_results(
+        self, results: list[Any], output_fields: list[str], score_threshold: float = 0.0
+    ) -> list[Document]:
         """
         Common method to process search results
 
@@ -253,9 +303,9 @@ class MilvusVector(BaseVector):
 
         return docs
 
-    def search_by_vector(self, query: str,
-                         output_fields: Optional[list] = None,
-                         **kwargs: Any) -> list[Document]:
+    def search_by_vector(
+        self, query: str, output_fields: Optional[list] = None, **kwargs: Any
+    ) -> list[Document]:
         """
         Search for documents by vector similarity.
         """
@@ -263,7 +313,7 @@ class MilvusVector(BaseVector):
         filter = ""
         if document_ids_filter:
             document_ids = ", ".join(f'"{doc_id}"' for doc_id in document_ids_filter)
-            filter = f'{DOC_ID} in [{document_ids}]'
+            filter = f"{DOC_ID} in [{document_ids}]"
 
         query_vec = self._embeddings.embed_query(query)
         results = self._client.search(
@@ -281,20 +331,22 @@ class MilvusVector(BaseVector):
             score_threshold=float(kwargs.get("score_threshold") or 0.0),
         )
 
-    def search_by_full_text(self, query: str,
-                            output_fields: Optional[list] = None,
-                            **kwargs: Any) -> list[Document]:
+    def search_by_full_text(
+        self, query: str, output_fields: Optional[list] = None, **kwargs: Any
+    ) -> list[Document]:
         """
         Search for documents by full-text search (if hybrid search is enabled).
         """
         if not self._hybrid_search_enabled or not TEXT in self._sparse_fields:
-            logger.warning("Full-text search is not supported in current Milvus version (requires >= 2.5.0)")
+            logger.warning(
+                "Full-text search is not supported in current Milvus version (requires >= 2.5.0)"
+            )
             return []
         document_ids_filter = kwargs.get("document_ids_filter", "")
         filter = ""
         if document_ids_filter:
             document_ids = ", ".join(f"'{doc_id}'" for doc_id in document_ids_filter)
-            filter = f'{DOC_ID} in [{document_ids}]'
+            filter = f"{DOC_ID} in [{document_ids}]"
 
         results = self._client.search(
             collection_name=self._collection_name,
@@ -318,45 +370,69 @@ class MilvusVector(BaseVector):
         if self._client.has_collection(self.collection_name):
             return
 
-        if SCHEMA in kwargs \
-                and INDEX_PARAMS in kwargs \
-                and isinstance(kwargs[SCHEMA], CollectionSchema) \
-                and isinstance(kwargs[INDEX_PARAMS], IndexParams):
-            self._client.create_collection(self._collection_name, kwargs[SCHEMA], kwargs[INDEX_PARAMS])
+        if (
+            SCHEMA in kwargs
+            and INDEX_PARAMS in kwargs
+            and isinstance(kwargs[SCHEMA], CollectionSchema)
+            and isinstance(kwargs[INDEX_PARAMS], IndexParams)
+        ):
+            self._client.create_collection(
+                self._collection_name, kwargs[SCHEMA], kwargs[INDEX_PARAMS]
+            )
         else:
             schema_info = COLLECTION_TO_SCHEMA[self._collection_name]
             dim = len(self._embeddings.embed_query(documents[0].page_content))
-            fields = [FieldSchema(PRIMARY_KEY, DataType.INT64, is_primary=True, auto_id=True)]
+            fields = [
+                FieldSchema(PRIMARY_KEY, DataType.INT64, is_primary=True, auto_id=True)
+            ]
             for tp_field in schema_info.get(FIELDS, []):
                 if tp_field[1] == "str":
                     if tp_field[0] in schema_info.get(VEC_FIELDS, []):
-                        fields.append(FieldSchema(tp_field[0], DataType.VARCHAR, max_length=tp_field[2],
-                                                  enable_analyzer=self._hybrid_search_enabled))
+                        fields.append(
+                            FieldSchema(
+                                tp_field[0],
+                                DataType.VARCHAR,
+                                max_length=tp_field[2],
+                                enable_analyzer=self._hybrid_search_enabled,
+                            )
+                        )
                     else:
-                        fields.append(FieldSchema(tp_field[0], DataType.VARCHAR, max_length=tp_field[2]))
+                        fields.append(
+                            FieldSchema(
+                                tp_field[0], DataType.VARCHAR, max_length=tp_field[2]
+                            )
+                        )
                 elif tp_field[1] == "int":
                     fields.append(FieldSchema(tp_field[0], DataType.INT32))
             for field in schema_info.get(VEC_FIELDS, []):
-                fields.append(FieldSchema(f"{field}_{DENSE}", DataType.FLOAT_VECTOR, dim=dim))
+                fields.append(
+                    FieldSchema(f"{field}_{DENSE}", DataType.FLOAT_VECTOR, dim=dim)
+                )
             for field in schema_info.get(TEXT_FIELDS, []):
                 if self._hybrid_search_enabled:
-                    fields.append(FieldSchema(f"{field}_{SPARSE}", DataType.SPARSE_FLOAT_VECTOR))
+                    fields.append(
+                        FieldSchema(f"{field}_{SPARSE}", DataType.SPARSE_FLOAT_VECTOR)
+                    )
             schema = CollectionSchema(fields)
             if self._hybrid_search_enabled:
                 for field in schema_info.get(TEXT_FIELDS, []):
-                    schema.add_function(Function(
-                        name=f"{field}_bm25_emb",
-                        input_field_names=[field],
-                        output_field_names=[f"{field}_{SPARSE}"],
-                        function_type=FunctionType.BM25,
-                    ))
+                    schema.add_function(
+                        Function(
+                            name=f"{field}_bm25_emb",
+                            input_field_names=[field],
+                            output_field_names=[f"{field}_{SPARSE}"],
+                            function_type=FunctionType.BM25,
+                        )
+                    )
 
             index_params = IndexParams()
             for field in schema_info.get(VEC_FIELDS, []):
-                index_params.add_index(field_name=f"{field}_{DENSE}",
-                                       index_name=f"{field}_{DENSE}_{INDEX}",
-                                       index_type="AUTOINDEX",
-                                       metric_type="IP", )
+                index_params.add_index(
+                    field_name=f"{field}_{DENSE}",
+                    index_name=f"{field}_{DENSE}_{INDEX}",
+                    index_type="AUTOINDEX",
+                    metric_type="IP",
+                )
 
             # Create Sparse Vector Index for the collection
             if self._hybrid_search_enabled:

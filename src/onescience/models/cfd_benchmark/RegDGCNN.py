@@ -1,20 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import os
-import copy
-import math
-import numpy as np
-from torch_geometric.data import Data, DataLoader
-from torch_geometric.nn import (
-    GCNConv,
-    GATConv,
-    global_mean_pool,
-    global_max_pool,
-    JumpingKnowledge,
-)
-from torch.nn import Sequential, Linear, ReLU, BatchNorm1d, Dropout
-from torch_geometric.nn import BatchNorm
 
 
 def knn(x, k):
@@ -299,7 +284,7 @@ class Model(nn.Module):
             torch.Tensor: Model predictions for the input batch.
         """
 
-        batch_size = x.size(0)
+        x.size(0)
 
         # 兼容 batch_size = 1 输入：去除 batch 维度
         x = torch.cat([x, fx], dim=-1)

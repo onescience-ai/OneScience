@@ -1,6 +1,8 @@
 from typing import Dict
+
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
+
 from agent.llm import ChatModel
 
 SYSTEM_TEMPLATE = """

@@ -1,4 +1,5 @@
 """Processing data for pretraining."""
+
 import argparse
 import multiprocessing
 import os
@@ -7,18 +8,19 @@ import sys
 import lm_dataformat as lmd
 import numpy as np
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+)
 import time
-import tqdm
-import torch
-import ftfy
-
+from abc import ABC, abstractmethod
+from threading import Semaphore
 from typing import List, Union
-from abc import ABC
-from abc import abstractmethod
+
+import ftfy
+import tqdm
+
 # from evo2.tokenizer import build_tokenizer
 from evo2.data import indexed_dataset
-from threading import Semaphore
 
 
 def build_tokenizer(args):
@@ -27,11 +29,13 @@ def build_tokenizer(args):
         print("> building {} tokenizer ...".format(args.tokenizer_type), flush=True)
 
     # Select and instantiate the tokenizer.
-    
+
     if args.tokenizer_type.lower() == "CharLevelTokenizer".lower():
         tokenizer = CharLevelTokenizer(vocab_size=512)
     else:
-        raise NotImplementedError("{} tokenizer is not " "implemented.".format(args.tokenizer_type))
+        raise NotImplementedError(
+            "{} tokenizer is not " "implemented.".format(args.tokenizer_type)
+        )
 
     # Add vocab size.
     args.padded_vocab_size = _vocab_size_with_padding(tokenizer.vocab_size, args)
@@ -55,6 +59,7 @@ def _vocab_size_with_padding(orig_vocab_size, args):
         )
     return after
 
+
 class AbstractTokenizer(ABC):
     """Abstract class for tokenizer."""
 
@@ -71,40 +76,51 @@ class AbstractTokenizer(ABC):
     @abstractmethod
     def vocab(self):
         """Dictionary from vocab text token to id token."""
-        pass
 
     @property
     @abstractmethod
     def inv_vocab(self):
         """Dictionary from vocab id token to text token."""
-        pass
 
     @abstractmethod
     def tokenize(self, text):
         pass
 
     def detokenize(self, token_ids):
-        raise NotImplementedError("detokenizer is not implemented for {} " "tokenizer".format(self.name))
+        raise NotImplementedError(
+            "detokenizer is not implemented for {} " "tokenizer".format(self.name)
+        )
 
     @property
     def cls(self):
-        raise NotImplementedError("CLS is not provided for {} " "tokenizer".format(self.name))
+        raise NotImplementedError(
+            "CLS is not provided for {} " "tokenizer".format(self.name)
+        )
 
     @property
     def sep(self):
-        raise NotImplementedError("SEP is not provided for {} " "tokenizer".format(self.name))
+        raise NotImplementedError(
+            "SEP is not provided for {} " "tokenizer".format(self.name)
+        )
 
     @property
     def pad(self):
-        raise NotImplementedError("PAD is not provided for {} " "tokenizer".format(self.name))
+        raise NotImplementedError(
+            "PAD is not provided for {} " "tokenizer".format(self.name)
+        )
 
     @property
     def eod(self):
-        raise NotImplementedError("EOD is not provided for {} " "tokenizer".format(self.name))
+        raise NotImplementedError(
+            "EOD is not provided for {} " "tokenizer".format(self.name)
+        )
 
     @property
     def mask(self):
-        raise NotImplementedError("MASK is not provided for {} " "tokenizer".format(self.name))
+        raise NotImplementedError(
+            "MASK is not provided for {} " "tokenizer".format(self.name)
+        )
+
 
 class CharLevelTokenizer(AbstractTokenizer):
     """Character Level Tokenizer"""
@@ -115,7 +131,7 @@ class CharLevelTokenizer(AbstractTokenizer):
         self._vocab_size = vocab_size
         self.eod_id = 0
         self.pad_id = 1
-        
+
         self._used_tokens = set()  # 记录用过的 token id
 
     def clamp(self, n):
@@ -138,7 +154,7 @@ class CharLevelTokenizer(AbstractTokenizer):
 
     # def tokenize(self, text: str):
     #     return list(np.fromstring(text, dtype=np.uint8))
-    
+
     def tokenize(self, text: str):
         tokens = list(np.fromstring(text, dtype=np.uint8))
         # 记录所有 clamp 后的 token id
@@ -163,6 +179,7 @@ class CharLevelTokenizer(AbstractTokenizer):
     def pad(self):
         return self.pad_id
 
+
 class Encoder(object):
     def __init__(self, args):
         self.args = args
@@ -178,10 +195,11 @@ class Encoder(object):
         for key in self.args.jsonl_keys:
             doc_ids = []
             text_ids = Encoder.tokenizer.tokenize(text)
-            
+
             if (
                 self.args.enforce_sample_length
-                and (len(text_ids) + int(self.args.append_eod)) > self.args.enforce_sample_length
+                and (len(text_ids) + int(self.args.append_eod))
+                > self.args.enforce_sample_length
             ):
                 raise ValueError(
                     "Detected input text with a length greater than the maximum "
@@ -193,7 +211,9 @@ class Encoder(object):
                 doc_ids[-1].append(Encoder.tokenizer.eod)
             if self.args.enforce_sample_length:
                 # Pad up to max sequence length.
-                doc_ids[-1] += [Encoder.tokenizer.pad] * (self.args.enforce_sample_length - len(doc_ids[-1]))
+                doc_ids[-1] += [Encoder.tokenizer.pad] * (
+                    self.args.enforce_sample_length - len(doc_ids[-1])
+                )
             ids[key] = doc_ids
         return ids, len(text)
 
@@ -234,7 +254,9 @@ def get_args():
         ],
         help="What type of tokenizer to use.",
     )
-    group.add_argument("--vocab-file", type=str, default=None, help="Path to the vocab file")
+    group.add_argument(
+        "--vocab-file", type=str, default=None, help="Path to the vocab file"
+    )
     group.add_argument(
         "--merge-file",
         type=str,
@@ -269,7 +291,9 @@ def get_args():
     )
 
     group = parser.add_argument_group(title="runtime")
-    group.add_argument("--workers", type=int, default=1, help="Number of worker processes to launch")
+    group.add_argument(
+        "--workers", type=int, default=1, help="Number of worker processes to launch"
+    )
     group.add_argument(
         "--log-interval",
         type=int,
@@ -336,8 +360,12 @@ def main():
     builders = {}
     tokenizer_name = tokenizer.name.replace(" ", "")
     for key in args.jsonl_keys:
-        output_bin_files[key] = "{}_{}_{}_{}.bin".format(args.output_prefix, key, tokenizer_name, "document")
-        output_idx_files[key] = "{}_{}_{}_{}.idx".format(args.output_prefix, key, tokenizer_name, "document")
+        output_bin_files[key] = "{}_{}_{}_{}.bin".format(
+            args.output_prefix, key, tokenizer_name, "document"
+        )
+        output_idx_files[key] = "{}_{}_{}_{}.idx".format(
+            args.output_prefix, key, tokenizer_name, "document"
+        )
         builders[key] = indexed_dataset.make_builder(
             output_bin_files[key],
             impl=args.dataset_impl,

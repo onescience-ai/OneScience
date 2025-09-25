@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import logging
@@ -19,7 +17,9 @@ from onescience.models.UMA.models.uma.common.rotation import (
     init_edge_rot_mat,
     rotation_to_wigner,
 )
-from onescience.models.UMA.models.uma.common.rotation_cuda_graph import RotMatWignerCudaGraph
+from onescience.models.UMA.models.uma.common.rotation_cuda_graph import (
+    RotMatWignerCudaGraph,
+)
 from onescience.models.UMA.models.uma.common.so3 import CoefficientMapping, SO3_Grid
 from onescience.models.UMA.models.uma.nn.embedding_dev import (
     ChgSpinEmbedding,

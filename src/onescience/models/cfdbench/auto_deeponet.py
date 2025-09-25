@@ -8,11 +8,11 @@ from itertools import product
 from typing import List, Optional
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 
-from .ffn import Ffn
-from .base_model import AutoCfdModel
 from .act_fn import get_act_fn
+from .base_model import AutoCfdModel
+from .ffn import Ffn
 from .loss import MseLoss
 
 
@@ -146,9 +146,7 @@ class AutoDeepONet(AutoCfdModel):
         preds = preds.view(-1, 1, height, width)  # (b, 1, h, w)
         return dict(preds=preds)
 
-    def generate(
-        self, inputs: Tensor, case_params: Tensor, mask: Tensor
-    ) -> Tensor:
+    def generate(self, inputs: Tensor, case_params: Tensor, mask: Tensor) -> Tensor:
         """
         x: (c, h, w) or (B, c, h, w)
 

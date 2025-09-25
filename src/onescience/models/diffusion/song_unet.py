@@ -1,5 +1,5 @@
 """
-Model architectures used in the paper "Elucidating the Design Space of 
+Model architectures used in the paper "Elucidating the Design Space of
 Diffusion-Based Generative Models".
 """
 
@@ -307,7 +307,9 @@ class SongUNet(Module):
                 )
 
     @nvtx.annotate(message="SongUNet", color="blue")
-    def forward(self, x, noise_labels, class_labels, global_index=None, augment_labels=None):
+    def forward(
+        self, x, noise_labels, class_labels, global_index=None, augment_labels=None
+    ):
         if self.embedding_type != "zero":
             # Mapping.
             emb = self.map_noise(noise_labels)

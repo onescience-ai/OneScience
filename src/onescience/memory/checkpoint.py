@@ -1,33 +1,38 @@
 from contextlib import contextmanager
-from torch.utils.checkpoint import checkpoint
 from functools import partial
+
 import torch
+from torch.utils.checkpoint import checkpoint
+
 
 class part(torch.nn.Module):
-    '''
+    """
     2025-01-09 wangxian
     这个类主要是为了避免pytorch的类别检查，为了兼容原生pytorch而设计
-    '''
+    """
+
     def __init__(self, ch, ori):
         super().__init__()
-        self.ch  = ch   # checkpoint 函数
+        self.ch = ch  # checkpoint 函数
         self.ori = ori  # 原始子模块
+
     def __call__(self, *args, **kwargs):
         f = partial(self.ch, self.ori, use_reentrant=True)
         return f(*args, **kwargs)
 
+
 @contextmanager
 def replace_function(module, replace_layers_list, ddp_flag=False):
-    '''
+    """
     2025-01-09 wangxian
     这个函数可以使得任意pytorch模型中的模块被替换为checkpoint函数，从而实现checkpoint的功能
     以下给出一个案例，替代模型训练中的forward过程
-    
+
     example:
     with replace_function(my_model, ['layer1','layer2','layer3','layer4'],dist.world_size > 1):
         outpred_surface, outpred_upper_air = my_model(invar)
-    
-    
+
+
     模型前向被替换为上下文的包裹函数
     其中replace_layers_list是需要被替换的nn.module子类，注册在模型中，ddp_flag代表是否使用分布式训练，默认是false
 
@@ -64,15 +69,16 @@ def replace_function(module, replace_layers_list, ddp_flag=False):
             (linears): ModuleList()
             )
         )
-    '''
+    """
+
     # ---------- 内部辅助函数 ----------
     def _get_by_path(root, path: str):
-        for key in path.split('.'):
+        for key in path.split("."):
             root = root[int(key)] if key.isdigit() else getattr(root, key)
         return root
 
     def _set_by_path(root, path: str, value):
-        keys = path.split('.')
+        keys = path.split(".")
         for key in keys[:-1]:
             root = root[int(key)] if key.isdigit() else getattr(root, key)
         last = keys[-1]
@@ -82,8 +88,8 @@ def replace_function(module, replace_layers_list, ddp_flag=False):
             setattr(root, last, value)
 
     # ---------- 开始替换 ----------
-    base  = module.module if ddp_flag else module
-    stash = []                              # 记录 (path, original_submodule)
+    base = module.module if ddp_flag else module
+    stash = []  # 记录 (path, original_submodule)
 
     for path in replace_layers_list:
         orig = _get_by_path(base, path)
@@ -91,7 +97,7 @@ def replace_function(module, replace_layers_list, ddp_flag=False):
         _set_by_path(base, path, part(checkpoint, orig))
 
     try:
-        yield                               # 进入 with 块
+        yield  # 进入 with 块
     finally:
         # ---------- 恢复 ----------
         for path, orig in stash:

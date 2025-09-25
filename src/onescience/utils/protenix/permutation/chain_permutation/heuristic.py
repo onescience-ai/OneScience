@@ -1,4 +1,3 @@
-
 import random
 
 import torch
@@ -247,8 +246,6 @@ class MultiChainPermutation(object):
                 avoid expensive computations.
             permute_label (bool): if true, permute the groundtruth chains, otherwise premute the prediction chains
         """
-
-        log_dict = {}
 
         for key in ["entity_mol_id", "mol_id", "mol_atom_index"]:
             pred_dict[key] = pred_dict[key].long()

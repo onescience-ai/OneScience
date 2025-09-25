@@ -26,7 +26,6 @@ from megatron.core.inference.common_inference_params import CommonInferenceParam
 from nemo.collections.llm import generate
 from nemo.utils import logging
 
-
 CheckpointFormats = Literal["torch_dist", "zarr"]
 
 
@@ -51,20 +50,50 @@ def parse_args():
         help="Prompt to generate text from Evo2. Defaults to a phylogenetic lineage tag for E coli.",
     )
     ap.add_argument(
-        "--ckpt-dir", type=str, required=True, help="Path to checkpoint directory containing pre-trained Evo2 model."
+        "--ckpt-dir",
+        type=str,
+        required=True,
+        help="Path to checkpoint directory containing pre-trained Evo2 model.",
     )
-    ap.add_argument("--temperature", type=float, default=1.0, help="Temperature during sampling for generation.")
-    ap.add_argument("--top-k", type=int, default=0, help="Top K during sampling for generation.")
-    ap.add_argument("--top-p", type=float, default=0.0, help="Top P during sampling for generation.")
-    ap.add_argument("--max-new-tokens", type=int, default=1024, help="Maximum number of tokens to generate.")
-    ap.add_argument("--seed", type=int, default=None, help="Random seed for generation.")
+    ap.add_argument(
+        "--temperature",
+        type=float,
+        default=1.0,
+        help="Temperature during sampling for generation.",
+    )
+    ap.add_argument(
+        "--top-k", type=int, default=0, help="Top K during sampling for generation."
+    )
+    ap.add_argument(
+        "--top-p", type=float, default=0.0, help="Top P during sampling for generation."
+    )
+    ap.add_argument(
+        "--max-new-tokens",
+        type=int,
+        default=1024,
+        help="Maximum number of tokens to generate.",
+    )
+    ap.add_argument(
+        "--seed", type=int, default=None, help="Random seed for generation."
+    )
     # compute args:
-    ap.add_argument("--tensor-parallel-size", type=int, default=1, help="Order of tensor parallelism. Defaults to 1.")
     ap.add_argument(
-        "--pipeline-model-parallel-size", type=int, default=1, help="Order of pipeline parallelism. Defaults to 1."
+        "--tensor-parallel-size",
+        type=int,
+        default=1,
+        help="Order of tensor parallelism. Defaults to 1.",
     )
     ap.add_argument(
-        "--context-parallel-size", type=int, default=1, help="Order of context parallelism. Defaults to 1."
+        "--pipeline-model-parallel-size",
+        type=int,
+        default=1,
+        help="Order of pipeline parallelism. Defaults to 1.",
+    )
+    ap.add_argument(
+        "--context-parallel-size",
+        type=int,
+        default=1,
+        help="Order of context parallelism. Defaults to 1.",
     )
     # output args:
     ap.add_argument(
@@ -118,7 +147,9 @@ def infer(
     Returns:
         None
     """
-    model_parallel_size = tensor_parallel_size * pipeline_model_parallel_size * context_parallel_size
+    model_parallel_size = (
+        tensor_parallel_size * pipeline_model_parallel_size * context_parallel_size
+    )
     if model_parallel_size > torch.cuda.device_count():
         raise ValueError(
             f"Requested model parallel size {model_parallel_size} is greater than the "
@@ -147,8 +178,8 @@ def infer(
             precision="bf16-mixed",
             params_dtype=torch.bfloat16,
         ),
-    )   
-    
+    )
+
     # transformers generate method has more options than NeMo/Megatron.
     results = generate(
         path=ckpt_dir,

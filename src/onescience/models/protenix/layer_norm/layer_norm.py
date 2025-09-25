@@ -2,7 +2,6 @@ import importlib
 import numbers
 import os
 import sys
-import time
 
 import torch
 from torch.nn.parameter import Parameter
@@ -195,4 +194,3 @@ if __name__ == "__main__":
     print(layer_norm.weight.grad - layer_norm_torch.weight.grad)
     print(layer_norm.bias.grad - layer_norm_torch.bias.grad)
     print(layer_norm.weight.grad, layer_norm.bias.grad)
-

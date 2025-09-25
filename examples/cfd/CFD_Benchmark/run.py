@@ -1,10 +1,6 @@
-import os
 import argparse
-import matplotlib.pyplot as plt
-import numpy as np
-from tqdm import *
+
 from onescience.distributed.manager import DistributedManager
-from typing import List, Literal, Optional, Tuple, Union
 
 parser = argparse.ArgumentParser("Training Neural PDE Solvers")
 

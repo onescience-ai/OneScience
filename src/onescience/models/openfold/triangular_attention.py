@@ -1,14 +1,12 @@
-from functools import partialmethod, partial
-from typing import Optional, List
+from functools import partial, partialmethod
+from typing import List, Optional
 
 import torch
 import torch.nn as nn
 
-from onescience.models.openfold.primitives import Linear, LayerNorm, Attention
+from onescience.models.openfold.primitives import Attention, LayerNorm, Linear
 from onescience.utils.openfold.chunk_utils import chunk_layer
-from onescience.utils.openfold.tensor_utils import (
-    permute_final_dims,
-)
+from onescience.utils.openfold.tensor_utils import permute_final_dims
 
 
 class TriangleAttention(nn.Module):

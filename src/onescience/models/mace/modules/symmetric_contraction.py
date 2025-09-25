@@ -1,4 +1,3 @@
-
 # Implementation of the symmetric contraction algorithm presented in the MACE paper
 # (Batatia et al, MACE: Higher Order Equivariant Message Passing Neural Networks for Fast and Accurate Force Fields , Eq.10 and 11)
 

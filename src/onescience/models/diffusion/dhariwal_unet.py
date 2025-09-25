@@ -1,5 +1,5 @@
 """
-Model architectures used in the paper "Elucidating the Design Space of 
+Model architectures used in the paper "Elucidating the Design Space of
 Diffusion-Based Generative Models".
 """
 

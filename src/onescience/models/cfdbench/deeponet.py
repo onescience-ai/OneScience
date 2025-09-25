@@ -2,11 +2,11 @@ from itertools import product
 from typing import Dict, Optional
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 
+from .act_fn import get_act_fn
 from .base_model import CfdModel
 from .ffn import Ffn
-from .act_fn import get_act_fn
 from .loss import MseLoss
 
 
@@ -120,9 +120,7 @@ class DeepONet(CfdModel):
         t = x_trunk.unsqueeze(1).float()  # (b, 1)
         x_trunk_t = self.fc_trunk_t(t)  # (b, p)
         # Normalize query location
-        x_trunk_xy = (
-            query_idxs.float() - 32.0
-        ) / 64.0  # (k, 2)  # TODO: update this
+        x_trunk_xy = (query_idxs.float() - 32.0) / 64.0  # (k, 2)  # TODO: update this
         x_trunk_xy = self.fc_trunk_xy(x_trunk_xy)  # (k, p)
         x_trunk_t = x_trunk_t.unsqueeze(1)  # (b, 1, p)
         x_trunk_xy = x_trunk_xy.unsqueeze(0)  # (1, k, p)
@@ -210,9 +208,7 @@ class DeepONet(CfdModel):
             # we have labels[i, j] = label[
             #     i, query_points[i, j, 0], query_points[i, j, 1]]
             labels = label[:, query_idxs[:, 0], query_idxs[:, 1]]  # (b, k)
-            assert (
-                preds.shape == labels.shape
-            ), f"{preds.shape}, {labels.shape}"
+            assert preds.shape == labels.shape, f"{preds.shape}, {labels.shape}"
             loss = self.loss_fn(preds=preds, labels=labels)  # (b, k)
             return dict(
                 preds=preds,

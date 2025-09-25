@@ -1,20 +1,27 @@
-import os, json, logging, uuid, time, tqdm, argparse, click, tempfile
+import json
+import logging
+import os
+import tempfile
+import time
+import uuid
 from pathlib import Path
-from typing import Any, List, Optional, Union
-from Bio import SeqIO
-from rdkit import Chem
+from typing import List, Optional, Union
 
+import click
+import tqdm
+from Bio import SeqIO
 from configs.configs_base import configs as configs_base
 from configs.configs_data import data_configs
 from configs.configs_inference import inference_configs
-from onescience.models.protenix.config import parse_configs, parse_sys_args
+from rdkit import Chem
+from runner.inference import InferenceRunner, download_infercence_cache, infer_predict
+from runner.msa_search import msa_search, update_infer_json
+
+from onescience.models.protenix.config import parse_configs
 from onescience.models.protenix.data.json_maker import cif_to_input_json
 from onescience.models.protenix.data.json_parser import lig_file_to_atom_info
 from onescience.models.protenix.data.utils import pdb_to_cif
 from onescience.models.protenix.utils.logger import get_logger
-from runner.inference import download_infercence_cache, InferenceRunner, infer_predict
-from runner.inference import InferenceRunner, download_infercence_cache, infer_predict
-from runner.msa_search import msa_search, update_infer_json
 
 logger = get_logger(__name__)
 

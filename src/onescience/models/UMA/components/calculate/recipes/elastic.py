@@ -15,12 +15,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from fairchem.core.components.calculate.recipes.relax import relax_atoms
 from pymatgen.analysis.elasticity import DeformedStructureSet, ElasticTensor, Strain
 from pymatgen.io.ase import AseAtomsAdaptor
-
-from fairchem.core.components.calculate.recipes.relax import (
-    relax_atoms,
-)
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

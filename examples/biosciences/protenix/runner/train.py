@@ -6,16 +6,17 @@ from contextlib import nullcontext
 
 import torch
 import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel as DDP
-from tqdm import tqdm
-
 import wandb
 from configs.configs_base import configs as configs_base
 from configs.configs_data import data_configs
-from onescience.models.protenix.config import parse_configs, parse_sys_args
-from onescience.models.protenix.config.config import save_config
+from runner.ema import EMAWrapper
+from torch.nn.parallel import DistributedDataParallel as DDP
+from tqdm import tqdm
+
 from onescience.datapipes.protenix.dataloader import get_dataloaders
 from onescience.metrics.protenix.lddt_metrics import LDDTMetrics
+from onescience.models.protenix.config import parse_configs, parse_sys_args
+from onescience.models.protenix.config.config import save_config
 from onescience.models.protenix.loss import ProtenixLoss
 from onescience.models.protenix.protenix import Protenix
 from onescience.utils.protenix.distributed import DIST_WRAPPER
@@ -23,9 +24,11 @@ from onescience.utils.protenix.lr_scheduler import get_lr_scheduler
 from onescience.utils.protenix.metrics import SimpleMetricAggregator
 from onescience.utils.protenix.permutation.permutation import SymmetricPermutation
 from onescience.utils.protenix.seed import seed_everything
-from onescience.utils.protenix.torch_utils import autocasting_disable_decorator, to_device
+from onescience.utils.protenix.torch_utils import (
+    autocasting_disable_decorator,
+    to_device,
+)
 from onescience.utils.protenix.training import get_optimizer, is_loss_nan_check
-from runner.ema import EMAWrapper
 
 # Disable WANDB's console output capture to reduce unnecessary logging
 os.environ["WANDB_CONSOLE"] = "off"
@@ -544,7 +547,7 @@ def main():
         filemode="w",
     )
     configs_base["use_deepspeed_evo_attention"] = (
-       os.environ.get("USE_DEEPSPEED_EVO_ATTENTION", False) == "true"
+        os.environ.get("USE_DEEPSPEED_EVO_ATTENTION", False) == "true"
     )
     configs = {**configs_base, **{"data": data_configs}}
     configs = parse_configs(

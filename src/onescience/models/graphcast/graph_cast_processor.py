@@ -2,6 +2,7 @@ from typing import Union
 
 import torch
 import torch.nn as nn
+
 # import transformer_engine as te
 from dgl import DGLGraph
 from torch import Tensor
@@ -196,23 +197,22 @@ class GraphCastProcessorGraphTransformer(nn.Module):
         self.register_buffer("mask", self.attention_mask, persistent=False)
 
         layers = [
-        #     te.pytorch.TransformerLayer(
-        #         hidden_size=input_dim_nodes,
-        #         ffn_hidden_size=hidden_dim,
-        #         num_attention_heads=num_attention_heads,
-        #         layer_number=i + 1,
-        #         fuse_qkv_params=False,
-        #     )
-        #     for i in range(processor_layers)
-
+            #     te.pytorch.TransformerLayer(
+            #         hidden_size=input_dim_nodes,
+            #         ffn_hidden_size=hidden_dim,
+            #         num_attention_heads=num_attention_heads,
+            #         layer_number=i + 1,
+            #         fuse_qkv_params=False,
+            #     )
+            #     for i in range(processor_layers)
             nn.TransformerEncoderLayer(
-                d_model=input_dim_nodes,           # 等同于 hidden_size
-                nhead=num_attention_heads,         # 等同于 num_attention_heads
-                dim_feedforward=hidden_dim,        # 等同于 ffn_hidden_size
-                activation='gelu',                 # 激活函数可以选择 gelu 或 relu
-                batch_first=True                   # 使得输入张量维度为 (batch_size, seq_len, d_model)
+                d_model=input_dim_nodes,  # 等同于 hidden_size
+                nhead=num_attention_heads,  # 等同于 num_attention_heads
+                dim_feedforward=hidden_dim,  # 等同于 ffn_hidden_size
+                activation="gelu",  # 激活函数可以选择 gelu 或 relu
+                batch_first=True,  # 使得输入张量维度为 (batch_size, seq_len, d_model)
             )
-            for _ in range(processor_layers)       # 创建多层 Transformer 编码器层
+            for _ in range(processor_layers)  # 创建多层 Transformer 编码器层
         ]
         self.processor_layers = nn.ModuleList(layers)
 

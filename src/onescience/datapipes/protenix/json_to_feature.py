@@ -6,7 +6,10 @@ import torch
 from biotite.structure import AtomArray
 
 from onescience.datapipes.protenix.featurizer import Featurizer
-from onescience.datapipes.protenix.json_parser import add_entity_atom_array, remove_leaving_atoms
+from onescience.datapipes.protenix.json_parser import (
+    add_entity_atom_array,
+    remove_leaving_atoms,
+)
 from onescience.datapipes.protenix.parser import AddAtomArrayAnnot
 from onescience.datapipes.protenix.tokenizer import AtomArrayTokenizer, TokenArray
 from onescience.datapipes.protenix.utils import int_to_letters
@@ -181,9 +184,9 @@ class SampleDictToFeatures:
 
                 if isinstance(atom_name, int):
                     # Convert AtomMap in SMILES to atom name in AtomArray
-                    entity_dict = list(self.input_dict["sequences"][
-                        int(entity_id - 1)
-                    ].values())[0]
+                    entity_dict = list(
+                        self.input_dict["sequences"][int(entity_id - 1)].values()
+                    )[0]
                     assert "atom_map_to_atom_name" in entity_dict
                     atom_name = entity_dict["atom_map_to_atom_name"][atom_name]
 

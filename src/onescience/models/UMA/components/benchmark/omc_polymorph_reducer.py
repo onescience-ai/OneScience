@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import logging
@@ -14,9 +12,15 @@ from pymatgen.io.ase import AseAtomsAdaptor, MSONAtoms
 from tqdm import tqdm
 
 from onescience.models.UMA.components.benchmark.benchmark_reducer import JsonDFReducer
-from onescience.models.UMA.components.calculate.recipes.local_env import construct_bond_matrix
-from onescience.models.UMA.components.calculate.relaxation_runner import RelaxationRunner
-from onescience.models.UMA.components.calculate.singlepoint_runner import SinglePointRunner
+from onescience.models.UMA.components.calculate.recipes.local_env import (
+    construct_bond_matrix,
+)
+from onescience.models.UMA.components.calculate.relaxation_runner import (
+    RelaxationRunner,
+)
+from onescience.models.UMA.components.calculate.singlepoint_runner import (
+    SinglePointRunner,
+)
 
 try:
     from scipy.stats import kendalltau, spearmanr

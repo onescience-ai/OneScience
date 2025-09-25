@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import logging
@@ -13,9 +11,7 @@ import pandas as pd
 
 from onescience.models.UMA.common import distutils
 from onescience.models.UMA.common.logger import WandBSingletonLogger
-from onescience.models.UMA.components.calculate.calculate_runner import (
-    CalculateRunner,
-)
+from onescience.models.UMA.components.calculate.calculate_runner import CalculateRunner
 from onescience.models.UMA.components.reducer import Reducer
 
 if TYPE_CHECKING:

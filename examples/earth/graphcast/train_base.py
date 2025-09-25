@@ -1,8 +1,6 @@
 import torch
-from torch.profiler import profile, record_function, ProfilerActivity
 from torch.cuda.amp import autocast
-
-import sys
+from torch.profiler import ProfilerActivity, profile, record_function
 
 
 class BaseTrainer:

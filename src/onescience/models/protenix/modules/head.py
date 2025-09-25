@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
+
 from onescience.models.protenix.modules.primitives import Linear
+
 
 # Adapted From openfold.model.heads
 class DistogramHead(nn.Module):
@@ -20,7 +22,9 @@ class DistogramHead(nn.Module):
         self.c_z = c_z
         self.no_bins = no_bins
 
-        self.linear = Linear(in_features=self.c_z, out_features=self.no_bins, initializer="zeros")
+        self.linear = Linear(
+            in_features=self.c_z, out_features=self.no_bins, initializer="zeros"
+        )
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:  # [*, N, N, C_z]
         """

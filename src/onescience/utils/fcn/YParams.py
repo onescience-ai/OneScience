@@ -1,7 +1,8 @@
-from ruamel.yaml import YAML
 import logging
-import re
 import os
+import re
+
+from ruamel.yaml import YAML
 
 
 def parse_env_vars(data):

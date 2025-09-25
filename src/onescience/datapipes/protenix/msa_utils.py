@@ -20,13 +20,6 @@ from typing import (
 
 import numpy as np
 
-from onescience.datapipes.protenix.constants import (
-    PRO_STD_RESIDUES,
-    PROT_STD_RESIDUES_ONE_TO_THREE,
-    RNA_ID_TO_NT,
-    RNA_NT_TO_ID,
-    RNA_STD_RESIDUES,
-)
 from onescience.datapipes.openfold import parsers
 from onescience.datapipes.openfold.msa_identifiers import (
     Identifiers,
@@ -42,6 +35,13 @@ from onescience.datapipes.openfold.msa_pairing import (
     block_diag,
     create_paired_features,
     deduplicate_unpaired_sequences,
+)
+from onescience.datapipes.protenix.constants import (
+    PRO_STD_RESIDUES,
+    PROT_STD_RESIDUES_ONE_TO_THREE,
+    RNA_ID_TO_NT,
+    RNA_NT_TO_ID,
+    RNA_STD_RESIDUES,
 )
 from onescience.utils.openfold.np import residue_constants
 from onescience.utils.protenix.distributed import DIST_WRAPPER
@@ -621,7 +621,7 @@ def add_assembly_features(
 
 
 def process_unmerged_features(
-    all_chain_features: MutableMapping[str, Mapping[str, np.ndarray]]
+    all_chain_features: MutableMapping[str, Mapping[str, np.ndarray]],
 ):
     """
     Postprocessing stage for per-chain features before merging
@@ -930,7 +930,7 @@ def merge_features_from_prot_rna(
 
 
 def _concatenate_paired_and_unpaired_features(
-    np_example: Mapping[str, np.ndarray]
+    np_example: Mapping[str, np.ndarray],
 ) -> dict[str, np.ndarray]:
     """
     Concatenate paired and unpaired features
@@ -1058,7 +1058,7 @@ def process_rna_final(np_example: Mapping[str, np.ndarray]) -> dict[str, np.ndar
 
 
 def correct_rna_msa_restypes(
-    np_example: Mapping[str, np.ndarray]
+    np_example: Mapping[str, np.ndarray],
 ) -> dict[str, np.ndarray]:
     """
     Correct MSA restype to have the same order as residue_constants

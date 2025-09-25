@@ -1,15 +1,14 @@
 """Rot3Array Matrix Class."""
 
 from __future__ import annotations
+
 import dataclasses
 from typing import List
 
 import torch
 
-from onescience.utils.openfold.geometry import utils
-from onescience.utils.openfold.geometry import vector
+from onescience.utils.openfold.geometry import utils, vector
 from onescience.utils.openfold.tensor_utils import tensor_tree_map
-
 
 COMPONENTS = ["xx", "xy", "xz", "yx", "yy", "yz", "zx", "zy", "zz"]
 

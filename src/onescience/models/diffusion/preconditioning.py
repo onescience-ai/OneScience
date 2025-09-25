@@ -1,5 +1,5 @@
 """
-Preconditioning schemes used in the paper"Elucidating the Design Space of 
+Preconditioning schemes used in the paper"Elucidating the Design Space of
 Diffusion-Based Generative Models".
 """
 
@@ -112,9 +112,11 @@ class VPPrecond(Module):
         class_labels = (
             None
             if self.label_dim == 0
-            else torch.zeros([1, self.label_dim], device=x.device)
-            if class_labels is None
-            else class_labels.to(torch.float32).reshape(-1, self.label_dim)
+            else (
+                torch.zeros([1, self.label_dim], device=x.device)
+                if class_labels is None
+                else class_labels.to(torch.float32).reshape(-1, self.label_dim)
+            )
         )
         dtype = (
             torch.float16
@@ -285,9 +287,11 @@ class VEPrecond(Module):
         class_labels = (
             None
             if self.label_dim == 0
-            else torch.zeros([1, self.label_dim], device=x.device)
-            if class_labels is None
-            else class_labels.to(torch.float32).reshape(-1, self.label_dim)
+            else (
+                torch.zeros([1, self.label_dim], device=x.device)
+                if class_labels is None
+                else class_labels.to(torch.float32).reshape(-1, self.label_dim)
+            )
         )
         dtype = (
             torch.float16
@@ -429,9 +433,11 @@ class iDDPMPrecond(Module):
         class_labels = (
             None
             if self.label_dim == 0
-            else torch.zeros([1, self.label_dim], device=x.device)
-            if class_labels is None
-            else class_labels.to(torch.float32).reshape(-1, self.label_dim)
+            else (
+                torch.zeros([1, self.label_dim], device=x.device)
+                if class_labels is None
+                else class_labels.to(torch.float32).reshape(-1, self.label_dim)
+            )
         )
         dtype = (
             torch.float16
@@ -595,9 +601,11 @@ class EDMPrecond(Module):
         class_labels = (
             None
             if self.label_dim == 0
-            else torch.zeros([1, self.label_dim], device=x.device)
-            if class_labels is None
-            else class_labels.to(torch.float32).reshape(-1, self.label_dim)
+            else (
+                torch.zeros([1, self.label_dim], device=x.device)
+                if class_labels is None
+                else class_labels.to(torch.float32).reshape(-1, self.label_dim)
+            )
         )
         dtype = (
             torch.float16
@@ -1017,9 +1025,11 @@ class VEPrecond_dfsr(torch.nn.Module):
         class_labels = (
             None
             if self.label_dim == 0
-            else torch.zeros([1, self.label_dim], device=x.device)
-            if class_labels is None
-            else class_labels.to(torch.float32).reshape(-1, self.label_dim)
+            else (
+                torch.zeros([1, self.label_dim], device=x.device)
+                if class_labels is None
+                else class_labels.to(torch.float32).reshape(-1, self.label_dim)
+            )
         )
         dtype = (
             torch.float16
@@ -1145,9 +1155,11 @@ class VEPrecond_dfsr_cond(torch.nn.Module):
         class_labels = (
             None
             if self.label_dim == 0
-            else torch.zeros([1, self.label_dim], device=x.device)
-            if class_labels is None
-            else class_labels.to(torch.float32).reshape(-1, self.label_dim)
+            else (
+                torch.zeros([1, self.label_dim], device=x.device)
+                if class_labels is None
+                else class_labels.to(torch.float32).reshape(-1, self.label_dim)
+            )
         )
         dtype = (
             torch.float16

@@ -14,12 +14,15 @@
 # ============================================================================
 """config load"""
 from pprint import pformat
+
 import yaml
+
 
 class Config:
     """
     Configuration namespace. Convert dictionary to members.
     """
+
     def __init__(self, cfg_dict):
         for k, v in cfg_dict.items():
             if isinstance(v, (list, tuple)):
@@ -33,11 +36,12 @@ class Config:
     def __repr__(self):
         return self.__str__()
 
+
 def load_config(path):
     """
     Convert yaml file to Obj.
     """
-    f = open(path, 'r')
+    f = open(path, "r")
     config = yaml.load(f, Loader=yaml.FullLoader)
     config = Config(config)
     return config

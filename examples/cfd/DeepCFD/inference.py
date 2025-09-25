@@ -1,11 +1,10 @@
-import os
-import json
-import torch
 import pickle
 import random
-from onescience.utils.deepcfd.functions import *
-from onescience.utils.deepcfd.functions import *
+
+import torch
 from torch.utils.data import TensorDataset
+
+from onescience.utils.deepcfd.functions import *
 
 # 根据训练代码的保存逻辑修改推理代码
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

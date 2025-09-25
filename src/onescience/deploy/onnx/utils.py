@@ -65,7 +65,7 @@ def export_to_onnx_stream(
         invars = (invars.detach().cpu(),)
     else:
         invars = tuple([invar.detach().cpu() for invar in invars])
-    # Use model's device if provided 
+    # Use model's device if provided
     if hasattr(model, "device"):
         model_device = model.device
     elif len(list(model.parameters())) > 0:

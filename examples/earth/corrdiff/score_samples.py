@@ -24,16 +24,16 @@ variables:
 
 
 """
-# %%
-import sys
-import os
-import dask.diagnostics
-import dask
-import multiprocessing
-import tqdm
+
 import argparse
+import multiprocessing
 from functools import partial
 
+import dask
+
+# %%
+import dask.diagnostics
+import tqdm
 import xarray as xr
 
 try:

@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import heapq
@@ -13,11 +11,9 @@ import torch.distributed
 from torch.utils.data import BatchSampler, Dataset, DistributedSampler
 from typing_extensions import deprecated, override
 
-from onescience.models.UMA.common import distutils, gp_utils
 from onescience.datapipes.uma import data_list_collater
-from onescience.datapipes.uma.base_dataset import (
-    UnsupportedDatasetError,
-)
+from onescience.datapipes.uma.base_dataset import UnsupportedDatasetError
+from onescience.models.UMA.common import distutils, gp_utils
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray

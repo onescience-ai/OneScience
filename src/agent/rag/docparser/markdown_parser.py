@@ -2,8 +2,10 @@
 
 import re
 from pathlib import Path
-from typing import NamedTuple, Optional, cast
+from typing import Optional, cast
+
 from langchain_core.documents import Document
+
 from agent.rag.docparser.helpers import detect_file_encodings
 
 

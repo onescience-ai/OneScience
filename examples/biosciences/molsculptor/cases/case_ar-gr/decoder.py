@@ -10,11 +10,14 @@
 """
 
 import os
+
 os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".90"
-from unit_sup import replicate_func, decoder_f
+from unit_sup import decoder_f, replicate_func
 
 decoder_dict = dict()
-def decoder_function (x, cached):
+
+
+def decoder_function(x, cached):
     """
     Decodes input tensor `x` into molecular representations using cached data.
 
@@ -33,7 +36,7 @@ def decoder_function (x, cached):
     """
     ### x: (dbs * r, npt, d)
 
-    cached_smiles = [d['smiles'] for d in cached['molecules']] ## (dbs,)
+    cached_smiles = [d["smiles"] for d in cached["molecules"]]  ## (dbs,)
 
     ### decoding to molecules: {'graphs', 'smiles',}, (dbs * r, ...)
     decode_molecules = decoder_f(x, replicate_func(cached_smiles[-1]))

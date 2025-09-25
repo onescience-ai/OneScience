@@ -1,21 +1,17 @@
 import logging
 import time
 
-from dgl.dataloading import GraphDataLoader
-
 import hydra
-from hydra.utils import instantiate, to_absolute_path
-from omegaconf import DictConfig, OmegaConf
-
 import torch
+from dgl.dataloading import GraphDataLoader
+from hydra.utils import instantiate, to_absolute_path
+from loggers import CompositeLogger, ExperimentLogger, get_gpu_info, init_python_logging
+from omegaconf import DictConfig, OmegaConf
 from torch.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel
 
 from onescience.distributed.manager import DistributedManager
 from onescience.launch.utils import load_checkpoint, save_checkpoint
-
-from loggers import CompositeLogger, ExperimentLogger, get_gpu_info, init_python_logging
-
 
 logger = logging.getLogger("lmgn")
 

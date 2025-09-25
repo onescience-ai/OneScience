@@ -8,10 +8,9 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import yaml
-from torch import Tensor
-
 from physicsnemo.datapipes.datapipe import Datapipe
 from physicsnemo.datapipes.meta import DatapipeMetaData
+from torch import Tensor
 
 from .utils import load_json, read_vtp_file, save_json
 
@@ -200,7 +199,7 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
             max_workers=num_workers,
             mp_context=torch.multiprocessing.get_context("spawn"),
         ) as executor:
-            for (i, graph, coeff, normal, area) in executor.map(
+            for i, graph, coeff, normal, area in executor.map(
                 self.create_graph,
                 range(self.length),
                 case_files[: self.length],

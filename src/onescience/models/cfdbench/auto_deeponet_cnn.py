@@ -2,26 +2,20 @@ from itertools import product
 from typing import List, Optional
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 
-from .ffn import Ffn
-from .base_model import AutoCfdModel
 from .act_fn import get_act_fn
+from .base_model import AutoCfdModel
+from .ffn import Ffn
 from .loss import MseLoss
 
 
 class CnnBranch(nn.Module):
-    def __init__(
-        self, in_chan: int, kernel_size: int, padding: int, depth: int = 4
-    ):
+    def __init__(self, in_chan: int, kernel_size: int, padding: int, depth: int = 4):
         super().__init__()
         self.in_chan = in_chan
-        self.in_conv = nn.Conv2d(
-            in_chan, 32, kernel_size=kernel_size, padding=padding
-        )
-        self.out_conv = nn.Conv2d(
-            32, 32, kernel_size=kernel_size, padding=padding
-        )
+        self.in_conv = nn.Conv2d(in_chan, 32, kernel_size=kernel_size, padding=padding)
+        self.out_conv = nn.Conv2d(32, 32, kernel_size=kernel_size, padding=padding)
 
         blocks = []
         for i in range(depth):
@@ -91,12 +85,8 @@ class AutoDeepONetCnn(AutoCfdModel):
         self.branch_net = CnnBranch(
             in_chan + 1 + num_case_params, kernel_size=5, padding=2
         )
-        self.trunk_net = Ffn(
-            self.trunk_dims, act_fn=act_fn, act_on_output=False
-        )
-        self.out_ffn = Ffn(
-            [32 * 4 * 4] * 3 + [1], act_fn=act_fn, act_on_output=False
-        )
+        self.trunk_net = Ffn(self.trunk_dims, act_fn=act_fn, act_on_output=False)
+        self.out_ffn = Ffn([32 * 4 * 4] * 3 + [1], act_fn=act_fn, act_on_output=False)
         self.bias = nn.Parameter(torch.zeros(1))  # type: ignore
 
     def forward(
@@ -135,12 +125,8 @@ class AutoDeepONetCnn(AutoCfdModel):
         # Add case params as additional channels
         case_params = case_params.unsqueeze(-1).unsqueeze(-1)  # (B, c, 1, 1)
         # (B, n_params, h, w)
-        case_params = case_params.expand(
-            -1, -1, inputs.shape[-2], inputs.shape[-1]
-        )
-        inputs = torch.cat(
-            [inputs, case_params], dim=1
-        )  # (B, c + n_params, h, w)
+        case_params = case_params.expand(-1, -1, inputs.shape[-2], inputs.shape[-1])
+        inputs = torch.cat([inputs, case_params], dim=1)  # (B, c + n_params, h, w)
 
         x_branch = self.branch_net(inputs)  # (b, 32, h/16=4, w/16=4)
         x_branch = x_branch.view(batch_size, -1)  # (b, 32 * 4 * 4 = 512)
@@ -163,9 +149,7 @@ class AutoDeepONetCnn(AutoCfdModel):
         preds = preds.squeeze(-1)  # (b, k)
 
         # Use values of the input field at query points as residuals
-        residuals = residuals[
-            :, 0, query_idxs[:, 0], query_idxs[:, 1]
-        ]  # (b, c, k)
+        residuals = residuals[:, 0, query_idxs[:, 0], query_idxs[:, 1]]  # (b, c, k)
         # print(residuals.shape, preds.shape)
         preds += residuals
 
@@ -183,9 +167,7 @@ class AutoDeepONetCnn(AutoCfdModel):
         preds = preds.view(-1, 1, height, width)  # (b, 1, h, w)
         return dict(preds=preds)
 
-    def generate(
-        self, inputs: Tensor, case_params: Tensor, mask: Tensor
-    ) -> Tensor:
+    def generate(self, inputs: Tensor, case_params: Tensor, mask: Tensor) -> Tensor:
         """
         x: (c, h, w) or (B, c, h, w)
 
@@ -230,9 +212,7 @@ class AutoDeepONetCnn(AutoCfdModel):
         preds = []
         for _ in range(steps):
             # (b, c, h, w)
-            cur_frame = self.generate(
-                cur_frame, case_params=case_params, mask=mask
-            )
+            cur_frame = self.generate(cur_frame, case_params=case_params, mask=mask)
             preds.append(cur_frame)
             cur_frame = torch.cat([cur_frame, p], dim=1)
         return preds

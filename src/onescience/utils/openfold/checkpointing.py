@@ -1,6 +1,6 @@
-from functools import partial
 import importlib
-from typing import Any, List, Callable, Optional
+from functools import partial
+from typing import Any, Callable, List, Optional
 
 deepspeed_is_installed = importlib.util.find_spec("deepspeed") is not None
 if deepspeed_is_installed:
@@ -8,7 +8,6 @@ if deepspeed_is_installed:
 
 import torch
 import torch.utils.checkpoint
-
 
 BLOCK_ARG = Any
 BLOCK_ARGS = List[BLOCK_ARG]

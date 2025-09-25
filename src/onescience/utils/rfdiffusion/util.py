@@ -1,4 +1,5 @@
 import scipy.sparse
+
 from onescience.utils.rfdiffusion.chemical import *
 from onescience.utils.rfdiffusion.scoring import *
 
@@ -9,7 +10,7 @@ def generate_Cbeta(N, Ca, C):
     c = C - Ca
     a = torch.cross(b, c, dim=-1)
     # These are the values used during training
-    Cb = -0.58273431*a + 0.56802827*b - 0.54067466*c + Ca
+    Cb = -0.58273431 * a + 0.56802827 * b - 0.54067466 * c + Ca
     # fd: below matches sidechain generator (=Rosetta params)
     # Cb = -0.57910144 * a + 0.5689693 * b - 0.5441217 * c + Ca
 
@@ -714,6 +715,7 @@ def writepdb_multi(
 
         f.write("ENDMDL\n")
 
+
 def calc_rmsd(xyz1, xyz2, eps=1e-6):
     """
     Calculates RMSD between two sets of atoms (L, 3)
@@ -729,15 +731,15 @@ def calc_rmsd(xyz1, xyz2, eps=1e-6):
     V, S, W = np.linalg.svd(C)
 
     # get sign to ensure right-handedness
-    d = np.ones([3,3])
-    d[:,-1] = np.sign(np.linalg.det(V)*np.linalg.det(W))
+    d = np.ones([3, 3])
+    d[:, -1] = np.sign(np.linalg.det(V) * np.linalg.det(W))
 
     # Rotation matrix U
-    U = (d*V) @ W
+    U = (d * V) @ W
 
     # Rotate xyz2
     xyz2_ = xyz2 @ U
     L = xyz2_.shape[0]
-    rmsd = np.sqrt(np.sum((xyz2_-xyz1)*(xyz2_-xyz1), axis=(0,1)) / L + eps)
+    rmsd = np.sqrt(np.sum((xyz2_ - xyz1) * (xyz2_ - xyz1), axis=(0, 1)) / L + eps)
 
     return rmsd, U

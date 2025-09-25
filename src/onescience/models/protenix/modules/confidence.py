@@ -3,11 +3,10 @@ from typing import Optional, Union
 import torch
 import torch.nn as nn
 
+from onescience.models.openfold.primitives import LayerNorm
 from onescience.models.protenix.modules.pairformer import PairformerStack
 from onescience.models.protenix.modules.primitives import LinearNoBias
 from onescience.models.protenix.utils import broadcast_token_to_atom, one_hot
-from onescience.models.openfold.primitives import LayerNorm
-from onescience.utils.protenix.torch_utils import cdist
 
 
 class ConfidenceHead(nn.Module):

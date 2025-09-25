@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class CSILoss(nn.Module):
     def __init__(self, configs):
         super(CSILoss, self).__init__()
@@ -20,5 +21,7 @@ class CSILoss(nn.Module):
         return hits, misses, falsealarms, correctnegatives
 
     def forward(self, obs, pre, threshold=0.1):
-        hits, misses, falsealarms, correctnegatives = self.prep_clf(obs=obs, pre=pre, threshold=threshold)
+        hits, misses, falsealarms, correctnegatives = self.prep_clf(
+            obs=obs, pre=pre, threshold=threshold
+        )
         return 1 - hits / (hits + falsealarms + misses)

@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import logging
@@ -13,10 +12,9 @@ from onescience.models.UMA.common import distutils
 from onescience.models.UMA.common.logger import WandBSingletonLogger
 
 if TYPE_CHECKING:
+    from fairchem.core.common.logger import Logger
     from omegaconf import DictConfig
     from torchtnt.framework import State, TTrainUnit
-
-    from fairchem.core.common.logger import Logger
 
 
 def get_default_profiler_handler(

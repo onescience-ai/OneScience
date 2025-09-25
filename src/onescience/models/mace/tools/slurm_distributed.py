@@ -1,8 +1,6 @@
-
 # Slurm environment setup for distributed training.
 # This code is refactored from rsarm's contribution at:
 # https://github.com/Lumi-supercomputer/lumi-reframe-tests/blob/main/checks/apps/deeplearning/pytorch/src/pt_distr_env.py
-
 
 
 import os

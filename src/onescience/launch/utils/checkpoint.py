@@ -7,7 +7,6 @@ import torch
 from torch.cuda.amp import GradScaler
 from torch.optim.lr_scheduler import _LRScheduler
 
-import onescience
 from onescience.distributed import DistributedManager
 from onescience.launch.logging import PythonLogger
 from onescience.utils.capture import _StaticCapture
@@ -202,9 +201,7 @@ def save_checkpoint(
         models = _unique_model_names(models)
         for name, model in models.items():
             # Get full file path / name
-            file_name = _get_checkpoint_filename(
-                path, name, index=epoch, saving=True
-            )
+            file_name = _get_checkpoint_filename(path, name, index=epoch, saving=True)
 
             # Save state dictionary
             torch.save(model.state_dict(), file_name)
@@ -228,9 +225,7 @@ def save_checkpoint(
         checkpoint_dict["static_capture_state_dict"] = _StaticCapture.state_dict()
 
     # Output file name
-    output_filename = _get_checkpoint_filename(
-        path, index=epoch, saving=True
-    )
+    output_filename = _get_checkpoint_filename(path, index=epoch, saving=True)
     if epoch:
         checkpoint_dict["epoch"] = epoch
 
@@ -295,9 +290,7 @@ def load_checkpoint(
         models = _unique_model_names(models)
         for name, model in models.items():
             # Get full file path / name
-            file_name = _get_checkpoint_filename(
-                path, name, index=epoch
-            )
+            file_name = _get_checkpoint_filename(path, name, index=epoch)
             if not Path(file_name).exists():
                 checkpoint_logging.error(
                     f"Could not find valid model file {file_name}, skipping load"

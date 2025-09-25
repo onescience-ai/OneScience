@@ -10,7 +10,10 @@ from biotite.structure import AtomArray, get_chain_starts, get_residue_starts
 from onescience.datapipes.protenix.constants import STD_RESIDUES
 from onescience.datapipes.protenix.filter import Filter
 from onescience.datapipes.protenix.parser import AddAtomArrayAnnot, MMCIFParser
-from onescience.datapipes.protenix.utils import get_lig_lig_bonds, get_ligand_polymer_bond_mask
+from onescience.datapipes.protenix.utils import (
+    get_lig_lig_bonds,
+    get_ligand_polymer_bond_mask,
+)
 
 
 def merge_covalent_bonds(

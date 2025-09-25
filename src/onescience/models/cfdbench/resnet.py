@@ -1,8 +1,7 @@
 from typing import Optional
 
 import torch
-from torch import nn, Tensor
-
+from torch import Tensor, nn
 
 from .base_model import AutoCfdModel
 
@@ -171,12 +170,8 @@ class ResNet(AutoCfdModel):
         # Add case params as additional channels
         case_params = case_params.unsqueeze(-1).unsqueeze(-1)  # (B, c, 1, 1)
         # (B, n_params, h, w)
-        case_params = case_params.expand(
-            -1, -1, inputs.shape[-2], inputs.shape[-1]
-        )
-        inputs = torch.cat(
-            [inputs, case_params], dim=1
-        )  # (B, c + n_params, h, w)
+        case_params = case_params.expand(-1, -1, inputs.shape[-2], inputs.shape[-1])
+        inputs = torch.cat([inputs, case_params], dim=1)  # (B, c + n_params, h, w)
 
         inputs = self.blocks(inputs)  # (B, c, h, w)
         preds = inputs + residual
@@ -229,8 +224,6 @@ class ResNet(AutoCfdModel):
         frames = [cur_frame]
         # boundaries = (1 - mask) * cur_frame  # (1, c, h, w)
         for _ in range(steps):
-            cur_frame = self.generate(
-                cur_frame, case_params=case_params, mask=mask
-            )
+            cur_frame = self.generate(cur_frame, case_params=case_params, mask=mask)
             frames.append(cur_frame)
         return frames

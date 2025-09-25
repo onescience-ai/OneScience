@@ -1,7 +1,8 @@
 """Document loader helpers."""
+
+import concurrent.futures
 import os.path
 import uuid
-import concurrent.futures
 from typing import NamedTuple, Optional, cast
 
 
@@ -16,7 +17,9 @@ class FileEncoding(NamedTuple):
     """The language of the file."""
 
 
-def detect_file_encodings(file_path: str, timeout: int = 5, sample_size: int = 1024 * 1024) -> list[FileEncoding]:
+def detect_file_encodings(
+    file_path: str, timeout: int = 5, sample_size: int = 1024 * 1024
+) -> list[FileEncoding]:
     """Try to detect the file encoding.
 
     Returns a list of `FileEncoding` tuples with the detected encodings ordered
@@ -42,7 +45,9 @@ def detect_file_encodings(file_path: str, timeout: int = 5, sample_size: int = 1
         try:
             encodings = future.result(timeout=timeout)
         except concurrent.futures.TimeoutError:
-            raise TimeoutError(f"Timeout reached while detecting encoding for {file_path}")
+            raise TimeoutError(
+                f"Timeout reached while detecting encoding for {file_path}"
+            )
 
     if all(encoding["encoding"] is None for encoding in encodings):
         raise RuntimeError(f"Could not detect encoding for {file_path}")
@@ -52,5 +57,3 @@ def detect_file_encodings(file_path: str, timeout: int = 5, sample_size: int = 1
 def file_name_to_uuid(file_path: str):
     file_name = file_path.split(os.path.sep)[-1]
     return uuid.uuid5(uuid.NAMESPACE_OID, file_name).__str__()
-
-

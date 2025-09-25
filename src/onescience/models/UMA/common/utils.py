@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import datetime
@@ -131,7 +130,9 @@ def _get_project_root() -> Path:
     root_folder = registry.get("onescience_models_UMA_root", no_warning=True)
 
     if root_folder is not None:
-        assert isinstance(root_folder, str), "onescience_models_UMA_root must be a string"
+        assert isinstance(
+            root_folder, str
+        ), "onescience_models_UMA_root must be a string"
         root_folder = Path(root_folder).resolve().absolute()
         assert root_folder.exists(), f"{root_folder} does not exist"
         assert root_folder.is_dir(), f"{root_folder} is not a directory"
@@ -326,7 +327,9 @@ def get_commit_hash() -> str:
     core_hash = get_commit_hash_for_repo(onescience.models.UMA.__path__[0])
     experimental_hash = None
     try:
-        experimental_hash = get_commit_hash_for_repo(onescience.models.experimental.__path__[0])
+        experimental_hash = get_commit_hash_for_repo(
+            onescience.models.experimental.__path__[0]
+        )
         return f"UMA:{core_hash},experimental:{experimental_hash}"
     except (NameError, AttributeError):
         return f"UMA:{core_hash},experimental:NA"

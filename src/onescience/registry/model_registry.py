@@ -29,7 +29,9 @@ class ModelRegistry:
             registry[entry_point.name] = entry_point
         return registry
 
-    def register(self, model: "onescience.Module", name: Union[str, None] = None) -> None:
+    def register(
+        self, model: "onescience.Module", name: Union[str, None] = None
+    ) -> None:
         """
         Registers a onescience model in the model registry under the provided name. If no name
         is provided, the model's name (from its `__name__` attribute) is used. If the

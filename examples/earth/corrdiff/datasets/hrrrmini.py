@@ -4,8 +4,8 @@ import math
 from typing import List, Tuple, Union
 
 import numpy as np
-from numba import jit, prange
 import xarray as xr
+from numba import jit, prange
 
 from onescience.utils.generative import convert_datetime_to_cftime
 

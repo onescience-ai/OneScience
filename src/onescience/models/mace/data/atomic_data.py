@@ -1,4 +1,3 @@
-
 # Atomic Data Class for handling molecules as graphs
 
 from copy import deepcopy

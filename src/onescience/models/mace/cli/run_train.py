@@ -1,7 +1,4 @@
-
 # Training script for MACE
-
-
 
 
 import ast

@@ -1,19 +1,19 @@
-import torch
+import logging
 import os
 import sys
-import numpy as np
-import torch.distributed as dist
-import logging
 import time
 
-from torch.nn.parallel import DistributedDataParallel
-from onescience.models.fengwu import Fengwu
-from onescience.datapipes.climate import ERA5HDF5Datapipe
-from onescience.utils.fcn.YParams import YParams
-from onescience.utils.fcn.darcy_loss import LpLoss
-from onescience.memory.checkpoint import replace_function
-
+import numpy as np
+import torch
+import torch.distributed as dist
 from apex import optimizers
+from torch.nn.parallel import DistributedDataParallel
+
+from onescience.datapipes.climate import ERA5HDF5Datapipe
+from onescience.memory.checkpoint import replace_function
+from onescience.models.fengwu import Fengwu
+from onescience.utils.fcn.darcy_loss import LpLoss
+from onescience.utils.fcn.YParams import YParams
 
 
 def main():
@@ -59,11 +59,18 @@ def main():
     ).to(local_rank)
     if cfg.world_size == 1:
         total_params = sum(p.numel() for p in fengwu_model.parameters())
-        print('-' * 20, f'now params is {total_params}, {total_params / 1e6: .2f}M, {total_params / 1e9: .2f}B')
-    
-    if cfg.world_size > 1:
-        fengwu_model = DistributedDataParallel(fengwu_model, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
+        print(
+            "-" * 20,
+            f"now params is {total_params}, {total_params / 1e6: .2f}M, {total_params / 1e9: .2f}B",
+        )
 
+    if cfg.world_size > 1:
+        fengwu_model = DistributedDataParallel(
+            fengwu_model,
+            device_ids=[local_rank],
+            output_device=local_rank,
+            find_unused_parameters=True,
+        )
 
     optimizer = optimizers.FusedAdam(fengwu_model.parameters(), lr=cfg.lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -107,15 +114,25 @@ def main():
 
             with replace_function(
                 fengwu_model,
-                ["encoder_surface", "encoder_z", "encoder_r", "encoder_u", "encoder_v", "encoder_t", "fuser"],
+                [
+                    "encoder_surface",
+                    "encoder_z",
+                    "encoder_r",
+                    "encoder_u",
+                    "encoder_v",
+                    "encoder_t",
+                    "fuser",
+                ],
                 cfg.world_size > 1,
             ):
-                surface_p, z_p, r_p, u_p, v_p, t_p = fengwu_model(surface, z, r, u, v, t)
+                surface_p, z_p, r_p, u_p, v_p, t_p = fengwu_model(
+                    surface, z, r, u, v, t
+                )
 
             # surface, z, r, u, v, t = fengwu_model(surface, z, r, u, v, t)
 
             outvar_pred = torch.concat([surface_p, z_p, r_p, u_p, v_p, t_p], dim=1)
-            
+
             loss = loss_obj(outvar, outvar_pred)
 
             optimizer.zero_grad()
@@ -150,7 +167,7 @@ def main():
                 surface, z, r, u, v, t = fengwu_model(surface, z, r, u, v, t)
 
                 outvar_pred = torch.concat([surface_p, z_p, r_p, u_p, v_p, t_p], dim=1)
-                
+
                 loss = loss_obj(outvar, outvar_pred)
 
                 if cfg.world_size > 1:

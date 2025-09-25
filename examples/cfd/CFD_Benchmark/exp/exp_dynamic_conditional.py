@@ -1,14 +1,11 @@
 import os
+
 import torch
 from exp.exp_basic import Exp_Basic
-from onescience.models.cfd_benchmark.model_factory import get_model
-from onescience.datapipes.cfd_benchmark.data_factory import get_data
-from onescience.utils.cfd_benchmark.loss import L2Loss
-import matplotlib.pyplot as plt
-from onescience.utils.cfd_benchmark.visual import visual
-import numpy as np
-from onescience.distributed.manager import DistributedManager
+
 from onescience.memory.checkpoint import replace_function
+from onescience.utils.cfd_benchmark.loss import L2Loss
+from onescience.utils.cfd_benchmark.visual import visual
 
 
 class Exp_Dynamic_Conditional(Exp_Basic):

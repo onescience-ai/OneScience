@@ -6,13 +6,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from onescience.models.openfold.primitives import LayerNorm, trunc_normal_init_
 from onescience.models.protenix.utils import (
     flatten_final_dims,
     move_final_dim_to_dim,
     pad_at_dim,
     reshape_at_dim,
 )
-from onescience.models.openfold.primitives import LayerNorm, trunc_normal_init_
 from onescience.utils.openfold.chunk_utils import chunk_layer
 
 
@@ -161,9 +161,15 @@ class Transition(nn.Module):
         self.n = n
         self.c_in = c_in
         self.layernorm1 = LayerNorm(c_in)
-        self.linear_no_bias_a = LinearNoBias(in_features=c_in, out_features=n * c_in, initializer="relu")
-        self.linear_no_bias_b = LinearNoBias(in_features=c_in, out_features=n * c_in, initializer="relu")
-        self.linear_no_bias = LinearNoBias(in_features=n * c_in, out_features=c_in, initializer="relu")
+        self.linear_no_bias_a = LinearNoBias(
+            in_features=c_in, out_features=n * c_in, initializer="relu"
+        )
+        self.linear_no_bias_b = LinearNoBias(
+            in_features=c_in, out_features=n * c_in, initializer="relu"
+        )
+        self.linear_no_bias = LinearNoBias(
+            in_features=n * c_in, out_features=c_in, initializer="relu"
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

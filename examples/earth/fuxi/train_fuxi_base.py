@@ -1,19 +1,19 @@
-import torch
+import logging
 import os
 import sys
-import numpy as np
-import torch.distributed as dist
-import logging
 import time
 
-from torch.nn.parallel import DistributedDataParallel
-from onescience.models.fuxi import Fuxi
-from onescience.datapipes.climate import ERA5HDF5Datapipe
-from onescience.utils.fcn.YParams import YParams
-from onescience.metrics.climate.loss import LatitudeWeightedLoss
-from onescience.memory.checkpoint import replace_function
-
+import numpy as np
+import torch
+import torch.distributed as dist
 from apex import optimizers
+from torch.nn.parallel import DistributedDataParallel
+
+from onescience.datapipes.climate import ERA5HDF5Datapipe
+from onescience.memory.checkpoint import replace_function
+from onescience.metrics.climate.loss import LatitudeWeightedLoss
+from onescience.models.fuxi import Fuxi
+from onescience.utils.fcn.YParams import YParams
 
 
 def main():
@@ -37,37 +37,47 @@ def main():
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
 
-    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), input_steps=2)
+    train_dataset = ERA5HDF5Datapipe(
+        params=cfg, distributed=dist.is_initialized(), input_steps=2
+    )
     train_dataloader, train_sampler = train_dataset.train_dataloader()
     world_rank == 0 and logger.info(
         f"Loaded train_dataloader of size {len(train_dataloader)}"
     )
 
-    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), input_steps=2)
+    val_dataset = ERA5HDF5Datapipe(
+        params=cfg, distributed=dist.is_initialized(), input_steps=2
+    )
     val_dataloader, val_sampler = val_dataset.val_dataloader()
     world_rank == 0 and logger.info(
         f"Loaded val_dataloader of size {len(val_dataloader)}"
     )
 
     fuxi_model = Fuxi(
-                    img_size=cfg.img_size, 
-                    patch_size=cfg.patch_size, 
-                    in_chans=cfg.N_in_channels ,
-                    out_chans=cfg.N_out_channels,
-                    embed_dim=cfg.embed_dim, 
-                    num_groups=cfg.num_groups, 
-                    num_heads=cfg.num_heads, 
-                    window_size=cfg.window_size
-                    ).to(local_rank)
-    
+        img_size=cfg.img_size,
+        patch_size=cfg.patch_size,
+        in_chans=cfg.N_in_channels,
+        out_chans=cfg.N_out_channels,
+        embed_dim=cfg.embed_dim,
+        num_groups=cfg.num_groups,
+        num_heads=cfg.num_heads,
+        window_size=cfg.window_size,
+    ).to(local_rank)
 
     if cfg.world_size == 1:
         total_params = sum(p.numel() for p in fuxi_model.parameters())
-        print('-' * 20, f'now params is {total_params}, {total_params / 1e6: .2f}M, {total_params / 1e9: .2f}B')
-    
-    if cfg.world_size > 1:
-        fuxi_model = DistributedDataParallel(fuxi_model, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
+        print(
+            "-" * 20,
+            f"now params is {total_params}, {total_params / 1e6: .2f}M, {total_params / 1e9: .2f}B",
+        )
 
+    if cfg.world_size > 1:
+        fuxi_model = DistributedDataParallel(
+            fuxi_model,
+            device_ids=[local_rank],
+            output_device=local_rank,
+            find_unused_parameters=True,
+        )
 
     optimizer = optimizers.FusedAdam(fuxi_model.parameters(), lr=cfg.train_lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -101,11 +111,13 @@ def main():
         for j, data in enumerate(train_dataloader):
             if j == 10:
                 break
-            invar = data[0].to(local_rank, dtype=torch.float32) # B, T, C, H, W
-            invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
+            invar = data[0].to(local_rank, dtype=torch.float32)  # B, T, C, H, W
+            invar = invar.permute(0, 2, 1, 3, 4)  # B, C, T, H, W
             outvar = data[1].to(local_rank, dtype=torch.float32)
 
-            with replace_function(fuxi_model, ["cube_embedding", "u_transformer"], cfg.world_size > 1):
+            with replace_function(
+                fuxi_model, ["cube_embedding", "u_transformer"], cfg.world_size > 1
+            ):
                 outvar_pred = fuxi_model(invar)
 
             loss = loss_obj(outvar, outvar_pred)
@@ -130,8 +142,8 @@ def main():
             for j, data in enumerate(val_dataloader):
                 if j == 10:
                     break
-                invar = data[0].to(local_rank, dtype=torch.float32) # B, T, C, H, W
-                invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
+                invar = data[0].to(local_rank, dtype=torch.float32)  # B, T, C, H, W
+                invar = invar.permute(0, 2, 1, 3, 4)  # B, C, T, H, W
                 outvar = data[1].to(local_rank, dtype=torch.float32)
                 outvar_pred = fuxi_model(invar)
                 loss = loss_obj(outvar, outvar_pred)

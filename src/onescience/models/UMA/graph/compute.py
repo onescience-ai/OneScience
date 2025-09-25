@@ -1,10 +1,11 @@
-
-
 from __future__ import annotations
 
 import torch
 
-from onescience.models.UMA.graph.radius_graph_pbc import radius_graph_pbc, radius_graph_pbc_v2
+from onescience.models.UMA.graph.radius_graph_pbc import (
+    radius_graph_pbc,
+    radius_graph_pbc_v2,
+)
 
 
 def get_pbc_distances(

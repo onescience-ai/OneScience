@@ -28,7 +28,9 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
     """This loss function is used to calculate the loss based on the squared difference between the global mean of per-word variances and target."""
 
     @staticmethod
-    def forward(ctx, we_weight: torch.Tensor, loss_coeff: float, var_target: float) -> torch.Tensor:
+    def forward(
+        ctx, we_weight: torch.Tensor, loss_coeff: float, var_target: float
+    ) -> torch.Tensor:
         """Calculates a loss based on the squared difference between the global mean of per-word variances and target.
 
         Assumes vocab-parallel sharding for we_weight (dim 0 is sharded).
@@ -60,7 +62,9 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
             ctx.is_H_dim_zero = True
             # Mean variance is 0 if H=0. Loss is based on (0 - VAR_TARGET)^2.
             loss_value = loss_coeff * (0.0 - var_target) ** 2
-            final_loss_tensor = torch.tensor(loss_value, device=we_weight.device, dtype=we_weight.dtype)
+            final_loss_tensor = torch.tensor(
+                loss_value, device=we_weight.device, dtype=we_weight.dtype
+            )
             # Save we_weight for shape, None for we_mean_per_word and V_final (as they are not well-defined or zero)
             ctx.save_for_backward(we_weight, None, None)
             return final_loss_tensor
@@ -85,7 +89,9 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
 
         # 3. Mean of these per-word variances *on this local rank*
         # v_local_mean_of_vars shape: scalar tensor
-        v_local_mean_of_vars = torch.tensor(0.0, device=we_weight.device, dtype=we_weight.dtype)
+        v_local_mean_of_vars = torch.tensor(
+            0.0, device=we_weight.device, dtype=we_weight.dtype
+        )
         if V_local > 0:  # Avoid NaN from mean of empty tensor if V_local is 0
             v_local_mean_of_vars = we_var_per_word_local.mean(dim=0, keepdim=False)
 
@@ -95,7 +101,11 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
         if tp_world_size > 1:
             # Computes V_final = (1/tp_world_size) * sum(v_local_mean_of_vars from each rank)
             V_final_globally_avg_var /= tp_world_size
-            torch.distributed.all_reduce(V_final_globally_avg_var, group=tp_group, op=torch.distributed.ReduceOp.SUM)
+            torch.distributed.all_reduce(
+                V_final_globally_avg_var,
+                group=tp_group,
+                op=torch.distributed.ReduceOp.SUM,
+            )
 
         # 5. Calculate final loss: LOSS_COEFF * (V_final - VAR_TARGET)^2
         final_loss = loss_coeff * (V_final_globally_avg_var - var_target) ** 2
@@ -189,4 +199,6 @@ class SquaredErrorTargetedVarianceLoss(torch.nn.Module):
         Returns:
             torch.Tensor: Loss value.
         """
-        return SquaredErrorTargetedVarianceLossFunction.apply(we_weight, self.loss_coeff, self.var_target)
+        return SquaredErrorTargetedVarianceLossFunction.apply(
+            we_weight, self.loss_coeff, self.var_target
+        )

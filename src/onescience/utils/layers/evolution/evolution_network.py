@@ -1,5 +1,5 @@
-import torch.nn.functional as F
 from .module import *
+
 
 class Evolution_Network(nn.Module):
     def __init__(self, n_channels, n_classes, base_c=64, bilinear=True):
@@ -48,4 +48,3 @@ class Evolution_Network(nn.Module):
         v = self.up4_v(v, x1)
         v = self.outc_v(v)
         return x, v
-

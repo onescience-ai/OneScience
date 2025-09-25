@@ -16,8 +16,8 @@ import os
 import uuid
 from typing import Sequence
 
-from onescience.utils.protenix.logger import get_logger
 from onescience.sciui.protenix.web_service.colab_request_parser import RequestParser
+from onescience.utils.protenix.logger import get_logger
 
 logger = get_logger(__name__)
 

@@ -1,4 +1,3 @@
-
 import os
 
 import torch
@@ -302,7 +301,12 @@ class SymmetricPermutation(object):
         permute_pred_indices: list[torch.Tensor],  # [N_atom]
         atom_to_token_idx: torch.Tensor,  # [N_atom]
         token_asym_id: torch.Tensor,  # [N_token]
-        chain_keys: list[str] = ["chain_ptm", "chain_iptm", "chain_plddt","chain_gpde",],
+        chain_keys: list[str] = [
+            "chain_ptm",
+            "chain_iptm",
+            "chain_plddt",
+            "chain_gpde",
+        ],
         chain_pair_keys: list[str] = [
             "chain_pair_iptm",
             "chain_pair_iptm_global",

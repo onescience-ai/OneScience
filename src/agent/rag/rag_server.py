@@ -1,19 +1,20 @@
 """Paragraph index processor."""
 
-from yaml import safe_load
-from typing import Optional, Any, Dict
 from copy import deepcopy
-from langchain_core.documents import Document
+from typing import Any, Dict, Optional
 
+from langchain_core.documents import Document
+from yaml import safe_load
+
+from agent.llm import EmbeddingModel
+from agent.rag.chunks.fixed_text_splitter import FixedRecursiveCharacterTextSplitter
 from agent.rag.datasource.retrieval_service import RetrievalService
+from agent.rag.datasource.vdb.vector_base import VectorType
 from agent.rag.datasource.vdb.vector_factory import Vector
-from agent.rag.preprocess.summary_preprocessor import SummaryPreprocessor
-from agent.rag.preprocess.collection_preprocessor import CollectionPreprocessor
 from agent.rag.docparser.doc_processor import DocProcessor
 from agent.rag.docparser.helpers import file_name_to_uuid
-from agent.rag.datasource.vdb.vector_base import VectorType
-from agent.rag.chunks.fixed_text_splitter import FixedRecursiveCharacterTextSplitter
-from agent.llm import EmbeddingModel
+from agent.rag.preprocess.collection_preprocessor import CollectionPreprocessor
+from agent.rag.preprocess.summary_preprocessor import SummaryPreprocessor
 
 with open("../config/onescience_rag.yml", "r", encoding="utf-8") as f:
     default_config = safe_load(f)
@@ -21,7 +22,7 @@ with open("../config/onescience_rag.yml", "r", encoding="utf-8") as f:
 
 class RagServer:
 
-    def __init__(self, config:Dict=None):
+    def __init__(self, config: Dict = None):
         if config is None:
             self.config = default_config
 

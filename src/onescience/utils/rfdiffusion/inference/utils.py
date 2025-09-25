@@ -1,17 +1,18 @@
-import numpy as np
+import glob
+import logging
 import os
-from omegaconf import DictConfig
+import random
+
+import numpy as np
 import torch
-import torch.nn.functional as nn
-from onescience.models.rfdiffusion.diffusion import get_beta_schedule
+from omegaconf import DictConfig
 from scipy.spatial.transform import Rotation as scipy_R
+
+from onescience.models.rfdiffusion.diffusion import get_beta_schedule
+from onescience.utils.rfdiffusion import util
+from onescience.utils.rfdiffusion.inference import model_runners
 from onescience.utils.rfdiffusion.util import rigid_from_3_points
 from onescience.utils.rfdiffusion.util_module import ComputeAllAtomCoords
-from onescience.utils.rfdiffusion import util
-import random
-import logging
-from onescience.utils.rfdiffusion.inference import model_runners
-import glob
 
 ###########################################################
 #### Functions which can be called outside of Denoiser ####
@@ -62,15 +63,15 @@ def get_next_frames(xt, px0, t, diffuser, so3_type, diffusion_mask, noise_scale=
     # Sample next frame for each residue
     if so3_type == "igso3":
         # don't do calculations on masked positions since they end up as identity matrix
-        all_rot_transitions[
-            ~diffusion_mask
-        ] = diffuser.so3_diffuser.reverse_sample_vectorized(
-            R_t[~diffusion_mask],
-            R_0[~diffusion_mask],
-            t,
-            noise_level=noise_scale,
-            mask=None,
-            return_perturb=True,
+        all_rot_transitions[~diffusion_mask] = (
+            diffuser.so3_diffuser.reverse_sample_vectorized(
+                R_t[~diffusion_mask],
+                R_0[~diffusion_mask],
+                t,
+                noise_level=noise_scale,
+                mask=None,
+                return_perturb=True,
+            )
         )
     else:
         assert False, "so3 diffusion type %s not implemented" % so3_type
@@ -153,7 +154,7 @@ def get_next_ca(
 
     """
     get_allatom = ComputeAllAtomCoords().to(device=xt.device)
-    L = len(xt)
+    len(xt)
 
     # bring to origin after global alignment (when don't have a motif) or replace input motif and bring to origin, and then scale
     px0 = px0 * crd_scale
@@ -378,8 +379,6 @@ class Denoise:
         if self.potential_manager == None or self.potential_manager.is_empty():
             return torch.zeros(xyz.shape[0], 3)
 
-        use_Cb = False
-
         # seq.requires_grad = True
         xyz.requires_grad = True
 
@@ -493,7 +492,7 @@ class Denoise:
         fullatom_next = torch.full_like(xt, float("nan")).unsqueeze(0)
         fullatom_next[:, :, :3] = frames_next[None]
         # This is never used so just make it a fudged tensor - NRB
-        torsions_next = torch.zeros(1, 1)
+        torch.zeros(1, 1)
 
         if include_motif_sidechains:
             fullatom_next[:, diffusion_mask, :14] = xt[None, diffusion_mask]
@@ -518,14 +517,14 @@ def sampler_selector(conf: DictConfig):
 
 def parse_pdb(filename, **kwargs):
     """extract xyz coords for all heavy atoms"""
-    with open(filename,"r") as f:
-        lines=f.readlines()
+    with open(filename, "r") as f:
+        lines = f.readlines()
     return parse_pdb_lines(lines, **kwargs)
 
 
 def parse_pdb_lines(lines, parse_hetatom=False, ignore_het_h=True):
     # indices of residues observed in the structure
-    res, pdb_idx = [],[]
+    res, pdb_idx = [], []
     for l in lines:
         if l[:4] == "ATOM" and l[12:16].strip() == "CA":
             res.append((l[22:26], l[17:20]))
@@ -549,16 +548,18 @@ def parse_pdb_lines(lines, parse_hetatom=False, ignore_het_h=True):
             " " + l[12:16].strip().ljust(3),
             l[17:20],
         )
-        if (chain,resNo) in pdb_idx:
+        if (chain, resNo) in pdb_idx:
             idx = pdb_idx.index((chain, resNo))
             # for i_atm, tgtatm in enumerate(util.aa2long[util.aa2num[aa]]):
-            for i_atm, tgtatm in enumerate(
-                util.aa2long[util.aa2num[aa]][:14]
-                ):
+            for i_atm, tgtatm in enumerate(util.aa2long[util.aa2num[aa]][:14]):
                 if (
                     tgtatm is not None and tgtatm.strip() == atom.strip()
-                    ):  # ignore whitespace
-                    xyz[idx, i_atm, :] = [float(l[30:38]), float(l[38:46]), float(l[46:54])]
+                ):  # ignore whitespace
+                    xyz[idx, i_atm, :] = [
+                        float(l[30:38]),
+                        float(l[38:46]),
+                        float(l[46:54]),
+                    ]
                     break
 
     # save atom mask
@@ -688,8 +689,8 @@ class BlockAdjacency:
              conf.scaffold_list as conf
              conf.inference.num_designs for sanity checking
         """
-       
-        self.conf=conf 
+
+        self.conf = conf
         # either list or path to .txt file with list of scaffolds
         if self.conf.scaffoldguided.scaffold_list is not None:
             if type(self.conf.scaffoldguided.scaffold_list) == list:
@@ -720,7 +721,10 @@ class BlockAdjacency:
                 int(str(self.conf.scaffoldguided.sampled_insertion).split("-")[1]),
             ]
         else:
-            self.sampled_insertion = [0, int(self.conf.scaffoldguided.sampled_insertion)]
+            self.sampled_insertion = [
+                0,
+                int(self.conf.scaffoldguided.sampled_insertion),
+            ]
 
         # maximum sampled insertion at N- and C-terminus
         if "-" in str(self.conf.scaffoldguided.sampled_N):
@@ -760,9 +764,15 @@ class BlockAdjacency:
 
         # whether to mask loops or not
         if not self.conf.scaffoldguided.mask_loops:
-            assert self.conf.scaffoldguided.sampled_N == 0, "can't add length if not masking loops"
-            assert self.conf.scaffoldguided.sampled_C == 0, "can't add lemgth if not masking loops"
-            assert self.conf.scaffoldguided.sampled_insertion == 0, "can't add length if not masking loops"
+            assert (
+                self.conf.scaffoldguided.sampled_N == 0
+            ), "can't add length if not masking loops"
+            assert (
+                self.conf.scaffoldguided.sampled_C == 0
+            ), "can't add lemgth if not masking loops"
+            assert (
+                self.conf.scaffoldguided.sampled_insertion == 0
+            ), "can't add length if not masking loops"
             self.mask_loops = False
         else:
             self.mask_loops = True
@@ -874,13 +884,13 @@ class BlockAdjacency:
         """
         Wrapper method for pulling an item from the list, and preparing ss and block adj features
         """
-        
+
         # Handle determinism. Useful for integration tests
         if self.conf.inference.deterministic:
             torch.manual_seed(self.num_completed)
             np.random.seed(self.num_completed)
             random.seed(self.num_completed)
-  
+
         if self.systematic:
             # reset if num designs > num_scaffolds
             if self.item_n >= len(self.scaffold_list):
@@ -892,7 +902,7 @@ class BlockAdjacency:
         print("Scaffold constrained based on file: ", item)
         # load files
         ss, adj = self.get_ss_adj(item)
-        adj_orig = torch.clone(adj)
+        torch.clone(adj)
         # separate into segments (loop or not)
         mask = torch.where(ss == 2, 1, 0).bool()
         segments = self.mask_to_segments(mask)
@@ -1002,14 +1012,17 @@ class Target:
     def get_target(self):
         return self.pdb
 
+
 def ss_from_contig(ss_masks: dict):
-    """  
+    """
     Function for taking 1D masks for each of the ss types, and outputting a secondary structure input
     """
-    L=len(ss_masks['helix'])
-    ss=torch.zeros((L, 4)).long()
-    ss[:,3] = 1 #mask
-    for idx, mask in enumerate([ss_masks['helix'],ss_masks['strand'], ss_masks['loop']]):
-        ss[mask,idx] = 1
-        ss[mask, 3] = 0 # remove the mask token
+    L = len(ss_masks["helix"])
+    ss = torch.zeros((L, 4)).long()
+    ss[:, 3] = 1  # mask
+    for idx, mask in enumerate(
+        [ss_masks["helix"], ss_masks["strand"], ss_masks["loop"]]
+    ):
+        ss[mask, idx] = 1
+        ss[mask, 3] = 0  # remove the mask token
     return ss

@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import argparse
@@ -170,7 +168,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-path",
         type=str,
-        default=os.path.join(os.path.dirname(onescience.models.UMA.__path__[0]), "data"),
+        default=os.path.join(
+            os.path.dirname(onescience.models.UMA.__path__[0]), "data"
+        ),
         help="Specify path to save dataset. Defaults to 'onescience.models.UMA/data'",
     )
 

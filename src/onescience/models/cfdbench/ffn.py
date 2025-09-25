@@ -1,12 +1,12 @@
-from typing import Optional, Dict, List
 from itertools import product
+from typing import Dict, List, Optional
 
-from torch import nn, Tensor
 import torch
+from torch import Tensor, nn
 
+from .act_fn import get_act_fn
 from .base_model import CfdModel
 from .loss import MseLoss
-from .act_fn import get_act_fn
 
 
 class Ffn(nn.Module):
@@ -14,9 +14,7 @@ class Ffn(nn.Module):
     A general fully connected multi-layer neural network.
     """
 
-    def __init__(
-        self, dims: list, act_fn: nn.Module, act_on_output: bool = False
-    ):
+    def __init__(self, dims: list, act_fn: nn.Module, act_on_output: bool = False):
         super().__init__()
         self.dims = dims
 
@@ -66,9 +64,7 @@ class FfnModel(CfdModel):
         self.num_label_samples = num_label_samples
 
         act_fn = get_act_fn(act_name, act_norm)
-        self.ffn = Ffn(
-            self.widths, act_fn=act_fn, act_on_output=self.act_on_output
-        )
+        self.ffn = Ffn(self.widths, act_fn=act_fn, act_on_output=self.act_on_output)
 
     def forward(
         self,
@@ -133,9 +129,7 @@ class FfnModel(CfdModel):
             # Use only the u channel
             label = label[:, 0]  # (B, w, h)
             labels = label[:, query_idxs[:, 0], query_idxs[:, 1]]  # (b, k)
-            assert (
-                preds.shape == labels.shape
-            ), f"{preds.shape}, {labels.shape}"
+            assert preds.shape == labels.shape, f"{preds.shape}, {labels.shape}"
             loss = self.loss_fn(preds=preds, labels=labels)  # (b, k)
             return dict(
                 preds=preds,

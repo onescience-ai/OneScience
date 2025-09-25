@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Any
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
-from enum import Enum
 
 
 class VectorType(Enum):
@@ -69,7 +69,11 @@ class BaseVector(ABC):
         return texts
 
     def _get_uuids(self, texts: list[Document]) -> list[str]:
-        return [text.metadata["doc_id"] for text in texts if text.metadata and "doc_id" in text.metadata]
+        return [
+            text.metadata["doc_id"]
+            for text in texts
+            if text.metadata and "doc_id" in text.metadata
+        ]
 
     @property
     def collection_name(self):

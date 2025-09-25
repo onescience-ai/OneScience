@@ -1,4 +1,3 @@
-
 import torch
 
 from onescience.metrics.protenix.rmsd import rmsd
@@ -8,7 +7,6 @@ from onescience.utils.protenix.logger import get_logger
 from onescience.utils.protenix.permutation.chain_permutation.utils import (
     apply_transform,
     get_optimal_transform,
-    num_unique_matches,
 )
 
 logger = get_logger(__name__)

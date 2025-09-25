@@ -121,7 +121,9 @@ class FullyConnected(Module):
         x = self.final_layer(x)
         return x
 
-from typing import Union, List
+
+from typing import List, Union
+
 
 class FullyConnectedNet(Module):
     def __init__(
@@ -158,7 +160,9 @@ class FullyConnectedNet(Module):
         if isinstance(layer_size, int):
             layer_sizes = [layer_size] * num_layers
         elif isinstance(layer_size, list):
-            assert len(layer_size) == num_layers, "layer_size list length must match num_layers"
+            assert (
+                len(layer_size) == num_layers
+            ), "layer_size list length must match num_layers"
             layer_sizes = layer_size
         else:
             raise TypeError("layer_size must be int or list of ints")

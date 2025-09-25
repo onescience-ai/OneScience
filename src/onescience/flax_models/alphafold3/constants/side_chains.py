@@ -1,66 +1,64 @@
-
-
 """Constants associated with side chains."""
 
-from collections.abc import Mapping, Sequence
 import itertools
+from collections.abc import Mapping, Sequence
 
 # Format: The list for each AA type contains chi1, chi2, chi3, chi4 in
 # this order (or a relevant subset from chi1 onwards). ALA and GLY don't have
 # chi angles so their chi angle lists are empty.
 CHI_ANGLES_ATOMS: Mapping[str, Sequence[tuple[str, ...]]] = {
-    'ALA': [],
+    "ALA": [],
     # Chi5 in arginine is always 0 +- 5 degrees, so ignore it.
-    'ARG': [
-        ('N', 'CA', 'CB', 'CG'),
-        ('CA', 'CB', 'CG', 'CD'),
-        ('CB', 'CG', 'CD', 'NE'),
-        ('CG', 'CD', 'NE', 'CZ'),
+    "ARG": [
+        ("N", "CA", "CB", "CG"),
+        ("CA", "CB", "CG", "CD"),
+        ("CB", "CG", "CD", "NE"),
+        ("CG", "CD", "NE", "CZ"),
     ],
-    'ASN': [('N', 'CA', 'CB', 'CG'), ('CA', 'CB', 'CG', 'OD1')],
-    'ASP': [('N', 'CA', 'CB', 'CG'), ('CA', 'CB', 'CG', 'OD1')],
-    'CYS': [('N', 'CA', 'CB', 'SG')],
-    'GLN': [
-        ('N', 'CA', 'CB', 'CG'),
-        ('CA', 'CB', 'CG', 'CD'),
-        ('CB', 'CG', 'CD', 'OE1'),
+    "ASN": [("N", "CA", "CB", "CG"), ("CA", "CB", "CG", "OD1")],
+    "ASP": [("N", "CA", "CB", "CG"), ("CA", "CB", "CG", "OD1")],
+    "CYS": [("N", "CA", "CB", "SG")],
+    "GLN": [
+        ("N", "CA", "CB", "CG"),
+        ("CA", "CB", "CG", "CD"),
+        ("CB", "CG", "CD", "OE1"),
     ],
-    'GLU': [
-        ('N', 'CA', 'CB', 'CG'),
-        ('CA', 'CB', 'CG', 'CD'),
-        ('CB', 'CG', 'CD', 'OE1'),
+    "GLU": [
+        ("N", "CA", "CB", "CG"),
+        ("CA", "CB", "CG", "CD"),
+        ("CB", "CG", "CD", "OE1"),
     ],
-    'GLY': [],
-    'HIS': [('N', 'CA', 'CB', 'CG'), ('CA', 'CB', 'CG', 'ND1')],
-    'ILE': [('N', 'CA', 'CB', 'CG1'), ('CA', 'CB', 'CG1', 'CD1')],
-    'LEU': [('N', 'CA', 'CB', 'CG'), ('CA', 'CB', 'CG', 'CD1')],
-    'LYS': [
-        ('N', 'CA', 'CB', 'CG'),
-        ('CA', 'CB', 'CG', 'CD'),
-        ('CB', 'CG', 'CD', 'CE'),
-        ('CG', 'CD', 'CE', 'NZ'),
+    "GLY": [],
+    "HIS": [("N", "CA", "CB", "CG"), ("CA", "CB", "CG", "ND1")],
+    "ILE": [("N", "CA", "CB", "CG1"), ("CA", "CB", "CG1", "CD1")],
+    "LEU": [("N", "CA", "CB", "CG"), ("CA", "CB", "CG", "CD1")],
+    "LYS": [
+        ("N", "CA", "CB", "CG"),
+        ("CA", "CB", "CG", "CD"),
+        ("CB", "CG", "CD", "CE"),
+        ("CG", "CD", "CE", "NZ"),
     ],
-    'MET': [
-        ('N', 'CA', 'CB', 'CG'),
-        ('CA', 'CB', 'CG', 'SD'),
-        ('CB', 'CG', 'SD', 'CE'),
+    "MET": [
+        ("N", "CA", "CB", "CG"),
+        ("CA", "CB", "CG", "SD"),
+        ("CB", "CG", "SD", "CE"),
     ],
-    'PHE': [('N', 'CA', 'CB', 'CG'), ('CA', 'CB', 'CG', 'CD1')],
-    'PRO': [('N', 'CA', 'CB', 'CG'), ('CA', 'CB', 'CG', 'CD')],
-    'SER': [('N', 'CA', 'CB', 'OG')],
-    'THR': [('N', 'CA', 'CB', 'OG1')],
-    'TRP': [('N', 'CA', 'CB', 'CG'), ('CA', 'CB', 'CG', 'CD1')],
-    'TYR': [('N', 'CA', 'CB', 'CG'), ('CA', 'CB', 'CG', 'CD1')],
-    'VAL': [('N', 'CA', 'CB', 'CG1')],
+    "PHE": [("N", "CA", "CB", "CG"), ("CA", "CB", "CG", "CD1")],
+    "PRO": [("N", "CA", "CB", "CG"), ("CA", "CB", "CG", "CD")],
+    "SER": [("N", "CA", "CB", "OG")],
+    "THR": [("N", "CA", "CB", "OG1")],
+    "TRP": [("N", "CA", "CB", "CG"), ("CA", "CB", "CG", "CD1")],
+    "TYR": [("N", "CA", "CB", "CG"), ("CA", "CB", "CG", "CD1")],
+    "VAL": [("N", "CA", "CB", "CG1")],
 }
 
 CHI_GROUPS_FOR_ATOM = {}
 for res_name, chi_angle_atoms_for_res in CHI_ANGLES_ATOMS.items():
-  for chi_group_i, chi_group in enumerate(chi_angle_atoms_for_res):
-    for atom_i, atom in enumerate(chi_group):
-      CHI_GROUPS_FOR_ATOM.setdefault((res_name, atom), []).append(
-          (chi_group_i, atom_i)
-      )
+    for chi_group_i, chi_group in enumerate(chi_angle_atoms_for_res):
+        for atom_i, atom in enumerate(chi_group):
+            CHI_GROUPS_FOR_ATOM.setdefault((res_name, atom), []).append(
+                (chi_group_i, atom_i)
+            )
 
 # Mapping from (residue_name, atom_name) pairs to the atom's chi group index
 # and atom index within that group.

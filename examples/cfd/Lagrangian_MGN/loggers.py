@@ -1,18 +1,15 @@
-from abc import ABC, abstractmethod
 import functools
 import logging
 import os
+from abc import ABC, abstractmethod
 from typing import Any, Mapping, Optional
-
-from hydra.utils import instantiate
-from omegaconf import DictConfig, OmegaConf
-
-from termcolor import colored
-
-from torch import nn
 
 import torch
 import wandb
+from hydra.utils import instantiate
+from omegaconf import DictConfig, OmegaConf
+from termcolor import colored
+from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
 from onescience.distributed.manager import DistributedManager
@@ -116,7 +113,6 @@ class ExperimentLogger(ABC):
         step : int
             Current step/iteration number
         """
-        pass
 
     @abstractmethod
     def log_image(self, tag: str, value, step: int) -> None:
@@ -131,7 +127,6 @@ class ExperimentLogger(ABC):
         step : int
             Current step/iteration number
         """
-        pass
 
     @abstractmethod
     def log(self, data: Mapping[str, Any], step: int) -> None:
@@ -144,7 +139,6 @@ class ExperimentLogger(ABC):
         step : int
             Current step/iteration number
         """
-        pass
 
     @abstractmethod
     def watch_model(self, model: nn.Module) -> None:
@@ -155,12 +149,10 @@ class ExperimentLogger(ABC):
         model : nn.Module
             PyTorch model to watch
         """
-        pass
 
     @abstractmethod
     def close(self) -> None:
         """Closes the logger and cleans up resources"""
-        pass
 
 
 class WandBLogger(ExperimentLogger):
@@ -392,7 +384,6 @@ class TensorBoardLogger(ExperimentLogger):
             model: PyTorch model to visualize
         """
         # TODO(akamenev): add model graph and monitoring to TensorBoard.
-        pass
 
     def close(self) -> None:
         """Closes the TensorBoard writer."""

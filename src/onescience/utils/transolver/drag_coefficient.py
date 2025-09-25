@@ -1,8 +1,9 @@
-import vtk
 import os
+
 import numpy as np
-from vtk.util.numpy_support import vtk_to_numpy
+import vtk
 from scipy.spatial import ConvexHull
+from vtk.util.numpy_support import vtk_to_numpy
 
 
 def unstructured_grid_data_to_poly_data(unstructured_grid_data):
@@ -54,8 +55,8 @@ def calculate_mesh_cell_area(unstructured_grid_data):
             p4 = np.array(points.GetPoint(cell.GetId(3)))
             # Calculate the area of the quadrilateral
             area = 0.5 * (
-                    np.linalg.norm(np.cross(p2 - p1, p3 - p1)) +
-                    np.linalg.norm(np.cross(p3 - p1, p4 - p1))
+                np.linalg.norm(np.cross(p2 - p1, p3 - p1))
+                + np.linalg.norm(np.cross(p3 - p1, p4 - p1))
             )
 
             # Add the area to each vertex of the quadrilateral
@@ -100,10 +101,18 @@ def calculate_cell_velocity_gradient(unstructured_grid_data, velocity):
             p3 = np.array(points.GetPoint(cell.GetId(2)))
             p4 = np.array(points.GetPoint(cell.GetId(3)))
             # Calculate the velocity at each vertex
-            u1 = np.array(poly_data.GetPointData().GetArray("Velocity").GetTuple(cell.GetId(0)))
-            u2 = np.array(poly_data.GetPointData().GetArray("Velocity").GetTuple(cell.GetId(1)))
-            u3 = np.array(poly_data.GetPointData().GetArray("Velocity").GetTuple(cell.GetId(2)))
-            u4 = np.array(poly_data.GetPointData().GetArray("Velocity").GetTuple(cell.GetId(3)))
+            u1 = np.array(
+                poly_data.GetPointData().GetArray("Velocity").GetTuple(cell.GetId(0))
+            )
+            u2 = np.array(
+                poly_data.GetPointData().GetArray("Velocity").GetTuple(cell.GetId(1))
+            )
+            u3 = np.array(
+                poly_data.GetPointData().GetArray("Velocity").GetTuple(cell.GetId(2))
+            )
+            u4 = np.array(
+                poly_data.GetPointData().GetArray("Velocity").GetTuple(cell.GetId(3))
+            )
 
             # Calculate the gradients using finite differences
             du_dx = (u2 - u1 + u3 - u4) / (np.linalg.norm(p2 - p1 + p3 - p4) + 1e-8)
@@ -111,20 +120,29 @@ def calculate_cell_velocity_gradient(unstructured_grid_data, velocity):
             du_dz = (u4 - u1 + u2 - u3) / (np.linalg.norm(p4 - p1 + p2 - p3) + 1e-8)
 
             # Add the gradients to each vertex of the quadrilateral
-            grad_u[id] += (du_dx + du_dy + du_dz)
+            grad_u[id] += du_dx + du_dy + du_dz
             id += 1
 
     return grad_u
 
 
 ############## calculate drag ##############
-def calculate_drag_force(cell_areas, surface_normals, pressure_array, velocity_gradients, dynamic_viscosity):
+def calculate_drag_force(
+    cell_areas, surface_normals, pressure_array, velocity_gradients, dynamic_viscosity
+):
     # Calculate the pressure force component along the flow direction
-    pressure_force_component = -np.dot(pressure_array.flatten() * cell_areas.flatten(), surface_normals.flatten())
+    pressure_force_component = -np.dot(
+        pressure_array.flatten() * cell_areas.flatten(), surface_normals.flatten()
+    )
 
     # Calculate the wall shear stress component along the flow direction
-    wall_shear_stress_component = -np.dot(velocity_gradients.flatten() * cell_areas.flatten(),
-                                          surface_normals.flatten()) * dynamic_viscosity
+    wall_shear_stress_component = (
+        -np.dot(
+            velocity_gradients.flatten() * cell_areas.flatten(),
+            surface_normals.flatten(),
+        )
+        * dynamic_viscosity
+    )
     # Sum the pressure force and wall shear stress components to get the total drag force
     drag_force = np.sum(pressure_force_component + wall_shear_stress_component)
 
@@ -133,7 +151,9 @@ def calculate_drag_force(cell_areas, surface_normals, pressure_array, velocity_g
 
 ############## calculate norm ##############
 def get_normal(unstructured_grid_data):
-    poly_data, surface_filter = unstructured_grid_data_to_poly_data(unstructured_grid_data)
+    poly_data, surface_filter = unstructured_grid_data_to_poly_data(
+        unstructured_grid_data
+    )
     normal_filter = vtk.vtkPolyDataNormals()
     normal_filter.SetInputData(poly_data)
     normal_filter.SetAutoOrientNormals(1)
@@ -146,12 +166,11 @@ def get_normal(unstructured_grid_data):
 
 ############## calculate coefficient ##############
 def cal_coefficient(data_dir, press_surf=None, velo_surf=None):
-    file_name_press = os.path.join(data_dir, 'quadpress_smpl.vtk')
-    file_name_velo = os.path.join(data_dir, 'hexvelo_smpl.vtk')
+    file_name_press = os.path.join(data_dir, "quadpress_smpl.vtk")
+    file_name_velo = os.path.join(data_dir, "hexvelo_smpl.vtk")
 
     unstructured_grid_data_press = load_unstructured_grid_data(file_name_press)
     unstructured_grid_data_velo = load_unstructured_grid_data(file_name_velo)
-
 
     # normal
     normal_surf = get_normal(unstructured_grid_data_press)
@@ -165,7 +184,12 @@ def cal_coefficient(data_dir, press_surf=None, velo_surf=None):
         velo = vtk_to_numpy(unstructured_grid_data_velo.GetPointData().GetVectors())
         points_velo = vtk_to_numpy(unstructured_grid_data_velo.GetPoints().GetData())
         velo_dict = {tuple(p): velo[i] for i, p in enumerate(points_velo)}
-        velo_surf = np.array([velo_dict[tuple(p)] if tuple(p) in velo_dict else np.zeros(3) for p in points_surf])
+        velo_surf = np.array(
+            [
+                velo_dict[tuple(p)] if tuple(p) in velo_dict else np.zeros(3)
+                for p in points_surf
+            ]
+        )
     # gradient u
     grad_u = calculate_cell_velocity_gradient(unstructured_grid_data_press, velo_surf)
     # press
@@ -174,7 +198,9 @@ def cal_coefficient(data_dir, press_surf=None, velo_surf=None):
         c2p.SetInputData(unstructured_grid_data_press)
         c2p.Update()
         unstructured_grid_data_press = c2p.GetOutput()
-        press_surf = vtk_to_numpy(unstructured_grid_data_press.GetCellData().GetScalars())
+        press_surf = vtk_to_numpy(
+            unstructured_grid_data_press.GetCellData().GetScalars()
+        )
     else:
         # Create a vtkDoubleArray for press
         press_data = vtk.vtkDoubleArray()
@@ -192,10 +218,14 @@ def cal_coefficient(data_dir, press_surf=None, velo_surf=None):
         c2p.SetInputData(unstructured_grid_data_press)
         c2p.Update()
         unstructured_grid_data_press = c2p.GetOutput()
-        press_surf = vtk_to_numpy(unstructured_grid_data_press.GetCellData().GetArray("my_press"))
+        press_surf = vtk_to_numpy(
+            unstructured_grid_data_press.GetCellData().GetArray("my_press")
+        )
 
-    drag_force = calculate_drag_force(cell_areas, normal_surf[:, -1], press_surf, grad_u[:, -1], np.array(1.8e-5))
+    drag_force = calculate_drag_force(
+        cell_areas, normal_surf[:, -1], press_surf, grad_u[:, -1], np.array(1.8e-5)
+    )
     nu = 72 / 3.6
     air_density = 0.3
-    cd = (2 / ((nu ** 2) * A * air_density)) * drag_force
+    cd = (2 / ((nu**2) * A * air_density)) * drag_force
     return cd

@@ -13,7 +13,6 @@ from onescience.datapipes.datapipe import Datapipe
 from onescience.datapipes.meta import DatapipeMetaData
 
 try:
-    import pyvista as pvs
     import vtk
 except ImportError:
     raise ImportError(

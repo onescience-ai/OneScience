@@ -21,40 +21,40 @@ Currently for JAX version 0.4.28.
 from __future__ import annotations
 
 import functools
-from typing import Any, Optional, Union, Tuple
+from typing import Any, Optional, Tuple, Union
 
 import jax
-from jax import lax
-from jax.experimental import pallas as pl
 import jax.numpy as jnp
 import numpy as np
+from jax import lax
+from jax.experimental import pallas as pl
 
 DEFAULT_MASK_VALUE = -0.7 * float(np.finfo(np.dtype("float32")).max)
 
 
 def mha_forward_kernel(
-        q_ref,
-        k_ref,
-        v_ref,  
-        b_ref, # Input arrays
-        q_segment_ids_ref: jax.Array | None,  # segment_id of q
-        kv_segment_ids_ref: jax.Array | None,  # segment_id of kv
-        o_ref: Any,  # Output
-        *residual_refs: Any,  # Residual outputs
-        num_heads: int,
-        sm_scale: float,
-        causal: bool,
-        block_q: int,
-        block_d: int,
-        block_k: int,
+    q_ref,
+    k_ref,
+    v_ref,
+    b_ref,  # Input arrays
+    q_segment_ids_ref: jax.Array | None,  # segment_id of q
+    kv_segment_ids_ref: jax.Array | None,  # segment_id of kv
+    o_ref: Any,  # Output
+    *residual_refs: Any,  # Residual outputs
+    num_heads: int,
+    sm_scale: float,
+    causal: bool,
+    block_q: int,
+    block_d: int,
+    block_k: int,
 ):
-    seq_len_q = q_ref.shape[0]
+    q_ref.shape[0]
     seq_len_k = k_ref.shape[0]
     start_q = pl.program_id(0)
 
     # o is the buffer where we accumulate the output on sram.
     # m_i and l_i (see FlashAttention paper) are updated during the k,v loop.
-    m_i = jnp.zeros(block_q, dtype=jnp.float32) - float('inf')
+    m_i = jnp.zeros(block_q, dtype=jnp.float32) - float("inf")
     l_i = jnp.zeros(block_q, dtype=jnp.float32)
     # acc is the buffer where we accumulate the output on sram.
     o = jnp.zeros((block_q, block_d), dtype=jnp.float32)
@@ -68,7 +68,7 @@ def mha_forward_kernel(
         None
         if q_segment_ids_ref is None
         else pl.load(q_segment_ids_ref, (curr_q_slice,))
-    ) ### what is segment id?
+    )  ### what is segment id?
 
     # In FlashAttention algorithm 1 there are 2 loops: slow over tiles of kv (size
     # (Bc == block_k here), and fast over blocks of q (size Br == block_q here).
@@ -85,9 +85,9 @@ def mha_forward_kernel(
             else pl.load(kv_segment_ids_ref, (curr_k_slice,))
         )
 
-        b = pl.load(b_ref, (curr_q_slice, curr_k_slice)) ## Liyh: add bias
+        b = pl.load(b_ref, (curr_q_slice, curr_k_slice))  ## Liyh: add bias
         qk = pl.dot(q, k.T)  # [block_q, block_k]
-        if sm_scale != 1.:
+        if sm_scale != 1.0:
             qk *= sm_scale  # [block_q, block_k]
         qk += b
 
@@ -114,7 +114,7 @@ def mha_forward_kernel(
         )  # Use m_next instead of m_curr to avoid a correction on l_curr
         l_curr = s_curr.sum(axis=-1)
         l_next = l_prev_corr + l_curr
-        l_next_rcp = 1. / l_next
+        l_next_rcp = 1.0 / l_next
         s_curr = s_curr * l_next_rcp[:, None]
         o_prev_corr = (l_prev_corr * l_next_rcp)[:, None] * o_prev
         v = pl.load(v_ref, (curr_k_slice, pl.dslice(block_d)))
@@ -128,7 +128,9 @@ def mha_forward_kernel(
         upper_bound = lax.div(block_q * (start_q + 1) + block_k - 1, block_k)
     else:
         upper_bound = pl.cdiv(seq_len_k, block_k)  # type: ignore
-    o, m_i, l_i = lax.fori_loop(0, upper_bound, body, (o, m_i, l_i)) ## for loop is here
+    o, m_i, l_i = lax.fori_loop(
+        0, upper_bound, body, (o, m_i, l_i)
+    )  ## for loop is here
 
     if residual_refs:
         l_ref, m_ref = residual_refs
@@ -140,8 +142,8 @@ def mha_forward_kernel(
 
 
 def segment_mask(
-        q_segment_ids: jax.Array,
-        kv_segment_ids: jax.Array,
+    q_segment_ids: jax.Array,
+    kv_segment_ids: jax.Array,
 ):
     # [B, T, 1] or [T, 1]
     q_segment_ids = jnp.expand_dims(q_segment_ids, axis=-1)
@@ -154,7 +156,8 @@ def segment_mask(
 
 
 @functools.partial(
-    jax.custom_vjp, nondiff_argnums=[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] ## Liyh: add bias
+    jax.custom_vjp,
+    nondiff_argnums=[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],  ## Liyh: add bias
 )
 @functools.partial(
     jax.jit,
@@ -173,22 +176,22 @@ def segment_mask(
     ],
 )
 def mha(
-        q,
-        k,
-        v,
-        b, ## Liyh: add bias
-        segment_ids: Optional[Union[jnp.ndarray, Tuple]],
-        sm_scale: float = 1.0,
-        causal: bool = False,
-        attention_type: str = "self",
-        block_q: int = 128,
-        block_k: int = 128,
-        backward_pass_impl: str = "triton",
-        num_warps: int | None = None,
-        num_stages: int = 2,
-        grid: tuple[int, ...] | None = None,
-        interpret: bool = False,
-        debug: bool = False,
+    q,
+    k,
+    v,
+    b,  ## Liyh: add bias
+    segment_ids: Optional[Union[jnp.ndarray, Tuple]],
+    sm_scale: float = 1.0,
+    causal: bool = False,
+    attention_type: str = "self",
+    block_q: int = 128,
+    block_k: int = 128,
+    backward_pass_impl: str = "triton",
+    num_warps: int | None = None,
+    num_stages: int = 2,
+    grid: tuple[int, ...] | None = None,
+    interpret: bool = False,
+    debug: bool = False,
 ):
     del backward_pass_impl
     batch_size, seq_len_q, num_heads, head_dim = q.shape
@@ -198,30 +201,32 @@ def mha(
     # Heuristics.
     grid_ = grid
     if grid_ is None:
-        assert pl.cdiv(seq_len_q, block_q) == pl.cdiv(seq_len_k, block_k), "q and k must have the same number of blocks."
+        assert pl.cdiv(seq_len_q, block_q) == pl.cdiv(
+            seq_len_k, block_k
+        ), "q and k must have the same number of blocks."
         grid_ = (pl.cdiv(seq_len_q, block_q), batch_size, num_heads)
 
     num_warps_ = num_warps
     if num_warps_ is None:
         num_warps_ = 4 if head_dim <= 64 else 8
-    kernel = functools.partial(mha_forward_kernel, num_heads=num_heads,
-                               sm_scale=sm_scale, block_q=block_q,
-                               block_k=block_k, block_d=head_dim,
-                               causal=causal)
+    kernel = functools.partial(
+        mha_forward_kernel,
+        num_heads=num_heads,
+        sm_scale=sm_scale,
+        block_q=block_q,
+        block_k=block_k,
+        block_d=head_dim,
+        causal=causal,
+    )
 
     in_specs = [
+        pl.BlockSpec(lambda _, j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim)),
+        pl.BlockSpec(lambda _, j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim)),
+        pl.BlockSpec(lambda _, j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim)),
         pl.BlockSpec(
-            lambda _, j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim)
+            lambda _, j, k: (j, k, 0, 0),
+            (None, None, seq_len_q, seq_len_k),  ## Liyh: add bias
         ),
-        pl.BlockSpec(
-            lambda _, j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim)
-        ),
-        pl.BlockSpec(
-            lambda _, j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim)
-        ),
-        pl.BlockSpec(
-            lambda _, j, k: (j, k, 0, 0), (None, None, seq_len_q, seq_len_k) ## Liyh: add bias
-        )
     ]
     in_specs.append(
         None  # type: ignore[arg-type]
@@ -250,35 +255,35 @@ def mha(
         out_specs=pl.BlockSpec(
             lambda _, j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim)
         ),
-        compiler_params=dict(
-          triton=dict(num_warps=num_warps_, num_stages=num_stages)
-        ),
+        compiler_params=dict(triton=dict(num_warps=num_warps_, num_stages=num_stages)),
         # num_warps=num_warps_,
         # num_stages=num_stages, ## for 0.4.25
         out_shape=out_shape,
         debug=debug,
         interpret=interpret,
         name="mha_forward",
-    )(q, k, v, b, q_segment_ids, kv_segment_ids) ## Liyh: add bias
+    )(
+        q, k, v, b, q_segment_ids, kv_segment_ids
+    )  ## Liyh: add bias
 
 
 def _mha_forward(
-        q,
-        k,
-        v,
-        b,
-        segment_ids: jax.Array | None,
-        sm_scale: float,
-        causal: bool,
-        attention_type: str,
-        block_q: int,
-        block_k: int,
-        backward_pass_impl: str,
-        num_warps: int | None,
-        num_stages: int,
-        grid: Any,
-        interpret: bool,
-        debug: bool,
+    q,
+    k,
+    v,
+    b,
+    segment_ids: jax.Array | None,
+    sm_scale: float,
+    causal: bool,
+    attention_type: str,
+    block_q: int,
+    block_k: int,
+    backward_pass_impl: str,
+    num_warps: int | None,
+    num_stages: int,
+    grid: Any,
+    interpret: bool,
+    debug: bool,
 ):
     del backward_pass_impl
     batch_size, seq_len_q, num_heads, head_dim = q.shape
@@ -288,35 +293,40 @@ def _mha_forward(
     # Heuristics.
     grid_ = grid
     if grid_ is None:
-        assert pl.cdiv(seq_len_q, block_q) == pl.cdiv(seq_len_k, block_k), "q and k must have the same number of blocks."
+        assert pl.cdiv(seq_len_q, block_q) == pl.cdiv(
+            seq_len_k, block_k
+        ), "q and k must have the same number of blocks."
         grid_ = (pl.cdiv(seq_len_q, block_q), batch_size, num_heads)
 
     num_warps_ = num_warps
     if num_warps_ is None:
         num_warps_ = 4 if head_dim <= 64 else 8
-    kernel = functools.partial(mha_forward_kernel, num_heads=num_heads,
-                               sm_scale=sm_scale, causal=causal, block_q=block_q,
-                               block_k=block_k, block_d=head_dim)
+    kernel = functools.partial(
+        mha_forward_kernel,
+        num_heads=num_heads,
+        sm_scale=sm_scale,
+        causal=causal,
+        block_q=block_q,
+        block_k=block_k,
+        block_d=head_dim,
+    )
     out_shape = [
         jax.ShapeDtypeStruct(shape=q.shape, dtype=q.dtype),  # out
-        jax.ShapeDtypeStruct(shape=(batch_size, num_heads, seq_len_q),  # l
-                             dtype=jnp.float32),
-        jax.ShapeDtypeStruct(shape=(batch_size, num_heads, seq_len_q),  # m
-                             dtype=jnp.float32)
+        jax.ShapeDtypeStruct(
+            shape=(batch_size, num_heads, seq_len_q), dtype=jnp.float32  # l
+        ),
+        jax.ShapeDtypeStruct(
+            shape=(batch_size, num_heads, seq_len_q), dtype=jnp.float32  # m
+        ),
     ]
     in_specs = [
+        pl.BlockSpec(lambda _, j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim)),
+        pl.BlockSpec(lambda _, j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim)),
+        pl.BlockSpec(lambda _, j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim)),
         pl.BlockSpec(
-            lambda _, j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim)
+            lambda _, j, k: (j, k, 0, 0),
+            (None, None, seq_len_q, seq_len_k),  ## Liyh: add bias
         ),
-        pl.BlockSpec(
-            lambda _, j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim)
-        ),
-        pl.BlockSpec(
-            lambda _, j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim)
-        ),
-        pl.BlockSpec(
-            lambda _, j, k: (j, k, 0, 0), (None, None, seq_len_q, seq_len_k) ## Liyh: add bias
-        )
     ]
     in_specs.append(
         None  # type: ignore[arg-type]
@@ -348,40 +358,39 @@ def _mha_forward(
             pl.BlockSpec(lambda _, j, k: (j, k, 0), (None, None, seq_len_q)),
             pl.BlockSpec(lambda _, j, k: (j, k, 0), (None, None, seq_len_q)),
         ],
-        compiler_params=dict(
-          triton=dict(num_warps=num_warps_, num_stages=num_stages)
-        ),
+        compiler_params=dict(triton=dict(num_warps=num_warps_, num_stages=num_stages)),
         # num_warps=num_warps_,
         # num_stages=num_stages,
         out_shape=out_shape,
         debug=debug,
         interpret=interpret,
         name="mha_forward",
-    )(q, k, v, b, q_segment_ids, kv_segment_ids) ## Liyh: add bias
+    )(
+        q, k, v, b, q_segment_ids, kv_segment_ids
+    )  ## Liyh: add bias
     return out, (q, k, v, b, segment_ids, out, l, m)
 
-def _preprocess_backward_kernel(out_ref, dout_ref, l_ref,
-                                new_dout_ref, delta_ref, *,
-                                block_q: int):
+
+def _preprocess_backward_kernel(
+    out_ref, dout_ref, l_ref, new_dout_ref, delta_ref, *, block_q: int
+):
     pid_m = pl.program_id(0)
 
-    off_m = pl.ds(pid_m * block_q, block_q) ### same as dslice
+    off_m = pl.ds(pid_m * block_q, block_q)  ### same as dslice
     # load
     o = pl.load(out_ref, (off_m, slice(None))).astype(jnp.float32)
     do = pl.load(dout_ref, (off_m, slice(None))).astype(jnp.float32)
     denom = pl.load(l_ref, (off_m,)).astype(jnp.float32)
     # compute
-    do = do / denom[:, None] ### div denom?
+    do = do / denom[:, None]  ### div denom?
     delta = jnp.sum(o * do, axis=1)
     # write-back
-    pl.store(new_dout_ref, (off_m, slice(None)),
-             do.astype(new_dout_ref.dtype))
+    pl.store(new_dout_ref, (off_m, slice(None)), do.astype(new_dout_ref.dtype))
     pl.store(delta_ref, (off_m,), delta.astype(delta_ref.dtype))
 
 
 @jax.named_scope("preprocess_backward")
-def _preprocess_backward(out, do, l, block_q: int,
-                         debug: bool, interpret: bool):
+def _preprocess_backward(out, do, l, block_q: int, debug: bool, interpret: bool):
     batch_size, seq_len, num_heads, head_dim = out.shape
     out_shape = [
         jax.ShapeDtypeStruct(do.shape, do.dtype),
@@ -399,43 +408,42 @@ def _preprocess_backward(out, do, l, block_q: int,
             pl.BlockSpec(lambda _, j, k: (j, 0, k, 0), (None, seq_len, None, head_dim)),
             pl.BlockSpec(lambda _, j, k: (j, k, 0), (None, None, seq_len)),
         ],
-        compiler_params=dict(
-          triton=dict(num_warps=4, num_stages=3)
-        ),
+        compiler_params=dict(triton=dict(num_warps=4, num_stages=3)),
         # num_warps=4,
         # num_stages=3,
         out_shape=out_shape,
         debug=debug,
         interpret=interpret,
-        name="mha_preprocess_backward")(out, do, l)
+        name="mha_preprocess_backward",
+    )(out, do, l)
     return do_scaled, delta
 
 
 def mha_backward_kernel(
-        # Inputs
-        q_ref,
-        k_ref,
-        v_ref,
-        b_ref, ## Liyh: add bias
-        q_segment_ids_ref: jax.Array | None,
-        kv_segment_ids_ref: jax.Array | None,
-        out_ref,
-        do_scaled_ref,
-        l_ref,
-        m_ref,
-        delta_ref,
-        _,
-        # Outputs
-        dq_ref,
-        dk_ref,
-        dv_ref,
-        # db_ref, ## Liyh: add bias
-        *,
-        sm_scale: float,
-        causal: bool,
-        block_q: int,
-        block_d: int,
-        block_k: int,
+    # Inputs
+    q_ref,
+    k_ref,
+    v_ref,
+    b_ref,  ## Liyh: add bias
+    q_segment_ids_ref: jax.Array | None,
+    kv_segment_ids_ref: jax.Array | None,
+    out_ref,
+    do_scaled_ref,
+    l_ref,
+    m_ref,
+    delta_ref,
+    _,
+    # Outputs
+    dq_ref,
+    dk_ref,
+    dv_ref,
+    # db_ref, ## Liyh: add bias
+    *,
+    sm_scale: float,
+    causal: bool,
+    block_q: int,
+    block_d: int,
+    block_k: int,
 ):
     del out_ref, l_ref  # Not needed
     seq_len_q = q_ref.shape[0]
@@ -457,7 +465,10 @@ def mha_backward_kernel(
         def inner_loop(start_q, carry):
             dv, dk = carry
             q = pl.load(q_ref, (pl.ds(start_q * block_q, block_q), slice(None)))
-            b = pl.load(b_ref, (pl.ds(start_q * block_q, block_q), pl.ds(start_k * block_k, block_k))) ## Liyh: add bias
+            b = pl.load(
+                b_ref,
+                (pl.ds(start_q * block_q, block_q), pl.ds(start_k * block_k, block_k)),
+            )  ## Liyh: add bias
             qk = pl.dot(q, k.T)
             qk = qk.astype(q_ref.dtype)
             qk = qk.astype(jnp.float32)
@@ -489,26 +500,35 @@ def mha_backward_kernel(
 
             m = pl.load(m_ref, (pl.ds(start_q * block_q, block_q),))
             p = jnp.exp(qk - m[:, None])
-            do = pl.load(do_scaled_ref, (pl.ds(start_q * block_q, block_q), slice(None)))
+            do = pl.load(
+                do_scaled_ref, (pl.ds(start_q * block_q, block_q), slice(None))
+            )
             dv = dv + pl.dot(p.astype(do.dtype).T, do)
             di = pl.load(delta_ref, (pl.ds(start_q * block_q, block_q),))
             dp = jnp.zeros((block_q, block_k), dtype=jnp.float32) - di[:, None]
             dp = dp + pl.dot(do, v.T)
             ds = p * dp
             # ## Liyh: add bias ####### Liyh: go through here.
-            # db = pl.load(db_ref, (pl.ds(start_q * block_q, block_q), 
-            #                       pl.ds(start_k * block_k, block_k)), 
+            # db = pl.load(db_ref, (pl.ds(start_q * block_q, block_q),
+            #                       pl.ds(start_k * block_k, block_k)),
             #                       )
             # db += ds.astype(db_ref.dtype) ### nan occurs in db
             if sm_scale != 1.0:
                 ds = ds * sm_scale
             dk = dk + pl.dot(ds.astype(q_ref.dtype).T, q)
-            dq = pl.load(dq_ref, (pl.ds(start_q * block_q, block_q),
-                                  slice(None)), eviction_policy="evict_last")
+            dq = pl.load(
+                dq_ref,
+                (pl.ds(start_q * block_q, block_q), slice(None)),
+                eviction_policy="evict_last",
+            )
             dq = dq + pl.dot(ds.astype(k.dtype), k).astype(dq.dtype)
-            pl.store(dq_ref, (pl.ds(start_q * block_q, block_q),
-                              slice(None)), dq, eviction_policy="evict_last")
-            # pl.store(db_ref, (pl.ds(start_q * block_q, block_q), 
+            pl.store(
+                dq_ref,
+                (pl.ds(start_q * block_q, block_q), slice(None)),
+                dq,
+                eviction_policy="evict_last",
+            )
+            # pl.store(db_ref, (pl.ds(start_q * block_q, block_q),
             #                   pl.ds(start_k * block_k, block_k)),
             #                   db,)
             return dv, dk
@@ -517,20 +537,38 @@ def mha_backward_kernel(
             lower_bound = lax.div(start_k * block_k, block_q)
         else:
             lower_bound = 0
-        dv, dk = lax.fori_loop(lower_bound, pl.cdiv(seq_len_q, block_q), inner_loop,
-                               (dv, dk))
-        pl.store(dv_ref, (pl.ds(start_k * block_k, block_k),
-                          slice(None)), dv.astype(dv_ref.dtype))
-        pl.store(dk_ref, (pl.ds(start_k * block_k, block_k),
-                          slice(None)), dk.astype(dk_ref.dtype))
+        dv, dk = lax.fori_loop(
+            lower_bound, pl.cdiv(seq_len_q, block_q), inner_loop, (dv, dk)
+        )
+        pl.store(
+            dv_ref,
+            (pl.ds(start_k * block_k, block_k), slice(None)),
+            dv.astype(dv_ref.dtype),
+        )
+        pl.store(
+            dk_ref,
+            (pl.ds(start_k * block_k, block_k), slice(None)),
+            dk.astype(dk_ref.dtype),
+        )
 
     lax.fori_loop(0, pl.cdiv(seq_len_k, block_k), outer_loop, None)
 
 
-def _mha_backward(sm_scale: float, causal: bool, attention_type: str, block_q: int, block_k: int,
-                  backward_pass_impl: str, num_warps: int | None,
-                  num_stages: int, grid: Any, interpret: bool,
-                  debug: bool, res, do):
+def _mha_backward(
+    sm_scale: float,
+    causal: bool,
+    attention_type: str,
+    block_q: int,
+    block_k: int,
+    backward_pass_impl: str,
+    num_warps: int | None,
+    num_stages: int,
+    grid: Any,
+    interpret: bool,
+    debug: bool,
+    res,
+    do,
+):
     del num_warps, num_stages, grid
     q, k, v, b, segment_ids, out, l, m = res
 
@@ -559,39 +597,46 @@ def _mha_backward(sm_scale: float, causal: bool, attention_type: str, block_q: i
 
         in_specs = [
             pl.BlockSpec(
-                lambda j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim) # q
+                lambda j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim)  # q
             ),
             pl.BlockSpec(
-                lambda j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim) # k
+                lambda j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim)  # k
             ),
             pl.BlockSpec(
-                lambda j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim) # v
+                lambda j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim)  # v
             ),
             pl.BlockSpec(
-                lambda j, k: (j, k, 0, 0), (None, None, seq_len_q, seq_len_k) # b
+                lambda j, k: (j, k, 0, 0), (None, None, seq_len_q, seq_len_k)  # b
             ),
             pl.BlockSpec(
-                lambda j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim) # out
+                lambda j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim)  # out
             ),
             pl.BlockSpec(
-                lambda j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim) # do_scaled
+                lambda j, k: (j, 0, k, 0),
+                (None, seq_len_q, None, head_dim),  # do_scaled
             ),
-            pl.BlockSpec(lambda j, k: (j, k, 0), (None, None, seq_len_q)), # l
-            pl.BlockSpec(lambda j, k: (j, k, 0), (None, None, seq_len_q)), # m
-            pl.BlockSpec(lambda j, k: (j, k, 0), (None, None, seq_len_q)), # delta = o * do
+            pl.BlockSpec(lambda j, k: (j, k, 0), (None, None, seq_len_q)),  # l
+            pl.BlockSpec(lambda j, k: (j, k, 0), (None, None, seq_len_q)),  # m
             pl.BlockSpec(
-                lambda j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim) # dq
+                lambda j, k: (j, k, 0), (None, None, seq_len_q)
+            ),  # delta = o * do
+            pl.BlockSpec(
+                lambda j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim)  # dq
             ),
         ]
-        if segment_ids is None: ## Liyh: add bias
+        if segment_ids is None:  ## Liyh: add bias
             in_specs.insert(4, None)  # type: ignore[arg-type]
             in_specs.insert(4, None)
             input_output_aliases = {10: 0}
         else:
-            in_specs.insert(4, pl.BlockSpec(lambda j, k: (j, 0), (None, seq_len_q))) # mq
-            in_specs.insert(4, pl.BlockSpec(lambda j, k: (j, 0), (None, seq_len_k))) # mk
-            input_output_aliases = {11: 0} #### figure out what is this.
-        
+            in_specs.insert(
+                4, pl.BlockSpec(lambda j, k: (j, 0), (None, seq_len_q))
+            )  # mq
+            in_specs.insert(
+                4, pl.BlockSpec(lambda j, k: (j, 0), (None, seq_len_k))
+            )  # mk
+            input_output_aliases = {11: 0}  #### figure out what is this.
+
         if attention_type == "self":
             q_segment_ids = segment_ids
             kv_segment_ids = segment_ids
@@ -602,7 +647,7 @@ def _mha_backward(sm_scale: float, causal: bool, attention_type: str, block_q: i
         grid = (batch_size, num_heads)
         # TODO(sharadmv): figure out why num_warps=8 doesn't work!
         num_warps = 8
-        dq, dk, dv = pl.pallas_call( ## Liyh: add bias
+        dq, dk, dv = pl.pallas_call(  ## Liyh: add bias
             functools.partial(
                 mha_backward_kernel,
                 block_q=block_q,
@@ -616,21 +661,19 @@ def _mha_backward(sm_scale: float, causal: bool, attention_type: str, block_q: i
             in_specs=in_specs,
             out_specs=[
                 pl.BlockSpec(
-                    lambda j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim) # dq
+                    lambda j, k: (j, 0, k, 0), (None, seq_len_q, None, head_dim)  # dq
                 ),
                 pl.BlockSpec(
-                    lambda j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim) # dk
+                    lambda j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim)  # dk
                 ),
                 pl.BlockSpec(
-                    lambda j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim) # dv
+                    lambda j, k: (j, 0, k, 0), (None, seq_len_k, None, head_dim)  # dv
                 ),
             ],
             name="mha_backward",
             debug=debug,
             interpret=interpret,
-            compiler_params=dict(
-                triton=dict(num_warps=num_warps, num_stages=1)
-            ),
+            compiler_params=dict(triton=dict(num_warps=num_warps, num_stages=1)),
             # num_warps=num_warps,
             # num_stages=1,
             input_output_aliases=input_output_aliases,
@@ -645,24 +688,24 @@ mha.defvjp(_mha_forward, _mha_backward)
 
 # @functools.partial(jax.jit, static_argnames=['sm_scale', 'causal', 'attention_type'])
 def mha_reference(
-    q: jnp.ndarray, # (B, N, H, C)
+    q: jnp.ndarray,  # (B, N, H, C)
     k: jnp.ndarray,
     v: jnp.ndarray,
-    b: jnp.ndarray, # (B, H, N, N)
+    b: jnp.ndarray,  # (B, H, N, N)
     segment_ids: jnp.ndarray | None,
     sm_scale: float = 1.0,
     causal: bool = False,
-    attention_type: str = 'self',
+    attention_type: str = "self",
 ):
-    n_seq_q = q.shape[-3] 
+    n_seq_q = q.shape[-3]
     n_seq_k = k.shape[-3]
-    logits = jnp.einsum('bqhc,bkhc->bhqk', q, k).astype(jnp.float32)
+    logits = jnp.einsum("bqhc,bkhc->bhqk", q, k).astype(jnp.float32)
 
     mask = None
     if segment_ids is not None:
-        if attention_type == 'self':
+        if attention_type == "self":
             mask = jnp.expand_dims(segment_mask(segment_ids, segment_ids), 1)
-        elif attention_type == 'cross':
+        elif attention_type == "cross":
             mask = jnp.expand_dims(segment_mask(segment_ids[0], segment_ids[1]), 1)
         mask = jnp.broadcast_to(mask, logits.shape)
     if causal:
@@ -672,4 +715,4 @@ def mha_reference(
     logits = logits if mask is None else jnp.where(mask, logits, float("-inf"))
     weights = jax.nn.softmax(logits * sm_scale + b.astype(jnp.float32)).astype(q.dtype)
 
-    return jnp.einsum('bhqk,bkhc->bqhc', weights, v)
+    return jnp.einsum("bhqk,bkhc->bqhc", weights, v)

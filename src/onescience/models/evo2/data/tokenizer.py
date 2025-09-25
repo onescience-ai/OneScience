@@ -30,11 +30,21 @@ class Evo2Tokenizer:
     def __init__(self, params: Evo2PreprocessingConfig | None = None):
         """Initialize the Evo2Tokenizer."""
         # Pass all NeMo2/Megatron-compliant parameters associated with config.Evo2PreprocessingConfig.
-        self.params: Evo2PreprocessingConfig = params if params is not None else Evo2PreprocessingConfig()
+        self.params: Evo2PreprocessingConfig = (
+            params if params is not None else Evo2PreprocessingConfig()
+        )
         self.tokenizer: TokenizerSpec = get_nmt_tokenizer(
             library=self.params.tokenizer_type.lower(),
-            vocab_file=str(self.params.vocab_file) if self.params.vocab_file is not None else None,
-            merges_file=str(self.params.merges_file) if self.params.merges_file is not None else None,
+            vocab_file=(
+                str(self.params.vocab_file)
+                if self.params.vocab_file is not None
+                else None
+            ),
+            merges_file=(
+                str(self.params.merges_file)
+                if self.params.merges_file is not None
+                else None
+            ),
             model_name=self.params.tokenizer_model_name,
             tokenizer_model=self.params.pretrained_tokenizer_model,
             special_tokens=self.params.special_tokens,

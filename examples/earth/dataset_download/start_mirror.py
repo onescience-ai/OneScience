@@ -1,15 +1,14 @@
-import os
 import datetime
-import xarray as xr
-import dask
-from dask.diagnostics import ProgressBar
-import hydra
-from omegaconf import DictConfig
 import logging
-import numpy as np
-import matplotlib.pyplot as plt
+import os
 
+import dask
+import hydra
+import numpy as np
+import xarray as xr
+from dask.diagnostics import ProgressBar
 from era5_mirror import ERA5Mirror
+from omegaconf import DictConfig
 
 
 @hydra.main(version_base="1.2", config_path="conf", config_name="config_tas")
@@ -69,9 +68,7 @@ def main(cfg: DictConfig) -> None:
         split = (
             "train"
             if year in train_years
-            else "test"
-            if year in test_years
-            else "out_of_sample"
+            else "test" if year in test_years else "out_of_sample"
         )
         hdf5_path = os.path.join(cfg.hdf5_store_path, split)
         os.makedirs(hdf5_path, exist_ok=True)

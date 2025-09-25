@@ -1,14 +1,14 @@
 import logging
 import os
-#import random
+
+# import random
 import tarfile
 import time
 from typing import List, Tuple
 
+import requests
 from requests.auth import HTTPBasicAuth
 from tqdm import tqdm
-
-import requests
 
 TQDM_BAR_FORMAT = "{l_bar}{bar}| {n_fmt}/{total_fmt} [elapsed: {elapsed} estimate remaining: {remaining}]"
 logger = logging.getLogger(__name__)
@@ -156,7 +156,6 @@ def run_mmseqs2_service(
         mode = "env-nofilter" if use_env else "nofilter"
 
     if use_pairing:
-        use_templates = False
         use_env = False
         mode = ""
         # greedy is default, complete was the previous behavior
@@ -178,7 +177,7 @@ def run_mmseqs2_service(
     seqs_unique = []
     # TODO this might be slow for large sets
     [seqs_unique.append(x) for x in seqs if x not in seqs_unique]
-    Ms = [N + seqs_unique.index(seq) for seq in seqs]
+    [N + seqs_unique.index(seq) for seq in seqs]
     # lets do it!
     logger.error("Msa server is running.")
     if not os.path.isfile(tar_gz_file):

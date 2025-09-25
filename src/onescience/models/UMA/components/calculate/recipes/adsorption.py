@@ -9,11 +9,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from fairchem.core.components.calculate.recipes.relax import relax_atoms
 from pymatgen.io.ase import MSONAtoms
-
-from fairchem.core.components.calculate.recipes.relax import (
-    relax_atoms,
-)
 
 if TYPE_CHECKING:
     from ase import Atoms

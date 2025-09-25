@@ -1,5 +1,5 @@
 """
-Model architecture layers used in the paper "Elucidating the Design Space of 
+Model architecture layers used in the paper "Elucidating the Design Space of
 Diffusion-Based Generative Models".
 """
 
@@ -397,9 +397,11 @@ class UNetBlock(torch.nn.Module):
         self.num_heads = (
             0
             if not attention
-            else num_heads
-            if num_heads is not None
-            else out_channels // channels_per_head
+            else (
+                num_heads
+                if num_heads is not None
+                else out_channels // channels_per_head
+            )
         )
         self.dropout = dropout
         self.skip_scale = skip_scale

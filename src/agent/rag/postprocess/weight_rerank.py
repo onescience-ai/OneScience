@@ -3,10 +3,11 @@ from collections import Counter
 from typing import Optional
 
 from langchain_core.documents import Document
-from agent.rag.postprocess.rerank_base import BaseRerankRunner
+
 from agent.rag.datasource.keyword.jieba.jieba_keyword_table_handler import (
     JiebaKeywordTableHandler,
 )
+from agent.rag.postprocess.rerank_base import BaseRerankRunner
 
 
 class WeightRerankRunner(BaseRerankRunner):

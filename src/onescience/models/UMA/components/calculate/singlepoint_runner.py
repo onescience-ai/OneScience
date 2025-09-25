@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import os
@@ -8,12 +6,12 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
-
-from onescience.models.UMA.components.calculate import CalculateRunner
 from fonescience.models.UMA.components.calculate.recipes.utils import (
     get_property_dict_from_atoms,
 )
+from tqdm import tqdm
+
+from onescience.models.UMA.components.calculate import CalculateRunner
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

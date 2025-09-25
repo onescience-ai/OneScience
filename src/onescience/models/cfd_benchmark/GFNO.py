@@ -3,13 +3,15 @@ Taken and modified from AIRS/OpenPDE
 https://github.com/divelab/AIRS/blob/main/OpenPDE/G-FNO/models/GFNO.py
 """
 
-import torch.nn.functional as F
+import math
+
 import torch
 import torch.nn as nn
-import math
-from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
+import torch.nn.functional as F
+
 from onescience.models.layers.Basic import MLP
-from onescience.models.layers.GeoFNO_Projection import SpectralConv2d_IrregularGeo, IPHI
+from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
+from onescience.models.layers.GeoFNO_Projection import IPHI, SpectralConv2d_IrregularGeo
 
 # ----------------------------------------------------------------------------------------------------------------------
 # GFNO2d

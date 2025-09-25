@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import argparse
 import logging
 import os
@@ -223,6 +224,8 @@ def _get_slurm_env() -> SlurmEnv:
         slurm_env = SlurmEnv()
 
     return slurm_env
+
+
 def remove_runner_state_from_submission(log_folder: str, job_id: str) -> None:
     # (HACK) Decouple the job from the runner state by manually modifying it
     # this ensures the saved runner state is not re-submitted in the event of a node failure
@@ -233,6 +236,8 @@ def remove_runner_state_from_submission(log_folder: str, job_id: str) -> None:
         submission_obj = DelayedSubmission.load(job_path.submitted_pickle)
         submission_obj.args[0].job.runner_state_path = None
         cloudpickle_dump(submission_obj, job_path.submitted_pickle)
+
+
 class Submitit(Checkpointable):
     def __init__(self) -> None:
         self.config = None
@@ -510,6 +515,7 @@ def main(
             Submitit()(cfg)
             if "reducer" in cfg:
                 Submitit()(cfg, RunType.REDUCE)
+
 
 if __name__ == "__main__":
     main()

@@ -1,13 +1,10 @@
-
 from __future__ import annotations
 
 from typing import TypeVar
 
 import pandas as pd
 
-from onescience.models.UMA.components.benchmark.benchmark_reducer import (
-    JsonDFReducer,
-)
+from onescience.models.UMA.components.benchmark.benchmark_reducer import JsonDFReducer
 
 R = TypeVar("R")
 M = TypeVar("M")

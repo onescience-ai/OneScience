@@ -13,7 +13,11 @@ from biotite.structure import AtomArray
 from biotite.structure.io import pdbx
 from biotite.structure.io.pdb import PDBFile
 
-from onescience.datapipes.protenix.constants import DNA_STD_RESIDUES, PRO_STD_RESIDUES, RNA_STD_RESIDUES
+from onescience.datapipes.protenix.constants import (
+    DNA_STD_RESIDUES,
+    PRO_STD_RESIDUES,
+    RNA_STD_RESIDUES,
+)
 
 
 def remove_numbers(s: str) -> str:
@@ -166,6 +170,7 @@ def get_ligand_polymer_bond_mask(
             lig_polymer_bond_indices
         ]  # np.array([[atom1, atom2, bond_order]...])
     return lig_polymer_bonds
+
 
 @functools.lru_cache
 def parse_pdb_cluster_file_to_dict(

@@ -13,15 +13,17 @@
 # limitations under the License.
 # ============================================================================
 """config load"""
-from pprint import pformat
-import yaml
-import os
 from pathlib import Path
+from pprint import pformat
+
+import yaml
+
 
 class Config:
     """
     Configuration namespace. Convert dictionary to members.
     """
+
     def __init__(self, cfg_dict):
         for k, v in cfg_dict.items():
             if isinstance(v, (list, tuple)):
@@ -34,32 +36,37 @@ class Config:
 
     def __repr__(self):
         return self.__str__()
-    
+
+
 def get_config_path(config_name: str) -> str:
     """
     Get the path to a config file within the protoken package.
-    
+
     Args:
         config_name: Name of the config file (e.g., 'encoder', 'decoder', 'vq')
-    
+
     Returns:
         Path to the config file
     """
     try:
         from importlib import resources
-        with resources.path('onescience.flax_models.protoken.config', f'{config_name}.yaml') as config_path:
+
+        with resources.path(
+            "onescience.flax_models.protoken.config", f"{config_name}.yaml"
+        ) as config_path:
             return str(config_path)
     except ImportError:
         # Fallback for older Python versions or if resources is not available
         current_dir = Path(__file__).parent.parent
-        config_path = current_dir / 'config' / f'{config_name}.yaml'
+        config_path = current_dir / "config" / f"{config_name}.yaml"
         return str(config_path)
+
 
 def load_config(path):
     """
     Convert yaml file to Obj.
     """
-    f = open(path, 'r')
+    f = open(path, "r")
     config = yaml.load(f, Loader=yaml.FullLoader)
     config = Config(config)
     return config

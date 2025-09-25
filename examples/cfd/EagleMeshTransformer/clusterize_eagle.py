@@ -1,15 +1,16 @@
-import torch
-import random
-import numpy as np
 import argparse
-from tqdm import tqdm
 import os
+import random
+
 import numba
+import numpy as np
+import torch
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--max_cluster_size', type=int, default=20)
-parser.add_argument('--geom', type=str, default="Cre")
-parser.add_argument('--traj', type=int, default=1)
+parser.add_argument("--max_cluster_size", type=int, default=20)
+parser.add_argument("--geom", type=str, default="Cre")
+parser.add_argument("--traj", type=int, default=1)
 args = parser.parse_args()
 
 PATH = "../Eagle_dataset/"
@@ -31,18 +32,17 @@ class FluentDataset:
         return len(self.dataloc)
 
     def __getitem__(self, item):
-        path = os.path.join(self.dataloc[item], 'sim.npz')
-        data = np.load(path, mmap_mode='r')
+        path = os.path.join(self.dataloc[item], "sim.npz")
+        data = np.load(path, mmap_mode="r")
         mesh_pos = data["pointcloud"].copy().astype(np.float32)
 
-        node_type = data['mask'].copy().astype(np.int32)
+        node_type = data["mask"].copy().astype(np.int32)
         shape = node_type.shape
         node_type = node_type.reshape(-1)
         node_type = np.eye(9)[node_type.astype(np.int64)]
         node_type = node_type.reshape(([shape[0], shape[1], 9]))
 
-        output = {'mesh_pos': mesh_pos,
-                  'node_type': node_type}
+        output = {"mesh_pos": mesh_pos, "node_type": node_type}
         return output
 
 
@@ -50,7 +50,9 @@ class FluentDataset:
 def kmeans(x, K=10, Niter=300, centers=None):
     N, D = x.shape  # Number of samples, dimension of the ambient space
     x = x
-    centers = x[:K, :].copy() if centers is None else centers  # Simplistic initialization for the centroids
+    centers = (
+        x[:K, :].copy() if centers is None else centers
+    )  # Simplistic initialization for the centroids
     x_i = x.reshape((N, 1, D))
 
     c_j = centers.reshape((1, K, D))
@@ -120,7 +122,9 @@ def swap(pointcloud, clusters, n_cluster, n_points, max_cluster_size):
     for n in range(pointcloud.shape[0]):
         cluster_centers[clusters[n]] = cluster_centers[clusters[n]] + pointcloud[n]
 
-    cluster_centers = cluster_centers / np.bincount(clusters, minlength=1).reshape((-1, 1)).astype(np.float32)
+    cluster_centers = cluster_centers / np.bincount(clusters, minlength=1).reshape(
+        (-1, 1)
+    ).astype(np.float32)
     clusters_size = np.bincount(clusters, minlength=1).astype(np.int64)
 
     # 2. For each object, compute the distances to the cluster means
@@ -145,7 +149,10 @@ def swap(pointcloud, clusters, n_cluster, n_points, max_cluster_size):
         for j in distances[i].argsort():
             if j == clusters[i]:
                 break
-            if distances[i, clusters[i]] > distances[i, j] and clusters_size[j] < max_cluster_size:
+            if (
+                distances[i, clusters[i]] > distances[i, j]
+                and clusters_size[j] < max_cluster_size
+            ):
                 # plt.plot([pointcloud[i, 0], cluster_centers[j, 0]], [pointcloud[i, 1], cluster_centers[j, 1]],
                 #          'r--')
                 # plt.plot([pointcloud[i, 0], cluster_centers[clusters[i], 0]],
@@ -161,8 +168,12 @@ def swap(pointcloud, clusters, n_cluster, n_points, max_cluster_size):
             if len(candidate) > 0:
                 scores = np.zeros((len(candidate)), dtype=np.float32)
                 for ik, k in enumerate(candidate):
-                    scores[ik] = -distances[i, clusters[i]] - distances[k, clusters[k]] + distances[i, clusters[k]] + \
-                                 distances[k, clusters[i]]
+                    scores[ik] = (
+                        -distances[i, clusters[i]]
+                        - distances[k, clusters[k]]
+                        + distances[i, clusters[k]]
+                        + distances[k, clusters[i]]
+                    )
                 if np.min(scores) < 0:
                     candidate = candidate[scores.argmin()]
                     clusters[candidate] = clusters[i]
@@ -182,18 +193,25 @@ def swap(pointcloud, clusters, n_cluster, n_points, max_cluster_size):
     for n in range(pointcloud.shape[0]):
         cluster_centers[clusters[n]] = cluster_centers[clusters[n]] + pointcloud[n]
 
-    cluster_centers = cluster_centers / np.bincount(clusters, minlength=1).reshape((-1, 1)).astype(np.float32)
+    cluster_centers = cluster_centers / np.bincount(clusters, minlength=1).reshape(
+        (-1, 1)
+    ).astype(np.float32)
 
     return clusters, number_of_swaps, cluster_centers
 
 
-def constrained_clustering_numpy(pointcloud, init_clusters, n_cluster, max_cluster_size):
+def constrained_clustering_numpy(
+    pointcloud, init_clusters, n_cluster, max_cluster_size
+):
     cluster_centers = kmeans(pointcloud, n_cluster, centers=init_clusters)
-    clusters = assignement(pointcloud, cluster_centers, max_cluster_size, pointcloud.shape[0], n_cluster)
+    clusters = assignement(
+        pointcloud, cluster_centers, max_cluster_size, pointcloud.shape[0], n_cluster
+    )
 
     for _ in range(1000):
-        clusters, number_of_swaps, cluster_centers = swap(pointcloud, clusters, n_cluster, pointcloud.shape[0],
-                                                          max_cluster_size)
+        clusters, number_of_swaps, cluster_centers = swap(
+            pointcloud, clusters, n_cluster, pointcloud.shape[0], max_cluster_size
+        )
         # print("Performed ", number_of_swaps, "swaps")
 
         if number_of_swaps == 0:
@@ -232,12 +250,14 @@ def main():
     dataloader = FluentDataset()
     for i in range(len(dataloader)):
         print(f"Processing {i} ({args.max_cluster_size}):")
-        path = os.path.join(dataloader.dataloc[i], f"constrained_kmeans_{args.max_cluster_size}.npy")
+        path = os.path.join(
+            dataloader.dataloc[i], f"constrained_kmeans_{args.max_cluster_size}.npy"
+        )
 
         if not os.path.exists(path):
             x = dataloader[i]
 
-            mesh_pos = x['mesh_pos']
+            mesh_pos = x["mesh_pos"]
 
             # state = np.concatenate([mesh_pos, node_type], axis=-1).astype(np.float32)
             state = mesh_pos.astype(np.float32)
@@ -247,8 +267,9 @@ def main():
             label_list = []
             for t in tqdm(range(state.shape[0])):
                 pointcloud = state[t]
-                labels, init_cluster_centers = constrained_clustering_numpy(pointcloud, init_cluster_centers,
-                                                                            n_clusters, args.max_cluster_size)
+                labels, init_cluster_centers = constrained_clustering_numpy(
+                    pointcloud, init_cluster_centers, n_clusters, args.max_cluster_size
+                )
                 label_list.append(labels)
             labels = np.stack(label_list, axis=0)
             stacked_clusters = process(labels, args.max_cluster_size)
@@ -256,5 +277,5 @@ def main():
             np.save(path, stacked_clusters)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -4,8 +4,9 @@
 
 from typing import Final
 
-from onescience.flax_models.alphafold3.structure import mmcif
 import numpy as np
+
+from onescience.flax_models.alphafold3.structure import mmcif
 
 _LICENSE_URL: Final[str] = (
     'https://github.com/google-deepmind/alphafold3/blob/main/OUTPUT_TERMS_OF_USE.md'

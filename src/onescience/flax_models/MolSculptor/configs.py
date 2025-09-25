@@ -12,13 +12,13 @@ global_config = {
 
 train_config = {
     "diffusion_timesteps": 500,
-    'learning_rate': {
-        'min': 1e-5,
-        'max': 2e-4,
-        'warmup_steps': 10000,
-        'decay_steps': 500000,
+    "learning_rate": {
+        "min": 1e-5,
+        "max": 2e-4,
+        "warmup_steps": 10000,
+        "decay_steps": 500000,
     },
-    'weight_decay': 1e-4,
+    "weight_decay": 1e-4,
 }
 
 ###### set hyperparameters here ######
@@ -27,8 +27,8 @@ n_head = hidden_size // 32
 n_iters = 6
 
 time_embedding_config = {
-    'hidden_size': hidden_size, 
-    'frequency_embedding_size': hidden_size,
+    "hidden_size": hidden_size,
+    "frequency_embedding_size": hidden_size,
 }
 
 attention_config = {
@@ -39,13 +39,11 @@ attention_config = {
         "embedding_pair_flag": False,
         "kernel_initializer": "glorot_uniform",
     },
-
     "hyper_attention_flag": True,
     "hyper_attention_embedding": {
         "kernel_type": "rope",
         "split_rope_flag": True,
     },
-    
     "attention_kernel": {
         "attention_type": "self",
         "flash_attention_flag": False,
@@ -54,7 +52,6 @@ attention_config = {
         "block_q": 64,
         "block_k": 64,
     },
-
     "post_attention": {
         "out_dim": hidden_size,
         "gating_flag": False,
@@ -63,41 +60,38 @@ attention_config = {
 }
 
 transition_config = {
-    'transition': {
+    "transition": {
         "method": "glu",
         "transition_factor": 4,
         "kernel_initializer": "xavier_uniform",
         "act_fn": "gelu",
     },
-
-    'dropout_rate': 0.01,
+    "dropout_rate": 0.01,
 }
 
 adaLN_config = {
-    'hidden_size': hidden_size,
-    'activation': 'silu',
+    "hidden_size": hidden_size,
+    "activation": "silu",
 }
 
 dit_config = {
-    'n_iterations': n_iters,
-    'emb_label_flag': False,
-    'hidden_size': hidden_size,
-    'time_embedding': time_embedding_config,
-    'dit_block': 
-        {
-            'attention': attention_config,
-            'transition': transition_config,
-            'adaLN': adaLN_config,
-        },
-    'dit_output': 
-        {
-            'hidden_size': hidden_size, 
-        }
+    "n_iterations": n_iters,
+    "emb_label_flag": False,
+    "hidden_size": hidden_size,
+    "time_embedding": time_embedding_config,
+    "dit_block": {
+        "attention": attention_config,
+        "transition": transition_config,
+        "adaLN": adaLN_config,
+    },
+    "dit_output": {
+        "hidden_size": hidden_size,
+    },
 }
 
 data_config = {
-    'n_query_tokens': 16,
-    'latent_dim': 32,
+    "n_query_tokens": 16,
+    "latent_dim": 32,
 }
 
 dit_config = ConfigDict(dit_config)

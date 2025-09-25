@@ -2,10 +2,8 @@ from typing import List
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-
-from utils import get_output_dir, load_json
 from args import Args
-
+from utils import get_output_dir, load_json
 
 MODEL_TO_LABEL = {
     "ffn": "FFN",
@@ -77,7 +75,7 @@ def plot(scores: list, models: list, out_path: str):
     plt.legend(ncol=2)
     print("Saving to", out_path)
     plt.savefig(out_path, bbox_inches="tight")
-    plt.savefig(out_path.replace(".pdf", ".png"), bbox_inches='tight')
+    plt.savefig(out_path.replace(".pdf", ".png"), bbox_inches="tight")
     # plt.show()
     plt.clf()
 
@@ -129,7 +127,7 @@ def main():
     for problem_name in problems:
         scores = get_scores(problem_name, MODELS)
         out_path = f"figs/multistep_infer_{problem_name}.pdf"
-        sns.set_style('whitegrid')
+        sns.set_style("whitegrid")
         plot(scores, MODELS, out_path)
         plt.clf()
 

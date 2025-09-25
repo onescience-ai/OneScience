@@ -1,21 +1,20 @@
 import os
 
 import hydra
-from hydra.utils import to_absolute_path
-
-from dgl.dataloading import GraphDataLoader
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from dgl.dataloading import GraphDataLoader
+from hydra.utils import to_absolute_path
 from matplotlib import animation
 from matplotlib import tri as mtri
 from matplotlib.patches import Rectangle
-import numpy as np
 from omegaconf import DictConfig
-import torch
 
-from onescience.models.meshgraphnet import MeshGraphNet
 from onescience.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
 from onescience.launch.logging import PythonLogger
 from onescience.launch.utils import load_checkpoint
+from onescience.models.meshgraphnet import MeshGraphNet
 
 
 class MGNRollout:

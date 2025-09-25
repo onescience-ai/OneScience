@@ -1,33 +1,25 @@
-
-from functools import partial
 import logging
 import os
+from functools import partial
 from typing import Any
 
 import hydra
-from hydra.utils import instantiate, to_absolute_path
-
-import dgl
-from dgl.dataloading import GraphDataLoader
-
 import matplotlib
+from dgl.dataloading import GraphDataLoader
+from hydra.utils import instantiate, to_absolute_path
 from matplotlib import animation
 from matplotlib import pyplot as plt
 
 matplotlib.use("Agg")  # for plotting
 
 import numpy as np
-
-from omegaconf import DictConfig, OmegaConf
-
 import torch
+from loggers import get_gpu_info, init_python_logging
+from omegaconf import DictConfig, OmegaConf
 from torch import Tensor
 
 from onescience.datapipes.gnn.lagrangian_dataset import graph_update
 from onescience.launch.utils import load_checkpoint
-
-from loggers import get_gpu_info, init_python_logging
-
 
 logger = logging.getLogger("lmgn")
 

@@ -1,11 +1,11 @@
 import os
+
 import torch
 from exp.exp_basic import Exp_Basic
-from onescience.utils.cfd_benchmark.loss import L2Loss
-import matplotlib.pyplot as plt
-from onescience.utils.cfd_benchmark.visual import visual
-import numpy as np
+
 from onescience.memory.checkpoint import replace_function
+from onescience.utils.cfd_benchmark.loss import L2Loss
+from onescience.utils.cfd_benchmark.visual import visual
 
 
 class Exp_Dynamic_Autoregressive(Exp_Basic):

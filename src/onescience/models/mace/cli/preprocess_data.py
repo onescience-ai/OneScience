@@ -21,7 +21,10 @@ from onescience.models.mace.data import KeySpecification, update_keyspec_from_kw
 from onescience.models.mace.data.utils import save_configurations_as_HDF5
 from onescience.models.mace.modules import compute_statistics
 from onescience.models.mace.tools import torch_geometric
-from onescience.models.mace.tools.scripts_utils import get_atomic_energies, get_dataset_from_xyz
+from onescience.models.mace.tools.scripts_utils import (
+    get_atomic_energies,
+    get_dataset_from_xyz,
+)
 from onescience.models.mace.tools.utils import AtomicNumberTable
 
 

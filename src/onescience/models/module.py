@@ -130,9 +130,12 @@ class Module(torch.nn.Module):
             try:
                 # Otherwise, try to import the class
                 for key, value in arg_dict.items():
-                    if arg_dict["__name__"] == 'EDMPrecondSR' or arg_dict["__name__"] == 'UNet':
-                        if key == '__module__':
-                            arg_dict[key] = value.replace('modulus', 'onescience')
+                    if (
+                        arg_dict["__name__"] == "EDMPrecondSR"
+                        or arg_dict["__name__"] == "UNet"
+                    ):
+                        if key == "__module__":
+                            arg_dict[key] = value.replace("modulus", "onescience")
                     else:
                         break
                 _mod = importlib.import_module(arg_dict["__module__"])
@@ -322,7 +325,7 @@ class Module(torch.nn.Module):
             # Load model arguments and instantiate the model
             with open(local_path.joinpath("args.json"), "r") as f:
                 args = json.load(f)
-            #print(f"args:{args}")
+            # print(f"args:{args}")
             model = cls.instantiate(args)
 
             # Load the model weights

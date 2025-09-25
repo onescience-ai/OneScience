@@ -1,11 +1,10 @@
-import torch.nn.functional as F
 import torch
 import torch.nn as nn
 
 
 def make_grid(input):
     B, C, H, W = input.size()
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     xx = torch.arange(0, W).view(1, -1).repeat(H, 1).to(device)
     yy = torch.arange(0, H).view(-1, 1).repeat(1, W).to(device)
     xx = xx.view(1, 1, H, W).repeat(B, 1, 1, 1)
@@ -13,6 +12,7 @@ def make_grid(input):
     grid = torch.cat((xx, yy), 1).float()
 
     return grid
+
 
 def warp(input, flow, grid, mode="bilinear", padding_mode="zeros"):
 
@@ -22,15 +22,18 @@ def warp(input, flow, grid, mode="bilinear", padding_mode="zeros"):
     vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(W - 1, 1) - 1.0
     vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(H - 1, 1) - 1.0
     vgrid = vgrid.permute(0, 2, 3, 1)
-    output = torch.nn.functional.grid_sample(input, vgrid, padding_mode=padding_mode, mode=mode, align_corners=True)
+    output = torch.nn.functional.grid_sample(
+        input, vgrid, padding_mode=padding_mode, mode=mode, align_corners=True
+    )
     return output
+
 
 def l2normalize(v, eps=1e-12):
     return v / (v.norm() + eps)
 
 
 class spectral_norm(nn.Module):
-    def __init__(self, module, name='weight', power_iterations=1):
+    def __init__(self, module, name="weight", power_iterations=1):
         super(spectral_norm, self).__init__()
         self.module = module
         self.name = name
@@ -45,17 +48,17 @@ class spectral_norm(nn.Module):
 
         height = w.data.shape[0]
         for _ in range(self.power_iterations):
-            v.data = l2normalize(torch.mv(torch.t(w.view(height,-1).data), u.data))
-            u.data = l2normalize(torch.mv(w.view(height,-1).data, v.data))
+            v.data = l2normalize(torch.mv(torch.t(w.view(height, -1).data), u.data))
+            u.data = l2normalize(torch.mv(w.view(height, -1).data, v.data))
 
         sigma = u.dot(w.view(height, -1).mv(v))
         setattr(self.module, self.name, w / sigma.expand_as(w))
 
     def _made_params(self):
         try:
-            u = getattr(self.module, self.name + "_u")
-            v = getattr(self.module, self.name + "_v")
-            w = getattr(self.module, self.name + "_bar")
+            getattr(self.module, self.name + "_u")
+            getattr(self.module, self.name + "_v")
+            getattr(self.module, self.name + "_bar")
             return True
         except AttributeError:
             return False
@@ -77,7 +80,6 @@ class spectral_norm(nn.Module):
         self.module.register_parameter(self.name + "_u", u)
         self.module.register_parameter(self.name + "_v", v)
         self.module.register_parameter(self.name + "_bar", w_bar)
-
 
     def forward(self, *args):
         self._update_u_v()

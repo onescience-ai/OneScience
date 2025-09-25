@@ -1,6 +1,7 @@
-import sys
-import numpy as np
 import random
+import sys
+
+import numpy as np
 
 
 class ContigMap:
@@ -29,7 +30,7 @@ class ContigMap:
         provide_seq=None,
         inpaint_str_strand=None,
         inpaint_str_helix=None,
-        inpaint_str_loop=None
+        inpaint_str_loop=None,
     ):
         # sanity checks
         if contigs is None and ref_idx is None:
@@ -56,9 +57,9 @@ class ContigMap:
         self.inpaint_seq = parse_inpaint(inpaint_seq)
         self.inpaint_str = parse_inpaint(inpaint_str)
 
-        self.inpaint_str_helix=parse_inpaint(inpaint_str_helix)
-        self.inpaint_str_strand=parse_inpaint(inpaint_str_strand)
-        self.inpaint_str_loop=parse_inpaint(inpaint_str_loop)
+        self.inpaint_str_helix = parse_inpaint(inpaint_str_helix)
+        self.inpaint_str_strand = parse_inpaint(inpaint_str_strand)
+        self.inpaint_str_loop = parse_inpaint(inpaint_str_loop)
 
         self.inpaint_seq_tensor = inpaint_seq_tensor
         self.inpaint_str_tensor = inpaint_str_tensor
@@ -150,19 +151,30 @@ class ContigMap:
         However, you can't specify the secondary structure of a region you're not applying inpaint_str to, as this doesn't make sense.
         """
 
-        if any(x is not None for x in (inpaint_str_helix, inpaint_str_strand, inpaint_str_loop)):
-            self.ss_spec={}
-            order=['helix','strand','loop']
-            for idx, i in enumerate([inpaint_str_helix, inpaint_str_strand, inpaint_str_loop]):
+        if any(
+            x is not None
+            for x in (inpaint_str_helix, inpaint_str_strand, inpaint_str_loop)
+        ):
+            self.ss_spec = {}
+            order = ["helix", "strand", "loop"]
+            for idx, i in enumerate(
+                [inpaint_str_helix, inpaint_str_strand, inpaint_str_loop]
+            ):
                 if i is not None:
                     self.ss_spec[order[idx]] = ~self.get_inpaint_seq_str(i, ss=True)
                 else:
-                    self.ss_spec[order[idx]] = np.zeros(len(self.inpaint_seq), dtype=bool)
+                    self.ss_spec[order[idx]] = np.zeros(
+                        len(self.inpaint_seq), dtype=bool
+                    )
             # some sensible checks
             for key, mask in self.ss_spec.items():
-                assert sum(mask*self.inpaint_str) == 0, f"You've specified {key} residues that are not structure-masked with inpaint_str. This doesn't really make sense."
-            stack=np.vstack([mask for mask in self.ss_spec.values()])
-            assert np.max(np.sum(stack, axis=0)) == 1, "You've given multiple secondary structure assignations to an input residue. This doesn't make sense."
+                assert (
+                    sum(mask * self.inpaint_str) == 0
+                ), f"You've specified {key} residues that are not structure-masked with inpaint_str. This doesn't really make sense."
+            stack = np.vstack([mask for mask in self.ss_spec.values()])
+            assert (
+                np.max(np.sum(stack, axis=0)) == 1
+            ), "You've given multiple secondary structure assignations to an input residue. This doesn't make sense."
 
     def get_sampled_mask(self):
         """
@@ -346,13 +358,13 @@ class ContigMap:
         )
 
     def get_inpaint_seq_str(self, inpaint_s, ss=False):
-        '''
+        """
         function to generate inpaint_str or inpaint_seq masks specific to this contig
-        '''
+        """
         if not ss:
             s_mask = np.copy(self.mask_1d)
         else:
-            s_mask= np.ones(len(self.mask_1d), dtype=bool)
+            s_mask = np.ones(len(self.mask_1d), dtype=bool)
         inpaint_s_list = []
         for i in inpaint_s:
             if "-" in i:

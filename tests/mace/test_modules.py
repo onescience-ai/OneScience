@@ -15,7 +15,12 @@ from onescience.models.mace.modules import (
     compute_mean_rms_energy_forces,
     compute_statistics,
 )
-from onescience.models.mace.tools import AtomicNumberTable, scatter, to_numpy, torch_geometric
+from onescience.models.mace.tools import (
+    AtomicNumberTable,
+    scatter,
+    to_numpy,
+    torch_geometric,
+)
 from onescience.models.mace.tools.scripts_utils import dict_to_array
 
 

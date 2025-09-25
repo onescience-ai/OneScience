@@ -9,18 +9,18 @@ from typing import Any, Mapping
 
 import torch
 import torch.distributed as dist
-
 from configs.configs_base import configs as configs_base
 from configs.configs_data import data_configs
 from configs.configs_inference import inference_configs
-from onescience.models.protenix.config import parse_configs, parse_sys_args
+from runner.dumper import DataDumper
+
 from onescience.datapipes.protenix.infer_data_pipeline import get_inference_dataloader
+from onescience.models.protenix.config import parse_configs, parse_sys_args
 from onescience.models.protenix.protenix import Protenix
+from onescience.sciui.protenix.web_service.dependency_url import URL
 from onescience.utils.protenix.distributed import DIST_WRAPPER
 from onescience.utils.protenix.seed import seed_everything
 from onescience.utils.protenix.torch_utils import to_device
-from onescience.sciui.protenix.web_service.dependency_url import URL
-from runner.dumper import DataDumper
 
 logger = logging.getLogger(__name__)
 
@@ -174,14 +174,14 @@ def download_infercence_cache(configs: Any, model_version: str = "v0.5.0") -> No
         )
         urllib.request.urlretrieve(tos_url, checkpoint_path)
         try:
-            ckpt = torch.load(checkpoint_path)
+            torch.load(checkpoint_path)
             del ckpt
         except:
             os.remove(checkpoint_path)
             raise RuntimeError(
                 "Download model checkpoint failed, please download by yourself with "
                 f"wget {tos_url} -O {checkpoint_path}"
-            )        
+            )
 
 
 def update_inference_configs(configs: Any, N_token: int):
@@ -283,7 +283,7 @@ def run() -> None:
         arg_str=parse_sys_args(),
         fill_required_with_null=True,
     )
-    #if inference_configs["load_checkpoint_path"] is None:
+    # if inference_configs["load_checkpoint_path"] is None:
     download_infercence_cache(configs, model_version="v0.5.0")
     main(configs)
 

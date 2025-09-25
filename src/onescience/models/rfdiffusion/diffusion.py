@@ -1,18 +1,16 @@
 # script for diffusion protocols
-import torch
-import pickle
-import numpy as np
-import os
 import logging
+import os
+import pickle
+import time
 
+import numpy as np
+import torch
 from scipy.spatial.transform import Rotation as scipy_R
 
-from onescience.utils.rfdiffusion.util import rigid_from_3_points
-
-from onescience.utils.rfdiffusion.util_module import ComputeAllAtomCoords
-
 from onescience.utils.rfdiffusion import igso3
-import time
+from onescience.utils.rfdiffusion.util import rigid_from_3_points
+from onescience.utils.rfdiffusion.util_module import ComputeAllAtomCoords
 
 torch.set_printoptions(sci_mode=False)
 
@@ -237,7 +235,7 @@ class IGSO3:
                 num_sigma=self.num_sigma,
                 min_sigma=self.min_sigma,
                 max_sigma=self.max_sigma,
-                num_omega=self.num_omega
+                num_omega=self.num_omega,
             )
             write_pkl(cache_fname, igso3_vals)
 
@@ -376,7 +374,7 @@ class IGSO3:
         all_score_norm = []
         for i, t in enumerate(ts):
             omega_t = omega[i]
-            t_idx = t - 1
+            t - 1
             sigma_idx = self.t_to_idx(t)
             score_norm_t = np.interp(
                 omega_t,
@@ -649,7 +647,7 @@ class Diffuser:
         xyz = xyz * self.crd_scale
 
         # 1 get translations
-        tick = time.time()
+        time.time()
         diffused_T, deltas = self.eucl_diffuser.diffuse_translations(
             xyz[:, :3, :].clone(), diffusion_mask=diffusion_mask
         )
@@ -658,7 +656,7 @@ class Diffuser:
         deltas /= self.crd_scale
 
         # 2 get frames
-        tick = time.time()
+        time.time()
         diffused_frame_crds, diffused_frames = self.so3_diffuser.diffuse_frames(
             xyz[:, :3, :].clone(), diffusion_mask=diffusion_mask.numpy(), t_list=None
         )
@@ -666,7 +664,7 @@ class Diffuser:
         # print('Time to diffuse frames: ',time.time()-tick)
 
         ##### Now combine all the diffused quantities to make full atom diffused poses
-        tick = time.time()
+        time.time()
         cum_delta = deltas.cumsum(dim=1)
         # The coordinates of the translated AND rotated frames
         diffused_BB = (

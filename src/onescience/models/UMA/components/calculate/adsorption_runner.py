@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import os
@@ -11,9 +9,7 @@ from ase.optimize import LBFGS
 from tqdm import tqdm
 
 from onescience.models.UMA.components.calculate import CalculateRunner
-from onescience.models.UMA.components.calculate.recipes.adsorption import (
-    adsorb_atoms,
-)
+from onescience.models.UMA.components.calculate.recipes.adsorption import adsorb_atoms
 
 if TYPE_CHECKING:
     from ase.calculators.calculator import Calculator

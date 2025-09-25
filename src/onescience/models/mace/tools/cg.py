@@ -1,4 +1,3 @@
-
 # Higher Order Real Clebsch Gordan (based on e3nn by Mario Geiger)
 
 

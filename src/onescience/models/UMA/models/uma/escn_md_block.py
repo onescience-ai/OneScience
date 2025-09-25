@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import copy
@@ -13,9 +11,7 @@ from onescience.models.UMA.models.uma.nn.activation import (
     GateActivation,
     SeparableS2Activation_M,
 )
-from onescience.models.UMA.models.uma.nn.layer_norm import (
-    get_normalization_layer,
-)
+from onescience.models.UMA.models.uma.nn.layer_norm import get_normalization_layer
 from onescience.models.UMA.models.uma.nn.mole import MOLE
 from onescience.models.UMA.models.uma.nn.radial import PolynomialEnvelope
 from onescience.models.UMA.models.uma.nn.so2_layers import SO2_Convolution

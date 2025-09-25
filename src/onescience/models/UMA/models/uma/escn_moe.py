@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import functools
@@ -15,9 +13,7 @@ from onescience.models.UMA.common.registry import registry
 from onescience.models.UMA.common.utils import conditional_grad
 from onescience.models.UMA.models.base import HeadInterface
 from onescience.models.UMA.models.uma.escn_md import eSCNMDBackbone
-from onescience.models.UMA.models.uma.nn.mole import (
-    MOLEGlobals,
-)
+from onescience.models.UMA.models.uma.nn.mole import MOLEGlobals
 from onescience.models.UMA.models.uma.nn.mole_utils import (
     MOLEInterface,
     convert_model_to_MOLE_model,
@@ -227,7 +223,9 @@ class DatasetSpecificMoEWrapper(nn.Module, HeadInterface):
     def forward(self, data, emb: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         self.global_mole_tensors.mole_sizes = torch.zeros(
             data.natoms.shape[0], dtype=torch.int, device=emb["batch"].device
-        ).scatter(0, emb["batch"], 1, reduce="add")  # data.natoms.cpu()
+        ).scatter(
+            0, emb["batch"], 1, reduce="add"
+        )  # data.natoms.cpu()
         self.global_mole_tensors.natoms = emb["batch"].shape[0]
         data_batch_full = data.batch_full.cpu()
 
@@ -302,8 +300,8 @@ class DatasetSpecificSingleHeadWrapper(nn.Module, HeadInterface):
         head_output = self.head(data, emb)
 
         # check that all the input dataset names is a strict subset of dataset names
-        assert (
-            set(data.dataset) <= set(self.dataset_names)
+        assert set(data.dataset) <= set(
+            self.dataset_names
         ), f"Input dataset names: {set(data.dataset)} must be a strict subset of model's valid datset names: {set(self.dataset_names)} "
         # breakout the outputs to correct heads named by datasetname
         np_dataset_names = np.array(data.dataset)

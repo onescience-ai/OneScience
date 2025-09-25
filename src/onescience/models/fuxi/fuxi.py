@@ -1,10 +1,8 @@
 import torch
-from torch import nn
-from torch.nn import functional as F
 from timm.layers.helpers import to_2tuple
 from timm.models.swin_transformer_v2 import SwinTransformerV2Stage
-
-from typing import Sequence
+from torch import nn
+from torch.nn import functional as F
 
 from onescience.models.fuxi.pad import get_pad2d
 
@@ -15,14 +13,23 @@ class CubeEmbedding(nn.Module):
         img_size: T, Lat, Lon
         patch_size: T, Lat, Lon
     """
-    def __init__(self, img_size, patch_size, in_chans, embed_dim, norm_layer=nn.LayerNorm):
+
+    def __init__(
+        self, img_size, patch_size, in_chans, embed_dim, norm_layer=nn.LayerNorm
+    ):
         super().__init__()
-        patches_resolution = [img_size[0] // patch_size[0], img_size[1] // patch_size[1], img_size[2] // patch_size[2]]
+        patches_resolution = [
+            img_size[0] // patch_size[0],
+            img_size[1] // patch_size[1],
+            img_size[2] // patch_size[2],
+        ]
 
         self.img_size = img_size
         self.patches_resolution = patches_resolution
         self.embed_dim = embed_dim
-        self.proj = nn.Conv3d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
+        self.proj = nn.Conv3d(
+            in_chans, embed_dim, kernel_size=patch_size, stride=patch_size
+        )
         if norm_layer is not None:
             self.norm = norm_layer(embed_dim)
         else:
@@ -30,8 +37,11 @@ class CubeEmbedding(nn.Module):
 
     def forward(self, x: torch.Tensor):
         B, C, T, Lat, Lon = x.shape
-        assert T == self.img_size[0] and Lat == self.img_size[1] and Lon == self.img_size[2], \
-            f"Input image size ({T}*{Lat}*{Lon}) doesn't match model ({self.img_size[0]}*{self.img_size[1]}*{self.img_size[2]})."
+        assert (
+            T == self.img_size[0]
+            and Lat == self.img_size[1]
+            and Lon == self.img_size[2]
+        ), f"Input image size ({T}*{Lat}*{Lon}) doesn't match model ({self.img_size[0]}*{self.img_size[1]}*{self.img_size[2]})."
         x = self.proj(x).reshape(B, self.embed_dim, -1).transpose(1, 2)  # B T*Lat*Lon C
         if self.norm is not None:
             x = self.norm(x)
@@ -40,13 +50,19 @@ class CubeEmbedding(nn.Module):
 
 
 class DownBlock(nn.Module):
-    def __init__(self, in_chans: int, out_chans: int, num_groups: int, num_residuals: int = 2):
+    def __init__(
+        self, in_chans: int, out_chans: int, num_groups: int, num_residuals: int = 2
+    ):
         super().__init__()
-        self.conv = nn.Conv2d(in_chans, out_chans, kernel_size=(3, 3), stride=2, padding=1)
+        self.conv = nn.Conv2d(
+            in_chans, out_chans, kernel_size=(3, 3), stride=2, padding=1
+        )
 
         blk = []
         for i in range(num_residuals):
-            blk.append(nn.Conv2d(out_chans, out_chans, kernel_size=3, stride=1, padding=1))
+            blk.append(
+                nn.Conv2d(out_chans, out_chans, kernel_size=3, stride=1, padding=1)
+            )
             blk.append(nn.GroupNorm(num_groups, out_chans))
             blk.append(nn.SiLU())
 
@@ -75,7 +91,9 @@ class UpBlock(nn.Module):
 
         blk = []
         for i in range(num_residuals):
-            blk.append(nn.Conv2d(out_chans, out_chans, kernel_size=3, stride=1, padding=1))
+            blk.append(
+                nn.Conv2d(out_chans, out_chans, kernel_size=3, stride=1, padding=1)
+            )
             blk.append(nn.GroupNorm(num_groups, out_chans))
             blk.append(nn.SiLU())
 
@@ -101,7 +119,10 @@ class UTransformer(nn.Module):
         window_size (int | tuple[int]): Window size.
         depth (int): Number of blocks.
     """
-    def __init__(self, embed_dim, num_groups, input_resolution, num_heads, window_size, depth):
+
+    def __init__(
+        self, embed_dim, num_groups, input_resolution, num_heads, window_size, depth
+    ):
         super().__init__()
         num_groups = to_2tuple(num_groups)
         window_size = to_2tuple(window_size)
@@ -113,7 +134,9 @@ class UTransformer(nn.Module):
         input_resolution[0] = input_resolution[0] + padding_top + padding_bottom
         input_resolution[1] = input_resolution[1] + padding_left + padding_right
         self.down = DownBlock(embed_dim, embed_dim, num_groups[0])
-        self.layer = SwinTransformerV2Stage(embed_dim, embed_dim, input_resolution, depth, num_heads, window_size)
+        self.layer = SwinTransformerV2Stage(
+            embed_dim, embed_dim, input_resolution, depth, num_heads, window_size
+        )
         self.up = UpBlock(embed_dim * 2, embed_dim, num_groups[1])
 
     def forward(self, x):
@@ -132,7 +155,12 @@ class UTransformer(nn.Module):
         x = x.permute(0, 3, 1, 2)
 
         # crop
-        x = x[:, :, padding_top: pad_lat - padding_bottom, padding_left: pad_lon - padding_right]
+        x = x[
+            :,
+            :,
+            padding_top : pad_lat - padding_bottom,
+            padding_left : pad_lon - padding_right,
+        ]
 
         # concat
         x = torch.cat([shortcut, x], dim=1)  # B 2*C Lat Lon
@@ -153,19 +181,26 @@ class Fuxi(nn.Module):
         num_heads (int, optional): Number of attention heads.
         window_size (int | tuple[int], optional): Local window size.
     """
-    def __init__(self, 
-                img_size=(2, 721, 1440), 
-                patch_size=(2, 4, 4), 
-                in_chans=70, 
-                out_chans=70,
-                embed_dim=1536, 
-                num_groups=32, 
-                num_heads=8, 
-                window_size=7):
+
+    def __init__(
+        self,
+        img_size=(2, 721, 1440),
+        patch_size=(2, 4, 4),
+        in_chans=70,
+        out_chans=70,
+        embed_dim=1536,
+        num_groups=32,
+        num_heads=8,
+        window_size=7,
+    ):
         super().__init__()
-        input_resolution = int(img_size[1] / patch_size[1] / 2), int(img_size[2] / patch_size[2] / 2)
+        input_resolution = int(img_size[1] / patch_size[1] / 2), int(
+            img_size[2] / patch_size[2] / 2
+        )
         self.cube_embedding = CubeEmbedding(img_size, patch_size, in_chans, embed_dim)
-        self.u_transformer = UTransformer(embed_dim, num_groups, input_resolution, num_heads, window_size, depth=48)
+        self.u_transformer = UTransformer(
+            embed_dim, num_groups, input_resolution, num_heads, window_size, depth=48
+        )
         self.fc = nn.Linear(embed_dim, out_chans * patch_size[1] * patch_size[2])
 
         self.patch_size = patch_size
@@ -181,7 +216,9 @@ class Fuxi(nn.Module):
         x = self.cube_embedding(x).squeeze(2)  # B C Lat Lon
         x = self.u_transformer(x)
         x = self.fc(x.permute(0, 2, 3, 1))  # B Lat Lon C
-        x = x.reshape(B, Lat, Lon, patch_lat, patch_lon, self.out_chans).permute(0, 1, 3, 2, 4, 5)
+        x = x.reshape(B, Lat, Lon, patch_lat, patch_lon, self.out_chans).permute(
+            0, 1, 3, 2, 4, 5
+        )
         # B, lat, patch_lat, lon, patch_lon, C
 
         x = x.reshape(B, Lat * patch_lat, Lon * patch_lon, self.out_chans)

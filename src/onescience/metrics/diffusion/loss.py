@@ -488,9 +488,9 @@ class ResLoss:
         b = y.shape[0]
         Nx = torch.arange(self.img_shape_x).int()
         Ny = torch.arange(self.img_shape_y).int()
-        grid = torch.stack(torch.meshgrid(Ny, Nx, indexing="ij"), dim=0)[
-            None,
-        ].expand(b, -1, -1, -1)
+        grid = torch.stack(torch.meshgrid(Ny, Nx, indexing="ij"), dim=0)[None,].expand(
+            b, -1, -1, -1
+        )
 
         # form residual
         y_mean = self.unet(
@@ -518,9 +518,7 @@ class ResLoss:
                 [img_clean.shape[0] * self.patch_num, 1, 1, 1], device=img_clean.device
             )
             sigma = (rnd_normal * self.P_std + self.P_mean).exp()
-            weight = (sigma**2 + self.sigma_data**2) / (
-                sigma * self.sigma_data
-            ) ** 2
+            weight = (sigma**2 + self.sigma_data**2) / (sigma * self.sigma_data) ** 2
 
             # global interpolation
             input_interp = torch.nn.functional.interpolate(

@@ -1,20 +1,18 @@
-import torch
-import random
 import argparse
-import numpy as np
-import torch.nn as nn
-
-from tqdm import tqdm
+import random
 from pathlib import Path
-from torch.utils.data import DataLoader
 
-from onescience.models.graphvit import GraphViT
-from onescience.datapipes.eagle import EagleDataset, collate
-
-from onescience.distributed.manager import DistributedManager
+import numpy as np
+import torch
+import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+from tqdm import tqdm
 
+from onescience.datapipes.eagle import EagleDataset, collate
+from onescience.distributed.manager import DistributedManager
+from onescience.models.graphvit import GraphViT
 
 # 参数解析器设置
 parser = argparse.ArgumentParser(description="Train GraphViT model on Eagle dataset")

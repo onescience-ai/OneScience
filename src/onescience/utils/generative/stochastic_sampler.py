@@ -355,9 +355,9 @@ def stochastic_sampler(
     b = latents.shape[0]
     Nx = torch.arange(img_shape)
     Ny = torch.arange(img_shape)
-    grid = torch.stack(torch.meshgrid(Nx, Ny, indexing="ij"), dim=0)[
-        None,
-    ].expand(b, -1, -1, -1)
+    grid = torch.stack(torch.meshgrid(Nx, Ny, indexing="ij"), dim=0)[None,].expand(
+        b, -1, -1, -1
+    )
 
     # conditioning = [mean_hr, img_lr, global_lr, pos_embd]
     batch_size = img_lr.shape[0]
