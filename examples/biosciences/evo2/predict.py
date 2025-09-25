@@ -39,11 +39,6 @@ from onescience.models.evo2.data.fasta_dataset import SimpleFastaDataset
 from onescience.models.evo2.lightning import LightningPassthroughPredictionMixin
 from onescience.models.evo2.utils.callbacks import PredictionWriter
 
-# from bionemo.llm.lightning import LightningPassthroughPredictionMixin
-# from bionemo.evo2.data.fasta_dataset import SimpleFastaDataset
-# from bionemo.llm.lightning import LightningPassthroughPredictionMixin
-# from bionemo.llm.utils.callbacks import PredictionWriter
-
 
 CheckpointFormats = Literal["torch_dist", "zarr"]
 

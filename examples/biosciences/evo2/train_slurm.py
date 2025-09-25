@@ -56,9 +56,6 @@ from onescience.models.evo2.utils.logger_utils import (
     setup_nemo_lightning_logger,
 )
 
-# from bionemo.llm.utils.datamodule_utils import infer_global_batch_size
-# from bionemo.llm.utils.logger_utils import WandbConfig, setup_nemo_lightning_logger
-
 
 torch._dynamo.config.suppress_errors = True
 
@@ -535,8 +532,6 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
 def train(args: argparse.Namespace) -> nl.Trainer:
     """Main function to run Evo2 training."""
     # Instantiate tokenizer.
-    # import ipdb
-    # ipdb.set_trace()
     tokenizer = get_nmt_tokenizer(
         "byte-level",
     )
@@ -740,7 +735,7 @@ def train(args: argparse.Namespace) -> nl.Trainer:
             log_model=args.wandb_log_model,
         )
     )
-    # import pdb;pdb.set_trace()
+    
     nemo_logger = setup_nemo_lightning_logger(
         root_dir=args.result_dir,
         name=args.experiment_name,
@@ -790,7 +785,7 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         align_param_gather=args.align_param_gather,
         average_in_collective=not args.no_average_in_collective,
     )
-    # import pdb;pdb.set_trace()
+    
     # Initialize Megatron Strategy and Trainer.
     strategy = nl.MegatronStrategy(
         ddp=ddp,
@@ -887,7 +882,6 @@ def train(args: argparse.Namespace) -> nl.Trainer:
     opt.connect(model)
 
     # Start training
-    # import pdb;pdb.set_trace()
     trainer.fit(model, data_module)  # 启动训练
     return trainer
 
