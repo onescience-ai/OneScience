@@ -170,9 +170,7 @@ def main():
     elif args.model_path.startswith("hf://"):
         importer = HuggingFaceSavannaHyenaImporter(args.model_path.lstrip("hf://"), model_config=evo2_config)
     else:
-        # print("Using PyTorchHyenaImporter, this will not strip the optimizer state.")
-        # import pdb; pdb.set_trace()
-        importer = PyTorchHyenaImporter(args.model_path, model_config=evo2_config)   
+        importer = PyTorchHyenaImporter(args.model_path, model_config=evo2_config)  
     importer.apply(args.output_dir)
 
 

@@ -38,11 +38,12 @@ import yaml
 from megatron.core.datasets.indexed_dataset import IndexedDatasetBuilder
 from nemo.utils import logging
 
-from bionemo.evo2.data.tokenizer import Evo2Tokenizer
-from bionemo.evo2.utils.config import Evo2PreprocessingConfig, Evo2TaxonomyLineage
+from onescience.models.evo2.data.tokenizer import Evo2Tokenizer
+from onescience.models.evo2.utils.config import Evo2PreprocessingConfig, Evo2TaxonomyLineage
+# from bionemo.noodles import back_transcribe_sequence, complement_sequence, reverse_sequence, transcribe_sequence
+# from bionemo.noodles.nvfaidx import NvFaidx
 from bionemo.noodles import back_transcribe_sequence, complement_sequence, reverse_sequence, transcribe_sequence
 from bionemo.noodles.nvfaidx import NvFaidx
-
 
 class Evo2Preprocessor:
     """Data preprocessing class for Evo2."""
@@ -278,7 +279,7 @@ class Evo2Preprocessor:
                     taxonomy_token + str(subseq) if taxonomy_token is not None else str(subseq)
                     for subseq in self._subsequence_generator(seq, target_length, target_length)
                 ]
-                import pdb;pdb.set_trace()
+                # import pdb;pdb.set_trace()
                 # Wrap and tokenize.
                 preproc_data_record = {
                     "text": "".join(taxonomy_injected_sequence),
@@ -467,6 +468,7 @@ def main():
     # Read config YAML.
     with open(args.config, "r") as yaml_fs:
         evo2_preproc_config_batch = yaml.safe_load(yaml_fs)
+    # import pdb;pdb.set_trace()
     for config in evo2_preproc_config_batch:
         start = time.time()
         # Convert into Evo2PreprocessingConfig.

@@ -1,9 +1,0 @@
-- dataset_prefix: /public/home/onescience2025404/khren/onescience/data/promoters/pretraining_data_promoters/data_promoters_train_text_CharLevelTokenizer_document
-  dataset_split: train
-  dataset_weight: 1.0
-- dataset_prefix: /public/home/onescience2025404/khren/onescience/data/promoters/pretraining_data_promoters/data_promoters_valid_text_CharLevelTokenizer_document
-  dataset_split: validation
-  dataset_weight: 1.0
-- dataset_prefix: /public/home/onescience2025404/khren/onescience/data/promoters/pretraining_data_promoters/data_promoters_test_text_CharLevelTokenizer_document
-  dataset_split: test
-  dataset_weight: 1.0

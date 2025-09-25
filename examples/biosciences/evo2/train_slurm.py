@@ -19,8 +19,6 @@
 import argparse
 from pathlib import Path
 from typing import List, Optional
-import sys
-sys.path.append('/work/home/onescience2025/biao.liu/onescience-evo2/src/onescience/models/evo2')
 # TODO add back support for slurm resilience.
 # import nvidia_resiliency_ext.ptl_resiliency as res_module
 import torch
@@ -46,8 +44,8 @@ from nemo.lightning.pytorch.optim.megatron import MegatronOptimizerModule
 from nemo.lightning.pytorch.strategies.utils import RestoreConfig
 from nemo.utils.exp_manager import TimingCallback
 
-from onescience.models.evo2.src.utils.datamodule_utils import infer_global_batch_size
-from onescience.models.evo2.src.utils.logger_utils import WandbConfig, setup_nemo_lightning_logger
+from onescience.models.evo2.utils.datamodule_utils import infer_global_batch_size
+from onescience.models.evo2.utils.logger_utils import WandbConfig, setup_nemo_lightning_logger
 # from bionemo.llm.utils.datamodule_utils import infer_global_batch_size
 # from bionemo.llm.utils.logger_utils import WandbConfig, setup_nemo_lightning_logger
 
@@ -687,7 +685,7 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         ckpt_load_strictness="log_all",  # or rebasing to https://github.com/NVIDIA/NeMo/pull/11988/files#diff-7667eae242a8ef776bff78cd08e79bc81df4896a450f0a781f6ed317a3dfb7ffR139
     )
     from lightning.fabric.plugins.environments import LightningEnvironment
-    # import pdb;pdb.set_trace()
+    
     trainer = nl.Trainer(
         devices=args.devices,
         num_nodes=args.num_nodes,
