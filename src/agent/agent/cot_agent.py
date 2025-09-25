@@ -1,18 +1,19 @@
 #!/user/bin/env
+import argparse
 import os
 import sys
-import argparse
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 sys.path.append(os.path.join(os.path.dirname(__file__), "unit"))
 
-from yaml import safe_load
-from typing import Dict, Optional, Any, Iterator
-from langgraph.typing import StateLike
-from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import InMemorySaver
+from typing import Any, Dict, Iterator, Optional
+
 from langchain_core.runnables import Runnable, RunnableConfig
 from langchain_core.runnables.utils import Input, Output
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph import END, StateGraph
+from langgraph.typing import StateLike
+from yaml import safe_load
 
 from agent.agent.unit.cot_runner import CotRunner
 from agent.agent.unit.tool_runner import ToolRunner
@@ -20,10 +21,12 @@ from agent.untils.until import pretty_print
 
 
 class CotAgent(Runnable):
-    def __init__(self,
-            agent_config: Dict,
-            rag_config:Optional[Dict],
-            state_schema: type(StateLike), mem: InMemorySaver = None
+    def __init__(
+        self,
+        agent_config: Dict,
+        rag_config: Optional[Dict],
+        state_schema: type(StateLike),
+        mem: InMemorySaver = None,
     ):
         workflow = StateGraph(state_schema)
         call_model = CotRunner(agent_config, rag_config)
@@ -101,23 +104,40 @@ class CotAgent(Runnable):
 
 if __name__ == "__main__":
     import uuid
-    from agent.untils.until import setup_global_logger
+
     from agent.agent.unit.agent_state import AgentState
-    from agent.untils.until import gen_job_log_name
+    from agent.untils.until import gen_job_log_name, setup_global_logger
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--job_name', type=str, required=True, description="任务名称")
-    parser.add_argument('--human_message', type=str, required=True, description="用户任务输入")
-    parser.add_argument('--agent_config_path', type=str, required=True, description="Agent配置文件")
-    parser.add_argument('--rag_config_path', type=str, default=None, description="RAG配置文件,若不使用RAG可为空")
-    parser.add_argument('--recursion_limit', type=int, default=50, description="langgraph的recursion_limit参数")
+    parser.add_argument("--job_name", type=str, required=True, description="任务名称")
+    parser.add_argument(
+        "--human_message", type=str, required=True, description="用户任务输入"
+    )
+    parser.add_argument(
+        "--agent_config_path", type=str, required=True, description="Agent配置文件"
+    )
+    parser.add_argument(
+        "--rag_config_path",
+        type=str,
+        default=None,
+        description="RAG配置文件,若不使用RAG可为空",
+    )
+    parser.add_argument(
+        "--recursion_limit",
+        type=int,
+        default=50,
+        description="langgraph的recursion_limit参数",
+    )
     args = parser.parse_args()
 
     log_name = gen_job_log_name(args.job_name, "../logs")
     setup_global_logger(f"../logs/{log_name}")
 
     user = uuid.uuid4()
-    config = {"configurable": {"thread_id": f"thread_{user}"}, "recursion_limit": args.recursion_limit}
+    config = {
+        "configurable": {"thread_id": f"thread_{user}"},
+        "recursion_limit": args.recursion_limit,
+    }
     with open(parser.agent_config_path, "r") as f:
         agent_config = safe_load(f)
         agent_config["user"] = user
@@ -128,8 +148,7 @@ if __name__ == "__main__":
         rag_config["user"] = user
 
     inputs = {"messages": [("user", args.human_message)]}
-    cot_agent = CotAgent(agent_config=agent_config,
-                       rag_config=rag_config,
-                       state_schema=AgentState)
+    cot_agent = CotAgent(
+        agent_config=agent_config, rag_config=rag_config, state_schema=AgentState
+    )
     cot_agent.stream(inputs, config)
-

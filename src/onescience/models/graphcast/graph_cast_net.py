@@ -25,10 +25,7 @@ from onescience.models.meta import ModelMetaData
 from onescience.models.module import Module
 from onescience.utils.graphcast.graph import Graph
 
-from .graph_cast_processor import (
-    GraphCastProcessor,
-    GraphCastProcessorGraphTransformer,
-)
+from .graph_cast_processor import GraphCastProcessor, GraphCastProcessorGraphTransformer
 
 logger = logging.getLogger(__name__)
 

@@ -156,7 +156,9 @@ class GraphCastLossFunction(nn.Module):
         """Gets lists of surface and atmospheric channels"""
         with open(dataset_metadata_path, "r") as f:
             data_json = json.load(f)
-            channel_list = [data_json["coords"]["channel"][str(c)] for c in channels_list]
+            channel_list = [
+                data_json["coords"]["channel"][str(c)] for c in channels_list
+            ]
 
             # separate atmosphere and surface variables
             channel_dict = {"surface": [], "atmosphere": []}

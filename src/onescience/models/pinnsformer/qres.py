@@ -15,46 +15,46 @@ class QRes_block(nn.Module):
         self.H1 = nn.Linear(in_features=in_dim, out_features=out_dim)
         self.H2 = nn.Linear(in_features=in_dim, out_features=out_dim)
         self.act = nn.Sigmoid()
-    
+
     def forward(self, x):
         x1 = self.H1(x)
         x2 = self.H2(x)
-        return self.act(x1*x2 + x1)
-
+        return self.act(x1 * x2 + x1)
 
 
 class QRes1D(nn.Module):
     def __init__(self, in_dim, hidden_dim, out_dim, num_layer):
         super(QRes1D, self).__init__()
-        self.N = num_layer-1
+        self.N = num_layer - 1
         self.inlayer = QRes_block(in_dim, hidden_dim)
-        self.layers = get_clones(QRes_block(hidden_dim, hidden_dim), num_layer-1)
+        self.layers = get_clones(QRes_block(hidden_dim, hidden_dim), num_layer - 1)
         self.outlayer = nn.Linear(in_features=hidden_dim, out_features=out_dim)
 
     def forward(self, x, t):
-        src = torch.cat((x,t), dim=-1)
+        src = torch.cat((x, t), dim=-1)
         src = self.inlayer(src)
         for i in range(self.N):
             src = self.layers[i](src)
         src = self.outlayer(src)
         return src
+
 
 class QRes2D(nn.Module):
     def __init__(self, in_dim, hidden_dim, out_dim, num_layer):
         super(QRes2D, self).__init__()
-        self.N = num_layer-1
+        self.N = num_layer - 1
         self.inlayer = QRes_block(in_dim, hidden_dim)
-        self.layers = get_clones(QRes_block(hidden_dim, hidden_dim), num_layer-1)
+        self.layers = get_clones(QRes_block(hidden_dim, hidden_dim), num_layer - 1)
         self.outlayer = nn.Linear(in_features=hidden_dim, out_features=out_dim)
 
-    def forward(self, x,y,t):
-        src = torch.cat((x,y,t), dim=-1)
+    def forward(self, x, y, t):
+        src = torch.cat((x, y, t), dim=-1)
         src = self.inlayer(src)
         for i in range(self.N):
             src = self.layers[i](src)
         src = self.outlayer(src)
         return src
-    
+
 
 def init_weights(m):
     if isinstance(m, nn.Linear):

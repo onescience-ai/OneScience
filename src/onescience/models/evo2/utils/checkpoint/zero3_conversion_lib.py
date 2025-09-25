@@ -32,7 +32,6 @@ import psutil
 import torch
 from tqdm import tqdm
 
-
 BUFFER_NAMES = "buffer_names"
 DS_VERSION = "ds_version"
 FP32_FLAT_GROUPS = "fp32_flat_groups"
@@ -150,10 +149,14 @@ def get_checkpoint_files(checkpoint_dir: str, glob_pattern: str):
         FileNotFoundError: If no files matching the glob pattern are found.
     """
     # XXX: need to test that this simple glob rule works for multi-node setup too
-    ckpt_files = sorted(glob.glob(os.path.join(checkpoint_dir, glob_pattern)), key=natural_keys)
+    ckpt_files = sorted(
+        glob.glob(os.path.join(checkpoint_dir, glob_pattern)), key=natural_keys
+    )
 
     if len(ckpt_files) == 0:
-        raise FileNotFoundError(f"can't find {glob_pattern} files in directory '{checkpoint_dir}'")
+        raise FileNotFoundError(
+            f"can't find {glob_pattern} files in directory '{checkpoint_dir}'"
+        )
 
     return ckpt_files
 
@@ -276,9 +279,13 @@ def parse_model_states(files: Set[str]):
             print_pid("Found buffers:", buffer_names)
 
         # recover just the buffers while restoring them to fp32 if they were saved in fp16
-        buffers = {k: v.float() for k, v in state_dict["module"].items() if k in buffer_names}
+        buffers = {
+            k: v.float() for k, v in state_dict["module"].items() if k in buffer_names
+        }
 
-        extra_states = {k: v for k, v in state_dict["module"].items() if k.endswith(EXTRA_STATE)}
+        extra_states = {
+            k: v for k, v in state_dict["module"].items() if k.endswith(EXTRA_STATE)
+        }
 
         # collect parameters that are included in param_shapes
         param_shapes = state_dict[PARAM_SHAPES]
@@ -369,7 +376,10 @@ def parse_optim_states(files: Set[str], ds_checkpoint_dir: str):
         raise ValueError(f"unknown zero stage {zero_stage}")
 
     if zero_stage <= 2:
-        fp32_flat_groups = [state_dicts[i][OPTIMIZER_STATE_DICT][fp32_groups_key] for i in range(len(state_dicts))]
+        fp32_flat_groups = [
+            state_dicts[i][OPTIMIZER_STATE_DICT][fp32_groups_key]
+            for i in range(len(state_dicts))
+        ]
     elif zero_stage == 3:
         # if there is more than one param group, there will be multiple flattened tensors - one
         # flattened tensor per group - for simplicity merge them into a single tensor
@@ -378,7 +388,8 @@ def parse_optim_states(files: Set[str], ds_checkpoint_dir: str):
         # will require matching the sub-lists of param_shapes for each param group flattened tensor
 
         fp32_flat_groups = [
-            torch.cat(state_dicts[i][OPTIMIZER_STATE_DICT][fp32_groups_key], 0) for i in range(len(state_dicts))
+            torch.cat(state_dicts[i][OPTIMIZER_STATE_DICT][fp32_groups_key], 0)
+            for i in range(len(state_dicts))
         ]
 
     return zero_stage, world_size, fp32_flat_groups
@@ -403,13 +414,17 @@ def _get_fp32_state_dict_from_zero_checkpoint(
     # zero_stage, world_size, fp32_flat_groups = parse_optim_states(optim_files, ds_checkpoint_dir)
 
     optim_files = get_optim_files_by_rank(ds_checkpoint_dir, rank=rank)
-    optim_files_check = get_checkpoint_files(ds_checkpoint_dir, f"bf16*_{rank:02d}_optim_states.pt")
-    assert set(optim_files) == set(optim_files_check), f"Expected {optim_files_check}, got {optim_files}"
+    optim_files_check = get_checkpoint_files(
+        ds_checkpoint_dir, f"bf16*_{rank:02d}_optim_states.pt"
+    )
+    assert set(optim_files) == set(
+        optim_files_check
+    ), f"Expected {optim_files_check}, got {optim_files}"
     # check ordering as well
     for f1, f2 in zip(optim_files, optim_files_check):
-        assert os.path.basename(f1) == os.path.basename(f2), (
-            f"Found mismatching optim files for rank {rank}: {os.path.basename(f1)} != {os.path.basename(f2)}"
-        )
+        assert os.path.basename(f1) == os.path.basename(
+            f2
+        ), f"Found mismatching optim files for rank {rank}: {os.path.basename(f1)} != {os.path.basename(f2)}"
     print_pid(f" -> Optim files for rank {rank}: {len(optim_files)}")
 
     if debug:
@@ -418,30 +433,42 @@ def _get_fp32_state_dict_from_zero_checkpoint(
     if os.environ.get("ZERO3_CONVERSION_DEBUG", "0") == "1":
         breakpoint()
 
-    zero_stage, world_size, fp32_flat_groups = parse_optim_states(optim_files, ds_checkpoint_dir)
-    assert len(optim_files) == world_size, f"Expected {world_size} optim files, got {len(optim_files)}"
+    zero_stage, world_size, fp32_flat_groups = parse_optim_states(
+        optim_files, ds_checkpoint_dir
+    )
+    assert (
+        len(optim_files) == world_size
+    ), f"Expected {world_size} optim files, got {len(optim_files)}"
     if debug:
         print_pid(
             f" -> rank{rank} stage: {zero_stage} {world_size=} {len(fp32_flat_groups)=} {fp32_flat_groups.shape=}"
         )
 
     model_files = get_model_files_by_rank(ds_checkpoint_dir, rank=rank)
-    model_files_check = get_checkpoint_files(ds_checkpoint_dir, f"zero_*_mp_rank_{rank:02d}_model_states.pt")
-    assert set(model_files) == set(model_files_check), f"Expected {model_files_check}, got {model_files}"
+    model_files_check = get_checkpoint_files(
+        ds_checkpoint_dir, f"zero_*_mp_rank_{rank:02d}_model_states.pt"
+    )
+    assert set(model_files) == set(
+        model_files_check
+    ), f"Expected {model_files_check}, got {model_files}"
 
     for f1, f2 in zip(model_files, model_files_check):
-        assert os.path.basename(f1) == os.path.basename(f2), (
-            f"Found mismatching optim files for rank {rank}: {os.path.basename(f1)} != {os.path.basename(f2)}"
-        )
+        assert os.path.basename(f1) == os.path.basename(
+            f2
+        ), f"Found mismatching optim files for rank {rank}: {os.path.basename(f1)} != {os.path.basename(f2)}"
     print_pid(f" -> Model files for rank {rank}: {len(model_files)}")
 
-    assert len(optim_files) == len(model_files), (
-        f"Expected same number of optim and model files: {len(optim_files)} != {len(model_files)}"
-    )
-    assert len(optim_files) > 0, f"Expected at least one optim file, got {len(optim_files)}"
+    assert len(optim_files) == len(
+        model_files
+    ), f"Expected same number of optim and model files: {len(optim_files)} != {len(model_files)}"
+    assert (
+        len(optim_files) > 0
+    ), f"Expected at least one optim file, got {len(optim_files)}"
 
     zero_model_states = parse_model_states(model_files)
-    print_pid(f"Parsing checkpoint created by deepspeed=={zero_model_states[0].ds_version}")
+    print_pid(
+        f"Parsing checkpoint created by deepspeed=={zero_model_states[0].ds_version}"
+    )
 
     return _get_fp32_state_dict_from_zero3_checkpoint(
         world_size, fp32_flat_groups, zero_model_states, exclude_frozen_parameters
@@ -464,7 +491,9 @@ def zero3_partitioned_param_info(unpartitioned_numel: int, world_size: int):
     return partitioned_numel, padding_numel
 
 
-def _zero3_merge_frozen_params(state_dict: Dict[str, Any], world_size: int, zero_model_states: List[ZeroModelState]):
+def _zero3_merge_frozen_params(
+    state_dict: Dict[str, Any], world_size: int, zero_model_states: List[ZeroModelState]
+):
     """Merges frozen parameters into the state dictionary.
 
     Args:
@@ -475,20 +504,35 @@ def _zero3_merge_frozen_params(state_dict: Dict[str, Any], world_size: int, zero
     Returns:
         None
     """
-    if zero_model_states[0].frozen_param_shapes is None or len(zero_model_states[0].frozen_param_shapes) == 0:
+    if (
+        zero_model_states[0].frozen_param_shapes is None
+        or len(zero_model_states[0].frozen_param_shapes) == 0
+    ):
         return
 
     if debug:
         for i in range(world_size):
-            num_elem = sum(s.numel() for s in zero_model_states[i].frozen_param_fragments.values())
+            num_elem = sum(
+                s.numel() for s in zero_model_states[i].frozen_param_fragments.values()
+            )
             print_pid(f"rank {i}: {FROZEN_PARAM_SHAPES}.numel = {num_elem}")
 
         frozen_param_shapes = zero_model_states[0].frozen_param_shapes
         wanted_params = len(frozen_param_shapes)
         wanted_numel = sum(s.numel() for s in frozen_param_shapes.values())
-        avail_numel = sum([p.numel() for p in zero_model_states[0].frozen_param_fragments.values()]) * world_size
+        avail_numel = (
+            sum(
+                [
+                    p.numel()
+                    for p in zero_model_states[0].frozen_param_fragments.values()
+                ]
+            )
+            * world_size
+        )
         print_pid(f"Frozen params: Have {avail_numel} numels to process.")
-        print_pid(f"Frozen params: Need {wanted_numel} numels in {wanted_params} params")
+        print_pid(
+            f"Frozen params: Need {wanted_numel} numels in {wanted_params} params"
+        )
 
     total_params = 0
     total_numel = 0
@@ -497,17 +541,26 @@ def _zero3_merge_frozen_params(state_dict: Dict[str, Any], world_size: int, zero
         unpartitioned_numel = shape.numel()
         total_numel += unpartitioned_numel
 
-        param_frags = tuple(model_state.frozen_param_fragments[name] for model_state in zero_model_states)
-        state_dict[name] = torch.cat(param_frags, 0).narrow(0, 0, unpartitioned_numel).view(shape)
+        param_frags = tuple(
+            model_state.frozen_param_fragments[name]
+            for model_state in zero_model_states
+        )
+        state_dict[name] = (
+            torch.cat(param_frags, 0).narrow(0, 0, unpartitioned_numel).view(shape)
+        )
 
-        partitioned_numel, partitioned_padding_numel = zero3_partitioned_param_info(unpartitioned_numel, world_size)
+        partitioned_numel, partitioned_padding_numel = zero3_partitioned_param_info(
+            unpartitioned_numel, world_size
+        )
 
         if debug:
             print_pid(
                 f"Frozen params: {total_params} {name} full shape: {shape} partition0 numel={partitioned_numel} partitioned_padding_numel={partitioned_padding_numel}"
             )
 
-    print_pid(f"Reconstructed Frozen fp32 state dict with {total_params} params {total_numel} elements")
+    print_pid(
+        f"Reconstructed Frozen fp32 state dict with {total_params} params {total_numel} elements"
+    )
 
 
 # @profile_memory_decorator
@@ -548,7 +601,9 @@ def _zero3_merge_trainable_params(
         # not asserting if there is a mismatch due to possible padding
         avail_numel = fp32_flat_groups[0].numel() * world_size
         print_pid(f"Trainable params: Have {avail_numel} numels to process.")
-        print_pid(f"Trainable params: Need {wanted_numel} numels in {wanted_params} params.")
+        print_pid(
+            f"Trainable params: Need {wanted_numel} numels in {wanted_params} params."
+        )
 
     # params
     # XXX: for huge models that can't fit into the host's RAM we will have to recode this to support
@@ -557,12 +612,16 @@ def _zero3_merge_trainable_params(
     total_numel = 0
     total_params = 0
     pid = os.getpid()
-    for name, shape in tqdm(param_shapes.items(), desc=f"{pid=}: Gathering Sharded Weights"):
+    for name, shape in tqdm(
+        param_shapes.items(), desc=f"{pid=}: Gathering Sharded Weights"
+    ):
         unpartitioned_numel = shape.numel()
         total_numel += unpartitioned_numel
         total_params += 1
         # NOTE: partitioned_numel includes padding, padding applies if unpartitioned_numel is not divisible by world_size
-        partitioned_numel, partitioned_padding_numel = zero3_partitioned_param_info(unpartitioned_numel, world_size)
+        partitioned_numel, partitioned_padding_numel = zero3_partitioned_param_info(
+            unpartitioned_numel, world_size
+        )
 
         if debug:
             print_pid(
@@ -571,7 +630,13 @@ def _zero3_merge_trainable_params(
 
         # XXX: memory usage doubles here
         state_dict[name] = (
-            torch.cat(tuple(fp32_flat_groups[i].narrow(0, offset, partitioned_numel) for i in range(world_size)), 0)
+            torch.cat(
+                tuple(
+                    fp32_flat_groups[i].narrow(0, offset, partitioned_numel)
+                    for i in range(world_size)
+                ),
+                0,
+            )
             .narrow(0, 0, unpartitioned_numel)
             .view(shape)
         )
@@ -581,9 +646,13 @@ def _zero3_merge_trainable_params(
 
     # Sanity check
     if offset != avail_numel:
-        raise ValueError(f"consumed {offset} numels out of {avail_numel} - something is wrong")
+        raise ValueError(
+            f"consumed {offset} numels out of {avail_numel} - something is wrong"
+        )
 
-    print_pid(f"Reconstructed Trainable fp32 state dict with {total_params} params {total_numel} elements")
+    print_pid(
+        f"Reconstructed Trainable fp32 state dict with {total_params} params {total_numel} elements"
+    )
 
 
 def _get_fp32_state_dict_from_zero3_checkpoint(
@@ -620,7 +689,9 @@ def _get_fp32_state_dict_from_zero3_checkpoint(
     if not exclude_frozen_parameters:
         _zero3_merge_frozen_params(state_dict, world_size, zero_model_states)
 
-    _zero3_merge_trainable_params(state_dict, world_size, fp32_flat_groups, zero_model_states)
+    _zero3_merge_trainable_params(
+        state_dict, world_size, fp32_flat_groups, zero_model_states
+    )
 
     # recover shared parameters
     for pair in zero_model_states[0].shared_params:
@@ -678,9 +749,13 @@ def process_single_rank(
         breakpoint()
 
     state_dict = _get_fp32_state_dict_from_zero_checkpoint(
-        ds_checkpoint_dir=ds_checkpoint_dir, rank=rank, exclude_frozen_parameters=exclude_frozen_parameters
+        ds_checkpoint_dir=ds_checkpoint_dir,
+        rank=rank,
+        exclude_frozen_parameters=exclude_frozen_parameters,
     )
-    print_pid(f" -> Done processing rank {rank} state_dict, gathered {len(state_dict)} params")
+    print_pid(
+        f" -> Done processing rank {rank} state_dict, gathered {len(state_dict)} params"
+    )
 
     checkpoint = {
         "module": state_dict,

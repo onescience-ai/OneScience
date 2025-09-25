@@ -7,7 +7,11 @@ import torch
 from biotite.structure import Atom, AtomArray, get_residue_starts
 from sklearn.neighbors import KDTree
 
-from onescience.datapipes.protenix.constants import STD_RESIDUES, STD_RESIDUES_WITH_GAP, get_all_elems
+from onescience.datapipes.protenix.constants import (
+    STD_RESIDUES,
+    STD_RESIDUES_WITH_GAP,
+    get_all_elems,
+)
 from onescience.datapipes.protenix.tokenizer import Token, TokenArray
 from onescience.datapipes.protenix.utils import get_ligand_polymer_bond_mask
 from onescience.utils.protenix.geometry import angle_3p, random_transform

@@ -1,8 +1,7 @@
 import torch
-from tqdm import *
 
 
-class IdentityTransformer():
+class IdentityTransformer:
     def __init__(self, X):
         self.mean = X.mean(dim=0, keepdim=True)
         self.std = X.std(dim=0, keepdim=True) + 1e-8
@@ -27,7 +26,7 @@ class IdentityTransformer():
         return x
 
 
-class UnitTransformer():
+class UnitTransformer:
     def __init__(self, X):
         self.mean = X.mean(dim=(0, 1), keepdim=True)
         self.std = X.std(dim=(0, 1), keepdim=True) + 1e-8
@@ -52,8 +51,8 @@ class UnitTransformer():
     def decode(self, x):
         return x * self.std + self.mean
 
-    def transform(self, X, inverse=True, component='all'):
-        if component == 'all' or 'all-reduce':
+    def transform(self, X, inverse=True, component="all"):
+        if component == "all" or "all-reduce":
             if inverse:
                 orig_shape = X.shape
                 return (X * (self.std - 1e-8) + self.mean).view(orig_shape)
@@ -62,7 +61,9 @@ class UnitTransformer():
         else:
             if inverse:
                 orig_shape = X.shape
-                return (X * (self.std[:, component] - 1e-8) + self.mean[:, component]).view(orig_shape)
+                return (
+                    X * (self.std[:, component] - 1e-8) + self.mean[:, component]
+                ).view(orig_shape)
             else:
                 return (X - self.mean[:, component]) / self.std[:, component]
 

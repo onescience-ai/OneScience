@@ -14,7 +14,7 @@ from .utils import CuGraphCSC, concat_efeat, sum_efeat
 
 #     te_imported = True
 # except ImportError:
-    # te_imported = False
+# te_imported = False
 te_imported = False
 
 
@@ -38,9 +38,11 @@ class CustomSiLuLinearAutogradFunction(torch.autograd.Function):
 
     @staticmethod
     @once_differentiable
-    def backward(
-        ctx, grad_output: torch.Tensor
-    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor],]:
+    def backward(ctx, grad_output: torch.Tensor) -> Tuple[
+        Optional[torch.Tensor],
+        Optional[torch.Tensor],
+        Optional[torch.Tensor],
+    ]:
         """backward pass of the SiLU + Linear function"""
 
         # from nvfuser import FusionDefinition

@@ -1,7 +1,10 @@
 import torch
 
+
 class LpLoss(object):
-    def __init__(self, mask, d=2, p=2, size_average=True, reduction=True, ignore_index=-32767):
+    def __init__(
+        self, mask, d=2, p=2, size_average=True, reduction=True, ignore_index=-32767
+    ):
         super(LpLoss, self).__init__()
         assert d > 0 and p > 0
 
@@ -33,5 +36,3 @@ class LpLoss(object):
 
     def __call__(self, x, y):
         return self.masked_rel(x, y)
-
-

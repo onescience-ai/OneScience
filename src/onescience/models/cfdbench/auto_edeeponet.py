@@ -1,12 +1,12 @@
 from itertools import product
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 
+from .act_fn import get_act_fn
 from .base_model import AutoCfdModel
 from .ffn import Ffn
-from .act_fn import get_act_fn
 from .loss import MseLoss
 
 
@@ -113,9 +113,7 @@ class AutoEDeepONet(AutoCfdModel):
             # Use only the u channel
             label = label[:, 0]  # (B, w, h)
             labels = label[:, query_idxs[:, 0], query_idxs[:, 1]]  # (b, k)
-            assert (
-                preds.shape == labels.shape
-            ), f"{preds.shape}, {labels.shape}"
+            assert preds.shape == labels.shape, f"{preds.shape}, {labels.shape}"
             loss = self.loss_fn(preds=preds, labels=labels)  # (b, k)
             return dict(
                 preds=preds,

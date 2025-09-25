@@ -1,52 +1,50 @@
 import os
 
 os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".90"
-# os.environ['JAX_PLATFORMS'] = 'cpu'
-import jax
-import logging
-import numpy as np
-import jax.numpy as jnp
-import jax.tree_util as jtu
-import pickle as pkl
 import datetime
 import functools
+import logging
 import os
 import pickle
+import pickle as pkl
 import traceback
 
-from ml_collections import ConfigDict
+# os.environ['JAX_PLATFORMS'] = 'cpu'
+import jax
+import jax.numpy as jnp
+import jax.tree_util as jtu
+import numpy as np
 from langchain_core.tools import tool
+from ml_collections import ConfigDict
 from tqdm import tqdm
 
-from onescience.flax_models.MolSculptor.src.model.diffusion_transformer import (
-    DiffusionTransformer,
-)
-from onescience.flax_models.MolSculptor.train.scheduler import GaussianDiffusion
-from onescience.flax_models.MolSculptor.train.inference import (
-    InferEncoder,
-    InferDecoder,
-    Inferencer,
-)
-from onescience.flax_models.MolSculptor.train.rewards import QED_reward, SA_reward
-from onescience.flax_models.MolSculptor.utils import (
-    expand_batch_dim,
-    encoder_function,
-    decoder_function,
-    dual_inhibitor_reward_function,
-    has_substructure,
-    find_repeats,
-    sim_function,
-)
-
+from onescience.flax_models.MolSculptor.configs import dit_config as default_net_config
 from onescience.flax_models.MolSculptor.configs import (
     global_config as default_global_config,
 )
-from onescience.flax_models.MolSculptor.configs import dit_config as default_net_config
 from onescience.flax_models.MolSculptor.configs import (
     train_config as default_train_config,
 )
-from onescience.flax_models.MolSculptor.utils import NSGA_II, sim_function
-
+from onescience.flax_models.MolSculptor.src.model.diffusion_transformer import (
+    DiffusionTransformer,
+)
+from onescience.flax_models.MolSculptor.train.inference import (
+    InferDecoder,
+    Inferencer,
+    InferEncoder,
+)
+from onescience.flax_models.MolSculptor.train.rewards import QED_reward, SA_reward
+from onescience.flax_models.MolSculptor.train.scheduler import GaussianDiffusion
+from onescience.flax_models.MolSculptor.utils import (
+    NSGA_II,
+    decoder_function,
+    dual_inhibitor_reward_function,
+    encoder_function,
+    expand_batch_dim,
+    find_repeats,
+    has_substructure,
+    sim_function,
+)
 
 args_dict = dict()
 args = None
@@ -185,7 +183,7 @@ def load_config():
     global global_config, net_config, train_config, vae_config, data_config, vae_global_config
     if args.config_path:
         with open(args.config_path, "rb") as f:
-            import ipdb
+            pass
 
             # ipdb.set_trace()  # Debugging point to check config loading
             config_dicts = pkl.load(f)

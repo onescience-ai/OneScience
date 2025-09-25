@@ -7,10 +7,9 @@ import pandas as pd
 import torch
 import yaml
 from dgl.data import DGLDataset
-from torch import Tensor
-
 from physicsnemo.datapipes.datapipe import Datapipe
 from physicsnemo.datapipes.meta import DatapipeMetaData
+from torch import Tensor
 
 try:
     import pyvista as pv

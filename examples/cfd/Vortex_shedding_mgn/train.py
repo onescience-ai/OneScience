@@ -1,14 +1,11 @@
 import time
 
 import hydra
-from hydra.utils import to_absolute_path
 import torch
 import wandb
-
 from dgl.dataloading import GraphDataLoader
-
+from hydra.utils import to_absolute_path
 from omegaconf import DictConfig
-
 from torch.cuda.amp import GradScaler, autocast
 from torch.nn.parallel import DistributedDataParallel
 

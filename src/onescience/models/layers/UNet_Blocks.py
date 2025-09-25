@@ -1,10 +1,6 @@
 import torch
 import torch.nn as nn
-from timm.layers import trunc_normal_
-from .Embedding import timestep_embedding, unified_pos_embedding
-import numpy as np
 import torch.nn.functional as F
-
 
 ################################################################
 # Multiscale modules 1D

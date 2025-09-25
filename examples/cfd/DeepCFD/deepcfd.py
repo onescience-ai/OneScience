@@ -1,16 +1,15 @@
+import getopt
 import os
-import json
-import torch
 import pickle
 import random
-import getopt
 import sys
-from train import *
-from onescience.utils.deepcfd.functions import *
-import torch.optim as optim
+
+import torch
 from torch.utils.data import TensorDataset
-from torch.autograd import Variable
+from train import *
+
 from onescience.distributed.manager import DistributedManager
+from onescience.utils.deepcfd.functions import *
 
 # 控制使用卡的数量
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
@@ -213,7 +212,6 @@ def main():
         model.parameters(), lr=options["learning_rate"], weight_decay=0.005
     )
     if dist.rank == 0:
-        config = {}
         train_loss_curve = []
         test_loss_curve = []
         train_mse_curve = []

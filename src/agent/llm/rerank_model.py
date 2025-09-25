@@ -2,11 +2,12 @@ import os
 
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 
-import torch
 from typing import Any, Optional
+
+import torch
 from langchain_core.documents import Document
-from modelscope import snapshot_download, AutoModel, AutoTokenizer, AutoModelForCausalLM
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+from modelscope import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 
 
 class LLMLayerWiseReranker:
@@ -16,8 +17,12 @@ class LLMLayerWiseReranker:
         self.max_length = kwargs.get("max_length", 8192)
 
         cache_dir = kwargs["cache_dir"] if "cache_dir" in kwargs else "../models"
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left", cache_dir=cache_dir)
-        self.model = AutoModelForCausalLM.from_pretrained(model_name, cache_dir=cache_dir).eval()
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_name, padding_side="left", cache_dir=cache_dir
+        )
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name, cache_dir=cache_dir
+        ).eval()
 
         self.token_false_id = self.tokenizer.convert_tokens_to_ids("no")
         self.token_true_id = self.tokenizer.convert_tokens_to_ids("yes")
@@ -50,8 +55,8 @@ class LLMLayerWiseReranker:
             truncation="longest_first",
             return_attention_mask=False,
             max_length=self.max_length
-                       - len(self.prefix_tokens)
-                       - len(self.suffix_tokens),
+            - len(self.prefix_tokens)
+            - len(self.suffix_tokens),
         )
         for i, ele in enumerate(inputs["input_ids"]):
             inputs["input_ids"][i] = self.prefix_tokens + ele + self.suffix_tokens

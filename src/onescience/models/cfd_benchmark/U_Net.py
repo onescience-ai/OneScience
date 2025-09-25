@@ -1,26 +1,24 @@
 import torch
-import math
 import torch.nn as nn
-import numpy as np
 import torch.nn.functional as F
-from timm.layers import trunc_normal_
+
 from onescience.models.layers.Basic import MLP
 from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
+from onescience.models.layers.GeoFNO_Projection import IPHI, SpectralConv2d_IrregularGeo
 from onescience.models.layers.UNet_Blocks import (
     DoubleConv1D,
-    Down1D,
-    Up1D,
-    OutConv1D,
     DoubleConv2D,
-    Down2D,
-    Up2D,
-    OutConv2D,
     DoubleConv3D,
+    Down1D,
+    Down2D,
     Down3D,
-    Up3D,
+    OutConv1D,
+    OutConv2D,
     OutConv3D,
+    Up1D,
+    Up2D,
+    Up3D,
 )
-from onescience.models.layers.GeoFNO_Projection import SpectralConv2d_IrregularGeo, IPHI
 
 ConvList = [None, DoubleConv1D, DoubleConv2D, DoubleConv3D]
 DownList = [None, Down1D, Down2D, Down3D]

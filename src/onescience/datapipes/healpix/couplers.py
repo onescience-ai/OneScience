@@ -91,7 +91,6 @@ class ConstantCoupler:
         return len(self.input_times) * len(self.variables)
 
     def compute_coupled_indices(self, interval, data_time_step):
-
         """
         Called by CoupledDataset to compute static indices for training
         samples
@@ -113,7 +112,6 @@ class ConstantCoupler:
         self._coupled_offsets = self._coupled_offsets.astype(int)
 
     def set_scaling(self, scaling_da):
-
         """
         Called by CoupledDataset to compute static indices for training
         samples
@@ -174,7 +172,6 @@ class ConstantCoupler:
         batch=None,
         bsize=None,
     ):
-
         """
         Construct array of coupled inputs that includes values required for
         model integration steps.
@@ -304,7 +301,6 @@ class TrailingAverageCoupler:
             )
 
     def compute_coupled_indices(self, interval, data_time_step):
-
         """
         Called by CoupledDataset to compute static indices for training
         samples
@@ -428,7 +424,6 @@ class TrailingAverageCoupler:
         batch=None,
         bsize=None,
     ):
-
         """
         Construct array of coupled inputs that includes values required for
         model integration steps.

@@ -1,4 +1,3 @@
-
 # Elementary tools for handling irreducible representations
 
 

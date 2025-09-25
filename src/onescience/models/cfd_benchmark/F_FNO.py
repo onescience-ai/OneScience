@@ -1,9 +1,7 @@
 import torch
-import math
 import torch.nn as nn
-import numpy as np
 import torch.nn.functional as F
-from timm.layers import trunc_normal_
+
 from onescience.models.layers.Basic import MLP
 from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
 from onescience.models.layers.FFNO_Layers import (
@@ -11,7 +9,7 @@ from onescience.models.layers.FFNO_Layers import (
     SpectralConv2d,
     SpectralConv3d,
 )
-from onescience.models.layers.GeoFNO_Projection import SpectralConv2d_IrregularGeo, IPHI
+from onescience.models.layers.GeoFNO_Projection import IPHI, SpectralConv2d_IrregularGeo
 
 BlockList = [None, SpectralConv1d, SpectralConv2d, SpectralConv3d]
 ConvList = [None, nn.Conv1d, nn.Conv2d, nn.Conv3d]

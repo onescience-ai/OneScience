@@ -10,15 +10,16 @@ The dataloader outputs a dictionary with the following keys:
   DISABLE=2)
 """
 
-import torch
 import random
-import numpy as np
 from pathlib import Path
-from torch import Tensor
+from typing import Dict, List, Optional, Tuple, Union
+
+import numpy as np
+import torch
 from numpy.typing import NDArray
-from torch.utils.data import Dataset
+from torch import Tensor
 from torch.nn.functional import one_hot
-from typing import Union, List, Tuple, Optional, Dict
+from torch.utils.data import Dataset
 
 
 class EagleDataset(Dataset):

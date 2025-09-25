@@ -1,21 +1,20 @@
 """Functions for getting templates and calculating template features."""
-import abc
+
 import dataclasses
 import datetime
 import functools
-import glob
 import json
 import logging
 import os
 import re
-from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
-from onescience.datapipes.protenix import kalign
 from onescience.datapipes.openfold import mmcif_parsing, parsers
 from onescience.datapipes.openfold.errors import Error
 from onescience.datapipes.openfold.tools.utils import to_date
+from onescience.datapipes.protenix import kalign
 from onescience.utils.openfold.np import residue_constants
 
 

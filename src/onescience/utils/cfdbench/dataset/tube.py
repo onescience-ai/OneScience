@@ -1,14 +1,14 @@
-from pathlib import Path
-from typing import Tuple, List, Dict, Any
 import random
 from bisect import bisect_right
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
+import numpy as np
 import torch
 from torch import Tensor
-import numpy as np
 from tqdm import tqdm
 
-from .base import CfdDataset, CfdAutoDataset
+from .base import CfdAutoDataset, CfdDataset
 from .utils import load_json, normalize_bc, normalize_physics_props
 
 
@@ -38,15 +38,11 @@ def load_case_data(case_dir: Path) -> Tuple[np.ndarray, Dict[str, float]]:
         constant_values=case_params["vel_in"],
     )
     v = np.pad(v, ((0, 0), (0, 0), (1, 0)), mode="constant", constant_values=0)
-    mask = np.pad(
-        mask, ((0, 0), (0, 0), (1, 0)), mode="constant", constant_values=0
-    )
+    mask = np.pad(mask, ((0, 0), (0, 0), (1, 0)), mode="constant", constant_values=0)
     # # Pad the top and bottom
     u = np.pad(u, ((0, 0), (1, 1), (0, 0)), mode="constant", constant_values=0)
     v = np.pad(v, ((0, 0), (1, 1), (0, 0)), mode="constant", constant_values=0)
-    mask = np.pad(
-        mask, ((0, 0), (1, 1), (0, 0)), mode="constant", constant_values=0
-    )
+    mask = np.pad(mask, ((0, 0), (1, 1), (0, 0)), mode="constant", constant_values=0)
     features = np.stack([u, v, mask], axis=1)  # (T, 3, h, w)
     return features, case_params
 
@@ -59,9 +55,7 @@ class TubeFlowDataset(CfdDataset):
     (3 variables).
     """
 
-    data_delta_time = (
-        0.1  # Time difference (s) between two frames in the data.
-    )
+    data_delta_time = 0.1  # Time difference (s) between two frames in the data.
     data_max_time = 30  # Total time (s) in the data.
     case_params_keys = ["vel_in", "density", "viscosity", "height", "width"]
 
@@ -122,9 +116,7 @@ class TubeFlowDataset(CfdDataset):
                 dtype=torch.float32,
             )
             self.case_params.append(params_tensor)
-            features.append(
-                torch.tensor(this_case_features, dtype=torch.float32)
-            )
+            features.append(torch.tensor(this_case_features, dtype=torch.float32))
             case_ids.append(case_id)
             self.num_frames.append(T)
 
@@ -178,9 +170,7 @@ class TubeFlowAutoDataset(CfdAutoDataset):
     variables).
     """
 
-    data_delta_time = (
-        0.1  # Time difference (s) between two frames in the data.
-    )
+    data_delta_time = 0.1  # Time difference (s) between two frames in the data.
     data_max_time = 30  # Total time (s) in the data.
 
     def __init__(
@@ -238,9 +228,7 @@ class TubeFlowAutoDataset(CfdAutoDataset):
 
         # loop all cases
         for case_id, case_dir in enumerate(case_dirs):
-            case_features, this_case_params = load_case_data(
-                case_dir
-            )  # (T, c, h, w)
+            case_features, this_case_params = load_case_data(case_dir)  # (T, c, h, w)
             inputs = case_features[:-time_step_size, :]  # (T, 3, h, w)
             outputs = case_features[time_step_size:, :]  # (T, 3, h, w)
             self.all_features.append(case_features)
@@ -262,7 +250,7 @@ class TubeFlowAutoDataset(CfdAutoDataset):
                 # Check for convergence
                 inp_magn = torch.sqrt(inp[0] ** 2 + inp[1] ** 2)
                 out_magn = torch.sqrt(out[0] ** 2 + out[1] ** 2)
-                diff = torch.abs(inp_magn - out_magn).mean()
+                torch.abs(inp_magn - out_magn).mean()
                 assert not torch.isnan(inp).any()
                 assert not torch.isnan(out).any()
                 all_inputs.append(inp)
@@ -278,8 +266,7 @@ class TubeFlowAutoDataset(CfdAutoDataset):
         case_id = self.case_ids[idx]
         case_params = self.case_params[case_id]
         case_params = {
-            k: torch.tensor(v, dtype=torch.float32)
-            for k, v in case_params.items()
+            k: torch.tensor(v, dtype=torch.float32) for k, v in case_params.items()
         }
         return inputs, label, case_params
 
@@ -319,12 +306,8 @@ def get_tube_datasets(
     train_data = TubeFlowDataset(
         train_case_dirs, norm_props=norm_props, norm_bc=norm_bc
     )
-    dev_data = TubeFlowDataset(
-        dev_case_dirs, norm_props=norm_props, norm_bc=norm_bc
-    )
-    test_data = TubeFlowDataset(
-        test_case_dirs, norm_props=norm_props, norm_bc=norm_bc
-    )
+    dev_data = TubeFlowDataset(dev_case_dirs, norm_props=norm_props, norm_bc=norm_bc)
+    test_data = TubeFlowDataset(test_case_dirs, norm_props=norm_props, norm_bc=norm_bc)
     return train_data, dev_data, test_data
 
 
@@ -336,9 +319,9 @@ def get_tube_auto_datasets(
     delta_time: float = 0.1,
     stable_state_diff: float = 0.001,
     seed: int = 0,
-    rank: int = 0, 
+    rank: int = 0,
 ) -> Tuple[TubeFlowAutoDataset, TubeFlowAutoDataset, TubeFlowAutoDataset]:
-    if rank==0:
+    if rank == 0:
         print(data_dir, subset_name)
     case_dirs = []
     for name in ["prop", "bc", "geo"]:
@@ -361,7 +344,7 @@ def get_tube_auto_datasets(
     train_case_dirs = case_dirs[:num_train]
     dev_case_dirs = case_dirs[num_train : num_train + num_dev]
     test_case_dirs = case_dirs[num_train + num_dev :]
-    if rank==0:
+    if rank == 0:
         print("==== Number of cases in different splits ====")
         print(
             f"train: {len(train_case_dirs)}, "

@@ -5,7 +5,11 @@ from onescience.distributed.mappings import (
     gather_from_parallel_region,
     scatter_to_parallel_region,
 )
-from onescience.distributed.utils import distributed_transpose, pad_helper, truncate_helper
+from onescience.distributed.utils import (
+    distributed_transpose,
+    pad_helper,
+    truncate_helper,
+)
 
 
 def conj_pad_helper_2d(tensor, pad_dim, other_dim, new_size):
@@ -24,11 +28,11 @@ def conj_pad_helper_2d(tensor, pad_dim, other_dim, new_size):
 
     # flip dims
     flip_slice = [
-        slice(0, x)
-        if ((idx != pad_dim) and (idx != other_dim))
-        else slice(orig_size, new_size)
-        if (idx == pad_dim)
-        else slice(1, x)
+        (
+            slice(0, x)
+            if ((idx != pad_dim) and (idx != other_dim))
+            else slice(orig_size, new_size) if (idx == pad_dim) else slice(1, x)
+        )
         for idx, x in enumerate(tensor_pad_gather.shape)
     ]
     tensor_pad_gather[flip_slice] = torch.flip(

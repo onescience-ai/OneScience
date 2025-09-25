@@ -3,11 +3,7 @@ from dataclasses import dataclass
 import torch
 from torch import nn
 
-from ..layers import (
-    ConvBlock,
-    CubeEmbedding,
-    SwinTransformer,
-)
+from ..layers import ConvBlock, CubeEmbedding, SwinTransformer
 from ..meta import ModelMetaData
 from ..module import Module
 

@@ -1,10 +1,12 @@
 import json
 from typing import Dict
-from pydantic import BaseModel, Field
-from langchain_core.prompts import ChatPromptTemplate
+
 from langchain_core.output_parsers import JsonOutputParser
-from agent.rag.datasource.vdb.milvus.schemas import COLLECTION_TO_INFOS
+from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel, Field
+
 from agent.llm import ChatModel
+from agent.rag.datasource.vdb.milvus.schemas import COLLECTION_TO_INFOS
 
 SYSTEM_TEMPLATE = """
 你是一个智能检索助手，负责根据用户任务从可用的向量数据库集合中精准召回最相关的内容集合。

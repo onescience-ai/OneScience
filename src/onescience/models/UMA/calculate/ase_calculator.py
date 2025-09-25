@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import logging
@@ -11,9 +9,9 @@ import numpy as np
 from ase.calculators.calculator import Calculator
 from ase.stress import full_3x3_to_voigt_6_stress
 
-from onescience.models.UMA.calculate import pretrained_mlip
 from onescience.datapipes.uma import data_list_collater
 from onescience.datapipes.uma.atomic_data import AtomicData
+from onescience.models.UMA.calculate import pretrained_mlip
 from onescience.models.UMA.units.mlip_unit.api.inference import (
     CHARGE_RANGE,
     DEFAULT_CHARGE,
@@ -26,7 +24,6 @@ from onescience.models.UMA.units.mlip_unit.api.inference import (
 
 if TYPE_CHECKING:
     from ase import Atoms
-
     from fairchem.core.units.mlip_unit import MLIPPredictUnit
 
 

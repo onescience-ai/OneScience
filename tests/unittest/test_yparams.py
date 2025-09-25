@@ -1,5 +1,6 @@
-from onescience.utils.fcn.YParams import YParams
 import unittest
+
+from onescience.utils.fcn.YParams import YParams
 
 
 class TestYParams(unittest.TestCase):

@@ -33,7 +33,6 @@ class BaseMSE(th.nn.MSELoss):
         """
         Nothing to implement here
         """
-        pass
 
     def forward(self, prediction, target, average_channels=True):
         """
@@ -60,7 +59,6 @@ class BaseMSE(th.nn.MSELoss):
 
 
 class WeightedMSE(th.nn.MSELoss):
-
     """
     Loss object that allows for user defined weighting of variables when calculating MSE
     """

@@ -8,23 +8,21 @@ Args:
     --w_size: size of the latent representation. Default is 512
 """
 
-import torch
-import random
 import argparse
-
-import numpy as np
-import torch.nn as nn
-
-from tqdm import tqdm
+import random
 from pathlib import Path
 
-from onescience.models.graphvit import GraphViT
-from torch.utils.data import DataLoader
-from onescience.datapipes.eagle import EagleDataset, collate
-import matplotlib.pyplot as plt
-from matplotlib.tri import Triangulation
 import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import torch.nn as nn
+from matplotlib.tri import Triangulation
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
+from onescience.datapipes.eagle import EagleDataset, collate
+from onescience.models.graphvit import GraphViT
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--ckpt", type=Path)

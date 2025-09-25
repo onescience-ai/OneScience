@@ -1,13 +1,14 @@
 import os
 import time
+
+import numpy as np
+import scipy as sc
 import torch
 import torch.nn as nn
 from exp.exp_basic import Exp_Basic
-import matplotlib.pyplot as plt
-from onescience.utils.cfd_benchmark.drag_coefficient import cal_coefficient
-import numpy as np
-import scipy as sc
+
 from onescience.memory.checkpoint import replace_function
+from onescience.utils.cfd_benchmark.drag_coefficient import cal_coefficient
 
 
 class Exp_Steady_Design(Exp_Basic):

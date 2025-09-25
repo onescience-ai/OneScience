@@ -1,24 +1,26 @@
-from . import Transolver
-from . import LSM
-from . import FNO
-from . import U_Net
-from . import Transformer
-from . import Factformer
-from . import Swin_Transformer
-from . import Galerkin_Transformer
-from . import GNOT
-from . import U_NO
-from . import U_FNO
-from . import F_FNO
-from . import ONO
-from . import MWT
-from . import GraphSAGE
-from . import Graph_UNet
-from . import PointNet
-from . import DeepONet
-from . import MeshGraphNet
-from . import RegDGCNN
-from . import GFNO
+from . import (
+    F_FNO,
+    FNO,
+    GFNO,
+    GNOT,
+    LSM,
+    MWT,
+    ONO,
+    U_FNO,
+    U_NO,
+    DeepONet,
+    Factformer,
+    Galerkin_Transformer,
+    Graph_UNet,
+    GraphSAGE,
+    MeshGraphNet,
+    PointNet,
+    RegDGCNN,
+    Swin_Transformer,
+    Transformer,
+    Transolver,
+    U_Net,
+)
 
 
 def get_model(args, device):

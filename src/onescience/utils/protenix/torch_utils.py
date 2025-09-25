@@ -1,4 +1,3 @@
-
 from contextlib import nullcontext
 from typing import Sequence, Union
 

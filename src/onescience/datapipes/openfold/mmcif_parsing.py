@@ -1,11 +1,10 @@
 """Parses the mmCIF file format."""
+
 import collections
 import dataclasses
 import functools
 import io
-import json
 import logging
-import os
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import numpy as np

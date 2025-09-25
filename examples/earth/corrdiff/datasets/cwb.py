@@ -1,7 +1,7 @@
 """Streaming images and labels from datasets created with dataset_tool.py.
-    _ZarrDataset读取zarr格式数据, 返回数据集对象
-    FilterTime从时间维度上划分数据集为训练集和验证集
-    ZarrDataset从通道、经纬度维度上对数据进行处理
+_ZarrDataset读取zarr格式数据, 返回数据集对象
+FilterTime从时间维度上划分数据集为训练集和验证集
+ZarrDataset从通道、经纬度维度上对数据进行处理
 """
 
 import logging
@@ -9,9 +9,9 @@ import random
 
 import cftime
 import cv2
-from hydra.utils import to_absolute_path
 import numpy as np
 import zarr
+from hydra.utils import to_absolute_path
 
 from .base import ChannelMetadata, DownscalingDataset
 from .img_utils import reshape_fields
@@ -22,14 +22,17 @@ logger = logging.getLogger(__file__)
 
 def get_target_normalizations_v1(group):
     """Get target normalizations using center and scale values from the 'group'.使用group中的中心值和缩放值获取目标的标准化参数"""
-    return group["cwb_center"][:], group["cwb_scale"][:]    # cwb数据集4个变量的中心值，4个变量的缩放值，Shape: (4,)
+    return (
+        group["cwb_center"][:],
+        group["cwb_scale"][:],
+    )  # cwb数据集4个变量的中心值，4个变量的缩放值，Shape: (4,)
 
 
 def get_target_normalizations_v2(group):
     """Change the normalizations of the non-gaussian output variables 更改非高斯分布输出变量的标准化参数"""
-    center = group["cwb_center"]        # 标准化的中心值
-    scale = group["cwb_scale"]          # 标准化的缩放值
-    variable = group["cwb_variable"]    
+    center = group["cwb_center"]  # 标准化的中心值
+    scale = group["cwb_scale"]  # 标准化的缩放值
+    variable = group["cwb_variable"]
 
     center = np.where(variable == "maximum_radar_reflectivity", 25.0, center)
     center = np.where(variable == "eastward_wind_10m", 0.0, center)
@@ -50,40 +53,48 @@ class _ZarrDataset(DownscalingDataset):
 
     path: str
 
-    def __init__(self, path: str, get_target_normalization=get_target_normalizations_v1):
+    def __init__(
+        self, path: str, get_target_normalization=get_target_normalizations_v1
+    ):
         self.path = path
-        self.group = zarr.open_consolidated(path)   # group表示cwa_dataset.zarr
+        self.group = zarr.open_consolidated(path)  # group表示cwa_dataset.zarr
         self.get_target_normalization = get_target_normalization
 
         # valid indices
-        cwb_valid = self.group["cwb_valid"]     # Shape: (35064,)，array([1, 1, 1, ..., 1, 1, 1], dtype=int8)
-        era5_valid = self.group["era5_valid"]   # Shape: (35064, 20)，全1
+        cwb_valid = self.group[
+            "cwb_valid"
+        ]  # Shape: (35064,)，array([1, 1, 1, ..., 1, 1, 1], dtype=int8)
+        era5_valid = self.group["era5_valid"]  # Shape: (35064, 20)，全1
         if not (
             era5_valid.ndim == 2
             and cwb_valid.ndim == 1
             and cwb_valid.shape[0] == era5_valid.shape[0]
         ):
             raise ValueError("Invalid dataset shape")
-        era5_all_channels_valid = np.all(era5_valid, axis=-1)   # era5_all_channels_valid.shape=(35064,)，全True
-        valid_times = cwb_valid & era5_all_channels_valid       
+        era5_all_channels_valid = np.all(
+            era5_valid, axis=-1
+        )  # era5_all_channels_valid.shape=(35064,)，全True
+        valid_times = cwb_valid & era5_all_channels_valid
         # need to cast to bool since cwb_valid is stored as an int8 type in zarr.
-        self.valid_times = valid_times != 0                     # self.valid_times.shape=(35064,)，全True
+        self.valid_times = valid_times != 0  # self.valid_times.shape=(35064,)，全True
 
-        logger.info("Number of valid times: %d", len(self.valid_times))         # 35064
+        logger.info("Number of valid times: %d", len(self.valid_times))  # 35064
         # logger.info("input_channels:%s", self.input_channels())                 # 20
         # logger.info("output_channels:%s", self.output_channels())               # 4
 
     def _get_valid_time_index(self, idx):
-        time_indexes = np.arange(self.group["time"].size)           
+        time_indexes = np.arange(self.group["time"].size)
         if not self.valid_times.dtype == np.bool_:
             raise ValueError("valid_times must be a boolean array")
-        valid_time_indexes = time_indexes[self.valid_times]     # 0~35063的数组  0~26303为训练集，26304~35063为验证集
+        valid_time_indexes = time_indexes[
+            self.valid_times
+        ]  # 0~35063的数组  0~26303为训练集，26304~35063为验证集
         return valid_time_indexes[idx]
 
     def __getitem__(self, idx):
         idx_to_load = self._get_valid_time_index(idx)
-        target = self.group["cwb"][idx_to_load]     # shape=(4,450,450)
-        input = self.group["era5"][idx_to_load]     # shape=(20,450,450)
+        target = self.group["cwb"][idx_to_load]  # shape=(4,450,450)
+        input = self.group["era5"][idx_to_load]  # shape=(20,450,450)
         label = 0
 
         # 标准化
@@ -98,10 +109,10 @@ class _ZarrDataset(DownscalingDataset):
 
     def latitude(self):
         """The latitude. useful for plotting"""
-        return self.group["XLAT"]   # <zarr.core.Array '/XLAT' (450, 450) float32>
+        return self.group["XLAT"]  # <zarr.core.Array '/XLAT' (450, 450) float32>
 
     def _get_channel_meta(self, variable, level):
-        if np.isnan(level):         # 对于地表变量，其level值设为的nan
+        if np.isnan(level):  # 对于地表变量，其level值设为的nan
             level = ""
         return ChannelMetadata(name=variable, level=str(level))
 
@@ -109,13 +120,13 @@ class _ZarrDataset(DownscalingDataset):
         """Metadata for the input channels. A list of dictionaries, one for each channel"""
         variable = self.group["era5_variable"]
         level = self.group["era5_pressure"]
-        return [self._get_channel_meta(*v) for v in zip(variable, level)]   # 20
+        return [self._get_channel_meta(*v) for v in zip(variable, level)]  # 20
 
     def output_channels(self):
         """Metadata for the output channels. A list of dictionaries, one for each channel"""
         variable = self.group["cwb_variable"]
         level = self.group["cwb_pressure"]
-        return [self._get_channel_meta(*v) for v in zip(variable, level)]   # 4
+        return [self._get_channel_meta(*v) for v in zip(variable, level)]  # 4
 
     def _read_time(self):
         """The vector of time coordinate has length (self)"""
@@ -126,12 +137,13 @@ class _ZarrDataset(DownscalingDataset):
     def time(self):
         """The vector of time coordinate has length (self)"""
         time = self._read_time()
-        return time[self.valid_times].tolist()  
+        return time[self.valid_times].tolist()
+
     # [cftime.DatetimeGregorian(2018, 1, 1, 0, 0, 0, 0, has_year_zero=False), ..., cftime.DatetimeGregorian(2021, 12, 31, 23, 0, 0, 0, has_year_zero=False)]
 
     def image_shape(self):
         """Get the shape of the image (same for input and output)."""
-        return self.group["cwb"].shape[-2:] # (450,450)
+        return self.group["cwb"].shape[-2:]  # (450,450)
 
     def _select_norm_channels(self, means, stds, channels):
         if channels is not None:
@@ -141,12 +153,16 @@ class _ZarrDataset(DownscalingDataset):
 
     def normalize_input(self, x, channels=None):
         """将物理单位的输入转换为标准化数据。channels表示对指定channels进行转换"""
-        norm = self._select_norm_channels(self.group["era5_center"], self.group["era5_scale"], channels)
+        norm = self._select_norm_channels(
+            self.group["era5_center"], self.group["era5_scale"], channels
+        )
         return normalize(x, *norm)
 
     def denormalize_input(self, x, channels=None):
         """将标准化的输入转换为物理单位的数据。"""
-        norm = self._select_norm_channels(self.group["era5_center"], self.group["era5_scale"], channels)
+        norm = self._select_norm_channels(
+            self.group["era5_center"], self.group["era5_scale"], channels
+        )
         return denormalize(x, *norm)
 
     def normalize_output(self, x, channels=None):
@@ -184,7 +200,9 @@ class FilterTime(DownscalingDataset):
         """
         self._dataset = dataset
         self._filter_fn = filter_fn
-        self._indices = [i for i, t in enumerate(self._dataset.time()) if filter_fn(t)] # self._indices即下标列表，元素为0~26303(训练集)或26304~35063（验证集）
+        self._indices = [
+            i for i, t in enumerate(self._dataset.time()) if filter_fn(t)
+        ]  # self._indices即下标列表，元素为0~26303(训练集)或26304~35063（验证集）
         # cftime.DatetimeGregorian(2018, 1, 1, 10, 0, 0, 0, has_year_zero=False).year=2018
 
     def longitude(self):
@@ -207,6 +225,7 @@ class FilterTime(DownscalingDataset):
         """Get time values from the dataset."""
         time = self._dataset.time()
         return [time[i] for i in self._indices]
+
     # [cftime.DatetimeGregorian(2018, 1, 1, 0, 0, 0, 0, has_year_zero=False), ..., cftime.DatetimeGregorian(2020, 12, 31, 23, 0, 0, 0, has_year_zero=False)]
     # 或[cftime.DatetimeGregorian(2021, 1, 1, 0, 0, 0, 0, has_year_zero=False), ..., cftime.DatetimeGregorian(2021, 12, 31, 23, 0, 0, 0, has_year_zero=False)]
     def info(self):
@@ -345,11 +364,13 @@ class ZarrDataset(DownscalingDataset):
         global_stds_path=None,
         normalization="v1",
     ):
-        if not all_times:   # 根据 train 和 all_times 的值，选择适当的时间过滤器来处理数据集
+        if (
+            not all_times
+        ):  # 根据 train 和 all_times 的值，选择适当的时间过滤器来处理数据集
             self._dataset = (
-                FilterTime(dataset, is_not_2021)    # 训练集2018~2020
+                FilterTime(dataset, is_not_2021)  # 训练集2018~2020
                 if train
-                else FilterTime(dataset, is_2021)   # 验证集2021
+                else FilterTime(dataset, is_2021)  # 验证集2021
             )
         else:
             self._dataset = dataset
@@ -382,7 +403,9 @@ class ZarrDataset(DownscalingDataset):
         return self._dataset.info()
 
     def __getitem__(self, idx):
-        (target, input, _) = self._dataset[idx]     # target.shape=(4,450,450), input.shape=(20,450,450)
+        (target, input, _) = self._dataset[
+            idx
+        ]  # target.shape=(4,450,450), input.shape=(20,450,450)
         # crop and downsamples 处理数据（如裁剪、降采样）
         # rolling 旋转
         if self.train and self.roll:
@@ -391,9 +414,9 @@ class ZarrDataset(DownscalingDataset):
             y_roll = 0
 
         # channels
-        input = input[self.in_channels, :, :]                    # (12,448,448)
+        input = input[self.in_channels, :, :]  # (12,448,448)
         # target = target[self.out_channels, :, :]
-        target = target[range(len(self.out_channels)), :, :]     # (4,448,448)
+        target = target[range(len(self.out_channels)), :, :]  # (4,448,448)
 
         if self.ds_factor > 1:
             target = self._create_lowres_(target, factor=self.ds_factor)
@@ -414,7 +437,12 @@ class ZarrDataset(DownscalingDataset):
             self.roll,
         )
         # SR
-        input = reshape_fields(input, "inp", *reshape_args, normalize=False,)
+        input = reshape_fields(
+            input,
+            "inp",
+            *reshape_args,
+            normalize=False,
+        )
         target = reshape_fields(target, "tar", *reshape_args, normalize=False)
 
         return target, input, idx
@@ -429,10 +457,10 @@ class ZarrDataset(DownscalingDataset):
     def output_channels(self):
         """Metadata for the output channels. A list of dictionaries, one for each channel"""
         out_channels = self._dataset.output_channels()
-        # print(out_channels) 
-        # [ChannelMetadata(name='maximum_radar_reflectivity', level='', auxiliary=False), 
-        #   ChannelMetadata(name='temperature_2m', level='', auxiliary=False), 
-        #   ChannelMetadata(name='eastward_wind_10m', level='', auxiliary=False), 
+        # print(out_channels)
+        # [ChannelMetadata(name='maximum_radar_reflectivity', level='', auxiliary=False),
+        #   ChannelMetadata(name='temperature_2m', level='', auxiliary=False),
+        #   ChannelMetadata(name='eastward_wind_10m', level='', auxiliary=False),
         #   ChannelMetadata(name='northward_wind_10m', level='', auxiliary=False)]
         # print(self.out_channels) #[0, 17, 18, 19]
         # return [out_channels[i] for i in self.out_channels]
@@ -461,12 +489,18 @@ class ZarrDataset(DownscalingDataset):
 
     def normalize_input(self, x):
         """Convert input from physical units to normalized data. 只有前len(self.in_channels)个变量进行单位标准化,其余变量拼接到标准化后的变量数据"""
-        x_norm = self._dataset.normalize_input(x[:, : len(self.in_channels)], channels=self.in_channels)    # 对指定in_channels输入变量标准化
-        return np.concatenate((x_norm, x[:, self.in_channels :]), axis=1)   # shape=(len(self.in_channels, self.img_shape_x, self.img_shape_y))
+        x_norm = self._dataset.normalize_input(
+            x[:, : len(self.in_channels)], channels=self.in_channels
+        )  # 对指定in_channels输入变量标准化
+        return np.concatenate(
+            (x_norm, x[:, self.in_channels :]), axis=1
+        )  # shape=(len(self.in_channels, self.img_shape_x, self.img_shape_y))
 
     def denormalize_input(self, x):
         """Convert input from normalized data to physical units."""
-        x_denorm = self._dataset.denormalize_input(x[:, : len(self.in_channels)], channels=self.in_channels)
+        x_denorm = self._dataset.denormalize_input(
+            x[:, : len(self.in_channels)], channels=self.in_channels
+        )
         return np.concatenate((x_denorm, x[:, len(self.in_channels) :]), axis=1)
 
     def normalize_output(self, x):
@@ -476,7 +510,7 @@ class ZarrDataset(DownscalingDataset):
     def denormalize_output(self, x):
         """Convert output from normalized data to physical units."""
         return self._dataset.denormalize_output(x, channels=self.out_channels)
-    
+
     # 将图像从低分辨率升采样到高分辨率，用OpenCV的插值方法
     def _create_highres_(self, x, shape):
         # downsample the high res imag
@@ -504,7 +538,14 @@ class ZarrDataset(DownscalingDataset):
 def get_zarr_dataset(*, data_path, normalization="v1", all_times=False, **kwargs):
     """Get a Zarr dataset for training or evaluation."""
     data_path = to_absolute_path(data_path)
-    get_target_normalization = {"v1": get_target_normalizations_v1, "v2": get_target_normalizations_v2,}[normalization]
+    get_target_normalization = {
+        "v1": get_target_normalizations_v1,
+        "v2": get_target_normalizations_v2,
+    }[normalization]
     logger.info(f"Normalization: {normalization}")
-    zdataset = _ZarrDataset(data_path, get_target_normalization=get_target_normalization)
-    return ZarrDataset(dataset=zdataset, normalization=normalization, all_times=all_times, **kwargs)    # 返回数据集
+    zdataset = _ZarrDataset(
+        data_path, get_target_normalization=get_target_normalization
+    )
+    return ZarrDataset(
+        dataset=zdataset, normalization=normalization, all_times=all_times, **kwargs
+    )  # 返回数据集

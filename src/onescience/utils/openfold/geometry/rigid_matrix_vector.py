@@ -1,14 +1,13 @@
 """Rigid3Array Transformations represented by a Matrix and a Vector."""
 
 from __future__ import annotations
+
 import dataclasses
-from typing import Union, List
+from typing import List, Union
 
 import torch
 
-from onescience.utils.openfold.geometry import rotation_matrix
-from onescience.utils.openfold.geometry import vector
-
+from onescience.utils.openfold.geometry import rotation_matrix, vector
 
 Float = Union[float, torch.Tensor]
 

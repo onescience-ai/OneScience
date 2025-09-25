@@ -1,7 +1,5 @@
-import math
-from typing import Dict, Union
+from typing import Union
 
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -225,7 +223,7 @@ def frames_and_literature_positions_to_atom14_pos(
     lit_positions,
 ):
     # [*, N, 14, 4, 4]
-    default_4x4 = default_frames[aatype, ...]
+    default_frames[aatype, ...]
 
     # [*, N, 14]
     group_mask = group_idx[aatype, ...]

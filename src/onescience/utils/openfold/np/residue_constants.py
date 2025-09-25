@@ -2,12 +2,12 @@
 
 import collections
 import functools
-import os
 from importlib import resources
 from typing import List, Mapping, Tuple
 
 import numpy as np
-#import tree
+
+# import tree
 import optree
 
 # Distance from one CA to next CA [trans configuration: omega = 180].

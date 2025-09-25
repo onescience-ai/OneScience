@@ -1,11 +1,14 @@
 """Shared utils for tests."""
 
 import dataclasses
+
 import torch
 
-from onescience.utils.openfold.geometry import rigid_matrix_vector
-from onescience.utils.openfold.geometry import rotation_matrix
-from onescience.utils.openfold.geometry import vector
+from onescience.utils.openfold.geometry import (
+    rigid_matrix_vector,
+    rotation_matrix,
+    vector,
+)
 
 
 def assert_rotation_matrix_equal(

@@ -1,6 +1,7 @@
-import torch.nn as nn
 import torch
-from .base import MLP, GNN
+import torch.nn as nn
+
+from .base import GNN, MLP
 
 NODE_NORMAL = 0
 NODE_INPUT = 4

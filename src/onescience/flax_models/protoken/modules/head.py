@@ -1,14 +1,14 @@
+import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import flax.linen as nn
-import numpy as np
-from .structure import FoldIteration
-from onescience.flax_models.protoken.common.geometry import quat_to_rot
+import ml_collections
 
 from onescience.flax_models.protoken.common.config_load import Config
+from onescience.flax_models.protoken.common.geometry import quat_to_rot
+
 # from config.global_setup import EnvironConfig
 from .basic import ActFuncWrapper
-import ml_collections
+from .structure import FoldIteration
 
 
 class DistogramHead(nn.Module):
@@ -16,13 +16,14 @@ class DistogramHead(nn.Module):
 
     Jumper et al. (2021) Suppl. Sec. 1.9.8 "Distogram prediction"
     """
+
     global_config: ml_collections.ConfigDict
     cfg: Config
     pair_dim: int = 192
     intermediate_dim: int = 512
 
     def setup(self):
-        
+
         self.bf16_flag = self.global_config.bf16_flag
         self.dropout_flag = self.global_config.use_dropout
         self.norm_small = self.global_config.norm_small
@@ -33,10 +34,19 @@ class DistogramHead(nn.Module):
         self.num_bins = self.cfg.num_bins
         self.act_fn = nn.silu
 
-        self.half_logits = nn.Dense(features=self.intermediate_dim, # 192 -> 512
-                                    kernel_init = nn.initializers.lecun_normal(), dtype=self._dtype, param_dtype=jnp.float32)
-        self.output_logits = nn.Dense(self.num_bins, kernel_init=nn.initializers.zeros_init(), dtype=self._dtype, param_dtype=jnp.float32)# 512 -> 36
-        
+        self.half_logits = nn.Dense(
+            features=self.intermediate_dim,  # 192 -> 512
+            kernel_init=nn.initializers.lecun_normal(),
+            dtype=self._dtype,
+            param_dtype=jnp.float32,
+        )
+        self.output_logits = nn.Dense(
+            self.num_bins,
+            kernel_init=nn.initializers.zeros_init(),
+            dtype=self._dtype,
+            param_dtype=jnp.float32,
+        )  # 512 -> 36
+
     def __call__(self, pair):
         """Builds DistogramHead module.
 
@@ -55,175 +65,239 @@ class DistogramHead(nn.Module):
         logits = self.output_logits(sym_embedding)
 
         # logits = half_logits + jnp.swapaxes(half_logits, -2, -3)
-        breaks = jnp.linspace(self.first_break, self.last_break, self.num_bins - 1, dtype=self._dtype)
+        breaks = jnp.linspace(
+            self.first_break, self.last_break, self.num_bins - 1, dtype=self._dtype
+        )
 
         return logits, breaks
-      
-class PredictedLDDTHead(nn.Module):
-  """Head to predict the per-residue LDDT to be used as a confidence measure."""
-  
-  global_config: ml_collections.ConfigDict
-  cfg: Config
-  
-  def setup(self):
-    
-    self.bf16_flag = self.global_config.bf16_flag
-    self.dropout_flag = self.global_config.use_dropout
-    self.norm_small = self.global_config.norm_small
-    self._dtype = jnp.bfloat16 if self.bf16_flag else jnp.float32
-    
-    self.init_fold_iteration = FoldIteration(self.global_config,
-                                             self.cfg.fold_iteration, 
-                                             self.cfg.fold_iteration.dropout, 
-                                             stop_grad=True)
-    
-    self.input_layer_norm = ActFuncWrapper(nn.LayerNorm(epsilon=self.norm_small, dtype=self._dtype, param_dtype=jnp.float32))
-    self.act_0 = nn.Dense(features=self.cfg.num_channel,
-                          kernel_init = nn.initializers.lecun_normal(), dtype=self._dtype, param_dtype=jnp.float32)
-    self.act_1 = nn.Dense(features=self.cfg.num_channel,
-                          kernel_init = nn.initializers.lecun_normal(), dtype=self._dtype, param_dtype=jnp.float32)
-    self.logits = nn.Dense(features=self.cfg.num_bins,
-                           kernel_init = nn.initializers.zeros_init(), dtype=self._dtype, param_dtype=jnp.float32)
-    self.relu = nn.relu
-  
-  def __call__(self, act, static_feat_2d, sequence_mask, affine, aatype):
-    affine = jax.lax.stop_gradient(affine)
-    quaternion, translation = affine[..., :4], (affine[..., 4], affine[..., 5], affine[..., 6])
-    rotation = quat_to_rot(quaternion)
-    res = self.init_fold_iteration(act=act, 
-                                   static_feat_2d=static_feat_2d, 
-                                   sequence_mask=jnp.expand_dims(sequence_mask, -1), 
-                                   quaternion=quaternion, 
-                                   rotation=rotation, 
-                                   translation=translation, 
-                                   initial_act=act, #### initial act is only used to predict side chain
-                                   aatype=aatype, 
-                                   contextual_mask=jnp.ones_like(sequence_mask)) #### fix affine tensor
-    act = res[0]
-    act = act.astype(self._dtype)
-    act = self.input_layer_norm(act)
-    act = self.act_0(act)
-    act = self.relu(act)
-    act = self.act_1(act)
-    act = self.relu(act)
-    logits = self.logits(act)
-    return logits
-  
-def compute_plddt(logits):
-  """Computes per-residue pLDDT from logits.
-  Args:
-    logits: [num_res, num_bins] output from the PredictedLDDTHead.
-  Returns:
-    plddt: [num_res] per-residue pLDDT.
-  """
-  _np, _softmax = jnp, jax.nn.softmax
 
-  
-  num_bins = logits.shape[-1]
-  bin_width = 1.0 / num_bins
-  bin_centers = _np.arange(start=0.5 * bin_width, stop=1.0, step=bin_width)
-  probs = _softmax(logits, axis=-1)
-  predicted_lddt_ca = (probs * bin_centers[None, :]).sum(-1)
-  return predicted_lddt_ca * 100
+
+class PredictedLDDTHead(nn.Module):
+    """Head to predict the per-residue LDDT to be used as a confidence measure."""
+
+    global_config: ml_collections.ConfigDict
+    cfg: Config
+
+    def setup(self):
+
+        self.bf16_flag = self.global_config.bf16_flag
+        self.dropout_flag = self.global_config.use_dropout
+        self.norm_small = self.global_config.norm_small
+        self._dtype = jnp.bfloat16 if self.bf16_flag else jnp.float32
+
+        self.init_fold_iteration = FoldIteration(
+            self.global_config,
+            self.cfg.fold_iteration,
+            self.cfg.fold_iteration.dropout,
+            stop_grad=True,
+        )
+
+        self.input_layer_norm = ActFuncWrapper(
+            nn.LayerNorm(
+                epsilon=self.norm_small, dtype=self._dtype, param_dtype=jnp.float32
+            )
+        )
+        self.act_0 = nn.Dense(
+            features=self.cfg.num_channel,
+            kernel_init=nn.initializers.lecun_normal(),
+            dtype=self._dtype,
+            param_dtype=jnp.float32,
+        )
+        self.act_1 = nn.Dense(
+            features=self.cfg.num_channel,
+            kernel_init=nn.initializers.lecun_normal(),
+            dtype=self._dtype,
+            param_dtype=jnp.float32,
+        )
+        self.logits = nn.Dense(
+            features=self.cfg.num_bins,
+            kernel_init=nn.initializers.zeros_init(),
+            dtype=self._dtype,
+            param_dtype=jnp.float32,
+        )
+        self.relu = nn.relu
+
+    def __call__(self, act, static_feat_2d, sequence_mask, affine, aatype):
+        affine = jax.lax.stop_gradient(affine)
+        quaternion, translation = affine[..., :4], (
+            affine[..., 4],
+            affine[..., 5],
+            affine[..., 6],
+        )
+        rotation = quat_to_rot(quaternion)
+        res = self.init_fold_iteration(
+            act=act,
+            static_feat_2d=static_feat_2d,
+            sequence_mask=jnp.expand_dims(sequence_mask, -1),
+            quaternion=quaternion,
+            rotation=rotation,
+            translation=translation,
+            initial_act=act,  #### initial act is only used to predict side chain
+            aatype=aatype,
+            contextual_mask=jnp.ones_like(sequence_mask),
+        )  #### fix affine tensor
+        act = res[0]
+        act = act.astype(self._dtype)
+        act = self.input_layer_norm(act)
+        act = self.act_0(act)
+        act = self.relu(act)
+        act = self.act_1(act)
+        act = self.relu(act)
+        logits = self.logits(act)
+        return logits
+
+
+def compute_plddt(logits):
+    """Computes per-residue pLDDT from logits.
+    Args:
+      logits: [num_res, num_bins] output from the PredictedLDDTHead.
+    Returns:
+      plddt: [num_res] per-residue pLDDT.
+    """
+    _np, _softmax = jnp, jax.nn.softmax
+
+    num_bins = logits.shape[-1]
+    bin_width = 1.0 / num_bins
+    bin_centers = _np.arange(start=0.5 * bin_width, stop=1.0, step=bin_width)
+    probs = _softmax(logits, axis=-1)
+    predicted_lddt_ca = (probs * bin_centers[None, :]).sum(-1)
+    return predicted_lddt_ca * 100
+
 
 class InverseFoldingHead(nn.Module):
-  
-  global_config: ml_collections.ConfigDict
-  cfg: Config
-  
-  def setup(self):
 
-    self.bf16_flag = self.global_config.bf16_flag
-    self.dropout_flag = self.global_config.use_dropout
-    self.norm_small = self.global_config.norm_small
-    self._dtype = jnp.bfloat16 if self.bf16_flag else jnp.float32
-    
-    self.input_layer_norm = ActFuncWrapper(nn.LayerNorm(epsilon=self.norm_small, dtype=self._dtype, param_dtype=jnp.float32))
-    
-    self.act_0 = nn.Dense(features=self.cfg.num_channel, kernel_init = nn.initializers.lecun_normal(), 
-                          dtype=self._dtype, param_dtype=jnp.float32)
-    self.act_1 = nn.Dense(features=self.cfg.num_channel, kernel_init = nn.initializers.lecun_normal(), 
-                          dtype=self._dtype, param_dtype=jnp.float32)
-    self.logits = nn.Dense(features=self.cfg.num_bins, kernel_init = nn.initializers.zeros_init(),
-                           dtype=self._dtype, param_dtype=jnp.float32)
-    
-    self.relu = nn.relu
-  
-  def __call__(self, act):
-    act = self.input_layer_norm(act)
-    act = self.act_0(act)
-    act = self.relu(act)
-    act = self.act_1(act)
-    act = self.relu(act)
-    logits = self.logits(act)
-    return logits
-  
+    global_config: ml_collections.ConfigDict
+    cfg: Config
+
+    def setup(self):
+
+        self.bf16_flag = self.global_config.bf16_flag
+        self.dropout_flag = self.global_config.use_dropout
+        self.norm_small = self.global_config.norm_small
+        self._dtype = jnp.bfloat16 if self.bf16_flag else jnp.float32
+
+        self.input_layer_norm = ActFuncWrapper(
+            nn.LayerNorm(
+                epsilon=self.norm_small, dtype=self._dtype, param_dtype=jnp.float32
+            )
+        )
+
+        self.act_0 = nn.Dense(
+            features=self.cfg.num_channel,
+            kernel_init=nn.initializers.lecun_normal(),
+            dtype=self._dtype,
+            param_dtype=jnp.float32,
+        )
+        self.act_1 = nn.Dense(
+            features=self.cfg.num_channel,
+            kernel_init=nn.initializers.lecun_normal(),
+            dtype=self._dtype,
+            param_dtype=jnp.float32,
+        )
+        self.logits = nn.Dense(
+            features=self.cfg.num_bins,
+            kernel_init=nn.initializers.zeros_init(),
+            dtype=self._dtype,
+            param_dtype=jnp.float32,
+        )
+
+        self.relu = nn.relu
+
+    def __call__(self, act):
+        act = self.input_layer_norm(act)
+        act = self.act_0(act)
+        act = self.relu(act)
+        act = self.act_1(act)
+        act = self.relu(act)
+        logits = self.logits(act)
+        return logits
+
+
 class ConfidenceHead(nn.Module):
-  "Inverse folding & Scoring"
+    "Inverse folding & Scoring"
 
-  global_config: ml_collections.ConfigDict
-  cfg: Config
-  
-  def setup(self):
-      
-    # basic precision setting
-    self.bf16_flag = self.global_config.bf16_flag
-    self.dropout_flag = self.global_config.use_dropout
-    self.norm_small = self.global_config.norm_small
+    global_config: ml_collections.ConfigDict
+    cfg: Config
 
-    self._dtype = jnp.bfloat16 if self.bf16_flag else jnp.float32
+    def setup(self):
 
-    self.num_channel = self.cfg.num_channel
-    
-    self.freeze_encoder_activations = self.cfg.freeze_encoder_activations # False
-    self.stop_gradient = jax.lax.stop_gradient
-    
-    self.prev_codes_project_up = nn.Sequential(
-        [
-            nn.Dense(features=4 * self.num_channel,
-                      kernel_init=nn.initializers.lecun_normal(),
-                      dtype=self._dtype, param_dtype=jnp.float32),
-            nn.silu,
-            nn.Dense(features=self.num_channel,
-                      kernel_init=nn.initializers.lecun_normal(),
-                      dtype=self._dtype, param_dtype=jnp.float32),
-        ]
-    )
-    
-    self.codes_project_up = nn.Sequential(
-        [
-            nn.Dense(features=4 * self.num_channel,
-                      kernel_init=nn.initializers.lecun_normal(),
-                      dtype=self._dtype, param_dtype=jnp.float32),
-            nn.silu,
-            nn.Dense(features=self.num_channel,
-                      kernel_init=nn.initializers.lecun_normal(),
-                      dtype=self._dtype, param_dtype=jnp.float32),
-        ]
-    )
-    self.confidence_head = nn.Sequential(
-        [
-            nn.Dense(features=4 * self.num_channel,
-                      kernel_init=nn.initializers.lecun_normal(),
-                      dtype=self._dtype, param_dtype=jnp.float32),
-            nn.silu,
-            nn.Dense(features=self.cfg.num_bins,
-                      kernel_init=nn.initializers.zeros_init(),
-                      dtype=self._dtype, param_dtype=jnp.float32),
-        ]
-    )
-    
-  
-  def __call__(self, prev_vq_codes, vq_codes, esm_activations):
+        # basic precision setting
+        self.bf16_flag = self.global_config.bf16_flag
+        self.dropout_flag = self.global_config.use_dropout
+        self.norm_small = self.global_config.norm_small
 
-    prev_vq_codes = self.stop_gradient(prev_vq_codes)
-    if self.freeze_encoder_activations: ### 为了防止梯度对抗，初期可以停掉梯度，后期再打开
-        esm_activations = self.stop_gradient(esm_activations)
-        vq_codes = self.stop_gradient(vq_codes)
+        self._dtype = jnp.bfloat16 if self.bf16_flag else jnp.float32
 
-    prev_codes_act = self.prev_codes_project_up(prev_vq_codes) # zero-initialized 
-    codes_act = self.codes_project_up(vq_codes) # zero-initialized
-    confidence_activations = esm_activations + prev_codes_act + codes_act
-    plddt_logits = self.confidence_head(confidence_activations) ### MLP
+        self.num_channel = self.cfg.num_channel
 
-    return plddt_logits
+        self.freeze_encoder_activations = self.cfg.freeze_encoder_activations  # False
+        self.stop_gradient = jax.lax.stop_gradient
+
+        self.prev_codes_project_up = nn.Sequential(
+            [
+                nn.Dense(
+                    features=4 * self.num_channel,
+                    kernel_init=nn.initializers.lecun_normal(),
+                    dtype=self._dtype,
+                    param_dtype=jnp.float32,
+                ),
+                nn.silu,
+                nn.Dense(
+                    features=self.num_channel,
+                    kernel_init=nn.initializers.lecun_normal(),
+                    dtype=self._dtype,
+                    param_dtype=jnp.float32,
+                ),
+            ]
+        )
+
+        self.codes_project_up = nn.Sequential(
+            [
+                nn.Dense(
+                    features=4 * self.num_channel,
+                    kernel_init=nn.initializers.lecun_normal(),
+                    dtype=self._dtype,
+                    param_dtype=jnp.float32,
+                ),
+                nn.silu,
+                nn.Dense(
+                    features=self.num_channel,
+                    kernel_init=nn.initializers.lecun_normal(),
+                    dtype=self._dtype,
+                    param_dtype=jnp.float32,
+                ),
+            ]
+        )
+        self.confidence_head = nn.Sequential(
+            [
+                nn.Dense(
+                    features=4 * self.num_channel,
+                    kernel_init=nn.initializers.lecun_normal(),
+                    dtype=self._dtype,
+                    param_dtype=jnp.float32,
+                ),
+                nn.silu,
+                nn.Dense(
+                    features=self.cfg.num_bins,
+                    kernel_init=nn.initializers.zeros_init(),
+                    dtype=self._dtype,
+                    param_dtype=jnp.float32,
+                ),
+            ]
+        )
+
+    def __call__(self, prev_vq_codes, vq_codes, esm_activations):
+
+        prev_vq_codes = self.stop_gradient(prev_vq_codes)
+        if (
+            self.freeze_encoder_activations
+        ):  ### 为了防止梯度对抗，初期可以停掉梯度，后期再打开
+            esm_activations = self.stop_gradient(esm_activations)
+            vq_codes = self.stop_gradient(vq_codes)
+
+        prev_codes_act = self.prev_codes_project_up(prev_vq_codes)  # zero-initialized
+        codes_act = self.codes_project_up(vq_codes)  # zero-initialized
+        confidence_activations = esm_activations + prev_codes_act + codes_act
+        plddt_logits = self.confidence_head(confidence_activations)  ### MLP
+
+        return plddt_logits

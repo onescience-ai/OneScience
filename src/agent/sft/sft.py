@@ -29,13 +29,12 @@ import datasets
 import torch
 import transformers
 from datasets import load_dataset
-from transformers import set_seed
-from transformers.trainer_utils import get_last_checkpoint
-
 from open_r1.configs import SFTConfig
 from open_r1.utils import get_tokenizer
 from open_r1.utils.callbacks import get_callbacks
 from open_r1.utils.wandb_logging import init_wandb_training
+from transformers import set_seed
+from transformers.trainer_utils import get_last_checkpoint
 from trl import (
     ModelConfig,
     ScriptArguments,
@@ -46,9 +45,9 @@ from trl import (
     get_quantization_config,
 )
 
-
 logger = logging.getLogger(__name__)
 os.environ["WANDB_DISABLED"] = "true"
+
 
 def main(script_args, training_args, model_args):
     # Set seed for reproducibility
@@ -86,21 +85,30 @@ def main(script_args, training_args, model_args):
     ################
     # Load datasets
     ################
-    print("dataset_config:",script_args.dataset_config)
+    print("dataset_config:", script_args.dataset_config)
     dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
+
     def format_alpaca_prompt(example):
-        #prompt = f"Instruction: {example['instruction']}\n"
-        #if example["input"]:
+        # prompt = f"Instruction: {example['instruction']}\n"
+        # if example["input"]:
         #    prompt += f"Input: {example['input']}\n"
-        #prompt += "Output: "
-        messages = [{"content":example["instruction"],"role":"user"},{"content":example["output"],"role":"assistant"}]
+        # prompt += "Output: "
+        messages = [
+            {"content": example["instruction"], "role": "user"},
+            {"content": example["output"], "role": "assistant"},
+        ]
         example["messages"] = messages
-        #return {"prompt": prompt, "output": example["output"]}
-        #return example
-        return {"problem":example["instruction"],"solution":example["output"],"answer":example["output"],"messages":messages}
+        # return {"prompt": prompt, "output": example["output"]}
+        # return example
+        return {
+            "problem": example["instruction"],
+            "solution": example["output"],
+            "answer": example["output"],
+            "messages": messages,
+        }
 
     dataset = dataset.map(format_alpaca_prompt)
-    dataset = dataset.remove_columns(['instruction', 'output'])
+    dataset = dataset.remove_columns(["instruction", "output"])
     ################
     # Load tokenizer
     ################
@@ -112,7 +120,9 @@ def main(script_args, training_args, model_args):
     ###################
     logger.info("*** Initializing model kwargs ***")
     torch_dtype = (
-        model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
+        model_args.torch_dtype
+        if model_args.torch_dtype in ["auto", None]
+        else getattr(torch, model_args.torch_dtype)
     )
     quantization_config = get_quantization_config(model_args)
     model_kwargs = dict(
@@ -133,7 +143,11 @@ def main(script_args, training_args, model_args):
         model=model_args.model_name_or_path,
         args=training_args,
         train_dataset=dataset[script_args.dataset_train_split],
-        eval_dataset=dataset[script_args.dataset_test_split] if training_args.eval_strategy != "no" else None,
+        eval_dataset=(
+            dataset[script_args.dataset_test_split]
+            if training_args.eval_strategy != "no"
+            else None
+        ),
         processing_class=tokenizer,
         peft_config=get_peft_config(model_args),
         callbacks=get_callbacks(training_args, model_args),

@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import logging
@@ -15,10 +13,10 @@ from pymatgen.io.ase import AseAtomsAdaptor, MSONAtoms
 from tqdm import tqdm
 
 from onescience.models.UMA.components.benchmark import JsonDFReducer
-from onescience.models.UMA.components.calculate import (
-    RelaxationRunner,
+from onescience.models.UMA.components.calculate import RelaxationRunner
+from onescience.models.UMA.components.calculate.recipes.energy import (
+    calc_energy_from_e_refs,
 )
-from onescience.models.UMA.components.calculate.recipes.energy import calc_energy_from_e_refs
 
 try:
     from matbench_discovery.enums import MbdKey

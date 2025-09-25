@@ -1,11 +1,11 @@
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
-from .base import CfdDataset, CfdAutoDataset
-from .tube import get_tube_datasets, get_tube_auto_datasets
-from .cavity import get_cavity_datasets, get_cavity_auto_datasets
-from .cylinder import get_cylinder_datasets, get_cylinder_auto_datasets
-from .dam import get_dam_datasets, get_dam_auto_datasets
+from .base import CfdAutoDataset, CfdDataset
+from .cavity import get_cavity_auto_datasets, get_cavity_datasets
+from .cylinder import get_cylinder_auto_datasets, get_cylinder_datasets
+from .dam import get_dam_auto_datasets, get_dam_datasets
+from .tube import get_tube_auto_datasets, get_tube_datasets
 
 
 def get_dataset(
@@ -13,7 +13,7 @@ def get_dataset(
     data_dir: Path,
     norm_props: bool,
     norm_bc: bool,
-    rank: int = 0, 
+    rank: int = 0,
 ) -> Tuple[CfdDataset, CfdDataset, CfdDataset]:
     """
     Args:
@@ -73,7 +73,7 @@ def get_auto_dataset(
     norm_props: bool,
     norm_bc: bool,
     load_splits: list = ["train", "dev", "test"],
-    rank: int = 0, 
+    rank: int = 0,
 ) -> Tuple[
     Optional[CfdAutoDataset],
     Optional[CfdAutoDataset],
@@ -88,7 +88,7 @@ def get_auto_dataset(
     assert problem_name in ["cavity", "tube", "dam", "cylinder"]
     subset_name = data_name[len(problem_name) + 1 :]
     assert delta_time > 0
-    if rank==0:
+    if rank == 0:
         print("Loading data...")
     if problem_name == "tube":
         train_data, dev_data, test_data = get_tube_auto_datasets(

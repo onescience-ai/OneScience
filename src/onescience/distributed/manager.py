@@ -601,9 +601,12 @@ class DistributedManager(object):
                 dist.barrier()
             dist.destroy_process_group()
         DistributedManager._shared_state = {}
+
     def synchronize(self):
         """Synchronize all distributed processes"""
         if self._distributed:
             dist.barrier()  # Synchronize processes in distributed group
         else:
-            print("WARNING: Not in a distributed environment, no synchronization performed.")
+            print(
+                "WARNING: Not in a distributed environment, no synchronization performed."
+            )

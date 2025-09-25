@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import bisect
@@ -17,11 +15,11 @@ import ase
 import numpy as np
 from tqdm import tqdm
 
-from onescience.models.UMA.common.registry import registry
 from onescience.datapipes.uma._utils import rename_data_object_keys
 from onescience.datapipes.uma.atomic_data import AtomicData
 from onescience.datapipes.uma.base_dataset import BaseDataset
 from onescience.datapipes.uma.target_metadata_guesser import guess_property_metadata
+from onescience.models.UMA.common.registry import registry
 from onescience.models.UMA.modules.transforms import DataTransforms
 
 

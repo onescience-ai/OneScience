@@ -1,13 +1,11 @@
-import torch
-import torch.nn as nn
-from torch import Tensor
-
-
-import dgl
-from dgl import DGLGraph
 from dataclasses import dataclass
 from itertools import chain
 from typing import Callable, List, Tuple, Union
+
+import torch
+import torch.nn as nn
+from dgl import DGLGraph
+from torch import Tensor
 
 from onescience.models.gnn_layers.mesh_edge_block import MeshEdgeBlock
 from onescience.models.gnn_layers.mesh_graph_mlp import MeshGraphMLP

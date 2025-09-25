@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import torch
@@ -24,6 +23,7 @@ class MTCollater:
             exclude_keys=self.exclude_keys,
         )
         return batch
+
     def data_list_collater(
         self,
         data_list: list[AtomicData],
@@ -33,10 +33,22 @@ class MTCollater:
         # 打印每个结构的信息
         for data_object in data_list:
             print(
-                "sid:", getattr(data_object, "sid", None),
-                "pos shape:", getattr(data_object, "pos", None).shape if hasattr(data_object, "pos") else None,
-                "natoms:", getattr(data_object, "natoms", None),
-                "edge_index shape:", getattr(data_object, "edge_index", None).shape if hasattr(data_object, "edge_index") else None
+                "sid:",
+                getattr(data_object, "sid", None),
+                "pos shape:",
+                (
+                    getattr(data_object, "pos", None).shape
+                    if hasattr(data_object, "pos")
+                    else None
+                ),
+                "natoms:",
+                getattr(data_object, "natoms", None),
+                "edge_index shape:",
+                (
+                    getattr(data_object, "edge_index", None).shape
+                    if hasattr(data_object, "edge_index")
+                    else None
+                ),
             )
         # --------- 正常流程
         data_list = self._add_missing_attr(data_list, dataset_task_map)

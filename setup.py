@@ -1,7 +1,8 @@
-import re
-from setuptools import setup, Extension, find_packages
-import os
 import importlib.util
+import os
+import re
+
+from setuptools import find_packages, setup
 
 
 def parse_requirements(filename):
@@ -17,37 +18,47 @@ def discover_package_data():
     package_data = {}
     # 扫描src/onescience下的所有子模块
     src_dir = os.path.join(os.path.dirname(__file__), "src", "onescience")
-    
+
     for root, dirs, files in os.walk(src_dir):
         if "package_config.py" in files:
             try:
                 # 构造模块路径
                 rel_path = os.path.relpath(root, src_dir)
-                module_parts = ["onescience"] + rel_path.split(os.sep) if rel_path != "." else ["onescience"]
+                module_parts = (
+                    ["onescience"] + rel_path.split(os.sep)
+                    if rel_path != "."
+                    else ["onescience"]
+                )
                 module_name = ".".join(module_parts)
-                
+
                 # 加载package_config.py
                 config_path = os.path.join(root, "package_config.py")
-                spec = importlib.util.spec_from_file_location(f"{module_name}.package_config", config_path)
+                spec = importlib.util.spec_from_file_location(
+                    f"{module_name}.package_config", config_path
+                )
                 config_module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(config_module)
-                
+
                 # 获取package_data配置
-                if hasattr(config_module, 'get_package_data'):
+                if hasattr(config_module, "get_package_data"):
                     submodule_data = config_module.get_package_data()
                     package_data.update(submodule_data)
                     print(f"✅ Discovered package config from: {module_name}")
-                    
+
             except Exception as e:
                 print(f"⚠️  Failed to load package config from {root}: {e}")
-    
+
     return package_data
 
 
-one_deps = parse_requirements("requirements.txt") # ['numpy>=1.25.0,<2.0.0', 'tqdm>=4.65.0,<5.0.0', ...]
+one_deps = parse_requirements(
+    "requirements.txt"
+)  # ['numpy>=1.25.0,<2.0.0', 'tqdm>=4.65.0,<5.0.0', ...]
 
 # {"numpy": "numpy>=1.25.0,<2.0.0",...}
-deps = {re.split(r"[=<>~!]", dep)[0]: dep for dep in one_deps}  # {'numpy': 'numpy>=1.24.0,<2.0.0', ...}
+deps = {
+    re.split(r"[=<>~!]", dep)[0]: dep for dep in one_deps
+}  # {'numpy': 'numpy>=1.24.0,<2.0.0', ...}
 
 basic_requires = [
     "numpy",
@@ -169,7 +180,10 @@ def parse_requirements_file(filename):
 
 def resolve(requires, deps_dict):
     """Convert a list of dependencies to a set of requirements."""
-    return [deps_dict[require] for require in requires] # select some values in deps_dict
+    return [
+        deps_dict[require] for require in requires
+    ]  # select some values in deps_dict
+
 
 extras = {}
 
@@ -197,7 +211,6 @@ setup(
     install_requires=list(install_requires),
     python_requires=">=3.10.0",
     zip_safe=False,
-    
     # 自动发现所有子模块的package_data配置
     package_data=discover_package_data(),
 )

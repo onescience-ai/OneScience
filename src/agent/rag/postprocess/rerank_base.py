@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 from enum import Enum
+from typing import Optional
 
 from langchain_core.documents import Document
 
@@ -8,10 +8,10 @@ from langchain_core.documents import Document
 class BaseRerankRunner(ABC):
     @abstractmethod
     def run(
-            self,
-            query: str,
-            documents: list[Document],
-            user: Optional[str],
+        self,
+        query: str,
+        documents: list[Document],
+        user: Optional[str],
     ) -> list[Document]:
         """
         Run postprocess model

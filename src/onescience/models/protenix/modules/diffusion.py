@@ -3,7 +3,11 @@ from typing import Optional, Union
 import torch
 import torch.nn as nn
 
-from onescience.models.protenix.modules.embedders import FourierEmbedding, RelativePositionEncoding
+from onescience.models.openfold.primitives import LayerNorm
+from onescience.models.protenix.modules.embedders import (
+    FourierEmbedding,
+    RelativePositionEncoding,
+)
 from onescience.models.protenix.modules.primitives import LinearNoBias, Transition
 from onescience.models.protenix.modules.transformer import (
     AtomAttentionDecoder,
@@ -11,7 +15,6 @@ from onescience.models.protenix.modules.transformer import (
     DiffusionTransformer,
 )
 from onescience.models.protenix.utils import expand_at_dim
-from onescience.models.openfold.primitives import LayerNorm
 from onescience.utils.openfold.checkpointing import get_checkpoint_fn
 
 
@@ -62,7 +65,9 @@ class DiffusionConditioning(nn.Module):
         self.fourier_embedding = FourierEmbedding(c=c_noise_embedding)
         self.layernorm_n = LayerNorm(c_noise_embedding, create_offset=False)
         self.linear_no_bias_n = LinearNoBias(
-            in_features=c_noise_embedding, out_features=self.c_s, precision=torch.float32,
+            in_features=c_noise_embedding,
+            out_features=self.c_s,
+            precision=torch.float32,
         )
         # Line10-Line12
         self.transition_s1 = Transition(c_in=self.c_s, n=2)
@@ -205,7 +210,11 @@ class DiffusionModule(nn.Module):
         c_z: int = 128,
         c_s_inputs: int = 449,
         atom_encoder: dict[str, int] = {"n_blocks": 3, "n_heads": 4},
-        transformer: dict[str, int] = {"n_blocks": 24, "n_heads": 16, "drop_path_rate": 0,},
+        transformer: dict[str, int] = {
+            "n_blocks": 24,
+            "n_heads": 16,
+            "drop_path_rate": 0,
+        },
         atom_decoder: dict[str, int] = {"n_blocks": 3, "n_heads": 4},
         drop_path_rate: float = 0.0,
         blocks_per_ckpt: Optional[int] = None,
@@ -258,7 +267,12 @@ class DiffusionModule(nn.Module):
         )
         # Alg20: line4
         self.layernorm_s = LayerNorm(c_s, create_offset=False)
-        self.linear_no_bias_s = LinearNoBias(in_features=c_s, out_features=c_token, precision=torch.float32, initializer="zeros",)
+        self.linear_no_bias_s = LinearNoBias(
+            in_features=c_s,
+            out_features=c_token,
+            precision=torch.float32,
+            initializer="zeros",
+        )
         self.diffusion_transformer = DiffusionTransformer(
             **transformer,
             c_a=c_token,

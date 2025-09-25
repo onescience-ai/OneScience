@@ -51,7 +51,9 @@ EVO2_PARAMS = [
     Param("mixer.mixer.filter.p", 0, None),  # torch.Size([1024, 16]),
     Param("mixer.mixer.filter.R", 0, None),  # torch.Size([1024, 16]),
     Param("mixer.mixer.filter.t", None, 0),  # torch.Size([1, 1, seqlen]),
-    Param("mixer.mixer.short_conv.short_conv_weight", 0, None),  # torch.Size([64, 1, 7]),
+    Param(
+        "mixer.mixer.short_conv.short_conv_weight", 0, None
+    ),  # torch.Size([64, 1, 7]),
     Param("mixer.rotary_emb.inv_freq", None, None),  # torch.Size([64])
     Param("mixer.dense.weight", 1, 0),  # torch.Size([8192, 2048]),
     Param("mixer.dense.bias", None, 0),  # torch.Size([8192])

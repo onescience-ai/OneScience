@@ -1,4 +1,5 @@
 """Common utilities for data pipeline tools."""
+
 import contextlib
 import datetime
 import logging

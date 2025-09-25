@@ -1,14 +1,16 @@
 # Code for log-gaussian radial basis function.
 
-import jax
 import math
+from typing import Union
+
+import flax.linen as nn
+import jax
 import jax.numpy as jnp
 import numpy as np
-import flax.linen as nn
-
-from typing import Optional, Union, Tuple, List
 from ml_collections import ConfigDict
+
 from ..config import Config
+
 
 class LogGaussianBasis(nn.Module):
 
@@ -29,19 +31,27 @@ class LogGaussianBasis(nn.Module):
         self.dtype = jnp.bfloat16 if self.global_config.bf16_flag else jnp.float32
 
         if self.r_max <= self.r_min:
-            raise ValueError("[utils/rbf/LogGaussianBasis] r_max should be larger than r_min.")
-        
+            raise ValueError(
+                "[utils/rbf/LogGaussianBasis] r_max should be larger than r_min."
+            )
+
         self.r_range = self.r_max - self.r_min
 
         if self.num_basis is None and self.delta is None:
-            raise TypeError('[utils/rbf/LogGaussianBasis] "num_basis" and "delta" cannot both be "None".')
+            raise TypeError(
+                '[utils/rbf/LogGaussianBasis] "num_basis" and "delta" cannot both be "None".'
+            )
         if self.num_basis is not None and self.num_basis <= 0:
-            raise ValueError('[utils/rbf/LogGaussianBasis] "num_basis" must be larger than 0.')
+            raise ValueError(
+                '[utils/rbf/LogGaussianBasis] "num_basis" must be larger than 0.'
+            )
         if self.delta is not None and self.delta <= 0:
-            raise ValueError('[utils/rbf/LogGaussianBasis] "delta" must be larger than 0.')
+            raise ValueError(
+                '[utils/rbf/LogGaussianBasis] "delta" must be larger than 0.'
+            )
 
-        self.log_rmin = np.log(self.r_min/self.r_ref)
-        self.log_rmax = np.log(self.r_max/self.r_ref)
+        self.log_rmin = np.log(self.r_min / self.r_ref)
+        self.log_rmax = np.log(self.r_max / self.r_ref)
         self.log_range = self.log_rmax - self.log_rmin
         if self.delta is None and self.num_basis is not None:
             self.offsets = jnp.linspace(self.log_rmin, self.log_rmax, self.num_basis)
@@ -50,8 +60,10 @@ class LogGaussianBasis(nn.Module):
                 _num_basis = math.ceil(self.log_range / self.delta) + 1
                 self.offsets = self.log_rmin + jnp.arange(0, _num_basis) * self.delta
             else:
-                self.offsets = self.log_rmin + jnp.arange(0, self.num_basis) * self.delta
-        
+                self.offsets = (
+                    self.log_rmin + jnp.arange(0, self.num_basis) * self.delta
+                )
+
         self.coefficient = -0.5 * jnp.reciprocal(jnp.square(self.sigma))
         self.inv_ref = jnp.reciprocal(self.r_ref)
 
@@ -67,14 +79,17 @@ class LogGaussianBasis(nn.Module):
         """
 
         # cast
-        distance, offsets, coefficient, inv_ref = \
-            jax.tree_map(self.dtype, (distance, self.offsets, self.coefficient, self.inv_ref))
+        distance, offsets, coefficient, inv_ref = jax.tree_map(
+            self.dtype, (distance, self.offsets, self.coefficient, self.inv_ref)
+        )
 
         if self.clip_distance:
             distance = jnp.clip(distance, self.r_min, self.r_max)
-        
+
         # (...,) -> (..., 1)
-        log_r = jnp.log(distance * self.inv_ref) ## Liyh: The main difference between jax and ms
+        log_r = jnp.log(
+            distance * self.inv_ref
+        )  ## Liyh: The main difference between jax and ms
         log_r = jnp.expand_dims(log_r, axis=-1)
         # (..., 1) - (..., K) -> (..., K)
         log_diff = log_r - self.offsets
@@ -82,8 +97,8 @@ class LogGaussianBasis(nn.Module):
 
         if self.rescale:
             rbf = rbf * 2.0 - 1.0
-        
+
         return rbf
-    
+
     def __str__(self):
-        return 'LogGaussianBasis<>'
+        return "LogGaussianBasis<>"

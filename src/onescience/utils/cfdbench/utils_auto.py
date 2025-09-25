@@ -1,15 +1,15 @@
 from typing import Tuple
 
+from args import Args
+from models.auto_deeponet import AutoDeepONet
+from models.auto_deeponet_cnn import AutoDeepONetCnn
+from models.auto_edeeponet import AutoEDeepONet
+from models.auto_ffn import AutoFfn
+from models.base_model import AutoCfdModel
+from models.fno.fno2d import Fno2d
+from models.loss import loss_name_to_fn
 from models.resnet import ResNet
 from models.unet import UNet
-from models.base_model import AutoCfdModel
-from models.auto_deeponet import AutoDeepONet
-from models.auto_edeeponet import AutoEDeepONet
-from models.auto_deeponet_cnn import AutoDeepONetCnn
-from models.fno.fno2d import Fno2d
-from models.auto_ffn import AutoFfn
-from models.loss import loss_name_to_fn
-from args import Args
 
 
 def get_input_shapes(args: Args) -> Tuple[int, int, int]:

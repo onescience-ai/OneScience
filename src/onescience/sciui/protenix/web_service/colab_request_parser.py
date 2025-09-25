@@ -11,14 +11,16 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 import numpy as np
+import requests
 
 import onescience.datapipes.protenix.ccd as ccd
-import requests
 from onescience.datapipes.protenix.json_to_feature import SampleDictToFeatures
-from onescience.sciui.protenix.web_service.colab_request_utils import run_mmseqs2_service
+from onescience.sciui.protenix.web_service.colab_request_utils import (
+    run_mmseqs2_service,
+)
 from onescience.sciui.protenix.web_service.dependency_url import URL
 
-#MMSEQS_SERVICE_HOST_URL = "http://101.126.11.40:80"
+# MMSEQS_SERVICE_HOST_URL = "http://101.126.11.40:80"
 MMSEQS_SERVICE_HOST_URL = os.getenv(
     "MMSEQS_SERVICE_HOST_URL", "https://protenix-server.com/api/msa"
 )
@@ -65,7 +67,9 @@ class TooLargeComplexError(Exception):
 
 
 class RequestParser(object):
-    def __init__(self, request_json_path: str, request_dir: str, email: str = "") -> None:
+    def __init__(
+        self, request_json_path: str, request_dir: str, email: str = ""
+    ) -> None:
         with open(request_json_path, "r") as f:
             self.request = json.load(f)
         self.request_dir = request_dir
@@ -196,7 +200,10 @@ class RequestParser(object):
 
     @staticmethod
     def msa_search(
-        seqs_pending_msa: Sequence[str], tmp_fasta_fpath: str, msa_res_dir: str,email: str = "",
+        seqs_pending_msa: Sequence[str],
+        tmp_fasta_fpath: str,
+        msa_res_dir: str,
+        email: str = "",
     ) -> None:
         lines = []
         for idx, seq in enumerate(seqs_pending_msa):
@@ -220,7 +227,7 @@ class RequestParser(object):
                 user_agent="colabfold/1.5.5",
                 email=email,
             )
-        except Exception as e:
+        except Exception:
             error_message = f"MMSEQS2 failed with the following error message:\n{traceback.format_exc()}"
             print(error_message)
 

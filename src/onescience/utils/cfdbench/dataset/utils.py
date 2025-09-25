@@ -1,6 +1,6 @@
 import json
-from typing import Dict
 from pathlib import Path
+from typing import Dict
 
 import matplotlib.pyplot as plt
 
@@ -13,9 +13,7 @@ def normalize_physics_props(case_params: Dict[str, float]):
     density_std = 4
     viscosity_mean = 0.00238
     viscosity_std = 0.005
-    case_params["density"] = (
-        case_params["density"] - density_mean
-    ) / density_std
+    case_params["density"] = (case_params["density"] - density_mean) / density_std
     case_params["viscosity"] = (
         case_params["viscosity"] - viscosity_mean
     ) / viscosity_std

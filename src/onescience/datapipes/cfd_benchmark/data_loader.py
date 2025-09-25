@@ -1,23 +1,22 @@
 import os
-import argparse
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-import h5py
-import scipy.io as scio
-from .shapenet_utils import get_datalist
-from .shapenet_utils import GraphDataset, GraphDataset_mgn
-from torch.utils.data import Dataset, ConcatDataset
-from onescience.utils.cfd_benchmark.normalizer import (
-    UnitTransformer,
-    UnitGaussianNormalizer,
-)
-import dgl
-import hydra
-from omegaconf import DictConfig, OmegaConf, open_dict
-from pathlib import Path
 import random
+from pathlib import Path
+
+import dgl
+import h5py
+import hydra
+import numpy as np
+import scipy.io as scio
+import torch
 import torchvision.transforms.functional as TF
+from torch.utils.data import ConcatDataset, Dataset
+
+from onescience.utils.cfd_benchmark.normalizer import (
+    UnitGaussianNormalizer,
+    UnitTransformer,
+)
+
+from .shapenet_utils import GraphDataset, GraphDataset_mgn, get_datalist
 
 
 class plas(object):
@@ -1113,7 +1112,6 @@ class HDF5Dataset(Dataset):
         this is ONLY DONE WHEN THE FILENAME INCLUDES Twall-
         """
         filename = Path(filename).stem
-        wall_temp = None
         TWALL = "Twall-"
         if TWALL in filename:
             self._data["temp"] *= int(filename[len(TWALL) :])

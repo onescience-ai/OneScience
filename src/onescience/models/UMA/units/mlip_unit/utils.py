@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -13,7 +11,9 @@ from omegaconf import DictConfig
 from onescience.models.UMA.common.utils import load_state_dict, match_state_dict
 
 if TYPE_CHECKING:
-    from onescience.models.UMA.units.mlip_unit.api.inference import MLIPInferenceCheckpoint
+    from onescience.models.UMA.units.mlip_unit.api.inference import (
+        MLIPInferenceCheckpoint,
+    )
 
 
 def load_inference_model(

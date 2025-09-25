@@ -1,4 +1,3 @@
-
 # Radial basis and cutoff
 
 

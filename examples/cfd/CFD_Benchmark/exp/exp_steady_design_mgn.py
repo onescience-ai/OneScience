@@ -1,13 +1,14 @@
 import os
 import time
+
+import numpy as np
+import scipy as sc
 import torch
 import torch.nn as nn
 from exp.exp_basic import Exp_Basic
-import matplotlib.pyplot as plt
-from onescience.utils.cfd_benchmark.drag_coefficient import cal_coefficient
-import numpy as np
-import scipy as sc
+
 from onescience.memory.checkpoint import replace_function
+from onescience.utils.cfd_benchmark.drag_coefficient import cal_coefficient
 
 
 class Exp_Steady_Design(Exp_Basic):
@@ -264,10 +265,10 @@ class Exp_Steady_Design(Exp_Basic):
 
                 # 获取图中节点数和边数用于分割样本
                 batch_num_nodes = graphs.batch_num_nodes()
-                batch_num_edges = graphs.batch_num_edges()
+                graphs.batch_num_edges()
 
                 # 分割批量数据为单个样本
-                node_splits = torch.split(node_features, batch_num_nodes.tolist())
+                torch.split(node_features, batch_num_nodes.tolist())
                 out_splits = torch.split(out, batch_num_nodes.tolist())
                 label_splits = torch.split(labels, batch_num_nodes.tolist())
                 surf_mask_splits = torch.split(surf_mask, batch_num_nodes.tolist())

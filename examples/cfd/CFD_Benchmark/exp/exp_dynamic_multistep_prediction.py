@@ -1,12 +1,11 @@
 import os
+
 import torch
-from exp.exp_basic import Exp_Basic
-from onescience.utils.cfd_benchmark.loss import L2Loss, LpLoss
-import matplotlib.pyplot as plt
-from onescience.utils.cfd_benchmark.visual import vis_bubble_temp
-import numpy as np
-from onescience.memory.checkpoint import replace_function
 import torch.nn.functional as F
+from exp.exp_basic import Exp_Basic
+
+from onescience.utils.cfd_benchmark.loss import L2Loss, LpLoss
+from onescience.utils.cfd_benchmark.visual import vis_bubble_temp
 
 
 class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
@@ -121,9 +120,9 @@ class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
                     layer.strip() for layer in self.args.checkpoint_layers.split(",")
                 ]
             else:
-                checkpoint_layers = []
+                pass
         else:
-            checkpoint_layers = []
+            pass
         # myloss = L2Loss(size_average=False)
         start_epoch = getattr(self, "start_epoch", 0)  # 若没resume则为0
         for ep in range(start_epoch, self.args.epochs):

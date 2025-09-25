@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import argparse
@@ -10,7 +8,9 @@ from fairchem.experimental.legacy.utils import load_config
 
 from onescience.models.UMA.common.registry import registry
 from onescience.models.UMA.modules.normalization._load_utils import save_checkpoint
-from onescience.models.UMA.modules.normalization.element_references import fit_linear_references
+from onescience.models.UMA.modules.normalization.element_references import (
+    fit_linear_references,
+)
 
 
 def fit_linref(config: dict, output_path: str | Path) -> None:

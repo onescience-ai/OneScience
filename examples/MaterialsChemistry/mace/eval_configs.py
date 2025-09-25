@@ -1,7 +1,7 @@
 # Script for evaluating configurations contained in an xyz file with a trained model
 
-import time
 import argparse
+import time
 
 import ase.io
 import numpy as np
@@ -125,7 +125,7 @@ def run(args: argparse.Namespace) -> None:
             torch.cuda.synchronize()
         end = time.time()
 
-        total_time += (end - start)
+        total_time += end - start
         num_batches += 1
 
         energies_list.append(torch_tools.to_numpy(output["energy"]))

@@ -1,33 +1,27 @@
-import os
 import logging
+import os
 
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 os.environ["QWEN_AGENT_MAX_LLM_CALL_PER_RUN"] = "1"
 
-import re
 import json
-import torch
-from openai import OpenAI
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from langchain_huggingface import HuggingFacePipeline, ChatHuggingFace
-from typing import Any, Optional, List, Union, Callable
-from langchain_core.runnables import Runnable
-from langchain_core.messages import BaseMessage, AIMessage
-from langchain_core.runnables.config import RunnableConfig
-from langchain_core.prompts import BasePromptTemplate
-from langchain_core.prompt_values import PromptValue
-from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
-from langchain_core.utils.function_calling import (
-    convert_to_json_schema,
-    convert_to_openai_tool,
-)
-from langchain_core.language_models.base import (
-    LanguageModelInput,
-)
-from langchain_core.tools import BaseTool
-from langchain_core.messages.tool import ToolCall
+import re
 from collections.abc import Sequence
+from typing import Any, Callable, Optional, Union
+
+import torch
+from langchain_core.language_models.base import LanguageModelInput
+from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
+from langchain_core.messages.tool import ToolCall
+from langchain_core.prompt_values import PromptValue
+from langchain_core.runnables import Runnable
+from langchain_core.runnables.config import RunnableConfig
+from langchain_core.tools import BaseTool
+from langchain_core.utils.function_calling import convert_to_openai_tool
+from langchain_huggingface import ChatHuggingFace, HuggingFacePipeline
+from openai import OpenAI
 from qwen_agent.agents import Assistant
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -225,6 +219,7 @@ class HttpQwen3(Runnable):
                 for tool_call in completion.choices[0].message.tool_calls
             ]
         return ai_message
+
 
 class LocalQwen3(Runnable):
     _FACTORY_NAME = "LocalQwen3"
@@ -452,8 +447,8 @@ class HuggingfaceLLM:
 
 
 if __name__ == "__main__":
-    from agent.llm import ChatModel
     from agent.agent.unit.tool_manager import get_tools
+    from agent.llm import ChatModel
 
     tools = get_tools()
     llm = ChatModel["HuggingfaceLLM"](

@@ -1,13 +1,16 @@
+import random
+
 import torch
 import torch.nn as nn
-import random
 from DBlock import DBlock, DBlockDown, DBlockDownFirst
 from spectralNormalization import SpectralNorm
 from utils import space_to_depth
 
 
 class SpaDiscriminator(nn.Module):
-    def __init__(self, ):
+    def __init__(
+        self,
+    ):
         super(SpaDiscriminator, self).__init__()
         self.DBlockDown_1 = DBlockDownFirst(4, 48)
         self.DBlockDown_2 = DBlockDown(48, 96)
@@ -24,7 +27,7 @@ class SpaDiscriminator(nn.Module):
 
         T_H = random.sample(range(0, 128), 1)
         T_W = random.sample(range(0, 128), 1)
-        x = x[:, :, T_H[0]:T_H[0] + 128, T_W[0]:T_W[0] + 128]
+        x = x[:, :, T_H[0] : T_H[0] + 128, T_W[0] : T_W[0] + 128]
 
         for i in range(x.shape[1]):
             x_temp = x[:, i]
@@ -53,10 +56,9 @@ class SpaDiscriminator(nn.Module):
 
 
 if __name__ == "__main__":
-    pass
-    X_SpaDri = torch.randn((20,8,256,256))
+    X_SpaDri = torch.randn((20, 8, 256, 256))
     spaDri = SpaDiscriminator()
     outSpaDri = spaDri(X_SpaDri)
     outSpaDri = torch.squeeze(outSpaDri)
-    print('outSpaDri.shape', outSpaDri.shape)
-    print('SpaDiscriminator ok')
+    print("outSpaDri.shape", outSpaDri.shape)
+    print("SpaDiscriminator ok")

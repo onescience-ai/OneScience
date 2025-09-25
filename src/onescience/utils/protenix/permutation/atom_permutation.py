@@ -1,4 +1,3 @@
-
 import torch
 
 from onescience.metrics.protenix.rmsd import rmsd, self_aligned_rmsd

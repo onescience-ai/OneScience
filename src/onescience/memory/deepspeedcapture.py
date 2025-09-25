@@ -7,8 +7,6 @@
 @date: 2025-01-16
 """
 
-
-
 import functools
 import logging
 import os
@@ -64,11 +62,11 @@ class _StaticCapture(object):
         self.logger = logger if logger else self.logger
         # Checkpoint label (used for gradscaler)
         self.label = label if label else f"scaler_{len(self.amp_scalers.keys())}"
-        #import pdb;pdb.set_trace()
+        # import pdb;pdb.set_trace()
 
-        #这里需要标注ds模型
+        # 这里需要标注ds模型
         self.ds_model = model
-        
+
         # DDP fix
         if not isinstance(model, onescience.models.Module) and hasattr(model, "module"):
             model = model.module
@@ -161,14 +159,14 @@ class _StaticCapture(object):
                 if self.cuda_graphs_enabled:
                     self._cuda_graph_forward(*args, **kwds)
                 else:
-                    #这个步骤在deepspeed的optimizer的step方法中已经实现，当兼容ds的时候不需要在梯度清零
-                    #self._zero_grads()
+                    # 这个步骤在deepspeed的optimizer的step方法中已经实现，当兼容ds的时候不需要在梯度清零
+                    # self._zero_grads()
                     self.output = self._amp_forward(*args, **kwds)
 
                 if not self.eval:
                     # Update model parameters
-                    #self.scaler.step(self.optim)
-                    #self.scaler.update()
+                    # self.scaler.step(self.optim)
+                    # self.scaler.update()
                     self.ds_model.step()
 
             return self.output
@@ -246,17 +244,17 @@ class _StaticCapture(object):
         Any
             Output of neural network forward
         """
-        
+
         # ds use amp and autocast
         output = self.function(*args, **kwargs)
 
         if not self.eval:
             # In training mode output should be the loss
-            #self.scaler.scale(output).backward()
-            
-            #deepspeed way to backward
+            # self.scaler.scale(output).backward()
+
+            # deepspeed way to backward
             self.ds_model.backward(output)
-            #if self.gradient_clip_norm is not None:
+            # if self.gradient_clip_norm is not None:
             #    self.scaler.unscale_(self.optim)
             #    torch.nn.utils.clip_grad_norm_(
             #        self.model.parameters(), self.gradient_clip_norm
@@ -410,7 +408,6 @@ class StaticCaptureTraining(_StaticCapture):
 
 
 class StaticCaptureEvaluateNoGrad(_StaticCapture):
-
     """An performance optimization decorator for PyTorch no grad evaluation.
 
     This class should be initialized as a decorator on a function that computes run the

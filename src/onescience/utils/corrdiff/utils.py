@@ -57,7 +57,6 @@ def diffusion_step(  # TODO generalize the module and add defaults
     device: torch.device,
     hr_mean: torch.Tensor = None,
 ) -> torch.Tensor:
-
     """
     Generate images using diffusion techniques as described in the relevant paper.
 

@@ -1,30 +1,29 @@
-from pathlib import Path
-from shutil import copyfile
-from typing import Any, Dict
 import time
+from pathlib import Path
+from typing import Any, Dict
 
-from torch.utils.data import DataLoader
 import numpy as np
 import torch
+from args import Args
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Adam, lr_scheduler
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
-from onescience.utils.cfdbench.dataset import get_dataset, CfdDataset
+from onescience.distributed.manager import DistributedManager
 from onescience.models.cfdbench.base_model import CfdModel
 from onescience.models.cfdbench.deeponet import DeepONet
 from onescience.models.cfdbench.ffn import FfnModel
 from onescience.models.cfdbench.loss import loss_name_to_fn
-from onescience.distributed.manager import DistributedManager
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data.distributed import DistributedSampler
+from onescience.utils.cfdbench.dataset import CfdDataset, get_dataset
 from onescience.utils.cfdbench.utils import (
     dump_json,
-    plot_loss,
     get_output_dir,
     load_best_ckpt,
+    plot_loss,
     plot_predictions,
 )
-from args import Args
 
 
 def collate_fn(batch: list):
@@ -51,7 +50,7 @@ def evaluate(
     dist = DistributedManager()
     if dist.world_size > 1 and dist.rank != 0:
         return {"scores": {}, "preds": []}
-    
+
     # Unwrap DDP model if necessary
     model_eval = model.module if hasattr(model, "module") else model
     model_eval.eval()
@@ -138,7 +137,7 @@ def test(
     dist = DistributedManager()
     if dist.world_size > 1 and dist.rank != 0:
         return
-    
+
     assert plot_interval > 0
     if dist.rank == 0:
         output_dir.mkdir(exist_ok=True, parents=True)
@@ -176,7 +175,7 @@ def train(
     measure_time: bool = False,
 ):
     dist = DistributedManager()
-    
+
     # Create distributed sampler and data loader
     sampler = DistributedSampler(train_data) if dist.world_size > 1 else None
     loader = DataLoader(
@@ -186,7 +185,7 @@ def train(
         sampler=sampler,
         shuffle=(sampler is None),
     )
-    
+
     if dist.rank == 0:
         output_dir.mkdir(exist_ok=True, parents=True)
         print("==== Training ====")
@@ -199,9 +198,7 @@ def train(
         print(f"# GPUs: {dist.world_size}")
 
     optimizer = Adam(model.parameters(), lr=lr)
-    scheduler = lr_scheduler.StepLR(
-        optimizer, step_size=lr_step_size, gamma=lr_gamma
-    )
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
 
     start_time = time.time()
     global_step = 0
@@ -213,7 +210,7 @@ def train(
         ep_start_time = time.time()
         ep_train_losses = []
         model.train()
-        
+
         for step, batch in enumerate(loader):
             # Forward
             outputs = model(**batch)
@@ -228,7 +225,7 @@ def train(
             # Log
             ep_train_losses.append(loss.item())
             global_step += 1
-            
+
             # Only log from rank 0
             if dist.rank == 0 and global_step % log_interval == 0 and not measure_time:
                 avg_loss = np.mean(ep_train_losses[-log_interval:])
@@ -278,7 +275,7 @@ def train(
         # All processes wait for evaluation to finish
         if dist.world_size > 1:
             torch.distributed.barrier()
-        
+
         all_train_losses.append(ep_train_losses)
 
     # Only save from rank 0
@@ -313,9 +310,7 @@ def init_model(args: Args) -> CfdModel:
         )
     elif args.model == "ffn":
         widths = (
-            [n_case_params + query_coord_dim]
-            + [args.ffn_width] * args.ffn_depth
-            + [1]
+            [n_case_params + query_coord_dim] + [args.ffn_width] * args.ffn_depth + [1]
         )
         model = FfnModel(
             widths=widths,
@@ -323,7 +318,7 @@ def init_model(args: Args) -> CfdModel:
         )
     else:
         raise ValueError(f"Invalid model name: {args.model}")
-    num_params = sum(p.numel() for p in model.parameters())
+    sum(p.numel() for p in model.parameters())
     return model
 
 
@@ -332,7 +327,7 @@ def main():
     DistributedManager.initialize()
     dist = DistributedManager()
     print(f"Initialized process group: rank {dist.rank}, world size {dist.world_size}")
-    
+
     args = Args().parse_args()
     if dist.rank == 0:
         print(args)
@@ -363,7 +358,7 @@ def main():
         print("Loading model")
     model = init_model(args)
     model = model.to(dist.device)
-    
+
     # Wrap model with DDP for training
     if "train" in args.mode and dist.world_size > 1:
         model = DDP(model, device_ids=[dist.device])

@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from onescience.models.openfold.primitives import LayerNorm
 from onescience.models.protenix.modules.primitives import (
     AdaptiveLayerNorm,
     Attention,
@@ -19,7 +20,6 @@ from onescience.models.protenix.utils import (
     broadcast_token_to_atom,
     permute_final_dims,
 )
-from onescience.models.openfold.primitives import LayerNorm
 from onescience.utils.openfold.checkpointing import checkpoint_blocks
 
 
@@ -542,8 +542,12 @@ class ConditionedTransitionBlock(nn.Module):
         self.c_s = c_s
         self.n = n
         self.adaln = AdaptiveLayerNorm(c_a=c_a, c_s=c_s)
-        self.linear_nobias_a1 = LinearNoBias(in_features=c_a, out_features=n * c_a, initializer="relu")
-        self.linear_nobias_a2 = LinearNoBias(in_features=c_a, out_features=n * c_a, initializer="relu")
+        self.linear_nobias_a1 = LinearNoBias(
+            in_features=c_a, out_features=n * c_a, initializer="relu"
+        )
+        self.linear_nobias_a2 = LinearNoBias(
+            in_features=c_a, out_features=n * c_a, initializer="relu"
+        )
         self.linear_nobias_b = LinearNoBias(in_features=n * c_a, out_features=c_a)
         self.linear_s = BiasInitLinear(
             in_features=c_s, out_features=c_a, bias=True, biasinit=biasinit
@@ -668,11 +672,23 @@ class AtomAttentionEncoder(nn.Module):
         )
         self.small_mlp = nn.Sequential(
             nn.ReLU(),
-            LinearNoBias(in_features=self.c_atompair, out_features=self.c_atompair, initializer="relu",),
+            LinearNoBias(
+                in_features=self.c_atompair,
+                out_features=self.c_atompair,
+                initializer="relu",
+            ),
             nn.ReLU(),
-            LinearNoBias(in_features=self.c_atompair, out_features=self.c_atompair, initializer="relu",),
+            LinearNoBias(
+                in_features=self.c_atompair,
+                out_features=self.c_atompair,
+                initializer="relu",
+            ),
             nn.ReLU(),
-            LinearNoBias(in_features=self.c_atompair, out_features=self.c_atompair, initializer="zeros",),
+            LinearNoBias(
+                in_features=self.c_atompair,
+                out_features=self.c_atompair,
+                initializer="zeros",
+            ),
         )
         self.atom_transformer = AtomTransformer(
             n_blocks=n_blocks,
@@ -798,9 +814,7 @@ class AtomAttentionEncoder(nn.Module):
                 self.linear_no_bias_invd(1 / (1 + (d_lm**2).sum(dim=-1, keepdim=True)))
                 * v_lm
             )
-            p_lm += self.linear_no_bias_v(
-                v_lm.to(dtype=p_lm.dtype)
-            )
+            p_lm += self.linear_no_bias_v(v_lm.to(dtype=p_lm.dtype))
         else:
             p_lm = (
                 p_lm
@@ -809,17 +823,14 @@ class AtomAttentionEncoder(nn.Module):
                 )
                 * v_lm
             )
-            p_lm = p_lm + self.linear_no_bias_v(
-                v_lm.to(dtype=p_lm.dtype)
-            )
+            p_lm = p_lm + self.linear_no_bias_v(v_lm.to(dtype=p_lm.dtype))
 
         # Line7: Initialise the atom single representation as the single conditioning
-
 
         # If provided, add trunk embeddings and noisy positions
         n_token = None
         if r_l is not None:
-            N_sample = r_l.size(-3)
+            r_l.size(-3)
 
             # Broadcast the single and pair embedding from the trunk
             n_token = s.size(-2)

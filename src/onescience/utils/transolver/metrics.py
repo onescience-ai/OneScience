@@ -1,24 +1,22 @@
+import json
 import os.path as osp
 import pathlib
+import random
+import time
 
 import numpy as np
+import pyvista as pv
 import scipy as sc
+import seaborn as sns
 import torch
 import torch.nn as nn
 import torch_geometric.nn as nng
 from torch_geometric.loader import DataLoader
-
-import pyvista as pv
-import json
-import seaborn as sns
-import random
-import time
+from tqdm import tqdm
 
 import onescience.utils.transolver.metrics_NACA as metrics_NACA
-from onescience.utils.transolver.reorganize import reorganize
 from onescience.datapipes.transolver.dataset import get_airfoildatalist
-
-from tqdm import tqdm
+from onescience.utils.transolver.reorganize import reorganize
 
 NU = np.array(1.56e-5)
 
@@ -31,14 +29,14 @@ class NumpyEncoder(json.JSONEncoder):
 
 
 def rsquared(predict, true):
-    '''
+    """
     Args:
         predict (tensor): Predicted values, shape (N, *)
         true (tensor): True values, shape (N, *)
 
     Out:
         rsquared (tensor): Coefficient of determination of the prediction, shape (*,)
-    '''
+    """
     mean = true.mean(dim=0)
     return 1 - ((true - predict) ** 2).sum(dim=0) / ((true - mean) ** 2).sum(dim=0)
 
@@ -48,7 +46,7 @@ def rel_err(a, b):
 
 
 def WallShearStress(Jacob_U, normals):
-    S = .5 * (Jacob_U + Jacob_U.transpose(0, 2, 1))
+    S = 0.5 * (Jacob_U + Jacob_U.transpose(0, 2, 1))
     S = S - S.trace(axis1=1, axis2=2).reshape(-1, 1, 1) * np.eye(2)[None] / 3
     ShearStress = 2 * NU.reshape(-1, 1, 1) * S
     ShearStress = (ShearStress * normals[:, :2].reshape(-1, 1, 2)).sum(axis=2)
@@ -67,7 +65,7 @@ def Infer_test(device, models, hparams, data, coef_norm=None):
     while cond:
         i += 1
         data_sampled = data.clone()
-        idx = random.sample(range(data_sampled.x.size(0)), hparams[0]['subsampling'])
+        idx = random.sample(range(data_sampled.x.size(0)), hparams[0]["subsampling"])
         idx = torch.tensor(idx)
         idx_points = idx_points - set(map(tuple, data_sampled.pos[idx, :2].numpy()))
         data_sampled.pos = data_sampled.pos[idx]
@@ -80,8 +78,12 @@ def Infer_test(device, models, hparams, data, coef_norm=None):
         tim = np.zeros(len(models))
         for n, model in enumerate(models):
             try:
-                data_sampled.edge_index = nng.radius_graph(x=data_sampled.pos.to(device), r=hparams[n]['r'], loop=True,
-                                                           max_num_neighbors=int(hparams[n]['max_neighbors'])).cpu()
+                data_sampled.edge_index = nng.radius_graph(
+                    x=data_sampled.pos.to(device),
+                    r=hparams[n]["r"],
+                    loop=True,
+                    max_num_neighbors=int(hparams[n]["max_neighbors"]),
+                ).cpu()
             except KeyError:
                 data_sampled.edge_index = None
 
@@ -95,15 +97,21 @@ def Infer_test(device, models, hparams, data, coef_norm=None):
             outs[n] = outs[n] + out[n]
         n_out[idx] = n_out[idx] + torch.ones_like(n_out[idx])
 
-        cond = (len(idx_points) > 0)
+        cond = len(idx_points) > 0
 
     for n, out in enumerate(outs):
         outs[n] = out / n_out
         if coef_norm is not None:
-            outs[n][data.surf, :2] = -torch.tensor(coef_norm[2][None, :2]) * torch.ones_like(out[data.surf, :2]) / (
-                    torch.tensor(coef_norm[3][None, :2]) + 1e-8)
-            outs[n][data.surf, 3] = -torch.tensor(coef_norm[2][3]) * torch.ones_like(out[data.surf, 3]) / (
-                    torch.tensor(coef_norm[3][3]) + 1e-8)
+            outs[n][data.surf, :2] = (
+                -torch.tensor(coef_norm[2][None, :2])
+                * torch.ones_like(out[data.surf, :2])
+                / (torch.tensor(coef_norm[3][None, :2]) + 1e-8)
+            )
+            outs[n][data.surf, 3] = (
+                -torch.tensor(coef_norm[2][3])
+                * torch.ones_like(out[data.surf, 3])
+                / (torch.tensor(coef_norm[3][3]) + 1e-8)
+            )
         else:
             outs[n][data.surf, :2] = torch.zeros_like(out[data.surf, :2])
             outs[n][data.surf, 3] = torch.zeros_like(out[data.surf, 3])
@@ -126,13 +134,13 @@ def Airfoil_test(internal, airfoil, outs, coef_norm, bool_surf):
         out = (out * (coef_norm[3] + 1e-8) + coef_norm[2]).numpy()
         out[bool_surf.numpy(), :2] = np.zeros_like(out[bool_surf.numpy(), :2])
         out[bool_surf.numpy(), 3] = np.zeros_like(out[bool_surf.numpy(), 3])
-        intern.point_data['U'][:, :2] = out[:, :2]
-        intern.point_data['p'] = out[:, 2]
-        intern.point_data['nut'] = out[:, 3]
+        intern.point_data["U"][:, :2] = out[:, :2]
+        intern.point_data["p"] = out[:, 2]
+        intern.point_data["nut"] = out[:, 3]
 
-        surf_p = intern.point_data['p'][bool_surf]
+        surf_p = intern.point_data["p"][bool_surf]
         surf_p = reorganize(point_mesh, point_surf, surf_p)
-        aerofoil.point_data['p'] = surf_p
+        aerofoil.point_data["p"] = surf_p
 
         intern = intern.ptc(pass_point_data=True)
         aerofoil = aerofoil.ptc(pass_point_data=True)
@@ -147,43 +155,43 @@ def Airfoil_mean(internals, airfoils):
     # Average multiple prediction over one simulation
 
     oi_point = np.zeros((internals[0].points.shape[0], 4))
-    oi_cell = np.zeros((internals[0].cell_data['U'].shape[0], 4))
+    oi_cell = np.zeros((internals[0].cell_data["U"].shape[0], 4))
     oa_point = np.zeros((airfoils[0].points.shape[0], 4))
-    oa_cell = np.zeros((airfoils[0].cell_data['U'].shape[0], 4))
+    oa_cell = np.zeros((airfoils[0].cell_data["U"].shape[0], 4))
 
     for k in range(len(internals)):
-        oi_point[:, :2] += internals[k].point_data['U'][:, :2]
-        oi_point[:, 2] += internals[k].point_data['p']
-        oi_point[:, 3] += internals[k].point_data['nut']
-        oi_cell[:, :2] += internals[k].cell_data['U'][:, :2]
-        oi_cell[:, 2] += internals[k].cell_data['p']
-        oi_cell[:, 3] += internals[k].cell_data['nut']
+        oi_point[:, :2] += internals[k].point_data["U"][:, :2]
+        oi_point[:, 2] += internals[k].point_data["p"]
+        oi_point[:, 3] += internals[k].point_data["nut"]
+        oi_cell[:, :2] += internals[k].cell_data["U"][:, :2]
+        oi_cell[:, 2] += internals[k].cell_data["p"]
+        oi_cell[:, 3] += internals[k].cell_data["nut"]
 
-        oa_point[:, :2] += airfoils[k].point_data['U'][:, :2]
-        oa_point[:, 2] += airfoils[k].point_data['p']
-        oa_point[:, 3] += airfoils[k].point_data['nut']
-        oa_cell[:, :2] += airfoils[k].cell_data['U'][:, :2]
-        oa_cell[:, 2] += airfoils[k].cell_data['p']
-        oa_cell[:, 3] += airfoils[k].cell_data['nut']
+        oa_point[:, :2] += airfoils[k].point_data["U"][:, :2]
+        oa_point[:, 2] += airfoils[k].point_data["p"]
+        oa_point[:, 3] += airfoils[k].point_data["nut"]
+        oa_cell[:, :2] += airfoils[k].cell_data["U"][:, :2]
+        oa_cell[:, 2] += airfoils[k].cell_data["p"]
+        oa_cell[:, 3] += airfoils[k].cell_data["nut"]
     oi_point = oi_point / len(internals)
     oi_cell = oi_cell / len(internals)
     oa_point = oa_point / len(airfoils)
     oa_cell = oa_cell / len(airfoils)
     internal_mean = internals[0].copy()
-    internal_mean.point_data['U'][:, :2] = oi_point[:, :2]
-    internal_mean.point_data['p'] = oi_point[:, 2]
-    internal_mean.point_data['nut'] = oi_point[:, 3]
-    internal_mean.cell_data['U'][:, :2] = oi_cell[:, :2]
-    internal_mean.cell_data['p'] = oi_cell[:, 2]
-    internal_mean.cell_data['nut'] = oi_cell[:, 3]
+    internal_mean.point_data["U"][:, :2] = oi_point[:, :2]
+    internal_mean.point_data["p"] = oi_point[:, 2]
+    internal_mean.point_data["nut"] = oi_point[:, 3]
+    internal_mean.cell_data["U"][:, :2] = oi_cell[:, :2]
+    internal_mean.cell_data["p"] = oi_cell[:, 2]
+    internal_mean.cell_data["nut"] = oi_cell[:, 3]
 
     airfoil_mean = airfoils[0].copy()
-    airfoil_mean.point_data['U'][:, :2] = oa_point[:, :2]
-    airfoil_mean.point_data['p'] = oa_point[:, 2]
-    airfoil_mean.point_data['nut'] = oa_point[:, 3]
-    airfoil_mean.cell_data['U'][:, :2] = oa_cell[:, :2]
-    airfoil_mean.cell_data['p'] = oa_cell[:, 2]
-    airfoil_mean.cell_data['nut'] = oa_cell[:, 3]
+    airfoil_mean.point_data["U"][:, :2] = oa_point[:, :2]
+    airfoil_mean.point_data["p"] = oa_point[:, 2]
+    airfoil_mean.point_data["nut"] = oa_point[:, 3]
+    airfoil_mean.cell_data["U"][:, :2] = oa_cell[:, :2]
+    airfoil_mean.cell_data["p"] = oa_cell[:, 2]
+    airfoil_mean.cell_data["nut"] = oa_cell[:, 3]
 
     return internal_mean, airfoil_mean
 
@@ -203,31 +211,38 @@ def Compute_coefficients(internals, airfoils, bool_surf, Uinf, angle, keep_vtk=F
         point_mesh = intern.points[bool_surf, :2]
         point_surf = aerofoil.points[:, :2]
 
-        intern = intern.compute_derivative(scalars='U', gradient='pred_grad')
+        intern = intern.compute_derivative(scalars="U", gradient="pred_grad")
 
-        surf_grad = intern.point_data['pred_grad'].reshape(-1, 3, 3)[bool_surf, :2, :2]
-        surf_p = intern.point_data['p'][bool_surf]
+        surf_grad = intern.point_data["pred_grad"].reshape(-1, 3, 3)[bool_surf, :2, :2]
+        surf_p = intern.point_data["p"][bool_surf]
 
         surf_grad = reorganize(point_mesh, point_surf, surf_grad)
         surf_p = reorganize(point_mesh, point_surf, surf_p)
 
-        Wss_pred = WallShearStress(surf_grad, -aerofoil.point_data['Normals'])
-        aerofoil.point_data['wallShearStress'] = Wss_pred
-        aerofoil.point_data['p'] = surf_p
+        Wss_pred = WallShearStress(surf_grad, -aerofoil.point_data["Normals"])
+        aerofoil.point_data["wallShearStress"] = Wss_pred
+        aerofoil.point_data["p"] = surf_p
 
         intern = intern.ptc(pass_point_data=True)
         aerofoil = aerofoil.ptc(pass_point_data=True)
 
-        WP_int = -aerofoil.cell_data['p'][:, None] * aerofoil.cell_data['Normals'][:, :2]
+        WP_int = (
+            -aerofoil.cell_data["p"][:, None] * aerofoil.cell_data["Normals"][:, :2]
+        )
 
-        Wss_int = (aerofoil.cell_data['wallShearStress'] * aerofoil.cell_data['Length'].reshape(-1, 1)).sum(axis=0)
-        WP_int = (WP_int * aerofoil.cell_data['Length'].reshape(-1, 1)).sum(axis=0)
+        Wss_int = (
+            aerofoil.cell_data["wallShearStress"]
+            * aerofoil.cell_data["Length"].reshape(-1, 1)
+        ).sum(axis=0)
+        WP_int = (WP_int * aerofoil.cell_data["Length"].reshape(-1, 1)).sum(axis=0)
         force = Wss_int - WP_int
 
         alpha = angle * np.pi / 180
-        basis = np.array([[np.cos(alpha), np.sin(alpha)], [-np.sin(alpha), np.cos(alpha)]])
+        basis = np.array(
+            [[np.cos(alpha), np.sin(alpha)], [-np.sin(alpha), np.cos(alpha)]]
+        )
         force_rot = basis @ force
-        coef = 2 * force_rot / Uinf ** 2
+        coef = 2 * force_rot / Uinf**2
         coefs.append(coef)
         if keep_vtk:
             new_internals.append(intern)
@@ -239,9 +254,19 @@ def Compute_coefficients(internals, airfoils, bool_surf, Uinf, angle, keep_vtk=F
         return coefs
 
 
-def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3, criterion='MSE',
-                 x_bl=[.2, .4, .6, .8], s='full_test'):
-    '''
+def Results_test(
+    device,
+    models,
+    hparams,
+    coef_norm,
+    path_in,
+    path_out,
+    n_test=3,
+    criterion="MSE",
+    x_bl=[0.2, 0.4, 0.6, 0.8],
+    s="full_test",
+):
+    """
     Compute criterion scores for the fields over the volume and the surface, and for the force coefficients. Also compute Spearman's correlation scores
     for the force coefficients and the relative error for the wall shear stress and the pressure over the airfoil. Outputs the true, the mean predicted
     and the std predicted integrated force coefficients, the true and mean predicted local force coefficients (at the surface of airfoils) and the true
@@ -259,38 +284,42 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
         criterion(str, optional): Criterion for the fields scores. Choose between MSE and MAE. Default: ``"MSE"``
         x_bl (list, optional): List of chord where the extract boundary layer prediction will be extracted. Default: ``[.2, .4, .6, .8]``
         s (str, optional): Dataset in which the simulation names are going to be sampled. Default: ``"full_test"``
-    '''
+    """
     # Compute scores and all metrics for a
     sns.set()
     pathlib.Path(path_out).mkdir(parents=True, exist_ok=True)
 
-    with open(osp.join(path_in, 'manifest.json'), 'r') as f:
+    with open(osp.join(path_in, "manifest.json"), "r") as f:
         manifest = json.load(f)
 
     test_dataset = manifest[s]
-    idx = random.sample(range(len(test_dataset)), k=n_test) #随机选取n_test个样本进行可视化
+    idx = random.sample(
+        range(len(test_dataset)), k=n_test
+    )  # 随机选取n_test个样本进行可视化
     idx.sort()
 
-    test_dataset_vtk = get_airfoildatalist(test_dataset, sample=None, coef_norm=coef_norm, data_path=path_in)
+    test_dataset_vtk = get_airfoildatalist(
+        test_dataset, sample=None, coef_norm=coef_norm, data_path=path_in
+    )
     test_loader = DataLoader(test_dataset_vtk, shuffle=False)
 
-    if criterion == 'MSE':
-        criterion = nn.MSELoss(reduction='none')
-    elif criterion == 'MAE':
-        criterion = nn.L1Loss(reduction='none')
+    if criterion == "MSE":
+        criterion = nn.MSELoss(reduction="none")
+    elif criterion == "MAE":
+        criterion = nn.L1Loss(reduction="none")
 
-    scores_vol = [] #体积内场变量误差
-    scores_surf = [] #表面场变量误差
-    scores_force = [] #力学系数误差（如升力、阻力）
-    scores_p = [] #压力误差
-    scores_wss = [] #壁面剪切应力误差
-    internals = []  #预测的内场（VTK格式）
-    airfoils = []  #预测的和翼型数据
-    true_internals = [] #真实内场
-    true_airfoils = [] #真实翼型数据
-    times = [] #推理时间
-    true_coefs = [] #真实力学系数
-    pred_coefs = [] #预测力学系数
+    scores_vol = []  # 体积内场变量误差
+    scores_surf = []  # 表面场变量误差
+    scores_force = []  # 力学系数误差（如升力、阻力）
+    scores_p = []  # 压力误差
+    scores_wss = []  # 壁面剪切应力误差
+    internals = []  # 预测的内场（VTK格式）
+    airfoils = []  # 预测的和翼型数据
+    true_internals = []  # 真实内场
+    true_airfoils = []  # 真实翼型数据
+    times = []  # 推理时间
+    true_coefs = []  # 真实力学系数
+    pred_coefs = []  # 预测力学系数
     for i in range(len(models[0])):
         model = [models[n][i] for n in range(len(models))]
         avg_loss_per_var = np.zeros((len(model), 4))
@@ -307,16 +336,27 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
         pred_coef = []
 
         for j, data in enumerate(tqdm(test_loader)):
-            Uinf, angle = float(test_dataset[j].split('_')[2]), float(test_dataset[j].split('_')[3])
+            Uinf, angle = float(test_dataset[j].split("_")[2]), float(
+                test_dataset[j].split("_")[3]
+            )
             outs, tim = Infer_test(device, model, hparams, data, coef_norm=coef_norm)
             times.append(tim)
-            intern = pv.read(osp.join(path_in, test_dataset[j], test_dataset[j] + '_internal.vtu'))
-            aerofoil = pv.read(osp.join(path_in, test_dataset[j], test_dataset[j] + '_aerofoil.vtp'))
-            tc, true_intern, true_airfoil = Compute_coefficients([intern], [aerofoil], data.surf, Uinf, angle,
-                                                                 keep_vtk=True)
+            intern = pv.read(
+                osp.join(path_in, test_dataset[j], test_dataset[j] + "_internal.vtu")
+            )
+            aerofoil = pv.read(
+                osp.join(path_in, test_dataset[j], test_dataset[j] + "_aerofoil.vtp")
+            )
+            tc, true_intern, true_airfoil = Compute_coefficients(
+                [intern], [aerofoil], data.surf, Uinf, angle, keep_vtk=True
+            )
             tc, true_intern, true_airfoil = tc[0], true_intern[0], true_airfoil[0]
-            intern, aerofoil = Airfoil_test(intern, aerofoil, outs, coef_norm, data.surf)
-            pc, intern, aerofoil = Compute_coefficients(intern, aerofoil, data.surf, Uinf, angle, keep_vtk=True)
+            intern, aerofoil = Airfoil_test(
+                intern, aerofoil, outs, coef_norm, data.surf
+            )
+            pc, intern, aerofoil = Compute_coefficients(
+                intern, aerofoil, data.surf, Uinf, angle, keep_vtk=True
+            )
             if i == 0:
                 true_coefs.append(tc)
             pred_coef.append(pc)
@@ -331,8 +371,12 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
             for n, out in enumerate(outs):
                 loss_per_var = criterion(out, data.y).mean(dim=0)
                 loss = loss_per_var.mean()
-                loss_surf_var = criterion(out[data.surf, :], data.y[data.surf, :]).mean(dim=0)
-                loss_vol_var = criterion(out[~data.surf, :], data.y[~data.surf, :]).mean(dim=0)
+                loss_surf_var = criterion(out[data.surf, :], data.y[data.surf, :]).mean(
+                    dim=0
+                )
+                loss_vol_var = criterion(
+                    out[~data.surf, :], data.y[~data.surf, :]
+                ).mean(dim=0)
                 loss_surf = loss_surf_var.mean()
                 loss_vol = loss_vol_var.mean()
 
@@ -343,16 +387,20 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
                 avg_loss_surf[n] += loss_surf.cpu().numpy()
                 avg_loss_vol[n] += loss_vol.cpu().numpy()
                 avg_rel_err_force[n] += rel_err(tc, pc[n])
-                avg_loss_wss[n] += rel_err(true_airfoil.point_data['wallShearStress'],
-                                           aerofoil[n].point_data['wallShearStress']).mean(axis=0)
-                avg_loss_p[n] += rel_err(true_airfoil.point_data['p'], aerofoil[n].point_data['p']).mean(axis=0)
+                avg_loss_wss[n] += rel_err(
+                    true_airfoil.point_data["wallShearStress"],
+                    aerofoil[n].point_data["wallShearStress"],
+                ).mean(axis=0)
+                avg_loss_p[n] += rel_err(
+                    true_airfoil.point_data["p"], aerofoil[n].point_data["p"]
+                ).mean(axis=0)
 
             internals.append(internal)
             airfoils.append(airfoil)
             pred_coefs.append(pred_coef)
 
-        score_var = np.array(avg_loss_per_var) / len(test_loader)
-        score = np.array(avg_loss) / len(test_loader)
+        np.array(avg_loss_per_var) / len(test_loader)
+        np.array(avg_loss) / len(test_loader)
         score_surf_var = np.array(avg_loss_surf_var) / len(test_loader)
         score_vol_var = np.array(avg_loss_vol_var) / len(test_loader)
         score_surf = np.array(avg_loss_surf) / len(test_loader)
@@ -361,7 +409,7 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
         score_p = np.array(avg_loss_p) / len(test_loader)
         score_wss = np.array(avg_loss_wss) / len(test_loader)
 
-        score = score_surf + score_vol
+        score_surf + score_vol
         scores_vol.append(score_vol_var)
         scores_surf.append(score_surf_var)
         scores_force.append(score_force)
@@ -389,24 +437,27 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
         spear_coefs.append(spear_coef)
     spear_coefs = np.array(spear_coefs)
 
-    with open(osp.join(path_out, 'score.json'), 'w') as f:
+    with open(osp.join(path_out, "score.json"), "w") as f:
         json.dump(
             {
-                'mean_time': times.mean(axis=0),
-                'std_time': times.std(axis=0),
-                'mean_score_vol': scores_vol.mean(axis=0),
-                'std_score_vol': scores_vol.std(axis=0),
-                'mean_score_surf': scores_surf.mean(axis=0),
-                'std_score_surf': scores_surf.std(axis=0),
-                'mean_rel_p': scores_p.mean(axis=0),
-                'std_rel_p': scores_p.std(axis=0),
-                'mean_rel_wss': scores_wss.mean(axis=0),
-                'std_rel_wss': scores_wss.std(axis=0),
-                'mean_score_force': scores_force.mean(axis=0),
-                'std_score_force': scores_force.std(axis=0),
-                'spearman_coef_mean': spear_coefs.mean(axis=0),
-                'spearman_coef_std': spear_coefs.std(axis=0)
-            }, f, indent=4, cls=NumpyEncoder
+                "mean_time": times.mean(axis=0),
+                "std_time": times.std(axis=0),
+                "mean_score_vol": scores_vol.mean(axis=0),
+                "std_score_vol": scores_vol.std(axis=0),
+                "mean_score_surf": scores_surf.mean(axis=0),
+                "std_score_surf": scores_surf.std(axis=0),
+                "mean_rel_p": scores_p.mean(axis=0),
+                "std_rel_p": scores_p.std(axis=0),
+                "mean_rel_wss": scores_wss.mean(axis=0),
+                "std_rel_wss": scores_wss.std(axis=0),
+                "mean_score_force": scores_force.mean(axis=0),
+                "std_score_force": scores_force.std(axis=0),
+                "spearman_coef_mean": spear_coefs.mean(axis=0),
+                "spearman_coef_std": spear_coefs.std(axis=0),
+            },
+            f,
+            indent=4,
+            cls=NumpyEncoder,
         )
 
     surf_coefs = []
@@ -420,18 +471,38 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
         surf_coef = []
         bl = []
         for j in range(len(internals[0][0])):
-            internal_mean, airfoil_mean = Airfoil_mean([internals[k][i][j] for k in range(len(internals))],
-                                                       [airfoils[k][i][j] for k in range(len(airfoils))])
-            internal_mean.save(osp.join(path_out, test_dataset[idx[i]] + '_' + str(j) + '.vtu'))
-            surf_coef.append(np.array(metrics_NACA.surface_coefficients(airfoil_mean, aero_name)))
+            internal_mean, airfoil_mean = Airfoil_mean(
+                [internals[k][i][j] for k in range(len(internals))],
+                [airfoils[k][i][j] for k in range(len(airfoils))],
+            )
+            internal_mean.save(
+                osp.join(path_out, test_dataset[idx[i]] + "_" + str(j) + ".vtu")
+            )
+            surf_coef.append(
+                np.array(metrics_NACA.surface_coefficients(airfoil_mean, aero_name))
+            )
             b = []
             for x in x_bl:
-                b.append(np.array(metrics_NACA.boundary_layer(airfoil_mean, internal_mean, aero_name, x)))
+                b.append(
+                    np.array(
+                        metrics_NACA.boundary_layer(
+                            airfoil_mean, internal_mean, aero_name, x
+                        )
+                    )
+                )
             bl.append(np.array(b))
-        true_surf_coefs.append(np.array(metrics_NACA.surface_coefficients(true_airfoil, aero_name)))
+        true_surf_coefs.append(
+            np.array(metrics_NACA.surface_coefficients(true_airfoil, aero_name))
+        )
         true_bl = []
         for x in x_bl:
-            true_bl.append(np.array(metrics_NACA.boundary_layer(true_airfoil, true_internal, aero_name, x)))
+            true_bl.append(
+                np.array(
+                    metrics_NACA.boundary_layer(
+                        true_airfoil, true_internal, aero_name, x
+                    )
+                )
+            )
         true_bls.append(np.array(true_bl))
         surf_coefs.append(np.array(surf_coef))
         bls.append(np.array(bl))
@@ -439,4 +510,12 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
     true_bls = np.array(true_bls)
     bls = np.array(bls)
 
-    return true_coefs, pred_coefs_mean, pred_coefs_std, true_surf_coefs, surf_coefs, true_bls, bls
+    return (
+        true_coefs,
+        pred_coefs_mean,
+        pred_coefs_std,
+        true_surf_coefs,
+        surf_coefs,
+        true_bls,
+        bls,
+    )

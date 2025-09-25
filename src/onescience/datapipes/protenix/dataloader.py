@@ -12,7 +12,6 @@ from onescience.utils.protenix.logger import get_logger
 logger = get_logger(__name__)
 
 
-
 class WeightedSampler(Sampler):
     """
     A weighted sampler for single node.

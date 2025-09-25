@@ -1,8 +1,6 @@
-import torch.nn.functional as F
-import torch.nn as nn
 import torch
-import numpy as np
-import math
+import torch.nn as nn
+
 
 ################################################################
 # 1d fourier layer
@@ -19,11 +17,15 @@ class SpectralConv1d(nn.Module):
 
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.modes1 = modes1  # Number of Fourier modes to multiply, at most floor(N/2) + 1
+        self.modes1 = (
+            modes1  # Number of Fourier modes to multiply, at most floor(N/2) + 1
+        )
 
-        self.scale = (1 / (in_channels * out_channels))
+        self.scale = 1 / (in_channels * out_channels)
         self.weights1 = nn.Parameter(
-            self.scale * torch.rand(in_channels, out_channels, self.modes1, dtype=torch.cfloat))
+            self.scale
+            * torch.rand(in_channels, out_channels, self.modes1, dtype=torch.cfloat)
+        )
 
     # Complex multiplication
     def compl_mul1d(self, input, weights):
@@ -36,12 +38,21 @@ class SpectralConv1d(nn.Module):
         x_ft = torch.fft.rfft(x)
 
         # Multiply relevant Fourier modes
-        out_ft = torch.zeros(batchsize, self.out_channels, x.size(-1) // 2 + 1, device=x.device, dtype=torch.cfloat)
-        out_ft[:, :, :self.modes1] = self.compl_mul1d(x_ft[:, :, :self.modes1], self.weights1)
+        out_ft = torch.zeros(
+            batchsize,
+            self.out_channels,
+            x.size(-1) // 2 + 1,
+            device=x.device,
+            dtype=torch.cfloat,
+        )
+        out_ft[:, :, : self.modes1] = self.compl_mul1d(
+            x_ft[:, :, : self.modes1], self.weights1
+        )
 
         # Return to physical space
         x = torch.fft.irfft(out_ft, n=x.size(-1))
         return x
+
 
 ################################################################
 # 2d fourier layer
@@ -65,33 +76,35 @@ class SpectralConv2d(nn.Module):
         B, I, M, N = x.shape
 
         # # # Dimesion Y # # #
-        x_fty = torch.fft.rfft(x, dim=-1, norm='ortho')
+        x_fty = torch.fft.rfft(x, dim=-1, norm="ortho")
         # x_ft.shape == [batch_size, in_dim, grid_size, grid_size // 2 + 1]
 
         out_ft = x_fty.new_zeros(B, I, M, N // 2 + 1)
         # out_ft.shape == [batch_size, in_dim, grid_size, grid_size // 2 + 1, 2]
 
-        out_ft[:, :, :, :self.modes_y] = torch.einsum(
+        out_ft[:, :, :, : self.modes_y] = torch.einsum(
             "bixy,ioy->boxy",
-            x_fty[:, :, :, :self.modes_y],
-            torch.view_as_complex(self.fourier_weight[1]))
+            x_fty[:, :, :, : self.modes_y],
+            torch.view_as_complex(self.fourier_weight[1]),
+        )
 
-        xy = torch.fft.irfft(out_ft, n=N, dim=-1, norm='ortho')
+        xy = torch.fft.irfft(out_ft, n=N, dim=-1, norm="ortho")
         # x.shape == [batch_size, in_dim, grid_size, grid_size]
 
         # # # Dimesion X # # #
-        x_ftx = torch.fft.rfft(x, dim=-2, norm='ortho')
+        x_ftx = torch.fft.rfft(x, dim=-2, norm="ortho")
         # x_ft.shape == [batch_size, in_dim, grid_size // 2 + 1, grid_size]
 
         out_ft = x_ftx.new_zeros(B, I, M // 2 + 1, N)
         # out_ft.shape == [batch_size, in_dim, grid_size // 2 + 1, grid_size, 2]
 
-        out_ft[:, :, :self.modes_x, :] = torch.einsum(
+        out_ft[:, :, : self.modes_x, :] = torch.einsum(
             "bixy,iox->boxy",
-            x_ftx[:, :, :self.modes_x, :],
-            torch.view_as_complex(self.fourier_weight[0]))
+            x_ftx[:, :, : self.modes_x, :],
+            torch.view_as_complex(self.fourier_weight[0]),
+        )
 
-        xx = torch.fft.irfft(out_ft, n=M, dim=-2, norm='ortho')
+        xx = torch.fft.irfft(out_ft, n=M, dim=-2, norm="ortho")
         # x.shape == [batch_size, in_dim, grid_size, grid_size]
 
         # # Combining Dimensions # #
@@ -103,6 +116,7 @@ class SpectralConv2d(nn.Module):
 ################################################################
 # 3d fourier layers
 ################################################################
+
 
 class SpectralConv3d(nn.Module):
     def __init__(self, in_dim, out_dim, modes_x, modes_y, modes_z):
@@ -124,48 +138,51 @@ class SpectralConv3d(nn.Module):
         B, I, S1, S2, S3 = x.shape
 
         # # # Dimesion Z # # #
-        x_ftz = torch.fft.rfft(x, dim=-1, norm='ortho')
+        x_ftz = torch.fft.rfft(x, dim=-1, norm="ortho")
         # x_ft.shape == [batch_size, in_dim, grid_size, grid_size // 2 + 1]
 
         out_ft = x_ftz.new_zeros(B, I, S1, S2, S3 // 2 + 1)
         # out_ft.shape == [batch_size, in_dim, grid_size, grid_size // 2 + 1, 2]
 
-        out_ft[:, :, :, :, :self.modes_z] = torch.einsum(
+        out_ft[:, :, :, :, : self.modes_z] = torch.einsum(
             "bixyz,ioz->boxyz",
-            x_ftz[:, :, :, :, :self.modes_z],
-            torch.view_as_complex(self.fourier_weight[2]))
+            x_ftz[:, :, :, :, : self.modes_z],
+            torch.view_as_complex(self.fourier_weight[2]),
+        )
 
-        xz = torch.fft.irfft(out_ft, n=S3, dim=-1, norm='ortho')
+        xz = torch.fft.irfft(out_ft, n=S3, dim=-1, norm="ortho")
         # x.shape == [batch_size, in_dim, grid_size, grid_size]
 
         # # # Dimesion Y # # #
-        x_fty = torch.fft.rfft(x, dim=-2, norm='ortho')
+        x_fty = torch.fft.rfft(x, dim=-2, norm="ortho")
         # x_ft.shape == [batch_size, in_dim, grid_size // 2 + 1, grid_size]
 
         out_ft = x_fty.new_zeros(B, I, S1, S2 // 2 + 1, S3)
         # out_ft.shape == [batch_size, in_dim, grid_size // 2 + 1, grid_size, 2]
 
-        out_ft[:, :, :, :self.modes_y, :] = torch.einsum(
+        out_ft[:, :, :, : self.modes_y, :] = torch.einsum(
             "bixyz,ioy->boxyz",
-            x_fty[:, :, :, :self.modes_y, :],
-            torch.view_as_complex(self.fourier_weight[1]))
+            x_fty[:, :, :, : self.modes_y, :],
+            torch.view_as_complex(self.fourier_weight[1]),
+        )
 
-        xy = torch.fft.irfft(out_ft, n=S2, dim=-2, norm='ortho')
+        xy = torch.fft.irfft(out_ft, n=S2, dim=-2, norm="ortho")
         # x.shape == [batch_size, in_dim, grid_size, grid_size]
 
         # # # Dimesion X # # #
-        x_ftx = torch.fft.rfft(x, dim=-3, norm='ortho')
+        x_ftx = torch.fft.rfft(x, dim=-3, norm="ortho")
         # x_ft.shape == [batch_size, in_dim, grid_size // 2 + 1, grid_size]
 
         out_ft = x_ftx.new_zeros(B, I, S1 // 2 + 1, S2, S3)
         # out_ft.shape == [batch_size, in_dim, grid_size // 2 + 1, grid_size, 2]
 
-        out_ft[:, :, :self.modes_x, :, :] = torch.einsum(
+        out_ft[:, :, : self.modes_x, :, :] = torch.einsum(
             "bixyz,iox->boxyz",
-            x_ftx[:, :, :self.modes_x, :, :],
-            torch.view_as_complex(self.fourier_weight[0]))
+            x_ftx[:, :, : self.modes_x, :, :],
+            torch.view_as_complex(self.fourier_weight[0]),
+        )
 
-        xx = torch.fft.irfft(out_ft, n=S1, dim=-3, norm='ortho')
+        xx = torch.fft.irfft(out_ft, n=S1, dim=-3, norm="ortho")
         # x.shape == [batch_size, in_dim, grid_size, grid_size]
 
         # # Combining Dimensions # #

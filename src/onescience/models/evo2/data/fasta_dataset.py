@@ -21,7 +21,6 @@ import json
 from pathlib import Path
 
 import torch
-
 from bionemo.noodles.nvfaidx import NvFaidx
 
 
@@ -58,7 +57,9 @@ class SimpleFastaDataset(torch.utils.data.Dataset):
             tokens: list[int] = [self.tokenizer.eod] + tokenized_seq
         else:
             tokens: list[int] = tokenized_seq
-        loss_mask = torch.ones_like(torch.tensor(tokens, dtype=torch.long), dtype=torch.long)
+        loss_mask = torch.ones_like(
+            torch.tensor(tokens, dtype=torch.long), dtype=torch.long
+        )
         if self.prepend_bos:
             loss_mask[0] = (
                 0  # mask the eos token which we use for causal offsetting. Later in predict we take the output

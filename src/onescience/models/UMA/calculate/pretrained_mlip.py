@@ -1,16 +1,13 @@
-
-
 from __future__ import annotations
-import os
+
 import json
+import os
 from dataclasses import dataclass
-from importlib import resources
 from typing import TYPE_CHECKING, Literal
 
 from huggingface_hub import hf_hub_download
 from omegaconf import OmegaConf
 
-from onescience.models.UMA import calculate
 from onescience.models.UMA._config import CACHE_DIR
 from onescience.models.UMA.units.mlip_unit import MLIPPredictUnit, load_predict_unit
 
@@ -30,6 +27,7 @@ class HuggingFaceCheckpoint:
 @dataclass
 class PretrainedModels:
     checkpoints: dict[str, HuggingFaceCheckpoint]
+
 
 # 这里指定新的路径
 pretrained_model_path = os.path.join(os.getcwd(), "models", "pretrained_models.json")

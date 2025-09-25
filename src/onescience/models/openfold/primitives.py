@@ -419,16 +419,12 @@ class Attention(nn.Module):
         # DISCREPANCY: c_hidden is not the per-head channel dimension, as
         # stated in the supplement, but the overall channel dimension.
 
-        self.linear_q = Linear(
-            self.c_q, self.c_hidden * self.no_heads, bias=False
+        self.linear_q = Linear(self.c_q, self.c_hidden * self.no_heads, bias=False)
+        self.linear_k = Linear(self.c_k, self.c_hidden * self.no_heads, bias=False)
+        self.linear_v = Linear(self.c_v, self.c_hidden * self.no_heads, bias=False)
+        self.linear_o = Linear(
+            self.c_hidden * self.no_heads, self.c_q, bias=False, init="final"
         )
-        self.linear_k = Linear(
-            self.c_k, self.c_hidden * self.no_heads, bias=False
-        )
-        self.linear_v = Linear(
-            self.c_v, self.c_hidden * self.no_heads, bias=False
-        )
-        self.linear_o = Linear(self.c_hidden * self.no_heads, self.c_q, bias=False, init="final")
 
         self.linear_g = None
         if self.gating:

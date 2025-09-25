@@ -1,9 +1,10 @@
-""" Parts of the U-Net model """
-from typing import Optional, List
+"""Parts of the U-Net model"""
+
+from typing import List, Optional
 
 import torch
-from torch import nn, Tensor
 import torch.nn.functional as F
+from torch import Tensor, nn
 
 from .base_model import AutoCfdModel
 
@@ -11,9 +12,7 @@ from .base_model import AutoCfdModel
 class DoubleConv(nn.Module):
     """(convolution => [BN] => ReLU) * 2"""
 
-    def __init__(
-        self, in_chan: int, out_chan: int, mid_chan: Optional[int] = None
-    ):
+    def __init__(self, in_chan: int, out_chan: int, mid_chan: Optional[int] = None):
         super().__init__()
         if mid_chan is None:
             mid_chan = out_chan
@@ -72,9 +71,7 @@ class Up(nn.Module):
         # if bilinear, use the normal convolutions to reduce the number
         # of channels
         if bilinear:
-            self.up = nn.Upsample(
-                scale_factor=2, mode="bilinear", align_corners=True
-            )
+            self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
             self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
         else:
             self.up = nn.ConvTranspose2d(
@@ -133,9 +130,7 @@ class UNet(AutoCfdModel):
             self.case_params_fc = nn.Linear(n_case_params, dim * 16)
 
         if insert_case_params_at == "input":
-            self.in_conv = DoubleConv(
-                in_chan + 1 + n_case_params, dim   # + 1 for mask
-            )
+            self.in_conv = DoubleConv(in_chan + 1 + n_case_params, dim)  # + 1 for mask
         else:
             self.in_conv = DoubleConv(in_chan + 1, dim)  # + 1 for mask
         self.down1 = Down(dim, dim * 2)
@@ -176,16 +171,10 @@ class UNet(AutoCfdModel):
         # Add case_params to input as additional channels
         if self.insert_case_params_at == "input":
             assert case_params is not None
-            case_params = case_params.unsqueeze(2).unsqueeze(
-                3
-            )  # (B, n_params, 1, 1)
+            case_params = case_params.unsqueeze(2).unsqueeze(3)  # (B, n_params, 1, 1)
             # (B, n_params, h, w)
-            case_params = case_params.expand(
-                -1, -1, inputs.shape[2], inputs.shape[3]
-            )
-            inputs = torch.cat(
-                [inputs, case_params], dim=1
-            )  # (B, c + 1, h, w)
+            case_params = case_params.expand(-1, -1, inputs.shape[2], inputs.shape[3])
+            inputs = torch.cat([inputs, case_params], dim=1)  # (B, c + 1, h, w)
 
         x1 = self.in_conv(inputs)  # (B, dim, h, w)
         x2 = self.down1(x1)  # (B, dim * 2, h/2, w/2)
@@ -244,9 +233,7 @@ class UNet(AutoCfdModel):
         mask = mask.unsqueeze(0)
         for _ in range(steps):
             # (b, c, h, w)
-            cur_frame = self.generate(
-                cur_frame, case_params=case_params, mask=mask
-            )
+            cur_frame = self.generate(cur_frame, case_params=case_params, mask=mask)
             preds.append(cur_frame)
         return preds
 

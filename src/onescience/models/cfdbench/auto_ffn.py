@@ -4,9 +4,9 @@ from typing import List, Optional
 import torch
 from torch import Tensor
 
-from .ffn import Ffn
-from .base_model import AutoCfdModel
 from .act_fn import get_act_fn
+from .base_model import AutoCfdModel
+from .ffn import Ffn
 from .loss import MseLoss
 
 
@@ -80,9 +80,7 @@ class AutoFfn(AutoCfdModel):
         inputs = inputs[:, 0]  # (B, h, w)
         # Flatten
         flat_inputs = inputs.view(batch_size, -1)  # (B, h * w)
-        flat_inputs = torch.cat(
-            [flat_inputs, case_params], dim=1
-        )  # (B, h * w + 2)
+        flat_inputs = torch.cat([flat_inputs, case_params], dim=1)  # (B, h * w + 2)
 
         if query_idxs is None:
             query_idxs = torch.tensor(
@@ -123,9 +121,7 @@ class AutoFfn(AutoCfdModel):
         preds = preds.view(-1, 1, height, width)  # (b, 1, h, w)
         return dict(preds=preds)
 
-    def generate(
-        self, inputs: Tensor, case_params: Tensor, mask: Tensor
-    ) -> Tensor:
+    def generate(self, inputs: Tensor, case_params: Tensor, mask: Tensor) -> Tensor:
         """
         x: (c, h, w) or (B, c, h, w)
 
@@ -171,8 +167,6 @@ class AutoFfn(AutoCfdModel):
         preds = []
         for _ in range(steps):
             # (b, c, h, w)
-            cur_frame = self.generate(
-                cur_frame, case_params=case_params, mask=mask
-            )
+            cur_frame = self.generate(cur_frame, case_params=case_params, mask=mask)
             preds.append(cur_frame)
         return preds

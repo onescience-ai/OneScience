@@ -1,7 +1,9 @@
+import random
+
 import torch
 import torch.nn as nn
 import torch_geometric.nn as nng
-import random
+
 from onescience.models.layers.Basic import MLP
 
 

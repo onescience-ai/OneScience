@@ -2,9 +2,7 @@ import datetime
 
 import numpy as np
 import pytz
-
 import torch
-
 
 RAD_PER_DEG = torch.tensor(np.pi / 180.0)
 DATETIME_2000 = datetime.datetime(2000, 1, 1, 12, 0, 0, tzinfo=pytz.utc).timestamp()
@@ -168,7 +166,7 @@ def _star_cos_zenith(model_time, lat, lon):
     ra, dec = _right_ascension_declination(model_time)
     h_angle = _local_hour_angle(model_time, lon, ra)
 
-    cosine_zenith = torch.sin(lat) * torch.sin(dec) + torch.cos(
-        lat
-    ) * torch.cos(dec) * torch.cos(h_angle)
+    cosine_zenith = torch.sin(lat) * torch.sin(dec) + torch.cos(lat) * torch.cos(
+        dec
+    ) * torch.cos(h_angle)
     return cosine_zenith

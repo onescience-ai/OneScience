@@ -1,11 +1,11 @@
-
-
 """Geometry Module."""
 
-from onescience.flax_models.alphafold3.jax.geometry import rigid_matrix_vector
-from onescience.flax_models.alphafold3.jax.geometry import rotation_matrix
-from onescience.flax_models.alphafold3.jax.geometry import struct_of_array
-from onescience.flax_models.alphafold3.jax.geometry import vector
+from onescience.flax_models.alphafold3.jax.geometry import (
+    rigid_matrix_vector,
+    rotation_matrix,
+    struct_of_array,
+    vector,
+)
 
 Rot3Array = rotation_matrix.Rot3Array
 Rigid3Array = rigid_matrix_vector.Rigid3Array

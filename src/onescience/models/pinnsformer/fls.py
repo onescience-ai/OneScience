@@ -8,24 +8,25 @@ import torch.nn as nn
 
 class SinAct(nn.Module):
     def __init__(self):
-            super(SinAct, self).__init__() 
+        super(SinAct, self).__init__()
 
     def forward(self, x):
         return torch.sin(x)
 
-        
 
 class FLS1D(nn.Module):
     def __init__(self, in_dim, hidden_dim, out_dim, num_layer):
         super(FLS1D, self).__init__()
 
         layers = []
-        for i in range(num_layer-1):
+        for i in range(num_layer - 1):
             if i == 0:
                 layers.append(nn.Linear(in_features=in_dim, out_features=hidden_dim))
                 layers.append(SinAct())
             else:
-                layers.append(nn.Linear(in_features=hidden_dim, out_features=hidden_dim))
+                layers.append(
+                    nn.Linear(in_features=hidden_dim, out_features=hidden_dim)
+                )
                 layers.append(nn.Tanh())
 
         layers.append(nn.Linear(in_features=hidden_dim, out_features=out_dim))
@@ -33,7 +34,7 @@ class FLS1D(nn.Module):
         self.linear = nn.Sequential(*layers)
 
     def forward(self, x, t):
-        src = torch.cat((x,t), dim=-1)
+        src = torch.cat((x, t), dim=-1)
         return self.linear(src)
 
 
@@ -42,18 +43,20 @@ class FLS2D(nn.Module):
         super(FLS2D, self).__init__()
 
         layers = []
-        for i in range(num_layer-1):
+        for i in range(num_layer - 1):
             if i == 0:
                 layers.append(nn.Linear(in_features=in_dim, out_features=hidden_dim))
                 layers.append(SinAct())
             else:
-                layers.append(nn.Linear(in_features=hidden_dim, out_features=hidden_dim))
+                layers.append(
+                    nn.Linear(in_features=hidden_dim, out_features=hidden_dim)
+                )
                 layers.append(nn.Tanh())
 
         layers.append(nn.Linear(in_features=hidden_dim, out_features=out_dim))
 
         self.linear = nn.Sequential(*layers)
 
-    def forward(self, x,y,t):
-        src = torch.cat((x,y,t), dim=-1)
+    def forward(self, x, y, t):
+        src = torch.cat((x, y, t), dim=-1)
         return self.linear(src)

@@ -1,11 +1,11 @@
-import torch
-import numpy as np
-import scipy.io
-import h5py
-import torch.nn as nn
-
 import operator
 from functools import reduce
+
+import h5py
+import numpy as np
+import scipy.io
+import torch
+import torch.nn as nn
 
 #################################################
 #
@@ -302,9 +302,7 @@ class HsLoss(object):
             if k >= 1:
                 weight += a[0] ** 2 * (k_x**2 + k_y**2)
             if k >= 2:
-                weight += a[1] ** 2 * (
-                    k_x**4 + 2 * k_x**2 * k_y**2 + k_y**4
-                )
+                weight += a[1] ** 2 * (k_x**4 + 2 * k_x**2 * k_y**2 + k_y**4)
             weight = torch.sqrt(weight)  # type: ignore
             loss = self.rel(x * weight, y * weight)
         else:
@@ -313,9 +311,7 @@ class HsLoss(object):
                 weight = a[0] * torch.sqrt(k_x**2 + k_y**2)
                 loss += self.rel(x * weight, y * weight)
             if k >= 2:
-                weight = a[1] * torch.sqrt(
-                    k_x**4 + 2 * k_x**2 * k_y**2 + k_y**4
-                )
+                weight = a[1] * torch.sqrt(k_x**4 + 2 * k_x**2 * k_y**2 + k_y**4)
                 loss += self.rel(x * weight, y * weight)
             loss = loss / (k + 1)
 
@@ -324,9 +320,7 @@ class HsLoss(object):
 
 # A simple feedforward neural network
 class DenseNet(torch.nn.Module):
-    def __init__(
-        self, layers, nonlinearity, out_nonlinearity=None, normalize=False
-    ):
+    def __init__(self, layers, nonlinearity, out_nonlinearity=None, normalize=False):
         super(DenseNet, self).__init__()
 
         self.n_layers = len(layers) - 1
@@ -358,7 +352,5 @@ class DenseNet(torch.nn.Module):
 def count_params(model):
     c = 0
     for p in list(model.parameters()):
-        c += reduce(
-            operator.mul, list(p.size() + (2,) if p.is_complex() else p.size())
-        )
+        c += reduce(operator.mul, list(p.size() + (2,) if p.is_complex() else p.size()))
     return c

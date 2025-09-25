@@ -1,38 +1,40 @@
-import os
-import numpy as np
-import time
-import torch
-import sys
 import logging
+import os
+import sys
+import time
+
+import numpy as np
+import torch
 import torch.distributed as dist
-
-from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR, LambdaLR
+from apex import optimizers
 from torch.nn.parallel import DistributedDataParallel
+from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR, LinearLR, SequentialLR
 
-from onescience.models.graphcast.graph_cast_net import GraphCastNet
-from onescience.utils.graphcast.loss import GraphCastLossFunction
-from onescience.utils.fcn.YParams import YParams
-from onescience.launch.utils import load_checkpoint, save_checkpoint
 from onescience.datapipes.climate import ERA5HDF5Datapipe
+from onescience.launch.utils import save_checkpoint
+from onescience.models.graphcast.graph_cast_net import GraphCastNet
+from onescience.utils.fcn.YParams import YParams
 from onescience.utils.graphcast.data_utils import StaticData
 from onescience.utils.graphcast.graph_utils import deg2rad
+from onescience.utils.graphcast.loss import GraphCastLossFunction
 
-from apex import optimizers
 
 def main():
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
     logger = logging.getLogger()
-    config_file_path = os.path.join(current_path, 'conf/config.yaml')
-    cfg = YParams(config_file_path, 'graphcast')
+    config_file_path = os.path.join(current_path, "conf/config.yaml")
+    cfg = YParams(config_file_path, "graphcast")
 
     cfg.world_size = 1
-    if 'WORLD_SIZE' in os.environ:
-        cfg.world_size = int(os.environ['WORLD_SIZE'])
+    if "WORLD_SIZE" in os.environ:
+        cfg.world_size = int(os.environ["WORLD_SIZE"])
     world_rank = 0
     local_rank = 0
 
     if cfg.world_size > 1:
-        dist.init_process_group(backend='nccl', init_method='env://')
+        dist.init_process_group(backend="nccl", init_method="env://")
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
     if not torch.cuda.is_bf16_supported():
@@ -40,8 +42,9 @@ def main():
 
     model_dtype = torch.bfloat16 if cfg.full_bf16 else torch.float32
 
-    input_dim_grid_nodes = (len(cfg.channels) + cfg.use_cos_zenith + 4 * cfg.use_time_of_year_index) * \
-                           (cfg.num_history + 1) + cfg.num_channels_static
+    input_dim_grid_nodes = (
+        len(cfg.channels) + cfg.use_cos_zenith + 4 * cfg.use_time_of_year_index
+    ) * (cfg.num_history + 1) + cfg.num_channels_static
     graphcast_model = GraphCastNet(
         mesh_level=cfg.mesh_level,
         multimesh=cfg.multimesh,
@@ -64,7 +67,9 @@ def main():
     graphcast_model.set_checkpoint_decoder(cfg.checkpoint_decoder)
     graphcast_model = graphcast_model.to(dtype=model_dtype).to(local_rank)
 
-    world_rank == 0 and logger.info(f"Model parameters is {sum(p.numel() for p in graphcast_model.parameters() if p.requires_grad)}")
+    world_rank == 0 and logger.info(
+        f"Model parameters is {sum(p.numel() for p in graphcast_model.parameters() if p.requires_grad)}"
+    )
     if hasattr(graphcast_model, "module"):
         latitudes = graphcast_model.module.latitudes
         longitudes = graphcast_model.module.longitudes
@@ -73,35 +78,54 @@ def main():
         latitudes = graphcast_model.latitudes
         longitudes = graphcast_model.longitudes
         lat_lon_grid = graphcast_model.lat_lon_grid
-    static_data = StaticData(cfg.static_dataset_path, latitudes, longitudes).get().to(device=local_rank)
-
+    static_data = (
+        StaticData(cfg.static_dataset_path, latitudes, longitudes)
+        .get()
+        .to(device=local_rank)
+    )
 
     channels_list = [i for i in range(len(cfg.channels))]
 
     area = torch.abs(torch.cos(deg2rad(lat_lon_grid[:, :, 0])))
     area /= torch.mean(area)
-    area = area.to(dtype=torch.bfloat16 if cfg.full_bf16 else torch.float32).to(device=local_rank)
+    area = area.to(dtype=torch.bfloat16 if cfg.full_bf16 else torch.float32).to(
+        device=local_rank
+    )
 
-    criterion = GraphCastLossFunction(area, channels_list, cfg.dataset_metadata_path, cfg.time_diff_std_path)
-    optimizer = optimizers.FusedAdam(graphcast_model.parameters(),
-                                     lr=cfg.lr, betas=(0.9, 0.95),
-                                     adam_w_mode=True,
-                                     weight_decay=0.1)
-    scheduler1 = LinearLR(optimizer, start_factor=1e-3, end_factor=1.0, total_iters=cfg.num_iters_step1, )
+    criterion = GraphCastLossFunction(
+        area, channels_list, cfg.dataset_metadata_path, cfg.time_diff_std_path
+    )
+    optimizer = optimizers.FusedAdam(
+        graphcast_model.parameters(),
+        lr=cfg.lr,
+        betas=(0.9, 0.95),
+        adam_w_mode=True,
+        weight_decay=0.1,
+    )
+    scheduler1 = LinearLR(
+        optimizer,
+        start_factor=1e-3,
+        end_factor=1.0,
+        total_iters=cfg.num_iters_step1,
+    )
     scheduler2 = CosineAnnealingLR(optimizer, T_max=cfg.num_iters_step2, eta_min=0.0)
     scheduler3 = LambdaLR(optimizer, lr_lambda=lambda epoch: (cfg.lr_step3 / cfg.lr))
-    scheduler = SequentialLR(optimizer,
-                             schedulers=[scheduler1, scheduler2, scheduler3],
-                             milestones=[cfg.num_iters_step1, cfg.num_iters_step1 + cfg.num_iters_step2])
+    scheduler = SequentialLR(
+        optimizer,
+        schedulers=[scheduler1, scheduler2, scheduler3],
+        milestones=[cfg.num_iters_step1, cfg.num_iters_step1 + cfg.num_iters_step2],
+    )
 
     os.makedirs(cfg.checkpoint_dir, exist_ok=True)
 
-    ckpt = torch.load(f"{cfg.checkpoint_dir}/graphcast.pth", map_location='cpu')
+    ckpt = torch.load(f"{cfg.checkpoint_dir}/graphcast.pth", map_location="cpu")
     graphcast_model.load_state_dict(ckpt["model_state_dict"])  # ⚠️ 你的 checkpoint key
     optimizer.load_state_dict(ckpt["optimizer_state_dict"])
     scheduler.load_state_dict(ckpt["scheduler_state_dict"])
     if cfg.world_size > 1:
-        graphcast_model = DistributedDataParallel(graphcast_model, device_ids=[local_rank], output_device=local_rank)
+        graphcast_model = DistributedDataParallel(
+            graphcast_model, device_ids=[local_rank], output_device=local_rank
+        )
     if cfg.force_single_checkpoint_finetune:
         if hasattr(graphcast_model, "module"):
             graphcast_model.module.set_checkpoint_model(True)
@@ -127,7 +151,7 @@ def main():
 
     world_rank == 0 and logger.info(f"start training ...")
 
-    best_valid_loss = 1.e6
+    best_valid_loss = 1.0e6
     best_loss_epoch = 0
     train_losses = np.empty((0,), dtype=np.float32)
 
@@ -136,19 +160,33 @@ def main():
     num_rollout_steps = 2
     world_rank == 0 and logger.info(f"Switching to {num_rollout_steps}-step rollout!")
 
-    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), num_steps=num_rollout_steps)
+    train_dataset = ERA5HDF5Datapipe(
+        params=cfg, distributed=dist.is_initialized(), num_steps=num_rollout_steps
+    )
     train_dataloader, train_sampler = train_dataset.train_dataloader()
-    world_rank == 0 and logger.info(f"Loaded train_dataloader of size {len(train_dataloader)}")
+    world_rank == 0 and logger.info(
+        f"Loaded train_dataloader of size {len(train_dataloader)}"
+    )
 
-    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), num_steps=cfg.num_val_steps)
+    val_dataset = ERA5HDF5Datapipe(
+        params=cfg, distributed=dist.is_initialized(), num_steps=cfg.num_val_steps
+    )
     val_dataloader, val_sampler = val_dataset.val_dataloader()
-    world_rank == 0 and logger.info(f"Loaded val_dataloader of size {len(val_dataloader)}")
+    world_rank == 0 and logger.info(
+        f"Loaded val_dataloader of size {len(val_dataloader)}"
+    )
 
     for epoch in range(cfg.num_iters_step3):
         if epoch % cfg.step_change_freq == 0:
             num_rollout_steps = epoch // cfg.step_change_freq + 2
-            world_rank == 0 and logger.info(f"Switching to {num_rollout_steps}-step rollout!")
-            train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), num_steps=num_rollout_steps)
+            world_rank == 0 and logger.info(
+                f"Switching to {num_rollout_steps}-step rollout!"
+            )
+            train_dataset = ERA5HDF5Datapipe(
+                params=cfg,
+                distributed=dist.is_initialized(),
+                num_steps=num_rollout_steps,
+            )
             train_dataloader, train_sampler = train_dataset.train_dataloader()
 
         if dist.is_initialized():
@@ -168,20 +206,40 @@ def main():
             outvar = outvar.to(dtype=model_dtype)
             for t in range(outvar.shape[1]):
                 day_of_year, time_of_day = divmod(in_idx + t * cfg.dt, 24 // cfg.dt)
-                normalized_day_of_year = torch.tensor((day_of_year / 365) * (np.pi / 2), dtype=torch.float32, device=local_rank)
-                normalized_time_of_day = torch.tensor((time_of_day / (24 - cfg.dt)) * (np.pi / 2), dtype=torch.float32, device=local_rank)
-                sin_day_of_year = torch.sin(normalized_day_of_year).expand(1, 1, 721, 1440)
-                cos_day_of_year = torch.cos(normalized_day_of_year).expand(1, 1, 721, 1440)
-                sin_time_of_day = torch.sin(normalized_time_of_day).expand(1, 1, 721, 1440)
-                cos_time_of_day = torch.cos(normalized_time_of_day).expand(1, 1, 721, 1440)
-                invar = torch.concat((invar,
-                                      cos_zenith[:, t:t + 1, :, :],
-                                      static_data,
-                                      sin_day_of_year,
-                                      cos_day_of_year,
-                                      sin_time_of_day,
-                                      cos_time_of_day),
-                                     dim=1)
+                normalized_day_of_year = torch.tensor(
+                    (day_of_year / 365) * (np.pi / 2),
+                    dtype=torch.float32,
+                    device=local_rank,
+                )
+                normalized_time_of_day = torch.tensor(
+                    (time_of_day / (24 - cfg.dt)) * (np.pi / 2),
+                    dtype=torch.float32,
+                    device=local_rank,
+                )
+                sin_day_of_year = torch.sin(normalized_day_of_year).expand(
+                    1, 1, 721, 1440
+                )
+                cos_day_of_year = torch.cos(normalized_day_of_year).expand(
+                    1, 1, 721, 1440
+                )
+                sin_time_of_day = torch.sin(normalized_time_of_day).expand(
+                    1, 1, 721, 1440
+                )
+                cos_time_of_day = torch.cos(normalized_time_of_day).expand(
+                    1, 1, 721, 1440
+                )
+                invar = torch.concat(
+                    (
+                        invar,
+                        cos_zenith[:, t : t + 1, :, :],
+                        static_data,
+                        sin_day_of_year,
+                        cos_day_of_year,
+                        sin_time_of_day,
+                        cos_time_of_day,
+                    ),
+                    dim=1,
+                )
                 invar = invar.to(dtype=model_dtype)
                 if t < outvar.shape[1] - 1:
                     with torch.no_grad():
@@ -192,15 +250,19 @@ def main():
                     loss = criterion(outpred, outvar[:, t])
             optimizer.zero_grad()
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(graphcast_model.parameters(), cfg.grad_clip_norm)
+            torch.nn.utils.clip_grad_norm_(
+                graphcast_model.parameters(), cfg.grad_clip_norm
+            )
             torch.cuda.nvtx.range_pop()
             optimizer.step()
             scheduler.step()
             train_loss += loss.item()
             if world_rank == 0 and i % print_length == 0:
                 batch_time = time.perf_counter() - batch_start_time
-                logger.info(f"Epoch [{epoch + 1}/{cfg.max_epoch}], Train MiniBatch {i}/{len(train_dataloader)} done, "
-                            f"This MiniBatch Cost: {batch_time / print_length:.2f}s, Current Loss: {loss.item():.4f}")
+                logger.info(
+                    f"Epoch [{epoch + 1}/{cfg.max_epoch}], Train MiniBatch {i}/{len(train_dataloader)} done, "
+                    f"This MiniBatch Cost: {batch_time / print_length:.2f}s, Current Loss: {loss.item():.4f}"
+                )
 
             if (i + 1) % cfg.val_freq == 0:
                 graphcast_model.eval()
@@ -217,21 +279,43 @@ def main():
                         outvar = outvar.to(dtype=model_dtype)
                         loss = 0.0
                         for t in range(outvar.shape[1]):
-                            day_of_year, time_of_day = divmod(in_idx + t * cfg.dt, 24 // cfg.dt)
-                            normalized_day_of_year = torch.tensor((day_of_year / 365) * (np.pi / 2), dtype=torch.float32, device=local_rank)
-                            normalized_time_of_day = torch.tensor((time_of_day / (24 - cfg.dt)) * (np.pi / 2), dtype=torch.float32, device=local_rank)
-                            sin_day_of_year = torch.sin(normalized_day_of_year).expand(1, 1, 721, 1440)
-                            cos_day_of_year = torch.cos(normalized_day_of_year).expand(1, 1, 721, 1440)
-                            sin_time_of_day = torch.sin(normalized_time_of_day).expand(1, 1, 721, 1440)
-                            cos_time_of_day = torch.cos(normalized_time_of_day).expand(1, 1, 721, 1440)
-                            invar = torch.concat((invar,
-                                                  cos_zenith[:, t:t + 1, :, :],
-                                                  static_data,
-                                                  sin_day_of_year,
-                                                  cos_day_of_year,
-                                                  sin_time_of_day,
-                                                  cos_time_of_day),
-                                                 dim=1)
+                            day_of_year, time_of_day = divmod(
+                                in_idx + t * cfg.dt, 24 // cfg.dt
+                            )
+                            normalized_day_of_year = torch.tensor(
+                                (day_of_year / 365) * (np.pi / 2),
+                                dtype=torch.float32,
+                                device=local_rank,
+                            )
+                            normalized_time_of_day = torch.tensor(
+                                (time_of_day / (24 - cfg.dt)) * (np.pi / 2),
+                                dtype=torch.float32,
+                                device=local_rank,
+                            )
+                            sin_day_of_year = torch.sin(normalized_day_of_year).expand(
+                                1, 1, 721, 1440
+                            )
+                            cos_day_of_year = torch.cos(normalized_day_of_year).expand(
+                                1, 1, 721, 1440
+                            )
+                            sin_time_of_day = torch.sin(normalized_time_of_day).expand(
+                                1, 1, 721, 1440
+                            )
+                            cos_time_of_day = torch.cos(normalized_time_of_day).expand(
+                                1, 1, 721, 1440
+                            )
+                            invar = torch.concat(
+                                (
+                                    invar,
+                                    cos_zenith[:, t : t + 1, :, :],
+                                    static_data,
+                                    sin_day_of_year,
+                                    cos_day_of_year,
+                                    sin_time_of_day,
+                                    cos_time_of_day,
+                                ),
+                                dim=1,
+                            )
                             invar = invar.to(dtype=model_dtype)
                             outpred = graphcast_model(invar)
                             invar = outpred
@@ -240,7 +324,9 @@ def main():
                         loss /= outvar.shape[1]
 
                         if cfg.world_size > 1:
-                            loss_tensor = loss.detach().to(local_rank)  # torch.tensor(loss, device=local_rank)
+                            loss_tensor = loss.detach().to(
+                                local_rank
+                            )  # torch.tensor(loss, device=local_rank)
                             dist.all_reduce(loss_tensor)
                             loss = loss_tensor.item() / cfg.world_size
                             valid_loss += loss
@@ -249,9 +335,11 @@ def main():
 
                         if world_rank == 0 and j % print_length == 0:
                             val_batch_time = time.perf_counter() - val_batch_time
-                            logger.info(f"Epoch [{epoch + 1}/{cfg.max_epoch}], Val MiniBatch {j}/{len(val_dataloader)} done, "
-                                        f"This {cfg.num_val_steps}-step iter val process cost: {val_batch_time / print_length:.2f}s, "
-                                        f"Current Loss: {loss:.4f}")
+                            logger.info(
+                                f"Epoch [{epoch + 1}/{cfg.max_epoch}], Val MiniBatch {j}/{len(val_dataloader)} done, "
+                                f"This {cfg.num_val_steps}-step iter val process cost: {val_batch_time / print_length:.2f}s, "
+                                f"Current Loss: {loss:.4f}"
+                            )
                             val_batch_time = time.perf_counter()
 
                     valid_loss /= len(val_dataloader)
@@ -259,15 +347,20 @@ def main():
                     if valid_loss < best_valid_loss:
                         best_valid_loss = valid_loss
                         best_loss_epoch = i
-                        world_rank == 0 and save_checkpoint(graphcast_model,
-                                                            optimizer,
-                                                            scheduler,
-                                                            best_valid_loss,
-                                                            best_loss_epoch,
-                                                            cfg.checkpoint_dir)
+                        world_rank == 0 and save_checkpoint(
+                            graphcast_model,
+                            optimizer,
+                            scheduler,
+                            best_valid_loss,
+                            best_loss_epoch,
+                            cfg.checkpoint_dir,
+                        )
                         is_save_ckp = True
                         if world_rank == 0:
-                            logger.info(f"Best loss at Minibatch: {i + 1}" + (", saving checkpoint" if is_save_ckp else ""))
+                            logger.info(
+                                f"Best loss at Minibatch: {i + 1}"
+                                + (", saving checkpoint" if is_save_ckp else "")
+                            )
 
         epoch_time = time.perf_counter() - epoch_start_time  # 计算epoch耗时
         if world_rank == 0:
@@ -282,13 +375,17 @@ def main():
 
             np.save(train_loss_file, train_losses)
         if epoch - best_loss_epoch > cfg.patience:
-            print(f"Loss has not decrease in {cfg.patience} epochs, stopping training...")
+            print(
+                f"Loss has not decrease in {cfg.patience} epochs, stopping training..."
+            )
             exit()
 
-    print(f'Graphcast has been well-trained, next step is fine-tune')
+    print(f"Graphcast has been well-trained, next step is fine-tune")
 
 
-def save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path):
+def save_checkpoint(
+    model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path
+):
     model_to_save = model.module if hasattr(model, "module") else model
     state = {
         "model_state_dict": model_to_save.state_dict(),
@@ -300,7 +397,7 @@ def save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoc
     torch.save(state, f"{model_path}/graphcast_finetune.pth")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     current_path = os.getcwd()
     sys.path.append(current_path)
     main()

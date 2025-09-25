@@ -6,7 +6,7 @@ pre: q, m_q, optional(k, v, m_kv, z, m_z) ## control by config (self or cross at
         (q(s_i) -> norm -> attention_embs -> optional(hak rope ipa) -> attention -> norm -> transition) * n -> norm
     cross:
         (q, k, v -> norm -> attention_embs -> attention -> norm -> transition) * n -> norm ## post process
-post: 
+post:
     self:
         maybe norm -> (q -> attention_emb -> optional(hak rope ipa) -> attention -> norm -> transition -> norm) * n
     cross:
@@ -19,18 +19,23 @@ residual: q, acc_q, ...
         w1 * q + w2 * norm(acc_q)
 """
 
+from typing import Tuple, Union
+
+import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import flax.linen as nn
-
 from jax import Array
 from ml_collections.config_dict import ConfigDict
-from typing import Union, Optional, Tuple
 
 from onescience.flax_models.Pt_DiT.common.config import Config
-from onescience.flax_models.Pt_DiT.common.utils import gather_neighbor
+from onescience.flax_models.Pt_DiT.module.attention import (
+    AttentionEmbedding,
+    AttentionKernel,
+    HyperAttentionEmbedding,
+    PostAttention,
+)
 from onescience.flax_models.Pt_DiT.module.transformer import NormBlock, Transition
-from onescience.flax_models.Pt_DiT.module.attention import AttentionEmbedding, AttentionKernel, HyperAttentionEmbedding, PostAttention
+
 
 class AttentionBlock(nn.Module):
 
@@ -38,22 +43,26 @@ class AttentionBlock(nn.Module):
     global_config: ConfigDict
 
     @nn.compact
-    def __call__(self, single_act, single_mask, rope_index = None):
+    def __call__(self, single_act, single_mask, rope_index=None):
 
         #### 1. Attention Embedding
         embedding_config = self.config.attention_embedding
-        q, k, v, _ = AttentionEmbedding(embedding_config, self.global_config)(single_act)
+        q, k, v, _ = AttentionEmbedding(embedding_config, self.global_config)(
+            single_act
+        )
 
         #### 2. HyperAttention Embedding
         if self.config.hyper_attention_flag:
             hyper_embedding_config = self.config.hyper_attention_embedding
-            q, k = HyperAttentionEmbedding(
-                hyper_embedding_config, self.global_config
-            )(q, k, None, None, None, rope_index)
-        
+            q, k = HyperAttentionEmbedding(hyper_embedding_config, self.global_config)(
+                q, k, None, None, None, rope_index
+            )
+
         #### 3. Attention Kernel
         kernel_config = self.config.attention_kernel
-        out_act = AttentionKernel(kernel_config, self.global_config)(q, k, v, None, single_mask)
+        out_act = AttentionKernel(kernel_config, self.global_config)(
+            q, k, v, None, single_mask
+        )
 
         #### 4. Post Attention
         post_attention_config = self.config.post_attention
@@ -63,9 +72,10 @@ class AttentionBlock(nn.Module):
         dropout_flag = self.global_config.dropout_flag
         out_act = nn.Dropout(
             rate=self.config.dropout_rate, deterministic=(not dropout_flag)
-            )(out_act)
+        )(out_act)
 
         return out_act
+
 
 class TransitionBlock(nn.Module):
 
@@ -74,7 +84,7 @@ class TransitionBlock(nn.Module):
 
     @nn.compact
     def __call__(self, act) -> Array:
-        
+
         #### 1. Transition (GLU or FFN)
         act = Transition(self.config.transition, self.global_config)(act)
 
@@ -82,9 +92,10 @@ class TransitionBlock(nn.Module):
         dropout_flag = self.global_config.dropout_flag
         act = nn.Dropout(
             rate=self.config.dropout_rate, deterministic=(not dropout_flag)
-            )(act)
+        )(act)
 
         return act
+
 
 class PreNormTransformerBlock(nn.Module):
 
@@ -93,55 +104,70 @@ class PreNormTransformerBlock(nn.Module):
     hyper_lora_config: Union[Config, ConfigDict, None] = None
 
     def setup(self):
-        
+
         ## basic config
         self.bf16_flag = self.global_config.bf16_flag
         self.dropout_flag = self.global_config.dropout_flag
         self.arr_dtype = jnp.bfloat16 if self.bf16_flag else jnp.float32
-       
+
         ## setup modules
-        _norm_method = self.global_config.norm_method # "layernorm" or "rmsnorm"
-        _norm_small = self.global_config.norm_small   # epsilon
+        _norm_method = self.global_config.norm_method  # "layernorm" or "rmsnorm"
+        _norm_small = self.global_config.norm_small  # epsilon
         self.transition_norm = NormBlock(_norm_method, _norm_small)
         self.attention_norm = NormBlock(_norm_method, _norm_small)
 
         ## attention embedding
         embedding_config = self.config.attention_embedding
-        self.cross_attention_flag = True if embedding_config.attention_type == "cross" else False
-        self.attention_embedding = AttentionEmbedding(embedding_config, self.global_config,
-                                                      self.hyper_lora_config)
+        self.cross_attention_flag = (
+            True if embedding_config.attention_type == "cross" else False
+        )
+        self.attention_embedding = AttentionEmbedding(
+            embedding_config, self.global_config, self.hyper_lora_config
+        )
 
         ### hyper attention
         self.hyper_attention_flag = self.config.hyper_attention_flag
         if self.hyper_attention_flag:
             hyper_attention_config = self.config.hyper_attention_embedding
-            self.hyper_attention_embedding = HyperAttentionEmbedding(hyper_attention_config, self.global_config)
+            self.hyper_attention_embedding = HyperAttentionEmbedding(
+                hyper_attention_config, self.global_config
+            )
 
         ### attention operation
         kernel_config = self.config.attention_kernel
         self.attention_kernel = AttentionKernel(kernel_config, self.global_config)
         post_attention_config = self.config.post_attention
-        self.post_attention = PostAttention(post_attention_config, self.global_config, self.hyper_lora_config)
+        self.post_attention = PostAttention(
+            post_attention_config, self.global_config, self.hyper_lora_config
+        )
 
         ### transition
         transition_config = self.config.transition
-        self.transition = Transition(transition_config, self.global_config, self.hyper_lora_config)
+        self.transition = Transition(
+            transition_config, self.global_config, self.hyper_lora_config
+        )
 
         ### dropout
-        self.dropout_attention = nn.Dropout(rate=self.config.dropout_rate, deterministic=(not self.dropout_flag))
-        self.dropout_transition = nn.Dropout(rate=self.config.dropout_rate, deterministic=(not self.dropout_flag))
-        
-        ### hyper lora 
+        self.dropout_attention = nn.Dropout(
+            rate=self.config.dropout_rate, deterministic=(not self.dropout_flag)
+        )
+        self.dropout_transition = nn.Dropout(
+            rate=self.config.dropout_rate, deterministic=(not self.dropout_flag)
+        )
+
+        ### hyper lora
         self.hyper_lora_flag = True if self.hyper_lora_config else False
 
-    def __call__(self, 
-                 s_i: Union[Array, Tuple],
-                 m_i: Union[Array, Tuple],
-                 m_j: Array = None,
-                 z_ij: Array = None,
-                 m_ij: Array = None,
-                 n_i_or_r_i: Array = None,
-                 hyper_var: Array = None):
+    def __call__(
+        self,
+        s_i: Union[Array, Tuple],
+        m_i: Union[Array, Tuple],
+        m_j: Array = None,
+        z_ij: Array = None,
+        m_ij: Array = None,
+        n_i_or_r_i: Array = None,
+        hyper_var: Array = None,
+    ):
         """transformer block for post/pre norm
         Inputs:
             s_i: single activation;
@@ -155,13 +181,13 @@ class PreNormTransformerBlock(nn.Module):
                 for dense mode: (B, Q, Q)
             z_ij: pair activation (B, Q, Qn, Fz);
             m_ij: mask for pair activation (B, Q, Qn);
-            n_i_or_r_i: neighbor index (B, Q, Qn) or rope position index (B, Qn)            
+            n_i_or_r_i: neighbor index (B, Q, Qn) or rope position index (B, Qn)
         Outputs:
             single_act: (B, Q, Fs)
-        NOTE: 
+        NOTE:
             z_ij, m_ij and n_i_or_r_i is only needed in hyper-attention.
         """
-        
+
         hyper_var_ = {"hyper_var": hyper_var} if self.hyper_lora_flag else {}
         ## for residual connection
         ## if cross attention, then only use the first single activation
@@ -176,7 +202,9 @@ class PreNormTransformerBlock(nn.Module):
         ## hyper attention if needed
         ## if we use cross attention, then hyper attention embedding is not recommended
         if self.hyper_attention_flag:
-            q_i, k_i = self.hyper_attention_embedding(q_i, k_i, m_j, z_ij, m_ij, n_i_or_r_i)
+            q_i, k_i = self.hyper_attention_embedding(
+                q_i, k_i, m_j, z_ij, m_ij, n_i_or_r_i
+            )
 
         ## attention kernel
         act = self.attention_kernel(q_i, k_i, v_i, None, m_i)
@@ -194,6 +222,7 @@ class PreNormTransformerBlock(nn.Module):
 
         return out_i
 
+
 class PostNormTransformerBlock(nn.Module):
 
     config: Union[Config, ConfigDict]
@@ -201,56 +230,71 @@ class PostNormTransformerBlock(nn.Module):
     hyper_lora_config: Union[Config, ConfigDict, None] = None
 
     def setup(self):
-        
+
         ## basic config
         self.bf16_flag = self.global_config.bf16_flag
         self.dropout_flag = self.global_config.dropout_flag
         self.arr_dtype = jnp.bfloat16 if self.bf16_flag else jnp.float32
-       
+
         ## setup modules
         ## norm: both pre norm and post norm are supported
-        _norm_method = self.global_config.norm_method # "layernorm" or "rmsnorm"
-        _norm_small = self.global_config.norm_small   # epsilon
+        _norm_method = self.global_config.norm_method  # "layernorm" or "rmsnorm"
+        _norm_small = self.global_config.norm_small  # epsilon
         self.transition_norm = NormBlock(_norm_method, _norm_small)
         self.attention_norm = NormBlock(_norm_method, _norm_small)
 
         ## attention embedding
         embedding_config = self.config.attention_embedding
-        self.cross_attention_flag = True if embedding_config.attention_type == "cross" else False
-        self.attention_embedding = AttentionEmbedding(embedding_config, self.global_config,
-                                                      self.hyper_lora_config)
+        self.cross_attention_flag = (
+            True if embedding_config.attention_type == "cross" else False
+        )
+        self.attention_embedding = AttentionEmbedding(
+            embedding_config, self.global_config, self.hyper_lora_config
+        )
 
         ### hyper attention
         self.hyper_attention_flag = self.config.hyper_attention_flag
         if self.hyper_attention_flag:
             hyper_attention_config = self.config.hyper_attention_embedding
-            self.hyper_attention_embedding = HyperAttentionEmbedding(hyper_attention_config, self.global_config)
+            self.hyper_attention_embedding = HyperAttentionEmbedding(
+                hyper_attention_config, self.global_config
+            )
 
         ### attention operation
         kernel_config = self.config.attention_kernel
         self.attention_kernel = AttentionKernel(kernel_config, self.global_config)
         post_attention_config = self.config.post_attention
-        self.post_attention = PostAttention(post_attention_config, self.global_config, self.hyper_lora_config)
+        self.post_attention = PostAttention(
+            post_attention_config, self.global_config, self.hyper_lora_config
+        )
 
         ### transition
         transition_config = self.config.transition
-        self.transition = Transition(transition_config, self.global_config, self.hyper_lora_config)
+        self.transition = Transition(
+            transition_config, self.global_config, self.hyper_lora_config
+        )
 
         ### dropout
-        self.dropout_attention = nn.Dropout(rate=self.config.dropout_rate, deterministic=(not self.dropout_flag))
-        self.dropout_transition = nn.Dropout(rate=self.config.dropout_rate, deterministic=(not self.dropout_flag))
+        self.dropout_attention = nn.Dropout(
+            rate=self.config.dropout_rate, deterministic=(not self.dropout_flag)
+        )
+        self.dropout_transition = nn.Dropout(
+            rate=self.config.dropout_rate, deterministic=(not self.dropout_flag)
+        )
 
         ## hyper lora flag
         self.hyper_lora_flag = True if self.hyper_lora_config else False
 
-    def __call__(self, 
-                 s_i: Union[Array, Tuple],
-                 m_i: Union[Array, Tuple],
-                 m_j: Array = None,
-                 z_ij: Array = None,
-                 m_ij: Array = None,
-                 n_i_or_r_i: Array = None,
-                 hyper_var: Array = None,):
+    def __call__(
+        self,
+        s_i: Union[Array, Tuple],
+        m_i: Union[Array, Tuple],
+        m_j: Array = None,
+        z_ij: Array = None,
+        m_ij: Array = None,
+        n_i_or_r_i: Array = None,
+        hyper_var: Array = None,
+    ):
         """transformer block for post/pre norm
         Inputs:
             s_i: single activation;
@@ -264,10 +308,10 @@ class PostNormTransformerBlock(nn.Module):
                 for dense mode: (B, Q, Q)
             z_ij: pair activation (B, Q, Qn, Fz);
             m_ij: mask for pair activation (B, Q, Qn);
-            n_i_or_r_i: neighbor index (B, Q, Qn) or rope position index (B, Qn)            
+            n_i_or_r_i: neighbor index (B, Q, Qn) or rope position index (B, Qn)
         Outputs:
             single_act: (B, Q, Fs)
-        NOTE: 
+        NOTE:
             z_ij, m_ij and n_i_or_r_i is only needed in hyper-attention.
         """
 
@@ -282,7 +326,9 @@ class PostNormTransformerBlock(nn.Module):
         ## hyper attention if needed
         ## if we use cross attention, then hyper attention embedding is not recommended
         if self.hyper_attention_flag:
-            q_i, k_i = self.hyper_attention_embedding(q_i, k_i, m_j, z_ij, m_ij, n_i_or_r_i)
+            q_i, k_i = self.hyper_attention_embedding(
+                q_i, k_i, m_j, z_ij, m_ij, n_i_or_r_i
+            )
 
         ## attention kernel
         act = self.attention_kernel(q_i, k_i, v_i, None, m_i)
@@ -304,66 +350,81 @@ class PostNormTransformerBlock(nn.Module):
 
         return out_i
 
+
 class ResiDualTransformerBlock(nn.Module):
-    """ResiDual: from https://arxiv.org/abs/2304.14802
-    """
+    """ResiDual: from https://arxiv.org/abs/2304.14802"""
 
     config: Union[Config, ConfigDict]
     global_config: Union[Config, ConfigDict]
     hyper_lora_config: Union[Config, ConfigDict, None] = None
 
     def setup(self):
-        
+
         ## basic config
         self.bf16_flag = self.global_config.bf16_flag
         self.dropout_flag = self.global_config.dropout_flag
         self.arr_dtype = jnp.bfloat16 if self.bf16_flag else jnp.float32
-       
+
         ## setup modules
         ## norm
-        _norm_method = self.global_config.norm_method # "layernorm" or "rmsnorm"
-        _norm_small = self.global_config.norm_small   # epsilon
+        _norm_method = self.global_config.norm_method  # "layernorm" or "rmsnorm"
+        _norm_small = self.global_config.norm_small  # epsilon
         self.transition_norm = NormBlock(_norm_method, _norm_small)
         self.attention_norm = NormBlock(_norm_method, _norm_small)
 
         ## attention embedding
         embedding_config = self.config.attention_embedding
-        self.cross_attention_flag = True if embedding_config.attention_type == "cross" else False
-        self.attention_embedding = AttentionEmbedding(embedding_config, self.global_config,
-                                                      self.hyper_lora_config)
+        self.cross_attention_flag = (
+            True if embedding_config.attention_type == "cross" else False
+        )
+        self.attention_embedding = AttentionEmbedding(
+            embedding_config, self.global_config, self.hyper_lora_config
+        )
 
         ### hyper attention
         self.hyper_attention_flag = self.config.hyper_attention_flag
         if self.hyper_attention_flag:
             hyper_attention_config = self.config.hyper_attention_embedding
-            self.hyper_attention_embedding = HyperAttentionEmbedding(hyper_attention_config, self.global_config)
+            self.hyper_attention_embedding = HyperAttentionEmbedding(
+                hyper_attention_config, self.global_config
+            )
 
         ### attention operation
         kernel_config = self.config.attention_kernel
         self.attention_kernel = AttentionKernel(kernel_config, self.global_config)
         post_attention_config = self.config.post_attention
-        self.post_attention = PostAttention(post_attention_config, self.global_config, self.hyper_lora_config)
+        self.post_attention = PostAttention(
+            post_attention_config, self.global_config, self.hyper_lora_config
+        )
 
         ### transition
         transition_config = self.config.transition
-        self.transition = Transition(transition_config, self.global_config, self.hyper_lora_config)
+        self.transition = Transition(
+            transition_config, self.global_config, self.hyper_lora_config
+        )
 
         ### dropout
-        self.dropout_attention = nn.Dropout(rate=self.config.dropout_rate, deterministic=(not self.dropout_flag))
-        self.dropout_transition = nn.Dropout(rate=self.config.dropout_rate, deterministic=(not self.dropout_flag))
+        self.dropout_attention = nn.Dropout(
+            rate=self.config.dropout_rate, deterministic=(not self.dropout_flag)
+        )
+        self.dropout_transition = nn.Dropout(
+            rate=self.config.dropout_rate, deterministic=(not self.dropout_flag)
+        )
 
         ## hyper lora
         self.hyper_lora_flag = True if self.hyper_lora_config else False
 
-    def __call__(self, 
-                 s_i: Union[Array, Tuple],
-                 acc_s_i: Union[Array, Tuple],
-                 m_i: Union[Array, Tuple],
-                 m_j: Array = None,
-                 z_ij: Array = None,
-                 m_ij: Array = None,
-                 n_i_or_r_i: Array = None,
-                 hyper_var: Array = None,):
+    def __call__(
+        self,
+        s_i: Union[Array, Tuple],
+        acc_s_i: Union[Array, Tuple],
+        m_i: Union[Array, Tuple],
+        m_j: Array = None,
+        z_ij: Array = None,
+        m_ij: Array = None,
+        n_i_or_r_i: Array = None,
+        hyper_var: Array = None,
+    ):
         """transformer block for post/pre norm
         Inputs:
             s_i: single activation;
@@ -380,10 +441,10 @@ class ResiDualTransformerBlock(nn.Module):
                 for dense mode: (B, Q)
             z_ij: pair activation (B, Q, Qn, Fz);
             m_ij: mask for pair activation (B, Q, Qn);
-            n_i_or_r_i: neighbor index (B, Q, Qn) or rope position index (B, Qn)            
+            n_i_or_r_i: neighbor index (B, Q, Qn) or rope position index (B, Qn)
         Outputs:
             single_act: (B, Q, Fs)
-        NOTE: 
+        NOTE:
             z_ij, m_ij and n_i_or_r_i is only needed in hyper-attention.
         """
 
@@ -398,7 +459,9 @@ class ResiDualTransformerBlock(nn.Module):
         ## hyper attention if needed
         ## if we use cross attention, then hyper attention embedding is not recommended
         if self.hyper_attention_flag:
-            q_i, k_i = self.hyper_attention_embedding(q_i, k_i, m_j, z_ij, m_ij, n_i_or_r_i)
+            q_i, k_i = self.hyper_attention_embedding(
+                q_i, k_i, m_j, z_ij, m_ij, n_i_or_r_i
+            )
 
         ## attention kernel
         act = self.attention_kernel(q_i, k_i, v_i, None, m_i)
@@ -420,4 +483,3 @@ class ResiDualTransformerBlock(nn.Module):
         out_i = self.attention_norm(out_i)
 
         return out_i, acc_s_i
-

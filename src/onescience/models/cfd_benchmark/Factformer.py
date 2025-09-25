@@ -1,12 +1,11 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
-from timm.layers import trunc_normal_
-from onescience.models.layers.Basic import MLP, PreNorm, Attention
-from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
-from einops import rearrange, repeat
+from einops import rearrange
 from einops.layers.torch import Rearrange
+from timm.layers import trunc_normal_
+
+from onescience.models.layers.Basic import MLP, Attention, PreNorm
+from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
 
 
 class PoolingReducer(nn.Module):

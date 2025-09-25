@@ -1,14 +1,14 @@
 """Ops for all atom representations."""
 
 from functools import partial
-from typing import Dict, Text, Tuple
+from typing import Text, Tuple
 
 import numpy as np
 import torch
 
-from onescience.utils.openfold.np import residue_constants as rc
 from onescience.utils.openfold import geometry, tensor_utils
 from onescience.utils.openfold.geometry.rigid_matrix_vector import Rigid3Array
+from onescience.utils.openfold.np import residue_constants as rc
 
 
 def squared_difference(x, y):
@@ -206,7 +206,7 @@ def torsion_angles_to_frames(
     cos_angles = torsion_angles_sin_cos[..., 1]
 
     # insert zero rotation for backbone group.
-    num_residues = aatype.shape[-1]
+    aatype.shape[-1]
     sin_angles = torch.cat(
         [
             torch.zeros_like(aatype).unsqueeze(dim=-1),

@@ -1,9 +1,10 @@
 import copy
+
 import torch
-from onescience.utils.deepcfd.pytorchtools import EarlyStopping
 from torch.utils.data import DistributedSampler
+
 from onescience.distributed.manager import DistributedManager
-from torch.nn.parallel import DistributedDataParallel
+from onescience.utils.deepcfd.pytorchtools import EarlyStopping
 
 
 def generate_metrics_list(metrics_def):

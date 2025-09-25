@@ -1,8 +1,9 @@
+from typing import Dict, List, Tuple, Union
+
 import numpy as np
 import pyvista as pv
-from scipy.interpolate import griddata
 from numpy.fft import fft, fftfreq
-from typing import List, Dict, Union, Tuple
+from scipy.interpolate import griddata
 
 
 def generate_mesh(

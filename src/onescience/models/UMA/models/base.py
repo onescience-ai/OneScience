@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import copy
@@ -11,9 +9,7 @@ import torch
 from torch import nn
 
 from onescience.models.UMA.common.registry import registry
-from onescience.models.UMA.common.utils import (
-    load_model_and_weights_from_checkpoint,
-)
+from onescience.models.UMA.common.utils import load_model_and_weights_from_checkpoint
 
 if TYPE_CHECKING:
     from onescience.datapipes.uma.atomic_data import AtomicData

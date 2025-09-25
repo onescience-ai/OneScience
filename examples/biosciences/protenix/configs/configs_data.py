@@ -46,7 +46,7 @@ default_weighted_pdb_configs = {
     "shuffle_sym_ids": GlobalConfigValue("train_shuffle_sym_ids"),
 }
 
-#DATA_ROOT_DIR = "/af3-dev/release_data/"
+# DATA_ROOT_DIR = "/af3-dev/release_data/"
 DATA_ROOT_DIR = os.environ["DATA_ROOT_DIR"]
 # Use CCD cache created by scripts/gen_ccd_cache.py priority. (without date in filename)
 # See: docs/prepare_data.md
@@ -200,5 +200,6 @@ data_configs = {
     },
     "ccd_components_file": os.path.join(DATA_ROOT_DIR, "components.v20240608.cif"),
     "ccd_components_rdkit_mol_file": os.path.join(
-        DATA_ROOT_DIR, "components.v20240608.cif.rdkit_mol.pkl"),
+        DATA_ROOT_DIR, "components.v20240608.cif.rdkit_mol.pkl"
+    ),
 }

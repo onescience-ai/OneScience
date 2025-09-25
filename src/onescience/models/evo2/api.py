@@ -20,7 +20,6 @@ from typing import Generic, Sequence, TypeVar
 from megatron.core.transformer.module import MegatronModule
 from nemo.lightning.megatron_parallel import DataT, MegatronLossReduction
 
-
 __all__: Sequence[str] = (
     "BionemoMegatronModel",
     "MegatronLossReduction",  # re-export Megatron's loss definition as it's a core part of the bionemo-llm API

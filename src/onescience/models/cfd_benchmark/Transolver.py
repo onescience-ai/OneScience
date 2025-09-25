@@ -1,17 +1,13 @@
 import torch
 import torch.nn as nn
-import numpy as np
 from timm.layers import trunc_normal_
+
 from onescience.models.layers.Basic import MLP
 from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
-from onescience.models.layers.Physics_Attention import Physics_Attention_Irregular_Mesh
 from onescience.models.layers.Physics_Attention import (
+    Physics_Attention_Irregular_Mesh,
     Physics_Attention_Structured_Mesh_1D,
-)
-from onescience.models.layers.Physics_Attention import (
     Physics_Attention_Structured_Mesh_2D,
-)
-from onescience.models.layers.Physics_Attention import (
     Physics_Attention_Structured_Mesh_3D,
 )
 

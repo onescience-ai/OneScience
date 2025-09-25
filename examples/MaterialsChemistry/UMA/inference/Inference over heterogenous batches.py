@@ -1,6 +1,7 @@
-from ase.build import bulk, molecule, fcc100, add_adsorbate
-from onescience.models.UMA.units.mlip_unit import load_predict_unit
+from ase.build import add_adsorbate, bulk, fcc100, molecule
+
 from onescience.datapipes.uma.atomic_data import AtomicData, atomicdata_list_to_batch
+from onescience.models.UMA.units.mlip_unit import load_predict_unit
 
 # 1. 创建异构结构
 h2o = molecule("H2O")
@@ -26,7 +27,7 @@ batch = atomicdata_list_to_batch(atomic_data_list)
 
 # 4. 加载 UMA 模型
 predictor = load_predict_unit(
-    "../checkpoint/uma-s-1p1.pt", device="cuda"#替换为你的检查点路径
+    "../checkpoint/uma-s-1p1.pt", device="cuda"  # 替换为你的检查点路径
 )
 
 # 5. 执行联合推理

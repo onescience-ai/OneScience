@@ -5,20 +5,23 @@ from typing import Any, Optional
 import torch
 import torch.nn as nn
 
-from onescience.models.protenix.modules.primitives import LinearNoBias, Transition
-from onescience.models.protenix.modules.transformer import AttentionPairBias
-from onescience.models.protenix.utils import pad_at_dim, sample_msa_feature_dict_random_without_replacement
 from onescience.models.openfold.dropout import DropoutRowwise
 from onescience.models.openfold.outer_product_mean import (
-    OuterProductMean,  # Alg 9 in AF3
-)
+    OuterProductMean,
+)  # Alg 9 in AF3
 from onescience.models.openfold.primitives import LayerNorm
 from onescience.models.openfold.triangular_attention import TriangleAttention
 from onescience.models.openfold.triangular_multiplicative_update import (
-    TriangleMultiplicationIncoming,  # Alg 13 in AF3
-)
+    TriangleMultiplicationIncoming,
+)  # Alg 13 in AF3
 from onescience.models.openfold.triangular_multiplicative_update import (
-    TriangleMultiplicationOutgoing,  # Alg 12 in AF3
+    TriangleMultiplicationOutgoing,
+)  # Alg 12 in AF3
+from onescience.models.protenix.modules.primitives import LinearNoBias, Transition
+from onescience.models.protenix.modules.transformer import AttentionPairBias
+from onescience.models.protenix.utils import (
+    pad_at_dim,
+    sample_msa_feature_dict_random_without_replacement,
 )
 from onescience.utils.openfold.checkpointing import checkpoint_blocks, get_checkpoint_fn
 
@@ -334,13 +337,17 @@ class MSAPairWeightedAveraging(nn.Module):
             in_features=self.c_z, out_features=self.n_heads
         )
         self.linear_no_bias_mg = LinearNoBias(
-            in_features=self.c_m, out_features=self.c * self.n_heads, initializer="zeros",
+            in_features=self.c_m,
+            out_features=self.c * self.n_heads,
+            initializer="zeros",
         )
         # Weighted average with gating
         self.softmax_w = nn.Softmax(dim=-2)
         # Output projection
         self.linear_no_bias_out = LinearNoBias(
-            in_features=self.c * self.n_heads, out_features=self.c_m, initializer="zeros",
+            in_features=self.c * self.n_heads,
+            out_features=self.c_m,
+            initializer="zeros",
         )
 
     def forward(self, m: torch.Tensor, z: torch.Tensor) -> torch.Tensor:

@@ -1,7 +1,7 @@
 """Pairing logic for multimer data pipeline."""
 
 import collections
-from typing import Any, Dict, Iterable, List, Mapping, Sequence
+from typing import Iterable, List, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -388,7 +388,7 @@ def _merge_features_from_multiple_chains(
 
 
 def _merge_homomers_dense_msa(
-    chains: Iterable[Mapping[str, np.ndarray]]
+    chains: Iterable[Mapping[str, np.ndarray]],
 ) -> Sequence[Mapping[str, np.ndarray]]:
     """Merge all identical chains, making the resulting MSA dense.
 
@@ -417,7 +417,7 @@ def _merge_homomers_dense_msa(
 
 
 def _concatenate_paired_and_unpaired_features(
-    example: Mapping[str, np.ndarray]
+    example: Mapping[str, np.ndarray],
 ) -> Mapping[str, np.ndarray]:
     """Merges paired and block-diagonalised features."""
     features = MSA_FEATURES
@@ -465,7 +465,7 @@ def merge_chain_features(
 
 
 def deduplicate_unpaired_sequences(
-    np_chains: List[Mapping[str, np.ndarray]]
+    np_chains: List[Mapping[str, np.ndarray]],
 ) -> list[Mapping[str, np.ndarray]]:
     """Removes unpaired sequences which duplicate a paired sequence."""
 

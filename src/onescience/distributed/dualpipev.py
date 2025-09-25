@@ -1,14 +1,18 @@
-from typing import Tuple, List, Union, Callable, Optional
+from typing import Callable, List, Optional, Tuple, Union
 
 import torch
-import torch.nn as nn
 import torch.distributed as dist
+import torch.nn as nn
 
 import onescience.distributed.comm as comm
-from onescience.distributed.dualpipeutils import WeightGradStore, run_backward, scatter, gather
+from onescience.distributed.dualpipeutils import (
+    WeightGradStore,
+    gather,
+    run_backward,
+    scatter,
+)
 
 
-    
 class DualPipeV(nn.Module):
     def __init__(
         self,
@@ -19,9 +23,13 @@ class DualPipeV(nn.Module):
     ) -> None:
         super().__init__()
 
-        assert next(modules[0].parameters()).device == torch.device(torch.cuda.current_device())
+        assert next(modules[0].parameters()).device == torch.device(
+            torch.cuda.current_device()
+        )
         self.module = nn.ModuleList(modules)
-        self.overlapped_forward_backward = type(modules[0]) == type(modules[1]) and hasattr(type(modules[0]), "overlapped_forward_backward")
+        self.overlapped_forward_backward = type(modules[0]) == type(
+            modules[1]
+        ) and hasattr(type(modules[0]), "overlapped_forward_backward")
         self.batch_dim = batch_dim
         self.group = process_group or dist.distributed_c10d._get_default_group()
         self.num_ranks = self.group.size()
@@ -44,14 +52,23 @@ class DualPipeV(nn.Module):
     def log(self, name, phase):
         return
         # print(f"{MARKS[name]} [Rank {self.rank}] {name} start, phase={phase}")
-    
+
     def _reset_states(self) -> None:
         WeightGradStore.clear()
 
-        self.input_chunks: Tuple[List[List[torch.Tensor]], List[List[torch.Tensor]]] = ([], [])
-        self.output_chunks: Tuple[List[List[torch.Tensor]], List[List[torch.Tensor]]] = ([], [])
-        self.input_grad_chunks: Tuple[List[List[torch.Tensor]], List[List[torch.Tensor]]] = ([], [])
-        self.output_grad_chunks: Tuple[List[List[torch.Tensor]], List[List[torch.Tensor]]] = ([], [])
+        self.input_chunks: Tuple[List[List[torch.Tensor]], List[List[torch.Tensor]]] = (
+            [],
+            [],
+        )
+        self.output_chunks: Tuple[
+            List[List[torch.Tensor]], List[List[torch.Tensor]]
+        ] = ([], [])
+        self.input_grad_chunks: Tuple[
+            List[List[torch.Tensor]], List[List[torch.Tensor]]
+        ] = ([], [])
+        self.output_grad_chunks: Tuple[
+            List[List[torch.Tensor]], List[List[torch.Tensor]]
+        ] = ([], [])
         self.labels: List[List[torch.Tensor]] = None
         self.loss_chunks: List[torch.Tensor] = []
         self.criterion: Callable = None
@@ -73,7 +90,7 @@ class DualPipeV(nn.Module):
         if self.forward_only:
             self.input_chunks[phase][chunk_id] = None
 
-        is_last_stage = (self.is_first_rank and phase == 1)
+        is_last_stage = self.is_first_rank and phase == 1
 
         outputs = self.module[phase](*inputs)
         outputs = [outputs] if isinstance(outputs, torch.Tensor) else outputs
@@ -83,7 +100,9 @@ class DualPipeV(nn.Module):
             self.loss_chunks.append(loss)
 
         if self.is_last_rank and phase == 0:
-            self.input_chunks[1].append([output.detach().requires_grad_() for output in outputs])
+            self.input_chunks[1].append(
+                [output.detach().requires_grad_() for output in outputs]
+            )
         if (not is_last_stage) or self.return_outputs:
             self.output_chunks[phase].append(outputs)
 
@@ -94,7 +113,7 @@ class DualPipeV(nn.Module):
         chunk_id = self.current_b_chunk_id[phase]
         self.current_b_chunk_id[phase] += 1
 
-        is_last_stage = (self.is_first_rank and phase == 1)
+        is_last_stage = self.is_first_rank and phase == 1
 
         WeightGradStore.enabled = enable_zb
         if is_last_stage:
@@ -124,7 +143,7 @@ class DualPipeV(nn.Module):
             self.input_grad_chunks[phase].append(input_grads)
 
     def _forward_backward_compute_chunk(self, phase0: int, phase1: int) -> None:
-        
+
         if self.forward_only:
             self.log("_forward_backward_compute_chunk", phase0)
             self._forward_compute_chunk(phase0)
@@ -141,7 +160,7 @@ class DualPipeV(nn.Module):
         self.current_f_chunk_id[phase0] += 1
         module0 = self.module[phase0]
         inputs0 = self.input_chunks[phase0][chunk_id0]
-        is_last_stage0 = (self.is_first_rank and phase0 == 1)
+        is_last_stage0 = self.is_first_rank and phase0 == 1
 
         if is_last_stage0 and self.criterion is not None:
             labels0 = self.labels[chunk_id0]
@@ -154,7 +173,7 @@ class DualPipeV(nn.Module):
         chunk_id1 = self.current_b_chunk_id[phase1]
         self.current_b_chunk_id[phase1] += 1
         module1 = self.module[phase1]
-        is_last_stage1 = (self.is_first_rank and phase1 == 1)
+        is_last_stage1 = self.is_first_rank and phase1 == 1
 
         if is_last_stage1:
             loss1 = self.loss_chunks[chunk_id1]
@@ -167,18 +186,28 @@ class DualPipeV(nn.Module):
                 self.output_chunks[phase1][chunk_id1] = None
             output_grads1 = self.output_grad_chunks[phase1][chunk_id1]
             self.output_grad_chunks[phase1][chunk_id1] = None
-            non_empty = [(t, g) for t, g in zip(outputs1, output_grads1) if g is not None]
+            non_empty = [
+                (t, g) for t, g in zip(outputs1, output_grads1) if g is not None
+            ]
             outputs1, output_grads1 = list(zip(*non_empty))
 
         # forward & backward
         outputs0, loss0 = type(module0).overlapped_forward_backward(
-            module0, inputs0, criterion0, labels0,
-            module1, loss1, outputs1, output_grads1,
+            module0,
+            inputs0,
+            criterion0,
+            labels0,
+            module1,
+            loss1,
+            outputs1,
+            output_grads1,
         )
 
         # post-forward
         if self.is_last_rank and phase0 == 0:
-            self.input_chunks[1].append([output.detach().requires_grad_() for output in outputs0])
+            self.input_chunks[1].append(
+                [output.detach().requires_grad_() for output in outputs0]
+            )
         if (not is_last_stage0) or self.return_outputs:
             self.output_chunks[phase0].append(outputs0)
         if is_last_stage0 and self.criterion is not None:
@@ -204,7 +233,9 @@ class DualPipeV(nn.Module):
         if send:
             self._send_forward(phase)
 
-    def _backward_chunk(self, phase: int, enable_zb: bool = False, recv: bool = True, send: bool = True) -> None:
+    def _backward_chunk(
+        self, phase: int, enable_zb: bool = False, recv: bool = True, send: bool = True
+    ) -> None:
         self.log("_backward_chunk", phase)
         if recv:
             self._recv_backward(phase)
@@ -215,7 +246,9 @@ class DualPipeV(nn.Module):
         if send:
             self._send_backward(phase)
 
-    def _forward_backward_chunk(self, phase0: int, phase1: int, recv0: bool = True) -> None:
+    def _forward_backward_chunk(
+        self, phase0: int, phase1: int, recv0: bool = True
+    ) -> None:
         self.log("_forward_backward_chunk", 2)
         if recv0:
             self._recv_forward(phase0)
@@ -240,7 +273,9 @@ class DualPipeV(nn.Module):
     def _free_tensors(self) -> None:
         self.log("_free_tensors", 2)
         for tensor in self.to_free:
-            assert tensor._base is None, f"pipeline stage should not return view tensors {dist.get_rank(), tensor.shape}"
+            assert (
+                tensor._base is None
+            ), f"pipeline stage should not return view tensors {dist.get_rank(), tensor.shape}"
             tensor.data = torch.Tensor()
         self.to_free = []
 
@@ -250,7 +285,9 @@ class DualPipeV(nn.Module):
             return
 
         self.current_recv_f_chunk_id[phase] += 1
-        tensors = comm.append_irecv(self.comm_ops, self.prev_rank if phase == 0 else self.next_rank, self.group)
+        tensors = comm.append_irecv(
+            self.comm_ops, self.prev_rank if phase == 0 else self.next_rank, self.group
+        )
         self.input_chunks[phase].append(tensors)
 
     def _send_forward(self, phase: int) -> None:
@@ -262,7 +299,12 @@ class DualPipeV(nn.Module):
         self.current_send_f_chunk_id[phase] += 1
         tensors = self.output_chunks[phase][chunk_id]
 
-        comm.append_isend(self.comm_ops, tensors, self.next_rank if phase == 0 else self.prev_rank, self.group)
+        comm.append_isend(
+            self.comm_ops,
+            tensors,
+            self.next_rank if phase == 0 else self.prev_rank,
+            self.group,
+        )
 
         if not self.return_outputs:
             self.to_free.extend(tensors)
@@ -276,7 +318,9 @@ class DualPipeV(nn.Module):
             return
 
         self.current_recv_b_chunk_id[phase] += 1
-        tensors = comm.append_irecv(self.comm_ops, self.next_rank if phase == 0 else self.prev_rank, self.group)
+        tensors = comm.append_irecv(
+            self.comm_ops, self.next_rank if phase == 0 else self.prev_rank, self.group
+        )
         self.output_grad_chunks[phase].append(tensors)
 
     def _send_backward(self, phase: int) -> None:
@@ -292,7 +336,12 @@ class DualPipeV(nn.Module):
         tensors = self.input_grad_chunks[phase][chunk_id]
         self.input_grad_chunks[phase][chunk_id] = None
 
-        comm.append_isend(self.comm_ops, tensors, self.prev_rank if phase == 0 else self.next_rank, self.group)
+        comm.append_isend(
+            self.comm_ops,
+            tensors,
+            self.prev_rank if phase == 0 else self.next_rank,
+            self.group,
+        )
 
     def _commit_and_wait_comm(self) -> None:
         if not self.comm_ops:
@@ -310,7 +359,9 @@ class DualPipeV(nn.Module):
         criterion: Optional[Callable] = None,
         labels: List[Optional[torch.Tensor]] = [],
         return_outputs: bool = False,
-    ) -> Tuple[Optional[torch.Tensor], Optional[Union[torch.Tensor, Tuple[torch.Tensor]]]]:
+    ) -> Tuple[
+        Optional[torch.Tensor], Optional[Union[torch.Tensor, Tuple[torch.Tensor]]]
+    ]:
         """
         Execute a training or inference step.
 
@@ -326,14 +377,17 @@ class DualPipeV(nn.Module):
             outputs: Module outputs. Returned only if ``return_outputs=True`` and on the first rank.
 
         """
-        assert comm.TENSOR_SHAPES is not None and comm.TENSOR_DTYPE is not None, \
-            "You need to call set_p2p_tensor_shapes and set_p2p_tensor_dtype before executing a step."
+        assert (
+            comm.TENSOR_SHAPES is not None and comm.TENSOR_DTYPE is not None
+        ), "You need to call set_p2p_tensor_shapes and set_p2p_tensor_dtype before executing a step."
         self.forward_only = not torch.is_grad_enabled()
         self.return_outputs = return_outputs
 
         rank = self.rank
         num_ranks = self.num_ranks
-        assert num_chunks > 0 and num_chunks >= num_ranks * 2, f"{num_chunks=}, {num_ranks=}"
+        assert (
+            num_chunks > 0 and num_chunks >= num_ranks * 2
+        ), f"{num_chunks=}, {num_ranks=}"
 
         if not self.forward_only and self.is_first_rank:
             assert criterion is not None
@@ -427,5 +481,3 @@ class DualPipeV(nn.Module):
         self._reset_states()
 
         return loss, outputs
-
-   

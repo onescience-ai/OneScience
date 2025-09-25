@@ -1,14 +1,13 @@
 from abc import ABC, abstractmethod
 from functools import partialmethod
 from typing import Optional
-from abc import ABC, abstractmethod
 
 import torch
 import torch.nn as nn
 
-from onescience.models.openfold.primitives import Linear, LayerNorm
+from onescience.models.openfold.primitives import LayerNorm, Linear
 from onescience.utils.openfold.precision_utils import is_fp16_enabled
-from onescience.utils.openfold.tensor_utils import add, permute_final_dims
+from onescience.utils.openfold.tensor_utils import permute_final_dims
 
 
 class BaseTriangleMultiplicativeUpdate(nn.Module, ABC):
@@ -84,7 +83,6 @@ class BaseTriangleMultiplicativeUpdate(nn.Module, ABC):
         Returns:
             [*, N_res, N_res, C_z] output tensor
         """
-        pass
 
 
 class TriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
@@ -104,9 +102,17 @@ class TriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
             c_z=c_z, c_hidden=c_hidden, _outgoing=_outgoing
         )
 
-        self.linear_a_p = Linear(self.c_z, self.c_hidden, bias=False, )
+        self.linear_a_p = Linear(
+            self.c_z,
+            self.c_hidden,
+            bias=False,
+        )
         self.linear_a_g = Linear(self.c_z, self.c_hidden, bias=False, init="gating")
-        self.linear_b_p = Linear(self.c_z, self.c_hidden, bias=False, )
+        self.linear_b_p = Linear(
+            self.c_z,
+            self.c_hidden,
+            bias=False,
+        )
         self.linear_b_g = Linear(self.c_z, self.c_hidden, bias=False, init="gating")
 
     def _inference_forward(

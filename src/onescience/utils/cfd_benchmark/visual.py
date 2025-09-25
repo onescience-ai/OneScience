@@ -1,8 +1,8 @@
-import torch
-import matplotlib.pyplot as plt
-import numpy as np
 import os
 import warnings
+
+import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib import animation
 
 warnings.filterwarnings("ignore")
@@ -247,8 +247,9 @@ def visual_structured_2d(x, y, out, args, id):
 
 def visual_structured_3d(x, y, out, args, id):
     import os
-    import numpy as np
+
     import matplotlib.pyplot as plt
+    import numpy as np
 
     if args.vis_bound is not None:
         space_x_min = args.vis_bound[0]

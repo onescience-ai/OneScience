@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import os
@@ -8,8 +6,13 @@ from glob import glob
 import numpy as np
 import pandas as pd
 
-from onescience.models.UMA.components.benchmark.benchmark_reducer import BenchmarkReducer
-from onescience.models.UMA.components.calculate.nve_md_runner import NVEMDRunner, get_thermo
+from onescience.models.UMA.components.benchmark.benchmark_reducer import (
+    BenchmarkReducer,
+)
+from onescience.models.UMA.components.calculate.nve_md_runner import (
+    NVEMDRunner,
+    get_thermo,
+)
 
 
 def moving_avg(x, window=20):

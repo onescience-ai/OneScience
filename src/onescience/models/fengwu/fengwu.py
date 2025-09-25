@@ -4,11 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-from ..layers import (
-    DecoderLayer,
-    EncoderLayer,
-    FuserLayer,
-)
+from ..layers import DecoderLayer, EncoderLayer, FuserLayer
 from ..meta import ModelMetaData
 from ..module import Module
 

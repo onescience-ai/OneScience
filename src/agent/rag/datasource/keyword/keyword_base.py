@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+
+# from models.dataset import Dataset
+from enum import StrEnum
 from typing import Any
 
 from langchain_core.documents import Document
-# from models.dataset import Dataset
-from enum import StrEnum
 
 
 class KeyWordType(StrEnum):

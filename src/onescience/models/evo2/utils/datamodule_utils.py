@@ -17,7 +17,9 @@
 from typing import Any, Dict, List, Union
 
 
-def float_or_int_or_none(value: Union[str, float, int, None]) -> Union[float, int, None]:
+def float_or_int_or_none(
+    value: Union[str, float, int, None],
+) -> Union[float, int, None]:
     """Converts a given value into a float, int, or None.
 
     Args:
@@ -94,35 +96,60 @@ def infer_global_batch_size(
             f"{type(accumulate_grad_batches)}, {type(tensor_model_parallel_size)}, {type(pipeline_model_parallel_size)}, and {type(context_model_parallel_size)}"
         )
     if micro_batch_size <= 0:
-        raise ValueError(f"micro_batch_size must be greater than 0, got {micro_batch_size}")
+        raise ValueError(
+            f"micro_batch_size must be greater than 0, got {micro_batch_size}"
+        )
     if num_nodes <= 0:
         raise ValueError(f"num_nodes must be greater than 0, got {num_nodes}")
     if devices <= 0:
         raise ValueError(f"devices must be greater than 0, got {devices}")
     if accumulate_grad_batches <= 0:
-        raise ValueError(f"accumulate_grad_batches must be greater than 0, got {accumulate_grad_batches}")
+        raise ValueError(
+            f"accumulate_grad_batches must be greater than 0, got {accumulate_grad_batches}"
+        )
     if tensor_model_parallel_size <= 0:
-        raise ValueError(f"tensor_model_parallel_size must be greater than 0, got {tensor_model_parallel_size}")
+        raise ValueError(
+            f"tensor_model_parallel_size must be greater than 0, got {tensor_model_parallel_size}"
+        )
     if pipeline_model_parallel_size <= 0:
-        raise ValueError(f"pipeline_model_parallel_size must be greater than 0, got {pipeline_model_parallel_size}")
+        raise ValueError(
+            f"pipeline_model_parallel_size must be greater than 0, got {pipeline_model_parallel_size}"
+        )
     if context_model_parallel_size <= 0:
-        raise ValueError(f"context_model_parallel_size must be greater than 0, got {context_model_parallel_size}")
+        raise ValueError(
+            f"context_model_parallel_size must be greater than 0, got {context_model_parallel_size}"
+        )
 
     world_size = num_nodes * devices
-    if world_size % (tensor_model_parallel_size * pipeline_model_parallel_size * context_model_parallel_size) != 0:
+    if (
+        world_size
+        % (
+            tensor_model_parallel_size
+            * pipeline_model_parallel_size
+            * context_model_parallel_size
+        )
+        != 0
+    ):
         raise ValueError(
             f"world_size must be divisible by tensor_model_parallel_size * pipeline_model_parallel_size * context_model_parallel_size, "
             f"got {world_size} and TP{tensor_model_parallel_size} * PP{pipeline_model_parallel_size} * CP{context_model_parallel_size}"
         )
 
-    model_parallel_size = tensor_model_parallel_size * pipeline_model_parallel_size * context_model_parallel_size
+    model_parallel_size = (
+        tensor_model_parallel_size
+        * pipeline_model_parallel_size
+        * context_model_parallel_size
+    )
     data_parallel_size = world_size // model_parallel_size
     global_batch_size = micro_batch_size * data_parallel_size * accumulate_grad_batches
     return global_batch_size
 
 
 def infer_num_samples(
-    limit_batches: Union[float, int, str, None], num_samples_in_dataset: int, global_batch_size: int, stage: str
+    limit_batches: Union[float, int, str, None],
+    num_samples_in_dataset: int,
+    global_batch_size: int,
+    stage: str,
 ):
     """Infers the number of samples based on the limit_batches parameter, the length of the dataset, and the global batch size.
 
@@ -145,7 +172,9 @@ def infer_num_samples(
     as the product of limit_batches and global batch size. If limit_batches is None, it defaults to 1.0, indicating that
     all dataset samples should be used.
     """
-    limit_batches = 1.0 if limit_batches is None else limit_batches  # validation data does not require upsampling
+    limit_batches = (
+        1.0 if limit_batches is None else limit_batches
+    )  # validation data does not require upsampling
     if 0 < limit_batches <= 1.0 and isinstance(limit_batches, float):
         num_limited_samples = int(num_samples_in_dataset * limit_batches)
         if num_limited_samples < global_batch_size:
@@ -156,6 +185,8 @@ def infer_num_samples(
     elif limit_batches >= 1 and isinstance(limit_batches, int):
         num_limited_samples = int(limit_batches * global_batch_size)
     else:
-        raise ValueError("Invalid choice of limit_%s_batches size: %s" % (stage, limit_batches))
+        raise ValueError(
+            "Invalid choice of limit_%s_batches size: %s" % (stage, limit_batches)
+        )
 
     return num_limited_samples

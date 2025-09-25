@@ -1,16 +1,10 @@
-
-
 from __future__ import annotations
 
 import logging
 from abc import ABCMeta
 from functools import cached_property
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import numpy as np
 import torch
@@ -93,8 +87,8 @@ class BaseDataset(Dataset[T_co], metaclass=ABCMeta):
         assert np.issubdtype(
             metadata["natoms"].dtype, np.integer
         ), f"Metadata natoms must be an integer type! not {metadata['natoms'].dtype}"
-        assert (
-            metadata["natoms"].shape[0] == len(self)
+        assert metadata["natoms"].shape[0] == len(
+            self
         ), f"Loaded metadata size {metadata['natoms'].shape[0]} and dataset size {len(self)} mismatch."
 
         return metadata

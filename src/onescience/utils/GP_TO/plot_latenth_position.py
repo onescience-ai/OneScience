@@ -1,32 +1,30 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import torch
 
-def plot_ls(model, constraints_flag = True):
-    # 
+
+def plot_ls(model, constraints_flag=True):
+    #
     # plot latent values
 
-    #zeta = torch.tensor(model.zeta, dtype = torch.float64)
+    # zeta = torch.tensor(model.zeta, dtype = torch.float64)
     zeta = model.zeta
 
-    #A = model.nn_model.weight.detach()
-    perm = model.perm
-    levels = model.num_levels_per_var
-    #positions = torch.matmul(zeta, A.T)   # this gives the position of each combination in latent space
+    # A = model.nn_model.weight.detach()
+    model.perm
+    model.num_levels_per_var
+    # positions = torch.matmul(zeta, A.T)   # this gives the position of each combination in latent space
 
-    positions = model.nn_model(zeta, transform = lambda x: x) #3-torch.exp(x)
+    positions = model.nn_model(zeta, transform=lambda x: x)  # 3-torch.exp(x)
     if positions.ndim > 2:
-        positions = positions.mean(axis = 0)
+        positions = positions.mean(axis=0)
     else:
         positions = positions.detach()
 
     if positions.ndim > 2:
-        positions = positions.mean(axis = 0) 
+        positions = positions.mean(axis=0)
 
     # applying the constrains
     if constraints_flag:
         positions = constrains(positions)
-
 
     positions = positions.detach().numpy()
 
@@ -37,7 +35,7 @@ def plot_ls(model, constraints_flag = True):
     # for j in range(len(levels)):
 
     #     for i in range(levels[j]):
-    #         index = torch.where(perm[:,j] == i) 
+    #         index = torch.where(perm[:,j] == i)
     #         col = list(map(lambda x: colors[x], np.ones(index[0].numpy().shape) * i))
     #         axs.scatter(positions[index][...,0], positions[index][...,1], label = 'level' + str(i+1), c = col)
     #         #axs.set_title('Variable ' + str(j), fontsize = 15)
@@ -58,21 +56,20 @@ def plot_ls(model, constraints_flag = True):
 
 
 def constrains(z):
-    n = z.shape[0]
-    z = z - z[0,:]
+    z.shape[0]
+    z = z - z[0, :]
 
-    if z[1,0] < 0:
+    if z[1, 0] < 0:
         z[:, 0] *= -1
-    
-    rot = torch.atan(-1 * z[1,1]/z[1,0])
-    R = torch.tensor([ [torch.cos(rot), -1 * torch.sin(rot)], [torch.sin(rot), torch.cos(rot)]])
+
+    rot = torch.atan(-1 * z[1, 1] / z[1, 0])
+    R = torch.tensor(
+        [[torch.cos(rot), -1 * torch.sin(rot)], [torch.sin(rot), torch.cos(rot)]]
+    )
 
     z = torch.matmul(R, z.T)
     z = z.T
-    if z.shape[1] > 2 and z[2,1] < 0:
+    if z.shape[1] > 2 and z[2, 1] < 0:
         z[:, 1] *= -1
-    
+
     return z
-    
-
-

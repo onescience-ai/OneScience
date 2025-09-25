@@ -10,9 +10,9 @@ import biotite.structure as struc
 import biotite.structure.io.pdbx as pdbx
 import numpy as np
 from biotite.structure import AtomArray
+from configs.configs_data import data_configs
 from rdkit import Chem
 
-from configs.configs_data import data_configs
 from onescience.datapipes.protenix.substructure_perms import get_substructure_perms
 
 logger = logging.getLogger(__name__)

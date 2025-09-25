@@ -1,10 +1,9 @@
-import os
 import torch
-from onescience.models.cfd_benchmark.model_factory import get_model
-from onescience.datapipes.cfd_benchmark.data_factory import get_data
 from torch.utils.data.distributed import DistributedSampler
+
+from onescience.datapipes.cfd_benchmark.data_factory import get_data
 from onescience.distributed.manager import DistributedManager
-from onescience.memory.memoryhook import register_memory_class
+from onescience.models.cfd_benchmark.model_factory import get_model
 
 
 def count_parameters(model):

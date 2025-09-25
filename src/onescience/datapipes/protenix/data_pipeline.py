@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Optional, Union
@@ -7,7 +7,6 @@ from typing import Any, Optional, Union
 import biotite.structure.io as strucio
 import numpy as np
 import pandas as pd
-import torch
 from biotite.structure import AtomArray
 
 from onescience.datapipes.protenix.msa_featurizer import MSAFeaturizer

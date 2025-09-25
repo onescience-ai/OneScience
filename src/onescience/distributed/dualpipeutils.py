@@ -1,5 +1,5 @@
 import queue
-from typing import List, Callable
+from typing import Callable, List
 
 import torch
 from torch.autograd import Variable
@@ -50,7 +50,7 @@ def chunk_tensor(x, chunks, dim):
 
 
 def cat_tensor(x, dim):
-    if (isinstance(x, tuple) or isinstance(x, list)):
+    if isinstance(x, tuple) or isinstance(x, list):
         if len(x) == 1:
             return x[0]
         elif x[0] is None:

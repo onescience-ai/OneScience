@@ -55,7 +55,7 @@ def create_yaml(
     uma_finetune_yaml = TEMPLATE_DIR / UMA_SM_FINETUNE_YAML
     with open(uma_finetune_yaml) as file:
         template_ft = yaml.safe_load(file)
-        #template_ft["base_model_name"] = base_model_name
+        # template_ft["base_model_name"] = base_model_name
         template_ft["defaults"][0]["data"] = REGRESSION_LABEL_TO_TASK_YAML[
             regression_tasks
         ].stem
@@ -91,12 +91,12 @@ if __name__ == "__main__":
         required=True,
         help="Choose to finetune based on regression task set (you must have the corresponding labels in your dataset), can be energy (e), energy+force (ef) or energy+force+stress(efs)",
     )
-    #parser.add_argument(
+    # parser.add_argument(
     #    "--base-model",
     #    type=str,
     #   default="uma-s-1",
     #    help="Name of base uma model",
-    #)
+    # )
     parser.add_argument(
         "--output-dir",
         type=Path,

@@ -1,12 +1,12 @@
 import json
-import operator
-from pydantic import BaseModel, Field
-from langchain_core.runnables import RunnableSequence
+from typing import Dict, Optional
+
+from langchain_core.messages import AIMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.messages import SystemMessage, AIMessage
 from langgraph.typing import StateLike
-from typing import Dict, Optional
+from pydantic import BaseModel, Field
+
 from agent.agent.unit.runner import Runner
 
 
@@ -47,9 +47,11 @@ class TaskClasser(Runner):
     def node(self, state: StateLike) -> Dict:
         context = []
         if self.rag:
-            context = self.rag.retrieve(user=self.user,
-                                        query=state["messages"][-1],
-                                        retrieval_method="hybrid_search")
+            context = self.rag.retrieve(
+                user=self.user,
+                query=state["messages"][-1],
+                retrieval_method="hybrid_search",
+            )
         context = "".join(context)
 
         parser = JsonOutputParser(pydantic_object=TaskTypeResult)

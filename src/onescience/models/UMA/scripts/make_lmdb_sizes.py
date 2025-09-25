@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import argparse
@@ -7,10 +6,9 @@ import os
 import warnings
 
 import numpy as np
-from tqdm import tqdm
-
 from fairchem.core.common.typing import assert_is_instance
 from fairchem.core.datasets.collaters.simple_collater import LmdbDataset
+from tqdm import tqdm
 
 
 def get_data(index):

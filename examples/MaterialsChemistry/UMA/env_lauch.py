@@ -1,5 +1,6 @@
 # env_launch.py
 from __future__ import annotations
+
 import argparse
 import logging
 import os
@@ -11,11 +12,10 @@ import numpy as np
 import torch
 from omegaconf import OmegaConf
 from omegaconf.errors import InterpolationKeyError
-from torch.profiler import profile, ProfilerActivity
-from onescience.models.UMA.common import gp_utils  # noqa: F401
-#from onescience.models.UMA.common import distutils
+
+# from onescience.models.UMA.common import distutils
 from onescience.distributed.manager import DistributedManager
-from onescience.models.UMA.common.logger import WandBSingletonLogger
+from onescience.models.UMA.common import gp_utils  # noqa: F401
 from onescience.models.UMA.common.utils import (
     get_commit_hash,
     get_timestamp_uid,
@@ -124,7 +124,9 @@ def get_canonical_config(config):
 
 
 def get_hydra_config_from_yaml(config_yml: str, overrides_args: list[str]):
-    import os, hydra
+    import os
+
+    import hydra
     from omegaconf import OmegaConf
 
     os.environ["HYDRA_FULL_ERROR"] = "1"
@@ -149,6 +151,7 @@ def get_hydra_config_from_yaml(config_yml: str, overrides_args: list[str]):
     # 现在再做 canonicalize（会调用 __post_init__，据此生成统一的 metadata 路径）
     return get_canonical_config(cfg)
 
+
 # ----------------- 主流程 -----------------
 def main():
     parser = argparse.ArgumentParser()
@@ -170,7 +173,7 @@ def main():
     # <<< 核心修改：使用 DistributedManager 初始化分布式环境 >>>
     world_size = int(os.environ.get("WORLD_SIZE", "1"))
     backend = "gloo" if cfg.job.device_type == DeviceType.CPU else "nccl"
-    
+
     dist_config = {
         "world_size": world_size,
         "distributed_backend": backend,

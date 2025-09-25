@@ -21,7 +21,6 @@ from nemo.lightning.pytorch import callbacks as nemo_callbacks
 from nemo.utils import logging
 from pydantic import BaseModel
 
-
 __all__: Sequence[str] = (
     "WandbConfig",
     "setup_nemo_lightning_logger",
@@ -44,9 +43,13 @@ class WandbConfig(BaseModel):
         anonymous: Enables or explicitly disables anonymous logging.
     """  # noqa: D205
 
-    entity: str | None  # The team posting this run (default: your username or your default team)
+    entity: (
+        str | None
+    )  # The team posting this run (default: your username or your default team)
     project: str  # The name of the project to which this run will belong.
-    name: str | None = None  # Display name for the run. By default, it is set by NeMoLogger to experiment name
+    name: str | None = (
+        None  # Display name for the run. By default, it is set by NeMoLogger to experiment name
+    )
     # save_dir: #Path where data is saved. "This is handled by NeMoLogger"
     tags: List[str] | None  # Tags associated with this run.
     group: str | None  # A unique string shared by all runs in a given group.
@@ -97,7 +100,9 @@ def setup_nemo_lightning_logger(
         tb_logger = TensorBoardLogger(save_dir=root_dir, name=name, version=version)
     else:
         tb_logger = None
-        logging.warning("User-set tensorboard is currently turned off. Internally one may still be set by NeMo2.")
+        logging.warning(
+            "User-set tensorboard is currently turned off. Internally one may still be set by NeMo2."
+        )
 
     logger: NeMoLogger = NeMoLogger(
         name=name,

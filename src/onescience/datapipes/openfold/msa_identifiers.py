@@ -4,7 +4,6 @@ import dataclasses
 import re
 from typing import Optional
 
-
 # Sequences coming from UniProtKB database come in the
 # `db|UniqueIdentifier|EntryName` format, e.g. `tr|A0A146SKV9|A0A146SKV9_FUNHE`
 # or `sp|P0C2L1|A3X1_LOXLA` (for TREMBL/Swiss-Prot respectively).

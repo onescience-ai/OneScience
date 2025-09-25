@@ -1,8 +1,9 @@
 """Vec3Array Class."""
 
 from __future__ import annotations
+
 import dataclasses
-from typing import Union, List
+from typing import List, Union
 
 import torch
 

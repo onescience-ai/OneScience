@@ -1,20 +1,19 @@
 from pathlib import Path
 from typing import List, Optional, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch import Tensor, FloatTensor
-from torch.nn import functional as F
-import matplotlib.pyplot as plt
-
 from args import Args
-from utils import load_best_ckpt, get_output_dir, dump_json
 from dataset import get_auto_dataset
 from models.base_model import AutoCfdModel, CfdModel
-from utils_auto import init_model as init_auto_model
-from models.ffn import FfnModel
 from models.deeponet import DeepONet
+from models.ffn import FfnModel
 from models.loss import loss_name_to_fn
+from torch import FloatTensor, Tensor
+from torch.nn import functional as F
+from utils import dump_json, get_output_dir, load_best_ckpt
+from utils_auto import init_model as init_auto_model
 
 
 def init_model(args: Args) -> CfdModel:
@@ -40,9 +39,7 @@ def init_model(args: Args) -> CfdModel:
         ).cuda()
     elif args.model == "ffn":
         widths = (
-            [n_case_params + query_coord_dim]
-            + [args.ffn_width] * args.ffn_depth
-            + [1]
+            [n_case_params + query_coord_dim] + [args.ffn_width] * args.ffn_depth + [1]
         )
         model = FfnModel(
             widths=widths,
@@ -84,9 +81,7 @@ def get_metrics(preds: Tensor, labels: Tensor):
 
 def case_params_to_tensor(case_params_dict: dict):
     # Case params is a dict, turn it into a tensor
-    keys = [
-        x for x in case_params_dict.keys() if x not in ["rotated", "dx", "dy"]
-    ]
+    keys = [x for x in case_params_dict.keys() if x not in ["rotated", "dx", "dy"]]
     case_params_vec = [case_params_dict[k] for k in keys]
     case_params = torch.tensor(case_params_vec)  # (b, 5)
     return case_params
@@ -205,17 +200,13 @@ def main():
     for case_id, case_features in enumerate(all_features):
         num_frames = case_features.shape[0]
         while num_frames < infer_steps:
-            case_features = np.concatenate(
-                [case_features, case_features[-1:]], axis=0
-            )
+            case_features = np.concatenate([case_features, case_features[-1:]], axis=0)
             num_frames += 1
         all_features[case_id] = FloatTensor(case_features).to("cuda")
 
     # Turn case params into tensors
     for case_id, case_params in enumerate(all_case_params):
-        all_case_params[case_id] = case_params_to_tensor(case_params).to(
-            "cuda"
-        )
+        all_case_params[case_id] = case_params_to_tensor(case_params).to("cuda")
 
     # print("Number of cases:", len(all_features))
     # exit()

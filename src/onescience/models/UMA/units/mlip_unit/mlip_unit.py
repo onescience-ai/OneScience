@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import logging
@@ -34,24 +32,22 @@ from torch.profiler import record_function
 from torchtnt.framework import EvalUnit, State, TrainUnit
 from torchtnt.utils.prepare_module import prepare_module
 
+from onescience.datapipes.uma.atomic_data import AtomicData
+from onescience.datapipes.uma.collaters.mt_collater import MTCollater
 from onescience.models.UMA.common import distutils, gp_utils
-from onescience.models.UMA.common.distutils import (
-    get_device_for_local_rank,
-)
+from onescience.models.UMA.common.distutils import get_device_for_local_rank
 from onescience.models.UMA.common.logger import WandBSingletonLogger
 from onescience.models.UMA.common.registry import registry
 from onescience.models.UMA.components.train.train_runner import Checkpointable
-from onescience.datapipes.uma.atomic_data import AtomicData
-from onescience.datapipes.uma.collaters.mt_collater import MTCollater
-from onescience.models.UMA.modules.normalization.element_references import (  # noqa: TCH001
+from onescience.models.UMA.modules.normalization.element_references import (
     ElementReferences,
-)
-from onescience.models.UMA.modules.normalization.normalizer import Normalizer  # noqa: TCH001
+)  # noqa: TCH001
+from onescience.models.UMA.modules.normalization.normalizer import (
+    Normalizer,
+)  # noqa: TCH001
 from onescience.models.UMA.modules.scheduler import CosineLRLambda
 from onescience.models.UMA.units.mlip_unit._metrics import Metrics, get_metrics_fn
-from onescience.models.UMA.units.mlip_unit.api.inference import (
-    MLIPInferenceCheckpoint,
-)
+from onescience.models.UMA.units.mlip_unit.api.inference import MLIPInferenceCheckpoint
 from onescience.models.UMA.units.mlip_unit.utils import load_inference_model
 
 if TYPE_CHECKING:

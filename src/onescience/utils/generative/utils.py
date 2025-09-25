@@ -374,7 +374,7 @@ def list_dir_recursively_with_ignore(
 
 
 def copy_files_and_create_dirs(
-    files: List[Tuple[str, str]]
+    files: List[Tuple[str, str]],
 ) -> None:  # pragma: no cover
     """
     Takes in a list of tuples of (src, dst) paths and copies files.

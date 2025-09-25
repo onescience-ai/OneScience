@@ -1,10 +1,9 @@
-import numpy as np
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Function
-from .module import GenBlock
+
 from ..evolution.module import *
+from .module import GenBlock
+
 
 class Generative_Encoder(nn.Module):
     def __init__(self, n_channels, base_c=64):
@@ -21,6 +20,7 @@ class Generative_Encoder(nn.Module):
         x = self.down2(x)
         x = self.down3(x)
         return x
+
 
 class Generative_Decoder(nn.Module):
     def __init__(self, opt):
@@ -47,7 +47,7 @@ class Generative_Decoder(nn.Module):
         self.up = nn.Upsample(scale_factor=2)
 
         self.tanh = nn.Tanh()
-    
+
     def forward(self, x, evo):
         x = self.fc(x)
         x = self.head_0(x, evo)

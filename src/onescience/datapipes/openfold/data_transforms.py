@@ -1,7 +1,12 @@
 import numpy as np
 import torch
+
 from onescience.utils.openfold.np import residue_constants as rc
-from onescience.utils.openfold.tensor_utils import batched_gather, tensor_tree_map, tree_map
+from onescience.utils.openfold.tensor_utils import (
+    batched_gather,
+    tensor_tree_map,
+    tree_map,
+)
 
 MSA_FEATURE_NAMES = [
     "msa",

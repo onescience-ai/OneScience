@@ -1,9 +1,9 @@
-from sympy import Symbol, Abs, sign
-import numpy as np
-from onescience.sym.geometry.geometry import Geometry, csg_curve_naming
+from sympy import Symbol, sign
+
 from onescience.sym.geometry.curve import SympyCurve
-from onescience.sym.geometry.parameterization import Parameterization, Parameter, Bounds
+from onescience.sym.geometry.geometry import Geometry, csg_curve_naming
 from onescience.sym.geometry.helper import _sympy_sdf_to_sdf
+from onescience.sym.geometry.parameterization import Bounds, Parameter, Parameterization
 
 
 class Point2D(Geometry):

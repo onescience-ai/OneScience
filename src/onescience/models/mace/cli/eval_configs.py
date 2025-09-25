@@ -1,7 +1,4 @@
-
 # Script for evaluating configurations contained in an xyz file with a trained model
-
-
 
 
 import argparse

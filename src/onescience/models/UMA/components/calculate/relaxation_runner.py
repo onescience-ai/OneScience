@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import os
@@ -12,9 +10,7 @@ from pymatgen.io.ase import MSONAtoms
 from tqdm import tqdm
 
 from onescience.models.UMA.components.calculate import CalculateRunner
-from onescience.models.UMA.components.calculate.recipes.relax import (
-    relax_atoms,
-)
+from onescience.models.UMA.components.calculate.recipes.relax import relax_atoms
 from onescience.models.UMA.components.calculate.recipes.utils import (
     get_property_dict_from_atoms,
 )

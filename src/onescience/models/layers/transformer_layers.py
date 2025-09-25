@@ -372,9 +372,9 @@ class FuserLayer(nn.Module):
                     qk_scale=qk_scale,
                     drop=drop,
                     attn_drop=attn_drop,
-                    drop_path=drop_path[i]
-                    if isinstance(drop_path, Sequence)
-                    else drop_path,
+                    drop_path=(
+                        drop_path[i] if isinstance(drop_path, Sequence) else drop_path
+                    ),
                     norm_layer=norm_layer,
                 )
                 for i in range(depth)
@@ -466,9 +466,9 @@ class EncoderLayer(nn.Module):
                     qk_scale=qk_scale,
                     drop=drop,
                     attn_drop=attn_drop,
-                    drop_path=drop_path[i]
-                    if isinstance(drop_path, Sequence)
-                    else drop_path,
+                    drop_path=(
+                        drop_path[i] if isinstance(drop_path, Sequence) else drop_path
+                    ),
                     norm_layer=norm_layer,
                 )
                 for i in range(depth)
@@ -494,9 +494,11 @@ class EncoderLayer(nn.Module):
                     qk_scale=qk_scale,
                     drop=drop,
                     attn_drop=attn_drop,
-                    drop_path=drop_path_middle[i]
-                    if isinstance(drop_path_middle, Sequence)
-                    else drop_path_middle,
+                    drop_path=(
+                        drop_path_middle[i]
+                        if isinstance(drop_path_middle, Sequence)
+                        else drop_path_middle
+                    ),
                     norm_layer=norm_layer,
                 )
                 for i in range(depth_middle)
@@ -589,9 +591,11 @@ class DecoderLayer(nn.Module):
                     qk_scale=qk_scale,
                     drop=drop,
                     attn_drop=attn_drop,
-                    drop_path=drop_path_middle[i]
-                    if isinstance(drop_path_middle, Sequence)
-                    else drop_path_middle,
+                    drop_path=(
+                        drop_path_middle[i]
+                        if isinstance(drop_path_middle, Sequence)
+                        else drop_path_middle
+                    ),
                     norm_layer=norm_layer,
                 )
                 for i in range(depth_middle)
@@ -618,9 +622,9 @@ class DecoderLayer(nn.Module):
                     qk_scale=qk_scale,
                     drop=drop,
                     attn_drop=attn_drop,
-                    drop_path=drop_path[i]
-                    if isinstance(drop_path, Sequence)
-                    else drop_path,
+                    drop_path=(
+                        drop_path[i] if isinstance(drop_path, Sequence) else drop_path
+                    ),
                     norm_layer=norm_layer,
                 )
                 for i in range(depth)

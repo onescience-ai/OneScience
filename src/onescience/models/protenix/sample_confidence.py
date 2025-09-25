@@ -343,7 +343,7 @@ def calculate_vdw_clash(
     """
     clash_calculator = Clash(vdw_clash_threshold=threshold, compute_af3_clash=False)
     # Check ligand-polymer VDW clash
-    N_sample = pred_coordinate.shape[0]
+    pred_coordinate.shape[0]
     dummy_is_dna = torch.zeros_like(is_polymer)
     dummy_is_rna = torch.zeros_like(is_polymer)
     clash_dict = clash_calculator(
@@ -565,6 +565,7 @@ def calculate_chain_based_ptm(
         "chain_pair_iptm": chain_pair_iptm,
         "chain_pair_iptm_global": chain_pair_iptm_global,
     }
+
 
 def calculate_chain_based_gpde(
     token_pair_pde: torch.Tensor,

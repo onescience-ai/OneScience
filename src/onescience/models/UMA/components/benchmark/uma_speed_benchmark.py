@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import functools
@@ -15,10 +13,10 @@ import torch
 from ase import build
 from torch.profiler import ProfilerActivity, profile
 
+from onescience.datapipes.uma.atomic_data import AtomicData
 from onescience.models.UMA.common.profiler_utils import get_profile_schedule
 from onescience.models.UMA.components.runner import Runner
 from onescience.models.UMA.datasets import data_list_collater
-from onescience.datapipes.uma.atomic_data import AtomicData
 from onescience.models.UMA.units.mlip_unit import MLIPPredictUnit
 from onescience.models.UMA.units.mlip_unit.api.inference import (
     InferenceSettings,

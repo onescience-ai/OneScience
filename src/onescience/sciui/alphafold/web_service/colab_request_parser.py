@@ -7,14 +7,16 @@ from copy import deepcopy
 from os.path import exists as opexists
 from os.path import join as opjoin
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 import numpy as np
 import requests
 
 import onescience.datapipes.protenix.ccd as ccd
 from onescience.datapipes.protenix.json_to_feature import SampleDictToFeatures
-from onescience.sciui.alphafold.web_service.colab_request_utils import run_mmseqs2_service
+from onescience.sciui.alphafold.web_service.colab_request_utils import (
+    run_mmseqs2_service,
+)
 from onescience.sciui.alphafold.web_service.dependency_url import URL
 
 MMSEQS_SERVICE_HOST_URL = "http://101.126.11.40:80"
@@ -213,7 +215,7 @@ class RequestParser(object):
                 host_url=MMSEQS_SERVICE_HOST_URL,
                 user_agent="colabfold/1.5.5",
             )
-        except Exception as e:
+        except Exception:
             error_message = f"MMSEQS2 failed with the following error message:\n{traceback.format_exc()}"
             print(error_message)
 

@@ -1,4 +1,3 @@
-import copy
 import random
 import time
 from typing import Any, Optional
@@ -7,6 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from onescience.models.openfold.primitives import LayerNorm
 from onescience.models.protenix import sample_confidence
 from onescience.models.protenix.generator import (
     InferenceNoiseScheduler,
@@ -15,7 +15,6 @@ from onescience.models.protenix.generator import (
     sample_diffusion_training,
 )
 from onescience.models.protenix.utils import simple_merge_dict_list
-from onescience.models.openfold.primitives import LayerNorm
 from onescience.utils.protenix.logger import get_logger
 from onescience.utils.protenix.permutation.permutation import SymmetricPermutation
 from onescience.utils.protenix.torch_utils import autocasting_disable_decorator

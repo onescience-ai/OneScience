@@ -1,15 +1,13 @@
 import os
-import torch
+
 import matplotlib.pyplot as plt
-
-from onescience.datapipes.climate import ERA5HDF5Datapipe
-
-from train_utils import prepare_input
-
-
+import torch
 import wandb
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig
+from train_utils import prepare_input
+
+from onescience.datapipes.climate import ERA5HDF5Datapipe
 
 
 class Validation:

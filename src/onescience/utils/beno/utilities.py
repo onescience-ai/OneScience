@@ -1,14 +1,7 @@
-import torch
-import numpy as np
-import scipy.io
-import h5py
-import sklearn.metrics
-from torch_geometric.data import Data
-import torch.nn as nn
-from scipy.ndimage import gaussian_filter
-from torch_geometric.nn import GCNConv
-import pdb
 import matplotlib.pyplot as plt
+import numpy as np
+import sklearn.metrics
+import torch
 
 
 def compute_boundary_gradient(bc_all, sol_all, coord_all, resolution):
@@ -209,7 +202,6 @@ class MeshGenerator(object):
             # self.grid = np.linspace(real_space[0][0], real_space[0][1], self.n).reshape((self.n, 1))
         else:
             self.n = 1
-            grids = []
             for j in range(self.d):
                 # grids.append(np.linspace(real_space[j][0], real_space[j][1], mesh_size[j]))
                 # grids.append(np.linspace(real_space[j][0]+(0.5/mesh_size[j]), real_space[j][1]-(0.5/mesh_size[j]), mesh_size[j]))
