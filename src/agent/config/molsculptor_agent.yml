@@ -1,0 +1,9 @@
+chat_model:
+  default:
+    factory_name: HttpQwen3
+    model:
+      model_name: qwen3-32b
+
+
+tool_modules:
+  - molsculptor
