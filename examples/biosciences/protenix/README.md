@@ -28,14 +28,14 @@ https://github.com/bytedance/Protenix/blob/main/Protenix_Technical_Report.pdf
 
 # 数据集
 
-预处理的 wwPDB 训练数据库，压缩包239G，解压后预计需要 1T的磁盘空间，可通过以下命令下载并解压预处理后的wwPDB训练数据库：
+预处理的 wwPDB 训练数据库，压缩包239G，解压后预计需要 1T的磁盘空间，字节官方提供下载命令如下：
 
 ```shell
 wget -P <数据存放目录> https://af3-dev.tos-cn-beijing.volces.com/release_data.tar.gz
 tar -xzvf <数据存放目录>/release_data.tar.gz -C <数据存放目录>
 ```
 
-解压后的数据库目录结构：
+该数据集大小约 1T，数据集目录结构如下:
 
 ```shell
 ├── components.v20240608.cif [408M] # ccd源文件
@@ -50,7 +50,7 @@ tar -xzvf <数据存放目录>/release_data.tar.gz -C <数据存放目录>
 └── seq_to_pdb_index.json [45M] # 序列到PDB ID的映射文件
 ```
 
-使用时可通过修改`examples/alphafold/protenix/configs/configs_data.py`文件中` DATA_ROOT_DIR` ，指定到数据集存放目录即可。
+使用时可通过修改`examples/biosciences/protenix/configs/configs_data.py`文件中` DATA_ROOT_DIR` ，指定到数据集存放目录即可。
 
 若只想下载推理数据，可通过以下指令下载，大约需要 529M 的磁盘空间，使用时同样需修改`DATA_ROOT_DIR`：
 
@@ -59,7 +59,7 @@ wget -P <数据存放目录> https://af3-dev.tos-cn-beijing.volces.com/release_d
 wget -P <数据存放目录> https://af3-dev.tos-cn-beijing.volces.com/release_data/components.v20240608.cif.rdkit_mol.pkl
 ```
 
-微调数据集示例列表可查看`examples/alphafold/protenix/ft_datasets/finetune_subset.txt`文件
+微调数据集示例列表可查看`examples/biosciences/protenix/ft_datasets/finetune_subset.txt`文件
 
 # 训练
 
@@ -103,7 +103,7 @@ HIP_VISIBLE_DEVICES：指定在哪张显卡上运行，默认0号显卡
 
 - sample_diffusion.N_step：评估过程中，扩散过程的步数，默认设置 20，以提高效率
 
-- data.train_sets：训练数据集，详细设置可参考文件`examples/alphafold/protenix/configs/configs_data.py`
+- data.train_sets：训练数据集，详细设置可参考文件`examples/biosciences/protenix/configs/configs_data.py`
 
 - data.test_sets：评估数据集，多个数据集可用逗号分开
 
