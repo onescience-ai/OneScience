@@ -1,19 +1,19 @@
 #!/bin/bash
 #SBATCH -p k100ai
-#SBATCH -N 2
+#SBATCH -N 1
 #SBATCH --gres=dcu:4
 #SBATCH --cpus-per-task=32
 #SBATCH --ntasks-per-node=1
-#SBATCH -J graphcast
-#SBATCH -o logs/finetune_%j.out
-#SBATCH -e logs/finetune_%j.out
+#SBATCH -J fuxi
+#SBATCH -o logs/%j.out
+#SBATCH -e logs/%j.out
 
 echo "START TIME: $(date)"
 
 module purge
 
 source ~/.bashrc # 该命令视具体环境下激活conda的方法进行修改
-conda activate graphcast # conda环境依据自己可用环境修改
+conda activate fuxi # conda环境依据自己可用环境修改
 module load compiler/dtk/25.04 # 利用DCU训练时，需加载DTK，具体加载方式根据环境进行修改
 
 which python
@@ -45,4 +45,7 @@ srun --nodes=$SLURM_NNODES --ntasks=$SLURM_NNODES torchrun \
             --rdzv_id=$SLURM_JOB_ID \
             --rdzv_backend=c10d \
             --rdzv_endpoint=$master_addr:$master_port \
-	    finetune_graphcast.py
+            train_fuxi_base.py
+            # train_fuxi_short.py
+            # train_fuxi_medium.py
+            # train_fuxi_long.py
