@@ -58,27 +58,39 @@ python preprocess_data_json.py \
 
 ### 模型转换
 
-- 原本的发版模型的 checkpoint 保存格式为 torch 的格式，但是 nemo 框架用的是 megatron 训练，需将模型转化为 megatron 格式的 checkpoint。
+- 将单个 PyTorch 或 ZeRO-1 的 checkpoint（.pt 文件）转换为 NeMo2 格式
 - 模型转化的脚本位置
-  `onescience/examples/biosciences/evo2/scripts/checkpoint_convert/convert_to_nemo.py`
+  `onescience/examples/biosciences/evo2/tools/checkpoint_convert/convert_to_nemo.py`
 - 实用示例
-#7B 脚本示例
-```shell
-srun python convert_to_nemo.py
---model-path model/savanna_evo2/evo2_7b/savanna_evo2_7b.pt
---output-dir /model/nemo_evo2/evo2_7b/
---model-size 7b_arc_longcontext
+  `python tools/checkpoint_convert/convert_to_nemo.py --model-path <CKPT_FILE> --output-dir <OUTPUT_DIR>  --model-size <MODEL_SIZE>`
+  
+#### 7B 脚本示例
+```bash
+srun python tools/checkpoint_convert/convert_to_nemo.py \
+  --model-path checkpoint/evo2_savanna_7b/savanna_evo2_7b.pt \
+  --output-dir /work/share/ac8hkycjba/osmodels/evo2/nemo_model/nemo_evo2_7b \
+  --model-size 7b_arc_longcontext 
 ```
-- 注意事项
-  1. 官网存在两种模型权重，一种是训练，一种是推理，需要注意下载训练的模型权重 savanna_的模型权重
-![](../../../doc/evo2_model.png)
-  2. 对于7B和40B的模型，--model-size需要注意，
-```shell
-"7b": savanna_evo2_7b_base,
-"7b_arc_longcontext": savanna_evo2_7b,
-"40b": savanna_evo2_40b_base,
-"40b_arc_longcontext": savanna_evo2_40b
-```
+
+#### 注意事项
+
+1. **模型权重来源**  
+   - 官网提供了两种模型权重：**训练** 和 **推理**。  
+   - 请务必下载并使用 **训练用权重**（前缀为 `savanna_` 的模型权重）。  
+
+   ![](../../../doc/evo2_model.png)
+
+2. **`--model-size` 参数说明**  
+   - 对于 7B 和 40B 的模型，需注意 `--model-size` 参数取值：  
+
+   | 参数值               | 对应模型              |
+   |----------------------|----------------------|
+   | `7b`                 | `savanna_evo2_7b_base` |
+   | `7b_arc_longcontext` | `savanna_evo2_7b`      |
+   | `40b`                | `savanna_evo2_40b_base`|
+   | `40b_arc_longcontext`| `savanna_evo2_40b`     |
+
+
  ### 训练
  `onescience/examples/biosciences/evo2/checkpoint`、`onescience/examples/biosciences/evo2/data`分别为模型和数据存放处，可用软连接将相应内容存放到该处
 

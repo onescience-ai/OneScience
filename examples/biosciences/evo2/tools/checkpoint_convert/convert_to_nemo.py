@@ -170,7 +170,7 @@ def main():
     elif args.model_path.startswith("hf://"):
         importer = HuggingFaceSavannaHyenaImporter(args.model_path.lstrip("hf://"), model_config=evo2_config)
     else:
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         importer = PyTorchHyenaImporter(args.model_path, model_config=evo2_config)     
     # import pdb; pdb.set_trace() 
     importer.apply(args.output_dir)

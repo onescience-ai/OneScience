@@ -40,8 +40,6 @@ from nemo.utils import logging
 
 from onescience.models.evo2.data.tokenizer import Evo2Tokenizer
 from onescience.models.evo2.utils.config import Evo2PreprocessingConfig, Evo2TaxonomyLineage
-# from bionemo.noodles import back_transcribe_sequence, complement_sequence, reverse_sequence, transcribe_sequence
-# from bionemo.noodles.nvfaidx import NvFaidx
 from bionemo.noodles import back_transcribe_sequence, complement_sequence, reverse_sequence, transcribe_sequence
 from bionemo.noodles.nvfaidx import NvFaidx
 
