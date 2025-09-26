@@ -138,13 +138,15 @@ class SongUNet(Module):
         resample_filter: List[int] = [1, 1],
         checkpoint_level: int = 0,
     ):
-        valid_embedding_types = ["fourier", "positional", "zero"]
+        valid_embedding_types = [
+            "fourier", "positional", "zero"]
         if embedding_type not in valid_embedding_types:
             raise ValueError(
                 f"Invalid embedding_type: {embedding_type}. Must be one of {valid_embedding_types}."
             )
 
-        valid_encoder_types = ["standard", "skip", "residual"]
+        valid_encoder_types = [
+            "standard", "skip", "residual"]
         if encoder_type not in valid_encoder_types:
             raise ValueError(
                 f"Invalid encoder_type: {encoder_type}. Must be one of {valid_encoder_types}."
@@ -163,8 +165,10 @@ class SongUNet(Module):
         self.emb_channels = emb_channels
         noise_channels = model_channels * channel_mult_noise
         init = dict(init_mode="xavier_uniform")
-        init_zero = dict(init_mode="xavier_uniform", init_weight=1e-5)
-        init_attn = dict(init_mode="xavier_uniform", init_weight=np.sqrt(0.2))
+        init_zero = dict(
+            init_mode="xavier_uniform", init_weight=1e-5)
+        init_attn = dict(
+            init_mode="xavier_uniform", init_weight=np.sqrt(0.2))
         block_kwargs = dict(
             emb_channels=emb_channels,
             num_heads=1,
@@ -188,17 +192,20 @@ class SongUNet(Module):
             self.img_shape_x = img_resolution[1]
 
         # set the threshold for checkpointing based on image resolution
-        self.checkpoint_threshold = (self.img_shape_y >> checkpoint_level) + 1
+        self.checkpoint_threshold = (
+            self.img_shape_y >> checkpoint_level) + 1
 
         # Mapping.
         if self.embedding_type != "zero":
             self.map_noise = (
-                PositionalEmbedding(num_channels=noise_channels, endpoint=True)
+                PositionalEmbedding(
+                    num_channels=noise_channels, endpoint=True)
                 if embedding_type == "positional"
                 else FourierEmbedding(num_channels=noise_channels)
             )
             self.map_label = (
-                Linear(in_features=label_dim, out_features=noise_channels, **init)
+                Linear(in_features=label_dim,
+                       out_features=noise_channels, **init)
                 if label_dim
                 else None
             )
@@ -314,23 +321,28 @@ class SongUNet(Module):
             # Mapping.
             emb = self.map_noise(noise_labels)
             emb = (
-                emb.reshape(emb.shape[0], 2, -1).flip(1).reshape(*emb.shape)
+                emb.reshape(
+                    emb.shape[0], 2, -1).flip(1).reshape(*emb.shape)
             )  # swap sin/cos
             if self.map_label is not None:
                 tmp = class_labels
                 if self.training and self.label_dropout:
                     tmp = tmp * (
-                        torch.rand([x.shape[0], 1], device=x.device)
+                        torch.rand(
+                            [x.shape[0], 1], device=x.device)
                         >= self.label_dropout
                     ).to(tmp.dtype)
-                emb = emb + self.map_label(tmp * np.sqrt(self.map_label.in_features))
+                emb = emb + \
+                    self.map_label(
+                        tmp * np.sqrt(self.map_label.in_features))
             if self.map_augment is not None and augment_labels is not None:
                 emb = emb + self.map_augment(augment_labels)
             emb = silu(self.map_layer0(emb))
             emb = silu(self.map_layer1(emb))
         else:
             emb = torch.zeros(
-                (noise_labels.shape[0], self.emb_channels), device=x.device
+                (noise_labels.shape[0],
+                 self.emb_channels), device=x.device
             )
 
         # Encoder.
@@ -343,12 +355,14 @@ class SongUNet(Module):
                 elif "aux_skip" in name:
                     x = skips[-1] = x + block(aux)
                 elif "aux_residual" in name:
-                    x = skips[-1] = aux = (x + block(aux)) / np.sqrt(2)
+                    x = skips[-1] = aux = (x +
+                                           block(aux)) / np.sqrt(2)
                 else:
                     # For UNetBlocks check if we should use gradient checkpointing
                     if isinstance(block, UNetBlock):
                         if x.shape[-1] > self.checkpoint_threshold:
-                            x = checkpoint(block, x, emb, use_reentrant=False)
+                            x = checkpoint(
+                                block, x, emb, use_reentrant=False)
                         else:
                             x = block(x, emb)
                     else:
@@ -369,14 +383,17 @@ class SongUNet(Module):
                     aux = tmp if aux is None else tmp + aux
                 else:
                     if x.shape[1] != block.in_channels:
-                        x = torch.cat([x, skips.pop()], dim=1)
+                        x = torch.cat(
+                            [x, skips.pop()], dim=1)
                     # check for checkpointing on decoder blocks and up sampling blocks
                     if (
                         x.shape[-1] > self.checkpoint_threshold and "_block" in name
                     ) or (
-                        x.shape[-1] > (self.checkpoint_threshold / 2) and "_up" in name
+                        x.shape[-1] > (self.checkpoint_threshold /
+                                       2) and "_up" in name
                     ):
-                        x = checkpoint(block, x, emb, use_reentrant=False)
+                        x = checkpoint(
+                            block, x, emb, use_reentrant=False)
                     else:
                         x = block(x, emb)
         return aux
@@ -509,7 +526,8 @@ class SongUNetPosEmbd(SongUNet):
     ):
         # append positional embedding to input conditioning
         if self.pos_embd is not None:
-            selected_pos_embd = self.positional_embedding_indexing(x, global_index)
+            selected_pos_embd = self.positional_embedding_indexing(
+                x, global_index)
             x = torch.cat((x, selected_pos_embd), dim=1)
 
         return super().forward(x, noise_labels, class_labels, augment_labels)
@@ -526,14 +544,16 @@ class SongUNetPosEmbd(SongUNet):
             X = global_index.shape[2]
             Y = global_index.shape[3]
             global_index = torch.reshape(
-                torch.permute(global_index, (1, 0, 2, 3)), (2, -1)
+                torch.permute(
+                    global_index, (1, 0, 2, 3)), (2, -1)
             )  # (B, 2, X, Y) to (2, B*X*Y)
             selected_pos_embd = self.pos_embd.to(x.device)[
                 :, global_index[0], global_index[1]
             ]  # (N_pe, B*X*Y)
             selected_pos_embd = (
                 torch.permute(
-                    torch.reshape(selected_pos_embd, (self.pos_embd.shape[0], B, X, Y)),
+                    torch.reshape(
+                        selected_pos_embd, (self.pos_embd.shape[0], B, X, Y)),
                     (1, 0, 2, 3),
                 )
                 .to(x.device)
@@ -546,22 +566,31 @@ class SongUNetPosEmbd(SongUNet):
             return None
         elif self.gridtype == "learnable":
             grid = torch.nn.Parameter(
-                torch.randn(self.N_grid_channels, self.img_shape_y, self.img_shape_x)
+                torch.randn(self.N_grid_channels,
+                            self.img_shape_y, self.img_shape_x)
             )
         elif self.gridtype == "linear":
             if self.N_grid_channels != 2:
-                raise ValueError("N_grid_channels must be set to 2 for gridtype linear")
-            x = np.meshgrid(np.linspace(-1, 1, self.img_shape_y))
-            y = np.meshgrid(np.linspace(-1, 1, self.img_shape_x))
+                raise ValueError(
+                    "N_grid_channels must be set to 2 for gridtype linear")
+            x = np.meshgrid(
+                np.linspace(-1, 1, self.img_shape_y))
+            y = np.meshgrid(
+                np.linspace(-1, 1, self.img_shape_x))
             grid_x, grid_y = np.meshgrid(y, x)
-            grid = torch.from_numpy(np.stack((grid_x, grid_y), axis=0))
+            grid = torch.from_numpy(
+                np.stack((grid_x, grid_y), axis=0))
             grid.requires_grad = False
         elif self.gridtype == "sinusoidal" and self.N_grid_channels == 4:
             # print('sinusuidal grid added ......')
-            x1 = np.meshgrid(np.sin(np.linspace(0, 2 * np.pi, self.img_shape_y)))
-            x2 = np.meshgrid(np.cos(np.linspace(0, 2 * np.pi, self.img_shape_y)))
-            y1 = np.meshgrid(np.sin(np.linspace(0, 2 * np.pi, self.img_shape_x)))
-            y2 = np.meshgrid(np.cos(np.linspace(0, 2 * np.pi, self.img_shape_x)))
+            x1 = np.meshgrid(
+                np.sin(np.linspace(0, 2 * np.pi, self.img_shape_y)))
+            x2 = np.meshgrid(
+                np.cos(np.linspace(0, 2 * np.pi, self.img_shape_y)))
+            y1 = np.meshgrid(
+                np.sin(np.linspace(0, 2 * np.pi, self.img_shape_x)))
+            y2 = np.meshgrid(
+                np.cos(np.linspace(0, 2 * np.pi, self.img_shape_x)))
             grid_x1, grid_y1 = np.meshgrid(y1, x1)
             grid_x2, grid_y2 = np.meshgrid(y2, x2)
             grid = torch.squeeze(
@@ -574,9 +603,11 @@ class SongUNetPosEmbd(SongUNet):
             grid.requires_grad = False
         elif self.gridtype == "sinusoidal" and self.N_grid_channels != 4:
             if self.N_grid_channels % 4 != 0:
-                raise ValueError("N_grid_channels must be a factor of 4")
+                raise ValueError(
+                    "N_grid_channels must be a factor of 4")
             num_freq = self.N_grid_channels // 4
-            freq_bands = 2.0 ** np.linspace(0.0, num_freq, num=num_freq)
+            freq_bands = 2.0 ** np.linspace(
+                0.0, num_freq, num=num_freq)
             grid_list = []
             grid_x, grid_y = np.meshgrid(
                 np.linspace(0, 2 * np.pi, self.img_shape_x),
@@ -586,7 +617,8 @@ class SongUNetPosEmbd(SongUNet):
                 for p_fn in [np.sin, np.cos]:
                     grid_list.append(p_fn(grid_x * freq))
                     grid_list.append(p_fn(grid_y * freq))
-            grid = torch.from_numpy(np.stack(grid_list, axis=0))
+            grid = torch.from_numpy(
+                np.stack(grid_list, axis=0))
             grid.requires_grad = False
         elif self.gridtype == "test" and self.N_grid_channels == 2:
             idx_x = torch.arange(self.img_shape_y)

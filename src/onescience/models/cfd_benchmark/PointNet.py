@@ -53,11 +53,13 @@ class Model(nn.Module):
             act=args.act,
         )
 
-        self.fcfinal = nn.Linear(args.n_hidden * 4, args.n_hidden)
+        self.fcfinal = nn.Linear(
+            args.n_hidden * 4, args.n_hidden)
 
     def forward(self, x, fx, T=None, geo=None):
         if geo is None:
-            raise ValueError("Please provide edge index for Graph Neural Networks")
+            raise ValueError(
+                "Please provide edge index for Graph Neural Networks")
         assert (
             x.size(0) == 1
         ), "This model only supports batch_size=1. Please modify code for general batching."
@@ -69,7 +71,8 @@ class Model(nn.Module):
             fx = fx.squeeze(0)
 
         # 构造 batch 索引（所有点属于 batch 0）
-        batch = torch.zeros(x.shape[0], dtype=torch.long, device=x.device)
+        batch = torch.zeros(
+            x.shape[0], dtype=torch.long, device=x.device)
 
         # 编码 + 局部特征提取
         z = torch.cat((x, fx), dim=-1).float()
@@ -78,11 +81,14 @@ class Model(nn.Module):
 
         # 全局特征（max pooling）
         global_coef = self.max_block(z)
-        global_coef = nng.global_max_pool(global_coef, batch=batch)
+        global_coef = nng.global_max_pool(
+            global_coef, batch=batch)
 
         # 重复 global coef 到每个点
-        nb_points = torch.tensor([batch.shape[0]], device=z.device)
-        global_coef = global_coef.repeat_interleave(nb_points, dim=0)
+        nb_points = torch.tensor(
+            [batch.shape[0]], device=z.device)
+        global_coef = global_coef.repeat_interleave(
+            nb_points, dim=0)
 
         # 拼接全局 + 局部特征
         z = torch.cat([z, global_coef], dim=1)

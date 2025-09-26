@@ -24,7 +24,8 @@ class Reducer(metaclass=ABCMeta):
     """
 
     job_config = ManagedAttribute(enforced_type=DictConfig)
-    runner_config = ManagedAttribute(enforced_type=DictConfig)
+    runner_config = ManagedAttribute(
+        enforced_type=DictConfig)
 
     @property
     @abstractmethod

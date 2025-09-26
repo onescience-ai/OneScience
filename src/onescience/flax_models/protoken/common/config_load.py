@@ -27,9 +27,11 @@ class Config:
     def __init__(self, cfg_dict):
         for k, v in cfg_dict.items():
             if isinstance(v, (list, tuple)):
-                setattr(self, k, [Config(x) if isinstance(x, dict) else x for x in v])
+                setattr(self, k, [Config(x) if isinstance(
+                    x, dict) else x for x in v])
             else:
-                setattr(self, k, Config(v) if isinstance(v, dict) else v)
+                setattr(self, k, Config(v)
+                        if isinstance(v, dict) else v)
 
     def __str__(self):
         return pformat(self.__dict__)
@@ -58,7 +60,8 @@ def get_config_path(config_name: str) -> str:
     except ImportError:
         # Fallback for older Python versions or if resources is not available
         current_dir = Path(__file__).parent.parent
-        config_path = current_dir / "config" / f"{config_name}.yaml"
+        config_path = current_dir / \
+            "config" / f"{config_name}.yaml"
         return str(config_path)
 
 

@@ -100,9 +100,11 @@ def infer_global_batch_size(
             f"micro_batch_size must be greater than 0, got {micro_batch_size}"
         )
     if num_nodes <= 0:
-        raise ValueError(f"num_nodes must be greater than 0, got {num_nodes}")
+        raise ValueError(
+            f"num_nodes must be greater than 0, got {num_nodes}")
     if devices <= 0:
-        raise ValueError(f"devices must be greater than 0, got {devices}")
+        raise ValueError(
+            f"devices must be greater than 0, got {devices}")
     if accumulate_grad_batches <= 0:
         raise ValueError(
             f"accumulate_grad_batches must be greater than 0, got {accumulate_grad_batches}"
@@ -141,7 +143,8 @@ def infer_global_batch_size(
         * context_model_parallel_size
     )
     data_parallel_size = world_size // model_parallel_size
-    global_batch_size = micro_batch_size * data_parallel_size * accumulate_grad_batches
+    global_batch_size = micro_batch_size * \
+        data_parallel_size * accumulate_grad_batches
     return global_batch_size
 
 
@@ -176,17 +179,20 @@ def infer_num_samples(
         1.0 if limit_batches is None else limit_batches
     )  # validation data does not require upsampling
     if 0 < limit_batches <= 1.0 and isinstance(limit_batches, float):
-        num_limited_samples = int(num_samples_in_dataset * limit_batches)
+        num_limited_samples = int(
+            num_samples_in_dataset * limit_batches)
         if num_limited_samples < global_batch_size:
             raise ValueError(
                 "The limited number of %s samples %s is less than the global batch size %s"
                 % (stage, num_limited_samples, global_batch_size)
             )
     elif limit_batches >= 1 and isinstance(limit_batches, int):
-        num_limited_samples = int(limit_batches * global_batch_size)
+        num_limited_samples = int(
+            limit_batches * global_batch_size)
     else:
         raise ValueError(
-            "Invalid choice of limit_%s_batches size: %s" % (stage, limit_batches)
+            "Invalid choice of limit_%s_batches size: %s" % (
+                stage, limit_batches)
         )
 
     return num_limited_samples

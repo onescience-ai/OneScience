@@ -58,7 +58,8 @@ def lddt(
     # Compute true and predicted distance matrices.
     dmat_true = jnp.sqrt(
         1e-10
-        + jnp.sum((true_points[:, :, None] - true_points[:, None, :]) ** 2, axis=-1)
+        + jnp.sum((true_points[:, :, None] -
+                  true_points[:, None, :]) ** 2, axis=-1)
     )
 
     dmat_predicted = jnp.sqrt(
@@ -72,7 +73,8 @@ def lddt(
         (dmat_true < cutoff).astype(jnp.float32)
         * true_points_mask
         * jnp.transpose(true_points_mask, [0, 2, 1])
-        * (1.0 - jnp.eye(dmat_true.shape[1]))  # Exclude self-interaction.
+        # Exclude self-interaction.
+        * (1.0 - jnp.eye(dmat_true.shape[1]))
     )
 
     # Shift unscored distances to be far away.
@@ -89,8 +91,10 @@ def lddt(
 
     # Normalize over the appropriate axes.
     reduce_axes = (-1,) if per_residue else (-2, -1)
-    norm = 1.0 / (1e-10 + jnp.sum(dists_to_score, axis=reduce_axes))
-    score = norm * (1e-10 + jnp.sum(dists_to_score * score, axis=reduce_axes))
+    norm = 1.0 / \
+        (1e-10 + jnp.sum(dists_to_score, axis=reduce_axes))
+    score = norm * \
+        (1e-10 + jnp.sum(dists_to_score * score, axis=reduce_axes))
 
     return score
 
@@ -102,7 +106,8 @@ class ConfidenceLoss:
         self.lddt_max = config["lddt_max"]
 
         self.num_bins = config["num_bins"]
-        self.bin_width = (self.lddt_max - self.lddt_min) / self.num_bins
+        self.bin_width = (
+            self.lddt_max - self.lddt_min) / self.num_bins
         self.epsilon = 1e-5
 
         self.loss_type = self.config.loss_type
@@ -120,16 +125,18 @@ class ConfidenceLoss:
             jnp.float32,
         )
         self.bin_edge_lower = jnp.array(
-            jnp.linspace(self.lddt_min, self.lddt_max - self.bin_width, self.num_bins),
+            jnp.linspace(
+                self.lddt_min, self.lddt_max - self.bin_width, self.num_bins),
             jnp.float32,
         )
         self.bin_edge_upper = jnp.array(
-            jnp.linspace(self.lddt_min + self.bin_width, self.lddt_max, self.num_bins),
+            jnp.linspace(self.lddt_min + self.bin_width,
+                         self.lddt_max, self.num_bins),
             jnp.float32,
         )
 
         def span(lddt):
-            ## [0, 40] -> 16, [40, 60] -> 8, [60, 70] -> 4, [70, 80] -> 2, [80, 100] -> 1
+            # [0, 40] -> 16, [40, 60] -> 8, [60, 70] -> 4, [70, 80] -> 2, [80, 100] -> 1
             # span = jnp.zeros_like(lddt)
             # span = jnp.where(lddt < 40, 16, span)
             # span = jnp.where((lddt >= 40) & (lddt < 60), 8, span)
@@ -139,29 +146,34 @@ class ConfidenceLoss:
 
             span = jnp.zeros_like(lddt)
             span = jnp.where(lddt < 50.0, 8.0, span)
-            span = jnp.where((lddt >= 50.0) & (lddt < 70.0), 4.0, span)
-            span = jnp.where((lddt >= 70.0) & (lddt < 80.0), 2.0, span)
+            span = jnp.where((lddt >= 50.0) & (
+                lddt < 70.0), 4.0, span)
+            span = jnp.where((lddt >= 70.0) & (
+                lddt < 80.0), 2.0, span)
             span = jnp.where(lddt >= 80.0, 1.0, span)
 
             return span
 
         self.get_span = span
 
-        ### self.neighbors -> self.label_smoothing
+        # self.neighbors -> self.label_smoothing
         self.label_smoothing = self.config.label_smoothing
 
         if self.label_smoothing > 0.0:
             self.neighbors = self.config.neighbors
-            neighbor_mask = np.ones((self.num_bins, self.num_bins))
+            neighbor_mask = np.ones(
+                (self.num_bins, self.num_bins))
             neighbor_mask = (
                 neighbor_mask
                 - np.triu(neighbor_mask, self.neighbors)
                 - np.tril(neighbor_mask, -self.neighbors)
             )
             neighbor_mask = neighbor_mask / (
-                np.sum(neighbor_mask, axis=-1, keepdims=True) + 1e-6
+                np.sum(neighbor_mask, axis=-
+                       1, keepdims=True) + 1e-6
             )
-            self.neighbor_mask = jnp.array(neighbor_mask, jnp.float32)
+            self.neighbor_mask = jnp.array(
+                neighbor_mask, jnp.float32)
 
     def integrate_mask(self, lddt):
         # lddt: (Nres)
@@ -169,17 +181,22 @@ class ConfidenceLoss:
 
         lddt_lower_bound, lddt_upper_bound = lddt - span, lddt + span
         bin_mask = jnp.logical_and(
-            (self.bin_center[None, :] >= lddt_lower_bound[:, None]),
-            (self.bin_center[None, :] <= lddt_upper_bound[:, None]),
+            (self.bin_center[None, :] >=
+             lddt_lower_bound[:, None]),
+            (self.bin_center[None, :] <=
+             lddt_upper_bound[:, None]),
         )
 
         return bin_mask
 
     def integrated_bce_loss(self, plddt, lddt, seq_mask):
         # plddt: (Nres, Nbins), lddt: (Nres, ), seq_mask: (Nres)
-        plddt_prob = jax.nn.softmax(plddt, axis=-1)  # (Nres, Nbins)
-        integrate_mask = self.integrate_mask(lddt)  # (Nres, Nbins)
-        integrated_prob = jnp.sum(plddt_prob * integrate_mask, axis=-1)  # (Nres)
+        plddt_prob = jax.nn.softmax(
+            plddt, axis=-1)  # (Nres, Nbins)
+        integrate_mask = self.integrate_mask(
+            lddt)  # (Nres, Nbins)
+        integrated_prob = jnp.sum(
+            plddt_prob * integrate_mask, axis=-1)  # (Nres)
 
         # binary cross entropy
         return -jnp.sum(seq_mask * jnp.log(integrated_prob + self.epsilon)) / (
@@ -197,10 +214,13 @@ class ConfidenceLoss:
             jnp.float32
         )  # (Nres, Nbins)
 
-        loss = softmax_cross_entropy(plddt, lddt_one_hot, seq_mask)
+        loss = softmax_cross_entropy(
+            plddt, lddt_one_hot, seq_mask)
         if self.label_smoothing > 0.0:
-            smoothed_labels = jnp.matmul(lddt_one_hot, self.neighbor_mask)
-            smoothed_loss = softmax_cross_entropy(plddt, smoothed_labels, seq_mask)
+            smoothed_labels = jnp.matmul(
+                lddt_one_hot, self.neighbor_mask)
+            smoothed_loss = softmax_cross_entropy(
+                plddt, smoothed_labels, seq_mask)
 
             loss = (
                 1.0 - self.label_smoothing

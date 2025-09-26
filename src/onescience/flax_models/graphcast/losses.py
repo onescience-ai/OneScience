@@ -48,12 +48,15 @@ def weighted_mse_per_level(
 
     def loss(prediction, target):
         loss = (prediction - target) ** 2
-        loss *= normalized_latitude_weights(target).astype(loss.dtype)
+        loss *= normalized_latitude_weights(
+            target).astype(loss.dtype)
         if "level" in target.dims:
-            loss *= normalized_level_weights(target).astype(loss.dtype)
+            loss *= normalized_level_weights(
+                target).astype(loss.dtype)
         return _mean_preserving_batch(loss)
 
-    losses = xarray_tree.map_structure(loss, predictions, targets)
+    losses = xarray_tree.map_structure(
+        loss, predictions, targets)
     return sum_per_variable_losses(losses, per_variable_weights)
 
 
@@ -78,7 +81,8 @@ def sum_per_variable_losses(
     total = xarray.concat(
         weighted_per_variable_losses.values(), dim="variable", join="exact"
     ).sum("variable", skipna=False)
-    return total, per_variable_losses  # pytype: disable=bad-return-type
+    # pytype: disable=bad-return-type
+    return total, per_variable_losses
 
 
 def normalized_level_weights(data: xarray.DataArray) -> xarray.DataArray:
@@ -127,16 +131,19 @@ def normalized_latitude_weights(data: xarray.DataArray) -> xarray.DataArray:
     latitude = data.coords["lat"]
 
     if np.any(np.isclose(np.abs(latitude), 90.0)):
-        weights = _weight_for_latitude_vector_with_poles(latitude)
+        weights = _weight_for_latitude_vector_with_poles(
+            latitude)
     else:
-        weights = _weight_for_latitude_vector_without_poles(latitude)
+        weights = _weight_for_latitude_vector_without_poles(
+            latitude)
 
     return weights / weights.mean(skipna=False)
 
 
 def _weight_for_latitude_vector_without_poles(latitude):
     """Weights for uniform latitudes of the form [+-90-+d/2, ..., -+90+-d/2]."""
-    delta_latitude = np.abs(_check_uniform_spacing_and_get_delta(latitude))
+    delta_latitude = np.abs(
+        _check_uniform_spacing_and_get_delta(latitude))
     if not np.isclose(np.max(latitude), 90 - delta_latitude / 2) or not np.isclose(
         np.min(latitude), -90 + delta_latitude / 2
     ):
@@ -149,22 +156,26 @@ def _weight_for_latitude_vector_without_poles(latitude):
 
 def _weight_for_latitude_vector_with_poles(latitude):
     """Weights for uniform latitudes of the form [+- 90, ..., -+90]."""
-    delta_latitude = np.abs(_check_uniform_spacing_and_get_delta(latitude))
+    delta_latitude = np.abs(
+        _check_uniform_spacing_and_get_delta(latitude))
     if not np.isclose(np.max(latitude), 90.0) or not np.isclose(
         np.min(latitude), -90.0
     ):
         raise ValueError(
             f"Latitude vector {latitude} does not start/end at +- 90 degrees."
         )
-    weights = np.cos(np.deg2rad(latitude)) * np.sin(np.deg2rad(delta_latitude / 2))
+    weights = np.cos(np.deg2rad(latitude)) * \
+        np.sin(np.deg2rad(delta_latitude / 2))
     # The two checks above enough to guarantee that latitudes are sorted, so
     # the extremes are the poles
-    weights[[0, -1]] = np.sin(np.deg2rad(delta_latitude / 4)) ** 2
+    weights[[0, -1]
+            ] = np.sin(np.deg2rad(delta_latitude / 4)) ** 2
     return weights
 
 
 def _check_uniform_spacing_and_get_delta(vector):
     diff = np.diff(vector)
     if not np.all(np.isclose(diff[0], diff)):
-        raise ValueError(f"Vector {diff} is not uniformly spaced.")
+        raise ValueError(
+            f"Vector {diff} is not uniformly spaced.")
     return diff[0]

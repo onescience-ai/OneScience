@@ -70,9 +70,12 @@ class ConfidenceHead(nn.Module):
         lower_bins = torch.arange(
             distance_bin_start, distance_bin_end, distance_bin_step
         )
-        upper_bins = torch.cat([lower_bins[1:], lower_bins.new_tensor([1e6])], dim=-1)
-        self.lower_bins = nn.Parameter(lower_bins, requires_grad=False)
-        self.upper_bins = nn.Parameter(upper_bins, requires_grad=False)
+        upper_bins = torch.cat(
+            [lower_bins[1:], lower_bins.new_tensor([1e6])], dim=-1)
+        self.lower_bins = nn.Parameter(
+            lower_bins, requires_grad=False)
+        self.upper_bins = nn.Parameter(
+            upper_bins, requires_grad=False)
         self.num_bins = len(lower_bins)  # + 1
 
         self.linear_no_bias_d = LinearNoBias(
@@ -95,10 +98,12 @@ class ConfidenceHead(nn.Module):
             in_features=self.c_z, out_features=self.b_pde
         )
         self.plddt_weight = nn.Parameter(
-            data=torch.empty(size=(self.max_atoms_per_token, self.c_s, self.b_plddt))
+            data=torch.empty(
+                size=(self.max_atoms_per_token, self.c_s, self.b_plddt))
         )
         self.resolved_weight = nn.Parameter(
-            data=torch.empty(size=(self.max_atoms_per_token, self.c_s, self.b_resolved))
+            data=torch.empty(
+                size=(self.max_atoms_per_token, self.c_s, self.b_resolved))
         )
 
         self.input_strunk_ln = LayerNorm(self.c_s)
@@ -165,7 +170,8 @@ class ConfidenceHead(nn.Module):
             s_trunk = s_trunk.detach()
             z_trunk = z_trunk.detach()
 
-        s_trunk = self.input_strunk_ln(torch.clamp(s_trunk, min=-512, max=512))
+        s_trunk = self.input_strunk_ln(
+            torch.clamp(s_trunk, min=-512, max=512))
 
         if not use_embedding:
             if inplace_safe:
@@ -176,11 +182,13 @@ class ConfidenceHead(nn.Module):
         x_rep_atom_mask = input_feature_dict[
             "distogram_rep_atom_mask"
         ].bool()  # [N_atom]
-        x_pred_rep_coords = x_pred_coords[..., x_rep_atom_mask, :]
+        x_pred_rep_coords = x_pred_coords[...,
+                                          x_rep_atom_mask, :]
         N_sample = x_pred_rep_coords.size(-3)
 
         z_init = (
-            self.linear_no_bias_s1(s_inputs)[..., None, :, :]
+            self.linear_no_bias_s1(
+                s_inputs)[..., None, :, :]
             + self.linear_no_bias_s2(s_inputs)[..., None, :]
         )
         z_trunk = z_init + z_trunk
@@ -254,7 +262,8 @@ class ConfidenceHead(nn.Module):
         """
         # Embed pair distances of representative atoms:
         with torch.cuda.amp.autocast(enabled=False):
-            x_pred_rep_coords = x_pred_rep_coords.to(torch.float32)
+            x_pred_rep_coords = x_pred_rep_coords.to(
+                torch.float32)
             distance_pred = torch.cdist(
                 x_pred_rep_coords, x_pred_rep_coords
             )  # [..., N_tokens, N_tokens]
@@ -305,9 +314,11 @@ class ConfidenceHead(nn.Module):
         ]  # in range [0, max_atoms_per_token-1] shape: [N_atom] # influenced by crop
 
         with torch.cuda.amp.autocast(enabled=False):
-            pae_pred = self.linear_no_bias_pae(self.pae_ln(z_pair))
+            pae_pred = self.linear_no_bias_pae(
+                self.pae_ln(z_pair))
             pde_pred = self.linear_no_bias_pde(
-                self.pde_ln(z_pair + z_pair.transpose(-2, -3))
+                self.pde_ln(
+                    z_pair + z_pair.transpose(-2, -3))
             )
             # Broadcast s_single: [N_tokens, c_s] -> [N_atoms, c_s]
             a = broadcast_token_to_atom(

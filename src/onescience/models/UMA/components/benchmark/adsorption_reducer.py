@@ -38,7 +38,8 @@ class AdsorptionReducer(JsonDFReducer):
             DataFrame containing computed metrics with run_name as index
         """
         """This will just compute MAE of everything that is common in the results and target dataframes"""
-        pred_cols = [col for col in results.columns if col != self.target_data_key]
+        pred_cols = [
+            col for col in results.columns if col != self.target_data_key]
         targets = results[self.target_data_key]
         metrics = {
             f"{col},mae": (results[col] - targets).abs().mean() for col in pred_cols

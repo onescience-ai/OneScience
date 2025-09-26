@@ -142,7 +142,8 @@ def train_loop(
     for x, y, grid in train_loader:
         # batch_size = x.size(0)
         loss = 0
-        if args["pde_name"] == "3D_Maxwell":  # maxwell, we get x, y, global maximum
+        # maxwell, we get x, y, global maximum
+        if args["pde_name"] == "3D_Maxwell":
             grid = grid[0]  # maximum
             x = x.detach().clone() / grid  # scale
             y = y.detach().clone() / grid
@@ -150,12 +151,16 @@ def train_loop(
         x = x.to(
             device
         )  # x: input tensor (first few time steps) [b, x1, ..., xd, t_init, v]
-        y = y.to(device)  # y: target tensor [b, x1, ..., xd, t, v]
-        grid = grid.to(device)  # grid: meshgrid [b, x1, ..., xd, dims]
+        # y: target tensor [b, x1, ..., xd, t, v]
+        y = y.to(device)
+        # grid: meshgrid [b, x1, ..., xd, dims]
+        grid = grid.to(device)
         # initialize the prediction tensor
-        pred = y[..., :initial_step, :]  # (bs, x1, ..., xd, init_t, v)
+        # (bs, x1, ..., xd, init_t, v)
+        pred = y[..., :initial_step, :]
         # reshape input
-        input_shape = list(x.shape)[:-2]  # (bs, x1, ..., xd)
+        # (bs, x1, ..., xd)
+        input_shape = list(x.shape)[:-2]
         input_shape.append(-1)  # (bs, x1, ..., xd, -1)
 
         if args["training_type"] in ["autoregressive"]:
@@ -164,41 +169,47 @@ def train_loop(
                 # Reshape input tensor into [b, x1, ..., xd, t_init*v]
                 model_input = x.reshape(input_shape)
                 # Extract target at current time step
-                target = y[..., t : t + 1, :]
+                target = y[..., t: t + 1, :]
                 # Model run
                 model_output = model(model_input, grid)
 
                 # Loss calculation
                 _batch = model_output.size(0)
                 loss += loss_fn(
-                    model_output.reshape(_batch, -1), target.reshape(_batch, -1)
+                    model_output.reshape(
+                        _batch, -1), target.reshape(_batch, -1)
                 )
                 # Concatenate the prediction at current time step into the
                 # prediction tensor
                 pred = torch.cat((pred, model_output), -2)
                 # Concatenate the prediction at the current time step to be used
                 # as input for the next time step
-                x = torch.cat((x[..., 1:, :], model_output), dim=-2)
+                x = torch.cat(
+                    (x[..., 1:, :], model_output), dim=-2)
             _batch = y.size(0)
-            train_l2 += loss_fn(pred.reshape(_batch, -1), y.reshape(_batch, -1)).item()
+            train_l2 += loss_fn(pred.reshape(_batch, -1),
+                                y.reshape(_batch, -1)).item()
             train_l_inf = max(
                 train_l_inf,
                 torch.max(
-                    (torch.abs(pred.reshape(_batch, -1) - y.reshape(_batch, -1)))
+                    (torch.abs(pred.reshape(_batch, -1) -
+                     y.reshape(_batch, -1)))
                 ),
             )
 
         if args["training_type"] in ["single"]:
             x = x[..., 0, :]
-            y = y[..., t_train - 1 : t_train, :]
+            y = y[..., t_train - 1: t_train, :]
             pred = model(x, grid)
             _batch = y.size(0)
-            loss += loss_fn(pred.reshape(_batch, -1), y.reshape(_batch, -1))
+            loss += loss_fn(pred.reshape(_batch, -1),
+                            y.reshape(_batch, -1))
             train_l2 += loss.item()
             train_l_inf = max(
                 train_l_inf,
                 torch.max(
-                    (torch.abs(pred.reshape(_batch, -1) - y.reshape(_batch, -1)))
+                    (torch.abs(pred.reshape(_batch, -1) -
+                     y.reshape(_batch, -1)))
                 ),
             )
         optimizer.zero_grad()
@@ -221,43 +232,52 @@ def val_loop(val_loader, model, loss_fn, device, training_type, t_train, initial
 
             if training_type == "autoregressive":
                 pred = y[..., :initial_step, :]
-                input_shape = list(x.shape)[:-2]  # (bs, x1, ..., xd)
-                input_shape.append(-1)  # (bs, x1, ..., xd, -1)
+                # (bs, x1, ..., xd)
+                input_shape = list(x.shape)[:-2]
+                # (bs, x1, ..., xd, -1)
+                input_shape.append(-1)
                 for t in range(initial_step, y.shape[-2]):
                     model_input = x.reshape(input_shape)
-                    target = y[..., t : t + 1, :]
+                    target = y[..., t: t + 1, :]
                     model_output = model(model_input, grid)
                     _batch = model_output.size(0)
                     loss += loss_fn(
-                        model_output.reshape(_batch, -1), target.reshape(_batch, -1)
+                        model_output.reshape(
+                            _batch, -1), target.reshape(_batch, -1)
                     )
-                    pred = torch.cat((pred, model_output), -2)
-                    x = torch.cat((x[..., 1:, :], model_output), dim=-2)
+                    pred = torch.cat(
+                        (pred, model_output), -2)
+                    x = torch.cat(
+                        (x[..., 1:, :], model_output), dim=-2)
 
                 _batch = y.size(0)
                 _pred = pred[..., initial_step:t_train, :]
                 _y = y[..., initial_step:t_train, :]
                 val_l2_full += loss_fn(
-                    _pred.reshape(_batch, -1), _y.reshape(_batch, -1)
+                    _pred.reshape(
+                        _batch, -1), _y.reshape(_batch, -1)
                 ).item()
                 val_l_inf_full = max(
                     torch.max(
-                        torch.abs(_pred.reshape(_batch, -1) - _y.reshape(_batch, -1))
+                        torch.abs(_pred.reshape(
+                            _batch, -1) - _y.reshape(_batch, -1))
                     ).item(),
                     val_l_inf_full,
                 )
 
             if training_type == "single":
                 x = x[..., 0, :]
-                y = y[..., t_train - 1 : t_train, :]
+                y = y[..., t_train - 1: t_train, :]
                 pred = model(x, grid)
                 _batch = y.size(0)
-                loss += loss_fn(pred.reshape(_batch, -1), y.reshape(_batch, -1))
+                loss += loss_fn(pred.reshape(_batch, -1),
+                                y.reshape(_batch, -1))
 
                 val_l2_full += loss.item()
                 val_l_inf_full = max(
                     torch.max(
-                        torch.abs(pred.reshape(_batch, -1) - y.reshape(_batch, -1))
+                        torch.abs(pred.reshape(
+                            _batch, -1) - y.reshape(_batch, -1))
                     ).item(),
                     val_l_inf_full,
                 )
@@ -278,7 +298,8 @@ def test_loop(
         res_dict[name] = []
     # test
     for x, y, grid in dataloader:
-        if args["pde_name"] == "3D_Maxwell":  # maxwell, we get x, y, global maximum
+        # maxwell, we get x, y, global maximum
+        if args["pde_name"] == "3D_Maxwell":
             grid = grid[0]  # maximum
             x = x.detach().clone() / grid  # scale
             y = y.detach().clone() / grid
@@ -286,18 +307,21 @@ def test_loop(
         y = y.to(device)
         grid = grid.to(device)
         pred = y[..., :initial_step, :]
-        input_shape = list(x.shape)[:-2]  # (bs, x1, ..., xd)
+        # (bs, x1, ..., xd)
+        input_shape = list(x.shape)[:-2]
         input_shape.append(-1)  # (bs, x1, ..., xd, -1)
         for t in range(initial_step, y.shape[-2]):
             model_input = x.reshape(input_shape)
             with torch.no_grad():
                 model_output = model(model_input, grid)
             pred = torch.cat((pred, model_output), dim=-2)
-            x = torch.cat((x[..., 1:, :], model_output), dim=-2)
+            x = torch.cat(
+                (x[..., 1:, :], model_output), dim=-2)
         for name in metric_names:
             metric_fn = getattr(metrics, name)
             res_dict[name].append(
-                metric_fn(pred[..., initial_step:, :], y[..., initial_step:, :])
+                metric_fn(
+                    pred[..., initial_step:, :], y[..., initial_step:, :])
             )
 
     for name in metric_names:
@@ -314,7 +338,8 @@ def test_loop(
 
 def main(args):
     # init
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cuda:0" if torch.cuda.is_available() else "cpu")
     checkpoint = (
         torch.load(args["model_path"])
         if not args["if_training"] or args["continue_training"]
@@ -326,7 +351,8 @@ def main(args):
         + f"_bs{args['dataloader']['batch_size']}"
     )
     saved_dir = os.path.join(
-        args["output_dir"], os.path.splitext(args["dataset"]["file_name"])[0]
+        args["output_dir"], os.path.splitext(
+            args["dataset"]["file_name"])[0]
     )
     print(saved_dir)
     if not os.path.exists(saved_dir):
@@ -340,7 +366,8 @@ def main(args):
 
     # data get dataloader
     train_data, val_data = get_dataset(args)
-    train_loader, val_loader = get_dataloader(train_data, val_data, args)
+    train_loader, val_loader = get_dataloader(
+        train_data, val_data, args)
 
     # set some train args
     _, sample, _ = next(iter(val_loader))
@@ -352,12 +379,15 @@ def main(args):
     model = get_model(spatial_dim, args)
     ##
     if not args["if_training"]:
-        print(f"Test mode, load checkpoint from {args['model_path']}")
-        model.load_state_dict(checkpoint["model_state_dict"])
+        print(
+            f"Test mode, load checkpoint from {args['model_path']}")
+        model.load_state_dict(
+            checkpoint["model_state_dict"])
         model.to(device)
         # TODO: test code
         print("start testing...")
-        res = test_loop(val_loader, model, device, initial_step)
+        res = test_loop(val_loader, model,
+                        device, initial_step)
         for u, v in res.items():
             dim = len(v)
             if dim == 1:
@@ -365,29 +395,34 @@ def main(args):
             else:
                 for i in range(dim):
                     if i == 0:
-                        print(u, "\t{0:.6f}".format(v[i].item()), end="\t")
+                        print(u, "\t{0:.6f}".format(
+                            v[i].item()), end="\t")
                     else:
-                        print("{0:.6f}".format(v[i].item()), end="\t")
+                        print("{0:.6f}".format(
+                            v[i].item()), end="\t")
                 print("")
         print("Done")
         return
-    ## if continue training, resume model from checkpoint
+    # if continue training, resume model from checkpoint
     if args["continue_training"]:
-        model.load_state_dict(checkpoint["model_state_dict"])
+        model.load_state_dict(
+            checkpoint["model_state_dict"])
     model.to(device)
     model.train()
 
     # optimizer
     optim_args = args["optimizer"]
     optim_name = optim_args.pop("name")
-    ## if continue training, resume optimizer and scheduler from checkpoint
+    # if continue training, resume optimizer and scheduler from checkpoint
     if args["continue_training"]:
         optimizer = getattr(torch.optim, optim_name)(
-            [{"params": model.parameters(), "initial_lr": optim_args["lr"]}],
+            [{"params": model.parameters(
+            ), "initial_lr": optim_args["lr"]}],
             **optim_args,
         )
     else:
-        optimizer = getattr(torch.optim, optim_name)(model.parameters(), **optim_args)
+        optimizer = getattr(torch.optim, optim_name)(
+            model.parameters(), **optim_args)
 
     # scheduler
     start_epoch = 0
@@ -407,7 +442,8 @@ def main(args):
     # save loss history
     loss_history = []
     if args["continue_training"]:
-        loss_history = np.load("./log/loss/" + args["pde_name"] + "_loss_history.npy")
+        loss_history = np.load(
+            "./log/loss/" + args["pde_name"] + "_loss_history.npy")
         loss_history = loss_history.tolist()
 
     # train loop
@@ -431,8 +467,9 @@ def main(args):
         print(
             f"[Epoch {epoch}] train_l2: {train_l2}, train_l_inf: {train_l_inf}, time_spend: {time:.3f}"
         )
-        ## save latest
-        saved_path = os.path.join(saved_dir, saved_model_name)
+        # save latest
+        saved_path = os.path.join(
+            saved_dir, saved_model_name)
         model_state_dict = (
             (
                 model.module.state_dict()
@@ -450,7 +487,8 @@ def main(args):
             saved_path + "-latest.pt",
         )
         if (epoch + 1) % args["save_period"] == 0:
-            print("====================validate====================")
+            print(
+                "====================validate====================")
             val_l2_full, val_l_inf = val_loop(
                 val_loader,
                 model,
@@ -460,11 +498,13 @@ def main(args):
                 t_train,
                 initial_step,
             )
-            print(f"[Epoch {epoch}] val_l2_full: {val_l2_full} val_l_inf: {val_l_inf}")
-            print("================================================")
+            print(
+                f"[Epoch {epoch}] val_l2_full: {val_l2_full} val_l_inf: {val_l_inf}")
+            print(
+                "================================================")
             if val_l2_full < min_val_loss:
                 min_val_loss = val_l2_full
-                ## save best
+                # save best
                 torch.save(
                     {
                         "epoch": epoch + 1,
@@ -482,15 +522,18 @@ def main(args):
                 )
     loss_history = np.array(loss_history)
     os.makedirs("./log/loss", exist_ok=True)
-    np.save("./log/loss/" + args["pde_name"] + "_loss_history.npy", loss_history)
+    np.save("./log/loss/" +
+            args["pde_name"] + "_loss_history.npy", loss_history)
     print("Done.")
 
-    print("avg_time : {0:.5f}".format(total_time / (args["epochs"] - start_epoch)))
+    print("avg_time : {0:.5f}".format(
+        total_time / (args["epochs"] - start_epoch)))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("config_file", type=str, help="Path to config file")
+    parser.add_argument(
+        "config_file", type=str, help="Path to config file")
     cmd_args = parser.parse_args()
     with open(cmd_args.config_file, "r") as f:
         args = yaml.safe_load(f)

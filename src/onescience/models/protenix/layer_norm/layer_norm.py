@@ -9,7 +9,8 @@ from torch.nn.parameter import Parameter
 sys.path.append(os.path.dirname(__file__))
 
 try:
-    fastfold_layer_norm_cuda = importlib.import_module("fastfold_layer_norm_cuda")
+    fastfold_layer_norm_cuda = importlib.import_module(
+        "fastfold_layer_norm_cuda")
 except ImportError:
     from onescience.models.protenix.layer_norm.torch_ext_compile import compile
 
@@ -43,23 +44,27 @@ class FusedLayerNormAffineFunction(torch.autograd.Function):
             else:
                 output, mean, invvar = (
                     fastfold_layer_norm_cuda.forward_with_bias_affine(
-                        input_, ctx.normalized_shape, bias.to(d), ctx.eps
+                        input_, ctx.normalized_shape, bias.to(
+                            d), ctx.eps
                     )
                 )
         else:
             if bias is None:
                 output, mean, invvar = (
                     fastfold_layer_norm_cuda.forward_with_weight_affine(
-                        input_, ctx.normalized_shape, weight.to(d), ctx.eps
+                        input_, ctx.normalized_shape, weight.to(
+                            d), ctx.eps
                     )
                 )
             else:
                 output, mean, invvar = (
                     fastfold_layer_norm_cuda.forward_with_both_affine(
-                        input_, ctx.normalized_shape, weight.to(d), bias.to(d), ctx.eps
+                        input_, ctx.normalized_shape, weight.to(
+                            d), bias.to(d), ctx.eps
                     )
                 )
-        ctx.save_for_backward(input_, weight, bias, mean, invvar)
+        ctx.save_for_backward(
+            input_, weight, bias, mean, invvar)
         return output
 
     @staticmethod
@@ -150,12 +155,14 @@ class FusedLayerNorm(torch.nn.Module):
         self.normalized_shape = torch.Size(normalized_shape)
         self.eps = eps
         if create_scale:
-            self.weight = Parameter(torch.ones(*normalized_shape))
+            self.weight = Parameter(
+                torch.ones(*normalized_shape))
         else:
             self.weight = None
 
         if create_offset:
-            self.bias = Parameter(torch.zeros(*normalized_shape))
+            self.bias = Parameter(
+                torch.zeros(*normalized_shape))
         else:
             self.bias = None
 
@@ -180,9 +187,11 @@ if __name__ == "__main__":
     data.requires_grad = True
     data1.requires_grad = True
     layer_norm = (
-        FusedLayerNorm(10, create_scale=True, create_offset=True).cuda().to(dtype=dtype)
+        FusedLayerNorm(10, create_scale=True,
+                       create_offset=True).cuda().to(dtype=dtype)
     )
-    layer_norm_torch = torch.nn.LayerNorm(10).cuda().to(dtype=dtype)
+    layer_norm_torch = torch.nn.LayerNorm(
+        10).cuda().to(dtype=dtype)
     out = layer_norm(data)
     out1 = layer_norm_torch(data1)
     # print(out - out1)
@@ -191,6 +200,7 @@ if __name__ == "__main__":
     loss1 = out1.sum()
     loss1.backward()
     print(data.grad - data1.grad)
-    print(layer_norm.weight.grad - layer_norm_torch.weight.grad)
+    print(layer_norm.weight.grad -
+          layer_norm_torch.weight.grad)
     print(layer_norm.bias.grad - layer_norm_torch.bias.grad)
     print(layer_norm.weight.grad, layer_norm.bias.grad)

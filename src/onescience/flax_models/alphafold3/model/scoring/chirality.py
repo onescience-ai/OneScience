@@ -29,7 +29,8 @@ def _find_chiral_centres(mol: rd_chem.Mol) -> dict[str, str]:
     atom_name_by_idx = {
         atom.GetIdx(): atom.GetProp("atom_name") for atom in mol.GetAtoms()
     }
-    atom_chirality_by_name = {atom_name_by_idx[k]: v for k, v in chiral_centres}
+    atom_chirality_by_name = {
+        atom_name_by_idx[k]: v for k, v in chiral_centres}
     return {
         k: v
         for k, v in atom_chirality_by_name.items()
@@ -40,11 +41,14 @@ def _find_chiral_centres(mol: rd_chem.Mol) -> dict[str, str]:
 def _chiral_match(mol1: rd_chem.Mol, mol2: rd_chem.Mol) -> bool:
     """Compares chirality of two Mols. Mol1 can match a subset of mol2."""
 
-    mol1_atom_names = {a.GetProp("atom_name") for a in mol1.GetAtoms()}
-    mol2_atom_names = {a.GetProp("atom_name") for a in mol2.GetAtoms()}
+    mol1_atom_names = {
+        a.GetProp("atom_name") for a in mol1.GetAtoms()}
+    mol2_atom_names = {
+        a.GetProp("atom_name") for a in mol2.GetAtoms()}
     if mol1_atom_names != mol2_atom_names:
         if not mol1_atom_names.issubset(mol2_atom_names):
-            raise ValueError("Mol1 atoms are not a subset of mol2 atoms.")
+            raise ValueError(
+                "Mol1 atoms are not a subset of mol2 atoms.")
 
     mol1_chiral_centres = _find_chiral_centres(mol1)
     mol2_chiral_centres = _find_chiral_centres(mol2)
@@ -66,8 +70,10 @@ def _mol_from_ligand_struc(
     """Creates a Mol object from a ligand structure and reference mol."""
 
     if ligand_struc.num_residues(count_unresolved=True) > 1:
-        raise ValueError("ligand_struc %s has more than one residue.")
-    coords_by_atom_name = dict(zip(ligand_struc.atom_name, ligand_struc.coords))
+        raise ValueError(
+            "ligand_struc %s has more than one residue.")
+    coords_by_atom_name = dict(
+        zip(ligand_struc.atom_name, ligand_struc.coords))
 
     ref_mol = rdkit_utils.sanitize_mol(
         ref_mol,
@@ -111,15 +117,19 @@ def _maybe_mol_from_ccd(res_name: str) -> rd_chem.Mol | None:
     ccd = chemical_components.cached_ccd()
     ccd_cif = ccd.get(res_name)
     if not ccd_cif:
-        logging.warning("No ccd information for residue %s.", res_name)
+        logging.warning(
+            "No ccd information for residue %s.", res_name)
         return None
     try:
-        mol = rdkit_utils.mol_from_ccd_cif(ccd_cif, force_parse=False)
+        mol = rdkit_utils.mol_from_ccd_cif(
+            ccd_cif, force_parse=False)
     except rdkit_utils.MolFromMmcifError as e:
-        logging.warning("Failed to create mol from ccd for %s: %s", res_name, e)
+        logging.warning(
+            "Failed to create mol from ccd for %s: %s", res_name, e)
         return None
     if mol is None:
-        raise ValueError("Failed to create mol from ccd for %s." % res_name)
+        raise ValueError(
+            "Failed to create mol from ccd for %s." % res_name)
     mol = rdkit_utils.sanitize_mol(
         mol,
         sort_alphabetically=False,
@@ -130,7 +140,8 @@ def _maybe_mol_from_ccd(res_name: str) -> rd_chem.Mol | None:
 
 def compare_chirality(
     test_struc: structure.Structure,
-    ref_mol_by_chain: Mapping[str, rd_chem.Mol] | None = None,
+    ref_mol_by_chain: Mapping[str,
+                              rd_chem.Mol] | None = None,
 ) -> dict[str, bool]:
     """Compares chirality of ligands in a structure with reference molecules.
 
@@ -150,17 +161,20 @@ def compare_chirality(
       compared.
     """
     ref_mol_by_chain = ref_mol_by_chain or {}
-    test_struc = test_struc.filter_to_entity_type(ligand=True)
+    test_struc = test_struc.filter_to_entity_type(
+        ligand=True)
     name = test_struc.name
     chiral_match_by_chain_id = {}
     for chain_id in test_struc.chains:
         chain_struc = test_struc.filter(chain_id=chain_id)
         # Only compare single-residue ligands.
         if chain_struc.num_residues(count_unresolved=True) > 1:
-            logging.warning("%s: Chain %s has >1 residues. Skipping.", name, chain_id)
+            logging.warning(
+                "%s: Chain %s has >1 residues. Skipping.", name, chain_id)
             continue
         if chain_id not in ref_mol_by_chain:
-            ref_mol = _maybe_mol_from_ccd(chain_struc.res_name[0])
+            ref_mol = _maybe_mol_from_ccd(
+                chain_struc.res_name[0])
         else:
             ref_mol = ref_mol_by_chain[chain_id]
         if ref_mol is None:
@@ -177,5 +191,6 @@ def compare_chirality(
                 "%s: Failed to create mol for chain %s. Skipping.", name, chain_id
             )
             continue
-        chiral_match_by_chain_id[chain_id] = _chiral_match(mol, ref_mol)
+        chiral_match_by_chain_id[chain_id] = _chiral_match(
+            mol, ref_mol)
     return chiral_match_by_chain_id

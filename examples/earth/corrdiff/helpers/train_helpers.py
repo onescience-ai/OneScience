@@ -12,9 +12,11 @@ def set_patch_shape(img_shape, patch_shape):
         patch_shape_y = img_shape_y
     if patch_shape_x != img_shape_x or patch_shape_y != img_shape_y:
         if patch_shape_x != patch_shape_y:
-            raise NotImplementedError("Rectangular patch not supported yet")
+            raise NotImplementedError(
+                "Rectangular patch not supported yet")
         if patch_shape_x % 32 != 0 or patch_shape_y % 32 != 0:
-            raise ValueError("Patch shape needs to be a multiple of 32")
+            raise ValueError(
+                "Patch shape needs to be a multiple of 32")
     return (img_shape_y, img_shape_x), (patch_shape_y, patch_shape_x)
 
 
@@ -71,7 +73,8 @@ def handle_and_clip_gradients(model, grad_clip_threshold=None):
 
     # Clip gradients if a threshold is provided
     if grad_clip_threshold is not None:
-        torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip_threshold)
+        torch.nn.utils.clip_grad_norm_(
+            model.parameters(), grad_clip_threshold)
 
 
 def parse_model_args(args):

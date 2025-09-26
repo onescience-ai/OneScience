@@ -39,7 +39,8 @@ def compute_dynamic_weights_ic(pde_loss, bc_loss, ic_loss, model):
     """
     Compute dynamic weights for loss functions based on gradients.
     """
-    params_to_update = [param for param in model.parameters() if param.requires_grad]
+    params_to_update = [
+        param for param in model.parameters() if param.requires_grad]
 
     def compute_gradients(loss, scaling_factor):
         gradients = torch.autograd.grad(
@@ -48,7 +49,8 @@ def compute_dynamic_weights_ic(pde_loss, bc_loss, ic_loss, model):
             retain_graph=True,
             allow_unused=True,
         )
-        values = [p.reshape(-1).cpu().tolist() for p in gradients if p is not None]
+        values = [p.reshape(-1).cpu().tolist()
+                  for p in gradients if p is not None]
         return torch.abs(torch.tensor([v for val in values for v in val]))
 
     delta_pde = compute_gradients(pde_loss, 1.0)
@@ -69,9 +71,12 @@ def compute_fvm_residuals_higher_order(u, v, p, f_x, f_y, nu, dx, dy):
     device = u.device
 
     # Extend the fields with ghost cells to handle boundary conditions
-    u_ext = torch.zeros((u.shape[0] + 4, u.shape[1] + 4), device=device)
-    v_ext = torch.zeros((v.shape[0] + 4, v.shape[1] + 4), device=device)
-    p_ext = torch.zeros((p.shape[0] + 4, p.shape[1] + 4), device=device)
+    u_ext = torch.zeros(
+        (u.shape[0] + 4, u.shape[1] + 4), device=device)
+    v_ext = torch.zeros(
+        (v.shape[0] + 4, v.shape[1] + 4), device=device)
+    p_ext = torch.zeros(
+        (p.shape[0] + 4, p.shape[1] + 4), device=device)
 
     # Copy the interior
     u_ext[2:-2, 2:-2] = u
@@ -205,7 +210,8 @@ def dissipated_power(u, u_x, v_y, u_y, v_x):
     Compute the total dissipated power based on the input velocity gradients and displacements.
     """
     # First part of the dissipated power
-    p1 = (u_x**2 + v_y**2 + u_y**2 + v_x**2).sum(dim=1, keepdim=True)
+    p1 = (u_x**2 + v_y**2 + u_y**2 +
+          v_x**2).sum(dim=1, keepdim=True)
 
     # Second part of the dissipated power
     u2 = (u[:, :2] ** 2).sum(dim=1, keepdim=True)
@@ -251,7 +257,8 @@ def calculate_loss_multioutput(
     if model_list[0].chol_decomp is None:
         with cholesky_jitter(1e-7):
             for model in model_list:
-                model.chol_decomp = model.covar_module(model.train_inputs[0]).cholesky()
+                model.chol_decomp = model.covar_module(
+                    model.train_inputs[0]).cholesky()
 
     # Solve for offsets using Cholesky decomposition
     offsets = []
@@ -259,17 +266,22 @@ def calculate_loss_multioutput(
         target_offset = model.train_targets.unsqueeze(-1) - model.mean_module_NN_All(
             model.train_inputs[0]
         )[:, i].unsqueeze(-1)
-        offsets.append(model.chol_decomp._cholesky_solve(target_offset))
+        offsets.append(
+            model.chol_decomp._cholesky_solve(target_offset))
 
     # Compute values for velocity, pressure, and density
     ro_tensor = (
-        m_col[:, 3].unsqueeze(-1) + model_list[3].k_xX.t() @ offsets[3]
+        m_col[:, 3].unsqueeze(-1) +
+        model_list[3].k_xX.t() @ offsets[3]
     ).squeeze(-1)
     ro = modified_sigmoid(ro_tensor)
 
-    u = (m_col[:, 0].unsqueeze(-1) + model_list[0].k_xX.t() @ offsets[0]).squeeze(-1)
-    v = (m_col[:, 1].unsqueeze(-1) + model_list[1].k_xX.t() @ offsets[1]).squeeze(-1)
-    p = (m_col[:, 2].unsqueeze(-1) + model_list[2].k_xX.t() @ offsets[2]).squeeze(-1)
+    u = (m_col[:, 0].unsqueeze(-1) +
+         model_list[0].k_xX.t() @ offsets[0]).squeeze(-1)
+    v = (m_col[:, 1].unsqueeze(-1) +
+         model_list[1].k_xX.t() @ offsets[1]).squeeze(-1)
+    p = (m_col[:, 2].unsqueeze(-1) +
+         model_list[2].k_xX.t() @ offsets[2]).squeeze(-1)
 
     z_all = torch.cat(
         (u.unsqueeze(1), v.unsqueeze(1), p.unsqueeze(1), ro.unsqueeze(1)), dim=1
@@ -294,21 +306,27 @@ def calculate_loss_multioutput(
         fx, fy = [arr.reshape(-1) for arr in (fx, fy)]
     else:
         u_x, u_y, u_xx, u_yy = compute_autograd_derivatives(
-            model_list[0], z_all[:, 0], collocation_x, grad_order=2
+            model_list[0], z_all[:,
+                                 0], collocation_x, grad_order=2
         )
         v_x, v_y, v_xx, v_yy = compute_autograd_derivatives(
-            model_list[1], z_all[:, 1], collocation_x, grad_order=2
+            model_list[1], z_all[:,
+                                 1], collocation_x, grad_order=2
         )
         p_x, p_y, _, _ = compute_autograd_derivatives(
-            model_list[2], z_all[:, 2], collocation_x, grad_order=1
+            model_list[2], z_all[:,
+                                 2], collocation_x, grad_order=1
         )
-        residual_pde1 = (-(u_xx + u_yy) + p_x + fx[:, 0]) * w_1
-        residual_pde2 = (-(v_xx + v_yy) + p_y + fy[:, 0]) * w_2
+        residual_pde1 = (-(u_xx + u_yy) +
+                         p_x + fx[:, 0]) * w_1
+        residual_pde2 = (-(v_xx + v_yy) +
+                         p_y + fy[:, 0]) * w_2
         residual_pde3 = (u_x + v_y) * w_3
 
     # Plot fields at checkpoints
     if iteration in checkpoints:
-        plot_density_and_velocity_fields(u, v, p, ro, collocation_x, iteration, problem)
+        plot_density_and_velocity_fields(
+            u, v, p, ro, collocation_x, iteration, problem)
         plot_predictions_and_residuals(
             u,
             v,
@@ -336,7 +354,8 @@ def calculate_loss_multioutput(
         v_x.reshape(-1, 1),
     )
 
-    gamma = next((val for key, val in gamma_values.items() if key in title), 0.5)
+    gamma = next(
+        (val for key, val in gamma_values.items() if key in title), 0.5)
     vol_loss = loss_volume(z_all[:, 3:], gamma=gamma) * w_4
 
     # Return final losses
@@ -393,7 +412,8 @@ def find_TO(
     model1.alpha, model1.beta, model1.theta = 1, 1, 1
 
     # Set up optimizer and scheduler
-    optimizer = torch.optim.Adam(model_ref.parameters(), lr=lr_default)
+    optimizer = torch.optim.Adam(
+        model_ref.parameters(), lr=lr_default)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(
         optimizer, milestones=np.linspace(0, num_iter, 4).tolist(), gamma=0.75
     )
@@ -423,8 +443,10 @@ def find_TO(
                 ):
                     model1.alpha, model1.beta = alpha, beta
 
-                weights["alpha"].append(alpha.detach().cpu().item())
-                weights["beta"].append(beta.detach().cpu().item())
+                weights["alpha"].append(
+                    alpha.detach().cpu().item())
+                weights["beta"].append(
+                    beta.detach().cpu().item())
                 weights["mu_p"].append(mu_F)
 
                 loss = loss_dp + mu_F * (
@@ -439,20 +461,27 @@ def find_TO(
             else:
                 alph_1 = 1e-6 / (j + 1)
                 beta_1, sigma_1 = 2 * (j + 1), 5 * (j + 1)
-                loss = sigma_1 * loss_pde + alph_1 * loss_dp + beta_1 * vol_loss
+                loss = sigma_1 * loss_pde + alph_1 * \
+                    loss_dp + beta_1 * vol_loss
 
             # Record loss history
             loss_total.append(loss.item())
-            loss_pde1_hist.append((1 / w_1) * loss_pde1.item())
-            loss_pde2_hist.append((1 / w_2) * loss_pde2.item())
-            loss_pde3_hist.append((1 / w_3) * loss_pde3.item())
+            loss_pde1_hist.append(
+                (1 / w_1) * loss_pde1.item())
+            loss_pde2_hist.append(
+                (1 / w_2) * loss_pde2.item())
+            loss_pde3_hist.append(
+                (1 / w_3) * loss_pde3.item())
             loss_dp_hist.append((1 / w_5) * loss_dp.item())
-            vol_loss_hist.append((1 / w_4) * vol_loss.item())
+            vol_loss_hist.append(
+                (1 / w_4) * vol_loss.item())
             scaled_loss_pde1_hist.append(loss_pde1.item())
             scaled_loss_pde2_hist.append(loss_pde2.item())
-            scaled_loss_pde3_hist.append(model1.alpha * loss_pde3.item())
+            scaled_loss_pde3_hist.append(
+                model1.alpha * loss_pde3.item())
             scaled_loss_dp_hist.append(loss_dp.item())
-            scaled_vol_loss_hist.append(model1.beta * vol_loss.item())
+            scaled_vol_loss_hist.append(
+                model1.beta * vol_loss.item())
 
             # Plot loss history at checkpoints
             if j in checkpoints:

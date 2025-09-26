@@ -34,7 +34,8 @@ def get_n_params(model):
 
 def make_time_sequence(src, num_step=5, step=1e-4):
     dim = num_step
-    src = np.repeat(np.expand_dims(src, axis=1), dim, axis=1)  # (N, L, 2)
+    src = np.repeat(np.expand_dims(
+        src, axis=1), dim, axis=1)  # (N, L, 2)
     for i in range(num_step):
         src[:, i, -1] += step * i
     return src
@@ -50,9 +51,9 @@ def get_data_3d(x_range, y_range, t_range, x_num, y_num, t_num):
     step_t = (t_range[1] - t_range[0]) / float(t_num - 1)
 
     x_mesh, y_mesh, t_mesh = np.mgrid[
-        x_range[0] : x_range[1] + step_x : step_x,
-        y_range[0] : y_range[1] + step_y : step_y,
-        t_range[0] : t_range[1] + step_t : step_t,
+        x_range[0]: x_range[1] + step_x: step_x,
+        y_range[0]: y_range[1] + step_y: step_y,
+        t_range[0]: t_range[1] + step_t: step_t,
     ]
 
     data = np.concatenate(
@@ -66,9 +67,9 @@ def get_data_3d(x_range, y_range, t_range, x_num, y_num, t_num):
     res = data.reshape(-1, 3)
 
     x_mesh, y_mesh, t_mesh = np.mgrid[
-        x_range[0] : x_range[0] + step_x : step_x,
-        y_range[0] : y_range[1] + step_y : step_y,
-        t_range[0] : t_range[1] + step_t : step_t,
+        x_range[0]: x_range[0] + step_x: step_x,
+        y_range[0]: y_range[1] + step_y: step_y,
+        t_range[0]: t_range[1] + step_t: step_t,
     ]
     b_left = np.squeeze(
         np.concatenate(
@@ -82,9 +83,9 @@ def get_data_3d(x_range, y_range, t_range, x_num, y_num, t_num):
     )[1:-1].reshape(-1, 3)
 
     x_mesh, y_mesh, t_mesh = np.mgrid[
-        x_range[1] : x_range[1] + step_x : step_x,
-        y_range[0] : y_range[1] + step_y : step_y,
-        t_range[0] : t_range[1] + step_t : step_t,
+        x_range[1]: x_range[1] + step_x: step_x,
+        y_range[0]: y_range[1] + step_y: step_y,
+        t_range[0]: t_range[1] + step_t: step_t,
     ]
     b_right = np.squeeze(
         np.concatenate(
@@ -98,9 +99,9 @@ def get_data_3d(x_range, y_range, t_range, x_num, y_num, t_num):
     )[1:-1].reshape(-1, 3)
 
     x_mesh, y_mesh, t_mesh = np.mgrid[
-        x_range[0] : x_range[1] + step_x : step_x,
-        y_range[0] : y_range[0] + step_y : step_y,
-        t_range[0] : t_range[1] + step_t : step_t,
+        x_range[0]: x_range[1] + step_x: step_x,
+        y_range[0]: y_range[0] + step_y: step_y,
+        t_range[0]: t_range[1] + step_t: step_t,
     ]
     b_lower = np.squeeze(
         np.concatenate(
@@ -114,9 +115,9 @@ def get_data_3d(x_range, y_range, t_range, x_num, y_num, t_num):
     )[1:-1].reshape(-1, 3)
 
     x_mesh, y_mesh, t_mesh = np.mgrid[
-        x_range[0] : x_range[1] + step_x : step_x,
-        y_range[1] : y_range[1] + step_y : step_y,
-        t_range[0] : t_range[1] + step_t : step_t,
+        x_range[0]: x_range[1] + step_x: step_x,
+        y_range[1]: y_range[1] + step_y: step_y,
+        t_range[0]: t_range[1] + step_t: step_t,
     ]
     b_upper = np.squeeze(
         np.concatenate(

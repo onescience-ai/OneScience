@@ -22,7 +22,8 @@ PRECISION: TypeAlias = (
 DEFAULT_PRECISION = None
 
 # Constant from scipy.stats.truncnorm.std(a=-2, b=2, loc=0., scale=1.)
-TRUNCATED_NORMAL_STDDEV_FACTOR = np.asarray(0.87962566103423978, dtype=np.float32)
+TRUNCATED_NORMAL_STDDEV_FACTOR = np.asarray(
+    0.87962566103423978, dtype=np.float32)
 
 
 class LayerNorm(hk.LayerNorm):
@@ -143,7 +144,8 @@ def haiku_linear_get_params(
     else:
         raise ValueError("num_input_dims must be >= 0.")
 
-    weight_init = _get_initializer_scale(initializer, in_shape)
+    weight_init = _get_initializer_scale(
+        initializer, in_shape)
     with hk.name_scope(name) if name else contextlib.nullcontext():
 
         if transpose_weights:
@@ -248,24 +250,28 @@ class Linear(hk.Module):
             if self.initializer == "zeros":
                 w_init = hk.initializers.Constant(0.0)
             else:
-                distribution_stddev = jnp.array(1 / TRUNCATED_NORMAL_STDDEV_FACTOR)
+                distribution_stddev = jnp.array(
+                    1 / TRUNCATED_NORMAL_STDDEV_FACTOR)
                 w_init = hk.initializers.TruncatedNormal(
                     mean=0.0, stddev=distribution_stddev
                 )
 
-            weights = hk.get_parameter("weights", weight_shape, inputs.dtype, w_init)
+            weights = hk.get_parameter(
+                "weights", weight_shape, inputs.dtype, w_init)
 
             inputs = jnp.expand_dims(
-                inputs, tuple(range(-1, -self.num_output_dims - 1, -1))
+                inputs, tuple(
+                    range(-1, -self.num_output_dims - 1, -1))
             )
             output = inputs * weights
         else:
             if self.num_input_dims > 0:
-                in_shape = inputs.shape[-self.num_input_dims :]
+                in_shape = inputs.shape[-self.num_input_dims:]
             else:
                 in_shape = ()
 
-            weight_init = _get_initializer_scale(self.initializer, in_shape)
+            weight_init = _get_initializer_scale(
+                self.initializer, in_shape)
 
             in_letters = "abcde"[: self.num_input_dims]
             out_letters = "hijkl"[: self.num_output_dims]
@@ -288,7 +294,8 @@ class Linear(hk.Module):
                     f"...{in_letters}, {in_letters}{out_letters}->...{out_letters}"
                 )
 
-            output = jnp.einsum(equation, inputs, weights, precision=self.precision)
+            output = jnp.einsum(
+                equation, inputs, weights, precision=self.precision)
 
         if self.use_bias:
             bias = hk.get_parameter(
@@ -318,6 +325,7 @@ def _get_initializer_scale(initializer_name, input_shape):
         stddev = np.sqrt(noise_scale)
         # Adjust stddev for truncation.
         stddev = stddev / TRUNCATED_NORMAL_STDDEV_FACTOR
-        w_init = hk.initializers.TruncatedNormal(mean=0.0, stddev=stddev)
+        w_init = hk.initializers.TruncatedNormal(
+            mean=0.0, stddev=stddev)
 
     return w_init

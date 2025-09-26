@@ -150,7 +150,8 @@ def merge(ori_file_path, tar_file_path):
     ds_high = xr.open_dataset(ori_file_path)
     lat_new = np.arange(-90, 90, 1.0)
     lon_new = np.arange(-180, 179.5, 1.0)
-    ds_low_res = ds_high.interp(latitude=lat_new, longitude=lon_new, method="linear")
+    ds_low_res = ds_high.interp(
+        latitude=lat_new, longitude=lon_new, method="linear")
     ds_low_res.to_netcdf(tar_file_path)
     print(tar_file_path, " merge done...")
 
@@ -167,12 +168,15 @@ def convert_wave_nc_to_h5(inp_dir, out_dir, year):
         for var_name, file_name in wave_var_to_filename.items():
             output_file = os.path.join(out_dir, file_name)
             if os.path.exists(output_file):
-                print(f"{output_file} already exists. Skipping conversion.")
+                print(
+                    f"{output_file} already exists. Skipping conversion.")
                 continue
-            os.makedirs(os.path.dirname(output_file), exist_ok=True)
+            os.makedirs(os.path.dirname(
+                output_file), exist_ok=True)
             var_data = wave_ds[var_name].values
             with h5py.File(output_file, "w") as h5_data:
-                h5_data.create_dataset(var_name, data=var_data)
+                h5_data.create_dataset(
+                    var_name, data=var_data)
             print(
                 f"Successfully converted {var_name} from {wave_file} to {output_file}"
             )
@@ -194,14 +198,18 @@ def convert_phy_nc_to_h5(inp_dir, out_dir, year):
         for var_name, file_name in phy_var_to_filename.items():
             output_file = os.path.join(out_dir, file_name)
             if os.path.exists(output_file):
-                print(f"{output_file} already exists. Skipping conversion.")
+                print(
+                    f"{output_file} already exists. Skipping conversion.")
                 continue
-            os.makedirs(os.path.dirname(output_file), exist_ok=True)  # 创建文件夹
+            os.makedirs(os.path.dirname(
+                output_file), exist_ok=True)  # 创建文件夹
             var_data = phy_ds[var_name].values
             var_data = var_data.squeeze()
             with h5py.File(output_file, "w") as h5_data:
-                h5_data.create_dataset(var_name, data=var_data)
-            print(f"Successfully converted {var_name} from {phy_file} to {output_file}")
+                h5_data.create_dataset(
+                    var_name, data=var_data)
+            print(
+                f"Successfully converted {var_name} from {phy_file} to {output_file}")
         phy_ds.close()
 
     except Exception as e:
@@ -219,13 +227,16 @@ def convert_wind_nc_to_h5(inp_dir, out_dir, year):
         for var_name, file_name in wind_var_to_filename.items():
             output_file = os.path.join(out_dir, file_name)
             if os.path.exists(output_file):
-                print(f"{output_file} already exists. Skipping conversion.")
+                print(
+                    f"{output_file} already exists. Skipping conversion.")
                 continue
-            os.makedirs(os.path.dirname(output_file), exist_ok=True)
+            os.makedirs(os.path.dirname(
+                output_file), exist_ok=True)
             var_data = wind_ds[var_name].values
             var_data = var_data[::3]  # 3 hours
             with h5py.File(output_file, "w") as h5_data:
-                h5_data.create_dataset(var_name, data=var_data)
+                h5_data.create_dataset(
+                    var_name, data=var_data)
             print(
                 f"Successfully converted {var_name} from {wind_file} to {output_file}"
             )
@@ -264,9 +275,12 @@ if __name__ == "__main__":
     )
 
     print(f"down sampling data")
-    merge(f"{out_dir}/wave_{start_year}.nc", f"{out_dir}/wave_{start_year}_new.nc")
-    merge(f"{out_dir}/phy_{start_year}.nc", f"{out_dir}/wind_{start_year}_new.nc")
-    merge(f"{out_dir}/wind_{start_year}.nc", f"{out_dir}/wind_{start_year}_new.nc")
+    merge(f"{out_dir}/wave_{start_year}.nc",
+          f"{out_dir}/wave_{start_year}_new.nc")
+    merge(f"{out_dir}/phy_{start_year}.nc",
+          f"{out_dir}/wind_{start_year}_new.nc")
+    merge(f"{out_dir}/wind_{start_year}.nc",
+          f"{out_dir}/wind_{start_year}_new.nc")
 
     print(f"convert data to HDF5")
     convert_wave_nc_to_h5(out_dir, out_dir, start_year)

@@ -39,12 +39,14 @@ def init_logging():
 def generate_infer_jsons(protein_msa_res: dict, ligand_file: str) -> List[str]:
     protein_chains = []
     if len(protein_msa_res) <= 0:
-        raise RuntimeError(f"invalid `protein_msa_res` data in {protein_msa_res}")
+        raise RuntimeError(
+            f"invalid `protein_msa_res` data in {protein_msa_res}")
     for key, value in protein_msa_res.items():
         protein_chain = {}
         protein_chain["proteinChain"] = {}
         protein_chain["proteinChain"]["sequence"] = key
-        protein_chain["proteinChain"]["count"] = value.get("count", 1)
+        protein_chain["proteinChain"]["count"] = value.get(
+            "count", 1)
         protein_chain["proteinChain"]["msa"] = value
         protein_chains.append(protein_chain)
     if os.path.isdir(ligand_file):
@@ -58,7 +60,8 @@ def generate_infer_jsons(protein_msa_res: dict, ligand_file: str) -> List[str]:
     elif os.path.isfile(ligand_file):
         ligand_files = [ligand_file]
     else:
-        raise RuntimeError(f"can not read a special ligand_file: {ligand_file}")
+        raise RuntimeError(
+            f"can not read a special ligand_file: {ligand_file}")
 
     invalid_ligand_files = []
     sdf_ligand_files = []
@@ -83,7 +86,8 @@ def generate_infer_jsons(protein_msa_res: dict, ligand_file: str) -> List[str]:
                     sdf_ligand_files.append([li_file])
                 else:
                     sdf_basename = os.path.join(
-                        current_local_dir, os.path.basename(li_file).split(".")[0]
+                        current_local_dir, os.path.basename(
+                            li_file).split(".")[0]
                     )
                     li_files = []
                     for idx, mol in enumerate(suppl):
@@ -98,20 +102,24 @@ def generate_infer_jsons(protein_msa_res: dict, ligand_file: str) -> List[str]:
                 lig_file_to_atom_info(li_file)
                 sdf_ligand_files.append(li_file)
         except Exception as exc:
-            logging.info(f" lig_file_to_atom_info failed with error info: {exc}")
+            logging.info(
+                f" lig_file_to_atom_info failed with error info: {exc}")
             invalid_ligand_files.append(li_file)
-    logger.info(f"the json to infer will be save to {current_local_json_dir}")
+    logger.info(
+        f"the json to infer will be save to {current_local_json_dir}")
     infer_json_files = []
     for li_files in sdf_ligand_files:
         one_infer_seq = protein_chains[:]
         for li_file in li_files:
-            ligand_name = os.path.basename(li_file).split(".")[0]
+            ligand_name = os.path.basename(
+                li_file).split(".")[0]
             ligand_chain = {}
             ligand_chain["ligand"] = {}
             ligand_chain["ligand"]["ligand"] = f"FILE_{li_file}"
             ligand_chain["ligand"]["count"] = 1
             one_infer_seq.append(ligand_chain)
-        one_infer_json = [{"sequences": one_infer_seq, "name": ligand_name}]
+        one_infer_json = [
+            {"sequences": one_infer_seq, "name": ligand_name}]
         json_file_name = os.path.join(
             current_local_json_dir, f"{ligand_name}_sdf_{uuid.uuid4().hex}.json"
         )
@@ -123,7 +131,8 @@ def generate_infer_jsons(protein_msa_res: dict, ligand_file: str) -> List[str]:
         with open(smi_ligand_file, "r") as f:
             smile_list = f.readlines()
         one_infer_seq = protein_chains[:]
-        ligand_name = os.path.basename(smi_ligand_file).split(".")[0]
+        ligand_name = os.path.basename(
+            smi_ligand_file).split(".")[0]
         for smile in smile_list:
             normalize_smile = smile.replace("\n", "")
             ligand_chain = {}
@@ -131,7 +140,8 @@ def generate_infer_jsons(protein_msa_res: dict, ligand_file: str) -> List[str]:
             ligand_chain["ligand"]["ligand"] = normalize_smile
             ligand_chain["ligand"]["count"] = 1
             one_infer_seq.append(ligand_chain)
-        one_infer_json = [{"sequences": one_infer_seq, "name": ligand_name}]
+        one_infer_json = [
+            {"sequences": one_infer_seq, "name": ligand_name}]
         json_file_name = os.path.join(
             current_local_json_dir, f"{ligand_name}_smi_{uuid.uuid4().hex}.json"
         )
@@ -152,19 +162,22 @@ def get_default_runner(
     n_sample: int = 5,
 ) -> InferenceRunner:
     configs_base["use_deepspeed_evo_attention"] = (
-        os.environ.get("USE_DEEPSPEED_EVO_ATTENTION", False) == "true"
+        os.environ.get(
+            "USE_DEEPSPEED_EVO_ATTENTION", False) == "true"
     )
     configs_base["model"]["N_cycle"] = n_cycle
     configs_base["sample_diffusion"]["N_sample"] = n_sample
     configs_base["sample_diffusion"]["N_step"] = n_step
-    configs = {**configs_base, **{"data": data_configs}, **inference_configs}
+    configs = {**configs_base, **
+               {"data": data_configs}, **inference_configs}
     configs = parse_configs(
         configs=configs,
         fill_required_with_null=True,
     )
     if seeds is not None:
         configs.seeds = seeds
-    download_infercence_cache(configs, model_version="v0.5.0")
+    download_infercence_cache(
+        configs, model_version="v0.5.0")
     return InferenceRunner(configs)
 
 
@@ -193,8 +206,10 @@ def inference_jsons(
     elif os.path.isfile(json_file):
         infer_jsons = [json_file]
     else:
-        raise RuntimeError(f"can not read a special ligand_file: {json_file}")
-    infer_jsons = [file for file in infer_jsons if file.endswith(".json")]
+        raise RuntimeError(
+            f"can not read a special ligand_file: {json_file}")
+    infer_jsons = [
+        file for file in infer_jsons if file.endswith(".json")]
     logger.info(f"will infer with {len(infer_jsons)} jsons")
     if len(infer_jsons) == 0:
         return
@@ -202,7 +217,8 @@ def inference_jsons(
     infer_errors = {}
     inference_configs["dump_dir"] = out_dir
     inference_configs["input_json_path"] = infer_jsons[0]
-    runner = get_default_runner(seeds, n_cycle, n_step, n_sample)
+    runner = get_default_runner(
+        seeds, n_cycle, n_step, n_sample)
     configs = runner.configs
     for idx, infer_json in enumerate(tqdm.tqdm(infer_jsons)):
         try:
@@ -213,7 +229,8 @@ def inference_jsons(
         except Exception as exc:
             infer_errors[infer_json] = str(exc)
     if len(infer_errors) > 0:
-        logger.warning(f"run inference failed: {infer_errors}")
+        logger.warning(
+            f"run inference failed: {infer_errors}")
 
 
 @click.group()
@@ -284,30 +301,36 @@ def tojson(input, out_dir="./output", altloc="first", assembly_id=None):
     )
     input_files = []
     if not os.path.exists(input):
-        raise RuntimeError(f"input file {input} not exists.")
+        raise RuntimeError(
+            f"input file {input} not exists.")
     if os.path.isdir(input):
         input_files.extend(
-            [str(file) for file in Path(input).rglob("*") if file.is_file()]
+            [str(file) for file in Path(
+                input).rglob("*") if file.is_file()]
         )
     elif os.path.isfile(input):
         input_files.append(input)
     else:
-        raise RuntimeError(f"can not read a special file: {input}")
+        raise RuntimeError(
+            f"can not read a special file: {input}")
 
     input_files = [
         file for file in input_files if file.endswith(".pdb") or file.endswith(".cif")
     ]
     if len(input_files) == 0:
-        raise RuntimeError(f"can not read a valid `pdb` or `cif` file from {input}")
+        raise RuntimeError(
+            f"can not read a valid `pdb` or `cif` file from {input}")
     logger.info(
         f"will tojson jsons for {len(input_files)} input files with `pdb` or `cif` format."
     )
     output_jsons = []
     os.makedirs(out_dir, exist_ok=True)
     for input_file in input_files:
-        stem, _ = os.path.splitext(os.path.basename(input_file))
+        stem, _ = os.path.splitext(
+            os.path.basename(input_file))
         pdb_name = stem[:20]
-        output_json = os.path.join(out_dir, f"{pdb_name}-{uuid.uuid4().hex}.json")
+        output_json = os.path.join(
+            out_dir, f"{pdb_name}-{uuid.uuid4().hex}.json")
         if input_file.endswith(".pdb"):
             with tempfile.NamedTemporaryFile(suffix=".cif") as tmp:
                 tmp_cif_file = tmp.name
@@ -327,9 +350,11 @@ def tojson(input, out_dir="./output", altloc="first", assembly_id=None):
                 output_json=output_json,
             )
         else:
-            raise RuntimeError(f"can not read a special ligand_file: {input_file}")
+            raise RuntimeError(
+                f"can not read a special ligand_file: {input_file}")
         output_jsons.append(output_json)
-    logger.info(f"{len(output_jsons)} generated jsons have been save to {out_dir}.")
+    logger.info(
+        f"{len(output_jsons)} generated jsons have been save to {out_dir}.")
     return output_jsons
 
 
@@ -345,10 +370,13 @@ def msa(input, out_dir) -> Union[str, dict]:
     :return:
     """
     init_logging()
-    logger.info(f"run msa with input={input}, out_dir={out_dir}")
+    logger.info(
+        f"run msa with input={input}, out_dir={out_dir}")
     if input.endswith(".json"):
-        msa_input_json = update_infer_json(input, out_dir, use_msa_server=True)
-        logger.info(f"msa results have been update to {msa_input_json}")
+        msa_input_json = update_infer_json(
+            input, out_dir, use_msa_server=True)
+        logger.info(
+            f"msa results have been update to {msa_input_json}")
         return msa_input_json
     elif input.endswith(".fasta"):
         records = list(SeqIO.parse(input, "fasta"))
@@ -357,14 +385,17 @@ def msa(input, out_dir) -> Union[str, dict]:
             protein_seqs.append(str(seq.seq))
         protein_seqs = sorted(protein_seqs)
         msa_res_subdirs = msa_search(protein_seqs, out_dir)
-        assert len(msa_res_subdirs) == len(msa_res_subdirs), "msa search failed"
-        fasta_msa_res = dict(zip(protein_seqs, msa_res_subdirs))
+        assert len(msa_res_subdirs) == len(
+            msa_res_subdirs), "msa search failed"
+        fasta_msa_res = dict(
+            zip(protein_seqs, msa_res_subdirs))
         logger.info(
             f"msa result is: {fasta_msa_res}, and it has been save to {out_dir}"
         )
         return fasta_msa_res
     else:
-        raise RuntimeError(f"only support `json` or `fasta` format, but got : {input}")
+        raise RuntimeError(
+            f"only support `json` or `fasta` format, but got : {input}")
 
 
 protenix_cli.add_command(predict)

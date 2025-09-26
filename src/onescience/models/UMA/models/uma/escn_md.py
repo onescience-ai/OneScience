@@ -126,14 +126,16 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
         current_working_dir = os.getcwd()
 
         # 拼接 Jd.pt 文件的路径
-        Jd_pt_path = os.path.join(current_working_dir, "models", "Jd.pt")
+        Jd_pt_path = os.path.join(
+            current_working_dir, "models", "Jd.pt")
 
         # 加载 Jd.pt
         Jd_list = torch.load(Jd_pt_path)
         for l in range(self.lmax + 1):
             self.register_buffer(f"Jd_{l}", Jd_list[l])
         self.sph_feature_size = int((self.lmax + 1) ** 2)
-        self.mappingReduced = CoefficientMapping(self.lmax, self.mmax)
+        self.mappingReduced = CoefficientMapping(
+            self.lmax, self.mmax)
 
         # lmax_lmax for node, lmax_mmax for edge
         self.SO3_grid = nn.ModuleDict()
@@ -171,10 +173,12 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
                 dataset_list=self.dataset_list,
             )
             # mix charge, spin, dataset embeddings
-            self.mix_csd = nn.Linear(3 * self.sphere_channels, self.sphere_channels)
+            self.mix_csd = nn.Linear(
+                3 * self.sphere_channels, self.sphere_channels)
         else:
             # mix charge, spin
-            self.mix_csd = nn.Linear(2 * self.sphere_channels, self.sphere_channels)
+            self.mix_csd = nn.Linear(
+                2 * self.sphere_channels, self.sphere_channels)
 
         # edge distance embedding
         self.cutoff = cutoff
@@ -193,10 +197,14 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
             raise ValueError("Unknown distance function")
 
         # equivariant initial embedding
-        self.source_embedding = nn.Embedding(self.max_num_elements, self.edge_channels)
-        self.target_embedding = nn.Embedding(self.max_num_elements, self.edge_channels)
-        nn.init.uniform_(self.source_embedding.weight.data, -0.001, 0.001)
-        nn.init.uniform_(self.target_embedding.weight.data, -0.001, 0.001)
+        self.source_embedding = nn.Embedding(
+            self.max_num_elements, self.edge_channels)
+        self.target_embedding = nn.Embedding(
+            self.max_num_elements, self.edge_channels)
+        nn.init.uniform_(
+            self.source_embedding.weight.data, -0.001, 0.001)
+        nn.init.uniform_(
+            self.target_embedding.weight.data, -0.001, 0.001)
 
         self.edge_channels_list = [
             self.num_distance_basis + 2 * self.edge_channels,
@@ -251,13 +259,15 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
         coefficient_index = self.SO3_grid["lmax_lmax"].mapping.coefficient_idx(
             self.lmax, self.mmax
         )
-        self.register_buffer("coefficient_index", coefficient_index, persistent=False)
+        self.register_buffer(
+            "coefficient_index", coefficient_index, persistent=False)
 
     def _get_rotmat_and_wigner(
         self, edge_distance_vecs: torch.Tensor, use_cuda_graph: bool
     ):
         Jd_buffers = [
-            getattr(self, f"Jd_{l}").type(edge_distance_vecs.dtype)
+            getattr(self, f"Jd_{l}").type(
+                edge_distance_vecs.dtype)
             for l in range(self.lmax + 1)
         ]
 
@@ -273,7 +283,8 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
         else:
             with record_function("obtain rotmat wigner original"):
                 edge_rot_mat = init_edge_rot_mat(
-                    edge_distance_vecs, rot_clip=(not self.direct_forces)
+                    edge_distance_vecs, rot_clip=(
+                        not self.direct_forces)
                 )
                 wigner = rotation_to_wigner(
                     edge_rot_mat,
@@ -282,12 +293,15 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
                     Jd_buffers,
                     rot_clip=(not self.direct_forces),
                 )
-                wigner_inv = torch.transpose(wigner, 1, 2).contiguous()
+                wigner_inv = torch.transpose(
+                    wigner, 1, 2).contiguous()
 
         # select subset of coefficients we are using
         if self.mmax != self.lmax:
-            wigner = wigner.index_select(1, self.coefficient_index)
-            wigner_inv = wigner_inv.index_select(2, self.coefficient_index)
+            wigner = wigner.index_select(
+                1, self.coefficient_index)
+            wigner_inv = wigner_inv.index_select(
+                2, self.coefficient_index)
 
         wigner_and_M_mapping = torch.einsum(
             "mk,nkj->nmj", self.mappingReduced.to_m, wigner
@@ -310,17 +324,20 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
                 device=data_dict["pos"].device,
             )
             num_batch = len(data_dict["natoms"])
-            displacement = displacement.view(-1, 3, 3).expand(num_batch, 3, 3)
+            displacement = displacement.view(
+                -1, 3, 3).expand(num_batch, 3, 3)
             displacement.requires_grad = True
             symmetric_displacement = 0.5 * (
-                displacement + displacement.transpose(-1, -2)
+                displacement +
+                displacement.transpose(-1, -2)
             )
             if data_dict["pos"].requires_grad is False:
                 data_dict["pos"].requires_grad = True
             data_dict["pos_original"] = data_dict["pos"]
             data_dict["pos"] = data_dict["pos"] + torch.bmm(
                 data_dict["pos"].unsqueeze(-2),
-                torch.index_select(symmetric_displacement, 0, data_dict["batch"]),
+                torch.index_select(
+                    symmetric_displacement, 0, data_dict["batch"]),
             ).squeeze(-2)
 
             orig_cell = data_dict["cell"]
@@ -344,9 +361,11 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
             spin_emb = self.spin_embedding(spin)
             if self.use_dataset_embedding:
                 assert dataset is not None
-                dataset_emb = self.dataset_embedding(dataset)
+                dataset_emb = self.dataset_embedding(
+                    dataset)
                 return torch.nn.SiLU()(
-                    self.mix_csd(torch.cat((chg_emb, spin_emb, dataset_emb), dim=1))
+                    self.mix_csd(
+                        torch.cat((chg_emb, spin_emb, dataset_emb), dim=1))
                 )
             return torch.nn.SiLU()(self.mix_csd(torch.cat((chg_emb, spin_emb), dim=1)))
 
@@ -354,7 +373,8 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
         if self.otf_graph:
             pbc = None
             if self.always_use_pbc:
-                pbc = torch.ones(len(data_dict), 3, dtype=torch.bool)
+                pbc = torch.ones(
+                    len(data_dict), 3, dtype=torch.bool)
             else:
                 assert (
                     "pbc" in data_dict
@@ -363,7 +383,8 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
             assert (
                 pbc.all() or (~pbc).all()
             ), "We can only accept pbc that is all true or all false"
-            logging.debug(f"Using radius graph gen version {self.radius_pbc_version}")
+            logging.debug(
+                f"Using radius graph gen version {self.radius_pbc_version}")
             graph_dict = generate_graph(
                 data_dict,
                 cutoff=self.cutoff,
@@ -382,7 +403,8 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
             )
             shifts = torch.einsum(
                 "ij,ijk->ik",
-                data_dict["cell_offsets"].to(cell_per_edge.dtype),
+                data_dict["cell_offsets"].to(
+                    cell_per_edge.dtype),
                 cell_per_edge,
             )
             edge_distance_vec = (
@@ -439,7 +461,8 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
         )
 
         with record_function("get_displacement_and_cell"):
-            displacement, orig_cell = self._get_displacement_and_cell(data_dict)
+            displacement, orig_cell = self._get_displacement_and_cell(
+                data_dict)
 
         with record_function("generate_graph"):
             graph_dict = self._generate_graph(data_dict)
@@ -484,10 +507,12 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
                 device=data_dict["pos"].device,
                 dtype=data_dict["pos"].dtype,
             )
-            x_message[:, 0, :] = self.sphere_embedding(data_dict["atomic_numbers"])
+            x_message[:, 0, :] = self.sphere_embedding(
+                data_dict["atomic_numbers"])
 
         sys_node_embedding = csd_mixed_emb[data_dict["batch"]]
-        x_message[:, 0, :] = x_message[:, 0, :] + sys_node_embedding
+        x_message[:, 0, :] = x_message[:,
+                                       0, :] + sys_node_embedding
 
         ###
         # Hook to allow MOLE
@@ -511,7 +536,8 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
                 data_dict["atomic_numbers_full"][graph_dict["edge_index"][1]]
             )
             x_edge = torch.cat(
-                (edge_distance_embedding, source_embedding, target_embedding), dim=1
+                (edge_distance_embedding,
+                 source_embedding, target_embedding), dim=1
             )
             x_message = self.edge_degree_embedding(
                 x_message,
@@ -558,7 +584,8 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
         edge_distance_vec_full = graph_dict["edge_distance_vec"]
 
         node_partition = torch.tensor_split(
-            torch.arange(len(atomic_numbers_full)).to(atomic_numbers_full.device),
+            torch.arange(len(atomic_numbers_full)).to(
+                atomic_numbers_full.device),
             gp_utils.get_gp_world_size(),
         )[gp_utils.get_gp_rank()]
 
@@ -568,7 +595,8 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
         edge_partition = torch.where(
             torch.logical_and(
                 edge_index[1] >= node_partition.min(),
-                edge_index[1] <= node_partition.max(),  # TODO: 0 or 1?
+                # TODO: 0 or 1?
+                edge_index[1] <= node_partition.max(),
             )
         )[0]
 
@@ -580,7 +608,8 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
         graph_dict["node_partition"] = node_partition
 
         # gp versions of data
-        graph_dict["edge_index"] = edge_index[:, edge_partition]
+        graph_dict["edge_index"] = edge_index[:,
+                                              edge_partition]
         graph_dict["edge_distance"] = edge_distance[edge_partition]
         graph_dict["edge_distance_vec"] = edge_distance_vec_full[edge_partition]
         graph_dict["node_offset"] = node_partition.min().item()
@@ -594,7 +623,8 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
     @torch.jit.ignore
     def no_weight_decay(self) -> set:
         no_wd_list = []
-        named_parameters_list = [name for name, _ in self.named_parameters()]
+        named_parameters_list = [
+            name for name, _ in self.named_parameters()]
         for module_name, module in self.named_modules():
             if isinstance(
                 module,
@@ -610,7 +640,8 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
             ):
                 for parameter_name, _ in module.named_parameters():
                     if (
-                        isinstance(module, (torch.nn.Linear, SO3_Linear))
+                        isinstance(
+                            module, (torch.nn.Linear, SO3_Linear))
                         and "weight" in parameter_name
                     ):
                         continue
@@ -634,9 +665,11 @@ class MLP_EFS_Head(nn.Module, HeadInterface):
         self.sphere_channels = backbone.sphere_channels
         self.hidden_channels = backbone.hidden_channels
         self.energy_block = nn.Sequential(
-            nn.Linear(self.sphere_channels, self.hidden_channels, bias=True),
+            nn.Linear(self.sphere_channels,
+                      self.hidden_channels, bias=True),
             nn.SiLU(),
-            nn.Linear(self.hidden_channels, self.hidden_channels, bias=True),
+            nn.Linear(self.hidden_channels,
+                      self.hidden_channels, bias=True),
             nn.SiLU(),
             nn.Linear(self.hidden_channels, 1, bias=True),
         )
@@ -661,20 +694,24 @@ class MLP_EFS_Head(nn.Module, HeadInterface):
             stress_key = "stress"
 
         outputs = {}
-        _input = emb["node_embedding"].narrow(1, 0, 1).squeeze(1)
+        _input = emb["node_embedding"].narrow(
+            1, 0, 1).squeeze(1)
         _output = self.energy_block(_input)
         node_energy = _output.view(-1, 1, 1)
         energy_part = torch.zeros(
             len(data["natoms"]), device=data["pos"].device, dtype=node_energy.dtype
         )
-        energy_part.index_add_(0, data["batch"], node_energy.view(-1))
+        energy_part.index_add_(
+            0, data["batch"], node_energy.view(-1))
 
         if gp_utils.initialized():
-            energy = gp_utils.reduce_from_model_parallel_region(energy_part)
+            energy = gp_utils.reduce_from_model_parallel_region(
+                energy_part)
         else:
             energy = energy_part
 
-        outputs[energy_key] = {"energy": energy} if self.wrap_property else energy
+        outputs[energy_key] = {
+            "energy": energy} if self.wrap_property else energy
 
         if self.regress_stress:
             grads = torch.autograd.grad(
@@ -684,20 +721,25 @@ class MLP_EFS_Head(nn.Module, HeadInterface):
             )
             if gp_utils.initialized():
                 grads = (
-                    gp_utils.reduce_from_model_parallel_region(grads[0]),
-                    gp_utils.reduce_from_model_parallel_region(grads[1]),
+                    gp_utils.reduce_from_model_parallel_region(
+                        grads[0]),
+                    gp_utils.reduce_from_model_parallel_region(
+                        grads[1]),
                 )
 
             forces = torch.neg(grads[0])
             virial = grads[1].view(-1, 3, 3)
-            volume = torch.det(data["cell"]).abs().unsqueeze(-1)
+            volume = torch.det(
+                data["cell"]).abs().unsqueeze(-1)
             stress = virial / volume.view(-1, 1, 1)
             virial = torch.neg(virial)
             stress = stress.view(
                 -1, 9
             )  # NOTE to work better with current Multi-task trainer
-            outputs[forces_key] = {"forces": forces} if self.wrap_property else forces
-            outputs[stress_key] = {"stress": stress} if self.wrap_property else stress
+            outputs[forces_key] = {
+                "forces": forces} if self.wrap_property else forces
+            outputs[stress_key] = {
+                "stress": stress} if self.wrap_property else stress
             data["cell"] = emb["orig_cell"]
         elif self.regress_forces:
             forces = (
@@ -707,8 +749,10 @@ class MLP_EFS_Head(nn.Module, HeadInterface):
                 )[0]
             )
             if gp_utils.initialized():
-                forces = gp_utils.reduce_from_model_parallel_region(forces)
-            outputs[forces_key] = {"forces": forces} if self.wrap_property else forces
+                forces = gp_utils.reduce_from_model_parallel_region(
+                    forces)
+            outputs[forces_key] = {
+                "forces": forces} if self.wrap_property else forces
         return outputs
 
 
@@ -720,9 +764,11 @@ class MLP_Energy_Head(nn.Module, HeadInterface):
         self.sphere_channels = backbone.sphere_channels
         self.hidden_channels = backbone.hidden_channels
         self.energy_block = nn.Sequential(
-            nn.Linear(self.sphere_channels, self.hidden_channels, bias=True),
+            nn.Linear(self.sphere_channels,
+                      self.hidden_channels, bias=True),
             nn.SiLU(),
-            nn.Linear(self.hidden_channels, self.hidden_channels, bias=True),
+            nn.Linear(self.hidden_channels,
+                      self.hidden_channels, bias=True),
             nn.SiLU(),
             nn.Linear(self.hidden_channels, 1, bias=True),
         )
@@ -738,9 +784,11 @@ class MLP_Energy_Head(nn.Module, HeadInterface):
             dtype=node_energy.dtype,
         )
 
-        energy_part.index_add_(0, data_dict["batch"], node_energy.view(-1))
+        energy_part.index_add_(
+            0, data_dict["batch"], node_energy.view(-1))
         if gp_utils.initialized():
-            energy = gp_utils.reduce_from_model_parallel_region(energy_part)
+            energy = gp_utils.reduce_from_model_parallel_region(
+                energy_part)
         else:
             energy = energy_part
 
@@ -758,7 +806,8 @@ class Linear_Energy_Head(nn.Module, HeadInterface):
     def __init__(self, backbone, reduce: str = "sum"):
         super().__init__()
         self.reduce = reduce
-        self.energy_block = nn.Linear(backbone.sphere_channels, 1, bias=True)
+        self.energy_block = nn.Linear(
+            backbone.sphere_channels, 1, bias=True)
 
     def forward(self, data_dict, emb: dict[str, torch.Tensor]):
         node_energy = self.energy_block(
@@ -771,10 +820,12 @@ class Linear_Energy_Head(nn.Module, HeadInterface):
             dtype=node_energy.dtype,
         )
 
-        energy_part.index_add_(0, data_dict["batch"], node_energy.view(-1))
+        energy_part.index_add_(
+            0, data_dict["batch"], node_energy.view(-1))
 
         if gp_utils.initialized():
-            energy = gp_utils.reduce_from_model_parallel_region(energy_part)
+            energy = gp_utils.reduce_from_model_parallel_region(
+                energy_part)
         else:
             energy = energy_part
 
@@ -791,14 +842,17 @@ class Linear_Energy_Head(nn.Module, HeadInterface):
 class Linear_Force_Head(nn.Module, HeadInterface):
     def __init__(self, backbone):
         super().__init__()
-        self.linear = SO3_Linear(backbone.sphere_channels, 1, lmax=1)
+        self.linear = SO3_Linear(
+            backbone.sphere_channels, 1, lmax=1)
 
     def forward(self, data_dict, emb: dict[str, torch.Tensor]):
-        forces = self.linear(emb["node_embedding"].narrow(1, 0, 4))
+        forces = self.linear(
+            emb["node_embedding"].narrow(1, 0, 4))
         forces = forces.narrow(1, 1, 3)
         forces = forces.view(-1, 3).contiguous()
         if gp_utils.initialized():
-            forces = gp_utils.gather_from_model_parallel_region(forces, dim=0)
+            forces = gp_utils.gather_from_model_parallel_region(
+                forces, dim=0)
         return {"forces": forces}
 
 
@@ -817,10 +871,12 @@ def compose_tensor(
     """
 
     if trace.shape[1] != 1:
-        raise ValueError("batch of traces must be shape (batch size, 1)")
+        raise ValueError(
+            "batch of traces must be shape (batch size, 1)")
 
     if l2_symmetric.shape[1] != 5:
-        raise ValueError("batch of l2_symmetric tensors must be shape (batch size, 5)")
+        raise ValueError(
+            "batch of l2_symmetric tensors must be shape (batch size, 5)")
 
     if trace.shape[0] != l2_symmetric.shape[0]:
         raise ValueError(
@@ -832,7 +888,8 @@ def compose_tensor(
         batch_size, irreps_sum(2), device=trace.device
     )  # rank 2
     decomposed_preds[:, : irreps_sum(0)] = trace
-    decomposed_preds[:, irreps_sum(1) : irreps_sum(2)] = l2_symmetric
+    decomposed_preds[:, irreps_sum(
+        1): irreps_sum(2)] = l2_symmetric
 
     r2_tensor = torch.einsum(
         "ba, cb->ca",
@@ -854,14 +911,17 @@ class MLP_Stress_Head(nn.Module, HeadInterface):
         self.sphere_channels = backbone.sphere_channels
         self.hidden_channels = backbone.hidden_channels
         self.scalar_block = nn.Sequential(
-            nn.Linear(self.sphere_channels, self.hidden_channels, bias=True),
+            nn.Linear(self.sphere_channels,
+                      self.hidden_channels, bias=True),
             nn.SiLU(),
-            nn.Linear(self.hidden_channels, self.hidden_channels, bias=True),
+            nn.Linear(self.hidden_channels,
+                      self.hidden_channels, bias=True),
             nn.SiLU(),
             nn.Linear(self.hidden_channels, 1, bias=True),
         )
 
-        self.l2_linear = SO3_Linear(backbone.sphere_channels, 1, lmax=2)
+        self.l2_linear = SO3_Linear(
+            backbone.sphere_channels, 1, lmax=2)
 
     def forward(self, data_dict, emb: dict[str, torch.Tensor]):
         node_scalar = self.scalar_block(
@@ -873,16 +933,19 @@ class MLP_Stress_Head(nn.Module, HeadInterface):
             device=node_scalar.device,
             dtype=node_scalar.dtype,
         )
-        iso_stress.index_add_(0, data_dict["batch"], node_scalar.view(-1))
+        iso_stress.index_add_(
+            0, data_dict["batch"], node_scalar.view(-1))
 
         if gp_utils.initialized():
-            raise NotImplementedError("This code hasn't been tested yet.")
+            raise NotImplementedError(
+                "This code hasn't been tested yet.")
             # iso_stress = gp_utils.reduce_from_model_parallel_region(iso_stress)
 
         if self.reduce == "mean":
             iso_stress /= data_dict["natoms"]
 
-        node_l2 = self.l2_linear(emb["node_embedding"].narrow(1, 0, 9))
+        node_l2 = self.l2_linear(
+            emb["node_embedding"].narrow(1, 0, 9))
         node_l2 = node_l2.narrow(1, 4, 5)
         node_l2 = node_l2.view(-1, 5).contiguous()
 
@@ -891,14 +954,17 @@ class MLP_Stress_Head(nn.Module, HeadInterface):
             device=node_l2.device,
             dtype=node_l2.dtype,
         )
-        aniso_stress.index_add_(0, data_dict["batch"], node_l2)
+        aniso_stress.index_add_(
+            0, data_dict["batch"], node_l2)
         if gp_utils.initialized():
-            raise NotImplementedError("This code hasn't been tested yet.")
+            raise NotImplementedError(
+                "This code hasn't been tested yet.")
             # aniso_stress = gp_utils.reduce_from_model_parallel_region(aniso_stress)
 
         if self.reduce == "mean":
             aniso_stress /= data_dict["natoms"].unsqueeze(1)
 
-        stress = compose_tensor(iso_stress.unsqueeze(1), aniso_stress)
+        stress = compose_tensor(
+            iso_stress.unsqueeze(1), aniso_stress)
 
         return {"stress": stress}

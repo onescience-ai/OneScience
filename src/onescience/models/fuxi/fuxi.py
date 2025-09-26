@@ -42,10 +42,12 @@ class CubeEmbedding(nn.Module):
             and Lat == self.img_size[1]
             and Lon == self.img_size[2]
         ), f"Input image size ({T}*{Lat}*{Lon}) doesn't match model ({self.img_size[0]}*{self.img_size[1]}*{self.img_size[2]})."
-        x = self.proj(x).reshape(B, self.embed_dim, -1).transpose(1, 2)  # B T*Lat*Lon C
+        x = self.proj(x).reshape(
+            B, self.embed_dim, -1).transpose(1, 2)  # B T*Lat*Lon C
         if self.norm is not None:
             x = self.norm(x)
-        x = x.transpose(1, 2).reshape(B, self.embed_dim, *self.patches_resolution)
+        x = x.transpose(1, 2).reshape(
+            B, self.embed_dim, *self.patches_resolution)
         return x
 
 
@@ -61,7 +63,8 @@ class DownBlock(nn.Module):
         blk = []
         for i in range(num_residuals):
             blk.append(
-                nn.Conv2d(out_chans, out_chans, kernel_size=3, stride=1, padding=1)
+                nn.Conv2d(out_chans, out_chans,
+                          kernel_size=3, stride=1, padding=1)
             )
             blk.append(nn.GroupNorm(num_groups, out_chans))
             blk.append(nn.SiLU())
@@ -87,12 +90,14 @@ class DownBlock(nn.Module):
 class UpBlock(nn.Module):
     def __init__(self, in_chans, out_chans, num_groups, num_residuals=2):
         super().__init__()
-        self.conv = nn.ConvTranspose2d(in_chans, out_chans, kernel_size=2, stride=2)
+        self.conv = nn.ConvTranspose2d(
+            in_chans, out_chans, kernel_size=2, stride=2)
 
         blk = []
         for i in range(num_residuals):
             blk.append(
-                nn.Conv2d(out_chans, out_chans, kernel_size=3, stride=1, padding=1)
+                nn.Conv2d(out_chans, out_chans,
+                          kernel_size=3, stride=1, padding=1)
             )
             blk.append(nn.GroupNorm(num_groups, out_chans))
             blk.append(nn.SiLU())
@@ -131,13 +136,17 @@ class UTransformer(nn.Module):
         self.padding = padding
         self.pad = nn.ZeroPad2d(padding)
         input_resolution = list(input_resolution)
-        input_resolution[0] = input_resolution[0] + padding_top + padding_bottom
-        input_resolution[1] = input_resolution[1] + padding_left + padding_right
-        self.down = DownBlock(embed_dim, embed_dim, num_groups[0])
+        input_resolution[0] = input_resolution[0] + \
+            padding_top + padding_bottom
+        input_resolution[1] = input_resolution[1] + \
+            padding_left + padding_right
+        self.down = DownBlock(
+            embed_dim, embed_dim, num_groups[0])
         self.layer = SwinTransformerV2Stage(
             embed_dim, embed_dim, input_resolution, depth, num_heads, window_size
         )
-        self.up = UpBlock(embed_dim * 2, embed_dim, num_groups[1])
+        self.up = UpBlock(
+            embed_dim * 2, embed_dim, num_groups[1])
 
     def forward(self, x):
         B, C, Lat, Lon = x.shape
@@ -158,8 +167,8 @@ class UTransformer(nn.Module):
         x = x[
             :,
             :,
-            padding_top : pad_lat - padding_bottom,
-            padding_left : pad_lon - padding_right,
+            padding_top: pad_lat - padding_bottom,
+            padding_left: pad_lon - padding_right,
         ]
 
         # concat
@@ -197,11 +206,13 @@ class Fuxi(nn.Module):
         input_resolution = int(img_size[1] / patch_size[1] / 2), int(
             img_size[2] / patch_size[2] / 2
         )
-        self.cube_embedding = CubeEmbedding(img_size, patch_size, in_chans, embed_dim)
+        self.cube_embedding = CubeEmbedding(
+            img_size, patch_size, in_chans, embed_dim)
         self.u_transformer = UTransformer(
             embed_dim, num_groups, input_resolution, num_heads, window_size, depth=48
         )
-        self.fc = nn.Linear(embed_dim, out_chans * patch_size[1] * patch_size[2])
+        self.fc = nn.Linear(
+            embed_dim, out_chans * patch_size[1] * patch_size[2])
 
         self.patch_size = patch_size
         self.input_resolution = input_resolution
@@ -221,10 +232,12 @@ class Fuxi(nn.Module):
         )
         # B, lat, patch_lat, lon, patch_lon, C
 
-        x = x.reshape(B, Lat * patch_lat, Lon * patch_lon, self.out_chans)
+        x = x.reshape(B, Lat * patch_lat,
+                      Lon * patch_lon, self.out_chans)
         x = x.permute(0, 3, 1, 2)  # B C Lat Lon
 
         # bilinear
-        x = F.interpolate(x, size=self.img_size[1:], mode="bilinear")
+        x = F.interpolate(
+            x, size=self.img_size[1:], mode="bilinear")
 
         return x

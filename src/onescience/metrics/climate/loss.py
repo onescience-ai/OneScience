@@ -44,7 +44,8 @@ class MSE_SSIM(torch.nn.Module):
         if np.sum(weights) == 1:
             self.mse_dssim_weights = weights
         else:
-            raise ValueError("Weights passed to MSE_SSIM loss must sum to 1")
+            raise ValueError(
+                "Weights passed to MSE_SSIM loss must sum to 1")
         self.ssim_variables = ssim_variables
 
     def forward(
@@ -72,7 +73,8 @@ class MSE_SSIM(torch.nn.Module):
                 f"Spatial dims H and W must match: got {prediction.shape[-2]} and {prediction.shape[-1]}"
             )
         if prediction.shape[3] != 12:
-            raise AssertionError(f"Spatial dim F must be 12: got {prediction.shape[3]}")
+            raise AssertionError(
+                f"Spatial dim F must be 12: got {prediction.shape[3]}")
         if prediction.shape[2] != model.output_channels:
             raise AssertionError(
                 f"model output channels and prediction output channels don't match: got {model.output_channels} for model and {prediction.shape[2]} for input"
@@ -88,13 +90,16 @@ class MSE_SSIM(torch.nn.Module):
         # store the location of output and target tensors
         device = prediction.device
         # initialize losses by var tensor that will store the variable wise loss
-        loss_by_var = torch.empty([prediction.shape[2]], device=device)
+        loss_by_var = torch.empty(
+            [prediction.shape[2]], device=device)
         # initialize weights tensor that will allow for a weighted average of MSE and SSIM
-        weights = torch.tensor(self.mse_dssim_weights, device=device)
+        weights = torch.tensor(
+            self.mse_dssim_weights, device=device)
         # calculate variable wise loss
         for i, v in enumerate(model.output_variables):
             var_mse = self.mse(
-                prediction[:, :, i : i + 1, :, :, :], targets[:, :, i : i + 1, :, :, :]
+                prediction[:, :, i: i + 1, :, :,
+                           :], targets[:, :, i: i + 1, :, :, :]
             )  # the slice operation here ensures the singleton dimension is not squashed
 
             if v in self.ssim_variables:
@@ -102,11 +107,12 @@ class MSE_SSIM(torch.nn.Module):
                 var_dssim = torch.min(torch.tensor([1.0, float(var_mse)])) * (
                     1
                     - self.ssim(
-                        prediction[:, :, i : i + 1, :, :, :],
-                        targets[:, :, i : i + 1, :, :, :],
+                        prediction[:, :, i: i + 1, :, :, :],
+                        targets[:, :, i: i + 1, :, :, :],
                     )
                 )
-                loss_by_var[i] = torch.sum(weights * torch.stack([var_mse, var_dssim]))
+                loss_by_var[i] = torch.sum(
+                    weights * torch.stack([var_mse, var_dssim]))
             else:
                 loss_by_var[i] = var_mse
         loss = loss_by_var.mean()
@@ -210,10 +216,13 @@ class SSIM(torch.nn.Module):
         target = target.transpose(dim0=2, dim1=3)
         if self.time_series_forecasting:
             # Join Batch and time dimension
-            predicted = torch.flatten(predicted, start_dim=0, end_dim=2)
-            target = torch.flatten(target, start_dim=0, end_dim=2)
+            predicted = torch.flatten(
+                predicted, start_dim=0, end_dim=2)
+            target = torch.flatten(
+                target, start_dim=0, end_dim=2)
 
-        window = self.window.expand(predicted.shape[1], -1, -1, -1)
+        window = self.window.expand(
+            predicted.shape[1], -1, -1, -1)
         window = window.to(dtype=predicted.dtype)
 
         return self._ssim(predicted, target, window, mask, epoch)
@@ -253,8 +262,10 @@ class SSIM(torch.nn.Module):
         -------
             torch.Tensor: The weights of the window
         """
-        _1D_window = self._gaussian(window_size, sigma).unsqueeze(-1)
-        _2D_window = _1D_window.mm(_1D_window.t()).unsqueeze(0).unsqueeze(0)
+        _1D_window = self._gaussian(
+            window_size, sigma).unsqueeze(-1)
+        _2D_window = _1D_window.mm(
+            _1D_window.t()).unsqueeze(0).unsqueeze(0)
         return _2D_window
 
     def _ssim(
@@ -298,9 +309,11 @@ class SSIM(torch.nn.Module):
             predicted,
             pad=[
                 (window_size - 1) // 2,
-                (window_size - 1) // 2 + (window_size - 1) % 2,
+                (window_size - 1) // 2 +
+                (window_size - 1) % 2,
                 (window_size - 1) // 2,
-                (window_size - 1) // 2 + (window_size - 1) % 2,
+                (window_size - 1) // 2 +
+                (window_size - 1) % 2,
             ],
             mode=self.padding_mode,
         )
@@ -309,33 +322,41 @@ class SSIM(torch.nn.Module):
             target,
             pad=[
                 (window_size - 1) // 2,
-                (window_size - 1) // 2 + (window_size - 1) % 2,
+                (window_size - 1) // 2 +
+                (window_size - 1) % 2,
                 (window_size - 1) // 2,
-                (window_size - 1) // 2 + (window_size - 1) % 2,
+                (window_size - 1) // 2 +
+                (window_size - 1) % 2,
             ],
             mode=self.padding_mode,
         )
 
-        mu1 = F.conv2d(_predicted, window, padding=0, groups=channels)
-        mu2 = F.conv2d(_target, window, padding=0, groups=channels)
+        mu1 = F.conv2d(_predicted, window,
+                       padding=0, groups=channels)
+        mu2 = F.conv2d(_target, window,
+                       padding=0, groups=channels)
 
         mu1_sq = mu1.pow(2)
         mu2_sq = mu2.pow(2)
         mu1_mu2 = mu1 * mu2
 
         sigma1_sq = (
-            F.conv2d(_predicted * _predicted, window, padding=0, groups=channels)
+            F.conv2d(_predicted * _predicted,
+                     window, padding=0, groups=channels)
             - mu1_sq
         )
         sigma2_sq = (
-            F.conv2d(_target * _target, window, padding=0, groups=channels) - mu2_sq
+            F.conv2d(_target * _target, window,
+                     padding=0, groups=channels) - mu2_sq
         )
         sigma12_sq = (
-            F.conv2d(_predicted * _target, window, padding=0, groups=channels) - mu1_mu2
+            F.conv2d(_predicted * _target, window,
+                     padding=0, groups=channels) - mu1_mu2
         )
 
         ssim_map = ((2 * mu1_mu2 + self.c1) * (2 * sigma12_sq + self.c2)) / (
-            (mu1_sq + mu2_sq + self.c1) * (sigma1_sq + sigma2_sq + self.c2)
+            (mu1_sq + mu2_sq + self.c1) *
+            (sigma1_sq + sigma2_sq + self.c2)
         )
 
         if mask is not None:
@@ -368,12 +389,14 @@ class LatitudeWeightedLoss(torch.nn.Module):
 
     def __init__(self, loss_type="l1", normalize=True):
         super().__init__()
-        assert loss_type in ["l1"], "Temporarily, only l1 loss is supported."
+        assert loss_type in [
+            "l1"], "Temporarily, only l1 loss is supported."
         self.loss_type = loss_type
 
         # 构造纬度加权因子（从 +90° 到 -90° 共 721 行）
         latitudes = torch.linspace(90, -90, steps=721)
-        weights = torch.cos(torch.deg2rad(latitudes)).clamp(min=0)  # shape: [721]
+        weights = torch.cos(torch.deg2rad(latitudes)).clamp(
+            min=0)  # shape: [721]
 
         if normalize:
             weights = weights / weights.mean()

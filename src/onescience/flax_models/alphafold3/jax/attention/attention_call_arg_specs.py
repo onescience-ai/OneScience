@@ -32,8 +32,10 @@ def _make_argspec(
         query=ShapedArray(q_shape, dtype),
         key=ShapedArray(k_shape, dtype),
         value=ShapedArray(v_shape, dtype),
-        bias=ShapedArray(bias_shape, dtype) if bias_shape is not None else None,
-        mask=ShapedArray(mask_shape, "bool_") if mask_shape is not None else None,
+        bias=ShapedArray(
+            bias_shape, dtype) if bias_shape is not None else None,
+        mask=ShapedArray(
+            mask_shape, "bool_") if mask_shape is not None else None,
         **kwargs,
     )
 
@@ -41,8 +43,10 @@ def _make_argspec(
 # A subset of the full set of argument specifications. Useful for tap-tests and
 # microbenchmarks.
 CALL_ARG_SPECS = dict(
-    vanilla_f32=_make_argspec(q_shape=(8, 1024, 4, 128), dtype="float32"),
-    vanilla_bf16=_make_argspec(q_shape=(8, 1024, 4, 128), dtype="bfloat16"),
+    vanilla_f32=_make_argspec(
+        q_shape=(8, 1024, 4, 128), dtype="float32"),
+    vanilla_bf16=_make_argspec(
+        q_shape=(8, 1024, 4, 128), dtype="bfloat16"),
     alphafold=_make_argspec(
         q_shape=(384, 384, 4, 32),
         bias_shape=(1, 4, 384, 384),

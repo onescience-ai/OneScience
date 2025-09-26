@@ -19,7 +19,8 @@ class NeuralSpectralBlock1D(nn.Module):
             [i for i in range(num_basis)], dtype=torch.float
         )
         self.weights = nn.Parameter(
-            (1 / (width)) * torch.rand(width, self.num_basis * 2, dtype=torch.float)
+            (1 / (width)) * torch.rand(width,
+                                       self.num_basis * 2, dtype=torch.float)
         )
         # latent
         self.head = n_heads
@@ -33,18 +34,21 @@ class NeuralSpectralBlock1D(nn.Module):
         self.encoder_attn = nn.Conv1d(
             self.width, self.width * 2, kernel_size=1, stride=1
         )
-        self.decoder_attn = nn.Conv1d(self.width, self.width, kernel_size=1, stride=1)
+        self.decoder_attn = nn.Conv1d(
+            self.width, self.width, kernel_size=1, stride=1)
         self.softmax = nn.Softmax(dim=-1)
 
     def self_attn(self, q, k, v):
         # q,k,v: B H L C/H
-        attn = self.softmax(torch.einsum("bhlc,bhsc->bhls", q, k))
+        attn = self.softmax(
+            torch.einsum("bhlc,bhsc->bhls", q, k))
         return torch.einsum("bhls,bhsc->bhlc", attn, v)
 
     def latent_encoder_attn(self, x):
         # x: B C H W
         B, C, L = x.shape
-        latent_token = self.latent[None, :, :, :].repeat(B, 1, 1, 1)
+        latent_token = self.latent[None, :, :, :].repeat(
+            B, 1, 1, 1)
         x_tmp = (
             self.encoder_attn(x)
             .view(B, C * 2, -1)
@@ -54,9 +58,11 @@ class NeuralSpectralBlock1D(nn.Module):
             .permute(4, 0, 2, 1, 3)
             .contiguous()
         )
-        latent_token = self.self_attn(latent_token, x_tmp[0], x_tmp[1]) + latent_token
+        latent_token = self.self_attn(
+            latent_token, x_tmp[0], x_tmp[1]) + latent_token
         latent_token = (
-            latent_token.permute(0, 1, 3, 2).contiguous().view(B, C, self.num_token)
+            latent_token.permute(0, 1, 3, 2).contiguous().view(
+                B, C, self.num_token)
         )
         return latent_token
 
@@ -65,7 +71,8 @@ class NeuralSpectralBlock1D(nn.Module):
         x_init = x
         B, C, L = x.shape
         latent_token = (
-            latent_token.view(B, self.head, C // self.head, self.num_token)
+            latent_token.view(
+                B, self.head, C // self.head, self.num_token)
             .permute(0, 1, 3, 2)
             .contiguous()
         )
@@ -78,17 +85,21 @@ class NeuralSpectralBlock1D(nn.Module):
             .permute(0, 2, 1, 3)
             .contiguous()
         )
-        x = self.self_attn(x_tmp, latent_token, latent_token)
-        x = x.permute(0, 1, 3, 2).contiguous().view(B, C, L) + x_init  # B H L C/H
+        x = self.self_attn(
+            x_tmp, latent_token, latent_token)
+        x = x.permute(0, 1, 3, 2).contiguous().view(
+            B, C, L) + x_init  # B H L C/H
         return x
 
     def get_basis(self, x):
         # x: B C N
         x_sin = torch.sin(
-            self.modes_list[None, None, None, :] * x[:, :, :, None] * math.pi
+            self.modes_list[None, None, None,
+                            :] * x[:, :, :, None] * math.pi
         )
         x_cos = torch.cos(
-            self.modes_list[None, None, None, :] * x[:, :, :, None] * math.pi
+            self.modes_list[None, None, None,
+                            :] * x[:, :, :, None] * math.pi
         )
         return torch.cat([x_sin, x_cos], dim=-1)
 
@@ -109,7 +120,8 @@ class NeuralSpectralBlock1D(nn.Module):
             .permute(0, 2, 1, 3)
             .contiguous()
             .view(
-                x.shape[0] * (x.shape[2] // self.patch_size[0]),
+                x.shape[0] *
+                    (x.shape[2] // self.patch_size[0]),
                 x.shape[1],
                 self.patch_size[0],
             )
@@ -119,12 +131,14 @@ class NeuralSpectralBlock1D(nn.Module):
         latent_token = self.latent_encoder_attn(x)
         # (2) transition
         latent_token_modes = self.get_basis(latent_token)
-        latent_token = self.compl_mul2d(latent_token_modes, self.weights) + latent_token
+        latent_token = self.compl_mul2d(
+            latent_token_modes, self.weights) + latent_token
         # (3) decoder
         x = self.latent_decoder_attn(x, latent_token)
         # de-patchify
         x = (
-            x.view(B, (L // self.patch_size[0]), C, self.patch_size[0])
+            x.view(
+                B, (L // self.patch_size[0]), C, self.patch_size[0])
             .permute(0, 2, 1, 3)
             .contiguous()
             .view(B, C, L)
@@ -148,7 +162,8 @@ class NeuralSpectralBlock2D(nn.Module):
             [i for i in range(num_basis)], dtype=torch.float
         )
         self.weights = nn.Parameter(
-            (1 / (width)) * torch.rand(width, self.num_basis * 2, dtype=torch.float)
+            (1 / (width)) * torch.rand(width,
+                                       self.num_basis * 2, dtype=torch.float)
         )
         # latent
         self.head = n_heads
@@ -162,19 +177,22 @@ class NeuralSpectralBlock2D(nn.Module):
         self.encoder_attn = nn.Conv2d(
             self.width, self.width * 2, kernel_size=1, stride=1
         )
-        self.decoder_attn = nn.Conv2d(self.width, self.width, kernel_size=1, stride=1)
+        self.decoder_attn = nn.Conv2d(
+            self.width, self.width, kernel_size=1, stride=1)
         self.softmax = nn.Softmax(dim=-1)
 
     def self_attn(self, q, k, v):
         # q,k,v: B H L C/H
-        attn = self.softmax(torch.einsum("bhlc,bhsc->bhls", q, k))
+        attn = self.softmax(
+            torch.einsum("bhlc,bhsc->bhls", q, k))
         return torch.einsum("bhls,bhsc->bhlc", attn, v)
 
     def latent_encoder_attn(self, x):
         # x: B C H W
         B, C, H, W = x.shape
         L = H * W
-        latent_token = self.latent[None, :, :, :].repeat(B, 1, 1, 1)
+        latent_token = self.latent[None, :, :, :].repeat(
+            B, 1, 1, 1)
         x_tmp = (
             self.encoder_attn(x)
             .view(B, C * 2, -1)
@@ -184,9 +202,11 @@ class NeuralSpectralBlock2D(nn.Module):
             .permute(4, 0, 2, 1, 3)
             .contiguous()
         )
-        latent_token = self.self_attn(latent_token, x_tmp[0], x_tmp[1]) + latent_token
+        latent_token = self.self_attn(
+            latent_token, x_tmp[0], x_tmp[1]) + latent_token
         latent_token = (
-            latent_token.permute(0, 1, 3, 2).contiguous().view(B, C, self.num_token)
+            latent_token.permute(0, 1, 3, 2).contiguous().view(
+                B, C, self.num_token)
         )
         return latent_token
 
@@ -196,7 +216,8 @@ class NeuralSpectralBlock2D(nn.Module):
         B, C, H, W = x.shape
         L = H * W
         latent_token = (
-            latent_token.view(B, self.head, C // self.head, self.num_token)
+            latent_token.view(
+                B, self.head, C // self.head, self.num_token)
             .permute(0, 1, 3, 2)
             .contiguous()
         )
@@ -209,17 +230,21 @@ class NeuralSpectralBlock2D(nn.Module):
             .permute(0, 2, 1, 3)
             .contiguous()
         )
-        x = self.self_attn(x_tmp, latent_token, latent_token)
-        x = x.permute(0, 1, 3, 2).contiguous().view(B, C, H, W) + x_init  # B H L C/H
+        x = self.self_attn(
+            x_tmp, latent_token, latent_token)
+        x = x.permute(0, 1, 3, 2).contiguous().view(
+            B, C, H, W) + x_init  # B H L C/H
         return x
 
     def get_basis(self, x):
         # x: B C N
         x_sin = torch.sin(
-            self.modes_list[None, None, None, :] * x[:, :, :, None] * math.pi
+            self.modes_list[None, None, None,
+                            :] * x[:, :, :, None] * math.pi
         )
         x_cos = torch.cos(
-            self.modes_list[None, None, None, :] * x[:, :, :, None] * math.pi
+            self.modes_list[None, None, None,
+                            :] * x[:, :, :, None] * math.pi
         )
         return torch.cat([x_sin, x_cos], dim=-1)
 
@@ -255,7 +280,8 @@ class NeuralSpectralBlock2D(nn.Module):
         latent_token = self.latent_encoder_attn(x)
         # (2) transition
         latent_token_modes = self.get_basis(latent_token)
-        latent_token = self.compl_mul2d(latent_token_modes, self.weights) + latent_token
+        latent_token = self.compl_mul2d(
+            latent_token_modes, self.weights) + latent_token
         # (3) decoder
         x = self.latent_decoder_attn(x, latent_token)
         # de-patchify
@@ -291,7 +317,8 @@ class NeuralSpectralBlock3D(nn.Module):
             [i for i in range(num_basis)], dtype=torch.float
         )
         self.weights = nn.Parameter(
-            (1 / (width)) * torch.rand(width, self.num_basis * 2, dtype=torch.float)
+            (1 / (width)) * torch.rand(width,
+                                       self.num_basis * 2, dtype=torch.float)
         )
         # latent
         self.head = n_heads
@@ -305,19 +332,22 @@ class NeuralSpectralBlock3D(nn.Module):
         self.encoder_attn = nn.Conv3d(
             self.width, self.width * 2, kernel_size=1, stride=1
         )
-        self.decoder_attn = nn.Conv3d(self.width, self.width, kernel_size=1, stride=1)
+        self.decoder_attn = nn.Conv3d(
+            self.width, self.width, kernel_size=1, stride=1)
         self.softmax = nn.Softmax(dim=-1)
 
     def self_attn(self, q, k, v):
         # q,k,v: B H L C/H
-        attn = self.softmax(torch.einsum("bhlc,bhsc->bhls", q, k))
+        attn = self.softmax(
+            torch.einsum("bhlc,bhsc->bhls", q, k))
         return torch.einsum("bhls,bhsc->bhlc", attn, v)
 
     def latent_encoder_attn(self, x):
         # x: B C H W
         B, C, H, W, T = x.shape
         L = H * W * T
-        latent_token = self.latent[None, :, :, :].repeat(B, 1, 1, 1)
+        latent_token = self.latent[None, :, :, :].repeat(
+            B, 1, 1, 1)
         x_tmp = (
             self.encoder_attn(x)
             .view(B, C * 2, -1)
@@ -327,9 +357,11 @@ class NeuralSpectralBlock3D(nn.Module):
             .permute(4, 0, 2, 1, 3)
             .contiguous()
         )
-        latent_token = self.self_attn(latent_token, x_tmp[0], x_tmp[1]) + latent_token
+        latent_token = self.self_attn(
+            latent_token, x_tmp[0], x_tmp[1]) + latent_token
         latent_token = (
-            latent_token.permute(0, 1, 3, 2).contiguous().view(B, C, self.num_token)
+            latent_token.permute(0, 1, 3, 2).contiguous().view(
+                B, C, self.num_token)
         )
         return latent_token
 
@@ -339,7 +371,8 @@ class NeuralSpectralBlock3D(nn.Module):
         B, C, H, W, T = x.shape
         L = H * W * T
         latent_token = (
-            latent_token.view(B, self.head, C // self.head, self.num_token)
+            latent_token.view(
+                B, self.head, C // self.head, self.num_token)
             .permute(0, 1, 3, 2)
             .contiguous()
         )
@@ -352,17 +385,21 @@ class NeuralSpectralBlock3D(nn.Module):
             .permute(0, 2, 1, 3)
             .contiguous()
         )
-        x = self.self_attn(x_tmp, latent_token, latent_token)
-        x = x.permute(0, 1, 3, 2).contiguous().view(B, C, H, W, T) + x_init  # B H L C/H
+        x = self.self_attn(
+            x_tmp, latent_token, latent_token)
+        x = x.permute(0, 1, 3, 2).contiguous().view(
+            B, C, H, W, T) + x_init  # B H L C/H
         return x
 
     def get_basis(self, x):
         # x: B C N
         x_sin = torch.sin(
-            self.modes_list[None, None, None, :] * x[:, :, :, None] * math.pi
+            self.modes_list[None, None, None,
+                            :] * x[:, :, :, None] * math.pi
         )
         x_cos = torch.cos(
-            self.modes_list[None, None, None, :] * x[:, :, :, None] * math.pi
+            self.modes_list[None, None, None,
+                            :] * x[:, :, :, None] * math.pi
         )
         return torch.cat([x_sin, x_cos], dim=-1)
 
@@ -402,7 +439,8 @@ class NeuralSpectralBlock3D(nn.Module):
         latent_token = self.latent_encoder_attn(x)
         # (2) transition
         latent_token_modes = self.get_basis(latent_token)
-        latent_token = self.compl_mul2d(latent_token_modes, self.weights) + latent_token
+        latent_token = self.compl_mul2d(
+            latent_token_modes, self.weights) + latent_token
         # (3) decoder
         x = self.latent_decoder_attn(x, latent_token)
         # de-patchify

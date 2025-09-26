@@ -7,7 +7,8 @@ class LBlockDown(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(LBlockDown, self).__init__()
         self.relu = nn.ReLU()
-        self.conv = nn.Conv2d(in_channels, out_channels, 3, stride=2, padding=1)
+        self.conv = nn.Conv2d(
+            in_channels, out_channels, 3, stride=2, padding=1)
 
     def forward(self, x):
         x1 = SpectralNorm(x)
@@ -36,7 +37,8 @@ class DBlock3D_1(nn.Module):
         super(DBlock3D_1, self).__init__()
         self.relu = nn.ReLU()
         self.conv1 = SpectralNorm(
-            nn.Conv3d(in_channels, out_channels, kernel_size=(1, 1, 1))
+            nn.Conv3d(in_channels, out_channels,
+                      kernel_size=(1, 1, 1))
         )
         self.conv3_1 = SpectralNorm(
             nn.Conv3d(
@@ -48,7 +50,8 @@ class DBlock3D_1(nn.Module):
                 in_channels, out_channels, kernel_size=(3, 3, 3), padding=1, stride=1
             )
         )
-        self.maxpool_3d = nn.MaxPool3d(kernel_size=(2, 2, 2), stride=(2, 2, 2))
+        self.maxpool_3d = nn.MaxPool3d(
+            kernel_size=(2, 2, 2), stride=(2, 2, 2))
 
     def forward(self, x):
 
@@ -69,7 +72,8 @@ class DBlock3D_2(nn.Module):
         super(DBlock3D_2, self).__init__()
         self.relu = nn.ReLU()
         self.conv1 = SpectralNorm(
-            nn.Conv3d(in_channels, out_channels, kernel_size=(1, 1, 1))
+            nn.Conv3d(in_channels, out_channels,
+                      kernel_size=(1, 1, 1))
         )
         self.conv3_1 = SpectralNorm(
             nn.Conv3d(
@@ -81,7 +85,8 @@ class DBlock3D_2(nn.Module):
                 in_channels, out_channels, kernel_size=(3, 3, 3), padding=1, stride=1
             )
         )
-        self.maxpool_3d = nn.MaxPool3d(kernel_size=(2, 2, 2), stride=(2, 2, 2))
+        self.maxpool_3d = nn.MaxPool3d(
+            kernel_size=(2, 2, 2), stride=(2, 2, 2))
 
     def forward(self, x):
 

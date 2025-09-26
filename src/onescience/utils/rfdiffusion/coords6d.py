@@ -43,25 +43,30 @@ def get_coords6d(xyz, dmax):
 
     # indices of contacting residues
     idx = np.array(
-        [[i, j] for i in range(len(indices)) for j in indices[i] if i != j]
+        [[i, j] for i in range(len(indices))
+         for j in indices[i] if i != j]
     ).T
     idx0 = idx[0]
     idx1 = idx[1]
 
     # Cb-Cb distance matrix
     dist6d = np.full((nres, nres), 999.9, dtype=np.float32)
-    dist6d[idx0, idx1] = np.linalg.norm(Cb[idx1] - Cb[idx0], axis=-1)
+    dist6d[idx0, idx1] = np.linalg.norm(
+        Cb[idx1] - Cb[idx0], axis=-1)
 
     # matrix of Ca-Cb-Cb-Ca dihedrals
     omega6d = np.zeros((nres, nres), dtype=np.float32)
-    omega6d[idx0, idx1] = get_dih(Ca[idx0], Cb[idx0], Cb[idx1], Ca[idx1])
+    omega6d[idx0, idx1] = get_dih(
+        Ca[idx0], Cb[idx0], Cb[idx1], Ca[idx1])
     # matrix of polar coord theta
     theta6d = np.zeros((nres, nres), dtype=np.float32)
-    theta6d[idx0, idx1] = get_dih(N[idx0], Ca[idx0], Cb[idx0], Cb[idx1])
+    theta6d[idx0, idx1] = get_dih(
+        N[idx0], Ca[idx0], Cb[idx0], Cb[idx1])
 
     # matrix of polar coord phi
     phi6d = np.zeros((nres, nres), dtype=np.float32)
-    phi6d[idx0, idx1] = get_angles(Ca[idx0], Cb[idx0], Cb[idx1])
+    phi6d[idx0, idx1] = get_angles(
+        Ca[idx0], Cb[idx0], Cb[idx1])
 
     mask = np.zeros((nres, nres), dtype=np.float32)
     mask[idx0, idx1] = 1.0

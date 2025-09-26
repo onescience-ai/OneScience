@@ -61,7 +61,8 @@ def convert_a3m_to_stockholm(a3m: str, max_seqs: int | None = None) -> str:
     # Add the Stockholm header with the sequence metadata.
     names = []
     for i, description in enumerate(descriptions):
-        name, _, rest = description.replace("\t", " ").partition(" ")
+        name, _, rest = description.replace(
+            "\t", " ").partition(" ")
         # Ensure that the names are unique - stockholm format requires that
         # the sequence names are unique.
         name = f"{name}_{i}"
@@ -73,17 +74,21 @@ def convert_a3m_to_stockholm(a3m: str, max_seqs: int | None = None) -> str:
 
     # Convert insertions in a sequence into gaps in all other sequences that don't
     # have an insertion in that column as well.
-    sequences = msa_conversion.convert_a3m_to_stockholm(sequences)
+    sequences = msa_conversion.convert_a3m_to_stockholm(
+        sequences)
 
     # Add the MSA data.
     max_name_width = max(len(name) for name in names)
     for name, sequence in zip(names, sequences, strict=True):
         # Align the names to the left and pad with spaces to the maximum length.
-        stockholm.append(f"{name:<{max_name_width}s} {sequence}")
+        stockholm.append(
+            f"{name:<{max_name_width}s} {sequence}")
 
     # Add the reference annotation for the query (the first sequence).
-    ref_annotation = "".join("." if c == "-" else "x" for c in sequences[0])
-    stockholm.append(f'{"#=GC RF":<{max_name_width}s} {ref_annotation}')
+    ref_annotation = "".join(
+        "." if c == "-" else "x" for c in sequences[0])
+    stockholm.append(
+        f'{"#=GC RF":<{max_name_width}s} {ref_annotation}')
     stockholm.append("//")
 
     return "\n".join(stockholm)
@@ -104,7 +109,8 @@ def convert_stockholm_to_a3m(
         raise ValueError("linewidth must be > 0 or None")
 
     for line in stockholm:
-        reached_max_sequences = max_sequences and len(sequences) >= max_sequences
+        reached_max_sequences = max_sequences and len(
+            sequences) >= max_sequences
         line = line.strip()
         # Ignore blank lines, markup and end symbols - remainder are alignment
         # sequence parts.
@@ -149,21 +155,24 @@ def convert_stockholm_to_a3m(
                 sequence=sto_sequence, query_sequence=query_sequence
             ).replace(".", "")
         else:
-            a3m_sequences[seqname] = sto_sequence.replace(".", "")
+            a3m_sequences[seqname] = sto_sequence.replace(
+                ".", "")
 
     fasta_chunks = []
 
     for seqname, seq in a3m_sequences.items():
-        fasta_chunks.append(f'>{seqname} {descriptions.get(seqname, "")}')
+        fasta_chunks.append(
+            f'>{seqname} {descriptions.get(seqname, "")}')
 
         if linewidth:
             fasta_chunks.extend(
-                seq[i : linewidth + i] for i in range(0, len(seq), linewidth)
+                seq[i: linewidth + i] for i in range(0, len(seq), linewidth)
             )
         else:
             fasta_chunks.append(seq)
 
-    return "\n".join(fasta_chunks) + "\n"  # Include terminating newline.
+    # Include terminating newline.
+    return "\n".join(fasta_chunks) + "\n"
 
 
 def convert_mmseqs_stockholm_to_a3m(
@@ -199,7 +208,8 @@ def convert_mmseqs_stockholm_to_a3m(
             new_seqname = original_seqname
         else:
             new_seqname = (
-                f"{original_seqname}_{chr(97 + count - 1)}"  # 97是ASCII码的'a'
+                # 97是ASCII码的'a'
+                f"{original_seqname}_{chr(97 + count - 1)}"
             )
         seqname_counter[original_seqname] += 1
 
@@ -248,12 +258,14 @@ def convert_mmseqs_stockholm_to_a3m(
     # 生成FASTA
     fasta_chunks = []
     for seqname, seq in a3m_sequences.items():
-        original_seqname = original_seqnames.get(seqname, seqname)
+        original_seqname = original_seqnames.get(
+            seqname, seqname)
         desc = descriptions.get(original_seqname, "")
         fasta_chunks.append(f">{seqname} {desc}")
 
         if linewidth:
-            chunks = [seq[i : i + linewidth] for i in range(0, len(seq), linewidth)]
+            chunks = [seq[i: i + linewidth]
+                      for i in range(0, len(seq), linewidth)]
             fasta_chunks.extend(chunks)
         else:
             fasta_chunks.append(seq)

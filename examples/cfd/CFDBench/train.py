@@ -52,7 +52,8 @@ def evaluate(
         return {"scores": {}, "preds": []}
 
     # Unwrap DDP model if necessary
-    model_eval = model.module if hasattr(model, "module") else model
+    model_eval = model.module if hasattr(
+        model, "module") else model
     model_eval.eval()
 
     if measure_time:
@@ -61,7 +62,8 @@ def evaluate(
     loader = DataLoader(
         data, batch_size=batch_size, shuffle=False, collate_fn=collate_fn
     )
-    scores = {name: [] for name in model_eval.loss_fn.get_score_names()}
+    scores = {name: []
+              for name in model_eval.loss_fn.get_score_names()}
     all_preds = []
 
     print(f"=== Evaluating (rank {dist.rank}) ===")
@@ -82,7 +84,8 @@ def evaluate(
             preds = model_eval.generate_one(
                 case_params=case_params, t=t, height=height, width=width
             )
-            loss: dict = model_eval.loss_fn(labels=label[:, :1], preds=preds)
+            loss: dict = model_eval.loss_fn(
+                labels=label[:, :1], preds=preds)
             for key in scores:
                 scores[key].append(loss[key].item())
 
@@ -104,11 +107,13 @@ def evaluate(
         print("Memory usage:")
         print(torch.cuda.memory_summary("cuda"))
         print("Time usage:")
-        time_per_step = 1000 * (time.time() - start_time) / len(loader)
+        time_per_step = 1000 * \
+            (time.time() - start_time) / len(loader)
         print(f"Time per step: {time_per_step:.3f} ms")
         exit()
 
-    avg_scores = {key: np.mean(vals) for key, vals in scores.items()}
+    avg_scores = {key: np.mean(vals)
+                  for key, vals in scores.items()}
     for key, vals in scores.items():
         print(f"{key}: {np.mean(vals)}")
 
@@ -177,7 +182,8 @@ def train(
     dist = DistributedManager()
 
     # Create distributed sampler and data loader
-    sampler = DistributedSampler(train_data) if dist.world_size > 1 else None
+    sampler = DistributedSampler(
+        train_data) if dist.world_size > 1 else None
     loader = DataLoader(
         train_data,
         batch_size=batch_size,
@@ -198,7 +204,8 @@ def train(
         print(f"# GPUs: {dist.world_size}")
 
     optimizer = Adam(model.parameters(), lr=lr)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
+    scheduler = lr_scheduler.StepLR(
+        optimizer, step_size=lr_step_size, gamma=lr_gamma)
 
     start_time = time.time()
     global_step = 0
@@ -228,7 +235,8 @@ def train(
 
             # Only log from rank 0
             if dist.rank == 0 and global_step % log_interval == 0 and not measure_time:
-                avg_loss = np.mean(ep_train_losses[-log_interval:])
+                avg_loss = np.mean(
+                    ep_train_losses[-log_interval:])
                 log_info = {
                     "ep": ep,
                     "step": step,
@@ -254,20 +262,25 @@ def train(
             ckpt_dir.mkdir(exist_ok=True, parents=True)
             dev_result = evaluate(model, dev_data, ckpt_dir)
             dev_scores = dev_result["scores"]
-            dump_json(dev_scores, ckpt_dir / "dev_loss.json")
-            dump_json(ep_train_losses, ckpt_dir / "train_loss.json")
+            dump_json(dev_scores, ckpt_dir /
+                      "dev_loss.json")
+            dump_json(ep_train_losses,
+                      ckpt_dir / "train_loss.json")
 
             # Save checkpoint - unwrap DDP model
-            model_to_save = model.module if hasattr(model, "module") else model
+            model_to_save = model.module if hasattr(
+                model, "module") else model
             ckpt_path = ckpt_dir / "model.pt"
             print(f"Saving checkpoint to {ckpt_path}")
-            torch.save(model_to_save.state_dict(), ckpt_path)
+            torch.save(
+                model_to_save.state_dict(), ckpt_path)
 
             # Save average scores
             ep_scores = dict(
                 ep=ep,
                 train_loss=np.mean(ep_train_losses),
-                dev_loss=np.mean(dev_scores["mean"]["nmse"]),
+                dev_loss=np.mean(
+                    dev_scores["mean"]["nmse"]),
                 time=time.time() - ep_start_time,
             )
             dump_json(ep_scores, ckpt_dir / "scores.json")
@@ -281,8 +294,10 @@ def train(
     # Only save from rank 0
     if dist.rank == 0:
         all_train_losses = sum(all_train_losses, [])
-        dump_json(all_train_losses, output_dir / "train_losses.json")
-        plot_loss(all_train_losses, output_dir / "train_losses.png")
+        dump_json(all_train_losses, output_dir /
+                  "train_losses.json")
+        plot_loss(all_train_losses, output_dir /
+                  "train_losses.png")
 
 
 def init_model(args: Args) -> CfdModel:
@@ -295,7 +310,8 @@ def init_model(args: Args) -> CfdModel:
         # (density, viscosity, u_top, h, w, radius, center_x, center_y)
         n_case_params = 8
     else:
-        n_case_params = 5  # (density, viscosity, u_top, h, w)
+        # (density, viscosity, u_top, h, w)
+        n_case_params = 5
     if args.model == "deeponet":
         model = DeepONet(
             branch_dim=n_case_params,
@@ -310,14 +326,16 @@ def init_model(args: Args) -> CfdModel:
         )
     elif args.model == "ffn":
         widths = (
-            [n_case_params + query_coord_dim] + [args.ffn_width] * args.ffn_depth + [1]
+            [n_case_params + query_coord_dim] +
+            [args.ffn_width] * args.ffn_depth + [1]
         )
         model = FfnModel(
             widths=widths,
             loss_fn=loss_fn,
         )
     else:
-        raise ValueError(f"Invalid model name: {args.model}")
+        raise ValueError(
+            f"Invalid model name: {args.model}")
     sum(p.numel() for p in model.parameters())
     return model
 
@@ -326,7 +344,8 @@ def main():
     # Initialize distributed environment
     DistributedManager.initialize()
     dist = DistributedManager()
-    print(f"Initialized process group: rank {dist.rank}, world size {dist.world_size}")
+    print(
+        f"Initialized process group: rank {dist.rank}, world size {dist.world_size}")
 
     args = Args().parse_args()
     if dist.rank == 0:
@@ -383,7 +402,8 @@ def main():
     if "test" in args.mode and dist.rank == 0:
         args.save(str(output_dir / "test_args.json"))
         # Test - if model is DDP, we need to unwrap it first
-        model_to_test = model.module if hasattr(model, "module") else model
+        model_to_test = model.module if hasattr(
+            model, "module") else model
         load_best_ckpt(model_to_test, output_dir)
         test_dir = output_dir / "test"
         test_dir.mkdir(exist_ok=True)

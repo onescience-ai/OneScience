@@ -76,7 +76,8 @@ TEMPLATE_FEATURES = {
 def empty_template_feats(n_res):
     return {
         "template_aatype": np.zeros(
-            (0, n_res, len(residue_constants.restypes_with_x_and_gap)), np.float32
+            (0, n_res, len(
+                residue_constants.restypes_with_x_and_gap)), np.float32
         ),
         "template_all_atom_mask": np.zeros(
             (0, n_res, residue_constants.atom_type_num), np.float32
@@ -93,9 +94,11 @@ def empty_template_feats(n_res):
 def _get_pdb_id_and_chain(hit: parsers.TemplateHit) -> Tuple[str, str]:
     """Returns PDB id and chain id for an HHSearch Hit."""
     # PDB ID: 4 letters. Chain ID: 1+ alphanumeric letters or "." if unknown.
-    id_match = re.match(r"[a-zA-Z\d]{4}_[a-zA-Z0-9.]+", hit.name)
+    id_match = re.match(
+        r"[a-zA-Z\d]{4}_[a-zA-Z0-9.]+", hit.name)
     if not id_match:
-        raise ValueError(f"hit.name did not start with PDBID_chain: {hit.name}")
+        raise ValueError(
+            f"hit.name did not start with PDBID_chain: {hit.name}")
     pdb_id, chain_id = id_match.group(0).split("_")
     return pdb_id.lower(), chain_id
 
@@ -117,13 +120,15 @@ def _is_after_cutoff(
     """
     pdb_id_upper = pdb_id.upper()
     if release_date_cutoff is None:
-        raise ValueError("The release_date_cutoff must not be None.")
+        raise ValueError(
+            "The release_date_cutoff must not be None.")
     if pdb_id_upper in release_dates:
         return release_dates[pdb_id_upper] > release_date_cutoff
     else:
         # Since this is just a quick prefilter to reduce the number of mmCIF files
         # we need to parse, we don't have to worry about returning True here.
-        logging.info("Template structure not in release dates dict: %s", pdb_id)
+        logging.info(
+            "Template structure not in release dates dict: %s", pdb_id)
         return False
 
 
@@ -169,9 +174,11 @@ def generate_release_dates_cache(mmcif_dir: str, out_path: str):
                 mmcif_string = fp.read()
 
             file_id = os.path.splitext(f)[0]
-            mmcif = mmcif_parsing.parse(file_id=file_id, mmcif_string=mmcif_string)
+            mmcif = mmcif_parsing.parse(
+                file_id=file_id, mmcif_string=mmcif_string)
             if mmcif.mmcif_object is None:
-                logging.info(f"Failed to parse {f}. Skipping...")
+                logging.info(
+                    f"Failed to parse {f}. Skipping...")
                 continue
 
             mmcif = mmcif.mmcif_object
@@ -232,7 +239,8 @@ def _assess_hhsearch_hit(
     align_ratio = aligned_cols / len(query_sequence)
 
     template_sequence = hit.hit_sequence.replace("-", "")
-    length_ratio = float(len(template_sequence)) / len(query_sequence)
+    length_ratio = float(
+        len(template_sequence)) / len(query_sequence)
 
     if _is_after_cutoff(hit_pdb_code, release_dates, release_date_cutoff):
         date = release_dates[hit_pdb_code.upper()]
@@ -259,7 +267,8 @@ def _assess_hhsearch_hit(
         )
 
     if len(template_sequence) < 10:
-        raise LengthError(f"Template too short. Length: {len(template_sequence)}.")
+        raise LengthError(
+            f"Template too short. Length: {len(template_sequence)}.")
 
     return True
 
@@ -297,27 +306,34 @@ def _find_template_in_pdb(
     """
     # Try if there is an exact match in both the chain ID and the (sub)sequence.
     pdb_id = mmcif_object.file_id
-    chain_sequence = mmcif_object.chain_to_seqres.get(template_chain_id)
+    chain_sequence = mmcif_object.chain_to_seqres.get(
+        template_chain_id)
     if chain_sequence and (template_sequence in chain_sequence):
-        logging.info("Found an exact template match %s_%s.", pdb_id, template_chain_id)
-        mapping_offset = chain_sequence.find(template_sequence)
+        logging.info(
+            "Found an exact template match %s_%s.", pdb_id, template_chain_id)
+        mapping_offset = chain_sequence.find(
+            template_sequence)
         return chain_sequence, template_chain_id, mapping_offset
 
     # Try if there is an exact match in the (sub)sequence only.
     for chain_id, chain_sequence in mmcif_object.chain_to_seqres.items():
         if chain_sequence and (template_sequence in chain_sequence):
-            logging.info("Found a sequence-only match %s_%s.", pdb_id, chain_id)
-            mapping_offset = chain_sequence.find(template_sequence)
+            logging.info(
+                "Found a sequence-only match %s_%s.", pdb_id, chain_id)
+            mapping_offset = chain_sequence.find(
+                template_sequence)
             return chain_sequence, chain_id, mapping_offset
 
     # Return a chain sequence that fuzzy matches (X = wildcard) the template.
     # Make parentheses unnamed groups (?:_) to avoid the 100 named groups limit.
-    regex = ["." if aa == "X" else "(?:%s|X)" % aa for aa in template_sequence]
+    regex = ["." if aa ==
+             "X" else "(?:%s|X)" % aa for aa in template_sequence]
     regex = re.compile("".join(regex))
     for chain_id, chain_sequence in mmcif_object.chain_to_seqres.items():
         match = re.search(regex, chain_sequence)
         if match:
-            logging.info("Found a fuzzy sequence-only match %s_%s.", pdb_id, chain_id)
+            logging.info(
+                "Found a fuzzy sequence-only match %s_%s.", pdb_id, chain_id)
             mapping_offset = match.start()
             return chain_sequence, chain_id, mapping_offset
 
@@ -380,7 +396,8 @@ def _realign_pdb_template_to_query(
             old_template_sequence.
     """
     aligner = kalign.Kalign(binary_path=kalign_binary_path)
-    new_template_sequence = mmcif_object.chain_to_seqres.get(template_chain_id, "")
+    new_template_sequence = mmcif_object.chain_to_seqres.get(
+        template_chain_id, "")
 
     # Sometimes the template chain id is unknown. But if there is only a single
     # sequence within the mmcif_object, it is safe to assume it is that one.
@@ -392,7 +409,8 @@ def _realign_pdb_template_to_query(
                 template_chain_id,
                 mmcif_object.file_id,
             )
-            new_template_sequence = list(mmcif_object.chain_to_seqres.values())[0]
+            new_template_sequence = list(
+                mmcif_object.chain_to_seqres.values())[0]
         else:
             raise QueryToTemplateAlignError(
                 f"Could not find chain {template_chain_id} in {mmcif_object.file_id}. "
@@ -402,7 +420,8 @@ def _realign_pdb_template_to_query(
 
     try:
         parsed_a3m = parsers.parse_a3m(
-            aligner.align([old_template_sequence, new_template_sequence])
+            aligner.align(
+                [old_template_sequence, new_template_sequence])
         )
         old_aligned_template, new_aligned_template = parsed_a3m.sequences
     except Exception as e:
@@ -441,7 +460,8 @@ def _realign_pdb_template_to_query(
 
     # Require at least 90 % sequence identity wrt to the shorter of the sequences.
     if (
-        float(num_same) / min(len(old_template_sequence), len(new_template_sequence))
+        float(num_same) / min(len(old_template_sequence),
+                              len(new_template_sequence))
         < 0.9
     ):
         raise QueryToTemplateAlignError(
@@ -463,7 +483,8 @@ def _realign_pdb_template_to_query(
             old_template_index, -1
         )
 
-    new_template_sequence = new_template_sequence.replace("-", "")
+    new_template_sequence = new_template_sequence.replace(
+        "-", "")
 
     return new_template_sequence, new_query_to_template_mapping
 
@@ -482,7 +503,8 @@ def _check_residue_distances(
         if this_is_unmasked:
             this_calpha = coords[ca_position]
             if prev_is_unmasked:
-                distance = np.linalg.norm(this_calpha - prev_calpha)
+                distance = np.linalg.norm(
+                    this_calpha - prev_calpha)
                 if distance > max_ca_ca_distance:
                     raise CaDistanceError(
                         "The distance between residues %d and %d is %f > limit %f."
@@ -505,7 +527,8 @@ def _get_atom_positions(
         _zero_center_positions=_zero_center_positions,
     )
     all_atom_positions, all_atom_mask = coords_with_mask
-    _check_residue_distances(all_atom_positions, all_atom_mask, max_ca_ca_distance)
+    _check_residue_distances(
+        all_atom_positions, all_atom_mask, max_ca_ca_distance)
     return all_atom_positions, all_atom_mask
 
 

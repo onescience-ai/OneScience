@@ -28,11 +28,13 @@ _CONTEXT_FEATURES = {
 
 def convert_to_tensor(x, encoded_dtype):
     if len(x) == 1:
-        out = np.frombuffer(x[0].numpy(), dtype=encoded_dtype)
+        out = np.frombuffer(
+            x[0].numpy(), dtype=encoded_dtype)
     else:
         out = []
         for el in x:
-            out.append(np.frombuffer(el.numpy(), dtype=encoded_dtype))
+            out.append(np.frombuffer(
+                el.numpy(), dtype=encoded_dtype))
     out = tf.convert_to_tensor(np.array(out))
     return out
 
@@ -64,12 +66,14 @@ def parse_serialized_simulation_example(example_proto, metadata):
             convert_to_tensor, encoded_dtype=_FEATURE_DTYPES[feature_key]["in"]
         )
         parsed_features[feature_key] = tf.py_function(
-            convert_fn, inp=[item.values], Tout=_FEATURE_DTYPES[feature_key]["out"]
+            convert_fn, inp=[
+                item.values], Tout=_FEATURE_DTYPES[feature_key]["out"]
         )
 
     # There is an extra frame at the beginning so we can calculate pos change
     # for all frames used in the paper.
-    position_shape = [metadata["sequence_length"] + 1, -1, metadata["dim"]]
+    position_shape = [
+        metadata["sequence_length"] + 1, -1, metadata["dim"]]
 
     # Reshape positions to correct dim:
     parsed_features["position"] = tf.reshape(
@@ -80,15 +84,18 @@ def parse_serialized_simulation_example(example_proto, metadata):
     if "context_mean" in metadata:
         context_feat_len = len(metadata["context_mean"])
         parsed_features["step_context"] = tf.reshape(
-            parsed_features["step_context"], [sequence_length, context_feat_len]
+            parsed_features["step_context"], [
+                sequence_length, context_feat_len]
         )
     # Decode particle type explicitly
     context["particle_type"] = tf.py_function(
-        functools.partial(convert_fn, encoded_dtype=np.int64),
+        functools.partial(
+            convert_fn, encoded_dtype=np.int64),
         inp=[context["particle_type"].values],
         Tout=[tf.int64],
     )
-    context["particle_type"] = tf.reshape(context["particle_type"], [-1])
+    context["particle_type"] = tf.reshape(
+        context["particle_type"], [-1])
     return context, parsed_features
 
 
@@ -97,7 +104,8 @@ def split_trajectory(context, features, window_length=7):
     # Our strategy is to make sure all the leading dimensions are the same size,
     # then we can use from_tensor_slices.
 
-    trajectory_length = features["position"].get_shape().as_list()[0]
+    trajectory_length = features["position"].get_shape().as_list()[
+        0]
 
     # We then stack window_length position changes so the final
     # trajectory length will be - window_length +1 (the 1 to make sure we get
@@ -107,18 +115,21 @@ def split_trajectory(context, features, window_length=7):
     model_input_features = {}
     # Prepare the context features per step.
     model_input_features["particle_type"] = tf.tile(
-        tf.expand_dims(context["particle_type"], axis=0), [input_trajectory_length, 1]
+        tf.expand_dims(context["particle_type"], axis=0), [
+            input_trajectory_length, 1]
     )
 
     if "step_context" in features:
         global_stack = [
-            features["step_context"][idx : idx + window_length]
+            features["step_context"][idx: idx +
+                                     window_length]
             for idx in range(input_trajectory_length)
         ]
-        model_input_features["step_context"] = tf.stack(global_stack)
+        model_input_features["step_context"] = tf.stack(
+            global_stack)
 
     pos_stack = [
-        features["position"][idx : idx + window_length]
+        features["position"][idx: idx + window_length]
         for idx in range(input_trajectory_length)
     ]
     # Get the corresponding positions

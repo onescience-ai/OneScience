@@ -99,7 +99,8 @@ class WandBLogger(Logger):
 
     def log_plots(self, plots, caption: str = "") -> None:
         assert isinstance(plots, list)
-        plots = [wandb.Image(x, caption=caption) for x in plots]
+        plots = [wandb.Image(x, caption=caption)
+                 for x in plots]
         wandb.log({"data": plots})
 
     def log_table(
@@ -142,33 +143,42 @@ class WandBLogger(Logger):
 class TensorboardLogger(Logger):
     def __init__(self, config) -> None:
         super().__init__(config)
-        self.writer = SummaryWriter(self.config["cmd"]["logs_dir"])
+        self.writer = SummaryWriter(
+            self.config["cmd"]["logs_dir"])
 
     # TODO: add a model hook for watching gradients.
     def watch(self, model, log_freq: int = 1000) -> bool:
-        logging.warning("Model gradient logging to tensorboard not yet supported.")
+        logging.warning(
+            "Model gradient logging to tensorboard not yet supported.")
         return False
 
     def log(self, update_dict, step: int, split: str = ""):
         update_dict = super().log(update_dict, step, split)
         for key in update_dict:
             if torch.is_tensor(update_dict[key]):
-                self.writer.add_scalar(key, update_dict[key].item(), step)
+                self.writer.add_scalar(
+                    key, update_dict[key].item(), step)
             else:
-                assert isinstance(update_dict[key], (int, float))
-                self.writer.add_scalar(key, update_dict[key], step)
+                assert isinstance(
+                    update_dict[key], (int, float))
+                self.writer.add_scalar(
+                    key, update_dict[key], step)
 
     def mark_preempting(self) -> None:
-        logging.warning("mark_preempting for Tensorboard not supported")
+        logging.warning(
+            "mark_preempting for Tensorboard not supported")
 
     def log_plots(self, plots) -> None:
-        logging.warning("log_plots for Tensorboard not supported")
+        logging.warning(
+            "log_plots for Tensorboard not supported")
 
     def log_summary(self, summary_dict: dict[str, Any]) -> None:
-        logging.warning("log_summary for Tensorboard not supported")
+        logging.warning(
+            "log_summary for Tensorboard not supported")
 
     def log_artifact(self, name: str, type: str, file_location: str) -> None:
-        logging.warning("log_artifact for Tensorboard not supported")
+        logging.warning(
+            "log_artifact for Tensorboard not supported")
 
 
 class WandBSingletonLogger:

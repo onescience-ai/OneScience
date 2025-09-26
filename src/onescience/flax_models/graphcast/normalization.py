@@ -27,13 +27,18 @@ def normalize(
             )
         if locations is not None:
             if array.name in locations:
-                array = array - locations[array.name].astype(array.dtype)
+                array = array - \
+                    locations[array.name].astype(
+                        array.dtype)
             else:
-                logging.warning("No normalization location found for %s", array.name)
+                logging.warning(
+                    "No normalization location found for %s", array.name)
         if array.name in scales:
-            array = array / scales[array.name].astype(array.dtype)
+            array = array / \
+                scales[array.name].astype(array.dtype)
         else:
-            logging.warning("No normalization scale found for %s", array.name)
+            logging.warning(
+                "No normalization scale found for %s", array.name)
         return array
 
     return xarray_tree.map_structure(normalize_array, values)
@@ -52,14 +57,19 @@ def unnormalize(
                 "Can't look up normalization constants because array has no name."
             )
         if array.name in scales:
-            array = array * scales[array.name].astype(array.dtype)
+            array = array * \
+                scales[array.name].astype(array.dtype)
         else:
-            logging.warning("No normalization scale found for %s", array.name)
+            logging.warning(
+                "No normalization scale found for %s", array.name)
         if locations is not None:
             if array.name in locations:
-                array = array + locations[array.name].astype(array.dtype)
+                array = array + \
+                    locations[array.name].astype(
+                        array.dtype)
             else:
-                logging.warning("No normalization location found for %s", array.name)
+                logging.warning(
+                    "No normalization location found for %s", array.name)
         return array
 
     return xarray_tree.map_structure(unnormalize_array, values)
@@ -121,7 +131,8 @@ class InputsAndResiduals(predictor_base.Predictor):
             )
             # A prediction for which we have a corresponding input -- we are
             # predicting the residual:
-            last_input = inputs[norm_prediction.name].isel(time=-1)
+            last_input = inputs[norm_prediction.name].isel(
+                time=-1)
             prediction = prediction + last_input
             return prediction
         else:
@@ -152,13 +163,16 @@ class InputsAndResiduals(predictor_base.Predictor):
         forcings: xarray.Dataset,
         **kwargs,
     ) -> xarray.Dataset:
-        norm_inputs = normalize(inputs, self._scales, self._locations)
-        norm_forcings = normalize(forcings, self._scales, self._locations)
+        norm_inputs = normalize(
+            inputs, self._scales, self._locations)
+        norm_forcings = normalize(
+            forcings, self._scales, self._locations)
         norm_predictions = self._predictor(
             norm_inputs, targets_template, forcings=norm_forcings, **kwargs
         )
         return xarray_tree.map_structure(
-            lambda pred: self._unnormalize_prediction_and_add_input(inputs, pred),
+            lambda pred: self._unnormalize_prediction_and_add_input(
+                inputs, pred),
             norm_predictions,
         )
 
@@ -170,10 +184,13 @@ class InputsAndResiduals(predictor_base.Predictor):
         **kwargs,
     ) -> predictor_base.LossAndDiagnostics:
         """Returns the loss computed on normalized inputs and targets."""
-        norm_inputs = normalize(inputs, self._scales, self._locations)
-        norm_forcings = normalize(forcings, self._scales, self._locations)
+        norm_inputs = normalize(
+            inputs, self._scales, self._locations)
+        norm_forcings = normalize(
+            forcings, self._scales, self._locations)
         norm_target_residuals = xarray_tree.map_structure(
-            lambda t: self._subtract_input_and_normalize_target(inputs, t), targets
+            lambda t: self._subtract_input_and_normalize_target(
+                inputs, t), targets
         )
         return self._predictor.loss(
             norm_inputs, norm_target_residuals, forcings=norm_forcings, **kwargs
@@ -187,16 +204,20 @@ class InputsAndResiduals(predictor_base.Predictor):
         **kwargs,
     ) -> Tuple[predictor_base.LossAndDiagnostics, xarray.Dataset]:
         """The loss computed on normalized data, with unnormalized predictions."""
-        norm_inputs = normalize(inputs, self._scales, self._locations)
-        norm_forcings = normalize(forcings, self._scales, self._locations)
+        norm_inputs = normalize(
+            inputs, self._scales, self._locations)
+        norm_forcings = normalize(
+            forcings, self._scales, self._locations)
         norm_target_residuals = xarray_tree.map_structure(
-            lambda t: self._subtract_input_and_normalize_target(inputs, t), targets
+            lambda t: self._subtract_input_and_normalize_target(
+                inputs, t), targets
         )
         (loss, scalars), norm_predictions = self._predictor.loss_and_predictions(
             norm_inputs, norm_target_residuals, forcings=norm_forcings, **kwargs
         )
         predictions = xarray_tree.map_structure(
-            lambda pred: self._unnormalize_prediction_and_add_input(inputs, pred),
+            lambda pred: self._unnormalize_prediction_and_add_input(
+                inputs, pred),
             norm_predictions,
         )
         return (loss, scalars), predictions

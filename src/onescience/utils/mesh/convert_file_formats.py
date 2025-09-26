@@ -35,7 +35,8 @@ def convert_vtp_to_stl(input_file: str, output_file: str) -> None:
     reader = vtk.vtkXMLPolyDataReader()
     reader.SetFileName(input_file)
     if not reader.CanReadFile(input_file):
-        raise ValueError(f"Error: Could not read file: {input_file}")
+        raise ValueError(
+            f"Error: Could not read file: {input_file}")
     reader.Update()
 
     writer = vtk.vtkSTLWriter()
@@ -74,8 +75,10 @@ def convert_tesselated_files_in_directory(conversion_type, input_dir, output_dir
         if filename.endswith(src_ext):
             input_file = os.path.join(input_dir, filename)
             output_file = os.path.join(
-                output_dir, os.path.splitext(filename)[0] + dst_ext
+                output_dir, os.path.splitext(filename)[
+                    0] + dst_ext
             )
             converter(input_file, output_file)
-            print(f"Converted {input_file} to {output_file}")
+            print(
+                f"Converted {input_file} to {output_file}")
     print("Conversion complete.")

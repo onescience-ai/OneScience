@@ -17,4 +17,5 @@ def _sharding(input, shards):
     elif input is None:
         return jax.device_put(input, shards)
     else:
-        raise TypeError(f"Invalid input: {type(input)} {input}")
+        raise TypeError(
+            f"Invalid input: {type(input)} {input}")

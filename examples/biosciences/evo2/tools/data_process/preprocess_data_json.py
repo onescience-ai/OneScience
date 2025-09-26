@@ -1,5 +1,12 @@
 """Processing data for pretraining."""
 
+from evo2.data import indexed_dataset
+import tqdm
+import ftfy
+from typing import List, Union
+from threading import Semaphore
+from abc import ABC, abstractmethod
+import time
 import argparse
 import multiprocessing
 import os
@@ -9,24 +16,19 @@ import lm_dataformat as lmd
 import numpy as np
 
 sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+    os.path.abspath(os.path.join(
+        os.path.dirname(__file__), os.path.pardir))
 )
-import time
-from abc import ABC, abstractmethod
-from threading import Semaphore
-from typing import List, Union
 
-import ftfy
-import tqdm
 
 # from evo2.tokenizer import build_tokenizer
-from evo2.data import indexed_dataset
 
 
 def build_tokenizer(args):
     """Initialize tokenizer."""
     if args.rank == 0:
-        print("> building {} tokenizer ...".format(args.tokenizer_type), flush=True)
+        print("> building {} tokenizer ...".format(
+            args.tokenizer_type), flush=True)
 
     # Select and instantiate the tokenizer.
 
@@ -34,11 +36,13 @@ def build_tokenizer(args):
         tokenizer = CharLevelTokenizer(vocab_size=512)
     else:
         raise NotImplementedError(
-            "{} tokenizer is not " "implemented.".format(args.tokenizer_type)
+            "{} tokenizer is not " "implemented.".format(
+                args.tokenizer_type)
         )
 
     # Add vocab size.
-    args.padded_vocab_size = _vocab_size_with_padding(tokenizer.vocab_size, args)
+    args.padded_vocab_size = _vocab_size_with_padding(
+        tokenizer.vocab_size, args)
 
     return tokenizer
 
@@ -48,13 +52,15 @@ def _vocab_size_with_padding(orig_vocab_size, args):
     still having GPU friendly size."""
 
     after = orig_vocab_size
-    multiple = args.make_vocab_size_divisible_by * args.model_parallel_size
+    multiple = args.make_vocab_size_divisible_by * \
+        args.model_parallel_size
     while (after % multiple) != 0:
         after += 1
     if args.rank == 0:
         print(
             " > padded vocab (size: {}) with {} dummy tokens "
-            "(new size: {})".format(orig_vocab_size, after - orig_vocab_size, after),
+            "(new size: {})".format(orig_vocab_size,
+                                    after - orig_vocab_size, after),
             flush=True,
         )
     return after
@@ -88,37 +94,43 @@ class AbstractTokenizer(ABC):
 
     def detokenize(self, token_ids):
         raise NotImplementedError(
-            "detokenizer is not implemented for {} " "tokenizer".format(self.name)
+            "detokenizer is not implemented for {} " "tokenizer".format(
+                self.name)
         )
 
     @property
     def cls(self):
         raise NotImplementedError(
-            "CLS is not provided for {} " "tokenizer".format(self.name)
+            "CLS is not provided for {} " "tokenizer".format(
+                self.name)
         )
 
     @property
     def sep(self):
         raise NotImplementedError(
-            "SEP is not provided for {} " "tokenizer".format(self.name)
+            "SEP is not provided for {} " "tokenizer".format(
+                self.name)
         )
 
     @property
     def pad(self):
         raise NotImplementedError(
-            "PAD is not provided for {} " "tokenizer".format(self.name)
+            "PAD is not provided for {} " "tokenizer".format(
+                self.name)
         )
 
     @property
     def eod(self):
         raise NotImplementedError(
-            "EOD is not provided for {} " "tokenizer".format(self.name)
+            "EOD is not provided for {} " "tokenizer".format(
+                self.name)
         )
 
     @property
     def mask(self):
         raise NotImplementedError(
-            "MASK is not provided for {} " "tokenizer".format(self.name)
+            "MASK is not provided for {} " "tokenizer".format(
+                self.name)
         )
 
 
@@ -212,7 +224,8 @@ class Encoder(object):
             if self.args.enforce_sample_length:
                 # Pad up to max sequence length.
                 doc_ids[-1] += [Encoder.tokenizer.pad] * (
-                    self.args.enforce_sample_length - len(doc_ids[-1])
+                    self.args.enforce_sample_length -
+                    len(doc_ids[-1])
                 )
             ids[key] = doc_ids
         return ids, len(text)
@@ -274,7 +287,8 @@ def get_args():
         default=None,
         help="Forces all samples to have the specified length. If shorter, pads up to the length. If longer, throws an error.",
     )
-    group.add_argument("--ftfy", action="store_true", help="Use ftfy to clean text")
+    group.add_argument(
+        "--ftfy", action="store_true", help="Use ftfy to clean text")
     group = parser.add_argument_group(title="output data")
     group.add_argument(
         "--output-prefix",
@@ -347,8 +361,10 @@ def main():
     fin = yield_from_files(args.input.split(","), semaphore)
     print(fin)
     if args.workers > 1:
-        pool = multiprocessing.Pool(args.workers, initializer=encoder.initializer)
-        encoded_docs = pool.imap(encoder.encode, fin, chunksize=25)
+        pool = multiprocessing.Pool(
+            args.workers, initializer=encoder.initializer)
+        encoded_docs = pool.imap(
+            encoder.encode, fin, chunksize=25)
     else:
         encoder.initializer()
         encoded_docs = (encoder.encode(doc) for doc in fin)
@@ -385,7 +401,8 @@ def main():
         # add each tokenized document / sentence
         for key, sentences in doc.items():
             for sentence in sentences:
-                builders[key].add_item(np.array(sentence, dtype=builders[key].dtype))
+                builders[key].add_item(
+                    np.array(sentence, dtype=builders[key].dtype))
             # tell the builder that a document has finished
             builders[key].end_document()
 

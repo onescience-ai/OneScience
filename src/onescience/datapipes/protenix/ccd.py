@@ -18,7 +18,8 @@ from onescience.datapipes.protenix.substructure_perms import get_substructure_pe
 logger = logging.getLogger(__name__)
 
 COMPONENTS_FILE = data_configs["ccd_components_file"]
-RKDIT_MOL_PKL = Path(data_configs["ccd_components_rdkit_mol_file"])
+RKDIT_MOL_PKL = Path(
+    data_configs["ccd_components_rdkit_mol_file"])
 
 
 @functools.lru_cache
@@ -47,7 +48,8 @@ def _map_central_to_leaving_groups(component) -> Optional[dict[str, list[list[st
         for l_idx in bonds:
             if comp.leaving_atom_flag[l_idx]:
                 comp.bonds.remove_bond(c_idx, l_idx)
-                group_idx = struc.find_connected(comp.bonds, l_idx)
+                group_idx = struc.find_connected(
+                    comp.bonds, l_idx)
                 if not np.all(comp.leaving_atom_flag[group_idx]):
                     return None
                 central_to_leaving_groups[comp.atom_name[c_idx]].append(
@@ -73,10 +75,12 @@ def get_component_atom_array(
     """
     ccd_cif = biotite_load_ccd_cif()
     if ccd_code not in ccd_cif:
-        logger.warning(f"Warning: get_component_atom_array() can not parse {ccd_code}")
+        logger.warning(
+            f"Warning: get_component_atom_array() can not parse {ccd_code}")
         return None
     try:
-        comp = pdbx.get_component(ccd_cif, data_block=ccd_code, use_ideal_coord=True)
+        comp = pdbx.get_component(
+            ccd_cif, data_block=ccd_code, use_ideal_coord=True)
     except biotite.InvalidFileError as e:
         # Eg: UNL without atom.
         logger.warning(
@@ -84,11 +88,14 @@ def get_component_atom_array(
         )
         return None
     atom_category = ccd_cif[ccd_code]["chem_comp_atom"]
-    leaving_atom_flag = atom_category["pdbx_leaving_atom_flag"].as_array()
-    comp.set_annotation("leaving_atom_flag", leaving_atom_flag == "Y")
+    leaving_atom_flag = atom_category["pdbx_leaving_atom_flag"].as_array(
+    )
+    comp.set_annotation(
+        "leaving_atom_flag", leaving_atom_flag == "Y")
 
     for atom_id in ["alt_atom_id", "pdbx_component_atom_id"]:
-        comp.set_annotation(atom_id, atom_category[atom_id].as_array())
+        comp.set_annotation(
+            atom_id, atom_category[atom_id].as_array())
     if not keep_leaving_atoms:
         comp = comp[~comp.leaving_atom_flag]
     if not keep_hydrogens:
@@ -96,7 +103,8 @@ def get_component_atom_array(
         comp = comp[~np.isin(comp.element, ["H", "D"])]
 
     # Map central atom index to leaving group (atom_indices) in component (atom_array).
-    comp.central_to_leaving_groups = _map_central_to_leaving_groups(comp)
+    comp.central_to_leaving_groups = _map_central_to_leaving_groups(
+        comp)
     if comp.central_to_leaving_groups is None:
         logger.warning(
             f"Warning: ccd {ccd_code} has leaving atom group bond to more than one central atom, central_to_leaving_groups is None."
@@ -152,7 +160,8 @@ def get_mol_type(ccd_code: str) -> str:
     if ccd_code not in ccd_cif:
         return "ligand"
 
-    link_type = ccd_cif[ccd_code]["chem_comp"]["type"].as_item().upper()
+    link_type = ccd_cif[ccd_code]["chem_comp"]["type"].as_item(
+    ).upper()
 
     if "PEPTIDE" in link_type and link_type != "PEPTIDE-LIKE":
         return "protein"
@@ -237,20 +246,26 @@ def get_ccd_ref_info(ccd_code: str, return_perm: bool = True) -> dict[str, Any]:
         return {}
     conf = mol.GetConformer(mol.ref_conf_id)
     coord = conf.GetPositions()
-    charge = np.array([atom.GetFormalCharge() for atom in mol.GetAtoms()])
+    charge = np.array([atom.GetFormalCharge()
+                      for atom in mol.GetAtoms()])
 
     results = {
         "ccd": ccd_code,  # str
-        "atom_map": mol.atom_map,  # dict[str,int]: atom name to atom index
-        "coord": coord,  # np.ndarray[float]: atom coordinates, shape:(n_atom,3)
-        "mask": mol.ref_mask,  # np.ndarray[bool]: atom mask, shape:(n_atom,)
-        "charge": charge,  # np.ndarray[int]: atom formal charge, shape:(n_atom,)
+        # dict[str,int]: atom name to atom index
+        "atom_map": mol.atom_map,
+        # np.ndarray[float]: atom coordinates, shape:(n_atom,3)
+        "coord": coord,
+        # np.ndarray[bool]: atom mask, shape:(n_atom,)
+        "mask": mol.ref_mask,
+        # np.ndarray[int]: atom formal charge, shape:(n_atom,)
+        "charge": charge,
     }
 
     if return_perm:
         try:
             Chem.SanitizeMol(mol)
-            perm = get_substructure_perms(mol, MaxMatches=1000)
+            perm = get_substructure_perms(
+                mol, MaxMatches=1000)
 
         except:
             # Sanitize failed, permutation is unavailable
@@ -350,7 +365,8 @@ def _connect_inter_residue(
             continue
 
         bonds.append(
-            (curr_connect_indices[0], next_connect_indices[0], struc.BondType.SINGLE)
+            (curr_connect_indices[0],
+             next_connect_indices[0], struc.BondType.SINGLE)
         )
 
     return struc.BondList(atoms.array_length(), np.array(bonds, dtype=np.uint32))
@@ -372,24 +388,30 @@ def add_inter_residue_bonds(
     returns:
         AtomArray: Biotite AtomArray merged inter residue bonds into atom_array.bonds
     """
-    res_starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
-    inter_bonds = _connect_inter_residue(atom_array, res_starts)
+    res_starts = struc.get_residue_starts(
+        atom_array, add_exclusive_stop=True)
+    inter_bonds = _connect_inter_residue(
+        atom_array, res_starts)
 
     if atom_array.bonds is None:
         atom_array.bonds = inter_bonds
         return atom_array
 
-    select_mask = np.ones(len(inter_bonds._bonds), dtype=bool)
+    select_mask = np.ones(
+        len(inter_bonds._bonds), dtype=bool)
     if exclude_struct_conn_pairs:
         for b_idx, (atom_i, atom_j, b_type) in enumerate(inter_bonds._bonds):
-            atom_k = atom_i if atom_array.atom_name[atom_i] in ("N", "O3'") else atom_j
-            bonds, types = atom_array.bonds.get_bonds(atom_k)
+            atom_k = atom_i if atom_array.atom_name[atom_i] in (
+                "N", "O3'") else atom_j
+            bonds, types = atom_array.bonds.get_bonds(
+                atom_k)
             if len(bonds) == 0:
                 continue
             for b in bonds:
                 if (
                     # adjacent residues
-                    abs((res_starts <= b).sum() - (res_starts <= atom_k).sum()) == 1
+                    abs((res_starts <= b).sum() -
+                        (res_starts <= atom_k).sum()) == 1
                     and atom_array.chain_id[b] == atom_array.chain_id[atom_k]
                     and atom_array.atom_name[b] not in ("C", "P")
                 ):

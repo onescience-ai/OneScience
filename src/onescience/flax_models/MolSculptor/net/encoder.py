@@ -1,17 +1,17 @@
+from .molct_plus import MOLCT_PLUS
+from ml_collections.config_dict import ConfigDict
+from flax.linen.initializers import variance_scaling
+import jax.numpy as jnp
+import jax
+import flax.linen as nn
 import os
 import sys
 
 sys.path.append(os.path.dirname(sys.path[0]))
 
-import flax.linen as nn
-import jax
-import jax.numpy as jnp
-from flax.linen.initializers import variance_scaling
-from ml_collections.config_dict import ConfigDict
 
-from .molct_plus import MOLCT_PLUS
-
-default_embed_init = variance_scaling(1.0, "fan_in", "normal", out_axis=0)
+default_embed_init = variance_scaling(
+    1.0, "fan_in", "normal", out_axis=0)
 
 
 class Encoder(nn.Module):
@@ -25,7 +25,7 @@ class Encoder(nn.Module):
         embedding_config = self.config.embedding
         atom_emb_config = embedding_config.atom_embedding
         arr_dtype = jnp.bfloat16 if self.global_config.bf16_flag else jnp.float32
-        ##### atom feature embedding: (B, A, C_i)
+        # atom feature embedding: (B, A, C_i)
         atom_type = jax.nn.one_hot(
             atom_features["atom_type"],
             num_classes=atom_emb_config.n_atom_type,
@@ -56,20 +56,23 @@ class Encoder(nn.Module):
             num_classes=atom_emb_config.n_chiral,
             dtype=arr_dtype,
         )
-        ## (B, A, C_1) | ... | (B, A, C_n) -> (B, A, C)
+        # (B, A, C_1) | ... | (B, A, C_n) -> (B, A, C)
         atom_raw_feat = jnp.concatenate(
-            [atom_type, formal_charge, num_H, aromaticity, hybridization, chirality],
+            [atom_type, formal_charge, num_H,
+                aromaticity, hybridization, chirality],
             axis=-1,
         )
-        ## (B, A, C) -> (B, A, C + num_prefix) for prefix atoms
+        # (B, A, C) -> (B, A, C + num_prefix) for prefix atoms
         bs, a_, c_ = atom_raw_feat.shape
         n_p = self.config.num_prefix_atoms
         atom_raw_feat = jnp.concatenate(
-            [atom_raw_feat, jnp.zeros((bs, a_, n_p), dtype=jnp.int32)],
+            [atom_raw_feat, jnp.zeros(
+                (bs, a_, n_p), dtype=jnp.int32)],
             axis=-1,
         )
-        ## (B, A, C + num_prefix) | (B, num_prefix, C + num_prefix)
-        prefix_raw_feat = jnp.eye(n_p, dtype=jnp.int32)  # (num_prefix, num_prefix)
+        # (B, A, C + num_prefix) | (B, num_prefix, C + num_prefix)
+        # (num_prefix, num_prefix)
+        prefix_raw_feat = jnp.eye(n_p, dtype=jnp.int32)
         prefix_raw_feat = jnp.pad(
             prefix_raw_feat,
             ((0, 0), (c_, 0)),
@@ -92,7 +95,7 @@ class Encoder(nn.Module):
             constant_values=1,
         )
 
-        ##### bond feature embedding
+        # bond feature embedding
         bond_emb_config = embedding_config.bond_embedding
         bond_type = jax.nn.one_hot(
             bond_features["bond_type"],
@@ -119,15 +122,17 @@ class Encoder(nn.Module):
             num_classes=bond_emb_config.n_graph_distance,
             dtype=arr_dtype,
         )
-        ## (B, A, A, C'_1) | ... | (B, A, A, C'_n) -> (B, A, A, C')
+        # (B, A, A, C'_1) | ... | (B, A, A, C'_n) -> (B, A, A, C')
         bond_raw_feat = jnp.concatenate(
-            [bond_type, stereo, conjugated, in_ring, graph_distance],
+            [bond_type, stereo, conjugated,
+                in_ring, graph_distance],
             axis=-1,
         )
         # (B, A, A, C') -> (B, A, A, C' + 1) -> (B, A + num_prefix, A + num_prefix, C' + 1)
         c_b = bond_raw_feat.shape[-1]
         bond_raw_feat = jnp.concatenate(
-            [bond_raw_feat, jnp.zeros((bs, a_, a_, 1), dtype=jnp.int32)],
+            [bond_raw_feat, jnp.zeros(
+                (bs, a_, a_, 1), dtype=jnp.int32)],
             axis=-1,
         )
         bond_raw_feat = jnp.pad(
@@ -138,7 +143,8 @@ class Encoder(nn.Module):
         )
         # (B, A, A, C' + 1) -> (B, A + num_prefix, A + num_prefix, C' + 1)
         prefix_bond_mask = jnp.pad(
-            jnp.zeros_like(bond_features["bond_mask"], dtype=jnp.int32),
+            jnp.zeros_like(
+                bond_features["bond_mask"], dtype=jnp.int32),
             ((0, 0), (n_p, 0), (n_p, 0)),
             mode="constant",
             constant_values=1,
@@ -170,19 +176,19 @@ class Encoder(nn.Module):
     def __call__(self, atom_features, bond_features, neighbor_list=None):
 
         num_prefix_atoms = self.config.num_prefix_atoms
-        #### 1. create raw feature
+        # 1. create raw feature
         atom_raw_feat, atom_mask, bond_raw_feat, bond_mask = self.create_raw_feature(
             atom_features,
             bond_features,
         )
 
-        #### 4. graph embedding
+        # 4. graph embedding
         molct_config = self.config.molct
         atom_feat, bond_feat = MOLCT_PLUS(
             molct_config,
             self.global_config,
         )(atom_raw_feat, atom_mask, bond_raw_feat, bond_mask, neighbor_list)
 
-        #### 5. return prefix atom embedding
+        # 5. return prefix atom embedding
         prefix_atom_feat = atom_feat[:, :num_prefix_atoms]
         return prefix_atom_feat

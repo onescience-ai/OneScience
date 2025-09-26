@@ -24,14 +24,16 @@ def get_pbc_distances(
     # correct for pbc
     neighbors = neighbors.to(cell.device)
     cell = torch.repeat_interleave(cell, neighbors, dim=0)
-    offsets = cell_offsets.float().view(-1, 1, 3).bmm(cell.float()).view(-1, 3)
+    offsets = cell_offsets.float(
+    ).view(-1, 1, 3).bmm(cell.float()).view(-1, 3)
     distance_vectors += offsets
 
     # compute distances
     distances = distance_vectors.norm(dim=-1)
 
     # redundancy: remove zero distances
-    nonzero_idx = torch.arange(len(distances), device=distances.device)[distances != 0]
+    nonzero_idx = torch.arange(
+        len(distances), device=distances.device)[distances != 0]
     edge_index = edge_index[:, nonzero_idx]
     distances = distances[nonzero_idx]
 
@@ -88,7 +90,8 @@ def generate_graph(
     elif radius_pbc_version == 2:
         radius_graph_pbc_fn = radius_graph_pbc_v2
     else:
-        raise ValueError(f"Invalid radius_pbc version {radius_pbc_version}")
+        raise ValueError(
+            f"Invalid radius_pbc version {radius_pbc_version}")
 
     (
         edge_index_per_system,
@@ -114,7 +117,8 @@ def generate_graph(
     atom_index_offset[0] = 0
     edge_index = torch.hstack(
         [
-            edge_index_per_system[idx] + atom_index_offset[idx]
+            edge_index_per_system[idx] +
+            atom_index_offset[idx]
             for idx in range(len(data))
         ]
     )

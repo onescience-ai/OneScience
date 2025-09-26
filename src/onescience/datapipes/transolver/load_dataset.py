@@ -11,11 +11,14 @@ def get_samples(root):
         fold_samples = []
         files = os.listdir(os.path.join(root, fold))
         for file in files:
-            path = os.path.join(root, os.path.join(fold, file))
+            path = os.path.join(
+                root, os.path.join(fold, file))
             if os.path.isdir(path):
-                fold_samples.append(os.path.join(fold, file))
+                fold_samples.append(
+                    os.path.join(fold, file))
         samples.append(fold_samples)
-    return samples  # 100 + 99 + 97 + 100 + 100 + 96 + 100 + 98 + 99 = 889 samples
+    # 100 + 99 + 97 + 100 + 100 + 96 + 100 + 98 + 99 = 889 samples
+    return samples
 
 
 def load_train_val_fold(args, preprocessed, dist=None):
@@ -25,7 +28,8 @@ def load_train_val_fold(args, preprocessed, dist=None):
         if i == args.fold_id:
             continue
         trainlst += samples[i]
-    vallst = samples[args.fold_id] if 0 <= args.fold_id < len(samples) else None
+    vallst = samples[args.fold_id] if 0 <= args.fold_id < len(
+        samples) else None
 
     if dist.rank == 0:
         if preprocessed:
@@ -61,7 +65,8 @@ def load_train_val_fold_file(args, preprocessed):
         if i == args.fold_id:
             continue
         trainlst += samples[i]
-    vallst = samples[args.fold_id] if 0 <= args.fold_id < len(samples) else None
+    vallst = samples[args.fold_id] if 0 <= args.fold_id < len(
+        samples) else None
     print(vallst)
     if preprocessed:
         print("use preprocessed data")

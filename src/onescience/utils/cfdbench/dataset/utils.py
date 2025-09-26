@@ -13,7 +13,8 @@ def normalize_physics_props(case_params: Dict[str, float]):
     density_std = 4
     viscosity_mean = 0.00238
     viscosity_std = 0.005
-    case_params["density"] = (case_params["density"] - density_mean) / density_std
+    case_params["density"] = (
+        case_params["density"] - density_mean) / density_std
     case_params["viscosity"] = (
         case_params["viscosity"] - viscosity_mean
     ) / viscosity_std
@@ -48,7 +49,8 @@ def load_json(path):
 
 def plot(inputs, outputs, labels, output_file: Path):
     # Create a figure with 6 subplots
-    fig, axs = plt.subplots(nrows=2, ncols=3, figsize=(10, 5))
+    fig, axs = plt.subplots(
+        nrows=2, ncols=3, figsize=(10, 5))
     # cbar_ax = fig.add_axes([0.92, 0.15, 0.01, 0.7])  # [left, bottom,
     # width, height]
 

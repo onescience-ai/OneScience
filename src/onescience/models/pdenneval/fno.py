@@ -14,7 +14,8 @@ class SpectralConv1d(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.modes1 = (
-            modes1  # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            modes1
         )
 
         self.scale = 1 / (in_channels * out_channels)
@@ -74,10 +75,14 @@ class FNO1d(nn.Module):
             initial_step * num_channels + 1, self.width
         )  # input channel is 2: (a(x), x)
 
-        self.conv0 = SpectralConv1d(self.width, self.width, self.modes1)
-        self.conv1 = SpectralConv1d(self.width, self.width, self.modes1)
-        self.conv2 = SpectralConv1d(self.width, self.width, self.modes1)
-        self.conv3 = SpectralConv1d(self.width, self.width, self.modes1)
+        self.conv0 = SpectralConv1d(
+            self.width, self.width, self.modes1)
+        self.conv1 = SpectralConv1d(
+            self.width, self.width, self.modes1)
+        self.conv2 = SpectralConv1d(
+            self.width, self.width, self.modes1)
+        self.conv3 = SpectralConv1d(
+            self.width, self.width, self.modes1)
         self.w0 = nn.Conv1d(self.width, self.width, 1)
         self.w1 = nn.Conv1d(self.width, self.width, 1)
         self.w2 = nn.Conv1d(self.width, self.width, 1)
@@ -92,7 +97,8 @@ class FNO1d(nn.Module):
         x = self.fc0(x)
         x = x.permute(0, 2, 1)
 
-        x = F.pad(x, [0, self.padding])  # pad the domain if input is non-periodic
+        # pad the domain if input is non-periodic
+        x = F.pad(x, [0, self.padding])
 
         x1 = self.conv0(x)
         x2 = self.w0(x)
@@ -132,7 +138,8 @@ class SpectralConv2d_fast(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.modes1 = (
-            modes1  # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            modes1
         )
         self.modes2 = modes2
 
@@ -170,14 +177,17 @@ class SpectralConv2d_fast(nn.Module):
             device=x.device,
         )
         out_ft[:, :, : self.modes1, : self.modes2] = self.compl_mul2d(
-            x_ft[:, :, : self.modes1, : self.modes2], self.weights1
+            x_ft[:, :, : self.modes1,
+                 : self.modes2], self.weights1
         )
-        out_ft[:, :, -self.modes1 :, : self.modes2] = self.compl_mul2d(
-            x_ft[:, :, -self.modes1 :, : self.modes2], self.weights2
+        out_ft[:, :, -self.modes1:, : self.modes2] = self.compl_mul2d(
+            x_ft[:, :, -self.modes1:,
+                 : self.modes2], self.weights2
         )
 
         # Return to physical space
-        x = torch.fft.irfft2(out_ft, s=(x.size(-2), x.size(-1)))
+        x = torch.fft.irfft2(
+            out_ft, s=(x.size(-2), x.size(-1)))
         return x
 
 
@@ -202,7 +212,8 @@ class FNO2d(nn.Module):
         self.modes2 = modes2
         self.width = width
         self.padding = 2  # pad the domain if input is non-periodic
-        self.fc0 = nn.Linear(initial_step * num_channels + 2, self.width)
+        self.fc0 = nn.Linear(
+            initial_step * num_channels + 2, self.width)
         # input channel is 12: the solution of the previous 10 timesteps + 2 locations (u(t-10, x, y), ..., u(t-1, x, y),  x, y)
 
         self.conv0 = SpectralConv2d_fast(
@@ -253,7 +264,8 @@ class FNO2d(nn.Module):
         x2 = self.w3(x)
         x = x1 + x2
 
-        x = x[..., : -self.padding, : -self.padding]  # Unpad the tensor
+        x = x[..., : -self.padding, : -
+              self.padding]  # Unpad the tensor
         x = x.permute(0, 2, 3, 1)
         x = self.fc1(x)
         x = F.gelu(x)
@@ -273,7 +285,8 @@ class SpectralConv3d(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.modes1 = (
-            modes1  # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            modes1
         )
         self.modes2 = modes2
         self.modes3 = modes3
@@ -345,20 +358,25 @@ class SpectralConv3d(nn.Module):
             device=x.device,
         )
         out_ft[:, :, : self.modes1, : self.modes2, : self.modes3] = self.compl_mul3d(
-            x_ft[:, :, : self.modes1, : self.modes2, : self.modes3], self.weights1
+            x_ft[:, :, : self.modes1, : self.modes2,
+                 : self.modes3], self.weights1
         )
-        out_ft[:, :, -self.modes1 :, : self.modes2, : self.modes3] = self.compl_mul3d(
-            x_ft[:, :, -self.modes1 :, : self.modes2, : self.modes3], self.weights2
+        out_ft[:, :, -self.modes1:, : self.modes2, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, -self.modes1:, : self.modes2,
+                 : self.modes3], self.weights2
         )
-        out_ft[:, :, : self.modes1, -self.modes2 :, : self.modes3] = self.compl_mul3d(
-            x_ft[:, :, : self.modes1, -self.modes2 :, : self.modes3], self.weights3
+        out_ft[:, :, : self.modes1, -self.modes2:, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, : self.modes1, -self.modes2:,
+                 : self.modes3], self.weights3
         )
-        out_ft[:, :, -self.modes1 :, -self.modes2 :, : self.modes3] = self.compl_mul3d(
-            x_ft[:, :, -self.modes1 :, -self.modes2 :, : self.modes3], self.weights4
+        out_ft[:, :, -self.modes1:, -self.modes2:, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, -self.modes1:, -self.modes2:,
+                 : self.modes3], self.weights4
         )
 
         # Return to physical space
-        x = torch.fft.irfftn(out_ft, s=(x.size(-3), x.size(-2), x.size(-1)))
+        x = torch.fft.irfftn(out_ft, s=(
+            x.size(-3), x.size(-2), x.size(-1)))
         return x
 
 
@@ -386,7 +404,8 @@ class FNO3d(nn.Module):
         self.modes3 = modes3
         self.width = width
         self.padding = 6  # pad the domain if input is non-periodic
-        self.fc0 = nn.Linear(initial_step * num_channels + 3, self.width)
+        self.fc0 = nn.Linear(
+            initial_step * num_channels + 3, self.width)
         # input channel is 12: the solution of the first 10 timesteps + 3 locations (u(1, x, y), ..., u(10, x, y),  x, y, t)
 
         self.conv0 = SpectralConv3d(
@@ -419,7 +438,8 @@ class FNO3d(nn.Module):
         x = self.fc0(x)
         x = x.permute(0, 4, 1, 2, 3)
 
-        x = F.pad(x, [0, self.padding])  # pad the domain if input is non-periodic
+        # pad the domain if input is non-periodic
+        x = F.pad(x, [0, self.padding])
 
         x1 = self.conv0(x)
         x2 = self.w0(x)
@@ -441,7 +461,8 @@ class FNO3d(nn.Module):
         x = x1 + x2
 
         x = x[..., : -self.padding]
-        x = x.permute(0, 2, 3, 4, 1)  # pad the domain if input is non-periodic
+        # pad the domain if input is non-periodic
+        x = x.permute(0, 2, 3, 4, 1)
         x = self.fc1(x)
         x = F.gelu(x)
         x = self.fc2(x)
@@ -472,7 +493,8 @@ class FNO_maxwell(nn.Module):
         self.modes3 = modes3
         self.width = width
         self.padding = 6  # pad the domain if input is non-periodic
-        self.fc0 = nn.Linear(initial_step * num_channels, self.width)
+        self.fc0 = nn.Linear(
+            initial_step * num_channels, self.width)
         # input channel is 12: the solution of the first 10 timesteps + 3 locations (u(1, x, y), ..., u(10, x, y),  x, y, t)
 
         self.conv0 = SpectralConv3d(
@@ -504,7 +526,8 @@ class FNO_maxwell(nn.Module):
         x = self.fc0(x)
         x = x.permute(0, 4, 1, 2, 3)
 
-        x = F.pad(x, [0, self.padding])  # pad the domain if input is non-periodic
+        # pad the domain if input is non-periodic
+        x = F.pad(x, [0, self.padding])
 
         x1 = self.conv0(x)
         x2 = self.w0(x)
@@ -526,7 +549,8 @@ class FNO_maxwell(nn.Module):
         x = x1 + x2
 
         x = x[..., : -self.padding]
-        x = x.permute(0, 2, 3, 4, 1)  # pad the domain if input is non-periodic
+        # pad the domain if input is non-periodic
+        x = x.permute(0, 2, 3, 4, 1)
         x = self.fc1(x)
         x = F.gelu(x)
         x = self.fc2(x)

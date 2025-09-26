@@ -13,7 +13,8 @@ import urllib3
 import xarray as xr
 from dask.diagnostics import ProgressBar
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+urllib3.disable_warnings(
+    urllib3.exceptions.InsecureRequestWarning)
 
 
 class ERA5Mirror:
@@ -40,7 +41,8 @@ class ERA5Mirror:
             self.fs.makedirs(self.base_path)
 
         # Create metadata that will be used to track which chunks have been downloaded
-        self.metadata_file = os.path.join(self.base_path, "metadata.json")
+        self.metadata_file = os.path.join(
+            self.base_path, "metadata.json")
         self.metadata = self.get_metadata()
 
     def get_metadata(self):
@@ -105,7 +107,8 @@ class ERA5Mirror:
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Get all days in the month
-            days_in_month = calendar.monthrange(year, month)[1]
+            days_in_month = calendar.monthrange(year, month)[
+                1]
 
             # Make tmpfile to store the data
             output_file = os.path.join(
@@ -127,7 +130,8 @@ class ERA5Mirror:
                 "format": "netcdf",
             }
             if pressure_level:
-                request_params["pressure_level"] = [str(pressure_level)]
+                request_params["pressure_level"] = [
+                    str(pressure_level)]
                 dataset_name = "reanalysis-era5-pressure-levels"
             else:
                 dataset_name = "reanalysis-era5-single-levels"
@@ -179,13 +183,16 @@ class ERA5Mirror:
         """
 
         # Download the data
-        ds = self.download_chunk(variable, year, month, hours, pressure_level)
+        ds = self.download_chunk(
+            variable, year, month, hours, pressure_level)
 
         # Create the Zarr path
-        zarr_path = self.variable_to_zarr_name(variable, pressure_level)
+        zarr_path = self.variable_to_zarr_name(
+            variable, pressure_level)
 
         # Specify the chunking options
-        chunking = {"time": 1, "latitude": 721, "longitude": 1440}
+        chunking = {"time": 1,
+                    "latitude": 721, "longitude": 1440}
         if "level" in ds.dims:
             chunking["level"] = 1
 
@@ -203,8 +210,10 @@ class ERA5Mirror:
             create = True
 
         # Upload the data to the Zarr dataset
-        mapper = self.fs.get_mapper(zarr_path, create=create)
-        ds.to_zarr(mapper, mode=mode, consolidated=True, append_dim=append_dim)
+        mapper = self.fs.get_mapper(
+            zarr_path, create=create)
+        ds.to_zarr(mapper, mode=mode,
+                   consolidated=True, append_dim=append_dim)
 
         # Update the metadata
         self.metadata["chunks"].append(
@@ -249,7 +258,8 @@ class ERA5Mirror:
         reformated_variables = []
         for variable in variables:
             if isinstance(variable, str):
-                reformated_variables.append(tuple([variable, None]))
+                reformated_variables.append(
+                    tuple([variable, None]))
             else:
                 reformated_variables.append(variable)
 
@@ -284,7 +294,8 @@ class ERA5Mirror:
                         )
 
                 # Execute the tasks with Dask
-                print(f"Downloading data for {current_date.year}-{current_date.month}")
+                print(
+                    f"Downloading data for {current_date.year}-{current_date.month}")
                 if tasks:
                     dask.compute(*tasks)
 
@@ -295,12 +306,14 @@ class ERA5Mirror:
                 days_in_month = calendar.monthrange(
                     year=current_date.year, month=current_date.month
                 )[1]
-                current_date += datetime.timedelta(days=days_in_month)
+                current_date += datetime.timedelta(
+                    days=days_in_month)
 
         # Return the Zarr paths
         zarr_paths = []
         for variable, pressure_level in reformated_variables:
-            zarr_path = self.variable_to_zarr_name(variable, pressure_level)
+            zarr_path = self.variable_to_zarr_name(
+                variable, pressure_level)
             zarr_paths.append(zarr_path)
 
         # Check that Zarr arrays have correct dt for time dimension

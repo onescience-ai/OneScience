@@ -1,27 +1,26 @@
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from qwen_agent.agents import Assistant
+from openai import OpenAI
+from langchain_huggingface import ChatHuggingFace, HuggingFacePipeline
+from langchain_core.utils.function_calling import convert_to_openai_tool
+from langchain_core.tools import BaseTool
+from langchain_core.runnables.config import RunnableConfig
+from langchain_core.runnables import Runnable
+from langchain_core.prompt_values import PromptValue
+from langchain_core.messages.tool import ToolCall
+from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
+from langchain_core.language_models.base import LanguageModelInput
+import torch
+from typing import Any, Callable, Optional, Union
+from collections.abc import Sequence
+import re
+import json
 import logging
 import os
 
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 os.environ["QWEN_AGENT_MAX_LLM_CALL_PER_RUN"] = "1"
 
-import json
-import re
-from collections.abc import Sequence
-from typing import Any, Callable, Optional, Union
-
-import torch
-from langchain_core.language_models.base import LanguageModelInput
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
-from langchain_core.messages.tool import ToolCall
-from langchain_core.prompt_values import PromptValue
-from langchain_core.runnables import Runnable
-from langchain_core.runnables.config import RunnableConfig
-from langchain_core.tools import BaseTool
-from langchain_core.utils.function_calling import convert_to_openai_tool
-from langchain_huggingface import ChatHuggingFace, HuggingFacePipeline
-from openai import OpenAI
-from qwen_agent.agents import Assistant
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +31,8 @@ class VLLMQwen3(Runnable):
     def __init__(
         self,
         model_name: str,
-        tools: Union[dict[str, Any], type, Callable, BaseTool] = None,
+        tools: Union[dict[str, Any], type,
+                     Callable, BaseTool] = None,
         **kwargs,
     ):
 
@@ -40,7 +40,8 @@ class VLLMQwen3(Runnable):
         from vllm.sampling_params import SamplingParams
 
         self.llm = LLM(model=model_name)
-        self.tools = [convert_to_openai_tool(tool) for tool in tools or []]
+        self.tools = [convert_to_openai_tool(
+            tool) for tool in tools or []]
         self.sampling_params = SamplingParams(
             max_tokens=kwargs["max_tokens"] if "max_tokens" in kwargs else 8192,
             temperature=kwargs["temperature"] if "temperature" in kwargs else 0.01,
@@ -69,7 +70,8 @@ class VLLMQwen3(Runnable):
         else:
             sampling_params = self.sampling_params
 
-        outputs = self.llm.chat(prompt, sampling_params, tools=self.tools)
+        outputs = self.llm.chat(
+            prompt, sampling_params, tools=self.tools)
         ai_message = AIMessage(
             content=outputs.outputs[0].text,  # 提取生成的文本
             additional_kwargs={
@@ -95,7 +97,8 @@ class HttpQwen3(Runnable):
             api_key="sk-cf71112ee4074968bb6af6e27fb3d2f0",
             base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
         )
-        self.tools = [convert_to_openai_tool(tool) for tool in tools]
+        self.tools = [convert_to_openai_tool(
+            tool) for tool in tools]
         self.mapping = {
             "system": "system",
             "human": "user",
@@ -186,7 +189,8 @@ class HttpQwen3(Runnable):
                         }
                     )
         elif isinstance(inputs, str):
-            messages = [{"role": "system", "content": inputs}]
+            messages = [
+                {"role": "system", "content": inputs}]
         else:
             messages = inputs
 
@@ -207,12 +211,14 @@ class HttpQwen3(Runnable):
                 extra_body={"enable_thinking": False},
             )
 
-        ai_message = AIMessage(content=completion.choices[0].message.content)
+        ai_message = AIMessage(
+            content=completion.choices[0].message.content)
         if completion.choices[0].finish_reason == "tool_calls":
             ai_message.tool_calls = [
                 ToolCall(
                     id=tool_call.id,
-                    args=json.loads(tool_call.function.arguments),
+                    args=json.loads(
+                        tool_call.function.arguments),
                     name=tool_call.function.name,
                     type="tool_call",
                 )
@@ -228,7 +234,8 @@ class LocalQwen3(Runnable):
         llm_cfg = {
             # Use a model service compatible with the OpenAI API, such as vLLM or Ollama:
             "model": model_name,
-            "model_server": model_server,  # base_url, also known as api_base
+            # base_url, also known as api_base
+            "model_server": model_server,
             "api_key": "EMPTY",
             # (Optional) LLM hyperparameters for generation:
             "generate_cfg": {
@@ -237,7 +244,8 @@ class LocalQwen3(Runnable):
                 "temperature": 0.01,
             },
         }
-        tools = [convert_to_openai_tool(tool)["function"] for tool in tools]
+        tools = [convert_to_openai_tool(
+            tool)["function"] for tool in tools]
         print(llm_cfg)
         self.agent = Assistant(
             llm=llm_cfg,
@@ -352,12 +360,14 @@ class LocalQwen3(Runnable):
                         }
                     )
         elif isinstance(inputs, str):
-            messages = [{"role": "system", "content": inputs}]
+            messages = [
+                {"role": "system", "content": inputs}]
         else:
             messages = inputs
 
         if messages[0]["role"] == "system":
-            messages[0]["content"] = messages[0]["content"] + self.function_call
+            messages[0]["content"] = messages[0]["content"] + \
+                self.function_call
         logger.info(f"Input messages: {messages}")
 
         for responses in self.agent.run(messages=messages):
@@ -376,7 +386,8 @@ class LocalQwen3(Runnable):
                 r"```\s*json\s*(.*?)\s*```", res["content"], re.DOTALL
             )
             print(f"functions ****{functions}")
-            functions = [json.loads(function) for function in functions]
+            functions = [json.loads(function)
+                         for function in functions]
             functions = [
                 function for function in functions if function["type"] == "function"
             ]
@@ -390,7 +401,8 @@ class LocalQwen3(Runnable):
                     for func in functions
                 ]
             )
-        msg = AIMessage(content=content.strip(), tool_calls=tool_calls)
+        msg = AIMessage(
+            content=content.strip(), tool_calls=tool_calls)
         return msg
 
 
@@ -400,30 +412,35 @@ class HuggingfaceLLM:
     def __init__(
         self,
         model_name: str,
-        tools: Sequence[Union[dict[str, Any], type, Callable, BaseTool]] = None,
+        tools: Sequence[Union[dict[str, Any],
+                              type, Callable, BaseTool]] = None,
         **kwargs: Any,
     ):
         tokenizer = AutoTokenizer.from_pretrained(
             pretrained_model_name_or_path=model_name,
             trust_remote_code=True,
-            cache_dir=kwargs.get("cache_dir", "../../agent/download"),
+            cache_dir=kwargs.get(
+                "cache_dir", "../../agent/download"),
         )
         model = AutoModelForCausalLM.from_pretrained(
             pretrained_model_name_or_path=model_name,
             device_map="auto",
             torch_dtype=torch.float16,
-            cache_dir=kwargs.get("cache_dir", "../../agent/download"),
+            cache_dir=kwargs.get(
+                "cache_dir", "../../agent/download"),
         )
         pipe = pipeline(
             task="text-generation",
             model=model,
             tokenizer=tokenizer,
             max_new_tokens=kwargs.get(
-                "max_new_tokens", kwargs.get("max_new_tokens", 1024)
+                "max_new_tokens", kwargs.get(
+                    "max_new_tokens", 1024)
             ),
         )
         hugging_pipe = HuggingFacePipeline(pipeline=pipe)
-        self.llm = ChatHuggingFace(llm=hugging_pipe).bind_tools(tools or [])
+        self.llm = ChatHuggingFace(
+            llm=hugging_pipe).bind_tools(tools or [])
 
     def invoke(
         self,
@@ -433,15 +450,17 @@ class HuggingfaceLLM:
         stop: Optional[list[str]] = None,
         **kwargs: Any,
     ) -> BaseMessage:
-        result = self.llm.invoke(input=input, config=config, stop=stop, **kwargs)
+        result = self.llm.invoke(
+            input=input, config=config, stop=stop, **kwargs)
         content = result.content
         if not content.endswith("<|im_end|>"):
             content = content + "<|im_end|>"
-        msgs = re.findall(r"<\|im_start\|>(.*?)<\|im_end\|>", content, re.DOTALL)
+        msgs = re.findall(
+            r"<\|im_start\|>(.*?)<\|im_end\|>", content, re.DOTALL)
         if msgs:
             msg = msgs[-1]
             if msg.startswith("assistant"):
-                msg = msg[len("assistant") :].strip()
+                msg = msg[len("assistant"):].strip()
             result.content = msg
         return result
 

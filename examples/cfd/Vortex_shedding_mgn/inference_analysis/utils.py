@@ -20,8 +20,10 @@ def generate_mesh(
     Returns:
         pv.PolyData: Output mesh
     """
-    points_3d = np.hstack([nodes, np.zeros((nodes.shape[0], 1))])
-    faces_pv = np.hstack([np.full((faces.shape[0], 1), 3), faces]).flatten()
+    points_3d = np.hstack(
+        [nodes, np.zeros((nodes.shape[0], 1))])
+    faces_pv = np.hstack(
+        [np.full((faces.shape[0], 1), 3), faces]).flatten()
     mesh = pv.PolyData(points_3d, faces_pv)
     for k, v in fields.items():
         mesh.point_data[k] = v
@@ -42,7 +44,8 @@ def compute_gradients(mesh: pv.PolyData, scalars: List[str]) -> pv.PolyData:
     """
 
     for s in scalars:
-        mesh = mesh.compute_derivative(scalars=s, gradient=f"grad_{s}")
+        mesh = mesh.compute_derivative(
+            scalars=s, gradient=f"grad_{s}")
 
     return mesh
 
@@ -62,9 +65,11 @@ def onescience_geometry_interpolator(
         Dict[str, np.ndarray]: Samples with interpolated data
     """
 
-    samples = onescience_geometry.sample_boundary(num_samples)
+    samples = onescience_geometry.sample_boundary(
+        num_samples)
 
-    coords = np.concatenate((samples["x"], samples["y"]), axis=1)
+    coords = np.concatenate(
+        (samples["x"], samples["y"]), axis=1)
     for k in mesh.point_data.keys():
         if k == "pyvistaOriginalPointIds":
             pass
@@ -95,9 +100,11 @@ def onescience_geometry_interior_interpolator(
     Returns:
         Dict[str, np.ndarray]: Samples with interpolated data
     """
-    samples = onescience_geometry.sample_interior(num_samples)
+    samples = onescience_geometry.sample_interior(
+        num_samples)
 
-    coords = np.concatenate((samples["x"], samples["y"]), axis=1)
+    coords = np.concatenate(
+        (samples["x"], samples["y"]), axis=1)
     for k in mesh.point_data.keys():
         if k == "pyvistaOriginalPointIds":
             pass
@@ -189,7 +196,8 @@ def compute_line_integral(
         normal = [vec[1], -vec[0], vec[2]]
         normal = normal / np.linalg.norm(normal)
         midpt = (e[0] + e[1]) / 2
-        midpt_val = midpoint_data_interp(e[0], e[1], points, field)
+        midpt_val = midpoint_data_interp(
+            e[0], e[1], points, field)
 
         midpts.append(midpt)
         midpt_vals.append(midpt_val)
@@ -213,5 +221,6 @@ def compute_line_integral(
         midpt_vals = midpt_vals[idx]
         lengths = lengths[idx]
 
-    integral = np.sum(normals * midpt_vals * lengths, axis=0) / np.sum(lengths, axis=0)
+    integral = np.sum(normals * midpt_vals *
+                      lengths, axis=0) / np.sum(lengths, axis=0)
     return integral

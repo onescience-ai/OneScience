@@ -14,9 +14,11 @@ class PositionalEmbedding(nn.Module):
         pe = torch.zeros(max_len, d_model).float()
         pe.require_grad = False
 
-        position = torch.arange(0, max_len).float().unsqueeze(1)
+        position = torch.arange(
+            0, max_len).float().unsqueeze(1)
         div_term = (
-            torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model)
+            torch.arange(0, d_model, 2).float(
+            ) * -(math.log(10000.0) / d_model)
         ).exp()
 
         pe[:, 0::2] = torch.sin(position * div_term)
@@ -48,7 +50,8 @@ class TokenEmbedding(nn.Module):
                 )
 
     def forward(self, x):
-        x = self.tokenConv(x.permute(0, 2, 1)).transpose(1, 2)
+        x = self.tokenConv(
+            x.permute(0, 2, 1)).transpose(1, 2)
         return x
 
 
@@ -59,16 +62,19 @@ class FixedEmbedding(nn.Module):
         w = torch.zeros(c_in, d_model).float()
         w.require_grad = False
 
-        position = torch.arange(0, c_in).float().unsqueeze(1)
+        position = torch.arange(
+            0, c_in).float().unsqueeze(1)
         div_term = (
-            torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model)
+            torch.arange(0, d_model, 2).float(
+            ) * -(math.log(10000.0) / d_model)
         ).exp()
 
         w[:, 0::2] = torch.sin(position * div_term)
         w[:, 1::2] = torch.cos(position * div_term)
 
         self.emb = nn.Embedding(c_in, d_model)
-        self.emb.weight = nn.Parameter(w, requires_grad=False)
+        self.emb.weight = nn.Parameter(
+            w, requires_grad=False)
 
     def forward(self, x):
         return self.emb(x).detach()
@@ -96,7 +102,8 @@ class TemporalEmbedding(nn.Module):
         x = x.long()
 
         minute_x = (
-            self.minute_embed(x[:, :, 4]) if hasattr(self, "minute_embed") else 0.0
+            self.minute_embed(x[:, :, 4]) if hasattr(
+                self, "minute_embed") else 0.0
         )
         hour_x = self.hour_embed(x[:, :, 3])
         weekday_x = self.weekday_embed(x[:, :, 2])
@@ -110,7 +117,8 @@ class TimeFeatureEmbedding(nn.Module):
     def __init__(self, d_model, embed_type="timeF", freq="h"):
         super(TimeFeatureEmbedding, self).__init__()
 
-        freq_map = {"h": 4, "t": 5, "s": 6, "m": 1, "a": 1, "w": 2, "d": 3, "b": 3}
+        freq_map = {"h": 4, "t": 5, "s": 6,
+                    "m": 1, "a": 1, "w": 2, "d": 3, "b": 3}
         d_inp = freq_map[freq]
         self.embed = nn.Linear(d_inp, d_model, bias=False)
 
@@ -122,10 +130,13 @@ class DataEmbedding(nn.Module):
     def __init__(self, c_in, d_model, embed_type="fixed", freq="h", dropout=0):
         super(DataEmbedding, self).__init__()
 
-        self.value_embedding = TokenEmbedding(c_in=c_in, d_model=d_model)
-        self.position_embedding = PositionalEmbedding(d_model=d_model)
+        self.value_embedding = TokenEmbedding(
+            c_in=c_in, d_model=d_model)
+        self.position_embedding = PositionalEmbedding(
+            d_model=d_model)
         self.temporal_embedding = (
-            TemporalEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
+            TemporalEmbedding(
+                d_model=d_model, embed_type=embed_type, freq=freq)
             if embed_type != "timeF"
             else TimeFeatureEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
         )
@@ -144,17 +155,21 @@ class DataEmbedding_wo_pos(nn.Module):
     def __init__(self, c_in, d_model, embed_type="fixed", freq="h", dropout=0):
         super(DataEmbedding_wo_pos, self).__init__()
 
-        self.value_embedding = TokenEmbedding(c_in=c_in, d_model=d_model)
-        self.position_embedding = PositionalEmbedding(d_model=d_model)
+        self.value_embedding = TokenEmbedding(
+            c_in=c_in, d_model=d_model)
+        self.position_embedding = PositionalEmbedding(
+            d_model=d_model)
         self.temporal_embedding = (
-            TemporalEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
+            TemporalEmbedding(
+                d_model=d_model, embed_type=embed_type, freq=freq)
             if embed_type != "timeF"
             else TimeFeatureEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
         )
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x, x_mark):
-        x = self.value_embedding(x) + self.temporal_embedding(x_mark)
+        x = self.value_embedding(
+            x) + self.temporal_embedding(x_mark)
         return self.dropout(x)
 
 
@@ -162,10 +177,13 @@ class DataEmbedding_wo_pos_temp(nn.Module):
     def __init__(self, c_in, d_model, embed_type="fixed", freq="h", dropout=0):
         super(DataEmbedding_wo_pos_temp, self).__init__()
 
-        self.value_embedding = TokenEmbedding(c_in=c_in, d_model=d_model)
-        self.position_embedding = PositionalEmbedding(d_model=d_model)
+        self.value_embedding = TokenEmbedding(
+            c_in=c_in, d_model=d_model)
+        self.position_embedding = PositionalEmbedding(
+            d_model=d_model)
         self.temporal_embedding = (
-            TemporalEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
+            TemporalEmbedding(
+                d_model=d_model, embed_type=embed_type, freq=freq)
             if embed_type != "timeF"
             else TimeFeatureEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
         )
@@ -180,17 +198,21 @@ class DataEmbedding_wo_temp(nn.Module):
     def __init__(self, c_in, d_model, embed_type="fixed", freq="h", dropout=0):
         super(DataEmbedding_wo_temp, self).__init__()
 
-        self.value_embedding = TokenEmbedding(c_in=c_in, d_model=d_model)
-        self.position_embedding = PositionalEmbedding(d_model=d_model)
+        self.value_embedding = TokenEmbedding(
+            c_in=c_in, d_model=d_model)
+        self.position_embedding = PositionalEmbedding(
+            d_model=d_model)
         self.temporal_embedding = (
-            TemporalEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
+            TemporalEmbedding(
+                d_model=d_model, embed_type=embed_type, freq=freq)
             if embed_type != "timeF"
             else TimeFeatureEmbedding(d_model=d_model, embed_type=embed_type, freq=freq)
         )
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x, x_mark):
-        x = self.value_embedding(x) + self.position_embedding(x)
+        x = self.value_embedding(
+            x) + self.position_embedding(x)
         return self.dropout(x)
 
 
@@ -209,8 +231,10 @@ class TriangularCausalMask:
 
 class ProbMask:
     def __init__(self, B, H, L, index, scores, device="cpu"):
-        _mask = torch.ones(L, scores.shape[-1], dtype=torch.bool).to(device).triu(1)
-        _mask_ex = _mask[None, None, :].expand(B, H, L, scores.shape[-1])
+        _mask = torch.ones(
+            L, scores.shape[-1], dtype=torch.bool).to(device).triu(1)
+        _mask_ex = _mask[None, None, :].expand(
+            B, H, L, scores.shape[-1])
         indicator = _mask_ex[
             torch.arange(B)[:, None, None], torch.arange(H)[None, :, None], index, :
         ].to(device)
@@ -241,15 +265,18 @@ class FullAttention(nn.Module):
         _, S, _, D = values.shape
         scale = self.scale or 1.0 / sqrt(E)
 
-        scores = torch.einsum("blhe,bshe->bhls", queries, keys)
+        scores = torch.einsum(
+            "blhe,bshe->bhls", queries, keys)
 
         if self.mask_flag:
             if attn_mask is None:
-                attn_mask = TriangularCausalMask(B, L, device=queries.device)
+                attn_mask = TriangularCausalMask(
+                    B, L, device=queries.device)
 
             scores.masked_fill_(attn_mask.mask, -np.inf)
 
-        A = self.dropout(torch.softmax(scale * scores, dim=-1))
+        A = self.dropout(torch.softmax(
+            scale * scores, dim=-1))
         V = torch.einsum("bhls,bshd->blhd", A, values)
 
         if self.output_attention:
@@ -284,18 +311,22 @@ class ProbAttention(nn.Module):
         index_sample = torch.randint(
             L_K, (L_Q, sample_k)
         )  # real U = U_part(factor*ln(L_k))*L_q
-        K_sample = K_expand[:, :, torch.arange(L_Q).unsqueeze(1), index_sample, :]
-        Q_K_sample = torch.matmul(Q.unsqueeze(-2), K_sample.transpose(-2, -1)).squeeze()
+        K_sample = K_expand[:, :, torch.arange(
+            L_Q).unsqueeze(1), index_sample, :]
+        Q_K_sample = torch.matmul(
+            Q.unsqueeze(-2), K_sample.transpose(-2, -1)).squeeze()
 
         # find the Top_k query with sparisty measurement
-        M = Q_K_sample.max(-1)[0] - torch.div(Q_K_sample.sum(-1), L_K)
+        M = Q_K_sample.max(-1)[0] - \
+            torch.div(Q_K_sample.sum(-1), L_K)
         M_top = M.topk(n_top, sorted=False)[1]
 
         # use the reduced Q to calculate Q_K
         Q_reduce = Q[
             torch.arange(B)[:, None, None], torch.arange(H)[None, :, None], M_top, :
         ]  # factor*ln(L_q)
-        Q_K = torch.matmul(Q_reduce, K.transpose(-2, -1))  # factor*ln(L_q)*L_k
+        # factor*ln(L_q)*L_k
+        Q_K = torch.matmul(Q_reduce, K.transpose(-2, -1))
 
         return Q_K, M_top
 
@@ -304,9 +335,11 @@ class ProbAttention(nn.Module):
         if not self.mask_flag:
             # V_sum = V.sum(dim=-2)
             V_sum = V.mean(dim=-2)
-            contex = V_sum.unsqueeze(-2).expand(B, H, L_Q, V_sum.shape[-1]).clone()
+            contex = V_sum.unsqueeze(-2).expand(B,
+                                                H, L_Q, V_sum.shape[-1]).clone()
         else:  # use mask
-            assert L_Q == L_V  # requires that L_Q == L_V, i.e. for self-attention only
+            # requires that L_Q == L_V, i.e. for self-attention only
+            assert L_Q == L_V
             contex = V.cumsum(dim=-2)
         return contex
 
@@ -314,16 +347,19 @@ class ProbAttention(nn.Module):
         B, H, L_V, D = V.shape
 
         if self.mask_flag:
-            attn_mask = ProbMask(B, H, L_Q, index, scores, device=V.device)
+            attn_mask = ProbMask(
+                B, H, L_Q, index, scores, device=V.device)
             scores.masked_fill_(attn_mask.mask, -np.inf)
 
-        attn = torch.softmax(scores, dim=-1)  # nn.Softmax(dim=-1)(scores)
+        # nn.Softmax(dim=-1)(scores)
+        attn = torch.softmax(scores, dim=-1)
 
         context_in[
             torch.arange(B)[:, None, None], torch.arange(H)[None, :, None], index, :
         ] = torch.matmul(attn, V).type_as(context_in)
         if self.output_attention:
-            attns = (torch.ones([B, H, L_V, L_V]) / L_V).type_as(attn).to(attn.device)
+            attns = (torch.ones(
+                [B, H, L_V, L_V]) / L_V).type_as(attn).to(attn.device)
             attns[
                 torch.arange(B)[:, None, None], torch.arange(H)[None, :, None], index, :
             ] = attn
@@ -339,13 +375,18 @@ class ProbAttention(nn.Module):
         keys = keys.transpose(2, 1)
         values = values.transpose(2, 1)
 
-        U_part = self.factor * np.ceil(np.log(L_K)).astype("int").item()  # c*ln(L_k)
-        u = self.factor * np.ceil(np.log(L_Q)).astype("int").item()  # c*ln(L_q)
+        U_part = self.factor * \
+            np.ceil(np.log(L_K)).astype(
+                "int").item()  # c*ln(L_k)
+        u = self.factor * \
+            np.ceil(np.log(L_Q)).astype(
+                "int").item()  # c*ln(L_q)
 
         U_part = U_part if U_part < L_K else L_K
         u = u if u < L_Q else L_Q
 
-        scores_top, index = self._prob_QK(queries, keys, sample_k=U_part, n_top=u)
+        scores_top, index = self._prob_QK(
+            queries, keys, sample_k=U_part, n_top=u)
 
         # add scale factor
         scale = self.scale or 1.0 / sqrt(D)
@@ -369,10 +410,14 @@ class AttentionLayer(nn.Module):
         d_values = d_values or (d_model // n_heads)
 
         self.inner_attention = attention
-        self.query_projection = nn.Linear(d_model, d_keys * n_heads)
-        self.key_projection = nn.Linear(d_model, d_keys * n_heads)
-        self.value_projection = nn.Linear(d_model, d_values * n_heads)
-        self.out_projection = nn.Linear(d_values * n_heads, d_model)
+        self.query_projection = nn.Linear(
+            d_model, d_keys * n_heads)
+        self.key_projection = nn.Linear(
+            d_model, d_keys * n_heads)
+        self.value_projection = nn.Linear(
+            d_model, d_values * n_heads)
+        self.out_projection = nn.Linear(
+            d_values * n_heads, d_model)
         self.n_heads = n_heads
 
     def forward(self, queries, keys, values, attn_mask):
@@ -380,11 +425,14 @@ class AttentionLayer(nn.Module):
         _, S, _ = keys.shape
         H = self.n_heads
 
-        queries = self.query_projection(queries).view(B, L, H, -1)
+        queries = self.query_projection(
+            queries).view(B, L, H, -1)
         keys = self.key_projection(keys).view(B, S, H, -1)
-        values = self.value_projection(values).view(B, S, H, -1)
+        values = self.value_projection(
+            values).view(B, S, H, -1)
 
-        out, attn = self.inner_attention(queries, keys, values, attn_mask)
+        out, attn = self.inner_attention(
+            queries, keys, values, attn_mask)
         out = out.view(B, L, -1)
 
         return self.out_projection(out), attn
@@ -402,7 +450,8 @@ class ConvLayer(nn.Module):
         )
         self.norm = nn.BatchNorm1d(c_in)
         self.activation = nn.ELU()
-        self.maxPool = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
+        self.maxPool = nn.MaxPool1d(
+            kernel_size=3, stride=2, padding=1)
 
     def forward(self, x):
         x = self.downConv(x.permute(0, 2, 1))
@@ -418,19 +467,23 @@ class EncoderLayer(nn.Module):
         super(EncoderLayer, self).__init__()
         d_ff = d_ff or 4 * d_model
         self.attention = attention
-        self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_ff, kernel_size=1)
-        self.conv2 = nn.Conv1d(in_channels=d_ff, out_channels=d_model, kernel_size=1)
+        self.conv1 = nn.Conv1d(
+            in_channels=d_model, out_channels=d_ff, kernel_size=1)
+        self.conv2 = nn.Conv1d(
+            in_channels=d_ff, out_channels=d_model, kernel_size=1)
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
         self.activation = F.relu if activation == "relu" else F.gelu
 
     def forward(self, x, attn_mask=None):
-        new_x, attn = self.attention(x, x, x, attn_mask=attn_mask)
+        new_x, attn = self.attention(
+            x, x, x, attn_mask=attn_mask)
         x = x + self.dropout(new_x)
 
         y = x = self.norm1(x)
-        y = self.dropout(self.activation(self.conv1(y.transpose(-1, 1))))
+        y = self.dropout(self.activation(
+            self.conv1(y.transpose(-1, 1))))
         y = self.dropout(self.conv2(y).transpose(-1, 1))
 
         return self.norm2(x + y), attn
@@ -441,7 +494,8 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.attn_layers = nn.ModuleList(attn_layers)
         self.conv_layers = (
-            nn.ModuleList(conv_layers) if conv_layers is not None else None
+            nn.ModuleList(
+                conv_layers) if conv_layers is not None else None
         )
         self.norm = norm_layer
 
@@ -480,8 +534,10 @@ class DecoderLayer(nn.Module):
         d_ff = d_ff or 4 * d_model
         self.self_attention = self_attention
         self.cross_attention = cross_attention
-        self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_ff, kernel_size=1)
-        self.conv2 = nn.Conv1d(in_channels=d_ff, out_channels=d_model, kernel_size=1)
+        self.conv1 = nn.Conv1d(
+            in_channels=d_model, out_channels=d_ff, kernel_size=1)
+        self.conv2 = nn.Conv1d(
+            in_channels=d_ff, out_channels=d_model, kernel_size=1)
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         self.norm3 = nn.LayerNorm(d_model)
@@ -489,15 +545,19 @@ class DecoderLayer(nn.Module):
         self.activation = F.relu if activation == "relu" else F.gelu
 
     def forward(self, x, cross, x_mask=None, cross_mask=None):
-        x = x + self.dropout(self.self_attention(x, x, x, attn_mask=x_mask)[0])
+        x = x + \
+            self.dropout(self.self_attention(
+                x, x, x, attn_mask=x_mask)[0])
         x = self.norm1(x)
 
         x = x + self.dropout(
-            self.cross_attention(x, cross, cross, attn_mask=cross_mask)[0]
+            self.cross_attention(
+                x, cross, cross, attn_mask=cross_mask)[0]
         )
 
         y = x = self.norm2(x)
-        y = self.dropout(self.activation(self.conv1(y.transpose(-1, 1))))
+        y = self.dropout(self.activation(
+            self.conv1(y.transpose(-1, 1))))
         y = self.dropout(self.conv2(y).transpose(-1, 1))
 
         return self.norm3(x + y)
@@ -512,7 +572,8 @@ class Decoder(nn.Module):
 
     def forward(self, x, cross, x_mask=None, cross_mask=None):
         for layer in self.layers:
-            x = layer(x, cross, x_mask=x_mask, cross_mask=cross_mask)
+            x = layer(x, cross, x_mask=x_mask,
+                      cross_mask=cross_mask)
 
         if self.norm is not None:
             x = self.norm(x)
@@ -544,7 +605,8 @@ class Transformer(nn.Module):
         self.output_attention = output_attention
 
         # Embedding
-        self.enc_embedding = DataEmbedding_wo_temp(enc_in, d_model)
+        self.enc_embedding = DataEmbedding_wo_temp(
+            enc_in, d_model)
         # self.dec_embedding = DataEmbedding_wo_temp(configs.dec_in, configs.d_model)
 
         # Encoder
@@ -570,7 +632,8 @@ class Transformer(nn.Module):
             ],
             norm_layer=torch.nn.LayerNorm(d_model),
         )
-        self.GMP = torch.nn.AdaptiveMaxPool1d(1, return_indices=False)
+        self.GMP = torch.nn.AdaptiveMaxPool1d(
+            1, return_indices=False)
 
         # # Decoder
         # self.decoder = Decoder(
@@ -606,7 +669,8 @@ class Transformer(nn.Module):
 
         enc_out = self.enc_embedding(x_enc, x_mark_enc)
         # print(enc_out.shape)
-        out, attns = self.encoder(enc_out, attn_mask=enc_self_mask)
+        out, attns = self.encoder(
+            enc_out, attn_mask=enc_self_mask)
         # out [bs, num_node, embedding_dim]
         out = self.GMP(out.permute(0, 2, 1)).squeeze(-1)
         # dec_out = self.dec_embedding(x_dec, x_mark_dec)

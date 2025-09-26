@@ -90,8 +90,10 @@ def gumbel_argsort_sample_idx(key: jnp.ndarray, logits: jnp.ndarray) -> jnp.ndar
     # This construction is equivalent to jnp.argsort, but using a non stable sort,
     # since stable sort's aren't supported by jax2tf
     axis = len(logits.shape) - 1
-    iota = jax.lax.broadcasted_iota(jnp.int64, logits.shape, axis)
-    _, perm = jax.lax.sort_key_val(logits + z, iota, dimension=-1, is_stable=False)
+    iota = jax.lax.broadcasted_iota(
+        jnp.int64, logits.shape, axis)
+    _, perm = jax.lax.sort_key_val(
+        logits + z, iota, dimension=-1, is_stable=False)
     return perm[::-1]
 
 
@@ -101,8 +103,10 @@ def create_msa_feat(msa: features.MSA) -> chex.ArrayDevice:
         msa.rows, residue_names.POLYMER_TYPES_NUM_WITH_UNKNOWN_AND_GAP + 1
     )
     deletion_matrix = msa.deletion_matrix
-    has_deletion = jnp.clip(deletion_matrix, 0.0, 1.0)[..., None]
-    deletion_value = (jnp.arctan(deletion_matrix / 3.0) * (2.0 / jnp.pi))[..., None]
+    has_deletion = jnp.clip(
+        deletion_matrix, 0.0, 1.0)[..., None]
+    deletion_value = (jnp.arctan(
+        deletion_matrix / 3.0) * (2.0 / jnp.pi))[..., None]
 
     msa_feat = [
         msa_1hot,
@@ -132,12 +136,14 @@ def create_target_feat(
         )
     )
     target_features.append(batch.msa.profile)
-    target_features.append(batch.msa.deletion_mean[..., None])
+    target_features.append(
+        batch.msa.deletion_mean[..., None])
 
     # Reference structure features
     if append_per_atom_features:
         ref_mask = batch.ref_structure.mask
-        element_feat = jax.nn.one_hot(batch.ref_structure.element, 128)
+        element_feat = jax.nn.one_hot(
+            batch.ref_structure.element, 128)
         element_feat = utils.mask_mean(
             mask=ref_mask[..., None], value=element_feat, axis=-2, eps=1e-6
         )
@@ -187,9 +193,11 @@ def create_relative_encoding(
     final_offset = jnp.where(
         asym_id_same,
         clipped_offset,
-        (2 * max_relative_idx + 1) * jnp.ones_like(clipped_offset),
+        (2 * max_relative_idx + 1) *
+        jnp.ones_like(clipped_offset),
     )
-    rel_pos = jax.nn.one_hot(final_offset, 2 * max_relative_idx + 2)
+    rel_pos = jax.nn.one_hot(
+        final_offset, 2 * max_relative_idx + 2)
     rel_feats.append(rel_pos)
 
     # Embed relative token index as a one-hot embedding of distance along residue
@@ -203,14 +211,17 @@ def create_relative_encoding(
     final_token_offset = jnp.where(
         residue_same,
         clipped_token_offset,
-        (2 * max_relative_idx + 1) * jnp.ones_like(clipped_token_offset),
+        (2 * max_relative_idx + 1) *
+        jnp.ones_like(clipped_token_offset),
     )
-    rel_token = jax.nn.one_hot(final_token_offset, 2 * max_relative_idx + 2)
+    rel_token = jax.nn.one_hot(
+        final_token_offset, 2 * max_relative_idx + 2)
     rel_feats.append(rel_token)
 
     # Embed same entity ID
     entity_id_same = left_entity_id == right_entity_id
-    rel_feats.append(entity_id_same.astype(rel_pos.dtype)[..., None])
+    rel_feats.append(entity_id_same.astype(
+        rel_pos.dtype)[..., None])
 
     # Embed relative chain ID inside each symmetry class
     rel_sym_id = left_sym_id - right_sym_id
@@ -224,9 +235,11 @@ def create_relative_encoding(
     final_rel_chain = jnp.where(
         entity_id_same,
         clipped_rel_chain,
-        (2 * max_rel_chain + 1) * jnp.ones_like(clipped_rel_chain),
+        (2 * max_rel_chain + 1) *
+        jnp.ones_like(clipped_rel_chain),
     )
-    rel_chain = jax.nn.one_hot(final_rel_chain, 2 * max_relative_chain + 2)
+    rel_chain = jax.nn.one_hot(
+        final_rel_chain, 2 * max_relative_chain + 2)
 
     rel_feats.append(rel_chain)
 
@@ -245,7 +258,9 @@ def shuffle_msa(key: jax.Array, msa: features.MSA) -> tuple[features.MSA, jax.Ar
     """
     key, sample_key = jax.random.split(key)
     # Sample uniformly among sequences with at least one non-masked position.
-    logits = (jnp.clip(jnp.sum(msa.mask, axis=-1), 0.0, 1.0) - 1.0) * 1e6
-    index_order = gumbel_argsort_sample_idx(sample_key, logits)
+    logits = (
+        jnp.clip(jnp.sum(msa.mask, axis=-1), 0.0, 1.0) - 1.0) * 1e6
+    index_order = gumbel_argsort_sample_idx(
+        sample_key, logits)
 
     return msa.index_msa_rows(index_order), key

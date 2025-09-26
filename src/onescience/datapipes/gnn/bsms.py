@@ -36,8 +36,10 @@ class BistrideMultiLayerGraphDataset(Dataset):
         if cache_dir is None:
             self.cache_dir = None
         else:
-            self.cache_dir = Path(cache_dir) / self.dataset.split
-            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            self.cache_dir = Path(
+                cache_dir) / self.dataset.split
+            self.cache_dir.mkdir(
+                parents=True, exist_ok=True)
 
     def __getitem__(self, idx):
         graph = self.dataset[idx]
@@ -46,7 +48,8 @@ class BistrideMultiLayerGraphDataset(Dataset):
         if self.cache_dir is not None:
             edges_and_ids = self._load_from_cache(idx)
         if edges_and_ids is None:
-            ms_graph = BistrideMultiLayerGraph(graph, self.num_layers)
+            ms_graph = BistrideMultiLayerGraph(
+                graph, self.num_layers)
             _, *edges_and_ids = ms_graph.get_multi_layer_graphs()
 
             if self.cache_dir is not None:
@@ -70,21 +73,26 @@ class BistrideMultiLayerGraphDataset(Dataset):
 
     def _load_from_cache(self, idx: int) -> tuple[list, list]:
         if self.cache_dir is None or not self.cache_dir.is_dir():
-            raise ValueError("Cache directory is not set or does not exist.")
+            raise ValueError(
+                "Cache directory is not set or does not exist.")
 
-        filename = self.cache_dir / (self._get_cache_filename(idx) + ".npz")
+        filename = self.cache_dir / \
+            (self._get_cache_filename(idx) + ".npz")
         if not filename.exists():
             return None
         return np.load(filename, allow_pickle=True)["edges_and_ids"]
 
     def _save_to_cache(self, idx: int, edges_and_ids: tuple[list, list]) -> None:
         if self.cache_dir is None or not self.cache_dir.is_dir():
-            raise ValueError("Cache directory is not set or does not exist.")
+            raise ValueError(
+                "Cache directory is not set or does not exist.")
 
-        filename = self.cache_dir / self._get_cache_filename(idx)
+        filename = self.cache_dir / \
+            self._get_cache_filename(idx)
         return np.savez(
             filename,
-            edges_and_ids=np.asanyarray(edges_and_ids, dtype=object),
+            edges_and_ids=np.asanyarray(
+                edges_and_ids, dtype=object),
         )
 
 
@@ -112,7 +120,8 @@ class BistrideMultiLayerGraph:
         flattened_edges = torch.cat(
             (edges[0].view(1, -1), edges[1].view(1, -1)), dim=0
         ).numpy()
-        self.m_gs = [Graph(flattened_edges, GraphType.FLAT_EDGE, self.num_nodes)]
+        self.m_gs = [
+            Graph(flattened_edges, GraphType.FLAT_EDGE, self.num_nodes)]
         self.m_flat_es = [self.m_gs[0].get_flat_edge()]
         self.m_ids = []
 
@@ -127,8 +136,10 @@ class BistrideMultiLayerGraph:
 
         index_to_keep = []
         for layer in range(self.num_layers):
-            n_l = self.num_nodes if layer == 0 else len(index_to_keep)
-            index_to_keep, g_l = self.bstride_selection(g_l, pos_l, n_l)
+            n_l = self.num_nodes if layer == 0 else len(
+                index_to_keep)
+            index_to_keep, g_l = self.bstride_selection(
+                g_l, pos_l, n_l)
             pos_l = pos_l[index_to_keep]
             self.m_gs.append(g_l)
             self.m_flat_es.append(g_l.get_flat_edge())
@@ -166,7 +177,8 @@ class BistrideMultiLayerGraph:
         adj_mat.setdiag(1)
         clusters = g.clusters
 
-        seeds = BistrideMultiLayerGraph.nearest_center_seed(pos_mesh, clusters)
+        seeds = BistrideMultiLayerGraph.nearest_center_seed(
+            pos_mesh, clusters)
 
         for seed, c in zip(seeds, clusters):
             even, odd = set(), set()
@@ -183,14 +195,16 @@ class BistrideMultiLayerGraph:
             else:
                 index_kept, index_rmvd = odd, even  # noqa: F841 for clarity
 
-            combined_idx_kept = combined_idx_kept.union(index_kept)
+            combined_idx_kept = combined_idx_kept.union(
+                index_kept)
 
         combined_idx_kept = list(combined_idx_kept)
         combined_idx_kept.sort()
         adj_mat = adj_mat.tocsr().astype(float)
         adj_mat = dot_product_mkl(adj_mat, adj_mat)
         adj_mat.setdiag(0)
-        new_g = BistrideMultiLayerGraph.pool_edge(adj_mat, n, combined_idx_kept)
+        new_g = BistrideMultiLayerGraph.pool_edge(
+            adj_mat, n, combined_idx_kept)
 
         return combined_idx_kept, new_g
 
@@ -210,7 +224,8 @@ class BistrideMultiLayerGraph:
         for c in clusters:
             center = np.mean(pos_mesh[c], axis=0)
             delta_to_center = pos_mesh[c] - center[None, :]
-            dist_to_center = np.linalg.norm(delta_to_center, 2, axis=-1)
+            dist_to_center = np.linalg.norm(
+                delta_to_center, 2, axis=-1)
             min_node = c[np.argmin(dist_to_center)]
             seeds.append(min_node)
 
@@ -232,15 +247,19 @@ class BistrideMultiLayerGraph:
         flat_e = Graph.adj_mat_to_flat_edge(adj_mat)
         idx = np.array(idx, dtype=np.int64)
         idx_new_valid = np.arange(len(idx)).astype(np.int64)
-        idx_new_all = -1 * np.ones(num_nodes).astype(np.int64)
+        idx_new_all = -1 * \
+            np.ones(num_nodes).astype(np.int64)
         idx_new_all[idx] = idx_new_valid
-        new_flat_e = -1 * np.ones_like(flat_e).astype(np.int64)
+        new_flat_e = -1 * \
+            np.ones_like(flat_e).astype(np.int64)
         new_flat_e[0] = idx_new_all[flat_e[0]]
         new_flat_e[1] = idx_new_all[flat_e[1]]
-        both_valid = np.logical_and(new_flat_e[0] >= 0, new_flat_e[1] >= 0)
+        both_valid = np.logical_and(
+            new_flat_e[0] >= 0, new_flat_e[1] >= 0)
         e_idx = np.where(both_valid)[0]
         new_flat_e = new_flat_e[:, e_idx]
-        new_g = Graph(new_flat_e, GraphType.FLAT_EDGE, len(idx))
+        new_g = Graph(
+            new_flat_e, GraphType.FLAT_EDGE, len(idx))
 
         return new_g
 
@@ -276,7 +295,8 @@ class Graph:
         elif g_type == GraphType.ADJ_MAT:
             self.flat_edges = self.adj_mat_to_flat_edge(g)
         else:
-            raise ValueError(f"Unknown graph type: {g_type}")
+            raise ValueError(
+                f"Unknown graph type: {g_type}")
 
         self.adj_list = self.get_adj_list()
         self.clusters = self.find_clusters()
@@ -408,7 +428,8 @@ class Graph:
         """
         adj_list = [[] for _ in range(n)]
         for i in range(len(edge_list[0])):
-            adj_list[edge_list[0, i]].append(edge_list[1, i])
+            adj_list[edge_list[0, i]].append(
+                edge_list[1, i])
         return adj_list
 
     @staticmethod

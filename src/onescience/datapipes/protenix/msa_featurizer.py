@@ -65,7 +65,8 @@ class BaseMSAFeaturizer(ABC):
         Raises:
             AssertionError: If the provided `merge_method` or `indexing_method` is not valid.
         """
-        assert merge_method in ["dense_max", "dense_min", "sparse"]
+        assert merge_method in [
+            "dense_max", "dense_min", "sparse"]
         assert indexing_method in [
             "sequence",
             "pdb_id",
@@ -100,7 +101,8 @@ class BaseMSAFeaturizer(ABC):
         Raises:
             AssertionError: If the provided `msa_entity_type` is not "prot" or "rna".
         """
-        assert msa_entity_type in ["prot", "rna"], "only protein and rna might have msa"
+        assert msa_entity_type in [
+            "prot", "rna"], "only protein and rna might have msa"
         poly_type_mapping = {
             "prot": "polypeptide",
             "rna": "polyribonucleotide",
@@ -244,7 +246,8 @@ class BaseMSAFeaturizer(ABC):
                 pdb_id=pdb_id,
                 is_homomer_or_monomer=is_homomer_or_monomer,
             )
-            sequence_feat = convert_monomer_features(sequence_feat)
+            sequence_feat = convert_monomer_features(
+                sequence_feat)
             sequence_to_features[sequence] = sequence_feat
 
         all_chain_features = {
@@ -298,19 +301,23 @@ class PROTMSAFeaturizer(BaseMSAFeaturizer):
         self.pdb_mmseqs_dir = pdb_mmseqs_dir
         self.distillation_mmseqs_dir = distillation_mmseqs_dir
         self.distillation_uniclust_dir = distillation_uniclust_dir
-        self.pairing_db = pairing_db if len(pairing_db) > 0 else None
+        self.pairing_db = pairing_db if len(
+            pairing_db) > 0 else None
 
         if non_pairing_db == "mmseqs_all":
-            self.non_pairing_db = ["uniref100", "mmseqs_other"]
+            self.non_pairing_db = [
+                "uniref100", "mmseqs_other"]
         else:
-            self.non_pairing_db = [db_name for db_name in non_pairing_db.split(",")]
+            self.non_pairing_db = [
+                db_name for db_name in non_pairing_db.split(",")]
 
         with open(seq_to_pdb_idx_path, "r") as f:
             self.seq_to_pdb_idx = json.load(f)
         # If distillation data is avaiable
         if distillation_index_file is not None:
             with open(distillation_index_file, "r") as f:
-                self.distillation_pdb_id_to_msa_dir = json.load(f)
+                self.distillation_pdb_id_to_msa_dir = json.load(
+                    f)
         else:
             self.distillation_pdb_id_to_msa_dir = None
 
@@ -331,9 +338,11 @@ class PROTMSAFeaturizer(BaseMSAFeaturizer):
             rel_path = self.distillation_pdb_id_to_msa_dir[pdb_id]
 
             if db_name == "uniclust30":
-                msa_dir_path = opjoin(self.distillation_uniclust_dir, rel_path)
+                msa_dir_path = opjoin(
+                    self.distillation_uniclust_dir, rel_path)
             elif db_name in ["uniref100", "mmseqs_other"]:
-                msa_dir_path = opjoin(self.distillation_mmseqs_dir, rel_path)
+                msa_dir_path = opjoin(
+                    self.distillation_mmseqs_dir, rel_path)
             else:
                 raise ValueError(
                     f"Indexing with {self.indexing_method} is not supported for {db_name}"
@@ -348,7 +357,8 @@ class PROTMSAFeaturizer(BaseMSAFeaturizer):
             pdb_index = self.seq_to_pdb_idx[sequence]
             if db_name in ["uniref100", "mmseqs_other"]:
                 return opjoin(
-                    self.pdb_mmseqs_dir, str(pdb_index), f"{db_name}_hits.a3m"
+                    self.pdb_mmseqs_dir, str(
+                        pdb_index), f"{db_name}_hits.a3m"
                 )
             else:
                 return opjoin(
@@ -384,7 +394,8 @@ class PROTMSAFeaturizer(BaseMSAFeaturizer):
                 path := self.get_msa_path(db_name, sequence, pdb_id)
             ) and path.endswith(".a3m"):
                 raw_msa_paths.append(path)
-                seq_limits.append(self.seq_limits.get(db_name, SEQ_LIMITS[db_name]))
+                seq_limits.append(self.seq_limits.get(
+                    db_name, SEQ_LIMITS[db_name]))
 
         # Get sequence and non-pairing msa features
         sequence_features = process_single_sequence(
@@ -407,18 +418,21 @@ class PROTMSAFeaturizer(BaseMSAFeaturizer):
                     path,
                 ]
                 seq_limits.append(
-                    self.seq_limits.get(self.pairing_db, SEQ_LIMITS[self.pairing_db])
+                    self.seq_limits.get(
+                        self.pairing_db, SEQ_LIMITS[self.pairing_db])
                 )
 
             if len(raw_msa_paths) == 0:
-                raise ValueError(f"{pdb_name} does not have MSA for pairing")
+                raise ValueError(
+                    f"{pdb_name} does not have MSA for pairing")
 
             all_seq_msa_features = load_and_process_msa(
                 pdb_name=pdb_name,
                 msa_type="pairing",
                 raw_msa_paths=raw_msa_paths,
                 seq_limits=seq_limits,
-                identifier_func=get_identifier_func(pairing_db=self.pairing_db),
+                identifier_func=get_identifier_func(
+                    pairing_db=self.pairing_db),
                 handle_empty="raise_error",
             )
             sequence_features.update(all_seq_msa_features)
@@ -505,9 +519,11 @@ class RNAMSAFeaturizer(BaseMSAFeaturizer):
         )
         # By default, use all the database in paper
         self.rna_msa_dir = rna_msa_dir
-        self.non_pairing_db = ["rfam", "rnacentral", "nucleotide"]
+        self.non_pairing_db = [
+            "rfam", "rnacentral", "nucleotide"]
         with open(seq_to_pdb_idx_path, "r") as f:
-            self.seq_to_pdb_idx = json.load(f)  # it's rna sequence to pdb list
+            # it's rna sequence to pdb list
+            self.seq_to_pdb_idx = json.load(f)
 
     def get_msa_path(
         self, db_name: str, sequence: str, pdb_id_entity_id: str, reduced: bool = True
@@ -537,11 +553,13 @@ class RNAMSAFeaturizer(BaseMSAFeaturizer):
             if sequence in self.seq_to_pdb_idx:
                 pdb_id_entity_id = self.seq_to_pdb_idx[sequence][0]
             else:
-                logger.info(f"{pdb_id_entity_id} not in seq_to_pdb_idx")
+                logger.info(
+                    f"{pdb_id_entity_id} not in seq_to_pdb_idx")
                 pdb_id_entity_id = "not_exist"
 
         rel_path = f"{pdb_id_entity_id}/{db_name}.sto"
-        msa_dir_path = opjoin(f"{self.rna_msa_dir}{suffix}", rel_path)
+        msa_dir_path = opjoin(
+            f"{self.rna_msa_dir}{suffix}", rel_path)
         return msa_dir_path
 
     def process_single_sequence(
@@ -569,7 +587,8 @@ class RNAMSAFeaturizer(BaseMSAFeaturizer):
                 path := self.get_msa_path(db_name, sequence, pdb_name)
             ) and path.endswith(".sto"):
                 raw_msa_paths.append(path)
-                seq_limits.append(self.seq_limits.get(db_name, SEQ_LIMITS[db_name]))
+                seq_limits.append(self.seq_limits.get(
+                    db_name, SEQ_LIMITS[db_name]))
 
         sequence_features = process_single_sequence(
             pdb_name=pdb_name,
@@ -599,7 +618,8 @@ class RNAMSAFeaturizer(BaseMSAFeaturizer):
         Returns:
             Dict[str, np.ndarray]: the basic MSA features of the bioassembly.
         """
-        rna_entity_ids = self.get_entity_ids(bioassembly_dict, msa_entity_type="rna")
+        rna_entity_ids = self.get_entity_ids(
+            bioassembly_dict, msa_entity_type="rna")
         if len(rna_entity_ids) == 0:
             return None
         (
@@ -635,10 +655,12 @@ class MSAFeaturizer:
         rna_msa_args: dict = {},
         enable_rna_msa: bool = False,
     ):
-        self.prot_msa_featurizer = PROTMSAFeaturizer(**prot_msa_args)
+        self.prot_msa_featurizer = PROTMSAFeaturizer(
+            **prot_msa_args)
         self.enable_rna_msa = enable_rna_msa
         if self.enable_rna_msa:
-            self.rna_msa_featurizer = RNAMSAFeaturizer(**rna_msa_args)
+            self.rna_msa_featurizer = RNAMSAFeaturizer(
+                **rna_msa_args)
 
     def __call__(
         self,
@@ -678,7 +700,8 @@ class MSAFeaturizer:
         if len(np_chains_list) == 0:
             return None
 
-        msa_feats = merge_features_from_prot_rna(np_chains_list)
+        msa_feats = merge_features_from_prot_rna(
+            np_chains_list)
         msa_feats = self.tokenize(
             msa_feats=msa_feats,
             token_array=bioassembly_dict["token_array"],
@@ -711,16 +734,20 @@ class MSAFeaturizer:
         msa_feats.update(
             {
                 "prot_pair_num_alignments": msa_feats.get(
-                    "prot_pair_num_alignments", np.asarray(0, dtype=np.int32)
+                    "prot_pair_num_alignments", np.asarray(
+                        0, dtype=np.int32)
                 ),
                 "prot_unpair_num_alignments": msa_feats.get(
-                    "prot_unpair_num_alignments", np.asarray(0, dtype=np.int32)
+                    "prot_unpair_num_alignments", np.asarray(
+                        0, dtype=np.int32)
                 ),
                 "rna_pair_num_alignments": msa_feats.get(
-                    "rna_pair_num_alignments", np.asarray(0, dtype=np.int32)
+                    "rna_pair_num_alignments", np.asarray(
+                        0, dtype=np.int32)
                 ),
                 "rna_unpair_num_alignments": msa_feats.get(
-                    "rna_unpair_num_alignments", np.asarray(0, dtype=np.int32)
+                    "rna_unpair_num_alignments", np.asarray(
+                        0, dtype=np.int32)
                 ),
             }
         )
@@ -809,7 +836,8 @@ def tokenize_msa(
     Returns:
         Dict[str, np.ndarray]: the tokenized MSA features of the bioassembly.
     """
-    token_center_atom_idxs = token_array.get_annotation("centre_atom_index")
+    token_center_atom_idxs = token_array.get_annotation(
+        "centre_atom_index")
     # res_id: (asym_id, residue_index)
     # msa_idx refers to the column number of a residue in the msa array
     res_id_2_msa_idx = {
@@ -821,7 +849,8 @@ def tokenize_msa(
     col_idxs_in_msa = []
     col_idxs_in_new_msa = []
     for token_idx, center_atom_idx in enumerate(token_center_atom_idxs):
-        restypes.append(STD_RESIDUES[atom_array.cano_seq_resname[center_atom_idx]])
+        restypes.append(
+            STD_RESIDUES[atom_array.cano_seq_resname[center_atom_idx]])
         if (
             res_id := (
                 atom_array[center_atom_idx].asym_id_int,
@@ -841,15 +870,19 @@ def tokenize_msa(
     # msa
     # For non-amino acid tokens, copy the token itself
     feat_name = "msa"
-    new_feat = np.repeat(restypes[None, ...], num_msa_seq, axis=0)
-    new_feat[:, col_idxs_in_new_msa] = msa_feats[feat_name][:, col_idxs_in_msa]
+    new_feat = np.repeat(
+        restypes[None, ...], num_msa_seq, axis=0)
+    new_feat[:, col_idxs_in_new_msa] = msa_feats[feat_name][:,
+                                                            col_idxs_in_msa]
     msa_feats[feat_name] = new_feat
 
     # has_deletion, deletion_value
     # Assign 0 to non-amino acid tokens
     for feat_name in ["has_deletion", "deletion_value"]:
-        new_feat = np.zeros((num_msa_seq, num_tokens), dtype=msa_feats[feat_name].dtype)
-        new_feat[:, col_idxs_in_new_msa] = msa_feats[feat_name][:, col_idxs_in_msa]
+        new_feat = np.zeros(
+            (num_msa_seq, num_tokens), dtype=msa_feats[feat_name].dtype)
+        new_feat[:, col_idxs_in_new_msa] = msa_feats[feat_name][:,
+                                                                col_idxs_in_msa]
         msa_feats[feat_name] = new_feat
 
     # deletion_mean
@@ -864,7 +897,8 @@ def tokenize_msa(
     feat_name = "profile"
     new_feat = np.zeros((num_tokens, 32))
     new_feat[np.arange(num_tokens), restypes] = 1
-    new_feat[col_idxs_in_new_msa, :] = msa_feats[feat_name][col_idxs_in_msa, :]
+    new_feat[col_idxs_in_new_msa,
+             :] = msa_feats[feat_name][col_idxs_in_msa, :]
     msa_feats[feat_name] = new_feat
     return msa_feats
 
@@ -948,7 +982,8 @@ class InferenceMSAFeaturizer(object):
             # No pre-computed MSA was provided, and the MSA search failed
             raw_msa_paths = []
         else:
-            raw_msa_paths = [opjoin(msa_dir, "non_pairing.a3m")]
+            raw_msa_paths = [
+                opjoin(msa_dir, "non_pairing.a3m")]
         pdb_name = description
 
         sequence_features = process_single_sequence(
@@ -1005,7 +1040,8 @@ class InferenceMSAFeaturizer(object):
         entity_id_to_sequence = {}
         for i, entity_info_wrapper in enumerate(bioassembly):
             entity_id = str(i + 1)
-            entity_type = list(entity_info_wrapper.keys())[0]
+            entity_type = list(
+                entity_info_wrapper.keys())[0]
             entity_info = entity_info_wrapper[entity_type]
 
             if entity_type == PROT_TYPE_NAME:
@@ -1029,16 +1065,20 @@ class InferenceMSAFeaturizer(object):
         msa_sequences = {}
         msa_dirs = {}
         for idx, (sequence, entity_id_list) in enumerate(sequence_to_entity.items()):
-            msa_info = bioassembly[int(entity_id_list[0]) - 1][PROT_TYPE_NAME]["msa"]
-            msa_dir = msa_info.get("precomputed_msa_dir", None)
+            msa_info = bioassembly[int(
+                entity_id_list[0]) - 1][PROT_TYPE_NAME]["msa"]
+            msa_dir = msa_info.get(
+                "precomputed_msa_dir", None)
             if msa_dir is not None:
                 assert opexists(
                     msa_dir
                 ), f"The provided precomputed MSA path of entities {entity_id_list} does not exists: \n{msa_dir}"
                 msa_dirs[idx] = msa_dir
             else:
-                pairing_db_fpath = msa_info.get("pairing_db_fpath", None)
-                non_pairing_db_fpath = msa_info.get("non_pairing_db_fpath", None)
+                pairing_db_fpath = msa_info.get(
+                    "pairing_db_fpath", None)
+                non_pairing_db_fpath = msa_info.get(
+                    "non_pairing_db_fpath", None)
                 assert (
                     pairing_db_fpath is not None
                 ), "Path of pairing MSA database is not given."
@@ -1051,7 +1091,8 @@ class InferenceMSAFeaturizer(object):
                 )
 
                 msa_info["pairing_db"] = "uniprot"
-                msa_sequences[idx] = (sequence, pairing_db_fpath, non_pairing_db_fpath)
+                msa_sequences[idx] = (
+                    sequence, pairing_db_fpath, non_pairing_db_fpath)
         if len(msa_sequences) > 0:
             msa_dirs.update(msa_parallel(msa_sequences))
 
@@ -1061,7 +1102,8 @@ class InferenceMSAFeaturizer(object):
                 logger.info(
                     f"Entities {entity_id_list} correspond to the same sequence."
                 )
-            msa_info = bioassembly[int(entity_id_list[0]) - 1][PROT_TYPE_NAME]["msa"]
+            msa_info = bioassembly[int(
+                entity_id_list[0]) - 1][PROT_TYPE_NAME]["msa"]
             msa_dir = msa_dirs[idx]
 
             description = f"entity_{'_'.join(map(str, entity_id_list))}"
@@ -1072,7 +1114,8 @@ class InferenceMSAFeaturizer(object):
                 msa_dir=msa_dir,
                 pairing_db=msa_info["pairing_db"],
             )
-            sequence_feat = convert_monomer_features(sequence_feat)
+            sequence_feat = convert_monomer_features(
+                sequence_feat)
             sequence_to_features[sequence] = sequence_feat
             if msa_dir and opexists(msa_dir) and idx in msa_sequences.keys():
                 if (msa_save_dir := msa_info.get("msa_save_dir", None)) is not None:
@@ -1081,7 +1124,8 @@ class InferenceMSAFeaturizer(object):
                     shutil.copytree(msa_dir, dst_dir)
                     for fname in os.listdir(dst_dir):
                         if not fname.endswith(".a3m"):
-                            os.remove(opjoin(dst_dir, fname))
+                            os.remove(
+                                opjoin(dst_dir, fname))
                 else:
                     shutil.rmtree(msa_dir)
 

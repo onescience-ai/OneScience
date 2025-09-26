@@ -54,17 +54,23 @@ class LogGaussianBasis(nn.Module):
         self.log_rmax = np.log(self.r_max / self.r_ref)
         self.log_range = self.log_rmax - self.log_rmin
         if self.delta is None and self.num_basis is not None:
-            self.offsets = jnp.linspace(self.log_rmin, self.log_rmax, self.num_basis)
+            self.offsets = jnp.linspace(
+                self.log_rmin, self.log_rmax, self.num_basis)
         else:
             if self.num_basis is None:
-                _num_basis = math.ceil(self.log_range / self.delta) + 1
-                self.offsets = self.log_rmin + jnp.arange(0, _num_basis) * self.delta
+                _num_basis = math.ceil(
+                    self.log_range / self.delta) + 1
+                self.offsets = self.log_rmin + \
+                    jnp.arange(0, _num_basis) * self.delta
             else:
                 self.offsets = (
-                    self.log_rmin + jnp.arange(0, self.num_basis) * self.delta
+                    self.log_rmin +
+                    jnp.arange(
+                        0, self.num_basis) * self.delta
                 )
 
-        self.coefficient = -0.5 * jnp.reciprocal(jnp.square(self.sigma))
+        self.coefficient = -0.5 * \
+            jnp.reciprocal(jnp.square(self.sigma))
         self.inv_ref = jnp.reciprocal(self.r_ref)
 
     def __call__(self, distance: jnp.ndarray) -> jnp.ndarray:
@@ -80,20 +86,23 @@ class LogGaussianBasis(nn.Module):
 
         # cast
         distance, offsets, coefficient, inv_ref = jax.tree_map(
-            self.dtype, (distance, self.offsets, self.coefficient, self.inv_ref)
+            self.dtype, (distance, self.offsets,
+                         self.coefficient, self.inv_ref)
         )
 
         if self.clip_distance:
-            distance = jnp.clip(distance, self.r_min, self.r_max)
+            distance = jnp.clip(
+                distance, self.r_min, self.r_max)
 
         # (...,) -> (..., 1)
         log_r = jnp.log(
             distance * self.inv_ref
-        )  ## Liyh: The main difference between jax and ms
+        )  # Liyh: The main difference between jax and ms
         log_r = jnp.expand_dims(log_r, axis=-1)
         # (..., 1) - (..., K) -> (..., K)
         log_diff = log_r - self.offsets
-        rbf = jnp.exp(self.coefficient * jnp.square(log_diff))
+        rbf = jnp.exp(self.coefficient *
+                      jnp.square(log_diff))
 
         if self.rescale:
             rbf = rbf * 2.0 - 1.0

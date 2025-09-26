@@ -31,7 +31,8 @@ cell = atoms.get_cell()
 a, b, c, alpha, beta, gamma = atoms.get_cell_lengths_and_angles()
 vol = atoms.get_volume()
 
-print(f"Final energy: {E:.6f} eV  (per atom: {E/len(atoms):.6f} eV/atom)")
+print(
+    f"Final energy: {E:.6f} eV  (per atom: {E/len(atoms):.6f} eV/atom)")
 print(f"Final fmax: {fmax:.6f} eV/Å")
 print(f"Volume: {vol:.6f} Å^3")
 try:

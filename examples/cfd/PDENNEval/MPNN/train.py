@@ -67,9 +67,11 @@ def get_dataset(args):
 
 def get_dataloader(train_data, val_data, args):
     dataloader_args = args["dataloader"]
-    train_loader = DataLoader(train_data, shuffle=True, **dataloader_args)
+    train_loader = DataLoader(
+        train_data, shuffle=True, **dataloader_args)
     if args["if_training"]:
-        val_loader = DataLoader(val_data, shuffle=False, **dataloader_args)
+        val_loader = DataLoader(
+            val_data, shuffle=False, **dataloader_args)
     else:
         val_loader = DataLoader(
             val_data, shuffle=False, drop_last=True, **dataloader_args
@@ -105,7 +107,8 @@ def train_loop(dataloader, model, loss_fn, optimizer, device, graph_creator, unr
         # Randomly choose number of unrollings
         unrolled_graphs = random.choice(unrolling)
         assert (
-            graph_creator.nt - graph_creator.tw - (graph_creator.tw * unrolled_graphs)
+            graph_creator.nt - graph_creator.tw -
+            (graph_creator.tw * unrolled_graphs)
             > graph_creator.tw
         )
         steps = [
@@ -121,7 +124,8 @@ def train_loop(dataloader, model, loss_fn, optimizer, device, graph_creator, unr
 
         # Randomly choose starting (time) point at the PDE solution manifold
         random_steps = random.choices(steps, k=batch_size)
-        data, labels = graph_creator.create_data(u, random_steps)
+        data, labels = graph_creator.create_data(
+            u, random_steps)
         graph = graph_creator.create_graph(data, labels, x, variables, random_steps).to(
             device
         )
@@ -134,8 +138,10 @@ def train_loop(dataloader, model, loss_fn, optimizer, device, graph_creator, unr
                 for i in range(num_outputs):
                     pred[..., i] = model[i](graph, i)
                 # next iter
-                random_steps = [rs + graph_creator.tw for rs in random_steps]
-                _, labels = graph_creator.create_data(u, random_steps)
+                random_steps = [
+                    rs + graph_creator.tw for rs in random_steps]
+                _, labels = graph_creator.create_data(
+                    u, random_steps)
                 graph = graph_creator.create_next_graph(
                     graph, pred, labels, random_steps
                 ).to(device)
@@ -166,10 +172,13 @@ def val_loop(dataloader, model, loss_fn, device, graph_creator):
     for u, x, variables in dataloader:
         batch_size = u.shape[0]
         num_outputs = u.shape[-1]
-        target, pred = torch.Tensor().to(device), torch.Tensor().to(device)
-        steps = [graph_creator.tw] * batch_size  # same steps
+        target, pred = torch.Tensor().to(
+            device), torch.Tensor().to(device)
+        steps = [graph_creator.tw] * \
+            batch_size  # same steps
         data, labels = graph_creator.create_data(u, steps)
-        graph = graph_creator.create_graph(data, labels, x, variables, steps).to(device)
+        graph = graph_creator.create_graph(
+            data, labels, x, variables, steps).to(device)
         target = torch.cat((target, graph.y), dim=-2)
         with torch.no_grad():
             output = torch.empty_like(graph.y)
@@ -215,10 +224,13 @@ def test_loop(
     for u, x, variables in dataloader:
         batch_size = u.shape[0]
         num_outputs = u.shape[-1]
-        target, pred = torch.Tensor().to(device), torch.Tensor().to(device)
-        steps = [graph_creator.tw] * batch_size  # same steps
+        target, pred = torch.Tensor().to(
+            device), torch.Tensor().to(device)
+        steps = [graph_creator.tw] * \
+            batch_size  # same steps
         data, labels = graph_creator.create_data(u, steps)
-        graph = graph_creator.create_graph(data, labels, x, variables, steps).to(device)
+        graph = graph_creator.create_graph(
+            data, labels, x, variables, steps).to(device)
         target = torch.cat((target, graph.y), dim=-2)
         with torch.no_grad():
             output = torch.empty_like(graph.y)
@@ -243,8 +255,10 @@ def test_loop(
                     output[..., i] = model[i](graph, i)
             pred = torch.cat((pred, output), dim=-2)
 
-        pred = to_PDEBench_format(pred, batch_size, graph_creator.pde)
-        target = to_PDEBench_format(target, batch_size, graph_creator.pde)
+        pred = to_PDEBench_format(
+            pred, batch_size, graph_creator.pde)
+        target = to_PDEBench_format(
+            target, batch_size, graph_creator.pde)
 
         for name in metric_names:
             metric_fn = getattr(metrics, name)
@@ -257,7 +271,8 @@ def test_loop(
             res = torch.stack(res_list, dim=0)
             res, _ = torch.max(res, dim=0)
         else:
-            res = torch.cat(res_list, dim=0)  # (num_samples, v)
+            # (num_samples, v)
+            res = torch.cat(res_list, dim=0)
             res = torch.mean(res, dim=0)  # (v)
         res_dict[name] = res
 
@@ -267,7 +282,8 @@ def test_loop(
 def main(args):
     # init
     setup_seed(args["seed"])
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu")
     checkpoint = (
         torch.load(args["model_path"])
         if not args["if_training"] or args["continue_training"]
@@ -281,7 +297,8 @@ def main(args):
         + f"_wd{args['optimizer']['weight_decay']}"
     )
     saved_dir = os.path.join(
-        args["output_dir"], os.path.splitext(args["dataset"]["file_name"])[0]
+        args["output_dir"], os.path.splitext(
+            args["dataset"]["file_name"])[0]
     )
 
     if args["if_training"]:
@@ -290,7 +307,8 @@ def main(args):
         if args["tensorboard"]:  # visualize
             log_path = os.path.join(
                 args["log_dir"],
-                os.path.splitext(args["dataset"]["file_name"])[0],
+                os.path.splitext(
+                    args["dataset"]["file_name"])[0],
                 saved_model_name,
             )
             writer = SummaryWriter(log_path)
@@ -309,7 +327,8 @@ def main(args):
 
     # dataset and dataloader
     train_data, val_data = get_dataset(args)
-    train_loader, val_loader = get_dataloader(train_data, val_data, args)
+    train_loader, val_loader = get_dataloader(
+        train_data, val_data, args)
 
     # graph creator
     graph_creator = GraphCreator(
@@ -318,12 +337,14 @@ def main(args):
 
     # model
     model = get_model(args, pde)
-    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total_params = sum(
+        p.numel() for p in model.parameters() if p.requires_grad)
     print("The number of model parameter to train:", total_params)
     model.to(device)
     # if test, load model from checkpoint
     if not args["if_training"]:
-        print(f"Test mode, load checkpoint from {args['model_path']}")
+        print(
+            f"Test mode, load checkpoint from {args['model_path']}")
         checkpoint = torch.load(args["model_path"])
 
         # === 修改点2：处理可能存在的module前缀 ===
@@ -341,13 +362,15 @@ def main(args):
         model.load_state_dict(new_state_dict)
         print(f"Best epoch: {checkpoint['epoch']}")
         print("start testing...")
-        res = test_loop(val_loader, model, device, graph_creator)
+        res = test_loop(val_loader, model,
+                        device, graph_creator)
         print(res)
         print("Done")
         return
     # if continue training, resume model from checkpoint
     if args["continue_training"]:
-        print(f"Continue training, load checkpoint from {args['model_path']}")
+        print(
+            f"Continue training, load checkpoint from {args['model_path']}")
         checkpoint = torch.load(args["model_path"])
 
         # 同样处理module前缀
@@ -368,10 +391,13 @@ def main(args):
     optim_name = optim_args.pop("name")
     # if continue training, resume optimizer and scheduler from checkpoint
     if args["continue_training"]:
-        optimizer = getattr(torch.optim, optim_name)(model.parameters())
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        optimizer = getattr(torch.optim, optim_name)(
+            model.parameters())
+        optimizer.load_state_dict(
+            checkpoint["optimizer_state_dict"])
     else:
-        optimizer = getattr(torch.optim, optim_name)(model.parameters(), **optim_args)
+        optimizer = getattr(torch.optim, optim_name)(
+            model.parameters(), **optim_args)
 
     # scheduler
     start_epoch = 0
@@ -411,14 +437,18 @@ def main(args):
             )
             losses.append(loss)
             epoch_time += time_spend
-        print(f"[Epoch {epoch}] MSELoss: {np.mean(losses)}, time: {epoch_time:.3f}s")
+        print(
+            f"[Epoch {epoch}] MSELoss: {np.mean(losses)}, time: {epoch_time:.3f}s")
         if args["tensorboard"]:
-            writer.add_scalar("lr", optimizer.param_groups[0]["lr"], epoch)
-            writer.add_scalar("Loss/train", np.mean(losses), epoch)
+            writer.add_scalar(
+                "lr", optimizer.param_groups[0]["lr"], epoch)
+            writer.add_scalar(
+                "Loss/train", np.mean(losses), epoch)
         total_time += epoch_time
         scheduler.step()
         # save checkpoint
-        saved_path = os.path.join(saved_dir, saved_model_name)
+        saved_path = os.path.join(
+            saved_dir, saved_model_name)
         model_state_dict = model.state_dict()
         torch.save(
             {
@@ -431,12 +461,16 @@ def main(args):
         )
         # validate and save model
         if (epoch + 1) % args["save_period"] == 0:
-            print("====================validate====================")
-            val_loss = val_loop(val_loader, model, loss_fn, device, graph_creator)
+            print(
+                "====================validate====================")
+            val_loss = val_loop(
+                val_loader, model, loss_fn, device, graph_creator)
             print(f"[Epoch {epoch}] val_loss: {val_loss}")
             if args["tensorboard"]:
-                writer.add_scalar("Loss/val", val_loss, epoch)
-            print("================================================")
+                writer.add_scalar(
+                    "Loss/val", val_loss, epoch)
+            print(
+                "================================================")
             if val_loss < min_val_loss:
                 min_val_loss = val_loss
                 # save checkpoint if best
@@ -457,7 +491,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("config_file", type=str, help="Path to config file")
+    parser.add_argument(
+        "config_file", type=str, help="Path to config file")
     cmd_args = parser.parse_args()
     with open(cmd_args.config_file, "r") as f:
         args = yaml.safe_load(f)

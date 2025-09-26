@@ -13,7 +13,8 @@ class Model(nn.Module):
 
         # 位置处理
         if args.unified_pos and args.geotype != "unstructured":
-            self.pos = unified_pos_embedding(args.shapelist, args.ref, device=device)
+            self.pos = unified_pos_embedding(
+                args.shapelist, args.ref, device=device)
             trunk_in_dim = args.ref ** len(args.shapelist)
         else:
             trunk_in_dim = args.space_dim
@@ -52,8 +53,10 @@ class Model(nn.Module):
             )
 
         # 输出层 - 修改为支持多个输出通道
-        self.out_layer = nn.Linear(args.n_hidden, args.out_dim)
-        self.bias = nn.Parameter(torch.zeros(1, 1, args.out_dim))
+        self.out_layer = nn.Linear(
+            args.n_hidden, args.out_dim)
+        self.bias = nn.Parameter(
+            torch.zeros(1, 1, args.out_dim))
 
     def structured_forward(self, x, fx, T=None, geo=None):
         B, N, _ = x.shape  # x: [B, N, space_dim]
@@ -66,13 +69,15 @@ class Model(nn.Module):
             T = T.view(-1)
 
             # 生成时间嵌入 [B, D]
-            T_emb = timestep_embedding(T, self.args.n_hidden)
+            T_emb = timestep_embedding(
+                T, self.args.n_hidden)
 
             # 通过时间处理层 [B, D] -> [B, D]
             T_emb = self.time_fc(T_emb)
 
             # 扩展时间嵌入以匹配空间点 [B, D] -> [B, N, D]
-            T_emb_expanded = T_emb.unsqueeze(1).expand(-1, N, -1)
+            T_emb_expanded = T_emb.unsqueeze(
+                1).expand(-1, N, -1)
 
             # 将时间嵌入连接到函数输入
             if fx is not None:
@@ -99,9 +104,11 @@ class Model(nn.Module):
         B, N, _ = x.shape
         if T is not None and self.args.time_input:
             T = T.view(-1)
-            T_emb = timestep_embedding(T, self.args.n_hidden)
+            T_emb = timestep_embedding(
+                T, self.args.n_hidden)
             T_emb = self.time_fc(T_emb)
-            T_emb_expanded = T_emb.unsqueeze(1).expand(-1, N, -1)
+            T_emb_expanded = T_emb.unsqueeze(
+                1).expand(-1, N, -1)
             if fx is not None:
                 fx = torch.cat([fx, T_emb_expanded], dim=-1)
             else:

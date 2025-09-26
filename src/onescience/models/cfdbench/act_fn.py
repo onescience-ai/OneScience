@@ -11,7 +11,8 @@ def get_act_fn(name: str, norm: bool = False) -> nn.Module:
     elif name == "swish":
         fn = nn.SiLU()
     else:
-        raise ValueError(f"Unknown activation function: {name}")
+        raise ValueError(
+            f"Unknown activation function: {name}")
     if norm:
         fn = NormAct(fn)
     return fn

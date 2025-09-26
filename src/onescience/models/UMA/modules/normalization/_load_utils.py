@@ -36,9 +36,11 @@ def _load_check_duplicates(config: dict, name: str) -> dict[str, torch.nn.Module
     modules = {}
     if "file" in config:
         modules = torch.load(config["file"])
-        logging.info(f"Loaded {name} for the following targets: {list(modules.keys())}")
+        logging.info(
+            f"Loaded {name} for the following targets: {list(modules.keys())}")
     # make sure that element-refs are not specified both as fit and file
-    fit_targets = config["fit"]["targets"] if "fit" in config else []
+    fit_targets = config["fit"]["targets"] if "fit" in config else [
+    ]
     duplicates = list(
         filter(
             lambda x: x in fit_targets,
@@ -50,7 +52,8 @@ def _load_check_duplicates(config: dict, name: str) -> dict[str, torch.nn.Module
             f"{name} values for the following targets {duplicates} have been specified to be fit and also read"
             f" from a file. The files read from file will be used instead of fitting."
         )
-    duplicates = list(filter(lambda x: x in modules, config))
+    duplicates = list(
+        filter(lambda x: x in modules, config))
     if len(duplicates) > 0:
         logging.warning(
             f"Duplicate {name} values for the following targets {duplicates} where specified in the file "
@@ -96,9 +99,11 @@ def _load_from_config(
                     if target not in modules
                 ]
                 fit_kwargs.update(
-                    {k: v for k, v in config["fit"].items() if k != "targets"}
+                    {k: v for k, v in config["fit"].items(
+                    ) if k != "targets"}
                 )
-                modules.update(fit_fun(targets=targets, dataset=dataset, **fit_kwargs))
+                modules.update(
+                    fit_fun(targets=targets, dataset=dataset, **fit_kwargs))
                 config["fit"]["fitted"] = True
         # if a single file for all outputs is not provided,
         # then check if a single file is provided for a specific output

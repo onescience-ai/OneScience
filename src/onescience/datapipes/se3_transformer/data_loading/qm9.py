@@ -76,7 +76,8 @@ class QM9DataModule(DataModule):
         precompute_bases: bool = False,
         **kwargs,
     ):
-        self.data_dir = data_dir  # This needs to be before __init__ so that prepare_data has access to it
+        # This needs to be before __init__ so that prepare_data has access to it
+        self.data_dir = data_dir
         super().__init__(
             batch_size=batch_size, num_workers=num_workers, collate_fn=self._collate
         )
@@ -85,7 +86,8 @@ class QM9DataModule(DataModule):
         self.batch_size = batch_size
         self.num_degrees = num_degrees
 
-        qm9_kwargs = dict(label_keys=[self.task], verbose=False, raw_dir=str(data_dir))
+        qm9_kwargs = dict(
+            label_keys=[self.task], verbose=False, raw_dir=str(data_dir))
         if precompute_bases:
             bases_kwargs = dict(
                 max_degree=num_degrees - 1,
@@ -115,21 +117,27 @@ class QM9DataModule(DataModule):
 
     def prepare_data(self):
         # Download the QM9 preprocessed data
-        QM9EdgeDataset(verbose=True, raw_dir=str(self.data_dir))
+        QM9EdgeDataset(
+            verbose=True, raw_dir=str(self.data_dir))
 
     def _collate(self, samples):
         graphs, y, *bases = map(list, zip(*samples))
         batched_graph = dgl.batch(graphs)
-        edge_feats = {"0": batched_graph.edata["edge_attr"][..., None]}
-        batched_graph.edata["rel_pos"] = _get_relative_pos(batched_graph)
+        edge_feats = {
+            "0": batched_graph.edata["edge_attr"][..., None]}
+        batched_graph.edata["rel_pos"] = _get_relative_pos(
+            batched_graph)
         # get node features
-        node_feats = {"0": batched_graph.ndata["attr"][:, :6, None]}
-        targets = (torch.cat(y) - self.targets_mean) / self.targets_std
+        node_feats = {
+            "0": batched_graph.ndata["attr"][:, :6, None]}
+        targets = (torch.cat(y) -
+                   self.targets_mean) / self.targets_std
 
         if bases:
             # collate bases
             all_bases = {
-                key: torch.cat([b[key] for b in bases[0]], dim=0)
+                key: torch.cat([b[key]
+                               for b in bases[0]], dim=0)
                 for key in bases[0][0].keys()
             }
 
@@ -139,7 +147,8 @@ class QM9DataModule(DataModule):
 
     @staticmethod
     def add_argparse_args(parent_parser):
-        parser = parent_parser.add_argument_group("QM9 dataset")
+        parser = parent_parser.add_argument_group(
+            "QM9 dataset")
         parser.add_argument(
             "--task",
             type=str,
@@ -209,7 +218,8 @@ class CachedBasesQM9EdgeDataset(QM9EdgeDataset):
             shuffle=False,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            collate_fn=lambda samples: dgl.batch([sample[0] for sample in samples]),
+            collate_fn=lambda samples: dgl.batch(
+                [sample[0] for sample in samples]),
         )
         bases = []
         for i, graph in tqdm(
@@ -226,7 +236,8 @@ class CachedBasesQM9EdgeDataset(QM9EdgeDataset):
                     for k, v in get_basis(rel_pos.cuda(), **self.bases_kwargs).items()
                 }
             )
-        self.bases = bases  # Assign at the end so that __getitem__ isn't confused
+        # Assign at the end so that __getitem__ isn't confused
+        self.bases = bases
 
     def __getitem__(self, idx: int):
         graph, label = super().__getitem__(idx)
@@ -234,10 +245,12 @@ class CachedBasesQM9EdgeDataset(QM9EdgeDataset):
         if self.bases:
             bases_idx = idx // self.batch_size
             bases_cumsum_idx = (
-                self.ne_cumsum[idx] - self.ne_cumsum[bases_idx * self.batch_size]
+                self.ne_cumsum[idx] -
+                self.ne_cumsum[bases_idx * self.batch_size]
             )
             bases_cumsum_next_idx = (
-                self.ne_cumsum[idx + 1] - self.ne_cumsum[bases_idx * self.batch_size]
+                self.ne_cumsum[idx + 1] -
+                self.ne_cumsum[bases_idx * self.batch_size]
             )
             return (
                 graph,

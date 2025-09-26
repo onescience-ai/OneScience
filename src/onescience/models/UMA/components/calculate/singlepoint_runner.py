@@ -35,7 +35,8 @@ class SinglePointRunner(CalculateRunner):
         calculator: Calculator,
         input_data: AseDBDataset,
         calculate_properties: Sequence[str],
-        normalize_properties_by: dict[str, str] | None = None,
+        normalize_properties_by: dict[str,
+                                      str] | None = None,
         save_target_properties: Sequence[str] | None = None,
     ):
         """Initialize the SinglePointRunner.
@@ -70,7 +71,8 @@ class SinglePointRunner(CalculateRunner):
             list[dict[str, Any]] - List of dictionaries containing calculation results
         """
         all_results = []
-        chunk_indices = np.array_split(range(len(self.input_data)), num_jobs)[job_num]
+        chunk_indices = np.array_split(
+            range(len(self.input_data)), num_jobs)[job_num]
         for i in tqdm(chunk_indices, desc="Running singlepoint calculations"):
             atoms = self.input_data.get_atoms(i)
             results = {
@@ -82,7 +84,8 @@ class SinglePointRunner(CalculateRunner):
                 self._save_target_properties, atoms, self._normalize_properties_by
             )
             results.update(
-                {f"{key}_target": target_properties[key] for key in target_properties}
+                {f"{key}_target": target_properties[key]
+                    for key in target_properties}
             )
 
             try:
@@ -99,7 +102,8 @@ class SinglePointRunner(CalculateRunner):
                     }
                 )
             except Exception as ex:  # TODO too broad-figure out which to catch
-                results.update(dict.fromkeys(self._calculate_properties, np.nan))
+                results.update(dict.fromkeys(
+                    self._calculate_properties, np.nan))
                 results.update(
                     {
                         "errors": f"{ex!r}",
@@ -128,7 +132,8 @@ class SinglePointRunner(CalculateRunner):
         """
         results_df = pd.DataFrame(results)
         results_df.to_json(
-            os.path.join(results_dir, f"singlepoint_{num_jobs}-{job_num}.json.gz")
+            os.path.join(
+                results_dir, f"singlepoint_{num_jobs}-{job_num}.json.gz")
         )
 
     def save_state(self, checkpoint_location: str, is_preemption: bool = False) -> bool:

@@ -102,17 +102,21 @@ def extract_msa_features(
 
     # Handle empty MSA.
     if not msa_sequences:
-        empty_msa = np.array([], dtype=np.int32).reshape((0, 0))
-        empty_deletions = np.array([], dtype=np.int32).reshape((0, 0))
+        empty_msa = np.array(
+            [], dtype=np.int32).reshape((0, 0))
+        empty_deletions = np.array(
+            [], dtype=np.int32).reshape((0, 0))
         return empty_msa, empty_deletions
 
     # Get the number of rows and columns in the MSA.
     num_rows = len(msa_sequences)
-    num_cols = sum(1 for c in msa_sequences[0] if c in char_map)
+    num_cols = sum(
+        1 for c in msa_sequences[0] if c in char_map)
 
     # Initialize the output arrays.
     msa_arr = np.zeros((num_rows, num_cols), dtype=np.int32)
-    deletions_arr = np.zeros((num_rows, num_cols), dtype=np.int32)
+    deletions_arr = np.zeros(
+        (num_rows, num_cols), dtype=np.int32)
 
     # Populate the output arrays.
     for problem_row, msa_sequence in enumerate(msa_sequences):
@@ -124,15 +128,18 @@ def extract_msa_features(
             msa_id = char_map.get(current, -1)
             if msa_id == -1:
                 if not current.islower():
-                    problems.append(f"({problem_row}, {problem_col}):{current}")
+                    problems.append(
+                        f"({problem_row}, {problem_col}):{current}")
                 deletion_count += 1
             else:
                 # Check the access is safe before writing to the array.
                 # We don't need to check problem_row since it's guaranteed to be within
                 # the array bounds, while upper_count is incremented in the loop.
                 if upper_count < deletions_arr.shape[1]:
-                    deletions_arr[problem_row, upper_count] = deletion_count
-                    msa_arr[problem_row, upper_count] = msa_id
+                    deletions_arr[problem_row,
+                                  upper_count] = deletion_count
+                    msa_arr[problem_row,
+                            upper_count] = msa_id
                 deletion_count = 0
                 upper_count += 1
             problem_col += 1
@@ -184,7 +191,8 @@ def extract_species_ids(msa_descriptions: Sequence[str]) -> Sequence[str]:
     species_ids = []
     for msa_description in msa_descriptions:
         msa_description = msa_description.strip()
-        match = _UNIPROT_ENTRY_NAME_REGEX.match(msa_description)
+        match = _UNIPROT_ENTRY_NAME_REGEX.match(
+            msa_description)
         if match:
             species_ids.append(match.group("SpeciesId"))
         else:

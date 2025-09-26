@@ -114,7 +114,8 @@ def graphcast_34ch(
         path = package.get("weights.tar")
         checkpoint = torch.load(path)
         weights = checkpoint["model_state_dict"]
-        weights = _fix_state_dict_keys(weights, add_module=False)
+        weights = _fix_state_dict_keys(
+            weights, add_module=False)
         model.model.load_state_dict(weights, strict=True)
 
     return model
@@ -150,8 +151,10 @@ class _DLWPWrapper(torch.nn.Module):
         # GenerateOfflineMap --in_mesh out_latlon.g --out_mesh out_cubedsphere.g --ov_mesh overlap_latlon_cubedsphere.g --in_np 1 --in_type FV --out_type FV --out_map map_LL_CS.nc --out_format Netcdf4
         # GenerateOverlapMesh --a out_cubedsphere.g --b out_latlon.g --out overlap_cubedsphere_latlon.g --out_format Netcdf4
         # GenerateOfflineMap --in_mesh out_cubedsphere.g --out_mesh out_latlon.g --ov_mesh overlap_cubedsphere_latlon.g --in_np 1 --in_type FV --out_type FV --out_map map_CS_LL.nc --out_format Netcdf4
-        self.input_map_wts = xarray.open_dataset(ll_to_cs_mapfile_path)
-        self.output_map_wts = xarray.open_dataset(cs_to_ll_mapfile_path)
+        self.input_map_wts = xarray.open_dataset(
+            ll_to_cs_mapfile_path)
+        self.output_map_wts = xarray.open_dataset(
+            cs_to_ll_mapfile_path)
 
     def prepare_input(self, input, time):
         device = input.device
@@ -160,15 +163,18 @@ class _DLWPWrapper(torch.nn.Module):
         i = self.input_map_wts.row.values - 1
         j = self.input_map_wts.col.values - 1
         data = self.input_map_wts.S.values
-        M = torch.sparse_coo_tensor(np.array((i, j)), data).type(dtype).to(device)
+        M = torch.sparse_coo_tensor(
+            np.array((i, j)), data).type(dtype).to(device)
 
         N, T, C = input.shape[0], input.shape[1], input.shape[2]
         input = (M @ input.reshape(N * T * C, -1).T).T
         S = int((M.shape[0] / 6) ** 0.5)
         input = input.reshape(N, T, C, 6, S, S)
         input_list = list(torch.split(input, 1, dim=1))
-        input_list = [tensor.squeeze(1) for tensor in input_list]
-        repeat_vals = (input.shape[0], -1, -1, -1, -1)  # repeat along batch dimension
+        input_list = [tensor.squeeze(
+            1) for tensor in input_list]
+        # repeat along batch dimension
+        repeat_vals = (input.shape[0], -1, -1, -1, -1)
         for i in range(len(input_list)):
             tisr = np.maximum(
                 cos_zenith_angle(
@@ -188,7 +194,8 @@ class _DLWPWrapper(torch.nn.Module):
                 .unsqueeze(dim=0)
                 .unsqueeze(dim=0)
             )  # add channel and batch size dimension
-            tisr = tisr.expand(*repeat_vals)  # TODO - find better way to batch TISR
+            # TODO - find better way to batch TISR
+            tisr = tisr.expand(*repeat_vals)
             input_list[i] = torch.cat(
                 (input_list[i], tisr), dim=1
             )  # concat along channel dim
@@ -197,29 +204,36 @@ class _DLWPWrapper(torch.nn.Module):
             input_list, dim=1
         )  # concat the time dimension into channels
 
-        lsm_tensor = torch.tensor(self.lsm, dtype=dtype).to(device).unsqueeze(dim=0)
+        lsm_tensor = torch.tensor(self.lsm, dtype=dtype).to(
+            device).unsqueeze(dim=0)
         lsm_tensor = lsm_tensor.expand(*repeat_vals)
         topographic_height_tensor = (
-            torch.tensor((self.topographic_height - 3.724e03) / 8.349e03, dtype=dtype)
+            torch.tensor(
+                (self.topographic_height - 3.724e03) / 8.349e03, dtype=dtype)
             .to(device)
             .unsqueeze(dim=0)
         )
-        topographic_height_tensor = topographic_height_tensor.expand(*repeat_vals)
+        topographic_height_tensor = topographic_height_tensor.expand(
+            *repeat_vals)
 
         input_model = torch.cat(
-            (input_model, lsm_tensor, topographic_height_tensor), dim=1
+            (input_model, lsm_tensor,
+             topographic_height_tensor), dim=1
         )
         return input_model
 
     def prepare_output(self, output):
         device = output.device
         dtype = output.dtype
-        output = torch.split(output, output.shape[1] // 2, dim=1)
-        output = torch.stack(output, dim=1)  # add time dimension back in
+        output = torch.split(
+            output, output.shape[1] // 2, dim=1)
+        # add time dimension back in
+        output = torch.stack(output, dim=1)
         i = self.output_map_wts.row.values - 1
         j = self.output_map_wts.col.values - 1
         data = self.output_map_wts.S.values
-        M = torch.sparse_coo_tensor(np.array((i, j)), data).type(dtype).to(device)
+        M = torch.sparse_coo_tensor(
+            np.array((i, j)), data).type(dtype).to(device)
 
         N, T, C = output.shape[0], 2, output.shape[2]
         output = (M @ output.reshape(N * T * C, -1).T).T
@@ -235,11 +249,13 @@ class _DLWPWrapper(torch.nn.Module):
 
 def dlwp(package, pretrained=True):
     # load static datasets
-    lsm = xarray.open_dataset(package.get("land_sea_mask_rs_cs.nc"))["lsm"].values
+    lsm = xarray.open_dataset(package.get(
+        "land_sea_mask_rs_cs.nc"))["lsm"].values
     topographic_height = xarray.open_dataset(package.get("geopotential_rs_cs.nc"))[
         "z"
     ].values
-    latlon_grids = xarray.open_dataset(package.get("latlon_grid_field_rs_cs.nc"))
+    latlon_grids = xarray.open_dataset(
+        package.get("latlon_grid_field_rs_cs.nc"))
     latgrid, longrid = latlon_grids["latgrid"].values, latlon_grids["longrid"].values
 
     # load maps
@@ -249,29 +265,35 @@ def dlwp(package, pretrained=True):
     else:
         root_path = package.root
 
-    ll_to_cs_file = glob.glob(root_path + package.seperator + "map_LL*_CS*.nc")
-    cs_to_ll_file = glob.glob(root_path + package.seperator + "map_CS*_LL*.nc")
+    ll_to_cs_file = glob.glob(
+        root_path + package.seperator + "map_LL*_CS*.nc")
+    cs_to_ll_file = glob.glob(
+        root_path + package.seperator + "map_CS*_LL*.nc")
 
     if ll_to_cs_file:
         file_path = ll_to_cs_file[0]  # take the first match
         if parsed_uri.scheme == "file":
-            ll_to_cs_relative_path = file_path[len(root_path) :].lstrip(
+            ll_to_cs_relative_path = file_path[len(root_path):].lstrip(
                 package.seperator
             )
         else:
-            ll_to_cs_relative_path = file_path[len(root_path) :]
+            ll_to_cs_relative_path = file_path[len(
+                root_path):]
 
     if cs_to_ll_file:
         file_path = cs_to_ll_file[0]
         if parsed_uri.scheme == "file":
-            cs_to_ll_relative_path = file_path[len(root_path) :].lstrip(
+            cs_to_ll_relative_path = file_path[len(root_path):].lstrip(
                 package.seperator
             )
         else:
-            cs_to_ll_relative_path = file_path[len(root_path) :]
+            cs_to_ll_relative_path = file_path[len(
+                root_path):]
 
-    ll_to_cs_mapfile_path = package.get(ll_to_cs_relative_path)
-    cs_to_ll_mapfile_path = package.get(cs_to_ll_relative_path)
+    ll_to_cs_mapfile_path = package.get(
+        ll_to_cs_relative_path)
+    cs_to_ll_mapfile_path = package.get(
+        cs_to_ll_relative_path)
 
     with open(package.get("config.json")) as json_file:
         config = json.load(json_file)
@@ -283,7 +305,8 @@ def dlwp(package, pretrained=True):
         if pretrained:
             weights_path = package.get("weights.pt")
             weights = torch.load(weights_path)
-            fixed_weights = _fix_state_dict_keys(weights, add_module=False)
+            fixed_weights = _fix_state_dict_keys(
+                weights, add_module=False)
             core_model.load_state_dict(fixed_weights)
 
         model = _DLWPWrapper(

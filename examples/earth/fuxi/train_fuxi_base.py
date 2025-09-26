@@ -22,7 +22,8 @@ def main():
     )
     logger = logging.getLogger()
 
-    config_file_path = os.path.join(current_path, "conf/config.yaml")
+    config_file_path = os.path.join(
+        current_path, "conf/config.yaml")
     cfg = YParams(config_file_path, "fuxi")
     cfg["N_in_channels"] = len(cfg.channels)
     cfg["N_out_channels"] = len(cfg.channels)
@@ -33,7 +34,8 @@ def main():
     local_rank = 0
 
     if cfg.world_size > 1:
-        dist.init_process_group(backend="nccl", init_method="env://")
+        dist.init_process_group(
+            backend="nccl", init_method="env://")
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
 
@@ -65,7 +67,8 @@ def main():
     ).to(local_rank)
 
     if cfg.world_size == 1:
-        total_params = sum(p.numel() for p in fuxi_model.parameters())
+        total_params = sum(p.numel()
+                           for p in fuxi_model.parameters())
         print(
             "-" * 20,
             f"now params is {total_params}, {total_params / 1e6: .2f}M, {total_params / 1e9: .2f}B",
@@ -79,11 +82,13 @@ def main():
             find_unused_parameters=True,
         )
 
-    optimizer = optimizers.FusedAdam(fuxi_model.parameters(), lr=cfg.train_lr)
+    optimizer = optimizers.FusedAdam(
+        fuxi_model.parameters(), lr=cfg.train_lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, factor=0.2, patience=5, mode="min"
     )
-    loss_obj = LatitudeWeightedLoss(loss_type="l1", normalize=True).to(local_rank)
+    loss_obj = LatitudeWeightedLoss(
+        loss_type="l1", normalize=True).to(local_rank)
 
     os.makedirs(cfg.checkpoint_dir, exist_ok=True)
     train_loss_file = f"{cfg.checkpoint_dir}/trloss.npy"
@@ -111,12 +116,16 @@ def main():
         for j, data in enumerate(train_dataloader):
             if j == 10:
                 break
-            invar = data[0].to(local_rank, dtype=torch.float32)  # B, T, C, H, W
-            invar = invar.permute(0, 2, 1, 3, 4)  # B, C, T, H, W
-            outvar = data[1].to(local_rank, dtype=torch.float32)
+            invar = data[0].to(
+                local_rank, dtype=torch.float32)  # B, T, C, H, W
+            invar = invar.permute(
+                0, 2, 1, 3, 4)  # B, C, T, H, W
+            outvar = data[1].to(
+                local_rank, dtype=torch.float32)
 
             with replace_function(
-                fuxi_model, ["cube_embedding", "u_transformer"], cfg.world_size > 1
+                fuxi_model, [
+                    "cube_embedding", "u_transformer"], cfg.world_size > 1
             ):
                 outvar_pred = fuxi_model(invar)
 
@@ -142,9 +151,12 @@ def main():
             for j, data in enumerate(val_dataloader):
                 if j == 10:
                     break
-                invar = data[0].to(local_rank, dtype=torch.float32)  # B, T, C, H, W
-                invar = invar.permute(0, 2, 1, 3, 4)  # B, C, T, H, W
-                outvar = data[1].to(local_rank, dtype=torch.float32)
+                invar = data[0].to(
+                    local_rank, dtype=torch.float32)  # B, T, C, H, W
+                invar = invar.permute(
+                    0, 2, 1, 3, 4)  # B, C, T, H, W
+                outvar = data[1].to(
+                    local_rank, dtype=torch.float32)
                 outvar_pred = fuxi_model(invar)
                 loss = loss_obj(outvar, outvar_pred)
                 if cfg.world_size > 1:
@@ -189,8 +201,10 @@ def main():
                 f"Best loss at Epoch: {best_loss_epoch + 1}"
                 + (", saving checkpoint" if is_save_ckp else "")
             )
-            train_losses = np.append(train_losses, train_loss)
-            valid_losses = np.append(valid_losses, valid_loss)
+            train_losses = np.append(
+                train_losses, train_loss)
+            valid_losses = np.append(
+                valid_losses, valid_loss)
 
             np.save(train_loss_file, train_losses)
             np.save(valid_loss_file, valid_losses)
@@ -204,7 +218,8 @@ def main():
 def save_checkpoint(
     model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path
 ):
-    model_to_save = model.module if hasattr(model, "module") else model
+    model_to_save = model.module if hasattr(
+        model, "module") else model
     state = {
         "model_state_dict": model_to_save.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),

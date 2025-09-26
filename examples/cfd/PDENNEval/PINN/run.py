@@ -5,7 +5,8 @@ import deepxde as dde
 import yaml
 
 dde.backend.set_default_backend("pytorch")
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))
 
 
 def main(config):

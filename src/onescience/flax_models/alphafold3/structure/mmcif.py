@@ -43,7 +43,8 @@ def int_id_to_str_id(num: int) -> str:
       usual way to encode chain IDs in mmCIF files.
     """
     if num <= 0:
-        raise ValueError(f"Only positive integers allowed, got {num}.")
+        raise ValueError(
+            f"Only positive integers allowed, got {num}.")
 
     num = num - 1  # 1-based indexing.
     output = []
@@ -68,7 +69,8 @@ def str_id_to_int_id(str_id: str) -> int:
       (reverse spreadsheet style) ordering.
     """
     if not re.match("^[A-Z]+$", str_id):
-        raise ValueError(f"String ID must be upper case letters, got {str_id}.")
+        raise ValueError(
+            f"String ID must be upper case letters, got {str_id}.")
 
     offset = ord("A") - 1
     output = 0
@@ -168,7 +170,8 @@ def get_or_infer_type_symbol(
     and the CCD.
     """
     ccd = ccd or chemical_components.cached_ccd()
-    type_symbol_fn = lambda res_name, atom_name: chemical_components.type_symbol(
+
+    def type_symbol_fn(res_name, atom_name): return chemical_components.type_symbol(
         ccd, res_name, atom_name
     )
     return mmcif_atom_site.get_or_infer_type_symbol(mmcif, type_symbol_fn)
@@ -185,13 +188,15 @@ def get_chain_type_by_entity_id(mmcif: Mmcif) -> Mapping[str, str]:
     """
     poly_entity_id = mmcif.get("_entity_poly.entity_id", [])
     poly_type = mmcif.get("_entity_poly.type", [])
-    poly_type_by_entity_id = dict(zip(poly_entity_id, poly_type, strict=True))
+    poly_type_by_entity_id = dict(
+        zip(poly_entity_id, poly_type, strict=True))
 
     chain_type_by_entity_id = {}
     for entity_id, entity_type in zip(
         mmcif.get("_entity.id", []), mmcif.get("_entity.type", []), strict=True
     ):
-        chain_type = poly_type_by_entity_id.get(entity_id) or entity_type
+        chain_type = poly_type_by_entity_id.get(
+            entity_id) or entity_type
         chain_type_by_entity_id[entity_id] = chain_type
 
     return chain_type_by_entity_id
@@ -282,10 +287,12 @@ def parse_oper_expr(oper_expression: str) -> list[tuple[str, ...]]:
     # Expand ranges, e.g. 1-4 -> 1,2,3,4.
     def range_expander(match):
         return ",".join(
-            [str(i) for i in range(int(match.group(1)), int(match.group(2)) + 1)]
+            [str(i) for i in range(
+                int(match.group(1)), int(match.group(2)) + 1)]
         )
 
-    ranges_expanded = re.sub(r"\b(\d+)-(\d+)", range_expander, oper_expression)
+    ranges_expanded = re.sub(
+        r"\b(\d+)-(\d+)", range_expander, oper_expression)
 
     if re.fullmatch(r"(\w+,)*\w+", ranges_expanded):
         # No brackets, just a single range, e.g. "1,2,3".
@@ -298,7 +305,8 @@ def parse_oper_expr(oper_expression: str) -> list[tuple[str, ...]]:
         part1, part2 = ranges_expanded[1:-1].split(")(")
         return list(itertools.product(part1.split(","), part2.split(",")))
     else:
-        raise ValueError(f"Unsupported oper_expression format: {oper_expression}")
+        raise ValueError(
+            f"Unsupported oper_expression format: {oper_expression}")
 
 
 def format_float_array(values: np.ndarray, num_decimal_places: int) -> Sequence[str]:
@@ -318,7 +326,8 @@ def format_float_array(values: np.ndarray, num_decimal_places: int) -> Sequence[
       A list of formatted strings.
     """
     if values.ndim != 1:
-        raise ValueError(f"The given array must be 1D, got {values.ndim}D")
+        raise ValueError(
+            f"The given array must be 1D, got {values.ndim}D")
 
     return string_array.format_float_array(
         values=values.astype(np.float32), num_decimal_places=num_decimal_places

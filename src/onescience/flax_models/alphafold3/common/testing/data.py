@@ -26,7 +26,8 @@ class Data:
             set, this will return the absolute path to the data directory.
         """
         data_dir_path = (
-            pathlib.Path(absltest.get_default_test_srcdir()) / self._data_dir
+            pathlib.Path(
+                absltest.get_default_test_srcdir()) / self._data_dir
         )
 
         if data_name:

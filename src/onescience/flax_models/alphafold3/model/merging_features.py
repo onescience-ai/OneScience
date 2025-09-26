@@ -32,13 +32,15 @@ def _pad_features_to_max(feat_name: str, chains: list[BatchDict], axis: int):
     Returns:
       A list of features, all with the same size on the given axis.
     """
-    max_num_seq = np.max([chain[feat_name].shape[axis] for chain in chains])
+    max_num_seq = np.max(
+        [chain[feat_name].shape[axis] for chain in chains])
 
     padded_feats = []
     for chain in chains:
         feat = chain[feat_name]
 
-        padding = np.zeros_like(feat.shape)  # pytype: disable=attribute-error
+        # pytype: disable=attribute-error
+        padding = np.zeros_like(feat.shape)
         padding[axis] = (
             max_num_seq - feat.shape[axis]
         )  # pytype: disable=attribute-error
@@ -64,7 +66,8 @@ def merge_msa_features(feat_name: str, chains: list[BatchDict]) -> np.ndarray:
     else:
         # Since each MSA can be of different lengths, we first need to pad them
         # all to the size of the largest MSA before concatenating.
-        padded_feats = _pad_features_to_max(feat_name, chains, axis=0)
+        padded_feats = _pad_features_to_max(
+            feat_name, chains, axis=0)
         return np.concatenate(padded_feats, axis=1)
 
 
@@ -76,7 +79,8 @@ def merge_paired_and_unpaired_msa(example: BatchDict) -> BatchDict:
         if feature_name in example and feature_name + "_all_seq" in example:
             feat = example[feature_name]
             feat_all_seq = example[feature_name + "_all_seq"]
-            merged_feat = np.concatenate([feat_all_seq, feat], axis=0)
+            merged_feat = np.concatenate(
+                [feat_all_seq, feat], axis=0)
             new_example[feature_name] = merged_feat
 
     new_example["num_alignments"] = np.array(

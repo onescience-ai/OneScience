@@ -11,8 +11,10 @@ from onescience.models.layers.Embedding import timestep_embedding, unified_pos_e
 class PoolingReducer(nn.Module):
     def __init__(self, in_dim, hidden_dim, out_dim):
         super().__init__()
-        self.to_in = nn.Linear(in_dim, hidden_dim, bias=False)
-        self.out_ffn = PreNorm(in_dim, MLP(hidden_dim, hidden_dim, out_dim))
+        self.to_in = nn.Linear(
+            in_dim, hidden_dim, bias=False)
+        self.out_ffn = PreNorm(in_dim, MLP(
+            hidden_dim, hidden_dim, out_dim))
 
     def forward(self, x):
         # x: b nx ... c
@@ -31,18 +33,22 @@ class FactAttnWeight(nn.Module):
         self.scale = dim_head**-0.5
         self.softmax = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
-        self.to_q = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_k = nn.Linear(dim_head, dim_head, bias=False)
+        self.to_q = nn.Linear(
+            dim_head, dim_head, bias=False)
+        self.to_k = nn.Linear(
+            dim_head, dim_head, bias=False)
 
     def forward(self, x):
         # B N C
         B, N, C = x.shape
         x = (
-            x.reshape(B, N, self.heads, self.dim_head).permute(0, 2, 1, 3).contiguous()
+            x.reshape(B, N, self.heads, self.dim_head).permute(
+                0, 2, 1, 3).contiguous()
         )  # B H N C
         q = self.to_q(x)
         k = self.to_k(x)
-        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
+        dots = torch.matmul(
+            q, k.transpose(-1, -2)) * self.scale
         attn = self.softmax(dots)
         return attn
 
@@ -58,15 +64,20 @@ class FactAttention2D(nn.Module):
         self.scale = dim_head**-0.5
         self.softmax = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
-        self.attn_x = FactAttnWeight(heads, dim_head, dropout)
-        self.attn_y = FactAttnWeight(heads, dim_head, dropout)
-        self.to_v = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_x = nn.Sequential(PoolingReducer(inner_dim, inner_dim, inner_dim))
+        self.attn_x = FactAttnWeight(
+            heads, dim_head, dropout)
+        self.attn_y = FactAttnWeight(
+            heads, dim_head, dropout)
+        self.to_v = nn.Linear(
+            dim_head, dim_head, bias=False)
+        self.to_x = nn.Sequential(PoolingReducer(
+            inner_dim, inner_dim, inner_dim))
         self.to_y = nn.Sequential(
             Rearrange("b nx ny c -> b ny nx c"),
             PoolingReducer(inner_dim, inner_dim, inner_dim),
         )
-        self.to_out = nn.Sequential(nn.Linear(inner_dim, dim), nn.Dropout(dropout))
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, dim), nn.Dropout(dropout))
 
     def forward(self, x):
         # B N C
@@ -74,14 +85,18 @@ class FactAttention2D(nn.Module):
         x = x.reshape(B, self.H, self.W, C).contiguous()
         v = (
             self.to_v(
-                x.reshape(B, self.H, self.W, self.heads, self.dim_head).contiguous()
+                x.reshape(B, self.H, self.W, self.heads,
+                          self.dim_head).contiguous()
             )
             .permute(0, 3, 1, 2, 4)
             .contiguous()
         )
-        res_x = torch.einsum("bhij,bhjmc->bhimc", self.attn_x(self.to_x(x)), v)
-        res_y = torch.einsum("bhlm,bhimc->bhilc", self.attn_y(self.to_y(x)), res_x)
-        res = rearrange(res_y, "b h i l c -> b (i l) (h c)", h=self.heads)
+        res_x = torch.einsum(
+            "bhij,bhjmc->bhimc", self.attn_x(self.to_x(x)), v)
+        res_y = torch.einsum(
+            "bhlm,bhimc->bhilc", self.attn_y(self.to_y(x)), res_x)
+        res = rearrange(
+            res_y, "b h i l c -> b (i l) (h c)", h=self.heads)
         return self.to_out(res)
 
 
@@ -97,11 +112,16 @@ class FactAttention3D(nn.Module):
         self.scale = dim_head**-0.5
         self.softmax = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
-        self.attn_x = FactAttnWeight(heads, dim_head, dropout)
-        self.attn_y = FactAttnWeight(heads, dim_head, dropout)
-        self.attn_z = FactAttnWeight(heads, dim_head, dropout)
-        self.to_v = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_x = nn.Sequential(PoolingReducer(inner_dim, inner_dim, inner_dim))
+        self.attn_x = FactAttnWeight(
+            heads, dim_head, dropout)
+        self.attn_y = FactAttnWeight(
+            heads, dim_head, dropout)
+        self.attn_z = FactAttnWeight(
+            heads, dim_head, dropout)
+        self.to_v = nn.Linear(
+            dim_head, dim_head, bias=False)
+        self.to_x = nn.Sequential(PoolingReducer(
+            inner_dim, inner_dim, inner_dim))
         self.to_y = nn.Sequential(
             Rearrange("b nx ny nz c -> b ny nx nz c"),
             PoolingReducer(inner_dim, inner_dim, inner_dim),
@@ -110,12 +130,14 @@ class FactAttention3D(nn.Module):
             Rearrange("b nx ny nz c -> b nz nx ny c"),
             PoolingReducer(inner_dim, inner_dim, inner_dim),
         )
-        self.to_out = nn.Sequential(nn.Linear(inner_dim, dim), nn.Dropout(dropout))
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, dim), nn.Dropout(dropout))
 
     def forward(self, x):
         # B N C
         B, N, C = x.shape
-        x = x.reshape(B, self.H, self.W, self.D, C).contiguous()
+        x = x.reshape(B, self.H, self.W,
+                      self.D, C).contiguous()
         v = (
             self.to_v(
                 x.reshape(
@@ -126,10 +148,14 @@ class FactAttention3D(nn.Module):
             .contiguous()
         )
 
-        res_x = torch.einsum("bhij,bhjmsc->bhimsc", self.attn_x(self.to_x(x)), v)
-        res_y = torch.einsum("bhlm,bhimsc->bhilsc", self.attn_y(self.to_y(x)), res_x)
-        res_z = torch.einsum("bhrs,bhilsc->bhilrc", self.attn_z(self.to_z(x)), res_y)
-        res = rearrange(res_z, "b h i l r c -> b (i l r) (h c)", h=self.heads)
+        res_x = torch.einsum(
+            "bhij,bhjmsc->bhimsc", self.attn_x(self.to_x(x)), v)
+        res_y = torch.einsum(
+            "bhlm,bhimsc->bhilsc", self.attn_y(self.to_y(x)), res_x)
+        res_z = torch.einsum(
+            "bhrs,bhilsc->bhilrc", self.attn_z(self.to_z(x)), res_y)
+        res = rearrange(
+            res_z, "b h i l r c -> b (i l r) (h c)", h=self.heads)
         return self.to_out(res)
 
 
@@ -189,20 +215,22 @@ class Factformer_block(nn.Module):
 
 
 class Model(nn.Module):
-    ## Factformer
+    # Factformer
     def __init__(self, args, device):
         super(Model, self).__init__()
         self.__name__ = "Factformer"
         self.args = args
-        ## embedding
+        # embedding
         if args.geotype == "unstructured":
             raise ValueError(
                 "Factformer does not support unstructured geometry, please try to integrate GeoFNO layer"
             )
         if args.unified_pos:  # only for structured mesh
-            self.pos = unified_pos_embedding(args.shapelist, args.ref, device=device)
+            self.pos = unified_pos_embedding(
+                args.shapelist, args.ref, device=device)
             self.preprocess = MLP(
-                args.fun_dim + args.ref ** len(args.shapelist),
+                args.fun_dim +
+                args.ref ** len(args.shapelist),
                 args.n_hidden * 2,
                 args.n_hidden,
                 n_layers=0,
@@ -225,7 +253,7 @@ class Model(nn.Module):
                 nn.Linear(args.n_hidden, args.n_hidden),
             )
 
-        ## models
+        # models
         self.blocks = nn.ModuleList(
             [
                 Factformer_block(
@@ -243,7 +271,8 @@ class Model(nn.Module):
             ]
         )
         self.placeholder = nn.Parameter(
-            (1 / (args.n_hidden)) * torch.rand(args.n_hidden, dtype=torch.float)
+            (1 / (args.n_hidden)) *
+            torch.rand(args.n_hidden, dtype=torch.float)
         )
         self.initialize_weights()
 

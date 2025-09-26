@@ -54,25 +54,36 @@ class BaseSingleDataset(Dataset):
         self.cropping_configs = cropping_configs
         self.name = name
         # General dataset configs
-        self.ref_pos_augment = kwargs.get("ref_pos_augment", True)
-        self.lig_atom_rename = kwargs.get("lig_atom_rename", False)
+        self.ref_pos_augment = kwargs.get(
+            "ref_pos_augment", True)
+        self.lig_atom_rename = kwargs.get(
+            "lig_atom_rename", False)
         self.reassign_continuous_chain_ids = kwargs.get(
             "reassign_continuous_chain_ids", False
         )
-        self.shuffle_mols = kwargs.get("shuffle_mols", False)
-        self.shuffle_sym_ids = kwargs.get("shuffle_sym_ids", False)
+        self.shuffle_mols = kwargs.get(
+            "shuffle_mols", False)
+        self.shuffle_sym_ids = kwargs.get(
+            "shuffle_sym_ids", False)
 
         # Typically used for test sets
         self.find_pocket = kwargs.get("find_pocket", False)
-        self.find_all_pockets = kwargs.get("find_all_pockets", False)  # for dev
-        self.find_eval_chain_interface = kwargs.get("find_eval_chain_interface", False)
-        self.group_by_pdb_id = kwargs.get("group_by_pdb_id", False)  # for test set
-        self.sort_by_n_token = kwargs.get("sort_by_n_token", False)
+        self.find_all_pockets = kwargs.get(
+            "find_all_pockets", False)  # for dev
+        self.find_eval_chain_interface = kwargs.get(
+            "find_eval_chain_interface", False)
+        self.group_by_pdb_id = kwargs.get(
+            "group_by_pdb_id", False)  # for test set
+        self.sort_by_n_token = kwargs.get(
+            "sort_by_n_token", False)
 
         # Typically used for training set
-        self.random_sample_if_failed = kwargs.get("random_sample_if_failed", False)
-        self.use_reference_chains_only = kwargs.get("use_reference_chains_only", False)
-        self.is_distillation = kwargs.get("is_distillation", False)
+        self.random_sample_if_failed = kwargs.get(
+            "random_sample_if_failed", False)
+        self.use_reference_chains_only = kwargs.get(
+            "use_reference_chains_only", False)
+        self.is_distillation = kwargs.get(
+            "is_distillation", False)
 
         # Configs for data filters
         self.max_n_token = kwargs.get("max_n_token", -1)
@@ -93,7 +104,8 @@ class BaseSingleDataset(Dataset):
         self.template_featurizer = template_featurizer
 
         # Read data
-        self.indices_list = self.read_indices_list(indices_fpath)
+        self.indices_list = self.read_indices_list(
+            indices_fpath)
 
     @staticmethod
     def read_pdb_list(pdb_list: Union[list, str]) -> Optional[list]:
@@ -135,17 +147,23 @@ class BaseSingleDataset(Dataset):
         logger.info(f"#Rows in indices list: {num_data}")
         # Filter by pdb_list
         if self.pdb_list is not None:
-            pdb_filter_list = set(self.read_pdb_list(pdb_list=self.pdb_list))
-            indices_list = indices_list[indices_list["pdb_id"].isin(pdb_filter_list)]
-            logger.info(f"[filtered by pdb_list] #Rows: {len(indices_list)}")
+            pdb_filter_list = set(
+                self.read_pdb_list(pdb_list=self.pdb_list))
+            indices_list = indices_list[indices_list["pdb_id"].isin(
+                pdb_filter_list)]
+            logger.info(
+                f"[filtered by pdb_list] #Rows: {len(indices_list)}")
 
         # Filter by max_n_token
         if self.max_n_token > 0:
-            valid_mask = indices_list["num_tokens"].astype(int) <= self.max_n_token
+            valid_mask = indices_list["num_tokens"].astype(
+                int) <= self.max_n_token
             removed_list = indices_list[~valid_mask]
             indices_list = indices_list[valid_mask]
-            logger.info(f"[removed] #Rows: {len(removed_list)}")
-            logger.info(f"[removed] #PDB: {removed_list['pdb_id'].nunique()}")
+            logger.info(
+                f"[removed] #Rows: {len(removed_list)}")
+            logger.info(
+                f"[removed] #PDB: {removed_list['pdb_id'].nunique()}")
             logger.info(
                 f"[filtered by n_token ({self.max_n_token})] #Rows: {len(indices_list)}"
             )
@@ -153,13 +171,16 @@ class BaseSingleDataset(Dataset):
         # Filter by exclusion_dict
         for col_name, exclusion_list in self.exclusion_dict.items():
             cols = col_name.split("|")
-            exclusion_set = {tuple(excl.split("|")) for excl in exclusion_list}
+            exclusion_set = {
+                tuple(excl.split("|")) for excl in exclusion_list}
 
             def is_valid(row):
                 return tuple(row[col] for col in cols) not in exclusion_set
 
-            valid_mask = indices_list.apply(is_valid, axis=1)
-            indices_list = indices_list[valid_mask].reset_index(drop=True)
+            valid_mask = indices_list.apply(
+                is_valid, axis=1)
+            indices_list = indices_list[valid_mask].reset_index(
+                drop=True)
             logger.info(
                 f"[Excluded by {col_name} -- {exclusion_list}] #Rows: {len(indices_list)}"
             )
@@ -177,7 +198,8 @@ class BaseSingleDataset(Dataset):
             if self.group_by_pdb_id:
                 indices_list = sorted(
                     indices_list,
-                    key=lambda df: int(df["num_tokens"].iloc[0]),
+                    key=lambda df: int(
+                        df["num_tokens"].iloc[0]),
                     reverse=True,
                 )
             else:
@@ -219,32 +241,39 @@ class BaseSingleDataset(Dataset):
             df: A DataFrame containing the indices list.
         """
         if self.name:
-            logger.info("-" * 10 + f" Dataset {self.name}" + "-" * 10)
+            logger.info(
+                "-" * 10 + f" Dataset {self.name}" + "-" * 10)
         df["mol_group_type"] = df.apply(
             lambda row: "_".join(
                 sorted(
                     [
                         str(row["mol_1_type"]),
-                        str(row["mol_2_type"]).replace("nan", "intra"),
+                        str(row["mol_2_type"]).replace(
+                            "nan", "intra"),
                     ]
                 )
             ),
             axis=1,
         )
 
-        group_size_dict = dict(df["mol_group_type"].value_counts())
+        group_size_dict = dict(
+            df["mol_group_type"].value_counts())
         for i, n_i in group_size_dict.items():
-            logger.info(f"{i}: {n_i}/{len(df)}({round(n_i*100/len(df), 2)}%)")
+            logger.info(
+                f"{i}: {n_i}/{len(df)}({round(n_i*100/len(df), 2)}%)")
 
         logger.info("-" * 30)
         if "cluster_id" in df.columns:
             n_cluster = df["cluster_id"].nunique()
             for i in group_size_dict:
-                n_i = df[df["mol_group_type"] == i]["cluster_id"].nunique()
-                logger.info(f"{i}: {n_i}/{n_cluster}({round(n_i*100/n_cluster, 2)}%)")
+                n_i = df[df["mol_group_type"] ==
+                         i]["cluster_id"].nunique()
+                logger.info(
+                    f"{i}: {n_i}/{n_cluster}({round(n_i*100/n_cluster, 2)}%)")
             logger.info("-" * 30)
 
-        logger.info(f"Final pdb ids: {len(set(df.pdb_id.tolist()))}")
+        logger.info(
+            f"Final pdb ids: {len(set(df.pdb_id.tolist()))}")
         logger.info("-" * 30)
 
     def __len__(self) -> int:
@@ -290,9 +319,11 @@ class BaseSingleDataset(Dataset):
                 self.save_error_data(idx, error_message)
 
                 if self.random_sample_if_failed:
-                    logger.exception(f"[skip data {idx}] {error_message}")
+                    logger.exception(
+                        f"[skip data {idx}] {error_message}")
                     # Random sample an index
-                    idx = random.choice(range(len(self.indices_list)))
+                    idx = random.choice(
+                        range(len(self.indices_list)))
                     continue
                 else:
                     raise Exception(e)
@@ -327,13 +358,17 @@ class BaseSingleDataset(Dataset):
 
         def _get_contiguous_array(array):
             array_uniq = np.sort(np.unique(array))
-            map_dict = {i: idx for idx, i in enumerate(array_uniq)}
+            map_dict = {i: idx for idx,
+                        i in enumerate(array_uniq)}
             new_array = np.vectorize(map_dict.get)(array)
             return new_array
 
-        atom_array.asym_id_int = _get_contiguous_array(atom_array.asym_id_int)
-        atom_array.entity_id_int = _get_contiguous_array(atom_array.entity_id_int)
-        atom_array.sym_id_int = _get_contiguous_array(atom_array.sym_id_int)
+        atom_array.asym_id_int = _get_contiguous_array(
+            atom_array.asym_id_int)
+        atom_array.entity_id_int = _get_contiguous_array(
+            atom_array.entity_id_int)
+        atom_array.sym_id_int = _get_contiguous_array(
+            atom_array.sym_id_int)
         return atom_array
 
     @staticmethod
@@ -344,7 +379,8 @@ class BaseSingleDataset(Dataset):
         """
 
         # Get token mol_id
-        centre_atom_indices = token_array.get_annotation("centre_atom_index")
+        centre_atom_indices = token_array.get_annotation(
+            "centre_atom_index")
         token_mol_id = atom_array[centre_atom_indices].mol_id
 
         # Get unique molecule IDs and shuffle them in place
@@ -352,12 +388,14 @@ class BaseSingleDataset(Dataset):
         np.random.shuffle(shuffled_mol_ids)
 
         # Get shuffled token indices
-        original_token_indices = np.arange(len(token_mol_id))
+        original_token_indices = np.arange(
+            len(token_mol_id))
         shuffled_token_indices = []
         for mol_id in shuffled_mol_ids:
             mol_token_indices = original_token_indices[token_mol_id == mol_id]
             shuffled_token_indices.append(mol_token_indices)
-        shuffled_token_indices = np.concatenate(shuffled_token_indices)
+        shuffled_token_indices = np.concatenate(
+            shuffled_token_indices)
 
         # Get shuffled token and atom array
         # Use `CropData.select_by_token_indices` to shuffle safely
@@ -383,14 +421,16 @@ class BaseSingleDataset(Dataset):
         def _shuffle(x):
             x_unique = np.sort(np.unique(x))
             x_shuffled = x_unique.copy()
-            np.random.shuffle(x_shuffled)  # shuffle in-place
+            # shuffle in-place
+            np.random.shuffle(x_shuffled)
             map_dict = dict(zip(x_unique, x_shuffled))
             new_x = np.vectorize(map_dict.get)(x)
             return new_x.copy()
 
         for entity_id in np.unique(atom_array.label_entity_id):
             mask = atom_array.label_entity_id == entity_id
-            atom_array.sym_id_int[mask] = _shuffle(atom_array.sym_id_int[mask])
+            atom_array.sym_id_int[mask] = _shuffle(
+                atom_array.sym_id_int[mask])
         return atom_array
 
     def process_one(
@@ -414,7 +454,8 @@ class BaseSingleDataset(Dataset):
 
         if self.use_reference_chains_only:
             # Get the reference chains
-            ref_chain_ids = [sample_indice.chain_1_id, sample_indice.chain_2_id]
+            ref_chain_ids = [
+                sample_indice.chain_1_id, sample_indice.chain_2_id]
             if sample_indice.type == "chain":
                 ref_chain_ids.pop(-1)
             # Remove other chains from the bioassembly_dict
@@ -425,12 +466,14 @@ class BaseSingleDataset(Dataset):
             token_chain_id = bioassembly_dict["atom_array"][
                 token_centre_atom_indices
             ].chain_id
-            is_ref_chain = np.isin(token_chain_id, ref_chain_ids)
+            is_ref_chain = np.isin(
+                token_chain_id, ref_chain_ids)
             bioassembly_dict["token_array"], bioassembly_dict["atom_array"], _, _ = (
                 CropData.select_by_token_indices(
                     token_array=bioassembly_dict["token_array"],
                     atom_array=bioassembly_dict["atom_array"],
-                    selected_token_indices=np.arange(len(is_ref_chain))[is_ref_chain],
+                    selected_token_indices=np.arange(
+                        len(is_ref_chain))[is_ref_chain],
                 )
             )
 
@@ -499,9 +542,12 @@ class BaseSingleDataset(Dataset):
             abbr_type = abbr.get(mol_type, mol_type)
             mol_type_mask = feat[f"is_{mol_type}"].bool()
             n_atom = int(mol_type_mask.sum(dim=-1).item())
-            n_token = len(torch.unique(feat["atom_to_token_idx"][mol_type_mask]))
-            basic_info[f"N_{abbr_type}_atom"] = torch.tensor([n_atom])
-            basic_info[f"N_{abbr_type}_token"] = torch.tensor([n_token])
+            n_token = len(torch.unique(
+                feat["atom_to_token_idx"][mol_type_mask]))
+            basic_info[f"N_{abbr_type}_atom"] = torch.tensor([
+                                                             n_atom])
+            basic_info[f"N_{abbr_type}_token"] = torch.tensor([
+                                                              n_token])
 
         # Add chain level chain_id
         asymn_id_to_chain_id = {
@@ -590,10 +636,11 @@ class BaseSingleDataset(Dataset):
         if self.group_by_pdb_id:
             df = self.indices_list[idx]
         else:
-            df = self.indices_list.iloc[idx : idx + 1]
+            df = self.indices_list.iloc[idx: idx + 1]
 
         # Only consider chain/interfaces defined in EvaluationChainInterface
-        df = df[df["eval_type"].apply(lambda x: x in EvaluationChainInterface)].copy()
+        df = df[df["eval_type"].apply(
+            lambda x: x in EvaluationChainInterface)].copy()
         if len(df) < 1:
             raise ValueError(
                 f"Cannot find a chain/interface for evaluation in the PDB."
@@ -611,7 +658,8 @@ class BaseSingleDataset(Dataset):
                 return None, None
             return chain_1_mask, chain_2_mask
 
-        df["chain_1_mask"], df["chain_2_mask"] = zip(*df.apply(get_atom_mask, axis=1))
+        df["chain_1_mask"], df["chain_2_mask"] = zip(
+            *df.apply(get_atom_mask, axis=1))
         df = df[df["chain_1_mask"].notna()]  # drop NaN
 
         if len(df) < 1:
@@ -622,9 +670,11 @@ class BaseSingleDataset(Dataset):
         eval_type = np.array(df["eval_type"].tolist())
         cluster_id = np.array(df["cluster_id"].tolist())
         # [N_eval, N_atom]
-        chain_1_mask = torch.stack(df["chain_1_mask"].tolist())
+        chain_1_mask = torch.stack(
+            df["chain_1_mask"].tolist())
         # [N_eval, N_atom]
-        chain_2_mask = torch.stack(df["chain_2_mask"].tolist())
+        chain_2_mask = torch.stack(
+            df["chain_2_mask"].tolist())
 
         return eval_type, cluster_id, chain_1_mask, chain_2_mask
 
@@ -670,7 +720,8 @@ class BaseSingleDataset(Dataset):
         labels_dict = feat.get_labels()
 
         # Permutation list for atom permutation
-        features_dict["atom_perm_list"] = feat.get_atom_permutation_list()
+        features_dict["atom_perm_list"] = feat.get_atom_permutation_list(
+        )
 
         # Labels for multi-chain permutation
         # Note: the returned full_atom_array may contain fewer atoms than the input
@@ -685,15 +736,19 @@ class BaseSingleDataset(Dataset):
             # Get entity_id of the interested ligand
             sample_indice = self._get_sample_indice(idx=idx)
             if sample_indice.mol_1_type == "ligand":
-                lig_entity_id = str(sample_indice.entity_1_id)
+                lig_entity_id = str(
+                    sample_indice.entity_1_id)
                 lig_chain_id = str(sample_indice.chain_1_id)
             elif sample_indice.mol_2_type == "ligand":
-                lig_entity_id = str(sample_indice.entity_2_id)
+                lig_entity_id = str(
+                    sample_indice.entity_2_id)
                 lig_chain_id = str(sample_indice.chain_2_id)
             else:
-                raise ValueError(f"Cannot find ligand from this data point.")
+                raise ValueError(
+                    f"Cannot find ligand from this data point.")
             # Make sure the cropped array contains interested ligand
-            assert lig_entity_id in set(atom_array.label_entity_id)
+            assert lig_entity_id in set(
+                atom_array.label_entity_id)
             assert lig_chain_id in set(atom_array.chain_id)
 
             # Get asym ID of the specific ligand in the `main` pocket
@@ -709,7 +764,8 @@ class BaseSingleDataset(Dataset):
                         full_atom_array.label_entity_id == lig_entity_id
                     ].label_asym_id
                 )
-                ligands.extend(list(all_lig_asym_ids - set([lig_asym_id])))
+                ligands.extend(
+                    list(all_lig_asym_ids - set([lig_asym_id])))
 
             # Note: the `main` pocket is the 0-indexed one.
             # [N_pocket, N_atom], [N_pocket, N_atom].
@@ -729,9 +785,12 @@ class BaseSingleDataset(Dataset):
                 )
             )
             labels_dict["eval_type"] = eval_type  # [N_eval]
-            labels_dict["cluster_id"] = cluster_id  # [N_eval]
-            labels_dict["chain_1_mask"] = chain_1_mask  # [N_eval, N_atom]
-            labels_dict["chain_2_mask"] = chain_2_mask  # [N_eval, N_atom]
+            # [N_eval]
+            labels_dict["cluster_id"] = cluster_id
+            # [N_eval, N_atom]
+            labels_dict["chain_1_mask"] = chain_1_mask
+            # [N_eval, N_atom]
+            labels_dict["chain_2_mask"] = chain_2_mask
 
         # Make dummy features for not implemented features
         dummy_feats = []
@@ -743,20 +802,25 @@ class BaseSingleDataset(Dataset):
         if len(template_features) == 0:
             dummy_feats.append("template")
         else:
-            template_features = dict_to_tensor(template_features)
+            template_features = dict_to_tensor(
+                template_features)
             features_dict.update(template_features)
 
         features_dict = make_dummy_feature(
             features_dict=features_dict, dummy_feats=dummy_feats
         )
         # Transform to right data type
-        features_dict = data_type_transform(feat_or_label_dict=features_dict)
-        labels_dict = data_type_transform(feat_or_label_dict=labels_dict)
+        features_dict = data_type_transform(
+            feat_or_label_dict=features_dict)
+        labels_dict = data_type_transform(
+            feat_or_label_dict=labels_dict)
 
         # Is_distillation
-        features_dict["is_distillation"] = torch.tensor([self.is_distillation])
+        features_dict["is_distillation"] = torch.tensor(
+            [self.is_distillation])
         if self.is_distillation is True:
-            features_dict["resolution"] = torch.tensor([-1.0])
+            features_dict["resolution"] = torch.tensor(
+                [-1.0])
         return features_dict, labels_dict, label_full_dict
 
 
@@ -835,7 +899,8 @@ class WeightedMultiDataset(Dataset):
         self.datasets = datasets
         self.dataset_names = dataset_names
         self.datapoint_weights = datapoint_weights
-        self.dataset_sample_weights = torch.Tensor(dataset_sample_weights)
+        self.dataset_sample_weights = torch.Tensor(
+            dataset_sample_weights)
         self.iteration = 0
         self.offset = 0
         self.init_datasets()
@@ -851,17 +916,21 @@ class WeightedMultiDataset(Dataset):
             datapoint_weight_list,
             dataset_weight,
         ) in enumerate(
-            zip(self.datasets, self.datapoint_weights, self.dataset_sample_weights)
+            zip(self.datasets, self.datapoint_weights,
+                self.dataset_sample_weights)
         ):
             # normalize each dataset weights
             weight_sum = sum(datapoint_weight_list)
             datapoint_weight_list = [
                 dataset_weight * w / weight_sum for w in datapoint_weight_list
             ]
-            self.merged_datapoint_weights.extend(datapoint_weight_list)
+            self.merged_datapoint_weights.extend(
+                datapoint_weight_list)
             self.weight += dataset_weight
-            self.dataset_indices.extend([dataset_index] * len(datapoint_weight_list))
-            self.within_dataset_indices.extend(list(range(len(datapoint_weight_list))))
+            self.dataset_indices.extend(
+                [dataset_index] * len(datapoint_weight_list))
+            self.within_dataset_indices.extend(
+                list(range(len(datapoint_weight_list))))
         self.merged_datapoint_weights = torch.tensor(
             self.merged_datapoint_weights, dtype=torch.float64
         )
@@ -910,11 +979,13 @@ def get_weighted_pdb_weight(
     assert cluster_size > 0
     assert data_type in ["chain", "interface"]
     beta = beta_dict[data_type]
-    assert set(chain_count.keys()).issubset(set(alpha_dict.keys()))
+    assert set(chain_count.keys()).issubset(
+        set(alpha_dict.keys()))
     weight = (
         beta
         * sum(
-            [alpha * chain_count[data_mode] for data_mode, alpha in alpha_dict.items()]
+            [alpha * chain_count[data_mode]
+                for data_mode, alpha in alpha_dict.items()]
         )
         / (cluster_size + eps)
     )
@@ -944,14 +1015,16 @@ def calc_weights_for_df(
     entity_member_num_dict = {}
     for pdb_sorted_entity_id, sub_df in indices_df.groupby("pdb_sorted_entity_id"):
         # Number of repeatative entities in the same assembly
-        entity_member_num_dict[pdb_sorted_entity_id] = len(sub_df)
+        entity_member_num_dict[pdb_sorted_entity_id] = len(
+            sub_df)
     indices_df["pdb_sorted_entity_id_member_num"] = indices_df.apply(
         lambda x: entity_member_num_dict[x["pdb_sorted_entity_id"]], axis=1
     )
 
     cluster_size_record = {}
     for cluster_id, sub_df in indices_df.groupby("cluster_id"):
-        cluster_size_record[cluster_id] = len(set(sub_df["pdb_sorted_entity_id"]))
+        cluster_size_record[cluster_id] = len(
+            set(sub_df["pdb_sorted_entity_id"]))
 
     weights = []
     for _, row in indices_df.iterrows():
@@ -971,7 +1044,8 @@ def calc_weights_for_df(
             alpha_dict=alpha_dict,
         )
         weights.append(weight)
-    indices_df["weights"] = weights / indices_df["pdb_sorted_entity_id_member_num"]
+    indices_df["weights"] = weights / \
+        indices_df["pdb_sorted_entity_id_member_num"]
     return indices_df
 
 
@@ -1018,7 +1092,8 @@ def get_sample_weights(
         assert indices_df is not None
         return [1 / len(indices_df) for _ in range(len(indices_df))]
     else:
-        raise ValueError(f"Unknown sampler type: {sampler_type}")
+        raise ValueError(
+            f"Unknown sampler type: {sampler_type}")
 
 
 def get_datasets(
@@ -1051,7 +1126,8 @@ def get_datasets(
         }
 
     data_config = configs.data
-    logger.info(f"Using train sets {data_config.train_sets}")
+    logger.info(
+        f"Using train sets {data_config.train_sets}")
     assert len(data_config.train_sets) == len(
         data_config.train_sampler.train_sample_weights
     )
@@ -1065,7 +1141,8 @@ def get_datasets(
         dataset_param["ref_pos_augment"] = data_config.get(
             "train_ref_pos_augment", True
         )
-        dataset_param["limits"] = data_config.get("limits", -1)
+        dataset_param["limits"] = data_config.get(
+            "limits", -1)
         train_dataset = BaseSingleDataset(**dataset_param)
         train_datasets.append(train_dataset)
         datapoint_weights.append(
@@ -1088,7 +1165,8 @@ def get_datasets(
         dataset_param = _get_dataset_param(
             config_dict, dataset_name=test_name, stage="test"
         )
-        dataset_param["ref_pos_augment"] = data_config.get("test_ref_pos_augment", True)
+        dataset_param["ref_pos_augment"] = data_config.get(
+            "test_ref_pos_augment", True)
         test_dataset = BaseSingleDataset(**dataset_param)
         test_datasets[test_name] = test_dataset
     return train_dataset, test_datasets

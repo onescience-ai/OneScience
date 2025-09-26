@@ -18,7 +18,8 @@ class StructureDataset:
         alphabet="ACDEFGHIKLMNPQRSTVWYX",
     ):
         alphabet_set = set([a for a in alphabet])
-        discard_count = {"bad_chars": 0, "too_long": 0, "bad_seq_length": 0}
+        discard_count = {"bad_chars": 0,
+                         "too_long": 0, "bad_seq_length": 0}
 
         self.data = []
 
@@ -27,7 +28,8 @@ class StructureDataset:
             seq = entry["seq"]
             entry["name"]
 
-            bad_chars = set([s for s in seq]).difference(alphabet_set)
+            bad_chars = set([s for s in seq]).difference(
+                alphabet_set)
             if len(bad_chars) == 0:
                 if len(entry["seq"]) <= max_length:
                     self.data.append(entry)
@@ -65,7 +67,8 @@ class StructureLoader:
     ):
         self.dataset = dataset
         self.size = len(dataset)
-        self.lengths = [len(dataset[i]["seq"]) for i in range(self.size)]
+        self.lengths = [len(dataset[i]["seq"])
+                        for i in range(self.size)]
         self.batch_size = batch_size
         sorted_ix = np.argsort(self.lengths)
 
@@ -141,7 +144,8 @@ def get_std_opt(parameters, d_model, step):
         d_model,
         2,
         4000,
-        torch.optim.Adam(parameters, lr=0, betas=(0.9, 0.98), eps=1e-9),
+        torch.optim.Adam(parameters, lr=0,
+                         betas=(0.9, 0.98), eps=1e-9),
         step,
     )
 
@@ -201,7 +205,8 @@ def get_pdbs(data_loader, repeat=1, max_length=10000, num_units=1000000):
         "y",
         "z",
     ]
-    extra_alphabet = [str(item) for item in list(np.arange(300))]
+    extra_alphabet = [str(item)
+                      for item in list(np.arange(300))]
     chain_alphabet = init_alphabet + extra_alphabet
     c1 = 0
     pdb_dict_list = []
@@ -220,7 +225,8 @@ def get_pdbs(data_loader, repeat=1, max_length=10000, num_units=1000000):
                         letter = chain_alphabet[idx]
                         res = np.argwhere(t["idx"] == idx)
                         initial_sequence = "".join(
-                            list(np.array(list(t["seq"]))[res][0,])
+                            list(
+                                np.array(list(t["seq"]))[res][0,])
                         )
                         if initial_sequence[-6:] == "HHHHHH":
                             res = res[:, :-6]
@@ -246,7 +252,8 @@ def get_pdbs(data_loader, repeat=1, max_length=10000, num_units=1000000):
                             pass
                         else:
                             my_dict["seq_chain_" + letter] = "".join(
-                                list(np.array(list(t["seq"]))[res][0,])
+                                list(
+                                    np.array(list(t["seq"]))[res][0,])
                             )
                             concat_seq += my_dict["seq_chain_" + letter]
                             if idx in t["masked"]:
@@ -254,7 +261,8 @@ def get_pdbs(data_loader, repeat=1, max_length=10000, num_units=1000000):
                             else:
                                 visible_list.append(letter)
                             coords_dict_chain = {}
-                            all_atoms = np.array(t["xyz"][res,])[0,]  # [L, 14, 3]
+                            all_atoms = np.array(t["xyz"][res,])[
+                                0,]  # [L, 14, 3]
                             coords_dict_chain["N_chain_" + letter] = all_atoms[
                                 :, 0, :
                             ].tolist()
@@ -267,11 +275,13 @@ def get_pdbs(data_loader, repeat=1, max_length=10000, num_units=1000000):
                             coords_dict_chain["O_chain_" + letter] = all_atoms[
                                 :, 3, :
                             ].tolist()
-                            my_dict["coords_chain_" + letter] = coords_dict_chain
+                            my_dict["coords_chain_" +
+                                    letter] = coords_dict_chain
                     my_dict["name"] = t["label"]
                     my_dict["masked_list"] = mask_list
                     my_dict["visible_list"] = visible_list
-                    my_dict["num_of_chains"] = len(mask_list) + len(visible_list)
+                    my_dict["num_of_chains"] = len(
+                        mask_list) + len(visible_list)
                     my_dict["seq"] = concat_seq
                     if len(concat_seq) <= max_length:
                         pdb_dict_list.append(my_dict)
@@ -292,15 +302,18 @@ class PDB_dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         ID = self.IDs[index]
-        sel_idx = np.random.randint(0, len(self.train_dict[ID]))
-        out = self.loader(self.train_dict[ID][sel_idx], self.params)
+        sel_idx = np.random.randint(
+            0, len(self.train_dict[ID]))
+        out = self.loader(
+            self.train_dict[ID][sel_idx], self.params)
         return out
 
 
 def loader_pdb(item, params):
 
     pdbid, chid = item[0].split("_")
-    PREFIX = "%s/pdb/%s/%s" % (params["DIR"], pdbid[1:3], pdbid)
+    PREFIX = "%s/pdb/%s/%s" % (params["DIR"],
+                               pdbid[1:3], pdbid)
 
     # load metadata
     if not os.path.isfile(PREFIX + ".pt"):
@@ -312,7 +325,8 @@ def loader_pdb(item, params):
 
     # find candidate assemblies which contain chid chain
     asmb_candidates = set(
-        [a for a, b in zip(asmb_ids, asmb_chains) if chid in b.split(",")]
+        [a for a, b in zip(
+            asmb_ids, asmb_chains) if chid in b.split(",")]
     )
 
     # if the chains is missing is missing from all the assemblies
@@ -360,15 +374,18 @@ def loader_pdb(item, params):
         for c in chains_k:
             try:
                 xyz = chains[c]["xyz"]
-                xyz_ru = torch.einsum("bij,raj->brai", u, xyz) + r[:, None, None, :]
-                asmb.update({(c, k, i): xyz_i for i, xyz_i in enumerate(xyz_ru)})
+                xyz_ru = torch.einsum(
+                    "bij,raj->brai", u, xyz) + r[:, None, None, :]
+                asmb.update(
+                    {(c, k, i): xyz_i for i, xyz_i in enumerate(xyz_ru)})
             except KeyError:
                 return {"seq": np.zeros(5)}
 
     # select chains which share considerable similarity to chid
     seqid = meta["tm"][chids == chid][0, :, 1]
     homo = set(
-        [ch_j for seqid_j, ch_j in zip(seqid, chids) if seqid_j > params["HOMO"]]
+        [ch_j for seqid_j, ch_j in zip(
+            seqid, chids) if seqid_j > params["HOMO"]]
     )
     # stack all chains in the assembly together
     seq, xyz, idx, masked = "", [], [], []
@@ -391,8 +408,10 @@ def loader_pdb(item, params):
 
 
 def build_training_clusters(params, debug):
-    val_ids = set([int(l) for l in open(params["VAL"]).readlines()])
-    test_ids = set([int(l) for l in open(params["TEST"]).readlines()])
+    val_ids = set([int(l)
+                  for l in open(params["VAL"]).readlines()])
+    test_ids = set([int(l)
+                   for l in open(params["TEST"]).readlines()])
 
     if debug:
         val_ids = []

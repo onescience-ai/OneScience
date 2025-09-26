@@ -62,7 +62,8 @@ class NumericalVariable(Variable):
                 "Upper bound must be larger than lower bound for %s" % name
             )
         elif log and self.lower <= 0:
-            raise ValueError("Lower bound needs to be positive for log-scale")
+            raise ValueError(
+                "Lower bound needs to be positive for log-scale")
 
         if self.log:
             self._lower = np.log(self.lower)
@@ -86,7 +87,8 @@ class NumericalVariable(Variable):
         return random_state.uniform(size=size)
 
     def _transform(self, vector: np.ndarray) -> np.ndarray:
-        out = self._lower + (self._upper - self._lower) * vector
+        out = self._lower + \
+            (self._upper - self._lower) * vector
         if self.log:
             out = np.exp(out)
 
@@ -96,7 +98,8 @@ class NumericalVariable(Variable):
         if self.log:
             vector = np.log(vector)
 
-        vector = (vector - self._lower) / (self._upper - self._lower)
+        vector = (vector - self._lower) / \
+            (self._upper - self._lower)
         return np.clip(vector, 0.0, 1.0)
 
 
@@ -128,7 +131,8 @@ class IntegerVariable(Variable):
         self.lower = lower
         self.upper = upper
         self.log = log
-        self.numvar = NumericalVariable(name, self.lower, self.upper, self.log)
+        self.numvar = NumericalVariable(
+            name, self.lower, self.upper, self.log)
 
     def __repr__(self) -> str:
         repr_str = io.StringIO()
@@ -180,7 +184,8 @@ class CategoricalVariable(Variable):
 
     def __repr__(self) -> str:
         repr_str = io.StringIO()
-        repr_str.write("%s, Type: Categorical, Levels: {" % (self.name))
+        repr_str.write(
+            "%s, Type: Categorical, Levels: {" % (self.name))
         for idx, choice in enumerate(self.levels):
             repr_str.write(str(choice))
             if idx < len(self.levels) - 1:
@@ -204,7 +209,8 @@ class CategoricalVariable(Variable):
         rem = size - num_mult * self.num_levels
         if rem > 0:
             out = np.concatenate(
-                [out, random_state.choice(self.num_levels, size=rem, replace=False)]
+                [out, random_state.choice(
+                    self.num_levels, size=rem, replace=False)]
             )
 
         random_state.shuffle(out)

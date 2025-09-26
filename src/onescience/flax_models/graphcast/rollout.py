@@ -58,7 +58,8 @@ def _replicate_dataset(
             name: replicate_variable(var)
             for name, var in dataset.data_vars.variables.items()
         }
-        coords = {name: coord.variable for name, coord in dataset.coords.items()}
+        coords = {name: coord.variable for name,
+                  coord in dataset.coords.items()}
         return xarray.Dataset(data_variables, coords=coords, attrs=dataset.attrs)
 
     return replicate_dataset(data)
@@ -111,14 +112,16 @@ def chunked_prediction_generator_multiple_runs(
 
         for i in range(0, num_samples, len(pmap_devices)):
             sample_idx = slice(i, i + len(pmap_devices))
-            logging.info("Samples %s out of %s", sample_idx, num_samples)
+            logging.info("Samples %s out of %s",
+                         sample_idx, num_samples)
             logging.flush()
             sample_group_rngs = rngs[sample_idx]
 
             if "sample" not in inputs.dims:
                 sample_inputs = inputs
             else:
-                sample_inputs = inputs.isel(sample=sample_idx, drop=True)
+                sample_inputs = inputs.isel(
+                    sample=sample_idx, drop=True)
 
             sample_inputs = _replicate_dataset(
                 sample_inputs,
@@ -131,7 +134,8 @@ def chunked_prediction_generator_multiple_runs(
                 if "sample" not in forcings.dims:
                     sample_forcings = forcings
                 else:
-                    sample_forcings = forcings.isel(sample=sample_idx, drop=True)
+                    sample_forcings = forcings.isel(
+                        sample=sample_idx, drop=True)
 
                 # TODO(pricei): We are replicating the full forcings for all rollout
                 # timesteps here, rather than inside `predictor_fn_pmap_named_args` like
@@ -170,14 +174,16 @@ def chunked_prediction_generator_multiple_runs(
             this_sample_rng = rngs[i]
 
             if "sample" in inputs.dims:
-                sample_inputs = inputs.isel(sample=i, drop=True)
+                sample_inputs = inputs.isel(
+                    sample=i, drop=True)
             else:
                 sample_inputs = inputs
 
             sample_forcings = forcings
             if sample_forcings is not None:
                 if "sample" in sample_forcings.dims:
-                    sample_forcings = sample_forcings.isel(sample=i, drop=True)
+                    sample_forcings = sample_forcings.isel(
+                        sample=i, drop=True)
 
             for prediction_chunk in chunked_prediction_generator(
                 predictor_fn=predictor_fn,
@@ -284,7 +290,8 @@ def chunked_prediction_generator(
         del forcings.coords["datetime"]
 
     num_target_steps = targets_template.dims["time"]
-    num_chunks, remainder = divmod(num_target_steps, num_steps_per_chunk)
+    num_chunks, remainder = divmod(
+        num_target_steps, num_steps_per_chunk)
     if remainder != 0:
         raise ValueError(
             f"The number of steps per chunk {num_steps_per_chunk} must "
@@ -292,11 +299,13 @@ def chunked_prediction_generator(
         )
 
     if len(np.unique(np.diff(targets_template.coords["time"].data))) > 1:
-        raise ValueError("The targets time coordinates must be evenly spaced")
+        raise ValueError(
+            "The targets time coordinates must be evenly spaced")
 
     # Our template targets will always have a time axis corresponding for the
     # timedeltas for the first chunk.
-    targets_chunk_time = targets_template.time.isel(time=slice(0, num_steps_per_chunk))
+    targets_chunk_time = targets_template.time.isel(
+        time=slice(0, num_steps_per_chunk))
 
     current_inputs = inputs
 
@@ -310,17 +319,21 @@ def chunked_prediction_generator(
         return rng1, rng2
 
     if pmap_devices is not None:
-        split_rng_fn = jax.pmap(split_rng_fn, devices=pmap_devices)
+        split_rng_fn = jax.pmap(
+            split_rng_fn, devices=pmap_devices)
 
     for chunk_index in range(num_chunks):
         if verbose:
-            logging.info("Chunk %d/%d", chunk_index, num_chunks)
+            logging.info(
+                "Chunk %d/%d", chunk_index, num_chunks)
             logging.flush()
 
         # Select targets for the time period that we are predicting for this chunk.
         target_offset = num_steps_per_chunk * chunk_index
-        target_slice = slice(target_offset, target_offset + num_steps_per_chunk)
-        current_targets_template = targets_template.isel(time=target_slice)
+        target_slice = slice(
+            target_offset, target_offset + num_steps_per_chunk)
+        current_targets_template = targets_template.isel(
+            time=target_slice)
 
         # Replace the timedelta, by the one corresponding to the first chunk, so we
         # don't recompile at every iteration, keeping the
@@ -330,7 +343,8 @@ def chunked_prediction_generator(
         ).compute()
 
         current_forcings = forcings.isel(time=target_slice)
-        current_forcings = current_forcings.assign_coords(time=targets_chunk_time)
+        current_forcings = current_forcings.assign_coords(
+            time=targets_chunk_time)
         current_forcings = current_forcings.compute()
         # Make predictions for the chunk.
         rng, this_rng = split_rng_fn(rng)
@@ -349,21 +363,27 @@ def chunked_prediction_generator(
         # remove the device_get.
         if pmap_devices is not None:
             predictions = jax.device_get(predictions)
-            current_forcings = jax.device_get(current_forcings)
+            current_forcings = jax.device_get(
+                current_forcings)
             current_inputs = jax.device_get(current_inputs)
 
-        next_frame = xarray.merge([predictions, current_forcings])
+        next_frame = xarray.merge(
+            [predictions, current_forcings])
 
-        next_inputs = _get_next_inputs(current_inputs, next_frame)
+        next_inputs = _get_next_inputs(
+            current_inputs, next_frame)
 
         # Shift timedelta coordinates, so we don't recompile at every iteration.
-        next_inputs = next_inputs.assign_coords(time=current_inputs.coords["time"])
+        next_inputs = next_inputs.assign_coords(
+            time=current_inputs.coords["time"])
         current_inputs = next_inputs
 
         # At this point we can assign the actual targets time coordinates.
-        predictions = predictions.assign_coords(time=actual_target_time)
+        predictions = predictions.assign_coords(
+            time=actual_target_time)
         if output_datetime is not None:
-            predictions.coords["datetime"] = output_datetime.isel(time=target_slice)
+            predictions.coords["datetime"] = output_datetime.isel(
+                time=target_slice)
         yield predictions
         del predictions
 
@@ -385,7 +405,8 @@ def _get_next_inputs(
 
     # Keys we need to copy from predictions to inputs.
     next_inputs_keys = list(
-        set(next_frame.keys()).intersection(set(prev_inputs.keys()))
+        set(next_frame.keys()).intersection(
+            set(prev_inputs.keys()))
     )
     next_inputs = next_frame[next_inputs_keys]
 
@@ -422,11 +443,13 @@ def extend_targets_template(
     if time.shape[0] > 1:
         assert np.all(timestep == time[1:] - time[:-1])
 
-    extended_time = (np.arange(required_num_steps) + 1) * timestep
+    extended_time = (
+        np.arange(required_num_steps) + 1) * timestep
 
     if "datetime" in targets_template.coords:
         datetime = targets_template.coords["datetime"]
-        extended_datetime = (datetime[0].data - timestep) + extended_time
+        extended_datetime = (
+            datetime[0].data - timestep) + extended_time
     else:
         extended_datetime = None
 
@@ -439,7 +462,8 @@ def extend_targets_template(
         shape[dims.index("time")] = required_num_steps
         dask_data = dask.array.zeros(
             shape=tuple(shape),
-            chunks=-1,  # Will give chunk info directly to `ChunksToZarr``.
+            # Will give chunk info directly to `ChunksToZarr``.
+            chunks=-1,
             dtype=data_array.dtype,
         )
 

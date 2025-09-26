@@ -14,13 +14,16 @@ from onescience.utils.fcn.YParams import YParams
 current_path = os.getcwd()
 sys.path.append(current_path)
 
-config_file_path = os.path.join(current_path, "conf/config.yaml")
+config_file_path = os.path.join(
+    current_path, "conf/config.yaml")
 cfg = YParams(config_file_path, "fengwu")
 cfg["batch_size"] = 2
 
-test_dataset = ERA5HDF5Datapipe(params=cfg, distributed=False)
+test_dataset = ERA5HDF5Datapipe(
+    params=cfg, distributed=False)
 test_dataloader = test_dataset.test_dataloader()
-print(f"Total {len(test_dataloader) * cfg['batch_size']} samples.")
+print(
+    f"Total {len(test_dataloader) * cfg['batch_size']} samples.")
 ckpt = torch.load(
     f"{cfg.checkpoint_dir}/fengwu.pth", map_location="cuda:0", weights_only=False
 )
@@ -32,7 +35,8 @@ fengwu_model = Fengwu(
     num_heads=cfg.num_heads,
     window_size=cfg.window_size,
 ).to("cuda:0")
-fengwu_model.load_state_dict(ckpt["model_state_dict"])  # ⚠️ 你的 checkpoint key
+fengwu_model.load_state_dict(
+    ckpt["model_state_dict"])  # ⚠️ 你的 checkpoint key
 print("model loading successfully.")
 pred = []
 label = []
@@ -50,11 +54,14 @@ with torch.no_grad():
         v = invar[:, 115:152, :, :]
         t = invar[:, 152:189, :, :]
 
-        surface_p, z_p, r_p, u_p, v_p, t_p = fengwu_model(surface, z, r, u, v, t)
+        surface_p, z_p, r_p, u_p, v_p, t_p = fengwu_model(
+            surface, z, r, u, v, t)
 
-        outvar_pred = torch.concat([surface_p, z_p, r_p, u_p, v_p, t_p], dim=1)
+        outvar_pred = torch.concat(
+            [surface_p, z_p, r_p, u_p, v_p, t_p], dim=1)
 
-        print(f"infer process: {j+1}/{len(test_dataloader)}")
+        print(
+            f"infer process: {j+1}/{len(test_dataloader)}")
         pred.append(outvar_pred.cpu().numpy())
         label.append(outvar.cpu().numpy())
 

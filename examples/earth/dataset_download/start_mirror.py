@@ -14,11 +14,13 @@ from omegaconf import DictConfig
 @hydra.main(version_base="1.2", config_path="conf", config_name="config_tas")
 def main(cfg: DictConfig) -> None:
     # Make mirror data
-    logging.getLogger().setLevel(logging.ERROR)  # Suppress logging from cdsapi
+    # Suppress logging from cdsapi
+    logging.getLogger().setLevel(logging.ERROR)
     mirror = ERA5Mirror(base_path=cfg.zarr_store_path)
 
     # split the years into train, validation, and test
-    train_years = list(range(cfg.start_train_year, cfg.end_train_year + 1))
+    train_years = list(
+        range(cfg.start_train_year, cfg.end_train_year + 1))
     test_years = cfg.test_years
     out_of_sample_years = cfg.out_of_sample_years
     all_years = train_years + test_years + out_of_sample_years
@@ -31,36 +33,45 @@ def main(cfg: DictConfig) -> None:
     hours = [cfg.dt * i for i in range(0, 24 // cfg.dt)]
 
     # Start the mirror
-    zarr_paths = mirror.download(cfg.variables, date_range, hours)
+    zarr_paths = mirror.download(
+        cfg.variables, date_range, hours)
 
     # Open the zarr files and construct the xarray from them
-    zarr_arrays = [xr.open_zarr(path) for path in zarr_paths]
+    zarr_arrays = [xr.open_zarr(path)
+                   for path in zarr_paths]
     era5_xarray = xr.concat(
         [z[list(z.data_vars.keys())[0]] for z in zarr_arrays], dim="channel"
     )
-    era5_xarray = era5_xarray.transpose("time", "channel", "latitude", "longitude")
+    era5_xarray = era5_xarray.transpose(
+        "time", "channel", "latitude", "longitude")
     era5_xarray.name = "fields"
     era5_xarray = era5_xarray.astype("float32")
 
     # Save mean and std
     if cfg.compute_mean_std:
-        stats_path = os.path.join(cfg.hdf5_store_path, "stats")
+        stats_path = os.path.join(
+            cfg.hdf5_store_path, "stats")
         print(f"Saving global mean and std at {stats_path}")
         if not os.path.exists(stats_path):
             os.makedirs(stats_path)
         era5_mean = np.array(
-            era5_xarray.mean(dim=("time", "latitude", "longitude")).values
+            era5_xarray.mean(
+                dim=("time", "latitude", "longitude")).values
         )
         np.save(
-            os.path.join(stats_path, "global_means.npy"), era5_mean.reshape(1, -1, 1, 1)
+            os.path.join(stats_path, "global_means.npy"), era5_mean.reshape(
+                1, -1, 1, 1)
         )
         era5_std = np.array(
-            era5_xarray.std(dim=("time", "latitude", "longitude")).values
+            era5_xarray.std(
+                dim=("time", "latitude", "longitude")).values
         )
         np.save(
-            os.path.join(stats_path, "global_stds.npy"), era5_std.reshape(1, -1, 1, 1)
+            os.path.join(stats_path, "global_stds.npy"), era5_std.reshape(
+                1, -1, 1, 1)
         )
-        print(f"Finished saving global mean and std at {stats_path}")
+        print(
+            f"Finished saving global mean and std at {stats_path}")
 
     # Make hdf5 files
     for year in all_years:
@@ -84,10 +95,12 @@ def main(cfg: DictConfig) -> None:
         ):
             with ProgressBar():
                 # Get data for the current year
-                year_data = era5_xarray.sel(time=era5_xarray.time.dt.year == year)
+                year_data = era5_xarray.sel(
+                    time=era5_xarray.time.dt.year == year)
 
                 # Save data to a temporary local file
-                year_data.to_netcdf(hdf5_path, engine="h5netcdf", compute=True)
+                year_data.to_netcdf(
+                    hdf5_path, engine="h5netcdf", compute=True)
         print(f"Finished Saving {year} at {hdf5_path}")
 
 

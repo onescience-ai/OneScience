@@ -1,21 +1,4 @@
-import dataclasses
-import io
-import sys
-from typing import Any, Mapping, Optional
-
-import numpy as np
-from Bio.PDB import PDBParser
-
-# import MDAnalysis as mda
-# from MDAnalysis.analysis import dihedrals
-
-sys.path.append(".")
-from onescience.flax_models.protoken.common.geometry import (
-    rigids_from_3_points,
-    rigids_mul_rots,
-    rots_from_tensor_np,
-    vecs_from_tensor,
-)
+from .utils import pseudo_beta_fn_np
 from onescience.flax_models.protoken.common.residue_constants import (
     atom_order,
     atom_type_num,
@@ -29,8 +12,25 @@ from onescience.flax_models.protoken.common.residue_constants import (
     restype_order,
     restypes,
 )
+from onescience.flax_models.protoken.common.geometry import (
+    rigids_from_3_points,
+    rigids_mul_rots,
+    rots_from_tensor_np,
+    vecs_from_tensor,
+)
+import dataclasses
+import io
+import sys
+from typing import Any, Mapping, Optional
 
-from .utils import pseudo_beta_fn_np
+import numpy as np
+from Bio.PDB import PDBParser
+
+# import MDAnalysis as mda
+# from MDAnalysis.analysis import dihedrals
+
+sys.path.append(".")
+
 
 FeatureDict = Mapping[str, np.ndarray]
 ModelOutput = Mapping[str, Any]  # Is a nested dict.
@@ -65,7 +65,8 @@ def calculate_dihedral_angle_np(A, B, C, D):
             np.einsum("ij,ij->i", n1, n2)
             / (
                 np.maximum(
-                    np.linalg.norm(n1, axis=1) * np.linalg.norm(n2, axis=1), 1e-6
+                    np.linalg.norm(
+                        n1, axis=1) * np.linalg.norm(n2, axis=1), 1e-6
                 )
             ),
             -1.0,
@@ -77,14 +78,16 @@ def calculate_dihedral_angle_np(A, B, C, D):
             np.einsum("ij,ij->i", n1, n2)
             / (
                 np.maximum(
-                    np.linalg.norm(n1, axis=1) * np.linalg.norm(n2, axis=1), 1e-6
+                    np.linalg.norm(
+                        n1, axis=1) * np.linalg.norm(n2, axis=1), 1e-6
                 )
             ),
             -1.0,
             1.0,
         )
     )
-    angles = np.where(mask, angles_candidate_1, angles_candidate_2)
+    angles = np.where(
+        mask, angles_candidate_1, angles_candidate_2)
     return angles
 
 
@@ -94,7 +97,8 @@ class Protein:
 
     # Cartesian coordinates of atoms in angstroms. The atom types correspond to
     # residue_constants.atom_types, i.e. the first three are N, CA, CB.
-    atom_positions: np.ndarray  # [num_res, num_atom_type, 3]
+    # [num_res, num_atom_type, 3]
+    atom_positions: np.ndarray
 
     # Amino-acid type for each residue represented as an integer between 0 and
     # 20, where 20 is 'X'.
@@ -162,7 +166,8 @@ def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> Protein:
                 f"index {res.id[1]}. These are not supported."
             )
         res_shortname = restype_3to1.get(res.resname, "X")
-        restype_idx = restype_order.get(res_shortname, restype_num)
+        restype_idx = restype_order.get(
+            res_shortname, restype_num)
         pos = np.zeros((atom_type_num, 3))
         mask = np.zeros((atom_type_num,))
         res_b_factors = np.zeros((atom_type_num,))
@@ -171,7 +176,8 @@ def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> Protein:
                 continue
             pos[atom_order[atom.name]] = atom.coord
             mask[atom_order[atom.name]] = 1.0
-            res_b_factors[atom_order[atom.name]] = atom.bfactor
+            res_b_factors[atom_order[atom.name]
+                          ] = atom.bfactor
         if np.sum(mask) < 0.5:
             # If no known atom positions are reported for the residue then skip it.
             continue
@@ -248,7 +254,8 @@ def protoken_basic_generator(
         crop_mode = True
         CROP_LEN = NUM_RES
         NUM_RES = seq_len
-        crop_start_idx = np.random.randint(0, seq_len - CROP_LEN + 1)
+        crop_start_idx = np.random.randint(
+            0, seq_len - CROP_LEN + 1)
         crop_end_idx = crop_start_idx + CROP_LEN
         if crop_start_idx_preset is not None:
             crop_start_idx = crop_start_idx_preset
@@ -260,14 +267,16 @@ def protoken_basic_generator(
     if not crop_mode:
         crop_start_idx = 0
 
-    ### create input features:
+    # create input features:
     # seq_mask & aatype & residue_index
     input_features_nopad = {}
     input_features_nopad["aatype"] = aatype
-    input_features_nopad["seq_mask"] = np.ones(aatype.shape, dtype=np.float32)
+    input_features_nopad["seq_mask"] = np.ones(
+        aatype.shape, dtype=np.float32)
     input_features_nopad["residue_index"] = residue_index
     # backbone_affine_tensor
-    atom37_positions = prot_pdb.atom_positions.astype(np.float32)
+    atom37_positions = prot_pdb.atom_positions.astype(
+        np.float32)
     atom37_mask = prot_pdb.atom_mask.astype(np.float32)
     backbone_affine_tensor = atom37_to_backbone_affine_tensor_np(
         aatype, atom37_positions, atom37_mask
@@ -275,18 +284,24 @@ def protoken_basic_generator(
     input_features_nopad["backbone_affine_tensor"] = backbone_affine_tensor
     # backbone_affine_tensor_label
     aatype_label = prot_pdb_label.aatype
-    atom37_positions_label = prot_pdb_label.atom_positions.astype(np.float32)
-    atom37_mask_label = prot_pdb_label.atom_mask.astype(np.float32)
+    atom37_positions_label = prot_pdb_label.atom_positions.astype(
+        np.float32)
+    atom37_mask_label = prot_pdb_label.atom_mask.astype(
+        np.float32)
     backbone_affine_tensor_label = atom37_to_backbone_affine_tensor_np(
         aatype_label, atom37_positions_label, atom37_mask_label
     )
     input_features_nopad["backbone_affine_tensor_label"] = backbone_affine_tensor_label
     # template_all_atom_masks & template_all_atom_positions
     fake_aatype = np.ones(aatype.shape, dtype=np.int64) * 7
-    "".join([order_restype_with_x_and_gap[x] for x in fake_aatype])
-    GLY_MASK_ATOM37 = np.array([1, 1, 1, 0, 1] + [0] * 32).astype(np.float32)
-    fake_atom37_positions = atom37_positions * GLY_MASK_ATOM37.reshape(1, -1, 1)
-    fake_atom37_mask = atom37_mask * GLY_MASK_ATOM37.reshape(1, -1)
+    "".join([order_restype_with_x_and_gap[x]
+            for x in fake_aatype])
+    GLY_MASK_ATOM37 = np.array(
+        [1, 1, 1, 0, 1] + [0] * 32).astype(np.float32)
+    fake_atom37_positions = atom37_positions * \
+        GLY_MASK_ATOM37.reshape(1, -1, 1)
+    fake_atom37_mask = atom37_mask * \
+        GLY_MASK_ATOM37.reshape(1, -1)
     GLY_MASK_ATOM14 = np.array(
         [
             1,
@@ -311,19 +326,22 @@ def protoken_basic_generator(
 
     # torsion_angles_sin_cos, torsion_angles_mask
     # angle_sin_cos, anlge_mask = get_angle_sin_cos(pdb_path)
-    angle_sin_cos, anlge_mask = get_ppo_angles_sin_cos(fake_atom37_positions)
+    angle_sin_cos, anlge_mask = get_ppo_angles_sin_cos(
+        fake_atom37_positions)
     input_features_nopad["torsion_angles_sin_cos"] = angle_sin_cos
     input_features_nopad["torsion_angles_mask"] = anlge_mask
 
     # dist_gt_perms, dist_mask_perms, perms_padding_mask
-    ca_coord_label = atom37_positions_label[:, 1, :].reshape(-1, 3)
+    ca_coord_label = atom37_positions_label[:,
+                                            1, :].reshape(-1, 3)
     ca_coord_pad_label = np.pad(
         ca_coord_label,
         ((0, NUM_RES - ca_coord_label.shape[0]), (0, 0)),
         "constant",
         constant_values=0,
     )
-    ca_coord_pad_label = ca_coord_pad_label[None, ...]  # (1, NUM_RES, 3)
+    # (1, NUM_RES, 3)
+    ca_coord_pad_label = ca_coord_pad_label[None, ...]
 
     # dist_mtx_mask_label = np.asarray(np.sum(ca_coord_pad_label, axis=-1) != 0, dtype=np.float32)
     # dist_mtx_mask_2d_label = dist_mtx_mask_label[:,None] * dist_mtx_mask_label[None,:]
@@ -399,7 +417,8 @@ def protoken_basic_generator(
             "perms_padding_mask"
         ]
     # input_feature_list = [input_features_pad[x] for x in protoken_feature_content]
-    input_feature_dict = {x: input_features_pad[x] for x in protoken_feature_content}
+    input_feature_dict = {
+        x: input_features_pad[x] for x in protoken_feature_content}
     return input_feature_dict, crop_start_idx, seq_len
 
 
@@ -511,25 +530,36 @@ def get_ppo_angles_sin_cos(atom37_positions):
     ca_pos = atom37_positions[:, 1, :]
     c_pos = atom37_positions[:, 2, :]
     # phi: CA(n), C(n), N(n), CA(n+1)
-    a1, a2, a3, a4 = c_pos[:-1], n_pos[1:], ca_pos[1:], c_pos[1:]
-    phi_angle_values = calculate_dihedral_angle_np(a1, a2, a3, a4)
-    phi_angle_values = np.concatenate([np.zeros(1), phi_angle_values])
+    a1, a2, a3, a4 = c_pos[:-
+                           1], n_pos[1:], ca_pos[1:], c_pos[1:]
+    phi_angle_values = calculate_dihedral_angle_np(
+        a1, a2, a3, a4)
+    phi_angle_values = np.concatenate(
+        [np.zeros(1), phi_angle_values])
     # psi: N(n), CA(n), C(n), N(n+1)
-    a1, a2, a3, a4 = n_pos[:-1], ca_pos[:-1], c_pos[:-1], n_pos[1:]
-    psi_angle_values = calculate_dihedral_angle_np(a1, a2, a3, a4)
-    psi_angle_values = np.concatenate([psi_angle_values, np.zeros(1)])
+    a1, a2, a3, a4 = n_pos[:-
+                           1], ca_pos[:-1], c_pos[:-1], n_pos[1:]
+    psi_angle_values = calculate_dihedral_angle_np(
+        a1, a2, a3, a4)
+    psi_angle_values = np.concatenate(
+        [psi_angle_values, np.zeros(1)])
     # omega: CA(n), C(n+1), N(n+1), CA(n+1)
-    a1, a2, a3, a4 = ca_pos[:-1], c_pos[:-1], n_pos[1:], ca_pos[1:]
-    omega_angle_values = calculate_dihedral_angle_np(a1, a2, a3, a4)
-    omega_angle_values = np.concatenate([omega_angle_values, np.zeros(1)])
+    a1, a2, a3, a4 = ca_pos[:-
+                            1], c_pos[:-1], n_pos[1:], ca_pos[1:]
+    omega_angle_values = calculate_dihedral_angle_np(
+        a1, a2, a3, a4)
+    omega_angle_values = np.concatenate(
+        [omega_angle_values, np.zeros(1)])
 
     ppo_angle_tensor = np.stack(
-        [phi_angle_values, psi_angle_values, omega_angle_values], axis=1
+        [phi_angle_values, psi_angle_values,
+            omega_angle_values], axis=1
     )
     ppo_angle_sin_cos = np.concatenate(
         [np.sin(ppo_angle_tensor), np.cos(ppo_angle_tensor)], axis=1
     )
-    ppo_anlge_mask = np.ones(ppo_angle_tensor.shape, dtype=np.int32)
+    ppo_anlge_mask = np.ones(
+        ppo_angle_tensor.shape, dtype=np.int32)
     ppo_anlge_mask[0, 0] = 0
     ppo_anlge_mask[-1, 1] = 0
     ppo_anlge_mask[-1, 2] = 0
@@ -543,10 +573,12 @@ def atom37_to_backbone_affine_tensor_np(
 ):
     r""" """
     flat_aatype = np.reshape(aatype, [-1])
-    all_atom_positions = np.reshape(all_atom_positions, [-1, 37, 3])
+    all_atom_positions = np.reshape(
+        all_atom_positions, [-1, 37, 3])
     all_atom_mask = np.reshape(all_atom_mask, [-1, 37])
 
-    rigid_group_names_res = np.full([21, 8, 3], "", dtype=object)
+    rigid_group_names_res = np.full(
+        [21, 8, 3], "", dtype=object)
 
     # group 0: backbone frame
     rigid_group_names_res[:, 0, :] = ["C", "CA", "N"]
@@ -560,7 +592,8 @@ def atom37_to_backbone_affine_tensor_np(
         for chi_idx in range(4):
             if chi_angles_mask[restype][chi_idx]:
                 atom_names = chi_angles_atoms[restype_name][chi_idx]
-                rigid_group_names_res[restype, chi_idx + 4, :] = atom_names[1:]
+                rigid_group_names_res[restype,
+                                      chi_idx + 4, :] = atom_names[1:]
 
     lookup_table = atom_order.copy()
     lookup_table[""] = 0
@@ -577,23 +610,29 @@ def atom37_to_backbone_affine_tensor_np(
     )
 
     gt_frames = rigids_from_3_points(
-        point_on_neg_x_axis=vecs_from_tensor(base_atom_pos[:, :, 0, :]),
+        point_on_neg_x_axis=vecs_from_tensor(
+            base_atom_pos[:, :, 0, :]),
         origin=vecs_from_tensor(base_atom_pos[:, :, 1, :]),
-        point_on_xy_plane=vecs_from_tensor(base_atom_pos[:, :, 2, :]),
+        point_on_xy_plane=vecs_from_tensor(
+            base_atom_pos[:, :, 2, :]),
     )
 
-    rotations = np.tile(np.eye(3, dtype=np.float32), [8, 1, 1])
+    rotations = np.tile(
+        np.eye(3, dtype=np.float32), [8, 1, 1])
     rotations[0, 0, 0] = -1
     rotations[0, 2, 2] = -1
-    gt_frames = rigids_mul_rots(gt_frames, rots_from_tensor_np(rotations))
+    gt_frames = rigids_mul_rots(
+        gt_frames, rots_from_tensor_np(rotations))
 
     rotation = [
         [gt_frames[0][0], gt_frames[0][1], gt_frames[0][2]],
         [gt_frames[0][3], gt_frames[0][4], gt_frames[0][5]],
         [gt_frames[0][6], gt_frames[0][7], gt_frames[0][8]],
     ]
-    translation = [gt_frames[1][0], gt_frames[1][1], gt_frames[1][2]]
-    backbone_affine_tensor = to_tensor(rotation, translation)[:, 0, :]
+    translation = [gt_frames[1][0],
+                   gt_frames[1][1], gt_frames[1][2]]
+    backbone_affine_tensor = to_tensor(
+        rotation, translation)[:, 0, :]
     return backbone_affine_tensor
 
 
@@ -608,7 +647,8 @@ def to_tensor(rotation, translation):
 def rot_to_quat(rot, unstack_inputs=False):
     """transfer the rotation matrix to quaternion matrix"""
     if unstack_inputs:
-        rot = [np.moveaxis(x, -1, 0) for x in np.moveaxis(rot, -2, 0)]
+        rot = [np.moveaxis(x, -1, 0)
+               for x in np.moveaxis(rot, -2, 0)]
     [[xx, xy, xz], [yx, yy, yz], [zx, zy, zz]] = rot
 
     k = [
@@ -618,7 +658,8 @@ def rot_to_quat(rot, unstack_inputs=False):
         [yx - xy, xz + zx, yz + zy, zz - xx - yy],
     ]
 
-    k = (1.0 / 3.0) * np.stack([np.stack(x, axis=-1) for x in k], axis=-2)
+    k = (1.0 / 3.0) * \
+        np.stack([np.stack(x, axis=-1) for x in k], axis=-2)
     # compute eigenvalues
     _, qs = np.linalg.eigh(k)
     return qs[..., -1]
@@ -626,7 +667,7 @@ def rot_to_quat(rot, unstack_inputs=False):
 
 def gather(params, indices, axis=0):
     """gather operation"""
-    func = lambda p, i: np.take(p, i, axis=axis)
+    def func(p, i): return np.take(p, i, axis=axis)
     return func(params, indices)
 
 
@@ -637,10 +678,13 @@ def np_gather_ops(params, indices, axis=0, batch_dims=0, is_multimer=False):
         ranges = []
         for i, s in enumerate(params.shape[:batch_dims]):
             r = np.arange(s)
-            r = np.resize(r, (1,) * i + r.shape + (1,) * (len(indices.shape) - i - 1))
+            r = np.resize(
+                r, (1,) * i + r.shape + (1,) * (len(indices.shape) - i - 1))
             ranges.append(r)
-        remaining_dims = [slice(None) for _ in range(len(params.shape) - batch_dims)]
-        remaining_dims[axis - batch_dims if axis >= 0 else axis] = indices
+        remaining_dims = [slice(None) for _ in range(
+            len(params.shape) - batch_dims)]
+        remaining_dims[axis - batch_dims if axis >=
+                       0 else axis] = indices
         ranges.extend(remaining_dims)
         return params[tuple(ranges)]
 

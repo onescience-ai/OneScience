@@ -39,10 +39,13 @@ def load_predict_unit(
 
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        logging.warning(f"device was not explicitly set, using {device=}.")
+        logging.warning(
+            f"device was not explicitly set, using {device=}.")
 
-    inference_settings = guess_inference_settings(inference_settings)
-    overrides = overrides or {"backbone": {"always_use_pbc": False}}
+    inference_settings = guess_inference_settings(
+        inference_settings)
+    overrides = overrides or {
+        "backbone": {"always_use_pbc": False}}
 
     return MLIPPredictUnit(
         path,

@@ -58,9 +58,11 @@ def inference_pipeline():
                 rng_key (Any): Updated random number generator key.
         """
 
-        print(f"Search step {step_it + 1}/{search_config.search_steps}")
+        print(
+            f"Search step {step_it + 1}/{search_config.search_steps}")
 
-        decoder_dict = decoder_function(x, cached)  # x : (1024, 16, 32)
+        decoder_dict = decoder_function(
+            x, cached)  # x : (1024, 16, 32)
         decode_molecules = decoder_dict[
             "decode_molecules"
         ]  # decode_molecules : dict_keys(['graphs', 'smiles'])
@@ -80,7 +82,8 @@ def inference_pipeline():
         choiced_molecules = choiced_dict["choiced_molecules"]
         cached = choiced_dict["cached"]
 
-        en_dict = vae_encoder(step_it, choiced_molecules, rng_key, config, cached)
+        en_dict = vae_encoder(
+            step_it, choiced_molecules, rng_key, config, cached)
 
         encoded_x = en_dict["x_out"]  # (1024, 16, 32)
         cached = en_dict["cached"]
@@ -95,7 +98,8 @@ def inference_pipeline():
     rng_key = init_molecule_dict["rng_key"]
 
     for step_it in range(search_config.search_steps):
-        x, cached, rng_key = inference_step(step_it, x, cached, rng_key, search_config)
+        x, cached, rng_key = inference_step(
+            step_it, x, cached, rng_key, search_config)
 
     _, cached = af_encoder_funciton(x, cached)
     save_results(cached)

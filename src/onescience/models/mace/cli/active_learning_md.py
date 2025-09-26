@@ -17,17 +17,22 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--config", help="path to XYZ configurations", required=True)
+    parser.add_argument(
+        "--config", help="path to XYZ configurations", required=True)
     parser.add_argument(
         "--config_index", help="index of configuration", type=int, default=-1
     )
     parser.add_argument(
         "--error_threshold", help="error threshold", type=float, default=0.1
     )
-    parser.add_argument("--temperature_K", help="temperature", type=float, default=300)
-    parser.add_argument("--friction", help="friction", type=float, default=0.01)
-    parser.add_argument("--timestep", help="timestep", type=float, default=1)
-    parser.add_argument("--nsteps", help="number of steps", type=int, default=1000)
+    parser.add_argument(
+        "--temperature_K", help="temperature", type=float, default=300)
+    parser.add_argument(
+        "--friction", help="friction", type=float, default=0.01)
+    parser.add_argument(
+        "--timestep", help="timestep", type=float, default=1)
+    parser.add_argument(
+        "--nsteps", help="number of steps", type=int, default=1000)
     parser.add_argument(
         "--nprint", help="number of steps between prints", type=int, default=10
     )
@@ -44,7 +49,8 @@ def parse_args() -> argparse.Namespace:
         "(`mace_*.model` to load mace_1.model, mace_2.model) ",
         required=True,
     )
-    parser.add_argument("--output", help="output path", required=True)
+    parser.add_argument(
+        "--output", help="output path", required=True)
     parser.add_argument(
         "--device",
         help="select device",
@@ -74,7 +80,8 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def printenergy(dyn, start_time=None):  # store a reference to atoms in the definition.
+# store a reference to atoms in the definition.
+def printenergy(dyn, start_time=None):
     """Function to print the potential, kinetic and total energy."""
     a = dyn.atoms
     epot = a.get_potential_energy() / len(a)
@@ -83,7 +90,8 @@ def printenergy(dyn, start_time=None):  # store a reference to atoms in the defi
         elapsed_time = 0
     else:
         elapsed_time = time.time() - start_time
-    forces_var = np.var(a.calc.results["forces_comm"], axis=0)
+    forces_var = np.var(
+        a.calc.results["forces_comm"], axis=0)
     print(
         "%.1fs: Energy per atom: Epot = %.3feV  Ekin = %.3feV (T=%3.0fK)  "  # pylint: disable=C0209
         "Etot = %.3feV t=%.1ffs Eerr = %.3feV Ferr = %.3feV/A"
@@ -125,7 +133,8 @@ def save_config(dyn, fname):
 
 def stop_error(dyn, threshold, reg=0.2):
     atomsi = dyn.atoms
-    force_var = np.var(atomsi.calc.results["forces_comm"], axis=0)
+    force_var = np.var(
+        atomsi.calc.results["forces_comm"], axis=0)
     force = atomsi.get_forces()
     ferr = np.sqrt(np.sum(force_var, axis=1))
     ferr_rel = ferr / (np.linalg.norm(force, axis=1) + reg)
@@ -162,11 +171,13 @@ def run(args: argparse.Namespace) -> None:
         print("Trajectory exists. Continuing from last step.")
         atoms = ase.io.read(args.output, index=-1)
         len_save = len(ase.io.read(args.output, ":"))
-        print("Last step: ", atoms.info["time"], "Number of configs: ", len_save)
+        print("Last step: ",
+              atoms.info["time"], "Number of configs: ", len_save)
         NSTEPS -= len_save * args.nsave
     else:
         atoms = ase.io.read(atoms_fname, index=atoms_index)
-        MaxwellBoltzmannDistribution(atoms, temperature_K=args.temperature_K)
+        MaxwellBoltzmannDistribution(
+            atoms, temperature_K=args.temperature_K)
 
     atoms.calc = mace_calc
 
@@ -180,8 +191,10 @@ def run(args: argparse.Namespace) -> None:
         friction=args.friction,
     )
 
-    dyn.attach(printenergy, interval=args.nsave, dyn=dyn, start_time=time.time())
-    dyn.attach(save_config, interval=args.nsave, dyn=dyn, fname=args.output)
+    dyn.attach(printenergy, interval=args.nsave,
+               dyn=dyn, start_time=time.time())
+    dyn.attach(save_config, interval=args.nsave,
+               dyn=dyn, fname=args.output)
     dyn.attach(
         stop_error, interval=args.ncheckerror, dyn=dyn, threshold=args.error_threshold
     )

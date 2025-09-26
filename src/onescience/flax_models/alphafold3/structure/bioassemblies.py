@@ -50,7 +50,8 @@ def _get_operation(oper_data: Mapping[str, str]) -> Operation:
     trans = np.zeros((3,), dtype=np.float32)
     rot = np.zeros((3, 3), dtype=np.float32)
     for i in range(3):
-        trans[i] = float(oper_data[f"_pdbx_struct_oper_list.vector[{i + 1}]"])
+        trans[i] = float(
+            oper_data[f"_pdbx_struct_oper_list.vector[{i + 1}]"])
     for i in range(3):
         for j in range(3):
             rot[i][j] = float(
@@ -108,7 +109,8 @@ class BioassemblyData:
         for assembly_id in assembly_ids:
             for table, table_name in (
                 (pdbx_struct_assembly, "_pdbx_struct_assembly"),
-                (pdbx_struct_assembly_gen, "_pdbx_struct_assembly_gen"),
+                (pdbx_struct_assembly_gen,
+                 "_pdbx_struct_assembly_gen"),
             ):
                 if assembly_id not in table:
                     raise ValueError(
@@ -216,16 +218,20 @@ class BioassemblyData:
         all_chain_ids = set()
         for row in self._pdbx_struct_assembly_gen[assembly_id]:
             oper_expression = row["_pdbx_struct_assembly_gen.oper_expression"]
-            parsed_oper_id_seqs = mmcif.parse_oper_expr(oper_expression)
-            label_asym_ids = row["_pdbx_struct_assembly_gen.asym_id_list"].split(",")
+            parsed_oper_id_seqs = mmcif.parse_oper_expr(
+                oper_expression)
+            label_asym_ids = row["_pdbx_struct_assembly_gen.asym_id_list"].split(
+                ",")
             all_chain_ids |= set(label_asym_ids)
             for parsed_oper_id_seq in parsed_oper_id_seqs:
-                partial_transforms.append((parsed_oper_id_seq, label_asym_ids))
+                partial_transforms.append(
+                    (parsed_oper_id_seq, label_asym_ids))
 
         # We start assigning new chain IDs by finding the largest chain ID in
         # the original structure that is involved in this bioassembly, and then
         # starting from the next one.
-        max_int_chain_id = max(mmcif.str_id_to_int_id(c) for c in all_chain_ids)
+        max_int_chain_id = max(
+            mmcif.str_id_to_int_id(c) for c in all_chain_ids)
         next_int_chain_id = max_int_chain_id + 1
 
         transforms = []
@@ -262,13 +268,16 @@ class BioassemblyData:
         mmcif_dict = {}
         for assembly_id in self._assembly_ids:
             for column, val in self._pdbx_struct_assembly[assembly_id].items():
-                mmcif_dict.setdefault(column, []).append(val)
+                mmcif_dict.setdefault(
+                    column, []).append(val)
             for row in self._pdbx_struct_assembly_gen[assembly_id]:
                 for column, val in row.items():
-                    mmcif_dict.setdefault(column, []).append(val)
+                    mmcif_dict.setdefault(
+                        column, []).append(val)
         for oper_id in self._oper_ids:
             for column, val in self._pdbx_struct_oper_list[oper_id].items():
-                mmcif_dict.setdefault(column, []).append(val)
+                mmcif_dict.setdefault(
+                    column, []).append(val)
         return mmcif_dict
 
     def rename_label_asym_ids(
@@ -293,12 +302,15 @@ class BioassemblyData:
           ValueError: If any two previously distinct chains do not have unique names
               anymore after the rename.
         """
-        new_pdbx_struct_assembly_gen = copy.deepcopy(self._pdbx_struct_assembly_gen)
+        new_pdbx_struct_assembly_gen = copy.deepcopy(
+            self._pdbx_struct_assembly_gen)
         for rows in new_pdbx_struct_assembly_gen.values():
             for row in rows:
-                old_asym_ids = row["_pdbx_struct_assembly_gen.asym_id_list"].split(",")
+                old_asym_ids = row["_pdbx_struct_assembly_gen.asym_id_list"].split(
+                    ",")
                 new_asym_ids = [
-                    mapping.get(label_asym_id, label_asym_id)
+                    mapping.get(label_asym_id,
+                                label_asym_id)
                     for label_asym_id in old_asym_ids
                     if label_asym_id in present_chains
                 ]
@@ -312,9 +324,11 @@ class BioassemblyData:
                 )  # pytype: disable=unsupported-operands
 
         return BioassemblyData(
-            pdbx_struct_assembly=copy.deepcopy(self._pdbx_struct_assembly),
+            pdbx_struct_assembly=copy.deepcopy(
+                self._pdbx_struct_assembly),
             pdbx_struct_assembly_gen=new_pdbx_struct_assembly_gen,
-            pdbx_struct_oper_list=copy.deepcopy(self._pdbx_struct_oper_list),
+            pdbx_struct_oper_list=copy.deepcopy(
+                self._pdbx_struct_oper_list),
             assembly_ids=copy.deepcopy(self._assembly_ids),
             oper_ids=copy.deepcopy(self._oper_ids),
         )

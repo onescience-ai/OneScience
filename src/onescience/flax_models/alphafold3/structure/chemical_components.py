@@ -33,7 +33,8 @@ class ChemCompEntry:
     def __post_init__(self):
         for field, value in vars(self).items():
             if not value and value is not None:
-                raise ValueError(f"{field} value can't be an empty string.")
+                raise ValueError(
+                    f"{field} value can't be an empty string.")
 
     def extends(self, other: Self) -> bool:
         """Checks whether this ChemCompEntry extends another one."""
@@ -49,11 +50,13 @@ class ChemCompEntry:
     def rdkit_mol(self) -> rd_chem.Mol:
         """Returns an RDKit Mol, created via RDKit from entry SMILES string."""
         if not self.pdbx_smiles:
-            raise ValueError("Cannot construct RDKit Mol with empty pdbx_smiles")
+            raise ValueError(
+                "Cannot construct RDKit Mol with empty pdbx_smiles")
         return rd_chem.MolFromSmiles(self.pdbx_smiles)
 
 
-_REQUIRED_MMCIF_COLUMNS = ("_chem_comp.id", "_chem_comp.type")
+_REQUIRED_MMCIF_COLUMNS = (
+    "_chem_comp.id", "_chem_comp.type")
 
 
 class MissingChemicalComponentsDataError(Exception):
@@ -76,16 +79,24 @@ class ChemicalComponentsData:
         """Constructs an instance of ChemicalComponentsData from an Mmcif object."""
         for col in _REQUIRED_MMCIF_COLUMNS:
             if col not in cif:
-                raise MissingChemicalComponentsDataError(col)
+                raise MissingChemicalComponentsDataError(
+                    col)
 
-        id_ = cif["_chem_comp.id"]  # Guaranteed to be present.
-        type_ = cif["_chem_comp.type"]  # Guaranteed to be present.
+        # Guaranteed to be present.
+        id_ = cif["_chem_comp.id"]
+        # Guaranteed to be present.
+        type_ = cif["_chem_comp.type"]
         name = cif.get("_chem_comp.name", ["?"] * len(id_))
-        synonyms = cif.get("_chem_comp.pdbx_synonyms", ["?"] * len(id_))
-        formula = cif.get("_chem_comp.formula", ["?"] * len(id_))
-        weight = cif.get("_chem_comp.formula_weight", ["?"] * len(id_))
-        mon_nstd_flag = cif.get("_chem_comp.mon_nstd_flag", ["?"] * len(id_))
-        smiles = cif.get("_chem_comp.pdbx_smiles", ["?"] * len(id_))
+        synonyms = cif.get(
+            "_chem_comp.pdbx_synonyms", ["?"] * len(id_))
+        formula = cif.get(
+            "_chem_comp.formula", ["?"] * len(id_))
+        weight = cif.get(
+            "_chem_comp.formula_weight", ["?"] * len(id_))
+        mon_nstd_flag = cif.get(
+            "_chem_comp.mon_nstd_flag", ["?"] * len(id_))
+        smiles = cif.get(
+            "_chem_comp.pdbx_smiles", ["?"] * len(id_))
         smiles = [None if s == "?" else s for s in smiles]
 
         chem_comp = {
@@ -251,19 +262,26 @@ def get_all_atoms_in_entry(
 
     # Add terminal hydrogens for protonation of the N-terminal
     if res_name == "PRO":
-        res_atoms = {key: [*ccd_data.get(key, [])] for key in keys}
-        res_atoms["_chem_comp_atom.atom_id"].extend(["H2", "H3"])
-        res_atoms["_chem_comp_atom.type_symbol"].extend(["H", "H"])
-        res_atoms["_chem_comp_bond.atom_id_1"].extend(["N", "N"])
-        res_atoms["_chem_comp_bond.atom_id_2"].extend(["H2", "H3"])
+        res_atoms = {
+            key: [*ccd_data.get(key, [])] for key in keys}
+        res_atoms["_chem_comp_atom.atom_id"].extend(
+            ["H2", "H3"])
+        res_atoms["_chem_comp_atom.type_symbol"].extend([
+                                                        "H", "H"])
+        res_atoms["_chem_comp_bond.atom_id_1"].extend([
+                                                      "N", "N"])
+        res_atoms["_chem_comp_bond.atom_id_2"].extend(
+            ["H2", "H3"])
     elif res_name in residue_names.PROTEIN_TYPES_WITH_UNKNOWN:
-        res_atoms = {key: [*ccd_data.get(key, [])] for key in keys}
+        res_atoms = {
+            key: [*ccd_data.get(key, [])] for key in keys}
         res_atoms["_chem_comp_atom.atom_id"].append("H3")
         res_atoms["_chem_comp_atom.type_symbol"].append("H")
         res_atoms["_chem_comp_bond.atom_id_1"].append("N")
         res_atoms["_chem_comp_bond.atom_id_2"].append("H3")
     else:
-        res_atoms = {key: ccd_data.get(key, []) for key in keys}
+        res_atoms = {key: ccd_data.get(
+            key, []) for key in keys}
 
     return res_atoms
 
@@ -271,5 +289,6 @@ def get_all_atoms_in_entry(
 @functools.lru_cache(maxsize=128)
 def get_res_atom_names(ccd: chemical_components.Ccd, res_name: str) -> set[str]:
     """Gets the names of the atoms in a given CCD residue."""
-    atoms = get_all_atoms_in_entry(ccd, res_name)["_chem_comp_atom.atom_id"]
+    atoms = get_all_atoms_in_entry(ccd, res_name)[
+        "_chem_comp_atom.atom_id"]
     return set(atoms)

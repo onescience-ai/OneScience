@@ -15,7 +15,8 @@ def burger_1d_loss(pred, a, u, dx, dt):  #
     # pred: [bs,x,t,1]
     du_t = (pred[:, :, 2:] - pred[:, :, :-2]) / (2 * dt)
     du_x = (pred[:, 2:] - pred[:, :-2]) / (2 * dx)
-    du_xx = (pred[:, 2:] - 2 * pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
+    du_xx = (pred[:, 2:] - 2 *
+             pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
     Df = (
         du_t[:, 1:-1]
         + du_x[:, :, 1:-1] * pred[:, 1:-1, 1:-1]
@@ -48,12 +49,14 @@ def diff_sorp_1d_loss(pred, a, u, dx, dt):  #
     loss_fn = nn.MSELoss(reduction="mean")
     ic_loss = loss_fn(pred[:, :, 0], u[:, :, 0])
 
-    du_xx = (pred[:, 2:] - 2 * pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
+    du_xx = (pred[:, 2:] - 2 *
+             pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
     du_t = (pred[:, :, 2:] - pred[:, :, :-2]) / (2 * dt)
     retardation_factor = 1 + ((1 - por) / por) * rho_s * k_f * n_f * (
         pred[:, 1:-1, 1:-1].clip(min=0) + 1e-6
     ) ** (n_f - 1)
-    Df = du_t[:, 1:-1] - D / retardation_factor * du_xx[:, :, 1:-1]
+    Df = du_t[:, 1:-1] - D / \
+        retardation_factor * du_xx[:, :, 1:-1]
 
     f_loss = loss_fn(Df, torch.zeros_like(Df))
     return ic_loss, f_loss
@@ -65,12 +68,14 @@ def diff_react_1d_loss(pred, a, u, dx, dt):  #
     loss_fn = nn.MSELoss(reduction="mean")
     ic_loss = loss_fn(pred[:, :, 0], u[:, :, 0])
 
-    du_xx = (pred[:, 2:] - 2 * pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
+    du_xx = (pred[:, 2:] - 2 *
+             pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
     du_t = (pred[:, :, 2:] - pred[:, :, :-2]) / (2 * dt)
     Df = (
         du_t[:, 1:-1]
         - nu * du_xx[:, :, 1:-1]
-        - rho * pred[:, 1:-1, 1:-1] * (1.0 - pred[:, 1:-1, 1:-1])
+        - rho * pred[:, 1:-1, 1:-1] *
+        (1.0 - pred[:, 1:-1, 1:-1])
     )
     f_loss = loss_fn(Df, torch.zeros_like(Df))
     return ic_loss, f_loss
@@ -96,11 +101,13 @@ def CFD_1d_loss(pred, a, u, dx, dt):
     dp_x = (p[:, 2:] - p[:, :-2]) / (2 * dx)
     dFx_x = (Fx[:, 2:] - Fx[:, :-2]) / (2 * dx)
     dE_t = (E[:, :, 2:] - E[:, :, :-2]) / (2 * dt)
-    dv_xx = (v[:, 2:] - 2 * v[:, 1:-1] + v[:, :-2]) / (dx**2)
+    dv_xx = (v[:, 2:] - 2 * v[:, 1:-1] +
+             v[:, :-2]) / (dx**2)
 
     eq1 = dh_t[:, 1:-1] + dhv_x[:, :, 1:-1]
     eq2 = (
-        h[:, 1:-1, 1:-1] * (dv_t[:, 1:-1] + v[:, 1:-1, 1:-1] * dv_x[:, :, 1:-1])
+        h[:, 1:-1, 1:-1] *
+        (dv_t[:, 1:-1] + v[:, 1:-1, 1:-1] * dv_x[:, :, 1:-1])
         + dp_x[:, :, 1:-1]
         - eta * dv_xx[:, :, 1:-1]
         - (zeta + eta / 3.0) * dv_xx[:, :, 1:-1]
@@ -118,8 +125,10 @@ def darcy_loss(pred, a, u, dx, dt=None):
     beta = 1.0
     loss_fn = nn.MSELoss(reduction="mean")
     a = a.squeeze(-1)  # [bs, x, x, 1]
-    du_x_ = (pred[:, 1:] - pred[:, :-1]) / dx  # 1/2 step point
-    du_y_ = (pred[:, :, 1:] - pred[:, :, :-1]) / dx  # 1/2 step point
+    du_x_ = (pred[:, 1:] - pred[:, :-1]) / \
+        dx  # 1/2 step point
+    du_y_ = (pred[:, :, 1:] - pred[:, :, :-1]
+             ) / dx  # 1/2 step point
     ax_ = (a[:, :-1] + a[:, 1:]) / 2  # interpolating
 
     ay_ = (a[:, :, 1:] + a[:, :, :-1]) / 2
@@ -154,23 +163,30 @@ def diff_react_2d_loss(pred, a, u, dx, dt):  #
         u2[:, :, :, 0], u[:, :, :, 0, 1]
     )
 
-    du1_xx = (u1[:, 2:] - 2 * u1[:, 1:-1] + u1[:, :-2]) / (dx**2)
-    du1_yy = (u1[:, :, 2:] - 2 * u1[:, :, 1:-1] + u1[:, :, :-2]) / (dx**2)
-    du2_xx = (u2[:, 2:] - 2 * u2[:, 1:-1] + u2[:, :-2]) / (dx**2)
-    du2_yy = (u2[:, :, 2:] - 2 * u2[:, :, 1:-1] + u2[:, :, :-2]) / (dx**2)
+    du1_xx = (u1[:, 2:] - 2 * u1[:, 1:-1] +
+              u1[:, :-2]) / (dx**2)
+    du1_yy = (u1[:, :, 2:] - 2 *
+              u1[:, :, 1:-1] + u1[:, :, :-2]) / (dx**2)
+    du2_xx = (u2[:, 2:] - 2 * u2[:, 1:-1] +
+              u2[:, :-2]) / (dx**2)
+    du2_yy = (u2[:, :, 2:] - 2 *
+              u2[:, :, 1:-1] + u2[:, :, :-2]) / (dx**2)
     du1_t = (u1[:, :, :, 2:] - u1[:, :, :, :-2]) / (2 * dt)
     du2_t = (u2[:, :, :, 2:] - u2[:, :, :, :-2]) / (2 * dt)
     eq1 = (
         du1_t[:, 1:-1, 1:-1]
-        - d1 * (du1_xx[:, :, 1:-1, 1:-1] + du1_yy[:, 1:-1, :, 1:-1])
+        - d1 * (du1_xx[:, :, 1:-1, 1:-1] +
+                du1_yy[:, 1:-1, :, 1:-1])
         - reaction_1(u1, u2)[:, 1:-1, 1:-1, 1:-1]
     )
     eq2 = (
         du2_t[:, 1:-1, 1:-1]
-        - d2 * (du2_xx[:, :, 1:-1, 1:-1] + du2_yy[:, 1:-1, :, 1:-1])
+        - d2 * (du2_xx[:, :, 1:-1, 1:-1] +
+                du2_yy[:, 1:-1, :, 1:-1])
         - reaction_2(u1, u2)[:, 1:-1, 1:-1, 1:-1]
     )
-    f_loss = loss_fn(eq1, torch.zeros_like(eq1)) + loss_fn(eq2, torch.zeros_like(eq2))
+    f_loss = loss_fn(eq1, torch.zeros_like(
+        eq1)) + loss_fn(eq2, torch.zeros_like(eq2))
 
     return ic_loss, f_loss
 
@@ -183,8 +199,10 @@ def swe_2d_loss(pred, a, u, dx, dt):
     loss_fn = nn.MSELoss(reduction="mean")
     ic_loss = (
         loss_fn(h[:, :, :, 0], u[:, :, :, 0])
-        + loss_fn(u1[:, :, :, 0], torch.zeros_like(u1[:, :, :, 0]))
-        + loss_fn(u2[:, :, :, 0], torch.zeros_like(u2[:, :, :, 0]))
+        + loss_fn(u1[:, :, :, 0],
+                  torch.zeros_like(u1[:, :, :, 0]))
+        + loss_fn(u2[:, :, :, 0],
+                  torch.zeros_like(u2[:, :, :, 0]))
     )
     dh_x = (h[:, 2:] - h[:, :-2]) / (2 * dx)
     dh_y = (h[:, :, 2:] - h[:, :, :-2]) / (2 * dx)
@@ -246,7 +264,8 @@ def CFD_2d_loss(pred, a, u, dx, dt):
     )
     # non conservative form
     dhu1_x = ((h * u1)[:, 2:] - (h * u1)[:, :-2]) / (2 * dx)
-    dhu2_y = ((h * u2)[:, :, 2:] - (h * u2)[:, :, :-2]) / (2 * dx)
+    dhu2_y = ((h * u2)[:, :, 2:] -
+              (h * u2)[:, :, :-2]) / (2 * dx)
     dh_t = (h[:, :, :, 2:] - h[:, :, :, :-2]) / (2 * dt)
     du1_x = (u1[:, 2:] - u1[:, :-2]) / (2 * dx)
     du1_y = (u1[:, :, 2:] - u1[:, :, :-2]) / (2 * dx)
@@ -260,36 +279,50 @@ def CFD_2d_loss(pred, a, u, dx, dt):
     dFy_y = (Fy[:, :, 2:] - Fy[:, :, :-2]) / (2 * dx)
     dE_t = (E[:, :, :, 2:] - E[:, :, :, :-2]) / (2 * dt)
 
-    du1_xx = (u1[:, 2:] - 2 * u1[:, 1:-1] + u1[:, :-2]) / (dx**2)
-    du1_yy = (u1[:, :, 2:] - 2 * u1[:, :, 1:-1] + u1[:, :, :-2]) / (dx**2)
+    du1_xx = (u1[:, 2:] - 2 * u1[:, 1:-1] +
+              u1[:, :-2]) / (dx**2)
+    du1_yy = (u1[:, :, 2:] - 2 *
+              u1[:, :, 1:-1] + u1[:, :, :-2]) / (dx**2)
     du1_xy = (du1_x[:, :, 2:] - du1_x[:, :, :-2]) / dx
-    du2_xx = (u2[:, 2:] - 2 * u2[:, 1:-1] + u2[:, :-2]) / (dx**2)
-    du2_yy = (u2[:, :, 2:] - 2 * u2[:, :, 1:-1] + u2[:, :, :-2]) / (dx**2)
+    du2_xx = (u2[:, 2:] - 2 * u2[:, 1:-1] +
+              u2[:, :-2]) / (dx**2)
+    du2_yy = (u2[:, :, 2:] - 2 *
+              u2[:, :, 1:-1] + u2[:, :, :-2]) / (dx**2)
     du2_xy = (du2_x[:, :, 2:] - du2_x[:, :, :-2]) / dx
-    eq1 = dh_t[:, 1:-1, 1:-1] + dhu1_x[:, :, 1:-1, 1:-1] + dhu2_y[:, 1:-1, :, 1:-1]
+    eq1 = dh_t[:, 1:-1, 1:-1] + dhu1_x[:, :,
+                                       1:-1, 1:-1] + dhu2_y[:, 1:-1, :, 1:-1]
     eq2 = (
         h[:, 1:-1, 1:-1, 1:-1]
         * (
             du1_t[:, 1:-1, 1:-1]
-            + u1[:, 1:-1, 1:-1, 1:-1] * du1_x[:, :, 1:-1, 1:-1]
-            + u2[:, 1:-1, 1:-1, 1:-1] * du1_y[:, 1:-1, :, 1:-1]
+            + u1[:, 1:-1, 1:-1, 1:-1] *
+            du1_x[:, :, 1:-1, 1:-1]
+            + u2[:, 1:-1, 1:-1, 1:-1] *
+            du1_y[:, 1:-1, :, 1:-1]
         )
         + dp_x[:, :, 1:-1, 1:-1]
-        - eta * (du1_xx[:, :, 1:-1, 1:-1] + du1_yy[:, 1:-1, :, 1:-1])
-        - (zeta + eta / 3.0) * (du1_xx[:, :, 1:-1, 1:-1] + du2_xy[:, :, :, 1:-1])
+        - eta * (du1_xx[:, :, 1:-1, 1:-1] +
+                 du1_yy[:, 1:-1, :, 1:-1])
+        - (zeta + eta / 3.0) *
+        (du1_xx[:, :, 1:-1, 1:-1] + du2_xy[:, :, :, 1:-1])
     )
     eq3 = (
         h[:, 1:-1, 1:-1, 1:-1]
         * (
             du2_t[:, 1:-1, 1:-1]
-            + u1[:, 1:-1, 1:-1, 1:-1] * du2_x[:, :, 1:-1, 1:-1]
-            + u2[:, 1:-1, 1:-1, 1:-1] * du2_y[:, 1:-1, :, 1:-1]
+            + u1[:, 1:-1, 1:-1, 1:-1] *
+            du2_x[:, :, 1:-1, 1:-1]
+            + u2[:, 1:-1, 1:-1, 1:-1] *
+            du2_y[:, 1:-1, :, 1:-1]
         )
         + dp_y[:, 1:-1, :, 1:-1]
-        - eta * (du2_xx[:, :, 1:-1, 1:-1] + du2_yy[:, 1:-1, :, 1:-1])
-        - (zeta + eta / 3.0) * (du1_xy[:, :, :, 1:-1] + du2_yy[:, 1:-1, :, 1:-1])
+        - eta * (du2_xx[:, :, 1:-1, 1:-1] +
+                 du2_yy[:, 1:-1, :, 1:-1])
+        - (zeta + eta / 3.0) *
+        (du1_xy[:, :, :, 1:-1] + du2_yy[:, 1:-1, :, 1:-1])
     )
-    eq4 = dE_t[:, 1:-1, 1:-1] + dFx_x[:, :, 1:-1, 1:-1] + dFy_y[:, 1:-1, :, 1:-1]
+    eq4 = dE_t[:, 1:-1, 1:-1] + dFx_x[:, :,
+                                      1:-1, 1:-1] + dFy_y[:, 1:-1, :, 1:-1]
 
     f_loss = (
         loss_fn(eq1, torch.zeros_like(eq1))
@@ -309,11 +342,13 @@ def Allen_Cahn_loss(pred, a, u, dx, dt):
     # f_loss
     # pred: [bs,x,t,1]
     du_t = (pred[:, :, 2:] - pred[:, :, :-2]) / (2 * dt)
-    du_xx = (pred[:, 2:] - 2 * pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
+    du_xx = (pred[:, 2:] - 2 *
+             pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
     Df = (
         du_t[:, 1:-1]
         - c1 * du_xx[:, :, 1:-1]
-        + c2 * (pred[:, 1:-1, 1:-1] ** 3 - pred[:, 1:-1, 1:-1])
+        + c2 * (pred[:, 1:-1, 1:-1] **
+                3 - pred[:, 1:-1, 1:-1])
     )
     f_loss = loss_fn(Df, torch.zeros_like(Df))
     return ic_loss, f_loss
@@ -326,9 +361,12 @@ def Cahn_Hilliard_loss(pred, a, u, dx, dt):
     ic_loss = loss_fn(pred[:, :, 0], u[:, :, 0])
 
     du_t = (pred[:, :, 2:] - pred[:, :, :-2]) / (2 * dt)
-    du_xx = (pred[:, 2:] - 2 * pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
-    h = gamma2 * (pred[:, 1:-1] ** 3 - pred[:, 1:-1]) - gamma1 * du_xx
-    dh_xx = (h[:, 2:] - 2 * h[:, 1:-1] + h[:, :-2]) / (dx**2)
+    du_xx = (pred[:, 2:] - 2 *
+             pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
+    h = gamma2 * (pred[:, 1:-1] ** 3 -
+                  pred[:, 1:-1]) - gamma1 * du_xx
+    dh_xx = (h[:, 2:] - 2 * h[:, 1:-1] +
+             h[:, :-2]) / (dx**2)
     Df = du_t[:, 2:-2] - dh_xx[:, :, 1:-1]
     f_loss = loss_fn(Df, torch.zeros_like(Df))
     return ic_loss, f_loss
@@ -344,27 +382,36 @@ def burger_2d_loss(pred, a, u, dx, dt):
     du1_t = (u1[:, :, :, 2:] - u1[:, :, :, :-2]) / (2 * dt)
     du2_t = (u2[:, :, :, 2:] - u2[:, :, :, :-2]) / (2 * dt)
     du1_x = (u1[:, 2:] - u1[:, :-2]) / (2 * dx)
-    du1_xx = (u1[:, 2:] - 2 * u1[:, 1:-1] + u1[:, :-2]) / (dx**2)
+    du1_xx = (u1[:, 2:] - 2 * u1[:, 1:-1] +
+              u1[:, :-2]) / (dx**2)
     du1_y = (u1[:, :, 2:] - u1[:, :, :-2]) / (2 * dx)
-    du1_yy = (u1[:, :, 2:] - 2 * u1[:, :, 1:-1] + u1[:, :, :-2]) / (dx**2)
+    du1_yy = (u1[:, :, 2:] - 2 *
+              u1[:, :, 1:-1] + u1[:, :, :-2]) / (dx**2)
     du2_x = (u2[:, 2:] - u2[:, :-2]) / (2 * dx)
-    du2_xx = (u2[:, 2:] - 2 * u2[:, 1:-1] + u2[:, :-2]) / (dx**2)
+    du2_xx = (u2[:, 2:] - 2 * u2[:, 1:-1] +
+              u2[:, :-2]) / (dx**2)
     du2_y = (u2[:, :, 2:] - u2[:, :, :-2]) / (2 * dx)
-    du2_yy = (u2[:, :, 2:] - 2 * u2[:, :, 1:-1] + u2[:, :, :-2]) / (dx**2)
+    du2_yy = (u2[:, :, 2:] - 2 *
+              u2[:, :, 1:-1] + u2[:, :, :-2]) / (dx**2)
     eq1 = (
         du1_t[:, 1:-1, 1:-1]
         + u1[:, 1:-1, 1:-1, 1:-1] * du1_x[:, :, 1:-1, 1:-1]
         + u2[:, 1:-1, 1:-1, 1:-1] * du1_y[:, 1:-1, :, 1:-1]
-        - v_coeff * (du1_xx[:, :, 1:-1, 1:-1] + du1_yy[:, 1:-1, :, 1:-1])
+        - v_coeff *
+        (du1_xx[:, :, 1:-1, 1:-1] +
+         du1_yy[:, 1:-1, :, 1:-1])
     )
     eq2 = (
         du2_t[:, 1:-1, 1:-1]
         + u1[:, 1:-1, 1:-1, 1:-1] * du2_x[:, :, 1:-1, 1:-1]
         + u2[:, 1:-1, 1:-1, 1:-1] * du2_y[:, 1:-1, :, 1:-1]
-        - v_coeff * (du2_xx[:, :, 1:-1, 1:-1] + du2_yy[:, 1:-1, :, 1:-1])
+        - v_coeff *
+        (du2_xx[:, :, 1:-1, 1:-1] +
+         du2_yy[:, 1:-1, :, 1:-1])
     )
 
-    f_loss = loss_fn(eq1, torch.zeros_like(eq1)) + loss_fn(eq2, torch.zeros_like(eq2))
+    f_loss = loss_fn(eq1, torch.zeros_like(
+        eq1)) + loss_fn(eq2, torch.zeros_like(eq2))
     return ic_loss, f_loss
 
 
@@ -377,13 +424,18 @@ def Allen_Cahn_2d_loss(pred, a, u, dx, dt):
     # f_loss
     # pred: [bs,x,y,t,1]
 
-    du_t = (pred[:, :, :, 2:] - pred[:, :, :, :-2]) / (2 * dt)
-    du_xx = (pred[:, 2:] - 2 * pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
-    du_yy = (pred[:, :, 2:] - 2 * pred[:, :, 1:-1] + pred[:, :, :-2]) / (dx**2)
+    du_t = (pred[:, :, :, 2:] -
+            pred[:, :, :, :-2]) / (2 * dt)
+    du_xx = (pred[:, 2:] - 2 *
+             pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
+    du_yy = (pred[:, :, 2:] - 2 * pred[:, :,
+             1:-1] + pred[:, :, :-2]) / (dx**2)
     Df = (
         du_t[:, 1:-1, 1:-1]
-        - c1 * (du_xx[:, :, 1:-1, 1:-1] + du_yy[:, 1:-1, :, 1:-1])
-        + c2 * (pred[:, 1:-1, 1:-1, 1:-1] ** 3 - pred[:, 1:-1, 1:-1, 1:-1])
+        - c1 * (du_xx[:, :, 1:-1, 1:-1] +
+                du_yy[:, 1:-1, :, 1:-1])
+        + c2 * (pred[:, 1:-1, 1:-1, 1:-1] **
+                3 - pred[:, 1:-1, 1:-1, 1:-1])
     )
     f_loss = loss_fn(Df, torch.zeros_like(Df))
     return ic_loss, f_loss
@@ -397,22 +449,29 @@ def Black_Scholes_loss(pred, a, u, dx, dt, grid):
 
     du_x = (pred[:, 2:] - pred[:, :-2]) / (2 * dx)
     du_y = (pred[:, :, 2:] - pred[:, :, :-2]) / (2 * dx)
-    du_t = (pred[:, :, :, 2:] - pred[:, :, :, :-2]) / (2 * dt)
-    du_xx = (pred[:, 2:] - 2 * pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
-    du_yy = (pred[:, :, 2:] - 2 * pred[:, :, 1:-1] + pred[:, :, :-2]) / (dx**2)
+    du_t = (pred[:, :, :, 2:] -
+            pred[:, :, :, :-2]) / (2 * dt)
+    du_xx = (pred[:, 2:] - 2 *
+             pred[:, 1:-1] + pred[:, :-2]) / (dx**2)
+    du_yy = (pred[:, :, 2:] - 2 * pred[:, :,
+             1:-1] + pred[:, :, :-2]) / (dx**2)
     # breakpoint()
     Df = (
         du_t[:, 1:-1, 1:-1]
         + 0.5
         * (
-            rho**2 * grid[:, 1:-1, 1:-1, 1:-1, 0:1] ** 2 * du_xx[:, :, 1:-1, 1:-1]
-            + grid[:, 1:-1, 1:-1, 1:-1, 1:2] ** 2 * du_yy[:, 1:-1, :, 1:-1]
+            rho**2 * grid[:, 1:-1, 1:-1, 1:-1,
+                          0:1] ** 2 * du_xx[:, :, 1:-1, 1:-1]
+            + grid[:, 1:-1, 1:-1, 1:-1, 1:2] ** 2 *
+            du_yy[:, 1:-1, :, 1:-1]
         )
         - r
         * (
             pred[:, 1:-1, 1:-1, 1:-1]
-            - grid[:, 1:-1, 1:-1, 1:-1, 0:1] * du_x[:, :, 1:-1, 1:-1]
-            - grid[:, 1:-1, 1:-1, 1:-1, 1:2] * du_y[:, 1:-1, :, 1:-1]
+            - grid[:, 1:-1, 1:-1, 1:-1, 0:1] *
+            du_x[:, :, 1:-1, 1:-1]
+            - grid[:, 1:-1, 1:-1, 1:-1, 1:2] *
+            du_y[:, 1:-1, :, 1:-1]
         )
     )
     f_loss = loss_fn(Df, torch.zeros_like(Df))

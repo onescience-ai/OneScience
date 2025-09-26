@@ -1,16 +1,14 @@
 # pylint: disable=wrong-import-position
+from onescience.models.mace.cli.convert_e3nn_cueq import run as run_e3nn_to_cueq
+from onescience.models.mace.calculators.lammps_mliap_mace import LAMMPS_MLIAP_MACE
+from onescience.models.mace.calculators import LAMMPS_MACE
+from e3nn.util import jit
+import torch
 import argparse
 import copy
 import os
 
 os.environ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD"] = "1"
-
-import torch
-from e3nn.util import jit
-
-from onescience.models.mace.calculators import LAMMPS_MACE
-from onescience.models.mace.calculators.lammps_mliap_mace import LAMMPS_MLIAP_MACE
-from onescience.models.mace.cli.convert_e3nn_cueq import run as run_e3nn_to_cueq
 
 
 def parse_args():
@@ -52,7 +50,8 @@ def select_head(model):
         heads = [None]
 
     if len(heads) == 1:
-        print(f"Only one head found in the model: {heads[0]}. Skipping selection.")
+        print(
+            f"Only one head found in the model: {heads[0]}. Skipping selection.")
         return heads[0]
 
     print("Available heads in the model:")
@@ -67,23 +66,28 @@ def select_head(model):
     if selected.isdigit() and 1 <= int(selected) <= len(heads):
         return heads[int(selected) - 1]
     if selected == "":
-        print("No head selected. Proceeding without specifying a head.")
+        print(
+            "No head selected. Proceeding without specifying a head.")
         return None
-    print(f"No valid selection made. Defaulting to the last head: {heads[-1]}")
+    print(
+        f"No valid selection made. Defaulting to the last head: {heads[-1]}")
     return heads[-1]
 
 
 def main():
     args = parse_args()
-    model_path = args.model_path  # takes model name as command-line input
+    # takes model name as command-line input
+    model_path = args.model_path
     model = torch.load(
         model_path,
-        map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+        map_location=torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"),
     )
     if args.dtype == "float64":
         model = model.double().to("cpu")
     elif args.dtype == "float32":
-        print("Converting model to float32, this may cause loss of precision.")
+        print(
+            "Converting model to float32, this may cause loss of precision.")
         model = model.float().to("cpu")
 
     if args.format == "mliap":
@@ -101,13 +105,16 @@ def main():
 
     lammps_class = LAMMPS_MLIAP_MACE if args.format == "mliap" else LAMMPS_MACE
     lammps_model = (
-        lammps_class(model, head=head) if head is not None else lammps_class(model)
+        lammps_class(
+            model, head=head) if head is not None else lammps_class(model)
     )
     if args.format == "mliap":
-        torch.save(lammps_model, model_path + "-mliap_lammps.pt")
+        torch.save(lammps_model, model_path +
+                   "-mliap_lammps.pt")
     else:
         lammps_model_compiled = jit.compile(lammps_model)
-        lammps_model_compiled.save(model_path + "-lammps.pt")
+        lammps_model_compiled.save(
+            model_path + "-lammps.pt")
 
 
 if __name__ == "__main__":

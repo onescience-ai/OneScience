@@ -8,7 +8,8 @@ import xarray
 
 from onescience.flax_models.graphcast import solar_radiation
 
-TimedeltaLike = Any  # Something convertible to pd.Timedelta.
+# Something convertible to pd.Timedelta.
+TimedeltaLike = Any
 TimedeltaStr = str  # A string convertible to pd.Timedelta.
 
 TargetLeadTimes = Union[
@@ -50,7 +51,8 @@ def get_year_progress(seconds_since_epoch: np.ndarray) -> np.ndarray:
     # Start with the pure integer division, and then float at the very end.
     # We will try to keep as much precision as possible.
     years_since_epoch = (
-        seconds_since_epoch / SEC_PER_DAY / np.float64(_AVG_DAY_PER_YEAR)
+        seconds_since_epoch / SEC_PER_DAY /
+        np.float64(_AVG_DAY_PER_YEAR)
     )
     # Note depending on how these ops are down, we may end up with a "weak_type"
     # which can cause issues in subtle ways, and hard to track here.
@@ -76,12 +78,14 @@ def get_day_progress(
     """
 
     # [0.0, 1.0) Interval.
-    day_progress_greenwich = np.mod(seconds_since_epoch, SEC_PER_DAY) / SEC_PER_DAY
+    day_progress_greenwich = np.mod(
+        seconds_since_epoch, SEC_PER_DAY) / SEC_PER_DAY
 
     # Offset the day progress to the longitude of each point on Earth.
     longitude_offsets = np.deg2rad(longitude) / (2 * np.pi)
     day_progress = np.mod(
-        day_progress_greenwich[..., np.newaxis] + longitude_offsets, 1.0
+        day_progress_greenwich[...,
+                               np.newaxis] + longitude_offsets, 1.0
     )
     return day_progress.astype(np.float32)
 
@@ -130,19 +134,22 @@ def add_derived_vars(data: xarray.Dataset) -> None:
 
     for coord in ("datetime", "lon"):
         if coord not in data.coords:
-            raise ValueError(f"'{coord}' must be in `data` coordinates.")
+            raise ValueError(
+                f"'{coord}' must be in `data` coordinates.")
 
     # Compute seconds since epoch.
     # Note `data.coords["datetime"].astype("datetime64[s]").astype(np.int64)`
     # does not work as xarrays always cast dates into nanoseconds!
     seconds_since_epoch = (
-        data.coords["datetime"].data.astype("datetime64[s]").astype(np.int64)
+        data.coords["datetime"].data.astype(
+            "datetime64[s]").astype(np.int64)
     )
     batch_dim = ("batch",) if "batch" in data.dims else ()
 
     # Add year progress features if missing.
     if YEAR_PROGRESS not in data.data_vars:
-        year_progress = get_year_progress(seconds_since_epoch)
+        year_progress = get_year_progress(
+            seconds_since_epoch)
         data.update(
             featurize_progress(
                 name=YEAR_PROGRESS,
@@ -154,11 +161,13 @@ def add_derived_vars(data: xarray.Dataset) -> None:
     # Add day progress features if missing.
     if DAY_PROGRESS not in data.data_vars:
         longitude_coord = data.coords["lon"]
-        day_progress = get_day_progress(seconds_since_epoch, longitude_coord.data)
+        day_progress = get_day_progress(
+            seconds_since_epoch, longitude_coord.data)
         data.update(
             featurize_progress(
                 name=DAY_PROGRESS,
-                dims=batch_dim + ("time",) + longitude_coord.dims,
+                dims=batch_dim +
+                ("time",) + longitude_coord.dims,
                 progress=day_progress,
             )
         )
@@ -179,11 +188,13 @@ def add_tisr_var(data: xarray.Dataset) -> None:
 
     for coord in ("datetime", "lat", "lon"):
         if coord not in data.coords:
-            raise ValueError(f"'{coord}' must be in `data` coordinates.")
+            raise ValueError(
+                f"'{coord}' must be in `data` coordinates.")
 
     # Remove `batch` dimension of size one if present. An error will be raised if
     # the `batch` dimension exists and has size greater than one.
-    data_no_batch = data.squeeze("batch") if "batch" in data.dims else data
+    data_no_batch = data.squeeze(
+        "batch") if "batch" in data.dims else data
 
     tisr = solar_radiation.get_toa_incident_solar_radiation_for_xarray(
         data_no_batch, use_jit=True
@@ -263,7 +274,8 @@ def extract_input_target_times(
     # forming the target period which needs to be predicted.
     # This means the time coordinates are now forecast lead times.
     time = dataset.coords["time"]
-    dataset = dataset.assign_coords(time=time + target_duration - time[-1])
+    dataset = dataset.assign_coords(
+        time=time + target_duration - time[-1])
 
     # Slice out targets:
     targets = dataset.sel({"time": target_lead_times})
@@ -273,7 +285,8 @@ def extract_input_target_times(
     # small epsilon to make one of the endpoints non-inclusive:
     zero = pd.Timedelta(0)
     epsilon = pd.Timedelta(1, "ns")
-    inputs = dataset.sel({"time": slice(-input_duration + epsilon, zero)})
+    inputs = dataset.sel(
+        {"time": slice(-input_duration + epsilon, zero)})
     return inputs, targets
 
 
@@ -288,9 +301,11 @@ def _process_target_lead_times_and_get_duration(
             # If the start isn't specified, we assume it starts at the next timestep
             # after lead time 0 (lead time 0 is the final input timestep):
             target_lead_times = slice(
-                pd.Timedelta(1, "ns"), target_lead_times.stop, target_lead_times.step
+                pd.Timedelta(
+                    1, "ns"), target_lead_times.stop, target_lead_times.step
             )
-        target_duration = pd.Timedelta(target_lead_times.stop)
+        target_duration = pd.Timedelta(
+            target_lead_times.stop)
     else:
         if not isinstance(target_lead_times, (list, tuple, set)):
             # A single lead time, which we wrap as a length-1 array to ensure there
@@ -298,7 +313,8 @@ def _process_target_lead_times_and_get_duration(
             target_lead_times = [target_lead_times]
 
         # A list of multiple (not necessarily contiguous) lead times:
-        target_lead_times = [pd.Timedelta(x) for x in target_lead_times]
+        target_lead_times = [pd.Timedelta(
+            x) for x in target_lead_times]
         target_lead_times.sort()
         target_duration = target_lead_times[-1]
     return target_lead_times, target_duration

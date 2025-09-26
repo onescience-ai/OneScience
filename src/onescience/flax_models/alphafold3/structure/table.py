@@ -19,8 +19,10 @@ from onescience.flax_models.alphafold3.cpp import string_array
 TableEntry: TypeAlias = str | int | float | None
 FilterPredicate: TypeAlias = (
     TableEntry
-    | Iterable[Any]  # Workaround for b/326384670. Tighten once fixed.
-    | Callable[[Any], bool]  # Workaround for b/326384670. Tighten once fixed.
+    # Workaround for b/326384670. Tighten once fixed.
+    | Iterable[Any]
+    # Workaround for b/326384670. Tighten once fixed.
+    | Callable[[Any], bool]
     | Callable[[np.ndarray], bool]
 )
 
@@ -60,13 +62,16 @@ class Table:
                     f'All columns should have length {self.size} but got "{col_name}"'
                     f" with length {col_len}."
                 )
-            self.get_column(col_name).flags.writeable = False  # Make col immutable.
+            # Make col immutable.
+            self.get_column(
+                col_name).flags.writeable = False
         if self.key.size and self.key.min() < 0:
             raise ValueError(
                 "Key values must be non-negative. Got negative values:"
                 f" {set(self.key[self.key < 0])}"
             )
-        self.key.flags.writeable = False  # Make key immutable.
+        # Make key immutable.
+        self.key.flags.writeable = False
 
     def __getstate__(self) -> dict[str, Any]:
         """Returns members with cached properties removed for pickling."""
@@ -86,7 +91,8 @@ class Table:
         if not self.key.size:
             return np.array([], dtype=np.int64)
         else:
-            index_by_key = np.zeros(np.max(self.key) + 1, dtype=np.int64)
+            index_by_key = np.zeros(
+                np.max(self.key) + 1, dtype=np.int64)
             index_by_key[self.key] = np.arange(self.size)
             return index_by_key
 
@@ -120,7 +126,8 @@ class Table:
 
         return self.copy_and_update(
             **{
-                column_name: self.apply_array_to_column(column_name, arr)
+                column_name: self.apply_array_to_column(
+                    column_name, arr)
                 for column_name in self.columns
             }
         )
@@ -128,7 +135,8 @@ class Table:
     def apply_index(self, index_arr: np.ndarray) -> Self:
         """Returns a sliced table using an index (!= key) array."""
         if index_arr.dtype == bool:
-            raise ValueError("The index array must not be a boolean mask.")
+            raise ValueError(
+                "The index array must not be a boolean mask.")
 
         return self.copy_and_update(
             **{col: self.get_column(col)[..., index_arr] for col in self.columns}
@@ -163,10 +171,12 @@ class Table:
     def __getitem__(self, key: np.ndarray) -> "Table": ...
 
     @overload
-    def __getitem__(self, key: tuple[str, int | np.integer]) -> TableEntry: ...
+    def __getitem__(
+        self, key: tuple[str, int | np.integer]) -> TableEntry: ...
 
     @overload
-    def __getitem__(self, key: tuple[str, np.ndarray]) -> np.ndarray: ...
+    def __getitem__(
+        self, key: tuple[str, np.ndarray]) -> np.ndarray: ...
 
     def __getitem__(self, key):
         match key:
@@ -203,7 +213,8 @@ class Table:
         """Gets the row at the specified index."""
         if column_name_map is not None:
             return {
-                renamed_col: self.get_value_by_index(col, index)
+                renamed_col: self.get_value_by_index(
+                    col, index)
                 for renamed_col, col in column_name_map.items()
             }
         else:
@@ -239,10 +250,12 @@ class Table:
         else:
             row_indices = range(self.size)
         for i in row_indices:
-            row = self.get_row_by_index(i, column_name_map=column_name_map)
+            row = self.get_row_by_index(
+                i, column_name_map=column_name_map)
             for key_col, table in table_by_foreign_key_col.items():
                 foreign_key = self[key_col][i]
-                foreign_row = table.get_row_by_key(foreign_key)
+                foreign_row = table.get_row_by_key(
+                    foreign_key)
                 row.update(foreign_row)
             yield row
 
@@ -283,7 +296,8 @@ class Table:
                     f"mask must have shape ({self.size},). Got: {mask.shape}."
                 )
             if mask.dtype != bool:
-                raise ValueError(f"mask must have dtype bool. Got: {mask.dtype}.")
+                raise ValueError(
+                    f"mask must have dtype bool. Got: {mask.dtype}.")
 
         for col, predicate in predicate_by_col.items():
             if self[col].ndim > 1:
@@ -298,7 +312,8 @@ class Table:
                 else:
                     target_vals = [predicate]
                 for target_val in target_vals:
-                    callable_predicates.append(lambda x, target=target_val: x == target)
+                    callable_predicates.append(
+                        lambda x, target=target_val: x == target)
             else:
                 callable_predicates.append(predicate)
 
@@ -306,15 +321,20 @@ class Table:
             for callable_predicate in callable_predicates:
                 if not apply_per_element:
                     callable_predicate = typing.cast(
-                        Callable[[np.ndarray], bool], callable_predicate
+                        Callable[[np.ndarray],
+                                 bool], callable_predicate
                     )
-                    predicate_result = callable_predicate(self.get_column(col))
+                    predicate_result = callable_predicate(
+                        self.get_column(col))
                 else:
                     predicate_result = np.array(
-                        [callable_predicate(elem) for elem in self.get_column(col)]
+                        [callable_predicate(
+                            elem) for elem in self.get_column(col)]
                     )
-                np.logical_or(field_mask, predicate_result, out=field_mask)
-            np.logical_and(mask, field_mask, out=mask)  # Update in-place.
+                np.logical_or(
+                    field_mask, predicate_result, out=field_mask)
+            # Update in-place.
+            np.logical_and(mask, field_mask, out=mask)
         return mask
 
     def filter(
@@ -375,7 +395,8 @@ class Table:
     def _validate_keys_are_column_names(self, keys: Collection[str]) -> None:
         """Raises an error if any of the keys are not column names."""
         if mismatches := set(keys) - set(self.columns):
-            raise ValueError(f"Invalid column names: {sorted(mismatches)}.")
+            raise ValueError(
+                f"Invalid column names: {sorted(mismatches)}.")
 
     def copy_and_update(self, **new_column_by_column_name: np.ndarray) -> Self:
         """Returns a copy of this table with the specified changes applied.
@@ -386,7 +407,8 @@ class Table:
         Raises:
           ValueError: If a specified column name is not a column in this table.
         """
-        self._validate_keys_are_column_names(new_column_by_column_name)
+        self._validate_keys_are_column_names(
+            new_column_by_column_name)
         return dataclasses.replace(self, **new_column_by_column_name)
 
     def copy_and_remap(self, **mapping_by_col: Mapping[TableEntry, TableEntry]) -> Self:
@@ -408,7 +430,8 @@ class Table:
         for column_name, mapping in mapping_by_col.items():
             col_arr = self.get_column(column_name)
             if col_arr.dtype == object:
-                remapped = string_array.remap(col_arr, mapping)
+                remapped = string_array.remap(
+                    col_arr, mapping)
             else:
                 remapped = np.vectorize(lambda x: mapping.get(x, x))(
                     col_arr
@@ -501,7 +524,8 @@ def concat_databases(dbs: Sequence[_DatabaseT]) -> _DatabaseT:
         types.
     """
     if not dbs:
-        raise ValueError("Need at least one value to concatenate.")
+        raise ValueError(
+            "Need at least one value to concatenate.")
     distinct_db_types = {type(db) for db in dbs}
     if len(distinct_db_types) > 1:
         raise ValueError(
@@ -514,33 +538,40 @@ def concat_databases(dbs: Sequence[_DatabaseT]) -> _DatabaseT:
     for table_name in table_dependency_order(first_db):
         first_table = first_db.get_table(table_name)
         columns: dict[str, list[np.ndarray]] = {
-            column_name: [first_table.get_column(column_name)]
+            column_name: [
+                first_table.get_column(column_name)]
             for column_name in first_table.columns
         }
-        key_offsets[table_name] = [first_table.key.max() + 1 if first_table.size else 0]
+        key_offsets[table_name] = [
+            first_table.key.max() + 1 if first_table.size else 0]
 
         for prev_index, db in enumerate(other_dbs):
             table = db.get_table(table_name)
             for col_name in table.columns:
-                columns[col_name].append(table.get_column(col_name))
+                columns[col_name].append(
+                    table.get_column(col_name))
             key_offset = key_offsets[table_name][prev_index]
             offset_key = table.key + key_offset
             columns["key"][-1] = offset_key
             if table.size:
-                key_offsets[table_name].append(offset_key.max() + 1)
+                key_offsets[table_name].append(
+                    offset_key.max() + 1)
             else:
-                key_offsets[table_name].append(key_offsets[table_name][prev_index])
+                key_offsets[table_name].append(
+                    key_offsets[table_name][prev_index])
             for fkey_col_name, foreign_table_name in first_db.foreign_keys.get(
                 table_name, []
             ):
                 fkey_columns = columns[fkey_col_name]
                 fkey_columns[-1] = (
-                    fkey_columns[-1] + key_offsets[foreign_table_name][prev_index]
+                    fkey_columns[-1] +
+                    key_offsets[foreign_table_name][prev_index]
                 )
 
         concatted_columns = {
             column_name: np.concatenate(values, axis=-1)
             for column_name, values in columns.items()
         }
-        concatted_tables[table_name] = (type(first_table))(**concatted_columns)
+        concatted_tables[table_name] = (
+            type(first_table))(**concatted_columns)
     return first_db.copy_and_update(**concatted_tables)

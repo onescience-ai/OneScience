@@ -15,16 +15,19 @@ class UNO1d(nn.Module):
     def __init__(self, num_channels, width, pad=9, factor=1, initial_step=10):
         super(UNO1d, self).__init__()
 
-        self.in_width = num_channels * initial_step + 1  # input channel
+        self.in_width = num_channels * \
+            initial_step + 1  # input channel
         self.width = width
 
         self.padding = pad  # pad the domain if input is non-periodic
 
-        self.fc_n1 = nn.Linear(self.in_width, self.width // 2)
+        self.fc_n1 = nn.Linear(
+            self.in_width, self.width // 2)
 
         self.fc0 = nn.Linear(self.width // 2, self.width)
 
-        self.conv0 = OperatorBlock_1D(self.width, 2 * factor * self.width, 24, 11)
+        self.conv0 = OperatorBlock_1D(
+            self.width, 2 * factor * self.width, 24, 11)
 
         self.conv1 = OperatorBlock_1D(
             2 * factor * self.width, 4 * factor * self.width, 12, 5, Normalize=True
@@ -87,12 +90,14 @@ class UNO2d(nn.Module):
     def __init__(self, num_channels, width, pad=6, factor=1, initial_step=10):
         super(UNO2d, self).__init__()
 
-        self.in_width = num_channels * initial_step + 2  # input channel
+        self.in_width = num_channels * \
+            initial_step + 2  # input channel
         self.width = width
 
         self.padding = pad  # pad the domain if input is non-periodic
 
-        self.fc_n1 = nn.Linear(self.in_width, self.width // 2)
+        self.fc_n1 = nn.Linear(
+            self.in_width, self.width // 2)
 
         self.fc0 = nn.Linear(self.width // 2, self.width)
 
@@ -143,7 +148,8 @@ class UNO2d(nn.Module):
         x_fc0 = x_fc0.permute(0, 3, 1, 2)
 
         # scale = math.ceil(x_fc0.shape[-1]/85)
-        x_fc0 = F.pad(x_fc0, [0, self.padding, 0, self.padding])
+        x_fc0 = F.pad(
+            x_fc0, [0, self.padding, 0, self.padding])
 
         D1, D2 = x_fc0.shape[-2], x_fc0.shape[-1]
 
@@ -160,7 +166,8 @@ class UNO2d(nn.Module):
         x_c5 = torch.cat([x_c5, x_fc0], dim=1)
 
         if self.padding != 0:
-            x_c5 = x_c5[..., : -self.padding, : -self.padding]
+            x_c5 = x_c5[..., : -
+                        self.padding, : -self.padding]
 
         x_c5 = x_c5.permute(0, 2, 3, 1)
 
@@ -176,12 +183,14 @@ class UNO3d(nn.Module):
     def __init__(self, num_channels, width, pad=5, factor=1, initial_step=10):
         super(UNO3d, self).__init__()
 
-        self.in_width = num_channels * initial_step + 3  # input channel
+        self.in_width = num_channels * \
+            initial_step + 3  # input channel
         self.width = width
 
         self.padding = pad  # pad the domain if input is non-periodic
 
-        self.fc_n1 = nn.Linear(self.in_width, self.width // 2)
+        self.fc_n1 = nn.Linear(
+            self.in_width, self.width // 2)
 
         self.fc0 = nn.Linear(self.width // 2, self.width)
 
@@ -202,7 +211,8 @@ class UNO3d(nn.Module):
         )
 
         self.conv2 = OperatorBlock_3D(
-            4 * factor * self.width, 4 * factor * self.width, 18, 18, 18, 7, 7, 7
+            4 * factor * self.width, 4 * factor *
+            self.width, 18, 18, 18, 7, 7, 7
         )
 
         self.conv4 = OperatorBlock_3D(
@@ -236,7 +246,8 @@ class UNO3d(nn.Module):
         x_fc0 = x_fc0.permute(0, 4, 1, 2, 3)
 
         # scale = math.ceil(x_fc0.shape[-1]/85)
-        x_fc0 = F.pad(x_fc0, [0, self.padding, 0, self.padding, 0, self.padding])
+        x_fc0 = F.pad(
+            x_fc0, [0, self.padding, 0, self.padding, 0, self.padding])
 
         D1, D2, D3 = x_fc0.shape[-3], x_fc0.shape[-2], x_fc0.shape[-1]
 
@@ -253,7 +264,8 @@ class UNO3d(nn.Module):
         x_c5 = torch.cat([x_c5, x_fc0], dim=1)
 
         if self.padding != 0:
-            x_c5 = x_c5[..., : -self.padding, : -self.padding, : -self.padding]
+            x_c5 = x_c5[..., : -self.padding,
+                        : -self.padding, : -self.padding]
 
         x_c5 = x_c5.permute(0, 2, 3, 4, 1)
 
@@ -274,7 +286,8 @@ class UNO_maxwell(nn.Module):
 
         self.padding = pad  # pad the domain if input is non-periodic
 
-        self.fc_n1 = nn.Linear(self.in_width, self.width // 2)
+        self.fc_n1 = nn.Linear(
+            self.in_width, self.width // 2)
 
         self.fc0 = nn.Linear(self.width // 2, self.width)
 
@@ -295,7 +308,8 @@ class UNO_maxwell(nn.Module):
         )
 
         self.conv2 = OperatorBlock_3D(
-            4 * factor * self.width, 4 * factor * self.width, 12, 12, 12, 5, 5, 5
+            4 * factor * self.width, 4 * factor *
+            self.width, 12, 12, 12, 5, 5, 5
         )
 
         self.conv4 = OperatorBlock_3D(
@@ -327,7 +341,8 @@ class UNO_maxwell(nn.Module):
         x_fc0 = x_fc0.permute(0, 4, 1, 2, 3)
 
         # scale = math.ceil(x_fc0.shape[-1]/85)
-        x_fc0 = F.pad(x_fc0, [0, self.padding, 0, self.padding, 0, self.padding])
+        x_fc0 = F.pad(
+            x_fc0, [0, self.padding, 0, self.padding, 0, self.padding])
 
         D1, D2, D3 = x_fc0.shape[-3], x_fc0.shape[-2], x_fc0.shape[-1]
 
@@ -344,7 +359,8 @@ class UNO_maxwell(nn.Module):
         x_c5 = torch.cat([x_c5, x_fc0], dim=1)
 
         if self.padding != 0:
-            x_c5 = x_c5[..., : -self.padding, : -self.padding, : -self.padding]
+            x_c5 = x_c5[..., : -self.padding,
+                        : -self.padding, : -self.padding]
 
         x_c5 = x_c5.permute(0, 2, 3, 4, 1)
 

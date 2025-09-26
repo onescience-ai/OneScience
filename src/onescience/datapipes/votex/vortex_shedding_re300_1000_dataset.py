@@ -57,9 +57,11 @@ class LatentDataset(DGLDataset):
         self.sequence_len = sequence_len
         self.data_dir = data_dir
         if produce_latents:
-            self.save_latents(Encoder, position_mesh, position_pivotal, dist)
+            self.save_latents(
+                Encoder, position_mesh, position_pivotal, dist)
 
-        self.z = torch.load("{}/latent_{}.pt".format(self.data_dir, self.split)).cpu()
+        self.z = torch.load(
+            "{}/latent_{}.pt".format(self.data_dir, self.split)).cpu()
         self.get_re_number()
 
     def __len__(self):
@@ -67,13 +69,15 @@ class LatentDataset(DGLDataset):
 
     def __getitem__(self, idx):
         return (
-            self.z[idx * self.sequence_len : (idx + 1) * self.sequence_len],
-            self.re[idx : (idx + 1)],
+            self.z[idx *
+                   self.sequence_len: (idx + 1) * self.sequence_len],
+            self.re[idx: (idx + 1)],
         )
 
     def get_re_number(self):
         """Get RE number"""
-        ReAll = torch.from_numpy(np.linspace(300, 1000, 101)).float().reshape([-1, 1])
+        ReAll = torch.from_numpy(np.linspace(
+            300, 1000, 101)).float().reshape([-1, 1])
         nuAll = 1 / ReAll
         listCatALL = []
         for i in range(3):
@@ -117,7 +121,8 @@ class LatentDataset(DGLDataset):
             z = z.reshape(1, -1)
             record_z.append(z)
         record_z = torch.cat(record_z, dim=0)
-        torch.save(record_z, "{}/latent_{}.pt".format(self.data_dir, self.split))
+        torch.save(
+            record_z, "{}/latent_{}.pt".format(self.data_dir, self.split))
 
 
 class VortexSheddingRe300To1000Dataset(DGLDataset):
@@ -155,9 +160,11 @@ class VortexSheddingRe300To1000Dataset(DGLDataset):
 
         # select training and testing set
         if self.split == "train":
-            self.sequence_ids = [i for i in range(101) if i % 2 == 0]
+            self.sequence_ids = [
+                i for i in range(101) if i % 2 == 0]
         if self.split == "test":
-            self.sequence_ids = [i for i in range(101) if i % 2 == 1]
+            self.sequence_ids = [
+                i for i in range(101) if i % 2 == 1]
 
         # solution states are velocity and pressure
         self.solution_states = torch.from_numpy(
@@ -165,10 +172,12 @@ class VortexSheddingRe300To1000Dataset(DGLDataset):
         ).float()
 
         # edge information
-        self.E = torch.from_numpy(self.rawData["edge_attr"]).float()
+        self.E = torch.from_numpy(
+            self.rawData["edge_attr"]).float()
 
         # edge connection
-        self.A = torch.from_numpy(self.rawData["edge_index"]).type(torch.long)
+        self.A = torch.from_numpy(
+            self.rawData["edge_index"]).type(torch.long)
 
         # sequence length
         self.sequence_len = self.solution_states.shape[1]
@@ -178,12 +187,14 @@ class VortexSheddingRe300To1000Dataset(DGLDataset):
         if self.split == "train":
             self.edge_stats = self._get_edge_stats()
         else:
-            self.edge_stats = load_json("dataset/edge_stats.json")
+            self.edge_stats = load_json(
+                "dataset/edge_stats.json")
 
         if self.split == "train":
             self.node_stats = self._get_node_stats()
         else:
-            self.node_stats = load_json("dataset/node_stats.json")
+            self.node_stats = load_json(
+                "dataset/node_stats.json")
 
         # handle the normalization
         for i in range(self.sequence_num):
@@ -206,7 +217,8 @@ class VortexSheddingRe300To1000Dataset(DGLDataset):
 
         node_features = self.solution_states[sidx, tidx]
         node_targets = self.solution_states[sidx, tidx]
-        graph = dgl.graph((self.A[0], self.A[1]), num_nodes=self.num_nodes)
+        graph = dgl.graph(
+            (self.A[0], self.A[1]), num_nodes=self.num_nodes)
         graph.ndata["x"] = node_features
         graph.ndata["y"] = node_targets
         graph.edata["x"] = self.E

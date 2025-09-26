@@ -54,10 +54,13 @@ class TaskClasser(Runner):
             )
         context = "".join(context)
 
-        parser = JsonOutputParser(pydantic_object=TaskTypeResult)
+        parser = JsonOutputParser(
+            pydantic_object=TaskTypeResult)
 
-        messages = [SystemMessage(self.system_prompt)] + state["messages"]
-        runnable = ChatPromptTemplate.from_messages(messages) | self.llm | parser
+        messages = [SystemMessage(
+            self.system_prompt)] + state["messages"]
+        runnable = ChatPromptTemplate.from_messages(
+            messages) | self.llm | parser
 
         result = runnable.invoke(
             {
@@ -67,5 +70,6 @@ class TaskClasser(Runner):
             }
         )
 
-        result = TaskTypeResult.model_validate_json(json.dumps(result))
+        result = TaskTypeResult.model_validate_json(
+            json.dumps(result))
         return {"messages": [AIMessage(content=result.task_type)]}

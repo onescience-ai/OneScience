@@ -14,7 +14,8 @@ class MTCollater:
     ) -> None:
         self.exclude_keys = exclude_keys
         self.task_config = task_config
-        self.dataset_task_map = self._create_dataset_task_map(task_config)
+        self.dataset_task_map = self._create_dataset_task_map(
+            task_config)
 
     def __call__(self, data_list: list[AtomicData]) -> AtomicData:
         batch = self.data_list_collater(
@@ -45,13 +46,15 @@ class MTCollater:
                 getattr(data_object, "natoms", None),
                 "edge_index shape:",
                 (
-                    getattr(data_object, "edge_index", None).shape
+                    getattr(data_object,
+                            "edge_index", None).shape
                     if hasattr(data_object, "edge_index")
                     else None
                 ),
             )
         # --------- 正常流程
-        data_list = self._add_missing_attr(data_list, dataset_task_map)
+        data_list = self._add_missing_attr(
+            data_list, dataset_task_map)
         return atomicdata_list_to_batch(data_list, exclude_keys=exclude_keys)
 
     # takes in the task config
@@ -61,7 +64,8 @@ class MTCollater:
             for dataset in task_dict["datasets"]:
                 if dataset not in datasets_task_map:
                     datasets_task_map[dataset] = {}
-                datasets_task_map[dataset][task] = {"level": task_dict["level"]}
+                datasets_task_map[dataset][task] = {
+                    "level": task_dict["level"]}
             # if len(task_dict["datasets"]) == 0:
             #    datasets_task_map[""][task] = {"level": task_dict["level"]}
         return datasets_task_map
@@ -90,9 +94,11 @@ class MTCollater:
                         not in datasets_in_batch_to_task_configs[data.dataset][task]
                     ):
                         if task_config["level"] == "system":
-                            dim = list(getattr(data, task).shape)
+                            dim = list(
+                                getattr(data, task).shape)
                         elif task_config["level"] == "atom":
-                            dim = list(getattr(data, task).shape[1:])
+                            dim = list(
+                                getattr(data, task).shape[1:])
                         else:
                             raise ValueError(
                                 f"task level must be either system or atom, found {task_config['level']}"
@@ -123,7 +129,8 @@ class MTCollater:
         missing_tasks = {}
         for dataset, task_dict in datasets_in_batch_to_task_configs.items():
             missing_tasks[dataset] = list(
-                set(tasks_to_report_on).difference(set(task_dict.keys()))
+                set(tasks_to_report_on).difference(
+                    set(task_dict.keys()))
             )
 
         # create a copy before assigning attributes to inf
@@ -134,8 +141,10 @@ class MTCollater:
         for data in data_list:
             for task in missing_tasks[data.dataset]:
                 dim = task_config[task]["out_spec"]["dim"]
-                dtype = getattr(torch, task_config[task]["out_spec"]["dtype"])
+                dtype = getattr(
+                    torch, task_config[task]["out_spec"]["dtype"])
                 if task_config[task]["level"] == "atom":
                     dim = [data.natoms] + dim
-                setattr(data, task, torch.full(dim, torch.inf, dtype=dtype))
+                setattr(data, task, torch.full(
+                    dim, torch.inf, dtype=dtype))
         return data_list

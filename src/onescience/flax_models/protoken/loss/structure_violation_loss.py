@@ -1,5 +1,7 @@
-### Implement of structure violations, copy from AF2 code (multimer)
+# Implement of structure violations, copy from AF2 code (multimer)
 
+from onescience.flax_models.protoken.model import geometry, utils
+from onescience.flax_models.protoken.common import residue_constants
 from typing import Any, Dict, Mapping, Union
 
 import jax
@@ -11,23 +13,23 @@ Float = Union[float, jnp.ndarray]
 # Python-version-specific alias (Python 2: unicode; Python 3: str)
 Text = str
 
-from onescience.flax_models.protoken.common import residue_constants
-from onescience.flax_models.protoken.model import geometry, utils
-
 
 def _make_restype_atom14_to_atom37():
     """Map from atom14 to atom37 per residue type."""
-    restype_atom14_to_atom37 = []  # mapping (restype, atom14) --> atom37
+    restype_atom14_to_atom37 = [
+    ]  # mapping (restype, atom14) --> atom37
     for rt in residue_constants.restypes:
         atom_names = residue_constants.restype_name_to_atom14_names[
             residue_constants.restype_1to3[rt]
         ]
         restype_atom14_to_atom37.append(
-            [(residue_constants.atom_order[name] if name else 0) for name in atom_names]
+            [(residue_constants.atom_order[name] if name else 0)
+             for name in atom_names]
         )
     # Add dummy mapping for restype 'UNK'
     restype_atom14_to_atom37.append([0] * 14)
-    restype_atom14_to_atom37 = np.array(restype_atom14_to_atom37, dtype=np.int32)
+    restype_atom14_to_atom37 = np.array(
+        restype_atom14_to_atom37, dtype=np.int32)
     return restype_atom14_to_atom37
 
 
@@ -111,8 +113,11 @@ def find_structural_violations(
             for name in residue_constants.atom_types
         ]
     )
-    residx_atom14_to_atom37 = get_atom14_to_atom37_map(aatype)
-    atom_radius = mask * utils.batched_gather(atomtype_radius, residx_atom14_to_atom37)
+    residx_atom14_to_atom37 = get_atom14_to_atom37_map(
+        aatype)
+    atom_radius = mask * \
+        utils.batched_gather(
+            atomtype_radius, residx_atom14_to_atom37)
 
     # Compute the between residue clash loss.
     between_residue_clashes = between_residue_clash_loss(
@@ -156,8 +161,10 @@ def find_structural_violations(
         jnp.stack(
             [
                 connection_violations["per_residue_violation_mask"],
-                jnp.max(between_residue_clashes["per_atom_clash_mask"], axis=-1),
-                jnp.max(within_residue_violations["per_atom_violations"], axis=-1),
+                jnp.max(
+                    between_residue_clashes["per_atom_clash_mask"], axis=-1),
+                jnp.max(
+                    within_residue_violations["per_atom_violations"], axis=-1),
             ]
         ),
         axis=0,
@@ -165,16 +172,20 @@ def find_structural_violations(
 
     return {
         "between_residues": {
-            "bonds_c_n_loss_mean": connection_violations["c_n_loss_mean"],  # ()
-            "angles_ca_c_n_loss_mean": connection_violations["ca_c_n_loss_mean"],  # ()
-            "angles_c_n_ca_loss_mean": connection_violations["c_n_ca_loss_mean"],  # ()
+            # ()
+            "bonds_c_n_loss_mean": connection_violations["c_n_loss_mean"],
+            # ()
+            "angles_ca_c_n_loss_mean": connection_violations["ca_c_n_loss_mean"],
+            # ()
+            "angles_c_n_ca_loss_mean": connection_violations["c_n_ca_loss_mean"],
             "connections_per_residue_loss_sum": connection_violations[
                 "per_residue_loss_sum"
             ],  # (N)
             "connections_per_residue_violation_mask": connection_violations[
                 "per_residue_violation_mask"
             ],  # (N)
-            "clashes_mean_loss": between_residue_clashes["mean_loss"],  # ()
+            # ()
+            "clashes_mean_loss": between_residue_clashes["mean_loss"],
             "clashes_per_atom_loss_sum": between_residue_clashes[
                 "per_atom_loss_sum"
             ],  # (N, 14)
@@ -190,7 +201,8 @@ def find_structural_violations(
                 "per_atom_violations"
             ],  # (N, 14),
         },
-        "total_per_residue_violations_mask": per_residue_violations_mask,  # (N)
+        # (N)
+        "total_per_residue_violations_mask": per_residue_violations_mask,
     }
 
 
@@ -216,10 +228,12 @@ def compute_violation_metrics(
     )
     ret["violations_between_residue_clash"] = utils.mask_mean(
         mask=seq_mask,
-        value=jnp.max(between_residues["clashes_per_atom_clash_mask"], axis=-1),
+        value=jnp.max(
+            between_residues["clashes_per_atom_clash_mask"], axis=-1),
     )
     ret["violations_within_residue"] = utils.mask_mean(
-        mask=seq_mask, value=jnp.max(within_residues["per_atom_violations"], axis=-1)
+        mask=seq_mask, value=jnp.max(
+            within_residues["per_atom_violations"], axis=-1)
     )
     ret["violations_per_residue"] = utils.mask_mean(
         mask=seq_mask, value=violations["total_per_residue_violations_mask"]
@@ -256,7 +270,8 @@ def between_residue_bond_loss(
     )
 
     # Compute loss for the C--N bond.
-    c_n_bond_length = geometry.euclidean_distance(this_c_pos, next_n_pos, 1e-6)
+    c_n_bond_length = geometry.euclidean_distance(
+        this_c_pos, next_n_pos, 1e-6)
 
     # The C-N bond to proline has slightly different length because of the ring.
     next_is_proline = (aatype[1:] == residue_constants.restype_order["P"]).astype(
@@ -272,51 +287,66 @@ def between_residue_bond_loss(
     ] + next_is_proline * residue_constants.between_res_bond_length_stddev_c_n[
         1
     ]
-    c_n_bond_length_error = jnp.sqrt(1e-6 + jnp.square(c_n_bond_length - gt_length))
+    c_n_bond_length_error = jnp.sqrt(
+        1e-6 + jnp.square(c_n_bond_length - gt_length))
     c_n_loss_per_residue = jax.nn.relu(
         c_n_bond_length_error - tolerance_factor_soft * gt_stddev
     )
     mask = this_c_mask * next_n_mask * has_no_gap_mask
-    c_n_loss = jnp.sum(mask * c_n_loss_per_residue) / (jnp.sum(mask) + 1e-6)
+    c_n_loss = jnp.sum(
+        mask * c_n_loss_per_residue) / (jnp.sum(mask) + 1e-6)
     c_n_violation_mask = mask * (
-        c_n_bond_length_error > (tolerance_factor_hard * gt_stddev)
+        c_n_bond_length_error > (
+            tolerance_factor_hard * gt_stddev)
     )
 
     # Compute loss for the angles.
-    c_ca_unit_vec = (this_ca_pos - this_c_pos).normalized(1e-6)
-    c_n_unit_vec = (next_n_pos - this_c_pos) / c_n_bond_length
-    n_ca_unit_vec = (next_ca_pos - next_n_pos).normalized(1e-6)
+    c_ca_unit_vec = (
+        this_ca_pos - this_c_pos).normalized(1e-6)
+    c_n_unit_vec = (
+        next_n_pos - this_c_pos) / c_n_bond_length
+    n_ca_unit_vec = (
+        next_ca_pos - next_n_pos).normalized(1e-6)
 
     ca_c_n_cos_angle = c_ca_unit_vec.dot(c_n_unit_vec)
     gt_angle = residue_constants.between_res_cos_angles_ca_c_n[0]
     gt_stddev = residue_constants.between_res_cos_angles_ca_c_n[1]
-    ca_c_n_cos_angle_error = jnp.sqrt(1e-6 + jnp.square(ca_c_n_cos_angle - gt_angle))
+    ca_c_n_cos_angle_error = jnp.sqrt(
+        1e-6 + jnp.square(ca_c_n_cos_angle - gt_angle))
     ca_c_n_loss_per_residue = jax.nn.relu(
         ca_c_n_cos_angle_error - tolerance_factor_soft * gt_stddev
     )
-    mask = this_ca_mask * this_c_mask * next_n_mask * has_no_gap_mask
-    ca_c_n_loss = jnp.sum(mask * ca_c_n_loss_per_residue) / (jnp.sum(mask) + 1e-6)
+    mask = this_ca_mask * this_c_mask * \
+        next_n_mask * has_no_gap_mask
+    ca_c_n_loss = jnp.sum(
+        mask * ca_c_n_loss_per_residue) / (jnp.sum(mask) + 1e-6)
     ca_c_n_violation_mask = mask * (
-        ca_c_n_cos_angle_error > (tolerance_factor_hard * gt_stddev)
+        ca_c_n_cos_angle_error > (
+            tolerance_factor_hard * gt_stddev)
     )
 
     c_n_ca_cos_angle = (-c_n_unit_vec).dot(n_ca_unit_vec)
     gt_angle = residue_constants.between_res_cos_angles_c_n_ca[0]
     gt_stddev = residue_constants.between_res_cos_angles_c_n_ca[1]
-    c_n_ca_cos_angle_error = jnp.sqrt(1e-6 + jnp.square(c_n_ca_cos_angle - gt_angle))
+    c_n_ca_cos_angle_error = jnp.sqrt(
+        1e-6 + jnp.square(c_n_ca_cos_angle - gt_angle))
     c_n_ca_loss_per_residue = jax.nn.relu(
         c_n_ca_cos_angle_error - tolerance_factor_soft * gt_stddev
     )
-    mask = this_c_mask * next_n_mask * next_ca_mask * has_no_gap_mask
-    c_n_ca_loss = jnp.sum(mask * c_n_ca_loss_per_residue) / (jnp.sum(mask) + 1e-6)
+    mask = this_c_mask * next_n_mask * \
+        next_ca_mask * has_no_gap_mask
+    c_n_ca_loss = jnp.sum(
+        mask * c_n_ca_loss_per_residue) / (jnp.sum(mask) + 1e-6)
     c_n_ca_violation_mask = mask * (
-        c_n_ca_cos_angle_error > (tolerance_factor_hard * gt_stddev)
+        c_n_ca_cos_angle_error > (
+            tolerance_factor_hard * gt_stddev)
     )
 
     # Compute a per residue loss (equally distribute the loss to both
     # neighbouring residues).
     per_residue_loss_sum = (
-        c_n_loss_per_residue + ca_c_n_loss_per_residue + c_n_ca_loss_per_residue
+        c_n_loss_per_residue + ca_c_n_loss_per_residue +
+        c_n_ca_loss_per_residue
     )
     per_residue_loss_sum = 0.5 * (
         jnp.pad(per_residue_loss_sum, [[0, 1]])
@@ -325,19 +355,23 @@ def between_residue_bond_loss(
 
     # Compute hard violations.
     violation_mask = jnp.max(
-        jnp.stack([c_n_violation_mask, ca_c_n_violation_mask, c_n_ca_violation_mask]),
+        jnp.stack([c_n_violation_mask,
+                  ca_c_n_violation_mask, c_n_ca_violation_mask]),
         axis=0,
     )
     violation_mask = jnp.maximum(
-        jnp.pad(violation_mask, [[0, 1]]), jnp.pad(violation_mask, [[1, 0]])
+        jnp.pad(violation_mask, [[0, 1]]), jnp.pad(
+            violation_mask, [[1, 0]])
     )
 
     return {
         "c_n_loss_mean": c_n_loss,  # shape ()
         "ca_c_n_loss_mean": ca_c_n_loss,  # shape ()
         "c_n_ca_loss_mean": c_n_ca_loss,  # shape ()
-        "per_residue_loss_sum": per_residue_loss_sum,  # shape (N)
-        "per_residue_violation_mask": violation_mask,  # shape (N)
+        # shape (N)
+        "per_residue_loss_sum": per_residue_loss_sum,
+        # shape (N)
+        "per_residue_violation_mask": violation_mask,
     }
 
 
@@ -359,43 +393,53 @@ def between_residue_clash_loss(
     # Create the distance matrix.
     # (N, N, 14, 14)
     dists = geometry.euclidean_distance(
-        pred_positions[:, None, :, None], pred_positions[None, :, None, :], 1e-10
+        pred_positions[:, None, :,
+                       None], pred_positions[None, :, None, :], 1e-10
     )
 
     # Create the mask for valid distances.
     # shape (N, N, 14, 14)
-    dists_mask = atom_exists[:, None, :, None] * atom_exists[None, :, None, :]
+    dists_mask = atom_exists[:, None, :,
+                             None] * atom_exists[None, :, None, :]
 
     # Mask out all the duplicate entries in the lower triangular matrix.
     # Also mask out the diagonal (atom-pairs from the same residue) -- these atoms
     # are handled separately.
     dists_mask *= (
-        residue_index[:, None, None, None] < residue_index[None, :, None, None]
+        residue_index[:, None, None,
+                      None] < residue_index[None, :, None, None]
     )
 
     # Backbone C--N bond between subsequent residues is no clash.
     c_one_hot = jax.nn.one_hot(2, num_classes=14)
     n_one_hot = jax.nn.one_hot(0, num_classes=14)
-    neighbour_mask = (residue_index[:, None] + 1) == residue_index[None, :]
+    neighbour_mask = (
+        residue_index[:, None] + 1) == residue_index[None, :]
     neighbour_mask &= asym_id[:, None] == asym_id[None, :]
     neighbour_mask = neighbour_mask[..., None, None]
     c_n_bonds = (
-        neighbour_mask * c_one_hot[None, None, :, None] * n_one_hot[None, None, None, :]
+        neighbour_mask *
+        c_one_hot[None, None, :, None] *
+        n_one_hot[None, None, None, :]
     )
     dists_mask *= 1.0 - c_n_bonds
 
     # Disulfide bridge between two cysteines is no clash.
-    cys_sg_idx = residue_constants.restype_name_to_atom14_names["CYS"].index("SG")
-    cys_sg_one_hot = jax.nn.one_hot(cys_sg_idx, num_classes=14)
+    cys_sg_idx = residue_constants.restype_name_to_atom14_names["CYS"].index(
+        "SG")
+    cys_sg_one_hot = jax.nn.one_hot(
+        cys_sg_idx, num_classes=14)
     disulfide_bonds = (
-        cys_sg_one_hot[None, None, :, None] * cys_sg_one_hot[None, None, None, :]
+        cys_sg_one_hot[None, None, :, None] *
+        cys_sg_one_hot[None, None, None, :]
     )
     dists_mask *= 1.0 - disulfide_bonds
 
     # Compute the lower bound for the allowed distances.
     # shape (N, N, 14, 14)
     dists_lower_bound = dists_mask * (
-        atom_radius[:, None, :, None] + atom_radius[None, :, None, :]
+        atom_radius[:, None, :, None] +
+        atom_radius[None, :, None, :]
     )
 
     # Compute the error.
@@ -406,7 +450,8 @@ def between_residue_clash_loss(
 
     # Compute the mean loss.
     # shape ()
-    mean_loss = jnp.sum(dists_to_low_error) / (1e-6 + jnp.sum(dists_mask))
+    mean_loss = jnp.sum(
+        dists_to_low_error) / (1e-6 + jnp.sum(dists_mask))
 
     # Compute the per atom loss sum.
     # shape (N, 14)
@@ -416,18 +461,22 @@ def between_residue_clash_loss(
 
     # Compute the hard clash mask.
     # shape (N, N, 14, 14)
-    clash_mask = dists_mask * (dists < (dists_lower_bound - overlap_tolerance_hard))
+    clash_mask = dists_mask * \
+        (dists < (dists_lower_bound - overlap_tolerance_hard))
 
     # Compute the per atom clash.
     # shape (N, 14)
     per_atom_clash_mask = jnp.maximum(
-        jnp.max(clash_mask, axis=[0, 2]), jnp.max(clash_mask, axis=[1, 3])
+        jnp.max(clash_mask, axis=[0, 2]), jnp.max(
+            clash_mask, axis=[1, 3])
     )
 
     return {
         "mean_loss": mean_loss,  # shape ()
-        "per_atom_loss_sum": per_atom_loss_sum,  # shape (N, 14)
-        "per_atom_clash_mask": per_atom_clash_mask,  # shape (N, 14)
+        # shape (N, 14)
+        "per_atom_loss_sum": per_atom_loss_sum,
+        # shape (N, 14)
+        "per_atom_clash_mask": per_atom_clash_mask,
     }
 
 
@@ -447,12 +496,14 @@ def within_residue_violation_loss(
     # Compute the mask for each residue.
     # shape (N, 14, 14)
     dists_masks = 1.0 - jnp.eye(14, 14)[None]
-    dists_masks *= atom_exists[:, :, None] * atom_exists[:, None, :]
+    dists_masks *= atom_exists[:, :,
+                               None] * atom_exists[:, None, :]
 
     # Distance matrix
     # shape (N, 14, 14)
     dists = geometry.euclidean_distance(
-        pred_positions[:, :, None], pred_positions[:, None, :], 1e-10
+        pred_positions[:, :,
+                       None], pred_positions[:, None, :], 1e-10
     )
 
     # Compute the loss.
@@ -463,27 +514,33 @@ def within_residue_violation_loss(
     dists_to_high_error = jax.nn.relu(
         dists + tighten_bounds_for_loss - dists_upper_bound
     )
-    loss = dists_masks * (dists_to_low_error + dists_to_high_error)
+    loss = dists_masks * \
+        (dists_to_low_error + dists_to_high_error)
 
     # Compute the per atom loss sum.
     # shape (N, 14)
-    per_atom_loss_sum = jnp.sum(loss, axis=1) + jnp.sum(loss, axis=2)
+    per_atom_loss_sum = jnp.sum(
+        loss, axis=1) + jnp.sum(loss, axis=2)
 
     # Compute the violations mask.
     # shape (N, 14, 14)
     violations = dists_masks * (
-        (dists < dists_lower_bound) | (dists > dists_upper_bound)
+        (dists < dists_lower_bound) | (
+            dists > dists_upper_bound)
     )
 
     # Compute the per atom violations.
     # shape (N, 14)
     per_atom_violations = jnp.maximum(
-        jnp.max(violations, axis=1), jnp.max(violations, axis=2)
+        jnp.max(violations, axis=1), jnp.max(
+            violations, axis=2)
     )
 
     return {
-        "per_atom_loss_sum": per_atom_loss_sum,  # shape (N, 14)
-        "per_atom_violations": per_atom_violations,  # shape (N, 14)
+        # shape (N, 14)
+        "per_atom_loss_sum": per_atom_loss_sum,
+        # shape (N, 14)
+        "per_atom_violations": per_atom_violations,
     }
 
 
@@ -501,7 +558,9 @@ def extreme_ca_ca_distance_violations(
     has_no_gap_mask = ((residue_index[1:] - residue_index[:-1]) == 1.0).astype(
         jnp.float32
     )
-    ca_ca_distance = geometry.euclidean_distance(this_ca_pos, next_ca_pos, 1e-6)
-    violations = (ca_ca_distance - residue_constants.ca_ca) > max_angstrom_tolerance
+    ca_ca_distance = geometry.euclidean_distance(
+        this_ca_pos, next_ca_pos, 1e-6)
+    violations = (
+        ca_ca_distance - residue_constants.ca_ca) > max_angstrom_tolerance
     mask = this_ca_mask * next_ca_mask * has_no_gap_mask
     return utils.mask_mean(mask=mask, value=violations)

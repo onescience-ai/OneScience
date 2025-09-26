@@ -23,7 +23,8 @@ from onescience.flax_models.alphafold3.jax.gated_linear_unit import block, matmu
 ArrayView = array_view.ArrayView
 PyTree: TypeAlias = Any
 ArrayT: TypeAlias = Any
-ScalarInt: TypeAlias = Int[ArrayT, ""] | Int[np.generic, ""] | Int[jnp.generic, ""]
+ScalarInt: TypeAlias = Int[ArrayT,
+                           ""] | Int[np.generic, ""] | Int[jnp.generic, ""]
 
 
 def _get_group_cache_usage(
@@ -31,9 +32,12 @@ def _get_group_cache_usage(
 ) -> int:
     """Returns the cache usage in bytes for the given group size."""
     num_live_progs = jax.devices()[0].core_count
-    num_live_blocks_n = min(pl.cdiv(num_live_progs, group_size_m), num_blocks_n)
-    num_live_groups = pl.cdiv(num_live_progs, group_size_m * num_live_blocks_n)
-    num_live_blocks_m = min(num_live_groups * group_size_m, num_blocks_m)
+    num_live_blocks_n = min(
+        pl.cdiv(num_live_progs, group_size_m), num_blocks_n)
+    num_live_groups = pl.cdiv(
+        num_live_progs, group_size_m * num_live_blocks_n)
+    num_live_blocks_m = min(
+        num_live_groups * group_size_m, num_blocks_m)
     return num_live_blocks_m * block_m_bytes + num_live_blocks_n * block_n_bytes
 
 
@@ -48,10 +52,13 @@ def _get_pids(
         return jnp.floor_divide(pid, num_blocks_n), jnp.remainder(pid, num_blocks_n)
 
     num_progs_in_group = group_size_m * num_blocks_n
-    group_start_m = jnp.floor_divide(pid, num_progs_in_group) * group_size_m
-    group_size_m = jnp.minimum(num_blocks_m - group_start_m, group_size_m)
+    group_start_m = jnp.floor_divide(
+        pid, num_progs_in_group) * group_size_m
+    group_size_m = jnp.minimum(
+        num_blocks_m - group_start_m, group_size_m)
     pid_m = group_start_m + jnp.remainder(pid, group_size_m)
-    pid_n = jnp.floor_divide(jnp.remainder(pid, num_progs_in_group), group_size_m)
+    pid_n = jnp.floor_divide(jnp.remainder(
+        pid, num_progs_in_group), group_size_m)
     return pid_m, pid_n
 
 
@@ -85,9 +92,11 @@ def _get_best_pids(
     )
 
     if group_size_m_usage(group_size_m) <= group_size_n_usage(group_size_n):
-        pid_m, pid_n = _get_pids(pid, num_blocks_m, num_blocks_n, group_size_m)
+        pid_m, pid_n = _get_pids(
+            pid, num_blocks_m, num_blocks_n, group_size_m)
     else:
-        pid_n, pid_m = _get_pids(pid, num_blocks_n, num_blocks_m, group_size_n)
+        pid_n, pid_m = _get_pids(
+            pid, num_blocks_n, num_blocks_m, group_size_n)
     return pid_m, pid_n
 
 
@@ -97,8 +106,9 @@ def _apply_epilogue(
     """Applies the epilogue to the output."""
     # Convert array view arguments to JAX arrays. This means that we can use the
     # array view slices, rather than the gather that discharging state gives us.
-    is_leaf = lambda x: isinstance(x, ArrayView)
-    args_flat, args_tree = jax.tree.flatten((x, args), is_leaf=is_leaf)
+    def is_leaf(x): return isinstance(x, ArrayView)
+    args_flat, args_tree = jax.tree.flatten(
+        (x, args), is_leaf=is_leaf)
     args_flat = tuple(map(jnp.array, args_flat))
 
     def epilogue_wrapper(refs):
@@ -133,26 +143,34 @@ def _gated_linear_unit_kernel(
         block_m=block_m,
         block_n=block_n,
         a_dtype_bytes=jnp.dtype(x_ref.dtype).itemsize,
-        b_dtype_bytes=jnp.dtype(w_ref.dtype).itemsize * 2,  # Two blocks.
+        # Two blocks.
+        b_dtype_bytes=jnp.dtype(w_ref.dtype).itemsize * 2,
     )
 
     def body(i, acc):
-        x = block.load_block(x_ref, (pid_m, i), block_shape=(block_m, block_k))
-        w = block.load_block(w_ref, (i, pid_n), block_shape=(block_k, block_n))
-        v = block.load_block(v_ref, (i, pid_n), block_shape=(block_k, block_n))
-        acc[0] += pl.dot(x, w.astype(x.dtype), precision=precision)
-        acc[1] += pl.dot(x, v.astype(x.dtype), precision=precision)
+        x = block.load_block(
+            x_ref, (pid_m, i), block_shape=(block_m, block_k))
+        w = block.load_block(
+            w_ref, (i, pid_n), block_shape=(block_k, block_n))
+        v = block.load_block(
+            v_ref, (i, pid_n), block_shape=(block_k, block_n))
+        acc[0] += pl.dot(x, w.astype(x.dtype),
+                         precision=precision)
+        acc[1] += pl.dot(x, v.astype(x.dtype),
+                         precision=precision)
         return acc
 
     num_iters = pl.cdiv(x_ref.shape[-1], block_k)
     acc0 = jnp.zeros((block_m, block_n), dtype=jnp.float32)
     acc1 = jnp.zeros((block_m, block_n), dtype=jnp.float32)
-    proj, gates = jax.lax.fori_loop(0, num_iters, body, init_val=[acc0, acc1])
+    proj, gates = jax.lax.fori_loop(
+        0, num_iters, body, init_val=[acc0, acc1])
 
     proj = proj.astype(x_ref.dtype).astype(jnp.float32)
     gates = gates.astype(x_ref.dtype).astype(jnp.float32)
 
-    out = proj * (gates if activation is None else activation(gates))
+    out = proj * \
+        (gates if activation is None else activation(gates))
 
     if epilogue is not None:
         out = epilogue(out, epilogue_in_refs, pid_m, pid_n)
@@ -167,13 +185,15 @@ def _gated_linear_unit(
     *,
     dst: Float[ArrayView, "M N"] | None = None,
     activation: Callable[[jax.Array], jax.Array] | None,
-    epilogue: Any,  # Callable[..., Any] | None - breaks `typed`.
+    # Callable[..., Any] | None - breaks `typed`.
+    epilogue: Any,
     epilogue_args: PyTree,
     precision: jax.lax.Precision | None,
 ) -> jax.Array:  # Float[Array, 'M N'] | Float[Array, 'N M']
     """Applies a gated linear unit (arxiv.org/abs/1612.08083)."""
     if epilogue is None and epilogue_args is not None:
-        raise ValueError("`epilogue_args` is specified but `epilogue` is None.")
+        raise ValueError(
+            "`epilogue_args` is specified but `epilogue` is None.")
 
     name = "pallas_glu"
     if activation is not None:
@@ -204,11 +224,14 @@ def _gated_linear_unit(
     return pl.pallas_call(
         kernel,
         name=name,
-        grid=(pl.cdiv(m, config.block_m) * pl.cdiv(n, config.block_n),),
-        out_shape=jax.ShapeDtypeStruct((m, n), x.dtype) if dst is None else dst,
+        grid=(pl.cdiv(m, config.block_m) *
+              pl.cdiv(n, config.block_n),),
+        out_shape=jax.ShapeDtypeStruct(
+            (m, n), x.dtype) if dst is None else dst,
         input_output_aliases=input_output_aliases,
         compiler_params=dict(
-            triton=dict(num_warps=config.num_warps, num_stages=config.num_stages)
+            triton=dict(num_warps=config.num_warps,
+                        num_stages=config.num_stages)
         ),
     )(x, weights_projection, weights_gate, dst, epilogue_args)
 
@@ -219,7 +242,8 @@ def gated_linear_unit(
     weights_projection: Float[Array | ArrayView, "K N"],
     weights_gate: Float[Array | ArrayView, "K N"],
     *,
-    activation: Callable[[jax.Array], jax.Array] | None = None,
+    activation: Callable[[jax.Array],
+                         jax.Array] | None = None,
     precision: jax.lax.Precision | None = None,
 ) -> Float[Array | ArrayView, "*B M N"]:
     """Applies a gated linear unit (arxiv.org/abs/1612.08083).
@@ -243,11 +267,13 @@ def gated_linear_unit(
         )
 
     if not triton_utils.has_triton_support():
-        raise NotImplementedError("Triton kernel not supported on current device.")
+        raise NotImplementedError(
+            "Triton kernel not supported on current device.")
 
     *batch, m, _ = x.shape
     n = weights_projection.shape[1]
-    x = array_view.as_array_view(x).collapse(start=0, stop=-1)
+    x = array_view.as_array_view(
+        x).collapse(start=0, stop=-1)
 
     return _gated_linear_unit(
         x,

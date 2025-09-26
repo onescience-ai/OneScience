@@ -90,7 +90,8 @@ class NonLinearReadoutBlock(torch.nn.Module):
         self.linear_1 = Linear(
             irreps_in=irreps_in, irreps_out=self.hidden_irreps, cueq_config=cueq_config
         )
-        self.non_linearity = nn.Activation(irreps_in=self.hidden_irreps, acts=[gate])
+        self.non_linearity = nn.Activation(
+            irreps_in=self.hidden_irreps, acts=[gate])
         self.linear_2 = Linear(
             irreps_in=self.hidden_irreps, irreps_out=irrep_out, cueq_config=cueq_config
         )
@@ -122,7 +123,8 @@ class LinearDipoleReadoutBlock(torch.nn.Module):
             irreps_in=irreps_in, irreps_out=self.irreps_out, cueq_config=cueq_config
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # [n_nodes, irreps]  # [..., ]
+    # [n_nodes, irreps]  # [..., ]
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.linear(x)  # [n_nodes, 1]
 
 
@@ -143,12 +145,15 @@ class NonLinearDipoleReadoutBlock(torch.nn.Module):
         else:
             self.irreps_out = o3.Irreps("1x0e + 1x1o")
         irreps_scalars = o3.Irreps(
-            [(mul, ir) for mul, ir in MLP_irreps if ir.l == 0 and ir in self.irreps_out]
+            [(mul, ir) for mul, ir in MLP_irreps if ir.l ==
+             0 and ir in self.irreps_out]
         )
         irreps_gated = o3.Irreps(
-            [(mul, ir) for mul, ir in MLP_irreps if ir.l > 0 and ir in self.irreps_out]
+            [(mul, ir) for mul, ir in MLP_irreps if ir.l >
+             0 and ir in self.irreps_out]
         )
-        irreps_gates = o3.Irreps([mul, "0e"] for mul, _ in irreps_gated)
+        irreps_gates = o3.Irreps(
+            [mul, "0e"] for mul, _ in irreps_gated)
         self.equivariant_nonlin = nn.Gate(
             irreps_scalars=irreps_scalars,
             act_scalars=[gate for _, ir in irreps_scalars],
@@ -166,7 +171,8 @@ class NonLinearDipoleReadoutBlock(torch.nn.Module):
             cueq_config=cueq_config,
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:  # [n_nodes, irreps]  # [..., ]
+    # [n_nodes, irreps]  # [..., ]
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.equivariant_nonlin(self.linear_1(x))
         return self.linear_2(x)  # [n_nodes, 1]
 
@@ -181,18 +187,21 @@ class AtomicEnergiesBlock(torch.nn.Module):
 
         self.register_buffer(
             "atomic_energies",
-            torch.tensor(atomic_energies, dtype=torch.get_default_dtype()),
+            torch.tensor(atomic_energies,
+                         dtype=torch.get_default_dtype()),
         )  # [n_elements, n_heads]
 
     def forward(
-        self, x: torch.Tensor  # one-hot of elements [..., n_elements]
+        # one-hot of elements [..., n_elements]
+        self, x: torch.Tensor
     ) -> torch.Tensor:  # [..., ]
         return torch.matmul(x, torch.atleast_2d(self.atomic_energies).T)
 
     def __repr__(self):
         formatted_energies = ", ".join(
             [
-                "[" + ", ".join([f"{x:.4f}" for x in group]) + "]"
+                "[" +
+                ", ".join([f"{x:.4f}" for x in group]) + "]"
                 for group in torch.atleast_2d(self.atomic_energies)
             ]
         )
@@ -211,16 +220,20 @@ class RadialEmbeddingBlock(torch.nn.Module):
     ):
         super().__init__()
         if radial_type == "bessel":
-            self.bessel_fn = BesselBasis(r_max=r_max, num_basis=num_bessel)
+            self.bessel_fn = BesselBasis(
+                r_max=r_max, num_basis=num_bessel)
         elif radial_type == "gaussian":
-            self.bessel_fn = GaussianBasis(r_max=r_max, num_basis=num_bessel)
+            self.bessel_fn = GaussianBasis(
+                r_max=r_max, num_basis=num_bessel)
         elif radial_type == "chebyshev":
-            self.bessel_fn = ChebychevBasis(r_max=r_max, num_basis=num_bessel)
+            self.bessel_fn = ChebychevBasis(
+                r_max=r_max, num_basis=num_bessel)
         if distance_transform == "Agnesi":
             self.distance_transform = AgnesiTransform()
         elif distance_transform == "Soft":
             self.distance_transform = SoftTransform()
-        self.cutoff_fn = PolynomialCutoff(r_max=r_max, p=num_polynomial_cutoff)
+        self.cutoff_fn = PolynomialCutoff(
+            r_max=r_max, p=num_polynomial_cutoff)
         self.out_dim = num_bessel
 
     def forward(
@@ -230,12 +243,14 @@ class RadialEmbeddingBlock(torch.nn.Module):
         edge_index: torch.Tensor,
         atomic_numbers: torch.Tensor,
     ):
-        cutoff = self.cutoff_fn(edge_lengths)  # [n_edges, 1]
+        cutoff = self.cutoff_fn(
+            edge_lengths)  # [n_edges, 1]
         if hasattr(self, "distance_transform"):
             edge_lengths = self.distance_transform(
                 edge_lengths, node_attrs, edge_index, atomic_numbers
             )
-        radial = self.bessel_fn(edge_lengths)  # [n_edges, n_basis]
+        radial = self.bessel_fn(
+            edge_lengths)  # [n_edges, n_basis]
         return radial * cutoff  # [n_edges, n_basis]
 
 
@@ -288,14 +303,17 @@ class EquivariantProductBasisBlock(torch.nn.Module):
                     use_cueq_mul_ir = True
         if use_cueq:
             if use_cueq_mul_ir:
-                node_feats = torch.transpose(node_feats, 1, 2)
-            index_attrs = torch.nonzero(node_attrs)[:, 1].int()
+                node_feats = torch.transpose(
+                    node_feats, 1, 2)
+            index_attrs = torch.nonzero(
+                node_attrs)[:, 1].int()
             node_feats = self.symmetric_contractions(
                 node_feats.flatten(1),
                 index_attrs,
             )
         else:
-            node_feats = self.symmetric_contractions(node_feats, node_attrs)
+            node_feats = self.symmetric_contractions(
+                node_feats, node_attrs)
         if self.use_sc and sc is not None:
             return self.linear(node_feats) + sc
         return self.linear(node_feats)
@@ -349,7 +367,8 @@ class InteractionBlock(torch.nn.Module):
             device=node_feats.device,
         )
         node_feats = torch.cat((node_feats, pad), dim=0)
-        node_feats = LAMMPS_MP.apply(node_feats, lammps_class)
+        node_feats = LAMMPS_MP.apply(
+            node_feats, lammps_class)
         return node_feats
 
     def truncate_ghosts(
@@ -370,7 +389,8 @@ class InteractionBlock(torch.nn.Module):
         raise NotImplementedError
 
 
-nonlinearities = {1: torch.nn.functional.silu, -1: torch.tanh}
+nonlinearities = {
+    1: torch.nn.functional.silu, -1: torch.tanh}
 
 
 @compile_mode("script")
@@ -405,7 +425,8 @@ class RealAgnosticInteractionBlock(InteractionBlock):
         # Convolution weights
         input_dim = self.edge_feats_irreps.num_irreps
         self.conv_tp_weights = nn.FullyConnectedNet(
-            [input_dim] + self.radial_MLP + [self.conv_tp.weight_numel],
+            [input_dim] + self.radial_MLP +
+            [self.conv_tp.weight_numel],
             torch.nn.functional.silu,
         )
 
@@ -426,7 +447,8 @@ class RealAgnosticInteractionBlock(InteractionBlock):
             self.irreps_out,
             cueq_config=self.cueq_config,
         )
-        self.reshape = reshape_irreps(self.irreps_out, cueq_config=self.cueq_config)
+        self.reshape = reshape_irreps(
+            self.irreps_out, cueq_config=self.cueq_config)
 
     def forward(
         self,
@@ -458,8 +480,10 @@ class RealAgnosticInteractionBlock(InteractionBlock):
             src=mji, index=receiver, dim=0, dim_size=num_nodes
         )  # [n_nodes, irreps]
         message = self.truncate_ghosts(message, n_real)
-        node_attrs = self.truncate_ghosts(node_attrs, n_real)
-        message = self.linear(message) / self.avg_num_neighbors
+        node_attrs = self.truncate_ghosts(
+            node_attrs, n_real)
+        message = self.linear(
+            message) / self.avg_num_neighbors
         message = self.skip_tp(message, node_attrs)
         return (
             self.reshape(message),
@@ -499,7 +523,8 @@ class RealAgnosticResidualInteractionBlock(InteractionBlock):
         # Convolution weights
         input_dim = self.edge_feats_irreps.num_irreps
         self.conv_tp_weights = nn.FullyConnectedNet(
-            [input_dim] + self.radial_MLP + [self.conv_tp.weight_numel],
+            [input_dim] + self.radial_MLP +
+            [self.conv_tp.weight_numel],
             torch.nn.functional.silu,  # gate
         )
 
@@ -520,7 +545,8 @@ class RealAgnosticResidualInteractionBlock(InteractionBlock):
             self.hidden_irreps,
             cueq_config=self.cueq_config,
         )
-        self.reshape = reshape_irreps(self.irreps_out, cueq_config=self.cueq_config)
+        self.reshape = reshape_irreps(
+            self.irreps_out, cueq_config=self.cueq_config)
 
     def forward(
         self,
@@ -553,9 +579,11 @@ class RealAgnosticResidualInteractionBlock(InteractionBlock):
             src=mji, index=receiver, dim=0, dim_size=num_nodes
         )  # [n_nodes, irreps]
         message = self.truncate_ghosts(message, n_real)
-        node_attrs = self.truncate_ghosts(node_attrs, n_real)
+        node_attrs = self.truncate_ghosts(
+            node_attrs, n_real)
         sc = self.truncate_ghosts(sc, n_real)
-        message = self.linear(message) / self.avg_num_neighbors
+        message = self.linear(
+            message) / self.avg_num_neighbors
         return (
             self.reshape(message),
             sc,
@@ -594,7 +622,8 @@ class RealAgnosticDensityInteractionBlock(InteractionBlock):
         # Convolution weights
         input_dim = self.edge_feats_irreps.num_irreps
         self.conv_tp_weights = nn.FullyConnectedNet(
-            [input_dim] + self.radial_MLP + [self.conv_tp.weight_numel],
+            [input_dim] + self.radial_MLP +
+            [self.conv_tp.weight_numel],
             torch.nn.functional.silu,
         )
 
@@ -625,7 +654,8 @@ class RealAgnosticDensityInteractionBlock(InteractionBlock):
             torch.nn.functional.silu,
         )
         # Reshape
-        self.reshape = reshape_irreps(self.irreps_out, cueq_config=self.cueq_config)
+        self.reshape = reshape_irreps(
+            self.irreps_out, cueq_config=self.cueq_config)
 
     def forward(
         self,
@@ -650,7 +680,8 @@ class RealAgnosticDensityInteractionBlock(InteractionBlock):
             first_layer=first_layer,
         )
         tp_weights = self.conv_tp_weights(edge_feats)
-        edge_density = torch.tanh(self.density_fn(edge_feats) ** 2)
+        edge_density = torch.tanh(
+            self.density_fn(edge_feats) ** 2)
         mji = self.conv_tp(
             node_feats[sender], edge_attrs, tp_weights
         )  # [n_edges, irreps]
@@ -661,7 +692,8 @@ class RealAgnosticDensityInteractionBlock(InteractionBlock):
             src=mji, index=receiver, dim=0, dim_size=num_nodes
         )  # [n_nodes, irreps]
         message = self.truncate_ghosts(message, n_real)
-        node_attrs = self.truncate_ghosts(node_attrs, n_real)
+        node_attrs = self.truncate_ghosts(
+            node_attrs, n_real)
         density = self.truncate_ghosts(density, n_real)
         message = self.linear(message) / (density + 1)
         message = self.skip_tp(message, node_attrs)
@@ -704,7 +736,8 @@ class RealAgnosticDensityResidualInteractionBlock(InteractionBlock):
         # Convolution weights
         input_dim = self.edge_feats_irreps.num_irreps
         self.conv_tp_weights = nn.FullyConnectedNet(
-            [input_dim] + self.radial_MLP + [self.conv_tp.weight_numel],
+            [input_dim] + self.radial_MLP +
+            [self.conv_tp.weight_numel],
             torch.nn.functional.silu,  # gate
         )
 
@@ -736,7 +769,8 @@ class RealAgnosticDensityResidualInteractionBlock(InteractionBlock):
         )
 
         # Reshape
-        self.reshape = reshape_irreps(self.irreps_out, cueq_config=self.cueq_config)
+        self.reshape = reshape_irreps(
+            self.irreps_out, cueq_config=self.cueq_config)
 
     def forward(
         self,
@@ -762,7 +796,8 @@ class RealAgnosticDensityResidualInteractionBlock(InteractionBlock):
             first_layer=first_layer,
         )
         tp_weights = self.conv_tp_weights(edge_feats)
-        edge_density = torch.tanh(self.density_fn(edge_feats) ** 2)
+        edge_density = torch.tanh(
+            self.density_fn(edge_feats) ** 2)
         mji = self.conv_tp(
             node_feats[sender], edge_attrs, tp_weights
         )  # [n_edges, irreps]
@@ -773,7 +808,8 @@ class RealAgnosticDensityResidualInteractionBlock(InteractionBlock):
             src=mji, index=receiver, dim=0, dim_size=num_nodes
         )  # [n_nodes, irreps]
         message = self.truncate_ghosts(message, n_real)
-        node_attrs = self.truncate_ghosts(node_attrs, n_real)
+        node_attrs = self.truncate_ghosts(
+            node_attrs, n_real)
         density = self.truncate_ghosts(density, n_real)
         sc = self.truncate_ghosts(sc, n_real)
         message = self.linear(message) / (density + 1)
@@ -826,7 +862,8 @@ class RealAgnosticAttResidualInteractionBlock(InteractionBlock):
             + 2 * self.node_feats_down_irreps.num_irreps
         )
         self.conv_tp_weights = nn.FullyConnectedNet(
-            [input_dim] + 3 * [256] + [self.conv_tp.weight_numel],
+            [input_dim] + 3 * [256] +
+            [self.conv_tp.weight_numel],
             torch.nn.functional.silu,
         )
 
@@ -840,7 +877,8 @@ class RealAgnosticAttResidualInteractionBlock(InteractionBlock):
             cueq_config=self.cueq_config,
         )
 
-        self.reshape = reshape_irreps(self.irreps_out, cueq_config=self.cueq_config)
+        self.reshape = reshape_irreps(
+            self.irreps_out, cueq_config=self.cueq_config)
 
         # Skip connection.
         self.skip_linear = Linear(
@@ -873,14 +911,16 @@ class RealAgnosticAttResidualInteractionBlock(InteractionBlock):
             ],
             dim=-1,
         )
-        tp_weights = self.conv_tp_weights(augmented_edge_feats)
+        tp_weights = self.conv_tp_weights(
+            augmented_edge_feats)
         mji = self.conv_tp(
             node_feats_up[sender], edge_attrs, tp_weights
         )  # [n_edges, irreps]
         message = scatter_sum(
             src=mji, index=receiver, dim=0, dim_size=num_nodes
         )  # [n_nodes, irreps]
-        message = self.linear(message) / self.avg_num_neighbors
+        message = self.linear(
+            message) / self.avg_num_neighbors
         return (
             self.reshape(message),
             sc,
@@ -893,16 +933,19 @@ class ScaleShiftBlock(torch.nn.Module):
         super().__init__()
         self.register_buffer(
             "scale",
-            torch.tensor(scale, dtype=torch.get_default_dtype()),
+            torch.tensor(
+                scale, dtype=torch.get_default_dtype()),
         )
         self.register_buffer(
             "shift",
-            torch.tensor(shift, dtype=torch.get_default_dtype()),
+            torch.tensor(
+                shift, dtype=torch.get_default_dtype()),
         )
 
     def forward(self, x: torch.Tensor, head: torch.Tensor) -> torch.Tensor:
         return (
-            torch.atleast_1d(self.scale)[head] * x + torch.atleast_1d(self.shift)[head]
+            torch.atleast_1d(self.scale)[
+                head] * x + torch.atleast_1d(self.shift)[head]
         )
 
     def __repr__(self):

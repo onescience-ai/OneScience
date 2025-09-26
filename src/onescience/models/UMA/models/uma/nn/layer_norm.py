@@ -14,7 +14,8 @@ def get_normalization_layer(
     affine: bool = True,
     normalization: str = "component",
 ):
-    assert norm_type in ["layer_norm", "layer_norm_sh", "rms_norm_sh"]
+    assert norm_type in ["layer_norm",
+                         "layer_norm_sh", "rms_norm_sh"]
     if norm_type == "layer_norm":
         norm_class = EquivariantLayerNormArray
     elif norm_type == "layer_norm_sh":
@@ -31,7 +32,7 @@ def get_l_to_all_m_expand_index(lmax: int):
     for lval in range(lmax + 1):
         start_idx = lval**2
         length = 2 * lval + 1
-        expand_index[start_idx : (start_idx + length)] = lval
+        expand_index[start_idx: (start_idx + length)] = lval
     return expand_index
 
 
@@ -52,8 +53,10 @@ class EquivariantLayerNormArray(nn.Module):
         self.affine = affine
 
         if affine:
-            self.affine_weight = nn.Parameter(torch.ones(lmax + 1, num_channels))
-            self.affine_bias = nn.Parameter(torch.zeros(num_channels))
+            self.affine_weight = nn.Parameter(
+                torch.ones(lmax + 1, num_channels))
+            self.affine_bias = nn.Parameter(
+                torch.zeros(num_channels))
         else:
             self.register_parameter("affine_weight", None)
             self.register_parameter("affine_bias", None)
@@ -76,27 +79,35 @@ class EquivariantLayerNormArray(nn.Module):
             start_idx = lval**2
             length = 2 * lval + 1
 
-            feature = node_input.narrow(1, start_idx, length)
+            feature = node_input.narrow(
+                1, start_idx, length)
 
             # For scalars, first compute and subtract the mean
             if lval == 0:
-                feature_mean = torch.mean(feature, dim=2, keepdim=True)
+                feature_mean = torch.mean(
+                    feature, dim=2, keepdim=True)
                 feature = feature - feature_mean
 
             # Then compute the rescaling factor (norm of each feature vector)
             # Rescaling of the norms themselves based on the option "normalization"
             if self.normalization == "norm":
-                feature_norm = feature.pow(2).sum(dim=1, keepdim=True)  # [N, 1, C]
+                feature_norm = feature.pow(2).sum(
+                    dim=1, keepdim=True)  # [N, 1, C]
             elif self.normalization == "component":
-                feature_norm = feature.pow(2).mean(dim=1, keepdim=True)  # [N, 1, C]
+                feature_norm = feature.pow(2).mean(
+                    dim=1, keepdim=True)  # [N, 1, C]
 
-            feature_norm = torch.mean(feature_norm, dim=2, keepdim=True)  # [N, 1, 1]
-            feature_norm = (feature_norm + self.eps).pow(-0.5)
+            feature_norm = torch.mean(
+                feature_norm, dim=2, keepdim=True)  # [N, 1, 1]
+            feature_norm = (
+                feature_norm + self.eps).pow(-0.5)
 
             if self.affine:
-                weight = self.affine_weight.narrow(0, lval, 1)  # [1, C]
+                weight = self.affine_weight.narrow(
+                    0, lval, 1)  # [1, C]
                 weight = weight.view(1, 1, -1)  # [1, 1, C]
-                feature_norm = feature_norm * weight  # [N, 1, C]
+                feature_norm = feature_norm * \
+                    weight  # [N, 1, C]
 
             feature = feature * feature_norm
 
@@ -141,7 +152,8 @@ class EquivariantLayerNormArraySphericalHarmonics(nn.Module):
 
         # for L > 0
         if self.affine:
-            self.affine_weight = nn.Parameter(torch.ones(self.lmax, self.num_channels))
+            self.affine_weight = nn.Parameter(
+                torch.ones(self.lmax, self.num_channels))
         else:
             self.register_parameter("affine_weight", None)
 
@@ -149,11 +161,12 @@ class EquivariantLayerNormArraySphericalHarmonics(nn.Module):
         self.normalization = normalization
 
         if self.std_balance_degrees:
-            balance_degree_weight = torch.zeros((self.lmax + 1) ** 2 - 1, 1)
+            balance_degree_weight = torch.zeros(
+                (self.lmax + 1) ** 2 - 1, 1)
             for lval in range(1, self.lmax + 1):
                 start_idx = lval**2 - 1
                 length = 2 * lval + 1
-                balance_degree_weight[start_idx : (start_idx + length), :] = (
+                balance_degree_weight[start_idx: (start_idx + length), :] = (
                     1.0 / length
                 )
             balance_degree_weight = balance_degree_weight / self.lmax
@@ -182,12 +195,14 @@ class EquivariantLayerNormArraySphericalHarmonics(nn.Module):
         # for L > 0
         if self.lmax > 0:
             num_m_components = (self.lmax + 1) ** 2
-            feature = node_input.narrow(1, 1, num_m_components - 1)
+            feature = node_input.narrow(
+                1, 1, num_m_components - 1)
 
             # Then compute the rescaling factor (norm of each feature vector)
             # Rescaling of the norms themselves based on the option "normalization"
             if self.normalization == "norm":
-                feature_norm = feature.pow(2).sum(dim=1, keepdim=True)  # [N, 1, C]
+                feature_norm = feature.pow(2).sum(
+                    dim=1, keepdim=True)  # [N, 1, C]
             elif self.normalization == "component":
                 if self.std_balance_degrees:
                     feature_norm = feature.pow(
@@ -199,19 +214,26 @@ class EquivariantLayerNormArraySphericalHarmonics(nn.Module):
                         self.balance_degree_weight,
                     )  # [N, 1, C]
                 else:
-                    feature_norm = feature.pow(2).mean(dim=1, keepdim=True)  # [N, 1, C]
+                    feature_norm = feature.pow(2).mean(
+                        dim=1, keepdim=True)  # [N, 1, C]
 
-            feature_norm = torch.mean(feature_norm, dim=2, keepdim=True)  # [N, 1, 1]
-            feature_norm = (feature_norm + self.eps).pow(-0.5)
+            feature_norm = torch.mean(
+                feature_norm, dim=2, keepdim=True)  # [N, 1, 1]
+            feature_norm = (
+                feature_norm + self.eps).pow(-0.5)
 
             for lval in range(1, self.lmax + 1):
                 start_idx = lval**2
                 length = 2 * lval + 1
-                feature = node_input.narrow(1, start_idx, length)  # [N, (2L + 1), C]
+                feature = node_input.narrow(
+                    1, start_idx, length)  # [N, (2L + 1), C]
                 if self.affine:
-                    weight = self.affine_weight.narrow(0, (lval - 1), 1)  # [1, C]
-                    weight = weight.view(1, 1, -1)  # [1, 1, C]
-                    feature_scale = feature_norm * weight  # [N, 1, C]
+                    weight = self.affine_weight.narrow(
+                        0, (lval - 1), 1)  # [1, C]
+                    weight = weight.view(
+                        1, 1, -1)  # [1, 1, C]
+                    feature_scale = feature_norm * \
+                        weight  # [N, 1, C]
                 else:
                     feature_scale = feature_norm
                 feature = feature * feature_scale
@@ -243,7 +265,8 @@ class EquivariantRMSNormArraySphericalHarmonics(nn.Module):
         # for L >= 0
         if self.affine:
             self.affine_weight = nn.Parameter(
-                torch.ones((self.lmax + 1), self.num_channels)
+                torch.ones((self.lmax + 1),
+                           self.num_channels)
             )
         else:
             self.register_parameter("affine_weight", None)
@@ -265,21 +288,27 @@ class EquivariantRMSNormArraySphericalHarmonics(nn.Module):
         # for L >= 0
         feature = node_input
         if self.normalization == "norm":
-            feature_norm = feature.pow(2).sum(dim=1, keepdim=True)  # [N, 1, C]
+            feature_norm = feature.pow(2).sum(
+                dim=1, keepdim=True)  # [N, 1, C]
         elif self.normalization == "component":
-            feature_norm = feature.pow(2).mean(dim=1, keepdim=True)  # [N, 1, C]
+            feature_norm = feature.pow(2).mean(
+                dim=1, keepdim=True)  # [N, 1, C]
 
-        feature_norm = torch.mean(feature_norm, dim=2, keepdim=True)  # [N, 1, 1]
+        feature_norm = torch.mean(
+            feature_norm, dim=2, keepdim=True)  # [N, 1, 1]
         feature_norm = (feature_norm + self.eps).pow(-0.5)
 
         for lval in range(self.lmax + 1):
             start_idx = lval**2
             length = 2 * lval + 1
-            feature = node_input.narrow(1, start_idx, length)  # [N, (2L + 1), C]
+            feature = node_input.narrow(
+                1, start_idx, length)  # [N, (2L + 1), C]
             if self.affine:
-                weight = self.affine_weight.narrow(0, lval, 1)  # [1, C]
+                weight = self.affine_weight.narrow(
+                    0, lval, 1)  # [1, C]
                 weight = weight.view(1, 1, -1)  # [1, 1, C]
-                feature_scale = feature_norm * weight  # [N, 1, C]
+                feature_scale = feature_norm * \
+                    weight  # [N, 1, C]
             else:
                 feature_scale = feature_norm
             feature = feature * feature_scale
@@ -316,10 +345,12 @@ class EquivariantRMSNormArraySphericalHarmonicsV2(nn.Module):
         # for L >= 0
         if self.affine:
             self.affine_weight = nn.Parameter(
-                torch.ones((self.lmax + 1), self.num_channels)
+                torch.ones((self.lmax + 1),
+                           self.num_channels)
             )
             if self.centering:
-                self.affine_bias = nn.Parameter(torch.zeros(self.num_channels))
+                self.affine_bias = nn.Parameter(
+                    torch.zeros(self.num_channels))
             else:
                 self.register_parameter("affine_bias", None)
         else:
@@ -329,18 +360,22 @@ class EquivariantRMSNormArraySphericalHarmonicsV2(nn.Module):
         assert normalization in ["norm", "component"]
         self.normalization = normalization
 
-        expand_index = get_l_to_all_m_expand_index(self.lmax)
-        self.register_buffer("expand_index", expand_index, persistent=False)
+        expand_index = get_l_to_all_m_expand_index(
+            self.lmax)
+        self.register_buffer(
+            "expand_index", expand_index, persistent=False)
 
         if self.std_balance_degrees:
-            balance_degree_weight = torch.zeros((self.lmax + 1) ** 2, 1)
+            balance_degree_weight = torch.zeros(
+                (self.lmax + 1) ** 2, 1)
             for lval in range(self.lmax + 1):
                 start_idx = lval**2
                 length = 2 * lval + 1
-                balance_degree_weight[start_idx : (start_idx + length), :] = (
+                balance_degree_weight[start_idx: (start_idx + length), :] = (
                     1.0 / length
                 )
-            balance_degree_weight = balance_degree_weight / (self.lmax + 1)
+            balance_degree_weight = balance_degree_weight / \
+                (self.lmax + 1)
             self.register_buffer(
                 "balance_degree_weight", balance_degree_weight, persistent=False
             )
@@ -360,7 +395,8 @@ class EquivariantRMSNormArraySphericalHarmonicsV2(nn.Module):
 
         if self.centering:
             feature_l0 = feature.narrow(1, 0, 1)
-            feature_l0_mean = feature_l0.mean(dim=2, keepdim=True)  # [N, 1, 1]
+            feature_l0_mean = feature_l0.mean(
+                dim=2, keepdim=True)  # [N, 1, 1]
             feature_l0 = feature_l0 - feature_l0_mean
             feature = torch.cat(
                 (feature_l0, feature.narrow(1, 1, feature.shape[1] - 1)), dim=1
@@ -369,17 +405,21 @@ class EquivariantRMSNormArraySphericalHarmonicsV2(nn.Module):
         # for L >= 0
         if self.normalization == "norm":
             assert not self.std_balance_degrees
-            feature_norm = feature.pow(2).sum(dim=1, keepdim=True)  # [N, 1, C]
+            feature_norm = feature.pow(2).sum(
+                dim=1, keepdim=True)  # [N, 1, C]
         elif self.normalization == "component":
             if self.std_balance_degrees:
-                feature_norm = feature.pow(2)  # [N, (L_max + 1)**2, C]
+                # [N, (L_max + 1)**2, C]
+                feature_norm = feature.pow(2)
                 feature_norm = torch.einsum(
                     "nic, ia -> nac", feature_norm, self.balance_degree_weight
                 )  # [N, 1, C]
             else:
-                feature_norm = feature.pow(2).mean(dim=1, keepdim=True)  # [N, 1, C]
+                feature_norm = feature.pow(2).mean(
+                    dim=1, keepdim=True)  # [N, 1, C]
 
-        feature_norm = torch.mean(feature_norm, dim=2, keepdim=True)  # [N, 1, 1]
+        feature_norm = torch.mean(
+            feature_norm, dim=2, keepdim=True)  # [N, 1, 1]
         feature_norm = (feature_norm + self.eps).pow(-0.5)
 
         if self.affine:
@@ -389,7 +429,8 @@ class EquivariantRMSNormArraySphericalHarmonicsV2(nn.Module):
             weight = torch.index_select(
                 weight, dim=1, index=self.expand_index
             )  # [1, (L_max + 1)**2, C]
-            feature_norm = feature_norm * weight  # [N, (L_max + 1)**2, C]
+            feature_norm = feature_norm * \
+                weight  # [N, (L_max + 1)**2, C]
 
         out = feature * feature_norm
 
@@ -415,14 +456,17 @@ class EquivariantDegreeLayerScale(nn.Module):
         self.scale_factor = scale_factor
 
         self.affine_weight = nn.Parameter(
-            torch.ones(1, (self.lmax + 1), self.num_channels)
+            torch.ones(1, (self.lmax + 1),
+                       self.num_channels)
         )
         for lval in range(1, self.lmax + 1):
             self.affine_weight.data[0, lval, :].mul_(
                 1.0 / math.sqrt(self.scale_factor * lval)
             )
-        expand_index = get_l_to_all_m_expand_index(self.lmax)
-        self.register_buffer("expand_index", expand_index, persistent=False)
+        expand_index = get_l_to_all_m_expand_index(
+            self.lmax)
+        self.register_buffer(
+            "expand_index", expand_index, persistent=False)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(lmax={self.lmax}, num_channels={self.num_channels}, scale_factor={self.scale_factor})"

@@ -7,7 +7,7 @@ import torch.nn as nn
 ################################################################
 class SpectralConv1d(nn.Module):
 
-    ## FFNO degenerate to FNO in 1D space
+    # FFNO degenerate to FNO in 1D space
     def __init__(self, in_channels, out_channels, modes1):
         super(SpectralConv1d, self).__init__()
 
@@ -18,7 +18,8 @@ class SpectralConv1d(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.modes1 = (
-            modes1  # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            modes1
         )
 
         self.scale = 1 / (in_channels * out_channels)
@@ -67,7 +68,8 @@ class SpectralConv2d(nn.Module):
 
         self.fourier_weight = nn.ParameterList([])
         for n_modes in [modes_x, modes_y]:
-            weight = torch.FloatTensor(in_dim, out_dim, n_modes, 2)
+            weight = torch.FloatTensor(
+                in_dim, out_dim, n_modes, 2)
             param = nn.Parameter(weight)
             nn.init.xavier_normal_(param)
             self.fourier_weight.append(param)
@@ -88,7 +90,8 @@ class SpectralConv2d(nn.Module):
             torch.view_as_complex(self.fourier_weight[1]),
         )
 
-        xy = torch.fft.irfft(out_ft, n=N, dim=-1, norm="ortho")
+        xy = torch.fft.irfft(
+            out_ft, n=N, dim=-1, norm="ortho")
         # x.shape == [batch_size, in_dim, grid_size, grid_size]
 
         # # # Dimesion X # # #
@@ -104,7 +107,8 @@ class SpectralConv2d(nn.Module):
             torch.view_as_complex(self.fourier_weight[0]),
         )
 
-        xx = torch.fft.irfft(out_ft, n=M, dim=-2, norm="ortho")
+        xx = torch.fft.irfft(
+            out_ft, n=M, dim=-2, norm="ortho")
         # x.shape == [batch_size, in_dim, grid_size, grid_size]
 
         # # Combining Dimensions # #
@@ -129,7 +133,8 @@ class SpectralConv3d(nn.Module):
 
         self.fourier_weight = nn.ParameterList([])
         for n_modes in [modes_x, modes_y, modes_z]:
-            weight = torch.FloatTensor(in_dim, out_dim, n_modes, 2)
+            weight = torch.FloatTensor(
+                in_dim, out_dim, n_modes, 2)
             param = nn.Parameter(weight)
             nn.init.xavier_normal_(param)
             self.fourier_weight.append(param)
@@ -150,7 +155,8 @@ class SpectralConv3d(nn.Module):
             torch.view_as_complex(self.fourier_weight[2]),
         )
 
-        xz = torch.fft.irfft(out_ft, n=S3, dim=-1, norm="ortho")
+        xz = torch.fft.irfft(
+            out_ft, n=S3, dim=-1, norm="ortho")
         # x.shape == [batch_size, in_dim, grid_size, grid_size]
 
         # # # Dimesion Y # # #
@@ -166,7 +172,8 @@ class SpectralConv3d(nn.Module):
             torch.view_as_complex(self.fourier_weight[1]),
         )
 
-        xy = torch.fft.irfft(out_ft, n=S2, dim=-2, norm="ortho")
+        xy = torch.fft.irfft(
+            out_ft, n=S2, dim=-2, norm="ortho")
         # x.shape == [batch_size, in_dim, grid_size, grid_size]
 
         # # # Dimesion X # # #
@@ -182,7 +189,8 @@ class SpectralConv3d(nn.Module):
             torch.view_as_complex(self.fourier_weight[0]),
         )
 
-        xx = torch.fft.irfft(out_ft, n=S1, dim=-3, norm="ortho")
+        xx = torch.fft.irfft(
+            out_ft, n=S1, dim=-3, norm="ortho")
         # x.shape == [batch_size, in_dim, grid_size, grid_size]
 
         # # Combining Dimensions # #

@@ -11,7 +11,8 @@ def get_dev_losses(output_dir: Path):
         "nmse": [],
     }
     for ckpt_dir in ckpt_dirs:
-        scores = load_json(ckpt_dir / "dev_scores.json")["mean"]
+        scores = load_json(
+            ckpt_dir / "dev_scores.json")["mean"]
         for key in dev_scores:
             dev_scores[key].append(scores[key])
     return dev_scores
@@ -48,7 +49,8 @@ def get_data_result(data_param_dir: Path, model_pattern: str = "*") -> list[list
                 continue
             try:
                 test_scores = get_test_scores(run_dir)
-                scores.append([str(run_dir)] + list(test_scores.values()))
+                scores.append(
+                    [str(run_dir)] + list(test_scores.values()))
             except FileNotFoundError:
                 print(run_dir.name, "not found")
     return scores
@@ -65,8 +67,10 @@ def get_result(result_dir: Path, data_pattern: str, model_pattern: str):
         # Loop data subdirs such as `dt0.1`
         for data_param_dir in data_dir.iterdir():
             if data_param_dir.is_dir():
-                scores += get_data_result(data_param_dir, model_pattern=model_pattern)
-    table = [[str(score) for score in line] for line in scores]
+                scores += get_data_result(
+                    data_param_dir, model_pattern=model_pattern)
+    table = [[str(score) for score in line]
+             for line in scores]
     # table = sorted(table)
     # transpose
     rows = []
@@ -79,8 +83,10 @@ def get_result(result_dir: Path, data_pattern: str, model_pattern: str):
 
     print(*lines)
     data_pattern = data_pattern.replace("*", "+")
-    out_path = result_dir / f"{data_pattern}_{model_pattern}.txt"
-    print(*lines, sep="\n", file=open(out_path, "w", encoding="utf8"))
+    out_path = result_dir / \
+        f"{data_pattern}_{model_pattern}.txt"
+    print(*lines, sep="\n",
+          file=open(out_path, "w", encoding="utf8"))
 
 
 if __name__ == "__main__":

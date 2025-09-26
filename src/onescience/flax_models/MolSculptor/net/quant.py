@@ -1,12 +1,11 @@
+from ml_collections.config_dict import ConfigDict
+import jax.numpy as jnp
+import jax
+import flax.linen as nn
 import os
 import sys
 
 sys.path.append(os.path.dirname(sys.path[0]))
-
-import flax.linen as nn
-import jax
-import jax.numpy as jnp
-from ml_collections.config_dict import ConfigDict
 
 
 def safe_norm(x, axis=-1):
@@ -24,21 +23,25 @@ class Quantizer(nn.Module):
         f,
     ):
 
-        ### inputs: f: [B, N, C]
+        # inputs: f: [B, N, C]
         B, N, C = f.shape
         n_patches = self.config.n_patches
         codebook = jnp.asarray(
-            self.variables["params"]["codebook"]  ### Toodoo: why this?
+            # Toodoo: why this?
+            self.variables["params"]["codebook"]
         )
         for si, pn in enumerate(n_patches - 1):
 
             if self.config.using_znorm:
-                ## (B, N, C) -> (B, pn, C) -> (B*pn, C)
-                f_res = jax.image.resize(f, (B, pn, C), method="nearest")
-                f_res = safe_norm(f_res, axis=-1).reshape(-1, C)
-                ## (B*pn, C) @ (C, )
+                # (B, N, C) -> (B, pn, C) -> (B*pn, C)
+                f_res = jax.image.resize(
+                    f, (B, pn, C), method="nearest")
+                f_res = safe_norm(
+                    f_res, axis=-1).reshape(-1, C)
+                # (B*pn, C) @ (C, )
                 idx_n = jnp.argmax(
-                    jnp.dot(f_res, safe_norm(codebook, axis=-1).T),
+                    jnp.dot(f_res, safe_norm(
+                        codebook, axis=-1).T),
                     axis=-1,
                 )
             else:

@@ -57,16 +57,20 @@ def plot_sep(positions, levels, perm, constraints_flag=True, suptitle=None):
                     axs.set_ylabel(r"$z_2$", usetex=True)
                     axs.legend()
                     tempxi = np.min(positions[..., 0]) - 0.2 * (
-                        np.abs(np.min(positions[..., 0])) + 5
+                        np.abs(
+                            np.min(positions[..., 0])) + 5
                     )
                     tempxx = np.max(positions[..., 0]) + 0.2 * (
-                        np.abs(np.max(positions[..., 0])) + 5
+                        np.abs(
+                            np.max(positions[..., 0])) + 5
                     )
                     tempyi = np.min(positions[..., 1]) - 0.2 * (
-                        np.abs(np.min(positions[..., 1])) + 5
+                        np.abs(
+                            np.min(positions[..., 1])) + 5
                     )
                     tempyx = np.max(positions[..., 1]) + 0.2 * (
-                        np.abs(np.max(positions[..., 1])) + 5
+                        np.abs(
+                            np.max(positions[..., 1])) + 5
                     )
                     axs.set_xlim(tempxi, tempxx)
                     axs.set_ylim(tempyi, tempyx)
@@ -81,20 +85,26 @@ def plot_sep(positions, levels, perm, constraints_flag=True, suptitle=None):
 
                     # axs.scatter(positions[index][...,0], positions[index][...,1], label = 'level' + str(i),color = 'b',)
                     # axs.set_title('Variable ' + str(j), fontsize = 15)
-                    axs.set_xlabel(r"$z_1$", fontsize=25, usetex=True)
-                    axs.set_ylabel(r"$z_2$", fontsize=25, usetex=True)
+                    axs.set_xlabel(
+                        r"$z_1$", fontsize=25, usetex=True)
+                    axs.set_ylabel(
+                        r"$z_2$", fontsize=25, usetex=True)
                     axs.legend()
                     tempxi = np.min(positions[..., 0]) - 0.2 * (
-                        np.abs(np.min(positions[..., 0])) + 5
+                        np.abs(
+                            np.min(positions[..., 0])) + 5
                     )
                     tempxx = np.max(positions[..., 0]) + 0.2 * (
-                        np.abs(np.max(positions[..., 0])) + 5
+                        np.abs(
+                            np.max(positions[..., 0])) + 5
                     )
                     tempyi = np.min(positions[..., 1]) - 0.2 * (
-                        np.abs(np.min(positions[..., 1])) + 5
+                        np.abs(
+                            np.min(positions[..., 1])) + 5
                     )
                     tempyx = np.max(positions[..., 1]) + 0.2 * (
-                        np.abs(np.max(positions[..., 1])) + 5
+                        np.abs(
+                            np.max(positions[..., 1])) + 5
                     )
                     axs.set_xlim(tempxi, tempxx)
                     axs.set_ylim(tempyi, tempyx)
@@ -112,9 +122,12 @@ def plot_sep(positions, levels, perm, constraints_flag=True, suptitle=None):
                     color=colors[i % 10],
                     s=(i + 1) * 50 / levels[j],
                 )
-                axs[j].set_title("Variable " + str(j), fontsize=25)
-                axs[j].set_xlabel(r"$z_1$", fontsize=25, usetex=True)
-                axs[j].set_ylabel(r"$z_2$", fontsize=25, usetex=True)
+                axs[j].set_title(
+                    "Variable " + str(j), fontsize=25)
+                axs[j].set_xlabel(
+                    r"$z_1$", fontsize=25, usetex=True)
+                axs[j].set_ylabel(
+                    r"$z_2$", fontsize=25, usetex=True)
                 axs[j].legend()
 
             fig.tight_layout()
@@ -172,16 +185,20 @@ def plot_ls(model, constraints_flag=True, suptitle="."):
                     axs.set_ylabel(r"$z_2$", usetex=True)
                     # axs.legend()
                     tempxi = np.min(positions[..., 0]) - 0.2 * (
-                        np.abs(np.min(positions[..., 0])) + 5
+                        np.abs(
+                            np.min(positions[..., 0])) + 5
                     )
                     tempxx = np.max(positions[..., 0]) + 0.2 * (
-                        np.abs(np.max(positions[..., 0])) + 5
+                        np.abs(
+                            np.max(positions[..., 0])) + 5
                     )
                     tempyi = np.min(positions[..., 1]) - 0.2 * (
-                        np.abs(np.min(positions[..., 1])) + 5
+                        np.abs(
+                            np.min(positions[..., 1])) + 5
                     )
                     tempyx = np.max(positions[..., 1]) + 0.2 * (
-                        np.abs(np.max(positions[..., 1])) + 5
+                        np.abs(
+                            np.max(positions[..., 1])) + 5
                     )
                     axs.set_xlim(tempxi, tempxx)
                     axs.set_ylim(tempyi, tempyx)
@@ -193,20 +210,26 @@ def plot_ls(model, constraints_flag=True, suptitle="."):
                         label="level" + str(i),
                     )
                     # axs.set_title('Variable ' + str(j), fontsize = 15)
-                    axs.set_xlabel(r"$z_1$", fontsize=25, usetex=True)
-                    axs.set_ylabel(r"$z_2$", fontsize=25, usetex=True)
+                    axs.set_xlabel(
+                        r"$z_1$", fontsize=25, usetex=True)
+                    axs.set_ylabel(
+                        r"$z_2$", fontsize=25, usetex=True)
                     axs.legend()
                     tempxi = np.min(positions[..., 0]) - 0.2 * (
-                        np.abs(np.min(positions[..., 0])) + 5
+                        np.abs(
+                            np.min(positions[..., 0])) + 5
                     )
                     tempxx = np.max(positions[..., 0]) + 0.2 * (
-                        np.abs(np.max(positions[..., 0])) + 5
+                        np.abs(
+                            np.max(positions[..., 0])) + 5
                     )
                     tempyi = np.min(positions[..., 1]) - 0.2 * (
-                        np.abs(np.min(positions[..., 1])) + 5
+                        np.abs(
+                            np.min(positions[..., 1])) + 5
                     )
                     tempyx = np.max(positions[..., 1]) + 0.2 * (
-                        np.abs(np.max(positions[..., 1])) + 5
+                        np.abs(
+                            np.max(positions[..., 1])) + 5
                     )
                     axs.set_xlim(tempxi, tempxx)
                     axs.set_ylim(tempyi, tempyx)
@@ -224,9 +247,12 @@ def plot_ls(model, constraints_flag=True, suptitle="."):
                     color=colors[i % 10],
                     s=(i + 1) * 50 / levels[j],
                 )
-                axs[j].set_title("Variable " + str(j), fontsize=25)
-                axs[j].set_xlabel(r"$z_1$", fontsize=25, usetex=True)
-                axs[j].set_ylabel(r"$z_2$", fontsize=25, usetex=True)
+                axs[j].set_title(
+                    "Variable " + str(j), fontsize=25)
+                axs[j].set_xlabel(
+                    r"$z_1$", fontsize=25, usetex=True)
+                axs[j].set_ylabel(
+                    r"$z_2$", fontsize=25, usetex=True)
                 axs[j].legend()
 
             fig.tight_layout()
@@ -266,7 +292,8 @@ def constrains(z):
 
     rot = torch.atan(-1 * z[1, 1] / z[1, 0])
     R = torch.tensor(
-        [[torch.cos(rot), -1 * torch.sin(rot)], [torch.sin(rot), torch.cos(rot)]]
+        [[torch.cos(rot), -1 * torch.sin(rot)],
+         [torch.sin(rot), torch.cos(rot)]]
     ).to(**tkwargs)
 
     z = torch.matmul(R, z.T)

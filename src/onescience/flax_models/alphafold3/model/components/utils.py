@@ -10,7 +10,8 @@ import numpy as np
 
 from onescience.flax_models.alphafold3.model import features
 
-VALID_DTYPES = [np.float32, np.float64, np.int8, np.int32, np.int64, bool]
+VALID_DTYPES = [np.float32, np.float64,
+                np.int8, np.int32, np.int64, bool]
 
 
 def remove_invalidly_typed_feats(
@@ -67,5 +68,6 @@ def mask_mean(mask, value, axis=None, keepdims=False, eps=1e-10):
             assert mask_size == value_size, error
 
     return jnp.sum(mask * value, keepdims=keepdims, axis=axis) / (
-        jnp.maximum(jnp.sum(mask, keepdims=keepdims, axis=axis) * broadcast_factor, eps)
+        jnp.maximum(jnp.sum(mask, keepdims=keepdims,
+                    axis=axis) * broadcast_factor, eps)
     )

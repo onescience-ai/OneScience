@@ -23,9 +23,11 @@ def tp_out_irreps_with_instructions(
         for j, (_, ir_edge) in enumerate(irreps2):
             for ir_out in ir_in * ir_edge:  # | l1 - l2 | <= l <= l1 + l2
                 if ir_out in target_irreps:
-                    k = len(irreps_out_list)  # instruction index
+                    # instruction index
+                    k = len(irreps_out_list)
                     irreps_out_list.append((mul, ir_out))
-                    instructions.append((i, j, k, "uvu", trainable))
+                    instructions.append(
+                        (i, j, k, "uvu", trainable))
 
     # We sort the output irreps of the tensor product so that we can simplify them
     # when they are provided to the second o3.Linear
@@ -56,7 +58,8 @@ def linear_out_irreps(irreps: o3.Irreps, target_irreps: o3.Irreps) -> o3.Irreps:
                 break
 
         if not found:
-            raise RuntimeError(f"{ir_in} not in {target_irreps}")
+            raise RuntimeError(
+                f"{ir_in} not in {target_irreps}")
 
     return o3.Irreps(irreps_mid)
 
@@ -81,7 +84,8 @@ class reshape_irreps(torch.nn.Module):
         out = []
         batch, _ = tensor.shape
         for mul, d in zip(self.muls, self.dims):
-            field = tensor[:, ix : ix + mul * d]  # [batch, sample, mul * repr]
+            # [batch, sample, mul * repr]
+            field = tensor[:, ix: ix + mul * d]
             ix += mul * d
             if hasattr(self, "cueq_config"):
                 if self.cueq_config is not None:
@@ -106,7 +110,8 @@ class reshape_irreps(torch.nn.Module):
 
 
 def mask_head(x: torch.Tensor, head: torch.Tensor, num_heads: int) -> torch.Tensor:
-    mask = torch.zeros(x.shape[0], x.shape[1] // num_heads, num_heads, device=x.device)
+    mask = torch.zeros(
+        x.shape[0], x.shape[1] // num_heads, num_heads, device=x.device)
     idx = torch.arange(mask.shape[0], device=x.device)
     mask[idx, :, head] = 1
     mask = mask.permute(0, 2, 1).reshape(x.shape)

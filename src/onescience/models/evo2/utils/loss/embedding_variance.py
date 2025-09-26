@@ -49,7 +49,8 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
         if not we_weight.is_floating_point():
             we_weight = we_weight.float()
 
-        V_local, H = we_weight.shape  # V_local: words on this rank, H: embedding dim
+        # V_local: words on this rank, H: embedding dim
+        V_local, H = we_weight.shape
 
         # Save dimensions for backward pass
         ctx.H_embedding_dim = H
@@ -61,7 +62,8 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
         if H == 0:
             ctx.is_H_dim_zero = True
             # Mean variance is 0 if H=0. Loss is based on (0 - VAR_TARGET)^2.
-            loss_value = loss_coeff * (0.0 - var_target) ** 2
+            loss_value = loss_coeff * \
+                (0.0 - var_target) ** 2
             final_loss_tensor = torch.tensor(
                 loss_value, device=we_weight.device, dtype=we_weight.dtype
             )
@@ -74,18 +76,22 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
         # Ensure parallel_state is imported and available in the execution scope.
         # from some_module import parallel_state # Make sure this is accessible
         tp_world_size = parallel_state.get_tensor_model_parallel_world_size() or 1
-        tp_group = parallel_state.get_tensor_model_parallel_group()  # Can be None
+        # Can be None
+        tp_group = parallel_state.get_tensor_model_parallel_group()
         ctx.tp_world_size_val = tp_world_size
 
         # 1. Per-word mean (across embedding dimension H)
         # Shape: (V_local, 1)
-        we_mean_per_word = we_weight.mean(dim=1, keepdim=True)
+        we_mean_per_word = we_weight.mean(
+            dim=1, keepdim=True)
 
         # 2. Per-word variance (across embedding dimension H)
         # we_sq_diffs_per_word shape: (V_local, H)
-        we_sq_diffs_per_word = (we_weight - we_mean_per_word) ** 2
+        we_sq_diffs_per_word = (
+            we_weight - we_mean_per_word) ** 2
         # we_var_per_word_local shape: (V_local,) (biased variance)
-        we_var_per_word_local = we_sq_diffs_per_word.mean(dim=1, keepdim=False)
+        we_var_per_word_local = we_sq_diffs_per_word.mean(
+            dim=1, keepdim=False)
 
         # 3. Mean of these per-word variances *on this local rank*
         # v_local_mean_of_vars shape: scalar tensor
@@ -93,7 +99,8 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
             0.0, device=we_weight.device, dtype=we_weight.dtype
         )
         if V_local > 0:  # Avoid NaN from mean of empty tensor if V_local is 0
-            v_local_mean_of_vars = we_var_per_word_local.mean(dim=0, keepdim=False)
+            v_local_mean_of_vars = we_var_per_word_local.mean(
+                dim=0, keepdim=False)
 
         # 4. Globally average these local mean variances
         # V_final_globally_avg_var is the V in the loss formula L = alpha*(V-T)^2
@@ -108,10 +115,12 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
             )
 
         # 5. Calculate final loss: LOSS_COEFF * (V_final - VAR_TARGET)^2
-        final_loss = loss_coeff * (V_final_globally_avg_var - var_target) ** 2
+        final_loss = loss_coeff * \
+            (V_final_globally_avg_var - var_target) ** 2
 
         # Save tensors needed for gradient computation in backward
-        ctx.save_for_backward(we_weight, we_mean_per_word, V_final_globally_avg_var)
+        ctx.save_for_backward(
+            we_weight, we_mean_per_word, V_final_globally_avg_var)
         # Other necessary scalars (H, V_local, tp_world_size) are already on ctx.
 
         return final_loss
@@ -123,7 +132,8 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
 
         # Handle H=0 edge case (gradient is zero)
         if getattr(ctx, "is_H_dim_zero", False):
-            return torch.zeros_like(we_weight), None, None  # Grad for we_weight only
+            # Grad for we_weight only
+            return torch.zeros_like(we_weight), None, None
 
         H = ctx.H_embedding_dim
         V_local = ctx.V_local_word_count
@@ -133,7 +143,8 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
 
         # Handle V_local=0 edge case (no words on this rank, so no gradient)
         if V_local == 0:
-            return torch.zeros_like(we_weight), None, None  # Grad for we_weight only
+            # Grad for we_weight only
+            return torch.zeros_like(we_weight), None, None
 
         # Chain rule: d(TotalLoss)/dw = d(TotalLoss)/d(final_loss) * d(final_loss)/dw
         # grad_output is d(TotalLoss)/d(final_loss)
@@ -141,7 +152,8 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
         # 1. Calculate d(final_loss) / d(V_final_saved)
         # final_loss = LOSS_COEFF * (V_final_saved - VAR_TARGET)**2
         # dL_dV_final is d(final_loss) / d(V_final_saved)
-        dL_dV_final = loss_coeff * 2.0 * (V_final_saved - var_target)
+        dL_dV_final = loss_coeff * 2.0 * \
+            (V_final_saved - var_target)
 
         # grad_V_final is d(TotalLoss) / d(V_final_saved)
         grad_V_final = grad_output * dL_dV_final  # Scalar
@@ -150,7 +162,8 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
         # V_final_saved = (1/tp_world_size) * sum_k(v_local_mean_of_vars_k)
         # So, d(V_final_saved) / d(v_local_mean_of_vars_current_rank) = 1 / tp_world_size
         # grad_v_local_mean is d(TotalLoss) / d(v_local_mean_of_vars_current_rank)
-        grad_v_local_mean = grad_V_final * (1.0 / tp_world_size)  # Scalar
+        grad_v_local_mean = grad_V_final * \
+            (1.0 / tp_world_size)  # Scalar
 
         # 3. Propagate gradient from v_local_mean_of_vars to we_var_per_word_local_i
         # v_local_mean_of_vars = mean(we_var_per_word_local) = (1/V_local) * sum_i(we_var_per_word_local_i)
@@ -158,7 +171,8 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
         # The coefficient to apply for the next step of chain rule:
         # This is grad_v_local_mean scaled by (1/V_local)
         # This represents d(TotalLoss)/d(we_var_per_word_local_i), assuming it's uniform.
-        coeff_for_per_word_var_grad = grad_v_local_mean * (1.0 / V_local)  # Scalar
+        coeff_for_per_word_var_grad = grad_v_local_mean * \
+            (1.0 / V_local)  # Scalar
 
         # 4. Propagate gradient from we_var_per_word_local_i to we_weight_ik
         # we_var_per_word_local_i = (1/H) * sum_k (we_weight_ik - we_mean_per_word_i[0])^2
@@ -167,9 +181,11 @@ class SquaredErrorTargetedVarianceLossFunction(Function):
 
         # Combine coefficients for the (we_weight - we_mean_per_word) term:
         # This is coeff_for_per_word_var_grad * (2/H)
-        final_scalar_coefficient = coeff_for_per_word_var_grad * (2.0 / H)
+        final_scalar_coefficient = coeff_for_per_word_var_grad * \
+            (2.0 / H)
 
-        grad_we_weight = final_scalar_coefficient * (we_weight - we_mean_per_word)
+        grad_we_weight = final_scalar_coefficient * \
+            (we_weight - we_mean_per_word)
 
         # The forward function only takes we_weight as a tensor input requiring grad, the other two inputs
         # are floats and do not get gradients.

@@ -117,7 +117,8 @@ class AtomArrayTokenizer(object):
                 atom_indices = [
                     i for i in range(total_atom_num, total_atom_num + atom_num)
                 ]
-                atom_names = [self.atom_array[i].atom_name for i in atom_indices]
+                atom_names = [
+                    self.atom_array[i].atom_name for i in atom_indices]
                 token.atom_indices = atom_indices
                 token.atom_names = atom_names
                 tokens.append(token)
@@ -128,11 +129,13 @@ class AtomArrayTokenizer(object):
                     atom_elem = atom.element
                     atom_token = ELEMS.get(atom_elem, None)
                     if atom_token is None:
-                        raise ValueError(f"Unknown atom element: {atom_elem}")
+                        raise ValueError(
+                            f"Unknown atom element: {atom_elem}")
                     token = Token(atom_token)
                     token.atom_indices = [total_atom_num]
                     token.atom_names = [
-                        self.atom_array[token.atom_indices[0]].atom_name
+                        self.atom_array[token.atom_indices[0]
+                                        ].atom_name
                     ]
                     tokens.append(token)
                     total_atom_num += 1
@@ -153,8 +156,10 @@ class AtomArrayTokenizer(object):
         Returns:
             TokenArray: TokenArray object with annotations.
         """
-        centre_atom_indices = np.where(self.atom_array.centre_atom_mask == 1)[0]
-        token_array.set_annotation("centre_atom_index", centre_atom_indices)
+        centre_atom_indices = np.where(
+            self.atom_array.centre_atom_mask == 1)[0]
+        token_array.set_annotation(
+            "centre_atom_index", centre_atom_indices)
         assert len(token_array) == len(centre_atom_indices)
         return token_array
 
@@ -178,5 +183,6 @@ class AtomArrayTokenizer(object):
         """
         tokens = self.tokenize()
         token_array = TokenArray(tokens=tokens)
-        token_array = self._set_token_annotations(token_array=token_array)
+        token_array = self._set_token_annotations(
+            token_array=token_array)
         return token_array

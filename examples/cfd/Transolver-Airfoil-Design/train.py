@@ -23,7 +23,8 @@ def get_nb_trainable_params(model):
     """
     Return the number of trainable parameters
     """
-    model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+    model_parameters = filter(
+        lambda p: p.requires_grad, model.parameters())
     return sum([np.prod(p.size()) for p in model_parameters])
 
 
@@ -48,13 +49,15 @@ def train(device, model, train_loader, optimizer, scheduler, criterion="MSE", re
             loss_criterion = nn.MSELoss(reduction="none")
         elif criterion == "MAE":
             loss_criterion = nn.L1Loss(reduction="none")
-        loss_per_var = loss_criterion(out, targets).mean(dim=0)
+        loss_per_var = loss_criterion(
+            out, targets).mean(dim=0)
         total_loss = loss_per_var.mean()
         loss_surf_var = loss_criterion(
             out[data_clone.surf, :], targets[data_clone.surf, :]
         ).mean(dim=0)
         loss_vol_var = loss_criterion(
-            out[~data_clone.surf, :], targets[~data_clone.surf, :]
+            out[~data_clone.surf,
+                :], targets[~data_clone.surf, :]
         ).mean(dim=0)
         loss_surf = loss_surf_var.mean()
         loss_vol = loss_vol_var.mean()
@@ -106,13 +109,15 @@ def test(device, model, test_loader, criterion="MSE"):
         elif criterion == "MAE":
             loss_criterion = nn.L1Loss(reduction="none")
 
-        loss_per_var = loss_criterion(out, targets).mean(dim=0)
+        loss_per_var = loss_criterion(
+            out, targets).mean(dim=0)
         loss = loss_per_var.mean()
         loss_surf_var = loss_criterion(
             out[data_clone.surf, :], targets[data_clone.surf, :]
         ).mean(dim=0)
         loss_vol_var = loss_criterion(
-            out[~data_clone.surf, :], targets[~data_clone.surf, :]
+            out[~data_clone.surf,
+                :], targets[~data_clone.surf, :]
         ).mean(dim=0)
         loss_surf = loss_surf_var.mean()
         loss_vol = loss_vol_var.mean()
@@ -178,16 +183,19 @@ def main(
             output_device=dist.device,
             find_unused_parameters=True,
         )
-    optimizer = torch.optim.Adam(model.parameters(), lr=hparams["lr"])
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=hparams["lr"])
     lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
         max_lr=hparams["lr"],
-        total_steps=(len(train_dataset) // hparams["batch_size"] + 1)
+        total_steps=(len(train_dataset) //
+                     hparams["batch_size"] + 1)
         * hparams["nb_epochs"],
     )
 
     if dist.world_size > 1:
-        train_sampler = DistributedSampler(train_dataset, shuffle=True)
+        train_sampler = DistributedSampler(
+            train_dataset, shuffle=True)
         num_workers = dist.world_size
     else:
         train_sampler = None
@@ -215,7 +223,8 @@ def main(
         train_dataset_sampled = []
         for data in train_dataset:
             data_sampled = data.clone()
-            idx = random.sample(range(data_sampled.x.size(0)), hparams["subsampling"])
+            idx = random.sample(
+                range(data_sampled.x.size(0)), hparams["subsampling"])
             idx = torch.tensor(idx)
 
             data_sampled.pos = data_sampled.pos[idx]
@@ -228,7 +237,8 @@ def main(
                     x=data_sampled.pos.to(device),
                     r=hparams["r"],
                     loop=True,
-                    max_num_neighbors=int(hparams["max_neighbors"]),
+                    max_num_neighbors=int(
+                        hparams["max_neighbors"]),
                 ).cpu()
 
             train_dataset_sampled.append(data_sampled)
@@ -269,7 +279,8 @@ def main(
                         for data in val_dataset:
                             data_sampled = data.clone()
                             idx = random.sample(
-                                range(data_sampled.x.size(0)), hparams["subsampling"]
+                                range(data_sampled.x.size(
+                                    0)), hparams["subsampling"]
                             )
                             idx = torch.tensor(idx)
 
@@ -280,30 +291,38 @@ def main(
 
                             if name_mod != "PointNet" and name_mod != "MLP":
                                 data_sampled.edge_index = nng.radius_graph(
-                                    x=data_sampled.pos.to(device),
+                                    x=data_sampled.pos.to(
+                                        device),
                                     r=hparams["r"],
                                     loop=True,
-                                    max_num_neighbors=int(hparams["max_neighbors"]),
+                                    max_num_neighbors=int(
+                                        hparams["max_neighbors"]),
                                 ).cpu()
 
-                            val_dataset_sampled.append(data_sampled)
+                            val_dataset_sampled.append(
+                                data_sampled)
                         val_loader = DataLoader(
                             val_dataset_sampled, batch_size=1, shuffle=True
                         )
                         del val_dataset_sampled
 
                         val_loss, _, val_surf_var, val_vol_var, val_surf, val_vol = (
-                            test(device, model, val_loader, criterion)
+                            test(device, model,
+                                 val_loader, criterion)
                         )
                         del val_loader
                         val_surf_vars.append(val_surf_var)
                         val_vol_vars.append(val_vol_var)
                         val_surfs.append(val_surf)
                         val_vols.append(val_vol)
-                    val_surf_var = np.array(val_surf_vars).mean(axis=0)
-                    val_vol_var = np.array(val_vol_vars).mean(axis=0)
-                    val_surf = np.array(val_surfs).mean(axis=0)
-                    val_vol = np.array(val_vols).mean(axis=0)
+                    val_surf_var = np.array(
+                        val_surf_vars).mean(axis=0)
+                    val_vol_var = np.array(
+                        val_vol_vars).mean(axis=0)
+                    val_surf = np.array(
+                        val_surfs).mean(axis=0)
+                    val_vol = np.array(
+                        val_vols).mean(axis=0)
                 else:
                     val_loss, _, val_surf_var, val_vol_var, val_surf, val_vol = test(
                         device, model, val_loader, criterion
@@ -337,7 +356,8 @@ def main(
                     )
         else:
             if dist.rank == 0 and isinstance(pbar_train, tqdm):
-                pbar_train.set_postfix(train_loss=train_loss, loss_surf=loss_surf)
+                pbar_train.set_postfix(
+                    train_loss=train_loss, loss_surf=loss_surf)
 
     loss_surf_var_list = np.array(loss_surf_var_list)
     loss_vol_var_list = np.array(loss_vol_var_list)
@@ -346,11 +366,14 @@ def main(
 
     end = time.time()
     time_elapsed = end - start
-    params_model = get_nb_trainable_params(model).astype("float")
+    params_model = get_nb_trainable_params(
+        model).astype("float")
 
     if dist.rank == 0:
-        logging.info(f"Number of parameters: {params_model}")
-        logging.info(f"Time elapsed: {time_elapsed:.2f} seconds")
+        logging.info(
+            f"Number of parameters: {params_model}")
+        logging.info(
+            f"Time elapsed: {time_elapsed:.2f} seconds")
 
         # DDP时保存model.module，否则保存本体
         to_save = model.module if dist.world_size > 1 else model
@@ -358,58 +381,85 @@ def main(
 
         # 训练损失绘图
         sns.set()
-        fig_train_surf, ax_train_surf = plt.subplots(figsize=(20, 5))
-        ax_train_surf.plot(train_loss_surf_list, label="Mean loss")
-        ax_train_surf.plot(loss_surf_var_list[:, 0], label=r"$v_x$ loss")
-        ax_train_surf.plot(loss_surf_var_list[:, 1], label=r"$v_y$ loss")
-        ax_train_surf.plot(loss_surf_var_list[:, 2], label=r"$p$ loss")
-        ax_train_surf.plot(loss_surf_var_list[:, 3], label=r"$\nu_t$ loss")
+        fig_train_surf, ax_train_surf = plt.subplots(
+            figsize=(20, 5))
+        ax_train_surf.plot(
+            train_loss_surf_list, label="Mean loss")
+        ax_train_surf.plot(
+            loss_surf_var_list[:, 0], label=r"$v_x$ loss")
+        ax_train_surf.plot(
+            loss_surf_var_list[:, 1], label=r"$v_y$ loss")
+        ax_train_surf.plot(
+            loss_surf_var_list[:, 2], label=r"$p$ loss")
+        ax_train_surf.plot(
+            loss_surf_var_list[:, 3], label=r"$\nu_t$ loss")
         ax_train_surf.set_xlabel("epochs")
         ax_train_surf.set_yscale("log")
-        ax_train_surf.set_title("Train losses over the surface")
+        ax_train_surf.set_title(
+            "Train losses over the surface")
         ax_train_surf.legend(loc="best")
         fig_train_surf.savefig(
             osp.join(path, "train_loss_surf.png"), dpi=150, bbox_inches="tight"
         )
 
-        fig_train_vol, ax_train_vol = plt.subplots(figsize=(20, 5))
-        ax_train_vol.plot(train_loss_vol_list, label="Mean loss")
-        ax_train_vol.plot(loss_vol_var_list[:, 0], label=r"$v_x$ loss")
-        ax_train_vol.plot(loss_vol_var_list[:, 1], label=r"$v_y$ loss")
-        ax_train_vol.plot(loss_vol_var_list[:, 2], label=r"$p$ loss")
-        ax_train_vol.plot(loss_vol_var_list[:, 3], label=r"$\nu_t$ loss")
+        fig_train_vol, ax_train_vol = plt.subplots(
+            figsize=(20, 5))
+        ax_train_vol.plot(
+            train_loss_vol_list, label="Mean loss")
+        ax_train_vol.plot(
+            loss_vol_var_list[:, 0], label=r"$v_x$ loss")
+        ax_train_vol.plot(
+            loss_vol_var_list[:, 1], label=r"$v_y$ loss")
+        ax_train_vol.plot(
+            loss_vol_var_list[:, 2], label=r"$p$ loss")
+        ax_train_vol.plot(
+            loss_vol_var_list[:, 3], label=r"$\nu_t$ loss")
         ax_train_vol.set_xlabel("epochs")
         ax_train_vol.set_yscale("log")
-        ax_train_vol.set_title("Train losses over the volume")
+        ax_train_vol.set_title(
+            "Train losses over the volume")
         ax_train_vol.legend(loc="best")
         fig_train_vol.savefig(
             osp.join(path, "train_loss_vol.png"), dpi=150, bbox_inches="tight"
         )
 
         if val_iter is not None:
-            fig_val_surf, ax_val_surf = plt.subplots(figsize=(20, 5))
-            ax_val_surf.plot(val_surf_list, label="Mean loss")
-            ax_val_surf.plot(val_surf_var_list[:, 0], label=r"$v_x$ loss")
-            ax_val_surf.plot(val_surf_var_list[:, 1], label=r"$v_y$ loss")
-            ax_val_surf.plot(val_surf_var_list[:, 2], label=r"$p$ loss")
-            ax_val_surf.plot(val_surf_var_list[:, 3], label=r"$\nu_t$ loss")
+            fig_val_surf, ax_val_surf = plt.subplots(
+                figsize=(20, 5))
+            ax_val_surf.plot(
+                val_surf_list, label="Mean loss")
+            ax_val_surf.plot(
+                val_surf_var_list[:, 0], label=r"$v_x$ loss")
+            ax_val_surf.plot(
+                val_surf_var_list[:, 1], label=r"$v_y$ loss")
+            ax_val_surf.plot(
+                val_surf_var_list[:, 2], label=r"$p$ loss")
+            ax_val_surf.plot(
+                val_surf_var_list[:, 3], label=r"$\nu_t$ loss")
             ax_val_surf.set_xlabel("epochs")
             ax_val_surf.set_yscale("log")
-            ax_val_surf.set_title("Validation losses over the surface")
+            ax_val_surf.set_title(
+                "Validation losses over the surface")
             ax_val_surf.legend(loc="best")
             fig_val_surf.savefig(
                 osp.join(path, "val_loss_surf.png"), dpi=150, bbox_inches="tight"
             )
 
-            fig_val_vol, ax_val_vol = plt.subplots(figsize=(20, 5))
+            fig_val_vol, ax_val_vol = plt.subplots(
+                figsize=(20, 5))
             ax_val_vol.plot(val_vol_list, label="Mean loss")
-            ax_val_vol.plot(val_vol_var_list[:, 0], label=r"$v_x$ loss")
-            ax_val_vol.plot(val_vol_var_list[:, 1], label=r"$v_y$ loss")
-            ax_val_vol.plot(val_vol_var_list[:, 2], label=r"$p$ loss")
-            ax_val_vol.plot(val_vol_var_list[:, 3], label=r"$\nu_t$ loss")
+            ax_val_vol.plot(
+                val_vol_var_list[:, 0], label=r"$v_x$ loss")
+            ax_val_vol.plot(
+                val_vol_var_list[:, 1], label=r"$v_y$ loss")
+            ax_val_vol.plot(
+                val_vol_var_list[:, 2], label=r"$p$ loss")
+            ax_val_vol.plot(
+                val_vol_var_list[:, 3], label=r"$\nu_t$ loss")
             ax_val_vol.set_xlabel("epochs")
             ax_val_vol.set_yscale("log")
-            ax_val_vol.set_title("Validation losses over the volume")
+            ax_val_vol.set_title(
+                "Validation losses over the volume")
             ax_val_vol.legend(loc="best")
             fig_val_vol.savefig(
                 osp.join(path, "val_loss_vol.png"), dpi=150, bbox_inches="tight"
@@ -437,7 +487,8 @@ def main(
                             else loss_vol_var_list[-1]
                         ),
                         "val_loss_surf": (
-                            val_surf_list[-1] if len(val_surf_list) > 0 else None
+                            val_surf_list[-1] if len(
+                                val_surf_list) > 0 else None
                         ),
                         "val_loss_surf_var": (
                             val_surf_var_list[-1].tolist()
@@ -446,7 +497,8 @@ def main(
                             else None
                         ),
                         "val_loss_vol": (
-                            val_vol_list[-1] if len(val_vol_list) > 0 else None
+                            val_vol_list[-1] if len(
+                                val_vol_list) > 0 else None
                         ),
                         "val_loss_vol_var": (
                             val_vol_var_list[-1].tolist()

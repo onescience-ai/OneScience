@@ -34,7 +34,8 @@ def data_provider(configs):
         return test_input_handle
 
     elif configs.dataset_name not in datasets_map:
-        raise ValueError("Name of dataset unknown %s" % configs.dataset_name)
+        raise ValueError(
+            "Name of dataset unknown %s" % configs.dataset_name)
 
 
 def train_data_provider(configs):
@@ -60,7 +61,8 @@ def train_data_provider(configs):
         )
 
         if dist.is_initialized():
-            sampler = DistributedSampler(train_dataset, shuffle=True)
+            sampler = DistributedSampler(
+                train_dataset, shuffle=True)
             train_input_handle = DataLoader(
                 train_dataset,
                 batch_size=configs.batch_size,
@@ -83,4 +85,5 @@ def train_data_provider(configs):
         return train_input_handle, val_input_handle
 
     elif configs.dataset_name not in datasets_map:
-        raise ValueError("Name of dataset unknown %s" % configs.dataset_name)
+        raise ValueError(
+            "Name of dataset unknown %s" % configs.dataset_name)

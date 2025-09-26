@@ -21,22 +21,29 @@ from jax import lax
 _dtype = jnp.float32
 
 QUAT_MULTIPLY = np.zeros((4, 4, 4), dtype=np.float32)
-QUAT_MULTIPLY[:, :, 0] = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]]
+QUAT_MULTIPLY[:, :, 0] = [[1, 0, 0, 0], [
+    0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]]
 
-QUAT_MULTIPLY[:, :, 1] = [[0, 1, 0, 0], [1, 0, 0, 0], [0, 0, 0, 1], [0, 0, -1, 0]]
+QUAT_MULTIPLY[:, :, 1] = [[0, 1, 0, 0], [
+    1, 0, 0, 0], [0, 0, 0, 1], [0, 0, -1, 0]]
 
-QUAT_MULTIPLY[:, :, 2] = [[0, 0, 1, 0], [0, 0, 0, -1], [1, 0, 0, 0], [0, 1, 0, 0]]
+QUAT_MULTIPLY[:, :, 2] = [[0, 0, 1, 0], [
+    0, 0, 0, -1], [1, 0, 0, 0], [0, 1, 0, 0]]
 
-QUAT_MULTIPLY[:, :, 3] = [[0, 0, 0, 1], [0, 0, 1, 0], [0, -1, 0, 0], [1, 0, 0, 0]]
+QUAT_MULTIPLY[:, :, 3] = [[0, 0, 0, 1], [
+    0, 0, 1, 0], [0, -1, 0, 0], [1, 0, 0, 0]]
 
 QUAT_MULTIPLY_BY_VEC = np.array(QUAT_MULTIPLY[:, 1:, :])
 
 QUAT_TO_ROT = np.zeros((4, 4, 3, 3), dtype=np.float32)
 
 QUAT_TO_ROT[0, 0] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]  # rr
-QUAT_TO_ROT[1, 1] = [[1, 0, 0], [0, -1, 0], [0, 0, -1]]  # ii
-QUAT_TO_ROT[2, 2] = [[-1, 0, 0], [0, 1, 0], [0, 0, -1]]  # jj
-QUAT_TO_ROT[3, 3] = [[-1, 0, 0], [0, -1, 0], [0, 0, 1]]  # kk
+QUAT_TO_ROT[1, 1] = [[1, 0, 0], [
+    0, -1, 0], [0, 0, -1]]  # ii
+QUAT_TO_ROT[2, 2] = [[-1, 0, 0],
+                     [0, 1, 0], [0, 0, -1]]  # jj
+QUAT_TO_ROT[3, 3] = [[-1, 0, 0],
+                     [0, -1, 0], [0, 0, 1]]  # kk
 
 QUAT_TO_ROT[1, 2] = [[0, 2, 0], [2, 0, 0], [0, 0, 0]]  # ij
 QUAT_TO_ROT[1, 3] = [[0, 0, 2], [0, 0, 0], [2, 0, 0]]  # ik
@@ -230,7 +237,8 @@ def vecs_robust_norm(v, epsilon=1e-8):
         >>> print(result.shape)
         (256)
     """
-    v_l2_norm = v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + epsilon
+    v_l2_norm = v[0] * v[0] + v[1] * \
+        v[1] + v[2] * v[2] + epsilon
     v_norm = v_l2_norm**0.5
     return v_norm
 
@@ -402,7 +410,8 @@ def rots_from_two_vecs(e0_unnormalized, e1_unnormalized):
 
     # Compute e2 as cross product of e0 and e1.
     e2 = vecs_cross_vecs(e0, e1)
-    rots = (e0[0], e1[0], e2[0], e0[1], e1[1], e2[1], e0[2], e1[2], e2[2])
+    rots = (e0[0], e1[0], e2[0], e0[1],
+            e1[1], e2[1], e0[2], e1[2], e2[2])
     return rots
 
 
@@ -462,7 +471,8 @@ def rigids_from_3_points(point_on_neg_x_axis, origin, point_on_xy_plane):
          0.4082482861704521), (4,6,8))
     """
     m = rots_from_two_vecs(
-        e0_unnormalized=vecs_sub(origin, point_on_neg_x_axis),
+        e0_unnormalized=vecs_sub(
+            origin, point_on_neg_x_axis),
         e1_unnormalized=vecs_sub(point_on_xy_plane, origin),
     )
     rigid = (m, origin)
@@ -493,7 +503,8 @@ def invert_rots(m):
         >>> print(inv_m)
         (1, 4, 7, 2, 5, 8, 3, 6, 9)
     """
-    invert = (m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8])
+    invert = (m[0], m[3], m[6], m[1],
+              m[4], m[7], m[2], m[5], m[8])
     return invert
 
 
@@ -867,20 +878,30 @@ def make_transform_from_reference(point_a, point_b, point_c):
     cos_c1 = c_x / jnp.sqrt(1e-20 + c_x**2 + c_y**2)
     zeros = jnp.zeros_like(sin_c1)
     ones = jnp.ones_like(sin_c1)
-    c1_rot_matrix = (cos_c1, -sin_c1, zeros, sin_c1, cos_c1, zeros, zeros, zeros, ones)
+    c1_rot_matrix = (cos_c1, -sin_c1, zeros,
+                     sin_c1, cos_c1, zeros, zeros, zeros, ones)
     # step 2 : rotate the crd system around y_axis to put point_c on x-axis
-    sin_c2 = c_z / jnp.sqrt(1e-20 + c_x**2 + c_y**2 + c_z**2)
-    cos_c2 = jnp.sqrt(c_x**2 + c_y**2) / jnp.sqrt(1e-20 + c_x**2 + c_y**2 + c_z**2)
-    c2_rot_matrix = (cos_c2, zeros, sin_c2, zeros, ones, zeros, -sin_c2, zeros, cos_c2)
-    c_rot_matrix = rots_mul_rots(c2_rot_matrix, c1_rot_matrix)
+    sin_c2 = c_z / \
+        jnp.sqrt(1e-20 + c_x**2 + c_y**2 + c_z**2)
+    cos_c2 = jnp.sqrt(c_x**2 + c_y**2) / \
+        jnp.sqrt(1e-20 + c_x**2 + c_y**2 + c_z**2)
+    c2_rot_matrix = (cos_c2, zeros, sin_c2, zeros,
+                     ones, zeros, -sin_c2, zeros, cos_c2)
+    c_rot_matrix = rots_mul_rots(
+        c2_rot_matrix, c1_rot_matrix)
     # step 3: rotate the crd system in y-z plane to put point_a in x-y plane
     vec_a = vecs_from_tensor(point_a)
-    _, rotated_a_y, rotated_a_z = rots_mul_vecs(c_rot_matrix, vec_a)
+    _, rotated_a_y, rotated_a_z = rots_mul_vecs(
+        c_rot_matrix, vec_a)
 
-    sin_n = -rotated_a_z / jnp.sqrt(1e-20 + rotated_a_y**2 + rotated_a_z**2)
-    cos_n = rotated_a_y / jnp.sqrt(1e-20 + rotated_a_y**2 + rotated_a_z**2)
-    a_rot_matrix = (ones, zeros, zeros, zeros, cos_n, -sin_n, zeros, sin_n, cos_n)
-    rotation_matrix = rots_mul_rots(a_rot_matrix, c_rot_matrix)
+    sin_n = -rotated_a_z / \
+        jnp.sqrt(1e-20 + rotated_a_y**2 + rotated_a_z**2)
+    cos_n = rotated_a_y / \
+        jnp.sqrt(1e-20 + rotated_a_y**2 + rotated_a_z**2)
+    a_rot_matrix = (ones, zeros, zeros, zeros,
+                    cos_n, -sin_n, zeros, sin_n, cos_n)
+    rotation_matrix = rots_mul_rots(
+        a_rot_matrix, c_rot_matrix)
     translation = point_b
     translation = vecs_from_tensor(translation)
     return rotation_matrix, translation
@@ -1086,9 +1107,11 @@ def quat_affine(
         )
     if rotation is None:
         rotation = quat_to_rot(quaternion)
-    quaternion = jax.tree_map(lambda x: _dtype(x), quaternion)
+    quaternion = jax.tree_map(
+        lambda x: _dtype(x), quaternion)
     rotation = jax.tree_map(lambda x: _dtype(x), rotation)
-    translation = jax.tree_map(lambda x: _dtype(x), translation)
+    translation = jax.tree_map(
+        lambda x: _dtype(x), translation)
     return quaternion, rotation, translation
 
 
@@ -1240,14 +1263,17 @@ def initial_affine(num_residues, use_numpy=False):
     """
     if use_numpy:
         quaternion = np.tile(
-            np.reshape(np.asarray([1.0, 0.0, 0.0, 0.0]), [1, 4]), [num_residues, 1]
+            np.reshape(np.asarray([1.0, 0.0, 0.0, 0.0]), [1, 4]), [
+                num_residues, 1]
         )
         translation = np.zeros([num_residues, 3])
     else:
         quaternion = jnp.tile(
-            jnp.reshape(jnp.asarray([1.0, 0.0, 0.0, 0.0]), [1, 4]), [num_residues, 1]
+            jnp.reshape(jnp.asarray([1.0, 0.0, 0.0, 0.0]), [1, 4]), [
+                num_residues, 1]
         ).astype(_dtype)
-        translation = jnp.zeros([num_residues, 3]).astype(_dtype)
+        translation = jnp.zeros(
+            [num_residues, 3]).astype(_dtype)
     return quat_affine(
         quaternion, translation, unstack_inputs=True, use_numpy=use_numpy
     )
@@ -1504,7 +1530,8 @@ def pre_compose(quaternion, rotation, translation, update):
         Tensor(shape=[], dtype=Float32, value= 1.40978))
     """
 
-    vector_quaternion_update, x, y, z = jnp.split(update, [3, 4, 5], axis=-1)
+    vector_quaternion_update, x, y, z = jnp.split(
+        update, [3, 4, 5], axis=-1)
     trans_update = [
         jnp.squeeze(x, axis=-1),
         jnp.squeeze(y, axis=-1),
@@ -1513,8 +1540,10 @@ def pre_compose(quaternion, rotation, translation, update):
     new_quaternion = quaternion + quat_multiply_by_vec(
         quaternion, vector_quaternion_update
     )
-    rotated_trans_update = rots_mul_vecs(rotation, trans_update)
-    new_translation = vecs_add(translation, rotated_trans_update)
+    rotated_trans_update = rots_mul_vecs(
+        rotation, trans_update)
+    new_translation = vecs_add(
+        translation, rotated_trans_update)
     return quat_affine(new_quaternion, new_translation)
 
 
@@ -1607,7 +1636,8 @@ def quaternion_from_tensor(tensor, normalize=False):
         (Tensor(shape=[], dtype=Float32, value= 0.146756),Tensor(shape=[], dtype=Float32, value= 0.0923386),
         Tensor(shape=[], dtype=Float32, value= 0.18626))
     """
-    quaternion, tx, ty, tz = jnp.split(tensor, [4, 5, 6], axis=-1)
+    quaternion, tx, ty, tz = jnp.split(
+        tensor, [4, 5, 6], axis=-1)
     translation = (
         jnp.squeeze(tx, axis=-1),
         jnp.squeeze(ty, axis=-1),
@@ -1694,7 +1724,8 @@ def batch_initial_affine(num_residues, batch_size=1, use_numpy=False):
     #     translation = np.zeros([batch_size, num_residues, 3])
     # else:
     quaternion = jnp.tile(
-        jnp.reshape(jnp.asarray([1.0, 0.0, 0.0, 0.0]), [1, 1, 4]),
+        jnp.reshape(jnp.asarray(
+            [1.0, 0.0, 0.0, 0.0]), [1, 1, 4]),
         [batch_size, num_residues, 1],
     )
     translation = jnp.zeros([batch_size, num_residues, 3])
@@ -1751,7 +1782,8 @@ def batch_quat_affine(
         translation = vecs_from_tensor(translation)
 
     if normalize and quaternion is not None:
-        quaternion = quaternion / jnp.norm(quaternion, axis=-1, keepdims=True)
+        quaternion = quaternion / \
+            jnp.norm(quaternion, axis=-1, keepdims=True)
     if rotation is None:
         rotation = batch_quat_to_rot(quaternion)
 
@@ -1879,7 +1911,8 @@ def batch_quaternion_from_tensor(tensor, normalize=False):
     Take the input 'tensor' :math:`[(xx, xy, xz, yx, yy, yz, zz)]` to get the new
     'quaternion', 'rotation', 'translation'. batch version
     """
-    quaternion, tx, ty, tz = jnp.split(tensor, [4, 5, 6], axis=-1)
+    quaternion, tx, ty, tz = jnp.split(
+        tensor, [4, 5, 6], axis=-1)
     translation = (
         jnp.squeeze(tx, axis=-1),
         jnp.squeeze(ty, axis=-1),
@@ -1917,7 +1950,8 @@ def batch_pre_compose(quaternion, rotation, translation, update):
         Tensor(shape=[], dtype=Float32, value= 1.40978))
     """
 
-    vector_quaternion_update, x, y, z = jnp.split(update, [3, 4, 5], axis=-1)
+    vector_quaternion_update, x, y, z = jnp.split(
+        update, [3, 4, 5], axis=-1)
     trans_update = [
         jnp.squeeze(x, axis=-1),
         jnp.squeeze(y, axis=-1),
@@ -1926,8 +1960,10 @@ def batch_pre_compose(quaternion, rotation, translation, update):
     new_quaternion = quaternion + quat_multiply_by_vec(
         quaternion, vector_quaternion_update
     )
-    rotated_trans_update = rots_mul_vecs(rotation, trans_update)
-    new_translation = vecs_add(translation, rotated_trans_update)
+    rotated_trans_update = rots_mul_vecs(
+        rotation, trans_update)
+    new_translation = vecs_add(
+        translation, rotated_trans_update)
     return quat_affine(new_quaternion, new_translation)
 
 
@@ -2012,7 +2048,8 @@ def batch_pre_compose(quaternion, rotation, translation, update):
         Tensor(shape=[], dtype=Float32, value= 1.40978))
     """
 
-    vector_quaternion_update, x, y, z = jnp.split(update, [3, 4, 5], axis=-1)
+    vector_quaternion_update, x, y, z = jnp.split(
+        update, [3, 4, 5], axis=-1)
     trans_update = [
         jnp.squeeze(x, axis=-1),
         jnp.squeeze(y, axis=-1),
@@ -2021,8 +2058,10 @@ def batch_pre_compose(quaternion, rotation, translation, update):
     new_quaternion = quaternion + batch_quat_multiply_by_vec(
         quaternion, vector_quaternion_update
     )
-    rotated_trans_update = rots_mul_vecs(rotation, trans_update)
-    new_translation = vecs_add(translation, rotated_trans_update)
+    rotated_trans_update = rots_mul_vecs(
+        rotation, trans_update)
+    new_translation = vecs_add(
+        translation, rotated_trans_update)
     return batch_quat_affine(new_quaternion, new_translation)
 
 

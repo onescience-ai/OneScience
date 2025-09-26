@@ -9,8 +9,10 @@ from agent.rag.postprocess.rerank_base import BaseRerankRunner
 class RerankModelRunner(BaseRerankRunner):
     def __init__(self, config: dict) -> None:
         self.top_k = config.get("top_k", None)
-        self.score_threshold = config.get("score_threshold", 0.0)
-        self.rerank_model = RerankModel[config["factory_name"]](**config["model"])
+        self.score_threshold = config.get(
+            "score_threshold", 0.0)
+        self.rerank_model = RerankModel[config["factory_name"]](
+            **config["model"])
 
     def run(
         self,
@@ -40,12 +42,14 @@ class RerankModelRunner(BaseRerankRunner):
 
         documents = unique_documents
 
-        ranked_documents = self.rerank_model.rerank(query=query, documents=documents)
+        ranked_documents = self.rerank_model.rerank(
+            query=query, documents=documents)
 
         final_documents = [
             doc
             for doc in ranked_documents
             if doc.metadata["score"] >= self.score_threshold
         ]
-        final_documents.sort(key=lambda x: x.metadata.get("score", 0.0), reverse=True)
+        final_documents.sort(key=lambda x: x.metadata.get(
+            "score", 0.0), reverse=True)
         return final_documents[: self.top_k] if self.top_k else final_documents

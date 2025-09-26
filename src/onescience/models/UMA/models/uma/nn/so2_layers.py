@@ -99,15 +99,18 @@ class SO2_Convolution(torch.nn.Module):
         self.internal_weights = internal_weights
         self.extra_m0_output_channels = extra_m0_output_channels
 
-        num_channels_m0 = (self.lmax + 1) * self.sphere_channels
+        num_channels_m0 = (self.lmax + 1) * \
+            self.sphere_channels
 
         # SO(2) convolution for m = 0
         m0_output_channels = self.m_output_channels * (
             num_channels_m0 // self.sphere_channels
         )
         if self.extra_m0_output_channels is not None:
-            m0_output_channels = m0_output_channels + self.extra_m0_output_channels
-        self.fc_m0 = Linear(num_channels_m0, m0_output_channels)
+            m0_output_channels = m0_output_channels + \
+                self.extra_m0_output_channels
+        self.fc_m0 = Linear(
+            num_channels_m0, m0_output_channels)
         num_channels_rad = self.fc_m0.in_features
 
         # SO(2) convolution for non-zero m
@@ -122,13 +125,15 @@ class SO2_Convolution(torch.nn.Module):
                     self.mmax,
                 )
             )
-            num_channels_rad = num_channels_rad + self.so2_m_conv[-1].fc.in_features
+            num_channels_rad = num_channels_rad + \
+                self.so2_m_conv[-1].fc.in_features
 
         # Embedding function of distance
         self.rad_func = None
         if not self.internal_weights:
             assert edge_channels_list is not None
-            edge_channels_list = copy.deepcopy(edge_channels_list)
+            edge_channels_list = copy.deepcopy(
+                edge_channels_list)
             edge_channels_list.append(int(num_channels_rad))
             # This can moved outside of SO2 conv and into Edgewise
             self.rad_func = RadialMLP(edge_channels_list)
@@ -147,7 +152,8 @@ class SO2_Convolution(torch.nn.Module):
     ):
         # radial function
         if self.rad_func is not None:
-            x_edge_by_m = self.rad_func(x_edge).split(self.edge_split_sizes, dim=1)
+            x_edge_by_m = self.rad_func(x_edge).split(
+                self.edge_split_sizes, dim=1)
 
         x_by_m = x.split(self.m_split_sizes, dim=1)
 
@@ -168,7 +174,9 @@ class SO2_Convolution(torch.nn.Module):
                 -1,
             )
 
-        out = [x_0.view(num_edges, -1, self.m_output_channels)]  # m0
+        # m0
+        out = [
+            x_0.view(num_edges, -1, self.m_output_channels)]
 
         # Compute the values for the m > 0 coefficients
         for m in range(1, self.mmax + 1):
@@ -217,14 +225,17 @@ class SO2_Linear(torch.nn.Module):
         self.mmax = mmax
         self.mappingReduced = mappingReduced
         self.internal_weights = internal_weights
-        self.edge_channels_list = copy.deepcopy(edge_channels_list)
+        self.edge_channels_list = copy.deepcopy(
+            edge_channels_list)
 
-        num_channels_m0 = (self.lmax + 1) * self.sphere_channels
+        num_channels_m0 = (self.lmax + 1) * \
+            self.sphere_channels
 
         # SO(2) linear for m = 0
         self.fc_m0 = Linear(
             num_channels_m0,
-            self.m_output_channels * (num_channels_m0 // self.sphere_channels),
+            self.m_output_channels *
+            (num_channels_m0 // self.sphere_channels),
         )
         num_channels_rad = self.fc_m0.in_features
 
@@ -235,7 +246,8 @@ class SO2_Linear(torch.nn.Module):
             num_in_channels = num_coefficents * self.sphere_channels
             fc = Linear(
                 num_in_channels,
-                self.m_output_channels * (num_in_channels // self.sphere_channels),
+                self.m_output_channels *
+                (num_in_channels // self.sphere_channels),
                 bias=False,
             )
             num_channels_rad = num_channels_rad + fc.in_features
@@ -245,15 +257,18 @@ class SO2_Linear(torch.nn.Module):
         self.rad_func = None
         if not self.internal_weights:
             assert self.edge_channels_list is not None
-            self.edge_channels_list.append(int(num_channels_rad))
-            self.rad_func = RadialMLP(self.edge_channels_list)
+            self.edge_channels_list.append(
+                int(num_channels_rad))
+            self.rad_func = RadialMLP(
+                self.edge_channels_list)
 
     def forward(self, x, x_edge):
         batch_size = x.shape[0]
         out = []
 
         # Reshape the spherical harmonics based on m (order)
-        x = torch.einsum("nac,ba->nbc", x, self.mappingReduced.to_m)
+        x = torch.einsum("nac,ba->nbc", x,
+                         self.mappingReduced.to_m)
 
         # radial function
         if self.rad_func is not None:
@@ -264,10 +279,12 @@ class SO2_Linear(torch.nn.Module):
         x_0 = x.narrow(1, 0, self.mappingReduced.m_size[0])
         x_0 = x_0.reshape(batch_size, -1)
         if self.rad_func is not None:
-            x_edge_0 = x_edge.narrow(1, 0, self.fc_m0.in_features)
+            x_edge_0 = x_edge.narrow(
+                1, 0, self.fc_m0.in_features)
             x_0 = x_0 * x_edge_0
         x_0 = self.fc_m0(x_0)
-        x_0 = x_0.view(batch_size, -1, self.m_output_channels)
+        x_0 = x_0.view(
+            batch_size, -1, self.m_output_channels)
         out.append(x_0)
         offset_rad = offset_rad + self.fc_m0.in_features
 
@@ -275,27 +292,34 @@ class SO2_Linear(torch.nn.Module):
         offset = self.mappingReduced.m_size[0]
         for m in range(1, self.mmax + 1):
             # Get the m order coefficients
-            x_m = x.narrow(1, offset, 2 * self.mappingReduced.m_size[m])
+            x_m = x.narrow(
+                1, offset, 2 * self.mappingReduced.m_size[m])
             x_m = x_m.reshape(batch_size, 2, -1)
             if self.rad_func is not None:
                 x_edge_m = x_edge.narrow(
-                    1, offset_rad, self.so2_m_fc[m - 1].in_features
+                    1, offset_rad, self.so2_m_fc[m -
+                                                 1].in_features
                 )
                 x_edge_m = x_edge_m.reshape(
-                    batch_size, 1, self.so2_m_fc[m - 1].in_features
+                    batch_size, 1, self.so2_m_fc[m -
+                                                 1].in_features
                 )
                 x_m = x_m * x_edge_m
 
             # Perform SO(2) linear
             x_m = self.so2_m_fc[m - 1](x_m)
-            x_m = x_m.view(batch_size, -1, self.m_output_channels)
+            x_m = x_m.view(
+                batch_size, -1, self.m_output_channels)
             out.append(x_m)
 
-            offset = offset + 2 * self.mappingReduced.m_size[m]
-            offset_rad = offset_rad + self.so2_m_fc[m - 1].in_features
+            offset = offset + 2 * \
+                self.mappingReduced.m_size[m]
+            offset_rad = offset_rad + \
+                self.so2_m_fc[m - 1].in_features
 
         out = torch.cat(out, dim=1)
 
         # Reshape the spherical harmonics based on l (degree)
-        out = torch.einsum("nac,ab->nbc", out, self.mappingReduced.to_m)
+        out = torch.einsum(
+            "nac,ab->nbc", out, self.mappingReduced.to_m)
         return out

@@ -10,7 +10,8 @@ from onescience.utils.cfd_benchmark.visual import vis_bubble_temp
 
 class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
     def __init__(self, args):
-        super(Exp_Dynamic_MultiStep_Prediction, self).__init__(args)
+        super(Exp_Dynamic_MultiStep_Prediction,
+              self).__init__(args)
         self.best_test_loss = float("inf")
         self.best_epoch = 0
         self.start_epoch = 0
@@ -25,13 +26,16 @@ class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
     def _forward_int(self, coords, temp, vel):
         B, _, H, W = coords.shape
         x = coords.permute(0, 2, 3, 1).reshape(B, H * W, -1)
-        temp_flat = temp.permute(0, 2, 3, 1).reshape(B, H * W, -1)
-        vel_flat = vel.permute(0, 2, 3, 1).reshape(B, H * W, -1)
+        temp_flat = temp.permute(
+            0, 2, 3, 1).reshape(B, H * W, -1)
+        vel_flat = vel.permute(
+            0, 2, 3, 1).reshape(B, H * W, -1)
         fx = torch.cat([temp_flat, vel_flat], dim=-1)
 
         pred = self.model(x, fx)
 
-        temp_pred = pred.permute(0, 2, 1).reshape(B, -1, H, W)
+        temp_pred = pred.permute(
+            0, 2, 1).reshape(B, -1, H, W)
 
         return temp_pred
 
@@ -89,27 +93,34 @@ class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
         checkpoint_path = f"./checkpoints/{self.args.save_name}.pt"
         # 如果启用继续训练且检查点存在
         if self.args.resume and os.path.exists(checkpoint_path):
-            print(f"Loading checkpoint from {checkpoint_path}")
-            checkpoint = torch.load(checkpoint_path, map_location=self.device)
+            print(
+                f"Loading checkpoint from {checkpoint_path}")
+            checkpoint = torch.load(
+                checkpoint_path, map_location=self.device)
 
             # 加载模型状态
             if isinstance(self.model, torch.nn.parallel.DistributedDataParallel):
-                self.model.module.load_state_dict(checkpoint["model_state"])
+                self.model.module.load_state_dict(
+                    checkpoint["model_state"])
             else:
-                self.model.load_state_dict(checkpoint["model_state"])
+                self.model.load_state_dict(
+                    checkpoint["model_state"])
 
             # 加载优化器和调度器状态
             if "optimizer_state" in checkpoint:
-                optimizer.load_state_dict(checkpoint["optimizer_state"])
+                optimizer.load_state_dict(
+                    checkpoint["optimizer_state"])
             if "scheduler_state" in checkpoint and scheduler is not None:
-                scheduler.load_state_dict(checkpoint["scheduler_state"])
+                scheduler.load_state_dict(
+                    checkpoint["scheduler_state"])
 
             # 加载训练状态
             self.start_epoch = checkpoint["epoch"] + 1
             self.best_test_loss = checkpoint["best_test_loss"]
             self.best_epoch = checkpoint["best_epoch"]
 
-            print(f"Resuming training from epoch {self.start_epoch}")
+            print(
+                f"Resuming training from epoch {self.start_epoch}")
             print(
                 f"Previous best test loss: {self.best_test_loss:.5f} at epoch {self.best_epoch}"
             )
@@ -124,7 +135,8 @@ class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
         else:
             pass
         # myloss = L2Loss(size_average=False)
-        start_epoch = getattr(self, "start_epoch", 0)  # 若没resume则为0
+        start_epoch = getattr(
+            self, "start_epoch", 0)  # 若没resume则为0
         for ep in range(start_epoch, self.args.epochs):
             if self.dist.world_size > 1:
                 self.train_sampler.set_epoch(ep)
@@ -179,10 +191,12 @@ class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
                         "best_epoch": self.best_epoch,
                         "args": self.args,  # 保存参数以便后续参考
                     }
-                    torch.save(checkpoint, f"./checkpoints/{self.args.save_name}.pt")
+                    torch.save(
+                        checkpoint, f"./checkpoints/{self.args.save_name}.pt")
 
                 if ep % 10 == 0:
-                    print("Epoch {} Train loss : {:.5f}".format(ep, train_loss))
+                    print("Epoch {} Train loss : {:.5f}".format(
+                        ep, train_loss))
                     print("rel_err:{}".format(rel_err))
 
         # 训练结束后保存最终模型
@@ -196,7 +210,8 @@ class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
     def test(self):
 
         checkpoint_path = f"./checkpoints/{self.args.save_name}.pt"
-        state_dict = torch.load(checkpoint_path, map_location=self.device)
+        state_dict = torch.load(
+            checkpoint_path, map_location=self.device)
         # 兼容新旧模型格式的加载逻辑
         if isinstance(state_dict, dict) and "model_state" in state_dict:
             # 新格式：包含多个组件的字典
@@ -220,7 +235,8 @@ class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
 
         self.model.eval()
         if not os.path.exists("./results/" + self.args.save_name + "/"):
-            os.makedirs("./results/" + self.args.save_name + "/")
+            os.makedirs("./results/" +
+                        self.args.save_name + "/")
 
         # 初始化所有指标的累加器 - 分别处理温度和速度
         temp_rel_err = 0.0
@@ -236,7 +252,8 @@ class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
         temps_labels = []
 
         max_time_limit = 200
-        time_limit = min(max_time_limit, len(self.test_loader.dataset.datasets[0]))
+        time_limit = min(max_time_limit, len(
+            self.test_loader.dataset.datasets[0]))
 
         dataset = self.test_loader.dataset.datasets[0]
 
@@ -244,7 +261,8 @@ class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
 
         for timestep in range(0, time_limit, self.future_window):
             coords, temp, vel, label = dataset[timestep]
-            coords = coords.to(self.device).float().unsqueeze(0)
+            coords = coords.to(
+                self.device).float().unsqueeze(0)
             temp = temp.to(self.device).float().unsqueeze(0)
             vel = vel.to(self.device).float().unsqueeze(0)
 
@@ -263,7 +281,8 @@ class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
 
         if id < self.args.vis_num:
             print("Visualizing sample: ", id)
-            timesteps = list(range(0, time_limit, self.future_window))
+            timesteps = list(
+                range(0, time_limit, self.future_window))
             vis_bubble_temp(
                 temp_pred=temps,  # 预测温度
                 temp_true=temps_labels,  # 真实温度
@@ -274,12 +293,18 @@ class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
         id += 1
         # 分别计算温度和速度的指标
         # 温度场计算 (temps: (T, H, W))
-        temp_rel_err += loss_func.rel(temps, temps_labels).item()
-        temp_abs_err += loss_func.abs(temps, temps_labels).item()
-        temp_mse += loss_func.MSE(temps, temps_labels).item()
-        temp_mae += loss_func.MAE(temps, temps_labels).item()
-        temp_maxae += loss_func.MaxAE(temps, temps_labels).item()
-        temp_r2 += loss_func.R2Score(temps, temps_labels).item()
+        temp_rel_err += loss_func.rel(temps,
+                                      temps_labels).item()
+        temp_abs_err += loss_func.abs(temps,
+                                      temps_labels).item()
+        temp_mse += loss_func.MSE(temps,
+                                  temps_labels).item()
+        temp_mae += loss_func.MAE(temps,
+                                  temps_labels).item()
+        temp_maxae += loss_func.MaxAE(temps,
+                                      temps_labels).item()
+        temp_r2 += loss_func.R2Score(temps,
+                                     temps_labels).item()
 
         # 计算平均误差
         ntest = self.args.ntest

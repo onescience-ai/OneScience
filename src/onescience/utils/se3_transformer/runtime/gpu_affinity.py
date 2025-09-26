@@ -37,7 +37,8 @@ class Device:
 
     def __init__(self, device_idx):
         super().__init__()
-        self.handle = pynvml.nvmlDeviceGetHandleByIndex(device_idx)
+        self.handle = pynvml.nvmlDeviceGetHandleByIndex(
+            device_idx)
 
     def get_name(self):
         return pynvml.nvmlDeviceGetName(self.handle)
@@ -51,12 +52,14 @@ class Device:
             self.handle, Device._nvml_affinity_elements
         ):
             # assume nvml returns list of 64 bit ints
-            affinity_string = "{:064b}".format(j) + affinity_string
+            affinity_string = "{:064b}".format(
+                j) + affinity_string
 
         affinity_list = [int(x) for x in affinity_string]
         affinity_list.reverse()  # so core 0 is in 0th element of list
 
-        ret = [i for i, e in enumerate(affinity_list) if e != 0]
+        ret = [i for i, e in enumerate(
+            affinity_list) if e != 0]
         return ret
 
 
@@ -90,7 +93,8 @@ def check_socket_affinities(socket_affinities):
 
 def get_socket_affinities(nproc_per_node, exclude_unavailable_cores=True):
     devices = [Device(i) for i in range(nproc_per_node)]
-    socket_affinities = [dev.get_cpu_affinity() for dev in devices]
+    socket_affinities = [dev.get_cpu_affinity()
+                         for dev in devices]
 
     if exclude_unavailable_cores:
         available_cores = os.sched_getaffinity(0)
@@ -143,7 +147,8 @@ def set_single_unique_affinity(gpu_id, nproc_per_node):
     Args:
         gpu_id: index of a GPU
     """
-    socket_affinities = get_socket_affinities(nproc_per_node)
+    socket_affinities = get_socket_affinities(
+        nproc_per_node)
 
     siblings_list = get_thread_siblings_list()
     siblings_dict = dict(siblings_list)
@@ -151,7 +156,8 @@ def set_single_unique_affinity(gpu_id, nproc_per_node):
     # remove siblings
     for idx, socket_affinity in enumerate(socket_affinities):
         socket_affinities[idx] = list(
-            set(socket_affinity) - set(siblings_dict.values())
+            set(socket_affinity) -
+            set(siblings_dict.values())
         )
 
     affinities = []
@@ -179,7 +185,8 @@ def set_socket_unique_affinity(gpu_id, nproc_per_node, mode, balanced=True):
         mode: mode
         balanced: assign an equal number of physical cores to each process
     """
-    socket_affinities = get_socket_affinities(nproc_per_node)
+    socket_affinities = get_socket_affinities(
+        nproc_per_node)
 
     siblings_list = get_thread_siblings_list()
     siblings_dict = dict(siblings_list)
@@ -187,13 +194,16 @@ def set_socket_unique_affinity(gpu_id, nproc_per_node, mode, balanced=True):
     # remove hyperthreading siblings
     for idx, socket_affinity in enumerate(socket_affinities):
         socket_affinities[idx] = list(
-            set(socket_affinity) - set(siblings_dict.values())
+            set(socket_affinity) -
+            set(siblings_dict.values())
         )
 
-    socket_affinities_to_device_ids = collections.defaultdict(list)
+    socket_affinities_to_device_ids = collections.defaultdict(
+        list)
 
     for idx, socket_affinity in enumerate(socket_affinities):
-        socket_affinities_to_device_ids[tuple(socket_affinity)].append(idx)
+        socket_affinities_to_device_ids[tuple(
+            socket_affinity)].append(idx)
 
     # compute minimal number of physical cores per GPU across all GPUs and
     # sockets, code assigns this number of cores per GPU if balanced == True
@@ -212,7 +222,8 @@ def set_socket_unique_affinity(gpu_id, nproc_per_node, mode, balanced=True):
                 : devices_per_group * min_physical_cores_per_gpu
             ]
         else:
-            cores_per_device = len(socket_affinity) // devices_per_group
+            cores_per_device = len(
+                socket_affinity) // devices_per_group
 
         for group_id, device_id in enumerate(device_ids):
             if device_id == gpu_id:
@@ -227,17 +238,19 @@ def set_socket_unique_affinity(gpu_id, nproc_per_node, mode, balanced=True):
                 # mapping to multiples of 4.
 
                 if mode == "interleaved":
-                    affinity = list(socket_affinity[group_id::devices_per_group])
+                    affinity = list(
+                        socket_affinity[group_id::devices_per_group])
                 elif mode == "continuous":
                     affinity = list(
                         socket_affinity[
                             group_id
-                            * cores_per_device : (group_id + 1)
+                            * cores_per_device: (group_id + 1)
                             * cores_per_device
                         ]
                     )
                 else:
-                    raise RuntimeError("Unknown set_socket_unique_affinity mode")
+                    raise RuntimeError(
+                        "Unknown set_socket_unique_affinity mode")
 
                 # unconditionally reintroduce hyperthreading siblings, this step
                 # may result in a different numbers of logical cores assigned to
@@ -341,9 +354,11 @@ def set_affinity(
     elif mode == "single_unique":
         set_single_unique_affinity(gpu_id, nproc_per_node)
     elif mode == "socket_unique_interleaved":
-        set_socket_unique_affinity(gpu_id, nproc_per_node, "interleaved", balanced)
+        set_socket_unique_affinity(
+            gpu_id, nproc_per_node, "interleaved", balanced)
     elif mode == "socket_unique_continuous":
-        set_socket_unique_affinity(gpu_id, nproc_per_node, "continuous", balanced)
+        set_socket_unique_affinity(
+            gpu_id, nproc_per_node, "continuous", balanced)
     else:
         raise RuntimeError("Unknown affinity mode")
 

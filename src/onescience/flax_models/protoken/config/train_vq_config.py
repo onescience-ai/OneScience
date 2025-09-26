@@ -82,4 +82,5 @@ TRAINING_CONFIG = {
     },
 }
 
-TRAINING_CONFIG = ml_collections.ConfigDict(copy.deepcopy(TRAINING_CONFIG))
+TRAINING_CONFIG = ml_collections.ConfigDict(
+    copy.deepcopy(TRAINING_CONFIG))

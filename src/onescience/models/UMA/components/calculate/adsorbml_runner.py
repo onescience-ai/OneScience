@@ -80,7 +80,8 @@ class AdsorbMLRunner(CalculateRunner):
         """
         all_results = []
         sysids = list(self.input_data.keys())
-        chunk_indices = np.array_split(sysids, num_jobs)[job_num]
+        chunk_indices = np.array_split(
+            sysids, num_jobs)[job_num]
         for sysid in tqdm(chunk_indices, desc="Running AdsorbML"):
             initial_slab = self.input_data[sysid]["slab_initial"]
             relaxed_slab = self.input_data[sysid]["slab_relax"]
@@ -97,7 +98,8 @@ class AdsorbMLRunner(CalculateRunner):
                 num_placements=self.num_placements,
                 reference_ml_energies=not self.adsorption_energy_model,
                 relaxed_slab_atoms=(
-                    relaxed_slab.atoms  # In the case of adsorption energy model, use the DFT relaxed slab
+                    # In the case of adsorption energy model, use the DFT relaxed slab
+                    relaxed_slab.atoms
                     if self.adsorption_energy_model
                     else None
                 ),
@@ -120,7 +122,8 @@ class AdsorbMLRunner(CalculateRunner):
                 "anomaly_count": sum([len(x) for x in outputs["adslab_anomalies"]]),
             }
             if self._save_relaxed_atoms and len(top_candidates) > 0:
-                results["atoms"] = MSONAtoms(top_candidates[0]["atoms"]).as_dict()
+                results["atoms"] = MSONAtoms(
+                    top_candidates[0]["atoms"]).as_dict()
 
             all_results.append(results)
 
@@ -143,7 +146,8 @@ class AdsorbMLRunner(CalculateRunner):
         """
         results_df = pd.DataFrame(results)
         results_df.to_json(
-            os.path.join(results_dir, f"adsorbml_{num_jobs}-{job_num}.json.gz")
+            os.path.join(
+                results_dir, f"adsorbml_{num_jobs}-{job_num}.json.gz")
         )
 
     def save_state(self, checkpoint_location: str, is_preemption: bool = False) -> bool:

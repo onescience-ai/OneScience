@@ -22,14 +22,18 @@ def surface_coefficients(airfoil, aero_name, compressible=False, extrado=False):
         qInf = 0.5 * u_inf**2
 
     if extrado:
-        camber = camber_line(digits, airfoil.points[:, 0])[0]
+        camber = camber_line(
+            digits, airfoil.points[:, 0])[0]
         idx_extrado = airfoil.points[:, 1] > camber
     points = airfoil.points[:, 0]
     pressure = airfoil.point_data["p"]
-    wss = np.linalg.norm(airfoil.point_data["wallShearStress"][:, :2], axis=1)
+    wss = np.linalg.norm(
+        airfoil.point_data["wallShearStress"][:, :2], axis=1)
 
-    c_p = np.concatenate([points[:, None], pressure[:, None] / qInf], axis=1)
-    c_l = np.concatenate([points[:, None], wss[:, None] / qInf], axis=1)
+    c_p = np.concatenate(
+        [points[:, None], pressure[:, None] / qInf], axis=1)
+    c_l = np.concatenate(
+        [points[:, None], wss[:, None] / qInf], axis=1)
 
     if extrado:
         return c_p, c_l, idx_extrado
@@ -54,7 +58,8 @@ def compare_surface_coefs(coefs1, coefs2, extrado=True, path=None):
     fig, ax = plt.subplots(2, figsize=(20, 10))
     if extrado:
         n_extrado1, n_extrado2 = coefs1[2], coefs2[2]
-        ax[0].scatter(ycp1[:n_extrado1], c_p1[:n_extrado1], label="Extrado 1")
+        ax[0].scatter(ycp1[:n_extrado1],
+                      c_p1[:n_extrado1], label="Extrado 1")
         ax[0].scatter(
             ycp1[n_extrado1:],
             c_p1[n_extrado1:],
@@ -73,7 +78,8 @@ def compare_surface_coefs(coefs1, coefs2, extrado=True, path=None):
             label="Intrado Target",
         )
 
-        ax[1].scatter(ycl1[:n_extrado1], c_f1[:n_extrado1], label="Extrado 1")
+        ax[1].scatter(ycl1[:n_extrado1],
+                      c_f1[:n_extrado1], label="Extrado 1")
         ax[1].scatter(
             ycl1[n_extrado1:],
             c_f1[n_extrado1:],
@@ -94,10 +100,12 @@ def compare_surface_coefs(coefs1, coefs2, extrado=True, path=None):
 
     else:
         ax[0].scatter(ycp1, c_p1, label="Experiment 1")
-        ax[0].scatter(ycp2, c_p2, color="y", label="Experiment Target")
+        ax[0].scatter(ycp2, c_p2, color="y",
+                      label="Experiment Target")
 
         ax[1].scatter(ycl1, c_f1, label="Experiment 1")
-        ax[1].scatter(ycl2, c_f2, color="y", label="Experiment Targer")
+        ax[1].scatter(ycl2, c_f2, color="y",
+                      label="Experiment Targer")
 
     ax[0].invert_yaxis()
     ax[0].set_xlabel("x/c")
@@ -110,7 +118,8 @@ def compare_surface_coefs(coefs1, coefs2, extrado=True, path=None):
     ax[1].legend(loc="best")
 
     if path != None:
-        fig.savefig(path + "surface_coefs.png", bbox_inches="tight", dpi=150)
+        fig.savefig(path + "surface_coefs.png",
+                    bbox_inches="tight", dpi=150)
 
 
 def boundary_layer(
@@ -130,11 +139,14 @@ def boundary_layer(
     idx_extrado = airfoil.points[:, 1] > camber
 
     if extrado:
-        arg = np.argmin(np.abs(airfoil.points[idx_extrado, 0] - x)) + 1
+        arg = np.argmin(
+            np.abs(airfoil.points[idx_extrado, 0] - x)) + 1
         arg = np.argwhere(idx_extrado.cumsum() == arg).min()
     else:
-        arg = np.argmin(np.abs(airfoil.points[~idx_extrado, 0] - x)) + 1
-        arg = np.argwhere((~idx_extrado).cumsum() == arg).min()
+        arg = np.argmin(
+            np.abs(airfoil.points[~idx_extrado, 0] - x)) + 1
+        arg = np.argwhere(
+            (~idx_extrado).cumsum() == arg).min()
 
     if direction == "normals":
         normals = -airfoil.point_data["Normals"][arg]
@@ -142,12 +154,15 @@ def boundary_layer(
     elif direction == "y":
         normals = np.array([0, 2 * int(extrado) - 1, 0])
 
-    a, b = airfoil.points[arg], airfoil.points[arg] + y * normals
-    bl = internal.sample_over_line(a, b, resolution=resolution)
+    a, b = airfoil.points[arg], airfoil.points[arg] + \
+        y * normals
+    bl = internal.sample_over_line(
+        a, b, resolution=resolution)
 
     if rotation:
         rot = np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
-        u = (bl.point_data["U"] * (rot @ normals)).sum(axis=1)
+        u = (bl.point_data["U"] *
+             (rot @ normals)).sum(axis=1)
         v = (bl.point_data["U"] * normals).sum(axis=1)
     else:
         u = bl.point_data["U"][:, 0]
@@ -165,7 +180,8 @@ def compare_boundary_layer(coefs1, coefs2, ylim=0.1, path=None, ylog=False):
 
     fig, ax = plt.subplots(1, 3, figsize=(30, 10))
     ax[0].scatter(u1, yc1, label="Experiment 1")
-    ax[0].scatter(u2, yc2, label="Experiment 2", color="r", marker="x")
+    ax[0].scatter(u2, yc2, label="Experiment 2",
+                  color="r", marker="x")
     ax[0].set_xlabel(r"$u/U_\infty$")
     ax[0].set_ylabel(r"$(y-y_0)/c$")
     # ax[0].set_xlim([-0.2, 1.4])
@@ -173,7 +189,8 @@ def compare_boundary_layer(coefs1, coefs2, ylim=0.1, path=None, ylog=False):
     ax[0].legend(loc="best")
 
     ax[1].scatter(v1, yc1, label="Experiment 1")
-    ax[1].scatter(v2, yc2, label="Experiment 2", color="r", marker="x")
+    ax[1].scatter(v2, yc2, label="Experiment 2",
+                  color="r", marker="x")
     ax[1].set_xlabel(r"$v/U_\infty$")
     ax[1].set_ylabel(r"$(y-y_0)/c$")
     # ax[1].set_xlim([-0.2, 0.2])
@@ -181,7 +198,8 @@ def compare_boundary_layer(coefs1, coefs2, ylim=0.1, path=None, ylog=False):
     ax[1].legend(loc="best")
 
     ax[2].scatter(nut1, yc1, label="Experience 1")
-    ax[2].scatter(nut2, yc2, label="Experience 2", color="r", marker="x")
+    ax[2].scatter(
+        nut2, yc2, label="Experience 2", color="r", marker="x")
     # ax[2].set_ylim([0, ylim])
     ax[2].set_xlabel(r"$\nu_t/\nu$")
     ax[2].set_ylabel(r"$(y-y_0)/c$")
@@ -193,7 +211,8 @@ def compare_boundary_layer(coefs1, coefs2, ylim=0.1, path=None, ylog=False):
         ax[2].set_yscale("log")
 
     if path != None:
-        fig.savefig(path + "boundary_layer.png", bbox_inches="tight", dpi=150)
+        fig.savefig(path + "boundary_layer.png",
+                    bbox_inches="tight", dpi=150)
 
 
 def plot_residuals(path, params):
@@ -203,7 +222,8 @@ def plot_residuals(path, params):
     elif params["turbulence"] == "SST":
         fields = ["Ux", "Uy", "p", "k", "omega"]
     for field in fields:
-        data = np.loadtxt(path + "logs/" + field + "_0")[:, 1]
+        data = np.loadtxt(
+            path + "logs/" + field + "_0")[:, 1]
         datas[field] = data
 
     if params["turbulence"] == "SA":
@@ -238,7 +258,8 @@ def plot_residuals(path, params):
     ax[1, 0].set_title("p residual")
     ax[1, 0].set_xlabel("Number of iterations")
 
-    fig.savefig(path + "residuals.png", bbox_inches="tight", dpi=150)
+    fig.savefig(path + "residuals.png",
+                bbox_inches="tight", dpi=150)
 
     return datas
 
@@ -266,8 +287,10 @@ def plot_coef_convergence(path, params):
     ax[1].set_ylabel(r"$C_L$")
     ax[1].set_xlabel("Number of iterations")
 
-    print("Drag coefficient: {0:.5}, lift coefficient: {1:.5}".format(c_d, c_l))
+    print("Drag coefficient: {0:.5}, lift coefficient: {1:.5}".format(
+        c_d, c_l))
 
-    fig.savefig(path + "coef_convergence.png", bbox_inches="tight", dpi=150)
+    fig.savefig(path + "coef_convergence.png",
+                bbox_inches="tight", dpi=150)
 
     return datas, c_d, c_l

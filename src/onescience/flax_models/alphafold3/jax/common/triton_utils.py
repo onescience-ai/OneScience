@@ -39,7 +39,8 @@ def get_tl_dot_fn(
       precision: The `dot` precision.
     """
     if not is_precision_supported(precision):
-        raise ValueError(f"Unsupported dot precision: {precision}")
+        raise ValueError(
+            f"Unsupported dot precision: {precision}")
 
     if precision == precision_lib.DotPrecision.TF32_F32_3X:
         return _dot_tf32_f32_3x
@@ -58,11 +59,15 @@ def get_tl_dot_fn(
         _builder,
     ):
         if in_dtype == tl.float32:
-            tl.static_assert(a.dtype == tl.float32, _builder=_builder)
-            tl.static_assert(b.dtype == tl.float32, _builder=_builder)
+            tl.static_assert(
+                a.dtype == tl.float32, _builder=_builder)
+            tl.static_assert(
+                b.dtype == tl.float32, _builder=_builder)
         else:
-            tl.static_assert(a.dtype.is_standard_floating(), _builder=_builder)
-            tl.static_assert(b.dtype.is_standard_floating(), _builder=_builder)
+            tl.static_assert(
+                a.dtype.is_standard_floating(), _builder=_builder)
+            tl.static_assert(
+                b.dtype.is_standard_floating(), _builder=_builder)
         a = a.to(in_dtype, _builder=_builder)
         b = b.to(in_dtype, _builder=_builder)
         a = tl.trans(a, _builder=_builder) if trans_a else a
@@ -89,8 +94,10 @@ def _dot_tf32_f32_3x(a, b, trans_a=False, trans_b=False):
     """Perform the 3-pass tf32 dot function."""
     tl.static_assert(a.dtype == tl.float32)
     tl.static_assert(b.dtype == tl.float32)
-    a_ = (a.to(tl.uint32, bitcast=True) & 0xFFFFE000).to(tl.float32, bitcast=True)
-    b_ = (b.to(tl.uint32, bitcast=True) & 0xFFFFE000).to(tl.float32, bitcast=True)
+    a_ = (a.to(tl.uint32, bitcast=True) & 0xFFFFE000).to(
+        tl.float32, bitcast=True)
+    b_ = (b.to(tl.uint32, bitcast=True) & 0xFFFFE000).to(
+        tl.float32, bitcast=True)
     a_err = a - a_
     b_err = b - b_
     if trans_a:

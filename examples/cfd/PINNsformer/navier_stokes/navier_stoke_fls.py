@@ -56,11 +56,16 @@ t_train = t[idx, :]
 u_train = u[idx, :]
 v_train = v[idx, :]
 
-x_train = torch.tensor(x_train, dtype=torch.float32, requires_grad=True).to(device)
-y_train = torch.tensor(y_train, dtype=torch.float32, requires_grad=True).to(device)
-t_train = torch.tensor(t_train, dtype=torch.float32, requires_grad=True).to(device)
-u_train = torch.tensor(u_train, dtype=torch.float32, requires_grad=True).to(device)
-v_train = torch.tensor(v_train, dtype=torch.float32, requires_grad=True).to(device)
+x_train = torch.tensor(
+    x_train, dtype=torch.float32, requires_grad=True).to(device)
+y_train = torch.tensor(
+    y_train, dtype=torch.float32, requires_grad=True).to(device)
+t_train = torch.tensor(
+    t_train, dtype=torch.float32, requires_grad=True).to(device)
+u_train = torch.tensor(
+    u_train, dtype=torch.float32, requires_grad=True).to(device)
+v_train = torch.tensor(
+    v_train, dtype=torch.float32, requires_grad=True).to(device)
 
 
 def init_weights(m):
@@ -69,9 +74,11 @@ def init_weights(m):
         m.bias.data.fill_(0.01)
 
 
-model = FLS2D(in_dim=3, hidden_dim=128, out_dim=2, num_layer=4).to(device)
+model = FLS2D(in_dim=3, hidden_dim=128,
+              out_dim=2, num_layer=4).to(device)
 model.apply(init_weights)
-optim = LBFGS(model.parameters(), line_search_fn="strong_wolfe")
+optim = LBFGS(model.parameters(),
+              line_search_fn="strong_wolfe")
 
 n_params = get_n_params(model)
 
@@ -189,8 +196,10 @@ for i in pbar:
             create_graph=True,
         )[0]
 
-        f_u = u_t + (u * u_x + v * u_y) + p_x - 0.01 * (u_xx + u_yy)
-        f_v = v_t + (u * v_x + v * v_y) + p_y - 0.01 * (v_xx + v_yy)
+        f_u = u_t + (u * u_x + v * u_y) + \
+            p_x - 0.01 * (u_xx + u_yy)
+        f_v = v_t + (u * v_x + v * v_y) + \
+            p_y - 0.01 * (v_xx + v_yy)
 
         loss = (
             torch.mean((u - u_train) ** 2)
@@ -223,9 +232,12 @@ u_star = U_star[:, 0, snap]
 v_star = U_star[:, 1, snap]
 p_star = P_star[:, snap]
 
-x_star = torch.tensor(x_star, dtype=torch.float32, requires_grad=True).to(device)
-y_star = torch.tensor(y_star, dtype=torch.float32, requires_grad=True).to(device)
-t_star = torch.tensor(t_star, dtype=torch.float32, requires_grad=True).to(device)
+x_star = torch.tensor(
+    x_star, dtype=torch.float32, requires_grad=True).to(device)
+y_star = torch.tensor(
+    y_star, dtype=torch.float32, requires_grad=True).to(device)
+t_star = torch.tensor(
+    t_star, dtype=torch.float32, requires_grad=True).to(device)
 
 # with torch.no_grad():
 psi_and_p = model(x_star, y_star, t_star)
@@ -243,22 +255,27 @@ u_pred = u_pred.cpu().detach().numpy()
 v_pred = v_pred.cpu().detach().numpy()
 p_pred = p_pred.cpu().detach().numpy()
 
-error_u = np.linalg.norm(u_star - u_pred, 2) / np.linalg.norm(u_star, 2)
-error_v = np.linalg.norm(v_star - v_pred, 2) / np.linalg.norm(v_star, 2)
-error_p = np.linalg.norm(p_star - p_pred, 2) / np.linalg.norm(p_star, 2)
+error_u = np.linalg.norm(
+    u_star - u_pred, 2) / np.linalg.norm(u_star, 2)
+error_v = np.linalg.norm(
+    v_star - v_pred, 2) / np.linalg.norm(v_star, 2)
+error_p = np.linalg.norm(
+    p_star - p_pred, 2) / np.linalg.norm(p_star, 2)
 
 if not os.path.exists("./result"):
     os.makedirs("./result")
 fig, axes = plt.subplots(1, 3, figsize=(16, 4))
 # Predicted u(x,t)
-im0 = axes[0].imshow((p_star).reshape(50, 100), extent=[-3, 8, -2, 2], aspect="auto")
+im0 = axes[0].imshow((p_star).reshape(
+    50, 100), extent=[-3, 8, -2, 2], aspect="auto")
 axes[0].set_xlabel("x")
 axes[0].set_ylabel("y")
 axes[0].set_title("Exact p(x,t)")
 fig.colorbar(im0, ax=axes[0])
 
 # Exact u(x,t)
-im1 = axes[1].imshow((p_pred).reshape(50, 100), extent=[-3, 8, -2, 2], aspect="auto")
+im1 = axes[1].imshow((p_pred).reshape(
+    50, 100), extent=[-3, 8, -2, 2], aspect="auto")
 axes[1].set_xlabel("x")
 axes[1].set_ylabel("y")
 axes[1].set_title("Predicted p(x,t)")

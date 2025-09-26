@@ -16,7 +16,8 @@ from jax.typing import ArrayLike  # pylint: disable=g-importing-member
 from jaxtyping import Int  # pylint: disable=g-importing-member
 
 ArrayT: TypeAlias = Any
-ScalarInt: TypeAlias = Int[ArrayT, ""] | Int[np.generic, ""] | Int[jnp.generic, ""]
+ScalarInt: TypeAlias = Int[ArrayT,
+                           ""] | Int[np.generic, ""] | Int[jnp.generic, ""]
 
 Indexer: TypeAlias = int | ScalarInt | slice | pl.Slice | EllipsisType
 
@@ -36,13 +37,16 @@ class ArrayView:
 
     def __post_init__(self):
         if self.shape is None:
-            object.__setattr__(self, "shape", self.base.shape)
+            object.__setattr__(
+                self, "shape", self.base.shape)
 
         if self.strides is None:
-            object.__setattr__(self, "strides", pl.strides_from_shape(self.shape))
+            object.__setattr__(
+                self, "strides", pl.strides_from_shape(self.shape))
 
         if len(self.shape) != len(self.strides):
-            raise ValueError("`shape` and `strides` must have the same length.")
+            raise ValueError(
+                "`shape` and `strides` must have the same length.")
 
         # Within `jax.vjp`, we can get non-`Array` values here (such as `object`).
         if isinstance(self.base, jax.Array):
@@ -52,7 +56,8 @@ class ArrayView:
 
             if self.flatten_base:
                 if len(self.base.shape) != 1:
-                    object.__setattr__(self, "base", self.base.reshape((-1,)))
+                    object.__setattr__(
+                        self, "base", self.base.reshape((-1,)))
 
     def tree_flatten(self):
         if isinstance(self.offset, int):
@@ -89,7 +94,8 @@ class ArrayView:
     def offsets(self) -> jax.Array:
         """Returns array of offsets into `base` for each element."""
         with jax.experimental.enable_x64():
-            idxs = jnp.indices(self.shape, sparse=True, dtype=self._index_dtype)
+            idxs = jnp.indices(
+                self.shape, sparse=True, dtype=self._index_dtype)
             return self.offset + sum(s * idx for s, idx in zip(self.strides, idxs))
 
     def astype(self, dtype: jax.typing.DTypeLike) -> Self:
@@ -98,7 +104,8 @@ class ArrayView:
     def broadcast_to_rank(self, rank: int) -> Self:
         """Returns a new view with the specified rank."""
         if rank < self.ndim:
-            raise ValueError(f"Cannot broadcast to lower rank: {rank} < {self.ndim}.")
+            raise ValueError(
+                f"Cannot broadcast to lower rank: {rank} < {self.ndim}.")
 
         shape = (1,) * (rank - self.ndim) + self.shape
         strides = (0,) * (rank - self.ndim) + self.strides
@@ -116,7 +123,8 @@ class ArrayView:
             elif dim_size == 1:
                 strides.append(0)
             else:
-                raise ValueError(f"Cannot broadcast {self.shape} to {shape}.")
+                raise ValueError(
+                    f"Cannot broadcast {self.shape} to {shape}.")
         return self._replace(shape=shape, strides=strides)
 
     def collapse(
@@ -146,18 +154,22 @@ class ArrayView:
 
         if (num_minus_one_dims := shape.count(-1)) > 0:
             if num_minus_one_dims > 1:
-                raise ValueError("`shape` may only contain a single `-1` dimension.")
+                raise ValueError(
+                    "`shape` may only contain a single `-1` dimension.")
             pos = shape.index(-1)
             shape = list(shape)
-            shape[pos] = self.size // math.prod(d for d in shape if d != -1)
+            shape[pos] = self.size // math.prod(
+                d for d in shape if d != -1)
 
         if math.prod(shape) != self.size:
-            raise ValueError("Mismatched number of elements.")
+            raise ValueError(
+                "Mismatched number of elements.")
 
         # Logic copied from `numpy` C++ code.
         # Remove axes with length 1, to simplify logic below.
         old_shape = [d for d in self.shape if d != 1]
-        old_strides = [s for i, s in enumerate(self.strides) if self.shape[i] != 1]
+        old_strides = [s for i, s in enumerate(
+            self.strides) if self.shape[i] != 1]
         strides = [0] * len(shape)
 
         # Axes currently being worked upon.
@@ -178,7 +190,8 @@ class ArrayView:
             # Check if original axes can be combined.
             for i in range(old_start, old_stop - 1):
                 if old_strides[i] != old_shape[i + 1] * old_strides[i + 1]:
-                    raise ValueError("Cannot combine axes non-contiguous in memory.")
+                    raise ValueError(
+                        "Cannot combine axes non-contiguous in memory.")
 
             # Calculate new strides.
             strides[new_stop - 1] = old_strides[old_stop - 1]
@@ -196,14 +209,17 @@ class ArrayView:
         """Splits the view into multiple slice views."""
         if isinstance(indices_or_sections, int):
             if self.shape[axis] % indices_or_sections != 0:
-                raise ValueError("Axis size is not divisible by number of sections.")
+                raise ValueError(
+                    "Axis size is not divisible by number of sections.")
 
             chunk = self.shape[axis] // indices_or_sections
-            indices_or_sections = [i * chunk for i in range(1, indices_or_sections)]
+            indices_or_sections = [
+                i * chunk for i in range(1, indices_or_sections)]
 
         los = (0, *indices_or_sections)
         his = (*indices_or_sections, None)
-        slice_prefix = (slice(None),) * _canonicalize_axis(axis, self.ndim)
+        slice_prefix = (slice(None),) * \
+            _canonicalize_axis(axis, self.ndim)
         return tuple(self[*slice_prefix, slice(lo, hi)] for lo, hi in zip(los, his))
 
     def swapaxes(self, axis1: int, axis2: int) -> Self:
@@ -225,7 +241,8 @@ class ArrayView:
         if axes is None:
             axes = tuple(reversed(range(self.ndim)))
         if len(axes) != self.ndim:
-            raise ValueError("`axes` must have the same dimensionality as the array.")
+            raise ValueError(
+                "`axes` must have the same dimensionality as the array.")
         shape = tuple(self.shape[a] for a in axes)
         strides = tuple(self.strides[a] for a in axes)
         return self._replace(shape=shape, strides=strides)
@@ -239,14 +256,18 @@ class ArrayView:
 
         num_ellipses = idxs.count(Ellipsis)
         if num_ellipses > 1:
-            raise ValueError("Multiple `...` are not supported.")
+            raise ValueError(
+                "Multiple `...` are not supported.")
         elif num_ellipses == 0:
-            idxs += (Ellipsis,)  # `[a:b]` is equivalent to `[a:b, ...]`.
+            # `[a:b]` is equivalent to `[a:b, ...]`.
+            idxs += (Ellipsis,)
 
         # Replace `...` with slices that take the entirety of the missing axes.
         ellipsis_idx = idxs.index(Ellipsis)
-        ellipsis_slices = (slice(None),) * (self.ndim - len(idxs) + 1)
-        idxs = idxs[:ellipsis_idx] + ellipsis_slices + idxs[ellipsis_idx + 1 :]
+        ellipsis_slices = (slice(None),) * \
+            (self.ndim - len(idxs) + 1)
+        idxs = idxs[:ellipsis_idx] + \
+            ellipsis_slices + idxs[ellipsis_idx + 1:]
 
         shape = []
         strides = []
@@ -260,16 +281,19 @@ class ArrayView:
             for idx, dim, stride in zip(idxs, self.shape, self.strides, strict=True):
                 if isinstance(idx, int):
                     if not (-dim <= idx < dim):
-                        raise ValueError("Slice index out of range.")
+                        raise ValueError(
+                            "Slice index out of range.")
                     offset += stride * (idx % dim)
                 elif isinstance(idx, ScalarInt):
                     offset += stride * as_index(idx)
                 elif isinstance(idx, slice):
                     start, stop, step = idx.indices(dim)
                     if step >= 0:
-                        shape.append(pl.cdiv(stop - start, step))
+                        shape.append(
+                            pl.cdiv(stop - start, step))
                     else:
-                        shape.append(pl.cdiv(start - stop, -step))
+                        shape.append(
+                            pl.cdiv(start - stop, -step))
                     strides.append(stride * step)
                     offset += stride * start
                 elif isinstance(idx, pl.Slice):
@@ -277,7 +301,8 @@ class ArrayView:
                     strides.append(stride * idx.stride)
                     offset += stride * as_index(idx.start)
                 else:
-                    raise ValueError(f"Unexpected indexer: {idx}")
+                    raise ValueError(
+                        f"Unexpected indexer: {idx}")
 
         return self._replace(shape=shape, strides=strides, offset=offset)
 
@@ -291,10 +316,12 @@ class ArrayView:
     def set(self, value: ArrayLike | "ArrayView") -> Self:
         """Returns a new view with the views values set to `value`."""
         if any(s == 0 for s in self.strides):
-            raise ValueError("Cannot set values on a broadcasted array.")
+            raise ValueError(
+                "Cannot set values on a broadcasted array.")
 
         # Try to just transpose the value, if possible.
-        major_to_minor = np.argsort(-np.array(self.strides), kind="stable")
+        major_to_minor = np.argsort(
+            -np.array(self.strides), kind="stable")
         value = jnp.array(value)
         value_transposed = value.transpose(major_to_minor)
         if (
@@ -316,7 +343,8 @@ class ArrayView:
         if (self.ndim == 0) or any(s < 0 for s in self.strides):
             return self.base[self.offsets]
 
-        major_to_minor = np.argsort(-np.array(self.strides), kind="stable")
+        major_to_minor = np.argsort(
+            -np.array(self.strides), kind="stable")
 
         # Construct a shape that gives us the correct strides.
         bcast_axes = []
@@ -329,13 +357,15 @@ class ArrayView:
                 continue
 
             if stride % math.prod(shape) != 0:
-                raise ValueError("Cannot express as a reshape, then slice.")
+                raise ValueError(
+                    "Cannot express as a reshape, then slice.")
             shape.append(stride // math.prod(shape))
 
         if self.base.size % math.prod(shape) != 0:
             return self.base[self.offsets]
 
-        shape = [self.base.size // math.prod(shape), *reversed(shape)]
+        shape = [self.base.size //
+                 math.prod(shape), *reversed(shape)]
         slice_sizes = [
             *(1 if a in bcast_axes else self.shape[a] for a in major_to_minor),
             1,
@@ -346,23 +376,29 @@ class ArrayView:
         elif not isinstance(self.offset, int):
             needs_offset_slice = True
         else:
-            start_indices = np.unravel_index(self.offset, shape)
-            end_indices = [s + size for s, size in zip(start_indices, slice_sizes)]
-            needs_offset_slice = any(e > dim for e, dim in zip(end_indices, shape))
+            start_indices = np.unravel_index(
+                self.offset, shape)
+            end_indices = [
+                s + size for s, size in zip(start_indices, slice_sizes)]
+            needs_offset_slice = any(
+                e > dim for e, dim in zip(end_indices, shape))
 
         if needs_offset_slice:
             shape[0] = self.shape[major_to_minor[0]]
             size = math.prod(shape)
             # The pad is necessary to ensure that the dynamic slice is in range.
             vals = jnp.pad(self.base, (0, size))
-            vals = jax.lax.dynamic_slice(vals, (self.offset,), (size,))
+            vals = jax.lax.dynamic_slice(
+                vals, (self.offset,), (size,))
             start_indices = [0] * len(shape)
         else:
             vals = self.base
-            start_indices = jnp.unravel_index(self.offset, shape)
+            start_indices = jnp.unravel_index(
+                self.offset, shape)
 
         vals = vals.reshape(shape)
-        vals = jax.lax.dynamic_slice(vals, start_indices, slice_sizes)[..., 0]
+        vals = jax.lax.dynamic_slice(
+            vals, start_indices, slice_sizes)[..., 0]
         # Move axes from their physical ordering to their logical ordering.
         vals = vals.transpose(np.argsort(major_to_minor))
         return jnp.broadcast_to(vals, self.shape)

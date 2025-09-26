@@ -52,7 +52,8 @@ def get_most_recent_viable_checkpoint_path(checkpoint_dir: str | None) -> str | 
     if not checkpoint_dir:
         return None
 
-    ckpt_dirs_time = get_subdirectories_sorted_by_time(checkpoint_dir)
+    ckpt_dirs_time = get_subdirectories_sorted_by_time(
+        checkpoint_dir)
     most_recent_viable_checkpoint = None
     for sub_dir_path, _ in ckpt_dirs_time[::-1]:
         items = os.listdir(sub_dir_path)
@@ -92,7 +93,8 @@ class TrainCheckpointCallback(Callback):
             self.checkpoint_every_n_steps is not None
             and step % self.checkpoint_every_n_steps == 0
         ):
-            self.save_callback(os.path.join(self.checkpoint_dir, f"step_{step}"))
+            self.save_callback(os.path.join(
+                self.checkpoint_dir, f"step_{step}"))
             # on main rank only
             # if there are too many checkpoints, delete the oldest one
             if distutils.is_master():
@@ -109,7 +111,8 @@ class TrainCheckpointCallback(Callback):
             assert (
                 self.save_callback
             ), "Must initialize set_checkpoint_call_backs from Runner!"
-            self.save_callback(os.path.join(self.checkpoint_dir, "final"))
+            self.save_callback(os.path.join(
+                self.checkpoint_dir, "final"))
 
 
 class TrainEvalRunner(Runner):
@@ -136,10 +139,13 @@ class TrainEvalRunner(Runner):
         ]
         assert len(checkpoint_callbacks) <= 1
         self.checkpoint_callback = (
-            checkpoint_callbacks[0] if len(checkpoint_callbacks) == 1 else None
+            checkpoint_callbacks[0] if len(
+                checkpoint_callbacks) == 1 else None
         )
-        logging.info(f"Train Dataloader size {len(self.train_dataloader)}")
-        logging.info(f"Eval Dataloader size {len(self.eval_dataloader)}")
+        logging.info(
+            f"Train Dataloader size {len(self.train_dataloader)}")
+        logging.info(
+            f"Eval Dataloader size {len(self.eval_dataloader)}")
 
     def run(self) -> None:
         if self.checkpoint_callback is not None:
@@ -172,7 +178,8 @@ class TrainEvalRunner(Runner):
                         f"Checkpoint location {checkpoint_location} already exists, removing it"
                     )
                     os.remove(checkpoint_location)
-                os.symlink(most_recent_checkpoint_path, checkpoint_location)
+                os.symlink(
+                    most_recent_checkpoint_path, checkpoint_location)
                 logging.info(
                     f"When the job resumes from preemption, it will be using the state found at {most_recent_checkpoint_path}, which has been symlinked to {checkpoint_location}"
                 )
@@ -203,7 +210,8 @@ class TrainEvalRunner(Runner):
                 )
                 checkpoint_to_load = most_recent_checkpoint_path
             else:
-                logging.info("No existing checkpoints found, starting from scratch")
+                logging.info(
+                    "No existing checkpoints found, starting from scratch")
                 return
 
         self.train_eval_unit.load_state(checkpoint_to_load)

@@ -92,7 +92,7 @@ class VQ_Decoder(nn.Module):
         for i_ in range(self.pair_update_evoformer_stack_num):
             if (
                 i_ == self.pair_update_evoformer_stack_num - 1
-            ):  ### 最后一层需要ResidualLN:
+            ):  # 最后一层需要ResidualLN:
                 post_ffn_operation_list = ("Dropout", "LN")
             msa_block = FlashEvoformerStack(
                 global_config=self.global_config,
@@ -122,7 +122,8 @@ class VQ_Decoder(nn.Module):
         post_ffn_operation_list = ("Dropout",)
         for i_ in range(self.single_update_transformer_stack_num):
             if i_ == self.single_update_transformer_stack_num - 1:
-                post_ffn_operation_list = ("ResidualLN", "Dropout")
+                post_ffn_operation_list = (
+                    "ResidualLN", "Dropout")
             rt_block = SelfResidualTransformer(
                 global_config=self.global_config,
                 q_act_dim=self.single_channel,
@@ -148,7 +149,7 @@ class VQ_Decoder(nn.Module):
         for i_ in range(self.co_update_evoformer_stack_num):
             if (
                 i_ == self.co_update_evoformer_stack_num - 1
-            ):  ### 最后一层需要ResidualLN:
+            ):  # 最后一层需要ResidualLN:
                 post_ffn_operation_list = ("Dropout", "LN")
             msa_block = FlashEvoformerStack(
                 global_config=self.global_config,
@@ -188,11 +189,13 @@ class VQ_Decoder(nn.Module):
         _, rel_pos = self.rel_pos(
             residue_index, residue_index
         )  # [num_batch, Nres, Nres, 64]
-        pair_act = self.pair_activations(rel_pos)  # [num_batch, Nres, Nres, 128]
+        # [num_batch, Nres, Nres, 128]
+        pair_act = self.pair_activations(rel_pos)
 
         # vq_pair_act = self.vq_activations(jnp.expand_dims(vq_act, -2) + jnp.expand_dims(vq_act, -3)) # [num_batch, Nres, Nres, 128]
         vq_pair_act_left = self.vq_activations_left(vq_act)
-        vq_pair_act_right = self.vq_activations_right(vq_act)
+        vq_pair_act_right = self.vq_activations_right(
+            vq_act)
         vq_pair_act = jnp.expand_dims(vq_pair_act_left, axis=-2) + jnp.expand_dims(
             vq_pair_act_right, axis=-3
         )  # [num_batch, Nres, Nres, 128]
@@ -207,7 +210,7 @@ class VQ_Decoder(nn.Module):
         )  # [num_batch, Nres, Nres]
         attention_masks = (seq_mask, seq_mask, mask_2d)
 
-        ### updating pair_act
+        # updating pair_act
         single_activations = vq_act
         pair_activations = pair_act
         accumulated_single_act = single_activations
@@ -227,18 +230,20 @@ class VQ_Decoder(nn.Module):
             )
         # pair_activations = self.postln_scale * pair_activations + accumulated_pair_act
 
-        ### updating single_act
+        # updating single_act
         single_act = vq_act
         accumulated_act = single_act
         for i in range(self.single_update_transformer_stack_num):
             single_act, accumulated_act = self.single_update_transformer_stack[i](
                 single_act, accumulated_act, attention_masks, pair_act=pair_activations
             )
-        single_act = self.postln_scale * single_act + accumulated_act
+        single_act = self.postln_scale * \
+            single_act + accumulated_act
 
-        ### 3. Evoformer: 最后执行第二个Evoformer同时更新pair & single
+        # 3. Evoformer: 最后执行第二个Evoformer同时更新pair & single
         single_act = single_act  # (B,Nres,C=256)
-        pair_act = pair_activations  # (B, Nres, Nres, c=192)
+        # (B, Nres, Nres, c=192)
+        pair_act = pair_activations
         accumulated_single_act = single_act
         accumulated_pair_act = pair_act
         # single_act = self.single_activations(seq_act) #[num_batch, Nres, C=256]
@@ -259,8 +264,9 @@ class VQ_Decoder(nn.Module):
         # single_act = self.postln_scale * single_act + accumulated_single_act
         # pair_act = self.postln_scale * pair_act + accumulated_pair_act
 
-        ### 4. DistogramHead
-        dist_logits, dist_bin_edges = self.module_distogram(pair_act)
+        # 4. DistogramHead
+        dist_logits, dist_bin_edges = self.module_distogram(
+            pair_act)
 
         return single_act, pair_act, dist_logits, dist_bin_edges
 
@@ -321,8 +327,9 @@ class Protein_Decoder(nn.Module):
         # seq_mask:(Nres,);
         # aatype:(Nres,);
 
-        ### 0. 准备features:
-        aatype = jnp.ones_like(aatype).astype(jnp.int32) * 7  ### all Gly [Nres,]
+        # 0. 准备features:
+        aatype = jnp.ones_like(aatype).astype(
+            jnp.int32) * 7  # all Gly [Nres,]
         # mask_2d = jnp.expand_dims(seq_mask, axis=-1) * jnp.expand_dims(seq_mask, axis=-2) # [Nres, Nres]
         # attention_mask=(seq_mask,seq_mask,mask_2d)
 
@@ -332,7 +339,8 @@ class Protein_Decoder(nn.Module):
         # fp_convert_list = [single_activations, pair_activations]
         # single_activations, pair_activations = jax.tree_map(lambda x: jnp.asarray(x, self._dtype), fp_convert_list)
 
-        pre_sm_single_act = self.pre_sm_single_update(single_activations)  # 256 -> 384
+        pre_sm_single_act = self.pre_sm_single_update(
+            single_activations)  # 256 -> 384
 
         affine_output_new, final_affines, act_initializer = self.frame_initializer(
             pre_sm_single_act,  # single_activations,

@@ -140,22 +140,26 @@ def guess_polymer_type(chain_residues: Sequence[str]) -> str:
         residue_names.MSE: PROTEIN_CHAIN,
     }
 
-    counts = {PROTEIN_CHAIN: 0, RNA_CHAIN: 0, DNA_CHAIN: 0, OTHER_CHAIN: 0}
+    counts = {PROTEIN_CHAIN: 0, RNA_CHAIN: 0,
+              DNA_CHAIN: 0, OTHER_CHAIN: 0}
     for residue in chain_residues:
-        residue_type = residue_types.get(residue, OTHER_CHAIN)
+        residue_type = residue_types.get(
+            residue, OTHER_CHAIN)
         # If we ever see a protein residue we'll consider this a polypeptide(L).
         if residue_type == PROTEIN_CHAIN:
             return residue_type
         counts[residue_type] += 1
 
     # Make sure protein > rna > dna > other if there is a tie.
-    tie_braker = {PROTEIN_CHAIN: 3, RNA_CHAIN: 2, DNA_CHAIN: 1, OTHER_CHAIN: 0}
+    tie_braker = {PROTEIN_CHAIN: 3,
+                  RNA_CHAIN: 2, DNA_CHAIN: 1, OTHER_CHAIN: 0}
 
     def order_fn(item):
         name, count = item
         return count, tie_braker[name]
 
-    most_probable_type = max(counts.items(), key=order_fn)[0]
+    most_probable_type = max(
+        counts.items(), key=order_fn)[0]
     return most_probable_type
 
 
@@ -181,7 +185,8 @@ def fix_non_standard_polymer_res(*, res_name: str, chain_type: str) -> str:
         {OTHER_CHAIN, RNA_CHAIN, DNA_CHAIN, DNA_RNA_HYBRID_CHAIN}.
     """
     # Map to one letter code, then back to common res_names.
-    one_letter_code = residue_names.letters_three_to_one(res_name, default="X")
+    one_letter_code = residue_names.letters_three_to_one(
+        res_name, default="X")
 
     if chain_type in PEPTIDE_CHAIN_TYPES or chain_type == OTHER_CHAIN:
         return residue_names.PROTEIN_COMMON_ONE_TO_THREE.get(one_letter_code, "UNK")
@@ -193,4 +198,5 @@ def fix_non_standard_polymer_res(*, res_name: str, chain_type: str) -> str:
     elif chain_type == DNA_RNA_HYBRID_CHAIN:
         return res_name if res_name in residue_names.NUCLEIC_TYPES_WITH_UNKNOWN else "N"
     else:
-        raise ValueError(f"Expected a protein/DNA/RNA chain but got {chain_type}")
+        raise ValueError(
+            f"Expected a protein/DNA/RNA chain but got {chain_type}")

@@ -19,8 +19,10 @@ def parameter_weight_decay(params):
     """Apply weight decay to parameters."""
 
     loss = jax.tree_util.tree_map(
-        lambda p: jnp.mean(jnp.square(p.reshape(-1))) if p.ndim == 2 else 0, params
+        lambda p: jnp.mean(jnp.square(
+            p.reshape(-1))) if p.ndim == 2 else 0, params
     )
-    loss = jnp.sum(jnp.array(jax.tree_util.tree_leaves(loss)))
+    loss = jnp.sum(
+        jnp.array(jax.tree_util.tree_leaves(loss)))
 
     return loss

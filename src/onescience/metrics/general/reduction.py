@@ -15,7 +15,8 @@ class WeightedStatistic(ABC):
 
     def __init__(self, weights: Tensor):
         if not torch.all(weights > 0.0).item():
-            raise ValueError("Expected all weights to be positive.")
+            raise ValueError(
+                "Expected all weights to be positive.")
         self.weights = self._normalize(weights)
 
     def __call__(self, x: Tensor, dim: int):
@@ -134,5 +135,6 @@ class WeightedVariance(WeightedStatistic):
 
         # Computing scaling for standard deviation
         number_of_non_zero_weights = torch.sum(w > 0.0)
-        scale = (number_of_non_zero_weights - 1.0) / number_of_non_zero_weights
+        scale = (number_of_non_zero_weights - 1.0) / \
+            number_of_non_zero_weights
         return torch.sum(w * (x - wm) ** 2, dim=dim, keepdims=keepdims) / scale

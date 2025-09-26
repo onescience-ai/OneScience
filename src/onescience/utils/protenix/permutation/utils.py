@@ -16,7 +16,8 @@ class Checker:
         """
         assert x.dim() == 1
         N = x.size(0)
-        assert torch.equal(torch.sort(x)[0], torch.arange(N, device=x.device))
+        assert torch.equal(torch.sort(
+            x)[0], torch.arange(N, device=x.device))
 
     @staticmethod
     def are_permutations(x: torch.Tensor, dim=-1):
@@ -52,7 +53,8 @@ class Checker:
         # Create a view of x that moves the specified dimension to -1
         x = x.transpose(dim, -1).contiguous()
         x = x.reshape(-1, N)
-        expected = torch.arange(N, device=x.device).unsqueeze(dim=0)
+        expected = torch.arange(
+            N, device=x.device).unsqueeze(dim=0)
         assert (x == expected).all(dim=-1).any()
 
     @staticmethod
@@ -70,7 +72,8 @@ class Checker:
         # Create a view of x that moves the specified dimension to -1
         x = x.transpose(dim, -1).contiguous()
         x = x.reshape(-1, N)
-        expected = torch.arange(N, device=x.device).unsqueeze(dim=0)
+        expected = torch.arange(
+            N, device=x.device).unsqueeze(dim=0)
         assert not (x == expected).all(dim=-1).any()
 
     @staticmethod
@@ -89,9 +92,11 @@ class Checker:
         assert x.size(0) == N
         perm = perm.view(-1, N)
         permuted_x = [x[perm[i]] for i in range(len(perm))]
-        permuted_x = torch.stack(permuted_x, dim=0)  # [-1, N, batch_dims_x]
+        # [-1, N, batch_dims_x]
+        permuted_x = torch.stack(permuted_x, dim=0)
         target_shape = batch_shape + (N,) + x.shape[1:]
-        assert torch.allclose(permuted_x.reshape(target_shape), x_permuted)
+        assert torch.allclose(
+            permuted_x.reshape(target_shape), x_permuted)
 
 
 def save_permutation_error(data, error_dir: str = None, max_cases: int = 50):
@@ -122,4 +127,5 @@ def save_permutation_error(data, error_dir: str = None, max_cases: int = 50):
         try:
             torch.save(data, fpath)
         except Exception as e:
-            print(f"Exception occurrs in save_permutation_error: {e}")
+            print(
+                f"Exception occurrs in save_permutation_error: {e}")

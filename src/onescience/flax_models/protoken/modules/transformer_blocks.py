@@ -152,9 +152,9 @@ class Attention(nn.Module):
 
     def __call__(self, q_data, k_data, v_data, pair_bias_fp32=0.0, pos_index=None):
         """construct"""
-        ### Shapes:
-        ### q_data:(B,Q,c1); k&v_data:(B,K,c2); pair_bias_fp32:(B,h/1,Q,K)
-        ### pos_index:(B,Q)
+        # Shapes:
+        # q_data:(B,Q,c1); k&v_data:(B,K,c2); pair_bias_fp32:(B,h/1,Q,K)
+        # pos_index:(B,Q)
 
         linear_output_weight = self.linear_output_weight
 
@@ -163,14 +163,15 @@ class Attention(nn.Module):
         o_bias = self.o_bias if self.gating else self.zero
 
         dim_q, dim_a = q_data.shape
-        dim_k, dim_c = k_data.shape  ### k_data.shape == v_data.shape
+        dim_k, dim_c = k_data.shape  # k_data.shape == v_data.shape
         dim_h = self.num_head
 
         q_data = jnp.reshape(q_data, (-1, dim_a))
         k_data = jnp.reshape(k_data, (-1, dim_c))
         v_data = jnp.reshape(v_data, (-1, dim_c))
 
-        q = self.linear_q(q_data) * self.dim_per_head ** (-0.5)
+        q = self.linear_q(q_data) * \
+            self.dim_per_head ** (-0.5)
         k = self.linear_k(k_data)
         v = self.linear_v(v_data)
 
@@ -182,8 +183,10 @@ class Attention(nn.Module):
         tmp_k = jnp.transpose(k, (1, 0, 2))
 
         if self.apply_rope is not None:
-            tmp_q_flatten = jnp.reshape(tmp_q, (-1,) + tmp_q.shape[1:])  # (B*h,Q,c)
-            tmp_k_flatten = jnp.reshape(tmp_k, (-1,) + tmp_k.shape[1:])  # (B*h,K,c)
+            tmp_q_flatten = jnp.reshape(
+                tmp_q, (-1,) + tmp_q.shape[1:])  # (B*h,Q,c)
+            tmp_k_flatten = jnp.reshape(
+                tmp_k, (-1,) + tmp_k.shape[1:])  # (B*h,K,c)
             q_, k_ = self.apply_rope(
                 q=tmp_q_flatten, k=tmp_k_flatten, pos_idx=pos_index
             )  # (B*h,Q,c), (B*h,K,c) # double check its correctness
@@ -191,34 +194,43 @@ class Attention(nn.Module):
             tmp_k = jnp.reshape(k_, tmp_q.shape)
 
         # logits = jnp.matmul(tmp_q, tmp_k)
-        logits = jnp.einsum("hqc, hkc -> hqk", tmp_q, tmp_k)  # (h,Q,K) # (BF16/FP32)
+        # (h,Q,K) # (BF16/FP32)
+        logits = jnp.einsum("hqc, hkc -> hqk", tmp_q, tmp_k)
 
-        ### In case of under/overflow:
-        weights = self.softmax(logits + pair_bias_fp32).astype(self._dtype)
+        # In case of under/overflow:
+        weights = self.softmax(
+            logits + pair_bias_fp32).astype(self._dtype)
 
         tmp_v = jnp.transpose(v, (1, 2, 0))
         weighted_avg = jnp.transpose(
-            jnp.einsum("hqk, hck -> hqc", weights, tmp_v), (1, 0, 2)
+            jnp.einsum("hqk, hck -> hqc",
+                       weights, tmp_v), (1, 0, 2)
         )
         # weighted_avg = jnp.transpose(jnp.matmul(weights, tmp_v.T), (1, 0, 2))
 
         if self.gating:
-            gating_bias = jnp.expand_dims(gating_bias, 0)  # (1,h,c)
+            gating_bias = jnp.expand_dims(
+                gating_bias, 0)  # (1,h,c)
             gate_values = jnp.add(
                 jnp.reshape(
-                    self.wmatmul(q_data, linear_gating_weight), (dim_q, dim_h, -1)
+                    self.wmatmul(
+                        q_data, linear_gating_weight), (dim_q, dim_h, -1)
                 ),
                 gating_bias,
             ).astype(self._dtype)
             # gate_values = self.linear_gating(q_data)
             gate_values = self.sigmoid(gate_values)
-            weighted_avg = jnp.reshape(weighted_avg * gate_values, (dim_q, -1))
-            o_bias = jnp.expand_dims(o_bias, 0).astype(self._dtype)
+            weighted_avg = jnp.reshape(
+                weighted_avg * gate_values, (dim_q, -1))
+            o_bias = jnp.expand_dims(
+                o_bias, 0).astype(self._dtype)
 
-        weighted_avg = jnp.reshape(weighted_avg, (dim_q, -1))
+        weighted_avg = jnp.reshape(
+            weighted_avg, (dim_q, -1))
         output = jnp.add(
             jnp.reshape(
-                self.wmatmul(weighted_avg, linear_output_weight.astype(self._dtype)),
+                self.wmatmul(
+                    weighted_avg, linear_output_weight.astype(self._dtype)),
                 (dim_q, -1),
             ),
             o_bias,
@@ -245,11 +257,13 @@ class Attention(nn.Module):
             self.linear_gating_weight = self.param(
                 "linear_gating_weight",
                 zeros_init(),
-                [self.num_head * self.dim_per_head, self.q_data_dim],
+                [self.num_head * self.dim_per_head,
+                    self.q_data_dim],
                 jnp.float32,
             )
             self.gating_bias = self.param(
-                "gating_b", ones_init(), [self.num_head, self.dim_per_head], jnp.float32
+                "gating_b", ones_init(), [
+                    self.num_head, self.dim_per_head], jnp.float32
             )
             self.o_bias = self.param(
                 "o_bias",
@@ -508,8 +522,10 @@ class PreNonLinear(nn.Module):
     m_data_dim: int = 1
     pair_act_dim: int = 1
     num_head: int = 1
-    operation_list: tuple = ("PairEmbedding",)  # ["PairEmbedding", "AttDropout", "LN"]
-    norm_method: str = "layernorm"  ### ["layernorm", "rmsnorm"]
+    # ["PairEmbedding", "AttDropout", "LN"]
+    operation_list: tuple = ("PairEmbedding",)
+    # ["layernorm", "rmsnorm"]
+    norm_method: str = "layernorm"
     dropout_rate: float = 0.0
     self_attention: bool = True
 
@@ -526,7 +542,8 @@ class PreNonLinear(nn.Module):
         self.norm_small = self.global_config.norm_small
         self._dtype = jnp.bfloat16 if self.bf16_flag else jnp.float32
 
-        supported_operations = ("PairEmbedding", "AttDropout", "LN")
+        supported_operations = (
+            "PairEmbedding", "AttDropout", "LN")
         if len(self.operation_list) > 0:
             for item in self.operation_list:
                 assert item in supported_operations
@@ -555,11 +572,11 @@ class PreNonLinear(nn.Module):
         attention_masks=(None, None, None),
         pair_act=0.0,
     ):
-        ### Shapes:
-        ### q/k/v_data:(B,Q/K,c)
-        ### pair_act:(B,Q,K,cz)
-        ### pos_index:(B,Q); for sinusoidal or learnable BERT-like PE.
-        ### attention_masks: [(B,Q), (B,K), (B,Q,K)]
+        # Shapes:
+        # q/k/v_data:(B,Q/K,c)
+        # pair_act:(B,Q,K,cz)
+        # pos_index:(B,Q); for sinusoidal or learnable BERT-like PE.
+        # attention_masks: [(B,Q), (B,K), (B,Q,K)]
 
         attention_mask_q, attention_mask_k, attention_mask_2d = attention_masks
 
@@ -576,11 +593,13 @@ class PreNonLinear(nn.Module):
                 self.norm_p, pair_act, mask=attention_mask_2d
             )
             # (Q*K,C):
-            pair_act_bias = jnp.reshape(pair_act_bias, (-1, pair_act_shape[-1]))
+            pair_act_bias = jnp.reshape(
+                pair_act_bias, (-1, pair_act_shape[-1]))
             # (Q*K,C)@(h,C).T -> (Q*K,h) -> (Q,K,h) -> (h,Q,K):
             pair_act_bias = jnp.transpose(
                 jnp.reshape(
-                    self.wmatmul(pair_act_bias, feat_2d_weight),
+                    self.wmatmul(
+                        pair_act_bias, feat_2d_weight),
                     pair_act_shape[:-1] + (self.num_head,),
                 ),
                 (2, 0, 1),
@@ -594,21 +613,28 @@ class PreNonLinear(nn.Module):
         pair_bias_fp32 = self.zero.astype(jnp.float32)
         if attention_mask_2d is not None:
             # (Q,K)
-            attention_mask_2d_fp32 = jnp.asarray(attention_mask_2d, jnp.float32)
-            pair_bias_fp32 += (attention_mask_2d_fp32 - 1.0) * 1e5  # (Q,K); Padding
-            pair_bias_fp32 = jnp.expand_dims(pair_bias_fp32, 0)  # (1/h,Q,K)
+            attention_mask_2d_fp32 = jnp.asarray(
+                attention_mask_2d, jnp.float32)
+            # (Q,K); Padding
+            pair_bias_fp32 += (attention_mask_2d_fp32 - 1.0) * 1e5
+            pair_bias_fp32 = jnp.expand_dims(
+                pair_bias_fp32, 0)  # (1/h,Q,K)
 
-        pair_bias_fp32 += jnp.asarray(pair_act_bias, jnp.float32)  # (h,Q,K)
+        # (h,Q,K)
+        pair_bias_fp32 += jnp.asarray(
+            pair_act_bias, jnp.float32)
 
         q_act = q_data
         k_act = k_data
         v_act = v_data
         if self.ln:
-            q_act = masked_layer_norm(self.norm_s, q_act, mask=attention_mask_q)
+            q_act = masked_layer_norm(
+                self.norm_s, q_act, mask=attention_mask_q)
             if self.self_attention:
                 k_act = q_act
             else:
-                k_act = masked_layer_norm(self.norm_s, k_act, mask=attention_mask_k)
+                k_act = masked_layer_norm(
+                    self.norm_s, k_act, mask=attention_mask_k)
             v_act = k_act
 
         return q_act, k_act, v_act, pair_bias_fp32
@@ -667,9 +693,11 @@ class PostNonLinear(nn.Module):
 
     global_config: ml_collections.ConfigDict
     o_data_dim: int
-    operation_list: tuple = ("LN",)  # ["Dropout", "LN", "ResidualLN"]
+    # ["Dropout", "LN", "ResidualLN"]
+    operation_list: tuple = ("LN",)
     dropout_rate: float = 0.0
-    norm_method: str = "layernorm"  # ["layernorm", "rmsnorm"]
+    # ["layernorm", "rmsnorm"]
+    norm_method: str = "layernorm"
     accumulated_scale: float = 1.0
     execute_residual: bool = True
 
@@ -683,7 +711,8 @@ class PostNonLinear(nn.Module):
         self.norm_small = self.global_config.norm_small
         self._dtype = jnp.bfloat16 if self.bf16_flag else jnp.float32
 
-        supported_operations = ("Dropout", "LN", "ResidualLN")
+        supported_operations = (
+            "Dropout", "LN", "ResidualLN")
         if len(self.operation_list) > 0:
             for item in self.operation_list:
                 assert item in supported_operations, "unsupported operation."
@@ -701,9 +730,9 @@ class PostNonLinear(nn.Module):
         self._init_parameter()
 
     def __call__(self, act, o_data, o_mask=jnp.array([1.0]), accumulated_act=0.0):
-        ### Shapes:
-        ### o_data: (B,Q,c)
-        ### o_mask: (B,Q)
+        # Shapes:
+        # o_data: (B,Q,c)
+        # o_mask: (B,Q)
 
         residual_act = act
         o_act = o_data
@@ -718,20 +747,23 @@ class PostNonLinear(nn.Module):
             residual_act = residual_act + o_act
 
         if self.ln:
-            residual_act = masked_layer_norm(self.norm, residual_act, mask=o_mask)
+            residual_act = masked_layer_norm(
+                self.norm, residual_act, mask=o_mask)
 
         if self.residual_ln:
-            accumulated_act = masked_layer_norm(self.norm, accumulated_act, mask=o_mask)
+            accumulated_act = masked_layer_norm(
+                self.norm, accumulated_act, mask=o_mask)
 
         return residual_act, accumulated_act
 
     def _init_parameter(self):
         if self.dropout:
             self.dropout = nn.Dropout(
-                rate=self.dropout_rate, deterministic=(not self.dropout_flag)
+                rate=self.dropout_rate, deterministic=(
+                    not self.dropout_flag)
             )
         if self.ln or self.residual_ln:
-            if self.norm_method == "layernorm":  ## Liyh: makeshift
+            if self.norm_method == "layernorm":  # Liyh: makeshift
                 self.norm = ActFuncWrapper(
                     nn.LayerNorm(
                         epsilon=self.norm_small,
@@ -757,7 +789,7 @@ class FeedForwardNet(nn.Module):
     intermediate_dim: int = 4
     init_sigma: float = 0.02
     swish_beta: float = 1.0
-    init_method: str = ("AF2",)  ### ["AF2", "GLM"]
+    init_method: str = ("AF2",)  # ["AF2", "GLM"]
 
     def setup(self):
 
@@ -769,13 +801,14 @@ class FeedForwardNet(nn.Module):
         intermediate_dim = 4 if self.intermediate_dim is None else self.intermediate_dim
         # self.hidden_dim = int(intermediate_dim * 2 * self.input_dim //3)
         if (intermediate_dim * 2 * self.input_dim) % 3 == 0:
-            self.hidden_dim = int(intermediate_dim * 2 * self.input_dim // 3)
+            self.hidden_dim = int(
+                intermediate_dim * 2 * self.input_dim // 3)
         else:
             self.hidden_dim = intermediate_dim * self.input_dim  # 512
 
         self.silu = ActFuncWrapper(
             nn.silu
-        )  ## Liyh: using silu or swish beta? zhenyu: silu
+        )  # Liyh: using silu or swish beta? zhenyu: silu
         self.wmatmul = TransMatMul(transpose_b=True)
 
         if self.init_method == "AF2":
@@ -789,7 +822,8 @@ class FeedForwardNet(nn.Module):
         # assert act.dtype == self._dtype, f"act.dtype: {act.dtype}"
         # act = self.wmatmul(act, self.W_weight)
         act = self.W_linear(act)  # 128 -> 1024
-        act1, act2 = jnp.split(act, 2, axis=-1)  # 1024 -> 512, 512
+        act1, act2 = jnp.split(
+            act, 2, axis=-1)  # 1024 -> 512, 512
         act = self.silu(act1) * act2  # 512
         # act = self.wmatmul(act, self.V_weight)
         act = self.V_linear(act)  # 512 -> 128
@@ -891,14 +925,15 @@ class Transition(nn.Module):
 
     def __call__(self, input, input_mask=None):
         ln_masks = (input_mask, None, None)
-        pre_ffn = self.pre_ffn(q_data=input, attention_masks=ln_masks)
+        pre_ffn = self.pre_ffn(
+            q_data=input, attention_masks=ln_masks)
         act = pre_ffn[0]
         ffn = self.ffn(act)
         output, _ = self.post_ffn(input, ffn, input_mask)
         return output
 
 
-### Outerproduct
+# Outerproduct
 class OuterProduct(nn.Module):
 
     global_config: ml_collections.ConfigDict
@@ -940,7 +975,7 @@ class OuterProduct(nn.Module):
         )
 
     def __call__(self, seq_act, seq_mask):
-        ### act:(B,Q,c); msa_mask:(B,Q); cutoff_value:(B,Q).
+        # act:(B,Q,c); msa_mask:(B,Q); cutoff_value:(B,Q).
 
         act = seq_act  # (B,Q,c)
         mask = jnp.expand_dims(seq_mask, -1)  # (B,Q,1)
@@ -948,29 +983,37 @@ class OuterProduct(nn.Module):
         act_shape = act.shape
         out_shape = act_shape[:-1] + (-1,)
 
-        act = jnp.reshape(act, (-1, act_shape[-1]))  # (...,c)
+        act = jnp.reshape(
+            act, (-1, act_shape[-1]))  # (...,c)
 
         # (B*Nres1,C1==32) -> (B,Nres1,C1):
-        left_act = mask * jnp.reshape(self.left_projection(act), out_shape)
+        left_act = mask * \
+            jnp.reshape(
+                self.left_projection(act), out_shape)
         # left_act = mask * jnp.reshape(jnp.add(jnp.matmul(act, self.left_projection_weight.T), self.left_projection_bias), out_shape)
         # (B*Nres2,C2==32) -> (B,Nres2,C2):
         # right_act = mask * jnp.reshape(jnp.add(jnp.matmul(act, self.right_projection_weight.T), self.right_projection_bias), out_shape)
-        right_act = mask * jnp.reshape(self.right_projection(act), out_shape)
+        right_act = mask * \
+            jnp.reshape(
+                self.right_projection(act), out_shape)
         b, c = left_act.shape  # Nres1,C1
         d, e = right_act.shape  # Nres2,C2
 
         # (B,Nres1,C1) -> (B,Nseq1=1,Nres1,C1) -> (B,C1,Nres1,Nseq1) -> (B,C1*Nres1,Nseq1):
         left_act = jnp.reshape(
-            jnp.transpose(jnp.expand_dims(left_act, 1), (2, 1, 0)), (-1, 1)
+            jnp.transpose(jnp.expand_dims(
+                left_act, 1), (2, 1, 0)), (-1, 1)
         )
         # (B,Nres2*C2,Nseq2=1):
         right_act = jnp.reshape(right_act, (-1, 1))
 
         # (B,C1*Nres1,Nseq1)@(B,Nres2*C2,Nseq2=1)->(B,C1*Nres1,Nres2*C2):
-        act = jnp.matmul(left_act.astype(self._dtype), right_act.T.astype(self._dtype))
+        act = jnp.matmul(left_act.astype(
+            self._dtype), right_act.T.astype(self._dtype))
         # -> (B,C1,Nres1,Nres2,C2)->(B,Nres1,Nres2,C1,C2)->(B,Nres1,Nres2,C1*C2):
         act = jnp.reshape(
-            jnp.transpose(jnp.reshape(act, (c, b, d, e)), (1, 2, 0, 3)), (b, d, c * e)
+            jnp.transpose(jnp.reshape(
+                act, (c, b, d, e)), (1, 2, 0, 3)), (b, d, c * e)
         )
 
         # (B,Nres1,Nres2,C1*C2):
@@ -978,6 +1021,7 @@ class OuterProduct(nn.Module):
         # (B*Nres1*Nres2,C1*C2):
         act = jnp.reshape(act, (-1, act_shape_update[-1]))
         # (B,Nres1,Nres2,C):
-        act = jnp.reshape(self.linear_output(act), act_shape_update[:-1] + (-1,))
+        act = jnp.reshape(self.linear_output(
+            act), act_shape_update[:-1] + (-1,))
         # act = jnp.reshape(jnp.add(jnp.matmul(act, self.linear_output_weight.T), self.linear_output_bias), act_shape_update[:-1]+(-1,)).astype(self._dtype)
         return act

@@ -22,16 +22,19 @@ def write_is2re_relaxations(args) -> None:
         for split in SPLITS[args.dataset]:
             ids = []
             energies = []
-            systems = glob.glob(os.path.join(vars(args)[split], "*.traj"))
+            systems = glob.glob(os.path.join(
+                vars(args)[split], "*.traj"))
             for system in tqdm(systems):
-                sid, _ = os.path.splitext(os.path.basename(system))
+                sid, _ = os.path.splitext(
+                    os.path.basename(system))
                 ids.append(str(sid))
                 # Read the last frame in the ML trajectory. Modify "-1" if you wish to modify which frame to use.
                 traj = ase.io.read(system, "-1")
                 energies.append(traj.get_potential_energy())
 
             submission_file[f"{split}_ids"] = np.array(ids)
-            submission_file[f"{split}_energy"] = np.array(energies)
+            submission_file[f"{split}_energy"] = np.array(
+                energies)
 
     else:
         for split in SPLITS[args.dataset]:
@@ -43,7 +46,8 @@ def write_is2re_relaxations(args) -> None:
                 energies.append(energy)
 
             submission_file[f"{split}_ids"] = np.array(ids)
-            submission_file[f"{split}_energy"] = np.array(energies)
+            submission_file[f"{split}_energy"] = np.array(
+                energies)
 
     np.savez_compressed(args.out_path, **submission_file)
 
@@ -55,18 +59,21 @@ def write_predictions(args) -> None:
         submission_file = {}
 
         for split in SPLITS[args.dataset]:
-            res = np.load(vars(args)[split], allow_pickle=True)
+            res = np.load(
+                vars(args)[split], allow_pickle=True)
             contents = res.files
             for i in contents:
                 key = f"{split}_{i}"
                 submission_file[key] = res[i]
 
-        np.savez_compressed(args.out_path, **submission_file)
+        np.savez_compressed(
+            args.out_path, **submission_file)
 
 
 def main(args: argparse.Namespace) -> None:
     for split in SPLITS[args.dataset]:
-        assert vars(args).get(split), f"Missing {split} split for {args.dataset}"
+        assert vars(args).get(
+            split), f"Missing {split} split for {args.dataset}"
 
     if not args.out_path.endswith(".npz"):
         args.out_path = args.out_path + ".npz"
@@ -102,7 +109,8 @@ if __name__ == "__main__":
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--id", help="Path to ID results. Required for OC20 and OC22.")
+    parser.add_argument(
+        "--id", help="Path to ID results. Required for OC20 and OC22.")
     parser.add_argument(
         "--ood-ads", help="Path to OOD-Ads results. Required only for OC20."
     )
@@ -115,7 +123,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ood", help="Path to OOD OC22 results. Required only for OC22."
     )
-    parser.add_argument("--out-path", help="Path to write predictions to.")
+    parser.add_argument(
+        "--out-path", help="Path to write predictions to.")
     parser.add_argument(
         "--is2re-relaxations",
         action="store_true",

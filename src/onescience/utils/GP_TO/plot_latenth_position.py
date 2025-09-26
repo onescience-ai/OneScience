@@ -13,7 +13,8 @@ def plot_ls(model, constraints_flag=True):
     model.num_levels_per_var
     # positions = torch.matmul(zeta, A.T)   # this gives the position of each combination in latent space
 
-    positions = model.nn_model(zeta, transform=lambda x: x)  # 3-torch.exp(x)
+    positions = model.nn_model(
+        zeta, transform=lambda x: x)  # 3-torch.exp(x)
     if positions.ndim > 2:
         positions = positions.mean(axis=0)
     else:
@@ -64,7 +65,8 @@ def constrains(z):
 
     rot = torch.atan(-1 * z[1, 1] / z[1, 0])
     R = torch.tensor(
-        [[torch.cos(rot), -1 * torch.sin(rot)], [torch.sin(rot), torch.cos(rot)]]
+        [[torch.cos(rot), -1 * torch.sin(rot)],
+         [torch.sin(rot), torch.cos(rot)]]
     )
 
     z = torch.matmul(R, z.T)

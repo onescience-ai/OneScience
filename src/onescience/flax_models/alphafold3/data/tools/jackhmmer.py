@@ -47,10 +47,12 @@ class Jackhmmer(msa_tool.MsaTool):
         self.binary_path = binary_path
         self.database_path = database_path
 
-        subprocess_utils.check_binary_exists(path=self.binary_path, name="Jackhmmer")
+        subprocess_utils.check_binary_exists(
+            path=self.binary_path, name="Jackhmmer")
 
         if not os.path.exists(self.database_path):
-            raise ValueError(f"Could not find Jackhmmer database {database_path}")
+            raise ValueError(
+                f"Could not find Jackhmmer database {database_path}")
 
         self.n_cpu = n_cpu
         self.n_iter = n_iter
@@ -65,12 +67,14 @@ class Jackhmmer(msa_tool.MsaTool):
         """Queries the database using Jackhmmer."""
         logging.info("Query sequence: %s", target_sequence)
         with tempfile.TemporaryDirectory() as query_tmp_dir:
-            input_fasta_path = os.path.join(query_tmp_dir, "query.fasta")
+            input_fasta_path = os.path.join(
+                query_tmp_dir, "query.fasta")
             subprocess_utils.create_query_fasta_file(
                 sequence=target_sequence, path=input_fasta_path
             )
 
-            output_sto_path = os.path.join(query_tmp_dir, "output.sto")
+            output_sto_path = os.path.join(
+                query_tmp_dir, "output.sto")
 
             # The F1/F2/F3 are the expected proportion to pass each of the filtering
             # stages (which get progressively more expensive), reducing these
@@ -78,7 +82,8 @@ class Jackhmmer(msa_tool.MsaTool):
             # currently set very low to make querying Mgnify run in a reasonable
             # amount of time.
             cmd_flags = [
-                *("-o", "/dev/null"),  # Don't pollute stdout with Jackhmmer output.
+                # Don't pollute stdout with Jackhmmer output.
+                *("-o", "/dev/null"),
                 *("-A", output_sto_path),
                 "--noali",
                 *("--F1", str(self.filter_f1)),
@@ -93,13 +98,15 @@ class Jackhmmer(msa_tool.MsaTool):
                 cmd_flags.extend(["-E", str(self.e_value)])
 
                 # Use the same value as the reporting e-value (`-E` flag).
-                cmd_flags.extend(["--incE", str(self.e_value)])
+                cmd_flags.extend(
+                    ["--incE", str(self.e_value)])
 
             if self.z_value is not None:
                 cmd_flags.extend(["-Z", str(self.z_value)])
 
             cmd = (
-                [self.binary_path] + cmd_flags + [input_fasta_path, self.database_path]
+                [self.binary_path] + cmd_flags +
+                [input_fasta_path, self.database_path]
             )
 
             subprocess_utils.run(

@@ -247,7 +247,8 @@ def _rfft_onnx(
     perm = not _is_last_dims(dim, input.ndim)
 
     if perm:
-        perm_in, perm_out = _create_axes_perm(input.ndim, dim)
+        perm_in, perm_out = _create_axes_perm(
+            input.ndim, dim)
         # Add a dimension to account for complex output.
         perm_out.append(len(perm_out))
         # Transpose -> RFFT -> Transpose (inverse).
@@ -256,7 +257,8 @@ def _rfft_onnx(
     rfft_func = OnnxRfft if ndim == 1 else OnnxRfft2
     output = rfft_func.apply(input)
 
-    output = _scale_output_forward(output, norm, input.size(), ndim)
+    output = _scale_output_forward(
+        output, norm, input.size(), ndim)
 
     if perm:
         output = output.permute(perm_out)
@@ -279,7 +281,8 @@ def _irfft_onnx(
 
     if perm:
         # Do not include last dimension (input is complex).
-        perm_in, perm_out = _create_axes_perm(input.ndim - 1, dim)
+        perm_in, perm_out = _create_axes_perm(
+            input.ndim - 1, dim)
         # Add a dimension to account for complex input.
         perm_in.append(len(perm_in))
         # Transpose -> IRFFT -> Transpose (inverse).
@@ -288,7 +291,8 @@ def _irfft_onnx(
     irfft_func = OnnxIrfft if ndim == 1 else OnnxIrfft2
     output = irfft_func.apply(input)
 
-    output = _scale_output_backward(output, norm, input.size(), ndim)
+    output = _scale_output_backward(
+        output, norm, input.size(), ndim)
 
     if perm:
         output = output.permute(perm_out)
@@ -388,10 +392,12 @@ def _create_axes_perm(ndim: int, dims: Tuple[int]) -> Tuple[List[int], List[int]
     perm_out = list(perm_in)
     # Move indices to the right to make 'dims' as innermost dimensions.
     for i in range(-1, -(len(dims) + 1), -1):
-        perm_in[dims[i]], perm_in[i] = perm_in[i], perm_in[dims[i]]
+        perm_in[dims[i]
+                ], perm_in[i] = perm_in[i], perm_in[dims[i]]
     # Move indices to the left to restore original shape.
     for i in range(-len(dims), 0):
-        perm_out[dims[i]], perm_out[i] = perm_out[i], perm_out[dims[i]]
+        perm_out[dims[i]
+                 ], perm_out[i] = perm_out[i], perm_out[dims[i]]
 
     return perm_in, perm_out
 
@@ -410,7 +416,8 @@ def _scale_output_forward(
         # Assuming DFT dimensions are the last. This is required by the current Contrib ops,
         # so the axes permutation of the input is done accordingly.
         dft_size = math.prod(sizes[-ndim:]).float()
-        denom = torch.sqrt(dft_size) if norm == "ortho" else dft_size
+        denom = torch.sqrt(
+            dft_size) if norm == "ortho" else dft_size
         output = output / denom
 
     return output
@@ -437,11 +444,12 @@ def _scale_output_backward(
         # so the axes permutation of the input is done previously.
         if not len(sizes) >= ndim + 1:
             raise ValueError
-        dft_size = math.prod(sizes[-(ndim + 1) : -2])
+        dft_size = math.prod(sizes[-(ndim + 1): -2])
         dft_size *= 2 * (sizes[-2] - 1)
         dft_size = dft_size.float()
         # Since cuFFT scales by 1/dft_size, replace this scale with appropriate one.
-        scale = dft_size if norm == "forward" else torch.sqrt(dft_size)
+        scale = dft_size if norm == "forward" else torch.sqrt(
+            dft_size)
         output = scale * output
 
     return output
@@ -458,7 +466,8 @@ class OnnxRfft(Function):
     @staticmethod
     def forward(ctx, input: Tensor) -> Tensor:
         if not torch.onnx.is_in_onnx_export():
-            raise ValueError("Must be called only during ONNX export.")
+            raise ValueError(
+                "Must be called only during ONNX export.")
 
         # We need to mimic the behavior of Contrib RFFT which assumes
         # DFT of last dim and no normalization.
@@ -482,11 +491,13 @@ class OnnxRfft2(Function):
     @staticmethod
     def forward(ctx, input: Tensor) -> Tensor:
         if not torch.onnx.is_in_onnx_export():
-            raise AssertionError("Must be called only during ONNX export.")
+            raise AssertionError(
+                "Must be called only during ONNX export.")
 
         # We need to mimic the behavior of Contrib RFFT which assumes
         # DFT of last dims and no normalization.
-        y = torch.fft.rfft2(input, dim=(-2, -1), norm="backward")
+        y = torch.fft.rfft2(
+            input, dim=(-2, -1), norm="backward")
         return torch.view_as_real(y)
 
     @staticmethod
@@ -506,7 +517,8 @@ class OnnxIrfft(Function):
     @staticmethod
     def forward(ctx, input: Tensor) -> Tensor:
         if not torch.onnx.is_in_onnx_export():
-            raise ValueError("Must be called only during ONNX export.")
+            raise ValueError(
+                "Must be called only during ONNX export.")
 
         # We need to mimic the behavior of Contrib IRFFT which assumes
         # DFT of last dim and 1/n normalization.
@@ -529,7 +541,8 @@ class OnnxIrfft2(Function):
     @staticmethod
     def forward(ctx, input: Tensor) -> Tensor:
         if not torch.onnx.is_in_onnx_export():
-            raise AssertionError("Must be called only during ONNX export.")
+            raise AssertionError(
+                "Must be called only during ONNX export.")
 
         # We need to mimic the behavior of Contrib IRFFT which assumes
         # DFT of last dims and 1/n normalization.

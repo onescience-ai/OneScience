@@ -61,10 +61,12 @@ def create_batch(device: str):
     atoms_list = [atoms.repeat((size, size, size))]
     print("Number of atoms", len(atoms_list[0]))
 
-    configs = [data.config_from_atoms(atoms) for atoms in atoms_list]
+    configs = [data.config_from_atoms(
+        atoms) for atoms in atoms_list]
     data_loader = torch_geometric.dataloader.DataLoader(
         dataset=[
-            data.AtomicData.from_config(config, z_table=table, cutoff=cutoff)
+            data.AtomicData.from_config(
+                config, z_table=table, cutoff=cutoff)
             for config in configs
         ],
         batch_size=1,
@@ -86,7 +88,8 @@ def do_optimization_step(
     model.train()
     optimizer.train()
     optimizer.zero_grad()
-    output = model(batch, training=True, compute_force=False)
+    output = model(batch, training=True,
+                   compute_force=False)
     loss = output["energy"].mean()
     loss.backward()
     optimizer.step()
@@ -97,12 +100,14 @@ def do_optimization_step(
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
 def test_can_load_checkpoint(device):
     model = create_mace(device)
-    optimizer = schedulefree.adamw_schedulefree.AdamWScheduleFree(model.parameters())
+    optimizer = schedulefree.adamw_schedulefree.AdamWScheduleFree(
+        model.parameters())
     args = MagicMock()
     args.optimizer = "schedulefree"
     args.scheduler = "ExponentialLR"
     args.lr_scheduler_gamma = 0.9
-    lr_scheduler = scripts_utils.LRScheduler(optimizer, args)
+    lr_scheduler = scripts_utils.LRScheduler(
+        optimizer, args)
     with tempfile.TemporaryDirectory() as d:
         checkpoint_handler = tools.CheckpointHandler(
             directory=d, keep=False, tag="schedulefree"
@@ -116,9 +121,11 @@ def test_can_load_checkpoint(device):
         state = tools.CheckpointState(
             model=model, optimizer=optimizer, lr_scheduler=lr_scheduler
         )
-        checkpoint_handler.save(state, epochs=0, keep_last=False)
+        checkpoint_handler.save(
+            state, epochs=0, keep_last=False)
         checkpoint_handler.load_latest(
-            state=tools.CheckpointState(model, optimizer, lr_scheduler),
+            state=tools.CheckpointState(
+                model, optimizer, lr_scheduler),
             swa=False,
         )
         batch = create_batch(device)

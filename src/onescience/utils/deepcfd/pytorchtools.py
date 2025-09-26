@@ -54,7 +54,8 @@ class EarlyStopping:
             self.save_checkpoint(val_loss, model)
         elif score < self.best_score - self.delta:
             self.counter += 1
-            print(f"EarlyStopping counter: {self.counter} out of {self.patience}")
+            print(
+                f"EarlyStopping counter: {self.counter} out of {self.patience}")
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
@@ -70,12 +71,14 @@ class EarlyStopping:
             )
 
         # 保存模型状态到检查点目录
-        checkpoint_path = os.path.join(self.checkpoint_dir, "checkpoint.pt")
+        checkpoint_path = os.path.join(
+            self.checkpoint_dir, "checkpoint.pt")
 
         # 处理 DDP 模型状态
         if self.is_ddp:
             # 保存内部模块的状态字典
-            torch.save(model.module.state_dict(), checkpoint_path)
+            torch.save(model.module.state_dict(),
+                       checkpoint_path)
         else:
             torch.save(model.state_dict(), checkpoint_path)
 

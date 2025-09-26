@@ -28,7 +28,8 @@ class SpectralConv1d_Uno(nn.Module):
         self.dim1 = dim1  # output dimensions
         if modes1 is not None:
             self.modes1 = (
-                modes1  # Number of Fourier modes to multiply, at most floor(N/2) + 1
+                # Number of Fourier modes to multiply, at most floor(N/2) + 1
+                modes1
             )
         else:
             self.modes1 = dim1 // 2
@@ -68,7 +69,8 @@ class SpectralConv1d_Uno(nn.Module):
         )
 
         # Return to physical space
-        x = torch.fft.irfft(out_ft, n=self.dim1, norm="forward")
+        x = torch.fft.irfft(
+            out_ft, n=self.dim1, norm="forward")
         return x
 
 
@@ -79,7 +81,8 @@ class pointwise_op_1D(nn.Module):
 
     def __init__(self, in_codim, out_codim, dim1):
         super(pointwise_op_1D, self).__init__()
-        self.conv = nn.Conv1d(int(in_codim), int(out_codim), 1)
+        self.conv = nn.Conv1d(
+            int(in_codim), int(out_codim), 1)
         self.dim1 = int(dim1)
 
     def forward(self, x, dim1=None):
@@ -102,12 +105,14 @@ class OperatorBlock_1D(nn.Module):
 
     def __init__(self, in_codim, out_codim, dim1, modes1, Normalize=True, Non_Lin=True):
         super(OperatorBlock_1D, self).__init__()
-        self.conv = SpectralConv1d_Uno(in_codim, out_codim, dim1, modes1)
+        self.conv = SpectralConv1d_Uno(
+            in_codim, out_codim, dim1, modes1)
         self.w = pointwise_op_1D(in_codim, out_codim, dim1)
         self.normalize = Normalize
         self.non_lin = Non_Lin
         if Normalize:
-            self.normalize_layer = torch.nn.InstanceNorm1d(int(out_codim), affine=True)
+            self.normalize_layer = torch.nn.InstanceNorm1d(
+                int(out_codim), affine=True)
 
     def forward(self, x, dim1=None):
         """
@@ -196,14 +201,17 @@ class SpectralConv2d_Uno(nn.Module):
             device=x.device,
         )
         out_ft[:, :, : self.modes1, : self.modes2] = self.compl_mul2d(
-            x_ft[:, :, : self.modes1, : self.modes2], self.weights1
+            x_ft[:, :, : self.modes1,
+                 : self.modes2], self.weights1
         )
-        out_ft[:, :, -self.modes1 :, : self.modes2] = self.compl_mul2d(
-            x_ft[:, :, -self.modes1 :, : self.modes2], self.weights2
+        out_ft[:, :, -self.modes1:, : self.modes2] = self.compl_mul2d(
+            x_ft[:, :, -self.modes1:,
+                 : self.modes2], self.weights2
         )
 
         # Return to physical space
-        x = torch.fft.irfft2(out_ft, s=(self.dim1, self.dim2), norm="forward")
+        x = torch.fft.irfft2(out_ft, s=(
+            self.dim1, self.dim2), norm="forward")
         return x
 
 
@@ -217,7 +225,8 @@ class pointwise_op_2D(nn.Module):
 
     def __init__(self, in_codim, out_codim, dim1, dim2):
         super(pointwise_op_2D, self).__init__()
-        self.conv = nn.Conv2d(int(in_codim), int(out_codim), 1)
+        self.conv = nn.Conv2d(
+            int(in_codim), int(out_codim), 1)
         self.dim1 = int(dim1)
         self.dim2 = int(dim2)
 
@@ -262,12 +271,15 @@ class OperatorBlock_2D(nn.Module):
         Non_Lin=True,
     ):
         super(OperatorBlock_2D, self).__init__()
-        self.conv = SpectralConv2d_Uno(in_codim, out_codim, dim1, dim2, modes1, modes2)
-        self.w = pointwise_op_2D(in_codim, out_codim, dim1, dim2)
+        self.conv = SpectralConv2d_Uno(
+            in_codim, out_codim, dim1, dim2, modes1, modes2)
+        self.w = pointwise_op_2D(
+            in_codim, out_codim, dim1, dim2)
         self.normalize = Normalize
         self.non_lin = Non_Lin
         if Normalize:
-            self.normalize_layer = torch.nn.InstanceNorm2d(int(out_codim), affine=True)
+            self.normalize_layer = torch.nn.InstanceNorm2d(
+                int(out_codim), affine=True)
 
     def forward(self, x, dim1=None, dim2=None):
         """
@@ -396,7 +408,8 @@ class SpectralConv3d_Uno(nn.Module):
 
         batchsize = x.shape[0]
 
-        x_ft = torch.fft.rfftn(x, dim=[-3, -2, -1], norm="forward")
+        x_ft = torch.fft.rfftn(
+            x, dim=[-3, -2, -1], norm="forward")
 
         out_ft = torch.zeros(
             batchsize,
@@ -409,21 +422,26 @@ class SpectralConv3d_Uno(nn.Module):
         )
 
         out_ft[:, :, : self.modes1, : self.modes2, : self.modes3] = self.compl_mul3d(
-            x_ft[:, :, : self.modes1, : self.modes2, : self.modes3], self.weights1
+            x_ft[:, :, : self.modes1, : self.modes2,
+                 : self.modes3], self.weights1
         )
-        out_ft[:, :, -self.modes1 :, : self.modes2, : self.modes3] = self.compl_mul3d(
-            x_ft[:, :, -self.modes1 :, : self.modes2, : self.modes3], self.weights2
+        out_ft[:, :, -self.modes1:, : self.modes2, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, -self.modes1:, : self.modes2,
+                 : self.modes3], self.weights2
         )
-        out_ft[:, :, : self.modes1, -self.modes2 :, : self.modes3] = self.compl_mul3d(
-            x_ft[:, :, : self.modes1, -self.modes2 :, : self.modes3], self.weights3
+        out_ft[:, :, : self.modes1, -self.modes2:, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, : self.modes1, -self.modes2:,
+                 : self.modes3], self.weights3
         )
-        out_ft[:, :, -self.modes1 :, -self.modes2 :, : self.modes3] = self.compl_mul3d(
-            x_ft[:, :, -self.modes1 :, -self.modes2 :, : self.modes3], self.weights4
+        out_ft[:, :, -self.modes1:, -self.modes2:, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, -self.modes1:, -self.modes2:,
+                 : self.modes3], self.weights4
         )
 
         # Return to physical space
         x = torch.fft.irfftn(
-            out_ft, s=(self.dim1, self.dim2, self.dim3), norm="forward"
+            out_ft, s=(self.dim1, self.dim2,
+                       self.dim3), norm="forward"
         )
         return x
 
@@ -431,7 +449,8 @@ class SpectralConv3d_Uno(nn.Module):
 class pointwise_op_3D(nn.Module):
     def __init__(self, in_codim, out_codim, dim1, dim2, dim3):
         super(pointwise_op_3D, self).__init__()
-        self.conv = nn.Conv3d(int(in_codim), int(out_codim), 1)
+        self.conv = nn.Conv3d(
+            int(in_codim), int(out_codim), 1)
         self.dim1 = int(dim1)
         self.dim2 = int(dim2)
         self.dim3 = int(dim3)
@@ -451,14 +470,14 @@ class pointwise_op_3D(nn.Module):
         ft_u[:, :, : (dim1 // 2), : (dim2 // 2), : (dim3 // 2)] = ft[
             :, :, : (dim1 // 2), : (dim2 // 2), : (dim3 // 2)
         ]
-        ft_u[:, :, -(dim1 // 2) :, : (dim2 // 2), : (dim3 // 2)] = ft[
-            :, :, -(dim1 // 2) :, : (dim2 // 2), : (dim3 // 2)
+        ft_u[:, :, -(dim1 // 2):, : (dim2 // 2), : (dim3 // 2)] = ft[
+            :, :, -(dim1 // 2):, : (dim2 // 2), : (dim3 // 2)
         ]
-        ft_u[:, :, : (dim1 // 2), -(dim2 // 2) :, : (dim3 // 2)] = ft[
-            :, :, : (dim1 // 2), -(dim2 // 2) :, : (dim3 // 2)
+        ft_u[:, :, : (dim1 // 2), -(dim2 // 2):, : (dim3 // 2)] = ft[
+            :, :, : (dim1 // 2), -(dim2 // 2):, : (dim3 // 2)
         ]
-        ft_u[:, :, -(dim1 // 2) :, -(dim2 // 2) :, : (dim3 // 2)] = ft[
-            :, :, -(dim1 // 2) :, -(dim2 // 2) :, : (dim3 // 2)
+        ft_u[:, :, -(dim1 // 2):, -(dim2 // 2):, : (dim3 // 2)] = ft[
+            :, :, -(dim1 // 2):, -(dim2 // 2):, : (dim3 // 2)
         ]
 
         x_out = torch.fft.irfftn(ft_u, s=(dim1, dim2, dim3))
@@ -493,11 +512,13 @@ class OperatorBlock_3D(nn.Module):
         self.conv = SpectralConv3d_Uno(
             in_codim, out_codim, dim1, dim2, dim3, modes1, modes2, modes3
         )
-        self.w = pointwise_op_3D(in_codim, out_codim, dim1, dim2, dim3)
+        self.w = pointwise_op_3D(
+            in_codim, out_codim, dim1, dim2, dim3)
         self.normalize = Normalize
         self.non_lin = Non_Lin
         if Normalize:
-            self.normalize_layer = torch.nn.InstanceNorm3d(int(out_codim), affine=True)
+            self.normalize_layer = torch.nn.InstanceNorm3d(
+                int(out_codim), affine=True)
 
     def forward(self, x, dim1=None, dim2=None, dim3=None):
         """

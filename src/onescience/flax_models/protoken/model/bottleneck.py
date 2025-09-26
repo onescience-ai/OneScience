@@ -59,7 +59,8 @@ class BottleneckModel(nn.Module):
         post_ffn_operation_list = ("Dropout",)
         for i_ in range(self.single_update_transformer_stack_num):
             if i_ == self.single_update_transformer_stack_num - 1:
-                post_ffn_operation_list = ("ResidualLN", "Dropout")
+                post_ffn_operation_list = (
+                    "ResidualLN", "Dropout")
             rt_block = SelfResidualTransformer(
                 global_config=self.global_config,
                 q_act_dim=self.single_channel,
@@ -101,7 +102,8 @@ class BottleneckModel(nn.Module):
         # vq_pair_act = jnp.expand_dims(vq_pair_act_left, axis=-2) + jnp.expand_dims(vq_pair_act_right, axis=-3) # [num_batch, Nres, Nres, 192]
         # pair_act += vq_pair_act
 
-        mask_2d = jnp.expand_dims(seq_mask, -1) * jnp.expand_dims(seq_mask, -2)
+        mask_2d = jnp.expand_dims(
+            seq_mask, -1) * jnp.expand_dims(seq_mask, -2)
         attention_masks = (seq_mask, seq_mask, mask_2d)
         acc_single_act = single_act
         for i in range(self.single_update_transformer_stack_num):
@@ -116,7 +118,8 @@ class BottleneckModel(nn.Module):
         # single_act = self.post_layer_norm(single_act) # no need
         ret = single_act
         if self.inverse_folding:
-            inverse_folding_logits = self.module_inverse_folding(single_act)
+            inverse_folding_logits = self.module_inverse_folding(
+                single_act)
             ret = (ret, inverse_folding_logits)
 
         return ret

@@ -40,30 +40,36 @@ class UNetDatasetSingle(Dataset):
                             ::reduced_resolution_t,
                             ::reduced_resolution,
                         ]
-                        _data = np.transpose(_data, (0, 2, 1))
+                        _data = np.transpose(
+                            _data, (0, 2, 1))
                         if i == 0:
                             data_shape = list(_data.shape)
                             data_shape.append(3)
-                            self.data = np.zeros(data_shape, dtype=np.float32)
+                            self.data = np.zeros(
+                                data_shape, dtype=np.float32)
                         self.data[..., i] = _data
                 elif spatial_dim == 2:
                     for i, key in enumerate(["density", "pressure", "Vx", "Vy"]):
-                        _data = np.array(f[key], dtype=np.float32)
+                        _data = np.array(
+                            f[key], dtype=np.float32)
                         _data = _data[
                             ::reduced_batch,
                             ::reduced_resolution_t,
                             ::reduced_resolution,
                             ::reduced_resolution,
                         ]
-                        _data = np.transpose(_data, (0, 2, 3, 1))
+                        _data = np.transpose(
+                            _data, (0, 2, 3, 1))
                         if i == 0:
                             data_shape = list(_data.shape)
                             data_shape.append(4)
-                            self.data = np.zeros(data_shape, dtype=np.float32)
+                            self.data = np.zeros(
+                                data_shape, dtype=np.float32)
                         self.data[..., i] = _data
                 else:  # spatial_dim == 3
                     for i, key in enumerate(["density", "pressure", "Vx", "Vy", "Vz"]):
-                        _data = np.array(f[key], dtype=np.float32)
+                        _data = np.array(
+                            f[key], dtype=np.float32)
                         _data = _data[
                             ::reduced_batch,
                             ::reduced_resolution_t,
@@ -71,14 +77,17 @@ class UNetDatasetSingle(Dataset):
                             ::reduced_resolution,
                             ::reduced_resolution,
                         ]
-                        _data = np.transpose(_data, (0, 2, 3, 4, 1))
+                        _data = np.transpose(
+                            _data, (0, 2, 3, 4, 1))
                         if i == 0:
                             data_shape = list(_data.shape)
                             data_shape.append(5)
-                            self.data = np.zeros(data_shape, dtype=np.float32)
+                            self.data = np.zeros(
+                                data_shape, dtype=np.float32)
                         self.data[..., i] = _data
             else:
-                _data = np.array(f["tensor"], dtype=np.float32)
+                _data = np.array(
+                    f["tensor"], dtype=np.float32)
                 if len(_data.shape) == 3:  # 1D
                     _data = _data[
                         ::reduced_batch, ::reduced_resolution_t, ::reduced_resolution
@@ -86,7 +95,8 @@ class UNetDatasetSingle(Dataset):
                     _data = np.transpose(
                         _data[:, :, :], (0, 2, 1)
                     )  # convert to (num_sample, x, t)
-                    self.data = _data[:, :, :, None]  # (num_sample, x, t, v)
+                    # (num_sample, x, t, v)
+                    self.data = _data[:, :, :, None]
                 elif len(_data.shape) == 4:
                     if "nu" in f.keys():  # 2D darcy flow
                         # label
@@ -138,7 +148,8 @@ class UNetDatasetSingle(Dataset):
 
         # define the max number of samples
         if num_samples_max > 0:
-            num_samples_max = min(num_samples_max, self.data.shape[0])
+            num_samples_max = min(
+                num_samples_max, self.data.shape[0])
         else:
             num_samples_max = self.data.shape[0]
 
@@ -175,7 +186,8 @@ class UNetDatasetMult(Dataset):
         num_samples_max=-1,
     ):
         # file path, HDF5 file is assumed
-        self.file_path = os.path.join(saved_folder, file_name)
+        self.file_path = os.path.join(
+            saved_folder, file_name)
         self.reduced_resolution = reduced_resolution
         self.reduced_resolution_t = reduced_resolution_t
 
@@ -186,14 +198,16 @@ class UNetDatasetMult(Dataset):
 
         # define the max number of samples
         if num_samples_max > 0:
-            num_samples_max = min(num_samples_max, len(seed_list))
+            num_samples_max = min(
+                num_samples_max, len(seed_list))
         else:
             num_samples_max = len(seed_list)
 
         # construct train/test dataset
         test_idx = int(num_samples_max * (1 - test_ratio))
         if if_test:
-            self.seed_list = np.array(seed_list[test_idx:num_samples_max])
+            self.seed_list = np.array(
+                seed_list[test_idx:num_samples_max])
         else:
             self.seed_list = np.array(seed_list[:test_idx])
 
@@ -207,9 +221,12 @@ class UNetDatasetMult(Dataset):
         # open file and read data
         with h5py.File(self.file_path, "r") as h5_file:
             seed_group = h5_file[self.seed_list[idx]]
-            data = np.array(seed_group["data"], dtype=np.float32)  # (t, x1, ..., xd, v)
+            # (t, x1, ..., xd, v)
+            data = np.array(
+                seed_group["data"], dtype=np.float32)
             if len(data.shape) == 3:  # 1D
-                data = data[:: self.reduced_resolution_t, :: self.reduced_resolution, :]
+                data = data[:: self.reduced_resolution_t,
+                            :: self.reduced_resolution, :]
             elif len(data.shape) == 4:  # 2D
                 data = data[
                     :: self.reduced_resolution_t,
@@ -220,8 +237,9 @@ class UNetDatasetMult(Dataset):
             else:  # TODO 3D
                 pass
             data = torch.tensor(data)
-            ## convert to [x1, ..., xd, t, v]
-            permute_idx = list(range(1, len(data.shape) - 1))
+            # convert to [x1, ..., xd, t, v]
+            permute_idx = list(
+                range(1, len(data.shape) - 1))
             permute_idx.extend(list([0, -1]))
             data = data.permute(permute_idx)
 

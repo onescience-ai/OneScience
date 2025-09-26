@@ -1,27 +1,24 @@
-import os
-import sys
-
-sys.path.append(os.path.dirname(sys.path[0]))
-
-from typing import Optional
-
-import flax.linen as nn
-import jax.numpy as jnp
-from flax.linen.initializers import zeros_init
-from jax import Array
-from ml_collections.config_dict import ConfigDict
-
-from onescience.flax_models.MolSculptor.src.common.utils import get_activation
+from onescience.flax_models.MolSculptor.src.module.transformer import (
+    NormBlock,
+    Transition,
+)
 from onescience.flax_models.MolSculptor.src.module.attention import (
     AttentionEmbedding,
     AttentionKernel,
     HyperAttentionEmbedding,
     PostAttention,
 )
-from onescience.flax_models.MolSculptor.src.module.transformer import (
-    NormBlock,
-    Transition,
-)
+from onescience.flax_models.MolSculptor.src.common.utils import get_activation
+from ml_collections.config_dict import ConfigDict
+from jax import Array
+from flax.linen.initializers import zeros_init
+import jax.numpy as jnp
+import flax.linen as nn
+from typing import Optional
+import os
+import sys
+
+sys.path.append(os.path.dirname(sys.path[0]))
 
 
 class adaLN(nn.Module):
@@ -33,9 +30,9 @@ class adaLN(nn.Module):
 
     @nn.compact
     def __call__(self, x, cond, other_inputs=()):
-        #### Input: x: (B, ..., F) [CURRENTLY: (B, T, F)], cond: (B, F)
+        # Input: x: (B, ..., F) [CURRENTLY: (B, T, F)], cond: (B, F)
 
-        #### 1. generate alpha, gamma, beta
+        # 1. generate alpha, gamma, beta
         hidden_size = self.hidden_size
         arr_dtype = jnp.bfloat16 if self.global_config.bf16_flag else jnp.float32
         cond = get_activation(self.activation)(cond)
@@ -47,9 +44,10 @@ class adaLN(nn.Module):
         )(
             cond
         )  # (B, 3 * F)
-        alpha, beta, gamma = jnp.split(cond, 3, -1)  # (B, F)
+        alpha, beta, gamma = jnp.split(
+            cond, 3, -1)  # (B, F)
 
-        #### 2. main function
+        # 2. main function
         norm_small = self.global_config.norm_small
         act, d_act = x, x
         d_act = NormBlock(eps=norm_small)(d_act)
@@ -61,7 +59,7 @@ class adaLN(nn.Module):
         return act
 
 
-#### residual adaLN
+# residual adaLN
 class adaLNRes(nn.Module):
 
     config: ConfigDict
@@ -72,9 +70,9 @@ class adaLNRes(nn.Module):
 
     @nn.compact
     def __call__(self, x, acc_x, cond, other_inputs=()):
-        #### Input: x: (B, ..., F) [CURRENTLY: (B, T, F)], cond: (B, F)
+        # Input: x: (B, ..., F) [CURRENTLY: (B, T, F)], cond: (B, F)
 
-        #### 1. generate alpha, gamma, beta
+        # 1. generate alpha, gamma, beta
         hidden_size = self.config.hidden_size
         arr_dtype = jnp.bfloat16 if self.global_config.bf16_flag else jnp.float32
         cond = get_activation(self.config.activation)(cond)
@@ -86,9 +84,10 @@ class adaLNRes(nn.Module):
         )(
             cond
         )  # (B, 3 * F)
-        alpha, beta, gamma = jnp.split(cond, 3, -1)  # (B, F)
+        alpha, beta, gamma = jnp.split(
+            cond, 3, -1)  # (B, F)
 
-        #### 2. main function
+        # 2. main function
         norm_eps = self.global_config.norm_small
         x, d_x = x, x
         d_x = d_x * (1 + gamma[:, None]) + beta[:, None]
@@ -96,7 +95,8 @@ class adaLNRes(nn.Module):
         d_x = d_x * alpha[:, None]
         x += d_x
         acc_x += d_x
-        x = NormBlock(eps=norm_eps, norm_method=self.config.norm_method)(x)
+        x = NormBlock(
+            eps=norm_eps, norm_method=self.config.norm_method)(x)
 
         return x, acc_x
 
@@ -110,26 +110,26 @@ class AttentionBlock(nn.Module):
     @nn.compact
     def __call__(self, single_act, single_mask, rope_index=None, hyper_var=None):
 
-        #### 1. Attention Embedding
+        # 1. Attention Embedding
         embedding_config = self.config.attention_embedding
         q, k, v, _ = AttentionEmbedding(
             embedding_config, self.global_config, self.hyper_lora_config
         )(single_act, hyper_var=hyper_var)
 
-        #### 2. HyperAttention Embedding
+        # 2. HyperAttention Embedding
         if self.config.hyper_attention_flag:
             hyper_embedding_config = self.config.hyper_attention_embedding
             q, k = HyperAttentionEmbedding(hyper_embedding_config, self.global_config)(
                 q, k, None, None, None, rope_index
             )
 
-        #### 3. Attention Kernel
+        # 3. Attention Kernel
         kernel_config = self.config.attention_kernel
         out_act = AttentionKernel(kernel_config, self.global_config)(
             q, k, v, None, single_mask
         )
 
-        #### 4. Post Attention
+        # 4. Post Attention
         post_attention_config = self.config.post_attention
         out_act = PostAttention(
             post_attention_config,
@@ -137,10 +137,11 @@ class AttentionBlock(nn.Module):
             self.hyper_lora_config,
         )(out_act, q, hyper_var=hyper_var)
 
-        #### 5. dropout
+        # 5. dropout
         dropout_flag = self.global_config.dropout_flag
         out_act = nn.Dropout(
-            rate=self.config.dropout_rate, deterministic=(not dropout_flag)
+            rate=self.config.dropout_rate, deterministic=(
+                not dropout_flag)
         )(out_act)
 
         return out_act
@@ -155,17 +156,18 @@ class TransitionBlock(nn.Module):
     @nn.compact
     def __call__(self, act, hyper_var=None) -> Array:
 
-        #### 1. Transition (GLU or FFN)
+        # 1. Transition (GLU or FFN)
         act = Transition(
             self.config.transition,
             self.global_config,
             self.hyper_lora_config,
         )(act, hyper_var=hyper_var)
 
-        #### 2. Dropout
+        # 2. Dropout
         dropout_flag = self.global_config.dropout_flag
         act = nn.Dropout(
-            rate=self.config.dropout_rate, deterministic=(not dropout_flag)
+            rate=self.config.dropout_rate, deterministic=(
+                not dropout_flag)
         )(act)
 
         return act
@@ -179,23 +181,24 @@ class adaLNPreNormTransformerBlock(nn.Module):
 
     @nn.compact
     def __call__(self, tokens, tokens_mask, tokens_rope_index, cond):
-        ### Inputs: tokens: (B, T, F), cond: (B, F)
-        ### Returns: act: (B, T, F)
+        # Inputs: tokens: (B, T, F), cond: (B, F)
+        # Returns: act: (B, T, F)
 
         act = tokens
         hyper_var = cond if self.hyper_lora_config else None
-        #### 1. Attention
+        # 1. Attention
         attention_block = AttentionBlock(
             self.config.attention, self.global_config, self.hyper_lora_config
         )
-        add_info = (tokens_mask, tokens_rope_index, hyper_var)  ### should be in order
+        add_info = (tokens_mask, tokens_rope_index,
+                    hyper_var)  # should be in order
         act = adaLN(
             **self.config.adaLN,
             global_config=self.global_config,
             module=attention_block
         )(act, cond, add_info)
 
-        #### 2. Transition
+        # 2. Transition
         transition_block = TransitionBlock(
             self.config.transition, self.global_config, self.hyper_lora_config
         )
@@ -217,20 +220,21 @@ class adaLNResTransformerBlock(nn.Module):
 
     @nn.compact
     def __call__(self, tokens, acc_tokens, tokens_mask, tokens_rope_index, cond):
-        ### Inputs: tokens: (B, T, F), cond: (B, F)
-        ### Returns: act: (B, T, F)
+        # Inputs: tokens: (B, T, F), cond: (B, F)
+        # Returns: act: (B, T, F)
 
         hyper_var = cond if self.hyper_lora_config else None
-        #### 1. Attention
+        # 1. Attention
         attention_block = AttentionBlock(
             self.config.attention, self.global_config, self.hyper_lora_config
         )
-        add_info = (tokens_mask, tokens_rope_index, hyper_var)  ### should be in order
+        add_info = (tokens_mask, tokens_rope_index,
+                    hyper_var)  # should be in order
         tokens, acc_tokens = adaLNRes(
             self.config.adaLN, global_config=self.global_config, module=attention_block
         )(tokens, acc_tokens, cond, add_info)
 
-        #### 2. Transition
+        # 2. Transition
         transition_block = TransitionBlock(
             self.config.transition, self.global_config, self.hyper_lora_config
         )
@@ -271,10 +275,10 @@ class Decoder(nn.Module):
         num_seq_tokens = self.config.settings_config.vocab_size
         logits_dim = num_seq_tokens
 
-        #### embedding sequence
+        # embedding sequence
         dim_feature = self.config.dim_feature
         seq_emb = nn.Embed(
-            num_embeddings=num_seq_tokens + 3,  ## BOS, EOS, UNK
+            num_embeddings=num_seq_tokens + 3,  # BOS, EOS, UNK
             features=dim_feature,
             dtype=_dtype,
             param_dtype=jnp.float32,
@@ -315,15 +319,16 @@ class Decoder(nn.Module):
         # emb = NormBlock(norm_method, norm_small)(emb)
 
         #### adaLN prenorm transformer block ####
-        ## (B, N_PRE, D) -> (B, N_PRE, F)
+        # (B, N_PRE, D) -> (B, N_PRE, F)
         prefix_emb = nn.Dense(
             dim_feature,
             dtype=_dtype,
             param_dtype=jnp.float32,
             use_bias=False,
         )(cond)
-        ## (B, N_PRE, ...) | (B, N, ...) -> (B, N_L + N, ...)
-        graph_seq_emb = jnp.concatenate([prefix_emb, seq_emb], axis=1)
+        # (B, N_PRE, ...) | (B, N, ...) -> (B, N_L + N, ...)
+        graph_seq_emb = jnp.concatenate(
+            [prefix_emb, seq_emb], axis=1)
         batch_size = graph_seq_emb.shape[0]
         prefix_rope_index = jnp.repeat(
             jnp.arange(-100 - num_prefix_tokens, -100, dtype=rope_index.dtype)[
@@ -332,7 +337,8 @@ class Decoder(nn.Module):
             batch_size,
             axis=0,
         )
-        rope_index = jnp.concatenate([prefix_rope_index, rope_index], axis=1)
+        rope_index = jnp.concatenate(
+            [prefix_rope_index, rope_index], axis=1)
         rope_index = rope_index[:, :-num_prefix_tokens]
         emb = graph_seq_emb[:, :-num_prefix_tokens]
         emb, acc_emb = emb, emb
@@ -340,9 +346,11 @@ class Decoder(nn.Module):
             # (B, D_N_PRE*N_GROUP,) | (B, N_PRE - D_N_PRE*N_GROUP) | (B, N_L, F)
             mask = jnp.concatenate(
                 [
-                    jnp.ones(shape=(batch_size, num_tpg * (_g + 1)), dtype=mask.dtype),
+                    jnp.ones(
+                        shape=(batch_size, num_tpg * (_g + 1)), dtype=mask.dtype),
                     jnp.zeros(
-                        shape=(batch_size, num_tpg * (n_groups - (_g + 1))),
+                        shape=(batch_size, num_tpg *
+                               (n_groups - (_g + 1))),
                         dtype=mask.dtype,
                     ),
                     mask,
@@ -350,8 +358,10 @@ class Decoder(nn.Module):
                 axis=1,
             )[:, :-num_prefix_tokens]
             # make hyper var: (B, D_N_PRE, F) -> (B, D_N_PRE*F)
-            hyper_var_emb = cond[:, num_tpg * _g : num_tpg * (_g + 1)]
-            hyper_var_ = hyper_var_emb.reshape(batch_size, -1)
+            hyper_var_emb = cond[:,
+                                 num_tpg * _g: num_tpg * (_g + 1)]
+            hyper_var_ = hyper_var_emb.reshape(
+                batch_size, -1)
             for _ in range(n_layers_per_group):
                 emb, acc_emb = adaLNResTransformerBlock(
                     self.config.transformer,
@@ -360,8 +370,8 @@ class Decoder(nn.Module):
                 )(emb, acc_emb, mask, rope_index, cond=hyper_var_)
         emb += NormBlock(norm_method, norm_small)(acc_emb)
 
-        #### post process
-        ## (B, N, F) -> (B, N, L)
+        # post process
+        # (B, N, F) -> (B, N, L)
         logits = nn.Dense(
             features=logits_dim, kernel_init=zeros_init(), use_bias=True, dtype=_dtype
         )(emb)

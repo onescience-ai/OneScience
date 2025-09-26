@@ -121,13 +121,15 @@ class ResMLP(nn.Module):
         )(inputs)
         for i, layer in enumerate(layers):
             if i < (num_layers - 1):
-                out += layer(out)  ## res connection
+                out += layer(out)  # res connection
                 if self.dropout_rate is not None:
-                    out = nn.Dropout(rate=self.dropout_rate)(out)
+                    out = nn.Dropout(
+                        rate=self.dropout_rate)(out)
                 out = get_activation(self.activation)(out)
-            else:  ## final layer
+            else:  # final layer
                 out = layer(out)
                 if self.activate_final:
-                    out = get_activation(self.activation)(out)
+                    out = get_activation(
+                        self.activation)(out)
 
         return out

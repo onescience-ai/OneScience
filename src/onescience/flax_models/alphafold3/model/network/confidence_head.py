@@ -102,12 +102,14 @@ class ConfidenceHead(hk.Module):
         dtype = jnp.bfloat16 if self.global_config.bfloat16 == "all" else jnp.float32
         with utils.bfloat16_context():
             seq_mask_cast = seq_mask.astype(dtype)
-            pair_mask = seq_mask_cast[:, None] * seq_mask_cast[None, :]
+            pair_mask = seq_mask_cast[:,
+                                      None] * seq_mask_cast[None, :]
             pair_mask = pair_mask.astype(dtype)
 
             pair_act = embeddings["pair"].astype(dtype)
             single_act = embeddings["single"].astype(dtype)
-            target_feat = embeddings["target_feat"].astype(dtype)
+            target_feat = embeddings["target_feat"].astype(
+                dtype)
 
             num_residues = seq_mask.shape[0]
             num_pair_channels = pair_act.shape[2]
@@ -138,9 +140,11 @@ class ConfidenceHead(hk.Module):
                 self.config.pairformer.num_layer
             )(pairformer_fn)
 
-            pair_act, single_act = pairformer_stack((pair_act, single_act))
+            pair_act, single_act = pairformer_stack(
+                (pair_act, single_act))
             pair_act = pair_act.astype(jnp.float32)
-            assert pair_act.shape == (num_residues, num_residues, num_pair_channels)
+            assert pair_act.shape == (
+                num_residues, num_residues, num_pair_channels)
 
             # Produce logits to predict a distogram of pairwise distance errors
             # between the input prediction and the ground truth.
@@ -169,10 +173,12 @@ class ConfidenceHead(hk.Module):
                 [bin_centers, bin_centers[-1:] + step], axis=0
             )
 
-            distance_probs = jax.nn.softmax(distance_logits, axis=-1)
+            distance_probs = jax.nn.softmax(
+                distance_logits, axis=-1)
 
             pred_distance_error = (
-                jnp.sum(distance_probs * bin_centers, axis=-1) * pair_mask
+                jnp.sum(distance_probs * bin_centers,
+                        axis=-1) * pair_mask
             )
             average_pred_distance_error = jnp.sum(
                 pred_distance_error, axis=[-2, -1]
@@ -200,8 +206,10 @@ class ConfidenceHead(hk.Module):
             pae_probs = jax.nn.softmax(pae_logits, axis=-1)
 
             seq_mask_bool = seq_mask.astype(bool)
-            pair_mask_bool = seq_mask_bool[:, None] * seq_mask_bool[None, :]
-            pae = jnp.sum(pae_probs * bin_centers, axis=-1) * pair_mask_bool
+            pair_mask_bool = seq_mask_bool[:,
+                                           None] * seq_mask_bool[None, :]
+            pae = jnp.sum(pae_probs * bin_centers,
+                          axis=-1) * pair_mask_bool
             pae_outputs.update(
                 {
                     "full_pae": pae,
@@ -229,13 +237,15 @@ class ConfidenceHead(hk.Module):
         # pLDDT
         # Shape (num_res, num_atom, num_bins)
         plddt_logits = hm.Linear(
-            (dense_atom_positions.shape[-2], self.config.num_plddt_bins),
+            (dense_atom_positions.shape[-2],
+             self.config.num_plddt_bins),
             initializer=self.global_config.final_init,
             name="plddt_logits",
         )(hm.LayerNorm(name="plddt_logits_ln")(single_act))
 
         bin_width = 1.0 / self.config.num_plddt_bins
-        bin_centers = jnp.arange(0.5 * bin_width, 1.0, bin_width)
+        bin_centers = jnp.arange(
+            0.5 * bin_width, 1.0, bin_width)
         predicted_lddt = jnp.sum(
             jax.nn.softmax(plddt_logits, axis=-1) * bin_centers, axis=-1
         )
@@ -271,33 +281,40 @@ class ConfidenceHead(hk.Module):
     ):
         def get_tmscore_adjusted_pae(num_interface_tokens, bin_centers, pae_probs):
             # Clip to avoid negative/undefined d0.
-            clipped_num_res = jnp.maximum(num_interface_tokens, 19)
+            clipped_num_res = jnp.maximum(
+                num_interface_tokens, 19)
 
             # Compute d_0(num_res) as defined by TM-score, eqn. (5) in
             # http://zhanglab.ccmb.med.umich.edu/papers/2004_3.pdf
             # Yang & Skolnick "Scoring function for automated
             # assessment of protein structure template quality" 2004.
-            d0 = 1.24 * (clipped_num_res - 15) ** (1.0 / 3) - 1.8
+            d0 = 1.24 * (clipped_num_res -
+                         15) ** (1.0 / 3) - 1.8
 
             # Make compatible with [num_tokens, num_tokens, num_bins]
             d0 = d0[:, :, None]
             bin_centers = bin_centers[None, None, :]
 
             # TM-Score term for every bin.
-            tm_per_bin = 1.0 / (1 + jnp.square(bin_centers) / jnp.square(d0))
+            tm_per_bin = 1.0 / \
+                (1 + jnp.square(bin_centers) / jnp.square(d0))
             # E_distances tm(distance).
-            predicted_tm_term = jnp.sum(pae_probs * tm_per_bin, axis=-1)
+            predicted_tm_term = jnp.sum(
+                pae_probs * tm_per_bin, axis=-1)
             return predicted_tm_term
 
         # Interface version
         x = asym_id[None, :] == asym_id[:, None]
         num_chain_tokens = jnp.sum(x * pair_mask, axis=-1)
-        num_interface_tokens = num_chain_tokens[None, :] + num_chain_tokens[:, None]
+        num_interface_tokens = num_chain_tokens[None,
+                                                :] + num_chain_tokens[:, None]
         # Don't double-count within a single chain
-        num_interface_tokens -= x * (num_interface_tokens // 2)
+        num_interface_tokens -= x * \
+            (num_interface_tokens // 2)
         num_interface_tokens = num_interface_tokens * pair_mask
 
-        num_global_tokens = jnp.full(shape=pair_mask.shape, fill_value=seq_mask.sum())
+        num_global_tokens = jnp.full(
+            shape=pair_mask.shape, fill_value=seq_mask.sum())
 
         assert num_global_tokens.dtype == "int32"
         assert num_interface_tokens.dtype == "int32"

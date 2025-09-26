@@ -16,8 +16,10 @@ class DotPrecision(enum.Enum):
     BF16_F32 = "bf16_f32"
 
     # GPU only precisions.
-    F32_F32 = "f32_f32"  # Full f32 precision (doesn't use TensorCores).
-    TF32_F32 = "tf32_f32"  # Equivalent to `DEFAULT`/`HIGH` on GPU.
+    # Full f32 precision (doesn't use TensorCores).
+    F32_F32 = "f32_f32"
+    # Equivalent to `DEFAULT`/`HIGH` on GPU.
+    TF32_F32 = "tf32_f32"
     TF32_F32_3X = "tf32_f32_3x"
     F16_F16 = "f16_f16"
     F16_F32 = "f16_f32"
@@ -57,9 +59,11 @@ _JAX_CPU_PRECISION_MAP = {
 def _create_jax_precision_map():
     precision_map = {}
     for (dtype, jax_precision), dot_precision in _JAX_GPU_PRECISION_MAP.items():
-        precision_map[("gpu", jnp.dtype(dtype), jax_precision)] = dot_precision
+        precision_map[("gpu", jnp.dtype(
+            dtype), jax_precision)] = dot_precision
     for (dtype, jax_precision), dot_precision in _JAX_CPU_PRECISION_MAP.items():
-        precision_map[("cpu", jnp.dtype(dtype), jax_precision)] = dot_precision
+        precision_map[("cpu", jnp.dtype(
+            dtype), jax_precision)] = dot_precision
     return precision_map
 
 
@@ -71,7 +75,8 @@ def get_equivalent_dot_precision(
 ) -> DotPrecision:
     """Returns `DotPrecision` replicating default XLA behaviour."""
     if a_dtype != b_dtype:
-        raise ValueError("Cannot infer precision if operand types differ.")
+        raise ValueError(
+            "Cannot infer precision if operand types differ.")
 
     backend = jax.default_backend().lower()
     if (jax_precision != jax.lax.Precision.DEFAULT) and (a_dtype != jnp.float32):

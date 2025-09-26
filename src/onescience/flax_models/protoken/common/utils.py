@@ -32,7 +32,8 @@ def dgram_from_positions(positions, num_bins, min_bin, max_bin, ret_type):
     )
     dist2 = jnp.sum(
         squared_difference(
-            jnp.expand_dims(positions, axis=-2), jnp.expand_dims(positions, axis=-3)
+            jnp.expand_dims(
+                positions, axis=-2), jnp.expand_dims(positions, axis=-3)
         ),
         axis=-1,
         keepdims=True,
@@ -45,7 +46,8 @@ def dgram_from_positions(positions, num_bins, min_bin, max_bin, ret_type):
 
 def dgram_from_positions_soft(positions, num_bins, min_bin, max_bin, temp=2.0):
     """soft positions to dgram converter"""
-    lower_breaks = jnp.append(-1e8, jnp.linspace(min_bin, max_bin, num_bins))
+    lower_breaks = jnp.append(-1e8,
+                              jnp.linspace(min_bin, max_bin, num_bins))
     upper_breaks = jnp.append(lower_breaks[1:], 1e8)
     dist = jnp.sqrt(
         jnp.square(positions[..., :, None, :] - positions[..., None, :, :]).sum(
@@ -81,7 +83,8 @@ def batch_rigids_from_tensor4x4(m):
         m[:, :, :, 2, 1],
         m[:, :, :, 2, 2],
     )
-    trans = (m[:, :, :, 0, 3], m[:, :, :, 1, 3], m[:, :, :, 2, 3])
+    trans = (m[:, :, :, 0, 3],
+             m[:, :, :, 1, 3], m[:, :, :, 2, 3])
     rigid = (rotation, trans)
     return rigid
 
@@ -95,12 +98,15 @@ def batch_torsion_angles_to_frames(
     m = jnp.take(
         restype_rigid_group_default_frame, aatype, 0
     )  # [num_batch, seq_len, 8, 4, 4]
-    default_frames = batch_rigids_from_tensor4x4(m)  # [num_batch, seq_len, 8]
+    default_frames = batch_rigids_from_tensor4x4(
+        m)  # [num_batch, seq_len, 8]
 
     # Create the rotation matrices according to the given angles (each frame is
     # defined such that its rotation is around the x-axis).
-    sin_angles = torsion_angles_sin_cos[..., 0]  # [num_batch, seq_len, 7]
-    cos_angles = torsion_angles_sin_cos[..., 1]  # [num_batch, seq_len, 7]
+    # [num_batch, seq_len, 7]
+    sin_angles = torsion_angles_sin_cos[..., 0]
+    # [num_batch, seq_len, 7]
+    cos_angles = torsion_angles_sin_cos[..., 1]
 
     # insert zero rotation for backbone group.
     (
@@ -114,7 +120,8 @@ def batch_torsion_angles_to_frames(
         [jnp.ones([num_batch, num_residues, 1]), cos_angles], axis=-1
     )
     zeros = jnp.zeros_like(sin_angles)
-    ones = jnp.ones_like(sin_angles)  # [num_batch, seq_len, 8]
+    # [num_batch, seq_len, 8]
+    ones = jnp.ones_like(sin_angles)
 
     all_rots = (
         ones,
@@ -129,7 +136,8 @@ def batch_torsion_angles_to_frames(
     )
 
     # Apply rotations to the frames.
-    all_frames = geometry.rigids_mul_rots(default_frames, all_rots)
+    all_frames = geometry.rigids_mul_rots(
+        default_frames, all_rots)
 
     # chi2, chi3, and chi4 frames do not transform to the backbone frame but to
     # the previous frame. So chain them up accordingly.
@@ -236,9 +244,12 @@ def batch_torsion_angles_to_frames(
 
 def batch_rigids_concate_all(xall, x5, x6, x7):
     """rigids concate all."""
-    x5 = (geometry.rots_expand_dims(x5[0], -1), geometry.vecs_expand_dims(x5[1], -1))
-    x6 = (geometry.rots_expand_dims(x6[0], -1), geometry.vecs_expand_dims(x6[1], -1))
-    x7 = (geometry.rots_expand_dims(x7[0], -1), geometry.vecs_expand_dims(x7[1], -1))
+    x5 = (geometry.rots_expand_dims(
+        x5[0], -1), geometry.vecs_expand_dims(x5[1], -1))
+    x6 = (geometry.rots_expand_dims(
+        x6[0], -1), geometry.vecs_expand_dims(x6[1], -1))
+    x7 = (geometry.rots_expand_dims(
+        x7[0], -1), geometry.vecs_expand_dims(x7[1], -1))
     xall_rot = xall[0]
     xall_rot_slice = []
     for val in xall_rot:
@@ -251,12 +262,14 @@ def batch_rigids_concate_all(xall, x5, x6, x7):
     res_rot = []
     for i in range(9):
         res_rot.append(
-            jnp.concatenate((xall[0][i], x5[0][i], x6[0][i], x7[0][i]), axis=-1)
+            jnp.concatenate(
+                (xall[0][i], x5[0][i], x6[0][i], x7[0][i]), axis=-1)
         )
     res_trans = []
     for i in range(3):
         res_trans.append(
-            jnp.concatenate((xall[1][i], x5[1][i], x6[1][i], x7[1][i]), axis=-1)
+            jnp.concatenate(
+                (xall[1][i], x5[1][i], x6[1][i], x7[1][i]), axis=-1)
         )
     return (res_rot, res_trans)
 
@@ -280,7 +293,8 @@ def batch_frames_and_literature_positions_to_atom14_pos(
     """
 
     # Pick the appropriate transform for every atom.
-    residx_to_group_idx = jnp.take(restype_atom14_to_rigid_group, aatype, 0)
+    residx_to_group_idx = jnp.take(
+        restype_atom14_to_rigid_group, aatype, 0)
     group_mask = common_utils.onehot(residx_to_group_idx, 8)
     # Rigids with shape (N, 14)
     map_atoms_to_global = batch_map_atoms_to_global_func(
@@ -289,16 +303,19 @@ def batch_frames_and_literature_positions_to_atom14_pos(
     # Gather the literature atom positions for each residue.
     # Vecs with shape (N, 14)
     lit_positions = geometry.vecs_from_tensor(
-        jnp.take(restype_atom14_rigid_group_positions, aatype, 0)
+        jnp.take(
+            restype_atom14_rigid_group_positions, aatype, 0)
     )
 
     # Transform each atom from its local frame to the global frame.
     # Vecs with shape (N, 14)
-    pred_positions = geometry.rigids_mul_vecs(map_atoms_to_global, lit_positions)
+    pred_positions = geometry.rigids_mul_vecs(
+        map_atoms_to_global, lit_positions)
 
     # Mask out non-existing atoms.
     mask = jnp.take(restype_atom14_mask, aatype, 0)
-    pred_positions = geometry.vecs_scale(pred_positions, mask)
+    pred_positions = geometry.vecs_scale(
+        pred_positions, mask)
     return pred_positions
 
 
@@ -306,12 +323,14 @@ def batch_map_atoms_to_global_func(all_frames, group_mask):
     """map atoms to global."""
     all_frames_rot = all_frames[0]
     all_frames_trans = all_frames[1]
-    rot = geometry.rots_scale(geometry.rots_expand_dims(all_frames_rot, 2), group_mask)
+    rot = geometry.rots_scale(
+        geometry.rots_expand_dims(all_frames_rot, 2), group_mask)
     res_rot = []
     for val in rot:
         res_rot.append(jnp.sum(val, axis=-1))
     trans = geometry.vecs_scale(
-        geometry.vecs_expand_dims(all_frames_trans, 2), group_mask
+        geometry.vecs_expand_dims(
+            all_frames_trans, 2), group_mask
     )
     res_trans = []
     for val in trans:
@@ -325,7 +344,8 @@ def torsion_angles_to_frames(
     """Compute rigid group frames from torsion angles."""
 
     # Gather the default frames for all rigid groups.
-    m = jnp.take(restype_rigid_group_default_frame, aatype, 0)
+    m = jnp.take(
+        restype_rigid_group_default_frame, aatype, 0)
 
     default_frames = rigids_from_tensor4x4(m)
 
@@ -336,8 +356,10 @@ def torsion_angles_to_frames(
 
     # insert zero rotation for backbone group.
     (num_residues,) = aatype.shape
-    sin_angles = jnp.concatenate([jnp.zeros([num_residues, 1]), sin_angles], axis=-1)
-    cos_angles = jnp.concatenate([jnp.ones([num_residues, 1]), cos_angles], axis=-1)
+    sin_angles = jnp.concatenate(
+        [jnp.zeros([num_residues, 1]), sin_angles], axis=-1)
+    cos_angles = jnp.concatenate(
+        [jnp.ones([num_residues, 1]), cos_angles], axis=-1)
     zeros = jnp.zeros_like(sin_angles)
     ones = jnp.ones_like(sin_angles)
 
@@ -354,7 +376,8 @@ def torsion_angles_to_frames(
     )
 
     # Apply rotations to the frames.
-    all_frames = geometry.rigids_mul_rots(default_frames, all_rots)
+    all_frames = geometry.rigids_mul_rots(
+        default_frames, all_rots)
     # chi2, chi3, and chi4 frames do not transform to the backbone frame but to
     # the previous frame. So chain them up accordingly.
     chi2_frame_to_frame = (
@@ -369,7 +392,8 @@ def torsion_angles_to_frames(
             all_frames[0][7][:, 5],
             all_frames[0][8][:, 5],
         ),
-        (all_frames[1][0][:, 5], all_frames[1][1][:, 5], all_frames[1][2][:, 5]),
+        (all_frames[1][0][:, 5], all_frames[1]
+         [1][:, 5], all_frames[1][2][:, 5]),
     )
     chi3_frame_to_frame = (
         (
@@ -383,7 +407,8 @@ def torsion_angles_to_frames(
             all_frames[0][7][:, 6],
             all_frames[0][8][:, 6],
         ),
-        (all_frames[1][0][:, 6], all_frames[1][1][:, 6], all_frames[1][2][:, 6]),
+        (all_frames[1][0][:, 6], all_frames[1]
+         [1][:, 6], all_frames[1][2][:, 6]),
     )
 
     chi4_frame_to_frame = (
@@ -398,7 +423,8 @@ def torsion_angles_to_frames(
             all_frames[0][7][:, 7],
             all_frames[0][8][:, 7],
         ),
-        (all_frames[1][0][:, 7], all_frames[1][1][:, 7], all_frames[1][2][:, 7]),
+        (all_frames[1][0][:, 7], all_frames[1]
+         [1][:, 7], all_frames[1][2][:, 7]),
     )
 
     chi1_frame_to_backb = (
@@ -413,7 +439,8 @@ def torsion_angles_to_frames(
             all_frames[0][7][:, 4],
             all_frames[0][8][:, 4],
         ),
-        (all_frames[1][0][:, 4], all_frames[1][1][:, 4], all_frames[1][2][:, 4]),
+        (all_frames[1][0][:, 4], all_frames[1]
+         [1][:, 4], all_frames[1][2][:, 4]),
     )
 
     chi2_frame_to_backb = geometry.rigids_mul_rigids(
@@ -470,9 +497,12 @@ def rigids_from_tensor4x4(m):
 
 def rigids_concate_all(xall, x5, x6, x7):
     """rigids concate all."""
-    x5 = (geometry.rots_expand_dims(x5[0], -1), geometry.vecs_expand_dims(x5[1], -1))
-    x6 = (geometry.rots_expand_dims(x6[0], -1), geometry.vecs_expand_dims(x6[1], -1))
-    x7 = (geometry.rots_expand_dims(x7[0], -1), geometry.vecs_expand_dims(x7[1], -1))
+    x5 = (geometry.rots_expand_dims(
+        x5[0], -1), geometry.vecs_expand_dims(x5[1], -1))
+    x6 = (geometry.rots_expand_dims(
+        x6[0], -1), geometry.vecs_expand_dims(x6[1], -1))
+    x7 = (geometry.rots_expand_dims(
+        x7[0], -1), geometry.vecs_expand_dims(x7[1], -1))
     xall_rot = xall[0]
     xall_rot_slice = []
     for val in xall_rot:
@@ -485,12 +515,14 @@ def rigids_concate_all(xall, x5, x6, x7):
     res_rot = []
     for i in range(9):
         res_rot.append(
-            jnp.concatenate((xall[0][i], x5[0][i], x6[0][i], x7[0][i]), axis=-1)
+            jnp.concatenate(
+                (xall[0][i], x5[0][i], x6[0][i], x7[0][i]), axis=-1)
         )
     res_trans = []
     for i in range(3):
         res_trans.append(
-            jnp.concatenate((xall[1][i], x5[1][i], x6[1][i], x7[1][i]), axis=-1)
+            jnp.concatenate(
+                (xall[1][i], x5[1][i], x6[1][i], x7[1][i]), axis=-1)
         )
     return (res_rot, res_trans)
 
@@ -514,26 +546,32 @@ def frames_and_literature_positions_to_atom14_pos(
     """
 
     # Pick the appropriate transform for every atom.
-    residx_to_group_idx = jnp.take(restype_atom14_to_rigid_group, aatype, 0)
-    group_mask = nn.one_hot(num_classes=8, x=residx_to_group_idx)
+    residx_to_group_idx = jnp.take(
+        restype_atom14_to_rigid_group, aatype, 0)
+    group_mask = nn.one_hot(
+        num_classes=8, x=residx_to_group_idx)
 
     # Rigids with shape (N, 14)
-    map_atoms_to_global = map_atoms_to_global_func(all_frames_to_global, group_mask)
+    map_atoms_to_global = map_atoms_to_global_func(
+        all_frames_to_global, group_mask)
 
     # Gather the literature atom positions for each residue.
     # Vecs with shape (N, 14)
     lit_positions = geometry.vecs_from_tensor(
-        jnp.take(restype_atom14_rigid_group_positions, aatype, 0)
+        jnp.take(
+            restype_atom14_rigid_group_positions, aatype, 0)
     )
 
     # Transform each atom from its local frame to the global frame.
     # Vecs with shape (N, 14)
-    pred_positions = geometry.rigids_mul_vecs(map_atoms_to_global, lit_positions)
+    pred_positions = geometry.rigids_mul_vecs(
+        map_atoms_to_global, lit_positions)
 
     # Mask out non-existing atoms.
     mask = jnp.take(restype_atom14_mask, aatype, 0)
 
-    pred_positions = geometry.vecs_scale(pred_positions, mask)
+    pred_positions = geometry.vecs_scale(
+        pred_positions, mask)
 
     return pred_positions
 
@@ -542,12 +580,14 @@ def map_atoms_to_global_func(all_frames, group_mask):
     """map atoms to global."""
     all_frames_rot = all_frames[0]
     all_frames_trans = all_frames[1]
-    rot = geometry.rots_scale(geometry.rots_expand_dims(all_frames_rot, 1), group_mask)
+    rot = geometry.rots_scale(
+        geometry.rots_expand_dims(all_frames_rot, 1), group_mask)
     res_rot = []
     for val in rot:
         res_rot.append(jnp.sum(val, axis=-1))
     trans = geometry.vecs_scale(
-        geometry.vecs_expand_dims(all_frames_trans, 1), group_mask
+        geometry.vecs_expand_dims(
+            all_frames_trans, 1), group_mask
     )
     res_trans = []
     for val in trans:

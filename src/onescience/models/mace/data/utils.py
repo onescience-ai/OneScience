@@ -22,7 +22,8 @@ DEFAULT_CONFIG_TYPE_WEIGHTS = {DEFAULT_CONFIG_TYPE: 1.0}
 @dataclass
 class KeySpecification:
     info_keys: Dict[str, str] = field(default_factory=dict)
-    arrays_keys: Dict[str, str] = field(default_factory=dict)
+    arrays_keys: Dict[str, str] = field(
+        default_factory=dict)
 
     def update(
         self,
@@ -45,7 +46,8 @@ def update_keyspec_from_kwargs(
     keyspec: KeySpecification, keydict: Dict[str, str]
 ) -> KeySpecification:
     # convert command line style property_key arguments into a keyspec
-    infos = ["energy_key", "stress_key", "virials_key", "dipole_key", "head_key"]
+    infos = ["energy_key", "stress_key",
+             "virials_key", "dipole_key", "head_key"]
     arrays = ["forces_key", "charges_key"]
     info_keys = {}
     arrays_keys = {}
@@ -55,7 +57,8 @@ def update_keyspec_from_kwargs(
     for key in arrays:
         if key in keydict:
             arrays_keys[key[:-4]] = keydict[key]
-    keyspec.update(info_keys=info_keys, arrays_keys=arrays_keys)
+    keyspec.update(info_keys=info_keys,
+                   arrays_keys=arrays_keys)
     return keyspec
 
 
@@ -141,7 +144,8 @@ def config_from_atoms(
         config_type_weights = DEFAULT_CONFIG_TYPE_WEIGHTS
 
     atomic_numbers = np.array(
-        [ase.data.atomic_numbers[symbol] for symbol in atoms.symbols]
+        [ase.data.atomic_numbers[symbol]
+            for symbol in atoms.symbols]
     )
     pbc = tuple(atoms.get_pbc())
     cell = np.array(atoms.get_cell())
@@ -153,7 +157,8 @@ def config_from_atoms(
     properties = {}
     property_weights = {}
     for name in list(key_specification.arrays_keys) + list(key_specification.info_keys):
-        property_weights[name] = atoms.info.get(f"config_{name}_weight", 1.0)
+        property_weights[name] = atoms.info.get(
+            f"config_{name}_weight", 1.0)
 
     for name, atoms_key in key_specification.info_keys.items():
         properties[name] = atoms.info.get(atoms_key, None)
@@ -215,9 +220,11 @@ def load_from_xyz(
         key_specification.info_keys["energy"] = "REF_energy"
         for atoms in atoms_list:
             try:
-                atoms.info["REF_energy"] = atoms.get_potential_energy()
+                atoms.info["REF_energy"] = atoms.get_potential_energy(
+                )
             except Exception as e:  # pylint: disable=W0703
-                logging.error(f"Failed to extract energy: {e}")
+                logging.error(
+                    f"Failed to extract energy: {e}")
                 atoms.info["REF_energy"] = None
     if forces_key == "forces":
         logging.warning(
@@ -228,7 +235,8 @@ def load_from_xyz(
             try:
                 atoms.arrays["REF_forces"] = atoms.get_forces()
             except Exception as e:  # pylint: disable=W0703
-                logging.error(f"Failed to extract forces: {e}")
+                logging.error(
+                    f"Failed to extract forces: {e}")
                 atoms.arrays["REF_forces"] = None
     if stress_key == "stress":
         logging.warning(
@@ -250,12 +258,15 @@ def load_from_xyz(
         for idx, atoms in enumerate(atoms_list):
             atoms.info[head_key] = head_name
             isolated_atom_config = (
-                len(atoms) == 1 and atoms.info.get("config_type") == "IsolatedAtom"
+                len(atoms) == 1 and atoms.info.get(
+                    "config_type") == "IsolatedAtom"
             )
             if isolated_atom_config:
-                atomic_number = int(atoms.get_atomic_numbers()[0])
+                atomic_number = int(
+                    atoms.get_atomic_numbers()[0])
                 if energy_key in atoms.info.keys():
-                    atomic_energies_dict[atomic_number] = float(atoms.info[energy_key])
+                    atomic_energies_dict[atomic_number] = float(
+                        atoms.info[energy_key])
                 else:
                     logging.warning(
                         f"Configuration '{idx}' is marked as 'IsolatedAtom' "
@@ -266,7 +277,8 @@ def load_from_xyz(
                 atoms_without_iso_atoms.append(atoms)
 
         if len(atomic_energies_dict) > 0:
-            logging.info("Using isolated atom energies from training file")
+            logging.info(
+                "Using isolated atom energies from training file")
         if not keep_isolated_atoms:
             atoms_list = atoms_without_iso_atoms
 
@@ -296,7 +308,8 @@ def compute_average_E0s(
     for i in range(len_train):
         B[i] = collections_train[i].properties["energy"]
         for j, z in enumerate(z_table.zs):
-            A[i, j] = np.count_nonzero(collections_train[i].atomic_numbers == z)
+            A[i, j] = np.count_nonzero(
+                collections_train[i].atomic_numbers == z)
     try:
         E0s = np.linalg.lstsq(A, B, rcond=None)[0]
         atomic_energies_dict = {}
@@ -346,18 +359,23 @@ def save_configurations_as_HDF5(configurations: Configurations, _, h5_file) -> N
     for j, config in enumerate(configurations):
         subgroup_name = f"config_{j}"
         subgroup = grp.create_group(subgroup_name)
-        subgroup["atomic_numbers"] = write_value(config.atomic_numbers)
-        subgroup["positions"] = write_value(config.positions)
-        properties_subgrp = subgroup.create_group("properties")
+        subgroup["atomic_numbers"] = write_value(
+            config.atomic_numbers)
+        subgroup["positions"] = write_value(
+            config.positions)
+        properties_subgrp = subgroup.create_group(
+            "properties")
         for key, value in config.properties.items():
             properties_subgrp[key] = write_value(value)
         subgroup["cell"] = write_value(config.cell)
         subgroup["pbc"] = write_value(config.pbc)
         subgroup["weight"] = write_value(config.weight)
-        weights_subgrp = subgroup.create_group("property_weights")
+        weights_subgrp = subgroup.create_group(
+            "property_weights")
         for key, value in config.property_weights.items():
             weights_subgrp[key] = write_value(value)
-        subgroup["config_type"] = write_value(config.config_type)
+        subgroup["config_type"] = write_value(
+            config.config_type)
 
 
 def write_value(value):

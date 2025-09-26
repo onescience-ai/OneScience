@@ -45,9 +45,12 @@ def has_nonsymmetric_bonds_on_symmetric_polymer_chains(
         return True
     if _has_multiple_polymers_bonded_to_one_ligand(polymer_ligand_bonds):
         return True
-    combined_struc, _ = _combine_polymer_ligand_ptm_chains(struc, polymer_ligand_bonds)
-    struc = struc.filter(chain_type=mmcif_names.POLYMER_CHAIN_TYPES)
-    combined_struc = combined_struc.filter(chain_type=mmcif_names.POLYMER_CHAIN_TYPES)
+    combined_struc, _ = _combine_polymer_ligand_ptm_chains(
+        struc, polymer_ligand_bonds)
+    struc = struc.filter(
+        chain_type=mmcif_names.POLYMER_CHAIN_TYPES)
+    combined_struc = combined_struc.filter(
+        chain_type=mmcif_names.POLYMER_CHAIN_TYPES)
     return _count_symmetric_chains(struc) != _count_symmetric_chains(combined_struc)
 
 
@@ -118,10 +121,13 @@ def _combine_polymer_ligand_ptm_chains(
         ligand_chain_id, _ = ligand_info
 
         # Join the ligand chain to the polymer chain.
-        ligand_res_ids = struc.filter(chain_id=ligand_chain_id).res_id
-        new_res_ids = ligand_res_ids + len(struc.all_residues[polymer_chain_id])
+        ligand_res_ids = struc.filter(
+            chain_id=ligand_chain_id).res_id
+        new_res_ids = ligand_res_ids + \
+            len(struc.all_residues[polymer_chain_id])
         res_id_mappings_for_bond_chain_pair[(polymer_chain_id, ligand_chain_id)] = (
-            ResIdMapping(old_res_ids=ligand_res_ids, new_res_ids=new_res_ids)
+            ResIdMapping(
+                old_res_ids=ligand_res_ids, new_res_ids=new_res_ids)
         )
         chain_groups = []
         chain_group_ids = []
@@ -130,7 +136,8 @@ def _combine_polymer_ligand_ptm_chains(
             if chain_id == ligand_chain_id:
                 continue
             elif chain_id == polymer_chain_id:
-                chain_groups.append([polymer_chain_id, ligand_chain_id])
+                chain_groups.append(
+                    [polymer_chain_id, ligand_chain_id])
                 chain_group_ids.append(polymer_chain_id)
                 chain_group_types.append(polymer_chain_type)
             else:
@@ -218,7 +225,8 @@ def _has_multiple_polymers_bonded_to_one_ligand(polymer_ligand_bonds):
     """Checks if there are multiple polymer chains bonded to one ligand."""
     polymer_dim = _get_polymer_dim(polymer_ligand_bonds)
     ligand_dim = 1 - polymer_dim
-    ligand_chain_ids = [chains[ligand_dim] for chains in polymer_ligand_bonds.chain_id]
+    ligand_chain_ids = [chains[ligand_dim]
+                        for chains in polymer_ligand_bonds.chain_id]
     if len(ligand_chain_ids) != len(set(ligand_chain_ids)):
         return True
     return False
@@ -234,9 +242,11 @@ def _sort_polymer_ligand_bonds_by_polymer_chain_and_res_id(
     polymer_chain_ids = [
         chains[polymer_dim] for chains in polymer_ligand_bonds.chain_id
     ]
-    polymer_res_ids = [res[polymer_dim] for res in polymer_ligand_bonds.res_id]
+    polymer_res_ids = [res[polymer_dim]
+                       for res in polymer_ligand_bonds.res_id]
 
-    polymer_chain_and_res_id = zip(polymer_chain_ids, polymer_res_ids)
+    polymer_chain_and_res_id = zip(
+        polymer_chain_ids, polymer_res_ids)
     sorted_indices = [
         idx
         for idx, _ in sorted(enumerate(polymer_chain_and_res_id), key=lambda x: x[1])

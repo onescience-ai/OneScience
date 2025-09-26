@@ -46,7 +46,8 @@ class Ccd(Mapping[str, Mapping[str, Sequence[str]]]):
 
         if user_ccd is not None:
             if not user_ccd:
-                raise ValueError("User CCD cannot be an empty string.")
+                raise ValueError(
+                    "User CCD cannot be an empty string.")
             user_ccd_cifs = {
                 key: {k: tuple(v) for k, v in value.items()}
                 for key, value in cif_dict.parse_multi_data_cif(user_ccd).items()
@@ -113,7 +114,8 @@ def mmcif_to_info(mmcif: Mapping[str, Sequence[str]]) -> ComponentInfo:
         return values[0] if values else ""
 
     type_ = front_or_empty(types)
-    mon_nstd_parent_comp_id = front_or_empty(mon_nstd_parent_comp_ids)
+    mon_nstd_parent_comp_id = front_or_empty(
+        mon_nstd_parent_comp_ids)
     if type_.lower() == "non-polymer":
         # Unset for non-polymers, e.g. water or ions.
         mon_nstd_flag = "."
@@ -129,9 +131,12 @@ def mmcif_to_info(mmcif: Mapping[str, Sequence[str]]) -> ComponentInfo:
     # the OpenEye OEToolkits program.
     canonical_pdbx_smiles = ""
     fallback_pdbx_smiles = ""
-    descriptor_types = mmcif.get("_pdbx_chem_comp_descriptor.type", [])
-    descriptors = mmcif.get("_pdbx_chem_comp_descriptor.descriptor", [])
-    programs = mmcif.get("_pdbx_chem_comp_descriptor.program", [])
+    descriptor_types = mmcif.get(
+        "_pdbx_chem_comp_descriptor.type", [])
+    descriptors = mmcif.get(
+        "_pdbx_chem_comp_descriptor.descriptor", [])
+    programs = mmcif.get(
+        "_pdbx_chem_comp_descriptor.program", [])
     for descriptor_type, descriptor, program in zip(
         descriptor_types, descriptors, programs
     ):

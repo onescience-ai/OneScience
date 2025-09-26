@@ -1,3 +1,19 @@
+from onescience.flax_models.protoken.train.utils import split_multiple_rng_keys
+from onescience.flax_models.protoken.tokenizer.vector_quantization import VQTokenizer
+from onescience.flax_models.protoken.model.encoder import VQ_Encoder
+from onescience.flax_models.protoken.model.decoder import Protein_Decoder, VQ_Decoder
+from onescience.flax_models.protoken.inference.inference import InferenceVQWithLossCell
+from onescience.flax_models.protoken.data.utils import make_2d_features
+from onescience.flax_models.protoken.data.protein_utils import save_pdb_from_aux
+from onescience.flax_models.protoken.data.dataset import protoken_basic_generator
+from onescience.flax_models.protoken.config.train_vq_config import TRAINING_CONFIG
+from onescience.flax_models.protoken.config.global_config import GLOBAL_CONFIG
+from onescience.flax_models.protoken.common.config_load import (
+    get_config_path,
+    load_config,
+)
+import datetime
+import os
 import argparse
 import pickle as pkl
 import warnings
@@ -10,7 +26,8 @@ warnings.filterwarnings("ignore")
 
 
 def arg_parse():
-    parser = argparse.ArgumentParser(description="Inputs for main.py")
+    parser = argparse.ArgumentParser(
+        description="Inputs for main.py")
     # CONFIG
     # parser.add_argument('--encoder_config', help='encoder config')
     # parser.add_argument('--decoder_config', help='decoder config')
@@ -30,8 +47,10 @@ def arg_parse():
     )
 
     # PDB DIR
-    parser.add_argument("--pdb_path", help="The path of the pdb file.")
-    parser.add_argument("--save_dir_path", help="The path for saving inference output")
+    parser.add_argument(
+        "--pdb_path", help="The path of the pdb file.")
+    parser.add_argument(
+        "--save_dir_path", help="The path for saving inference output")
 
     # CKPT
     parser.add_argument(
@@ -41,7 +60,8 @@ def arg_parse():
     )
 
     # RANDOM SEED
-    parser.add_argument("--random_seed", type=int, default=8888, help="random seed")
+    parser.add_argument(
+        "--random_seed", type=int, default=8888, help="random seed")
     parser.add_argument(
         "--np_random_seed", type=int, default=18888, help="np random seed"
     )
@@ -49,7 +69,8 @@ def arg_parse():
     parser.add_argument(
         "--padding_len", type=int, default=768, help="padding to padding_len"
     )
-    parser.add_argument("--prefixed_input_path", type=str, default=None, help="prefix")
+    parser.add_argument(
+        "--prefixed_input_path", type=str, default=None, help="prefix")
 
     arguments = parser.parse_args()
 
@@ -58,26 +79,8 @@ def arg_parse():
 
 args = arg_parse()
 
-import os
 
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "False"
-
-import datetime
-
-from onescience.flax_models.protoken.common.config_load import (
-    get_config_path,
-    load_config,
-)
-from onescience.flax_models.protoken.config.global_config import GLOBAL_CONFIG
-from onescience.flax_models.protoken.config.train_vq_config import TRAINING_CONFIG
-from onescience.flax_models.protoken.data.dataset import protoken_basic_generator
-from onescience.flax_models.protoken.data.protein_utils import save_pdb_from_aux
-from onescience.flax_models.protoken.data.utils import make_2d_features
-from onescience.flax_models.protoken.inference.inference import InferenceVQWithLossCell
-from onescience.flax_models.protoken.model.decoder import Protein_Decoder, VQ_Decoder
-from onescience.flax_models.protoken.model.encoder import VQ_Encoder
-from onescience.flax_models.protoken.tokenizer.vector_quantization import VQTokenizer
-from onescience.flax_models.protoken.train.utils import split_multiple_rng_keys
 
 
 def inference(
@@ -90,7 +93,7 @@ def inference(
     np_random_seed=18888,
 ):
 
-    #### constants
+    # constants
     NRES = int(args.padding_len)  # 256
     print(f"PADDING_LEN: {NRES}")
     # BATCHSIZE = 6 # 2 under 1300 resiudes
@@ -122,9 +125,10 @@ def inference(
         "structure_violation_loss": 0,
     }
 
-    loss_aux = {loss_name: [] for loss_name in loss_name_dict.keys()}
+    loss_aux = {loss_name: []
+                for loss_name in loss_name_dict.keys()}
 
-    ##### prepare name list
+    # prepare name list
     save_dir_path = f"{save_dir_path}/{stage_name}"
     os.makedirs(save_dir_path, exist_ok=True)
     pdb_path = str(pdb_path).strip()
@@ -137,11 +141,13 @@ def inference(
     print(f"Input PDB: {pdb_path}")
     print(f"Saving pdb at: {pdb_saving_path},")
 
-    ##### initialize models
+    # initialize models
     # encoder_cfg = load_config(args.encoder_config)
     # decoder_cfg = load_config(args.decoder_config)
-    encoder_config_path = args.encoder_config or get_config_path("encoder")
-    decoder_config_path = args.decoder_config or get_config_path("decoder")
+    encoder_config_path = args.encoder_config or get_config_path(
+        "encoder")
+    decoder_config_path = args.decoder_config or get_config_path(
+        "decoder")
     vq_config_path = args.vq_config or get_config_path("vq")
 
     encoder_cfg = load_config(encoder_config_path)
@@ -149,12 +155,15 @@ def inference(
     encoder_cfg.seq_len = NRES
     decoder_cfg.seq_len = NRES
 
-    #### encoder/decoder
-    protoken_encoder = VQ_Encoder(GLOBAL_CONFIG, encoder_cfg)
-    protoken_decoder = VQ_Decoder(GLOBAL_CONFIG, decoder_cfg, pre_layer_norm=False)
-    protein_decoder = Protein_Decoder(GLOBAL_CONFIG, decoder_cfg)
+    # encoder/decoder
+    protoken_encoder = VQ_Encoder(
+        GLOBAL_CONFIG, encoder_cfg)
+    protoken_decoder = VQ_Decoder(
+        GLOBAL_CONFIG, decoder_cfg, pre_layer_norm=False)
+    protein_decoder = Protein_Decoder(
+        GLOBAL_CONFIG, decoder_cfg)
 
-    #### vq
+    # vq
     # vq_cfg = load_config(args.vq_config)
     vq_cfg = load_config(vq_config_path)
     vq_tokenizer = VQTokenizer(vq_cfg, dtype=jnp.float32)
@@ -173,10 +182,11 @@ def inference(
     rng_key = jax.random.PRNGKey(random_seed)
     np.random.seed(np_random_seed)
 
-    ##### load params
+    # load params
     with open(load_ckpt_path, "rb") as f:
         params = pkl.load(f)
-        params = jax.tree_map(lambda x: jnp.array(x), params)
+        params = jax.tree_map(
+            lambda x: jnp.array(x), params)
 
     with_loss_cell_gogo = with_loss_cell.apply
 
@@ -194,14 +204,20 @@ def inference(
     )
     with open(os.path.join(args.save_dir_path, "input_features.pkl"), "wb") as f:
         pkl.dump(feature, f)
-    batch_feature = jax.tree_map(lambda x: jnp.array(x), feature)
-    batch_feature = make_2d_features(batch_feature, NRES, EXCLUDE_NEIGHBOR)
-    batch_input = [batch_feature[name] for name in protoken_feature_input]
+    batch_feature = jax.tree_map(
+        lambda x: jnp.array(x), feature)
+    batch_feature = make_2d_features(
+        batch_feature, NRES, EXCLUDE_NEIGHBOR)
+    batch_input = [batch_feature[name]
+                   for name in protoken_feature_input]
 
-    #### split keys
-    fape_clamp_key, rng_key = split_multiple_rng_keys(rng_key, 1)
-    dmat_rng_key, rng_key = split_multiple_rng_keys(rng_key, 1)
-    dropout_key, rng_key = split_multiple_rng_keys(rng_key, 1)
+    # split keys
+    fape_clamp_key, rng_key = split_multiple_rng_keys(
+        rng_key, 1)
+    dmat_rng_key, rng_key = split_multiple_rng_keys(
+        rng_key, 1)
+    dropout_key, rng_key = split_multiple_rng_keys(
+        rng_key, 1)
     net_rng_key = {
         "fape_clamp_key": fape_clamp_key[0],
         "dmat_rng_key": dmat_rng_key[0],
@@ -217,7 +233,8 @@ def inference(
     batch_input = [pp[0] for pp in batch_input]
 
     time2 = datetime.datetime.now()
-    loss_dict_, aux_result_, seq_len_weight_ = forward(params, batch_input, net_rng_key)
+    loss_dict_, aux_result_, seq_len_weight_ = forward(
+        params, batch_input, net_rng_key)
     time3 = datetime.datetime.now()
     if not args.prefixed_input_path is None:
         with open(pdb_saving_path.replace(".pdb", ".pkl"), "wb") as f:
@@ -238,14 +255,18 @@ def inference(
     }
 
     save_pdb_from_aux(tmp_aux_result, pdb_saving_path)
-    print("pdb saved at:", pdb_saving_path, "\nseq_len:", seq_len)
+    print("pdb saved at:", pdb_saving_path,
+          "\nseq_len:", seq_len)
 
     time_all += (time3 - time1).total_seconds()
-    print(f"preprocessing time: {(time2 - time1).total_seconds()}s")
-    print(f"inference time: {(time3 - time2).total_seconds()}s")
+    print(
+        f"preprocessing time: {(time2 - time1).total_seconds()}s")
+    print(
+        f"inference time: {(time3 - time2).total_seconds()}s")
 
     code_usage = (
-        np.sum((code_count > 2).astype(np.float32), axis=-1) / code_count.shape[-1]
+        np.sum((code_count > 2).astype(np.float32),
+               axis=-1) / code_count.shape[-1]
     )
     print(f"code_usage: {code_usage}")
 

@@ -16,7 +16,8 @@ def load_foundations_elements(
     Load the foundations of a model into a model for fine-tuning.
     """
     assert model_foundations.r_max == model.r_max
-    z_table = AtomicNumberTable([int(z) for z in model_foundations.atomic_numbers])
+    z_table = AtomicNumberTable(
+        [int(z) for z in model_foundations.atomic_numbers])
     model_heads = model.heads
     new_z_table = table
     num_species_foundations = len(z_table.zs)
@@ -24,7 +25,8 @@ def load_foundations_elements(
         model_foundations.node_embedding.linear.weight.shape[0]
         // num_species_foundations
     )
-    indices_weights = [z_table.z_to_index(z) for z in new_z_table.zs]
+    indices_weights = [z_table.z_to_index(
+        z) for z in new_z_table.zs]
     num_radial = model.radial_embedding.out_dim
     num_species = len(indices_weights)
     max_ell = model.spherical_harmonics._lmax  # pylint: disable=protected-access
@@ -42,7 +44,8 @@ def load_foundations_elements(
         )
     for i in range(int(model.num_interactions)):
         model.interactions[i].linear_up.weight = torch.nn.Parameter(
-            model_foundations.interactions[i].linear_up.weight.clone()
+            model_foundations.interactions[i].linear_up.weight.clone(
+            )
         )
         model.interactions[i].avg_num_neighbors = model_foundations.interactions[
             i
@@ -71,7 +74,8 @@ def load_foundations_elements(
                 )
 
         model.interactions[i].linear.weight = torch.nn.Parameter(
-            model_foundations.interactions[i].linear.weight.clone()
+            model_foundations.interactions[i].linear.weight.clone(
+            )
         )
         if model.interactions[i].__class__.__name__ in [
             "RealAgnosticResidualInteractionBlock",
@@ -117,7 +121,8 @@ def load_foundations_elements(
     # Transferring products
     for i in range(2):  # Assuming 2 products modules
         max_range = max_L + 1 if i == 0 else 1
-        for j in range(max_range):  # Assuming 3 contractions in symmetric_contractions
+        # Assuming 3 contractions in symmetric_contractions
+        for j in range(max_range):
             model.products[i].symmetric_contractions.contractions[j].weights_max = (
                 torch.nn.Parameter(
                     model_foundations.products[i]
@@ -138,12 +143,14 @@ def load_foundations_elements(
                 )
 
         model.products[i].linear.weight = torch.nn.Parameter(
-            model_foundations.products[i].linear.weight.clone()
+            model_foundations.products[i].linear.weight.clone(
+            )
         )
 
     if load_readout:
         # Transferring readouts
-        model_readouts_zero_linear_weight = model.readouts[0].linear.weight.clone()
+        model_readouts_zero_linear_weight = model.readouts[0].linear.weight.clone(
+        )
         model_readouts_zero_linear_weight = (
             model_foundations.readouts[0]
             .linear.weight.view(num_channels_foundation, -1)
@@ -156,10 +163,13 @@ def load_foundations_elements(
         )
 
         shape_input_1 = (
-            model_foundations.readouts[1].linear_1.__dict__["irreps_out"].num_irreps
+            model_foundations.readouts[1].linear_1.__dict__[
+                "irreps_out"].num_irreps
         )
-        shape_output_1 = model.readouts[1].linear_1.__dict__["irreps_out"].num_irreps
-        model_readouts_one_linear_1_weight = model.readouts[1].linear_1.weight.clone()
+        shape_output_1 = model.readouts[1].linear_1.__dict__[
+            "irreps_out"].num_irreps
+        model_readouts_one_linear_1_weight = model.readouts[1].linear_1.weight.clone(
+        )
         model_readouts_one_linear_1_weight = (
             model_foundations.readouts[1]
             .linear_1.weight.view(num_channels_foundation, -1)
@@ -170,7 +180,8 @@ def load_foundations_elements(
         model.readouts[1].linear_1.weight = torch.nn.Parameter(
             model_readouts_one_linear_1_weight
         )
-        model_readouts_one_linear_2_weight = model.readouts[1].linear_2.weight.clone()
+        model_readouts_one_linear_2_weight = model.readouts[1].linear_2.weight.clone(
+        )
         model_readouts_one_linear_2_weight = model_foundations.readouts[
             1
         ].linear_2.weight.view(shape_input_1, -1).repeat(

@@ -20,10 +20,12 @@ def get_rc_tensor(rc_np, aatype):
 
 
 def atom14_to_atom37(
-    atom14_data: torch.Tensor, aatype: torch.Tensor  # (*, N, 14, ...)  # (*, N)
+    # (*, N, 14, ...)  # (*, N)
+    atom14_data: torch.Tensor, aatype: torch.Tensor
 ) -> Tuple:  # (*, N, 37, ...)
     """Convert atom14 to atom37 representation."""
-    idx_atom37_to_atom14 = get_rc_tensor(rc.RESTYPE_ATOM37_TO_ATOM14, aatype).long()
+    idx_atom37_to_atom14 = get_rc_tensor(
+        rc.RESTYPE_ATOM37_TO_ATOM14, aatype).long()
     no_batch_dims = len(aatype.shape) - 1
     atom37_data = tensor_utils.batched_gather(
         atom14_data,
@@ -31,11 +33,13 @@ def atom14_to_atom37(
         dim=no_batch_dims + 1,
         no_batch_dims=no_batch_dims + 1,
     )
-    atom37_mask = get_rc_tensor(rc.RESTYPE_ATOM37_MASK, aatype)
+    atom37_mask = get_rc_tensor(
+        rc.RESTYPE_ATOM37_MASK, aatype)
     if len(atom14_data.shape) == no_batch_dims + 2:
         atom37_data *= atom37_mask
     elif len(atom14_data.shape) == no_batch_dims + 3:
-        atom37_data *= atom37_mask[..., None].to(dtype=atom37_data.dtype)
+        atom37_data *= atom37_mask[...,
+                                   None].to(dtype=atom37_data.dtype)
     else:
         raise ValueError("Incorrectly shaped data")
     return atom37_data, atom37_mask
@@ -43,7 +47,8 @@ def atom14_to_atom37(
 
 def atom37_to_atom14(aatype, all_atom_pos, all_atom_mask):
     """Convert Atom37 positions to Atom14 positions."""
-    residx_atom14_to_atom37 = get_rc_tensor(rc.RESTYPE_ATOM14_TO_ATOM37, aatype)
+    residx_atom14_to_atom37 = get_rc_tensor(
+        rc.RESTYPE_ATOM14_TO_ATOM37, aatype)
     no_batch_dims = len(aatype.shape)
     atom14_mask = tensor_utils.batched_gather(
         all_atom_mask,
@@ -52,7 +57,8 @@ def atom37_to_atom14(aatype, all_atom_pos, all_atom_mask):
         no_batch_dims=no_batch_dims + 1,
     ).to(all_atom_pos.dtype)
     # create a mask for known groundtruth positions
-    atom14_mask *= get_rc_tensor(rc.RESTYPE_ATOM14_MASK, aatype)
+    atom14_mask *= get_rc_tensor(
+        rc.RESTYPE_ATOM14_MASK, aatype)
     # gather the groundtruth positions
     atom14_positions = (
         tensor_utils.batched_gather(
@@ -70,7 +76,8 @@ def get_alt_atom14(aatype, positions: torch.Tensor, mask):
     """Get alternative atom14 positions."""
     # pick the transformation matrices for the given residue sequence
     # shape (num_res, 14, 14)
-    renaming_transform = get_rc_tensor(rc.RENAMING_MATRICES, aatype)
+    renaming_transform = get_rc_tensor(
+        rc.RENAMING_MATRICES, aatype)
     alternative_positions = torch.sum(
         positions[..., None, :] * renaming_transform[..., None], dim=-2
     )
@@ -78,7 +85,8 @@ def get_alt_atom14(aatype, positions: torch.Tensor, mask):
     # Create the mask for the alternative ground truth (differs from the
     # ground truth mask, if only one of the atoms in an ambiguous pair has a
     # ground truth position)
-    alternative_mask = torch.sum(mask[..., None] * renaming_transform, dim=-2)
+    alternative_mask = torch.sum(
+        mask[..., None] * renaming_transform, dim=-2)
 
     return alternative_positions, alternative_mask
 
@@ -123,7 +131,8 @@ def atom37_to_frames(
 
     # Compute a mask whether the group exists.
     # (N, 8)
-    group_exists = get_rc_tensor(rc.RESTYPE_RIGIDGROUP_MASK, aatype)
+    group_exists = get_rc_tensor(
+        rc.RESTYPE_RIGIDGROUP_MASK, aatype)
 
     # Compute a mask whether ground truth exists for the group
     gt_atoms_exist = tensor_utils.batched_gather(  # shape (N, 8, 3)
@@ -131,29 +140,37 @@ def atom37_to_frames(
         residx_rigidgroup_base_atom37_idx,
         batch_dims=no_batch_dims + 1,
     )
-    gt_exists = torch.min(gt_atoms_exist, dim=-1) * group_exists  # (N, 8)
+    gt_exists = torch.min(
+        gt_atoms_exist, dim=-1) * group_exists  # (N, 8)
 
     # Adapt backbone frame to old convention (mirror x-axis and z-axis).
-    rots = np.tile(np.eye(3, dtype=all_atom_positions.dtype), [8, 1, 1])
+    rots = np.tile(
+        np.eye(3, dtype=all_atom_positions.dtype), [8, 1, 1])
     rots[0, 0, 0] = -1
     rots[0, 2, 2] = -1
     gt_frames = gt_frames.compose_rotation(
-        geometry.Rot3Array.from_array(torch.tensor(rots, device=aatype.device))
+        geometry.Rot3Array.from_array(
+            torch.tensor(rots, device=aatype.device))
     )
 
     # The frames for ambiguous rigid groups are just rotated by 180 degree around
     # the x-axis. The ambiguous group is always the last chi-group.
-    restype_rigidgroup_is_ambiguous = np.zeros([21, 8], dtype=all_atom_positions.dtype)
+    restype_rigidgroup_is_ambiguous = np.zeros(
+        [21, 8], dtype=all_atom_positions.dtype)
     restype_rigidgroup_rots = np.tile(
-        np.eye(3, dtype=all_atom_positions.dtype), [21, 8, 1, 1]
+        np.eye(3, dtype=all_atom_positions.dtype), [
+            21, 8, 1, 1]
     )
 
     for resname, _ in rc.residue_atom_renaming_swaps.items():
         restype = rc.restype_order[rc.restype_3to1[resname]]
         chi_idx = int(sum(rc.chi_angles_mask[restype]) - 1)
-        restype_rigidgroup_is_ambiguous[restype, chi_idx + 4] = 1
-        restype_rigidgroup_rots[restype, chi_idx + 4, 1, 1] = -1
-        restype_rigidgroup_rots[restype, chi_idx + 4, 2, 2] = -1
+        restype_rigidgroup_is_ambiguous[restype,
+                                        chi_idx + 4] = 1
+        restype_rigidgroup_rots[restype,
+                                chi_idx + 4, 1, 1] = -1
+        restype_rigidgroup_rots[restype,
+                                chi_idx + 4, 2, 2] = -1
 
     # Gather the ambiguity information for each residue.
     residx_rigidgroup_is_ambiguous = torch.tensor(
@@ -169,23 +186,29 @@ def atom37_to_frames(
     )
 
     # Create the alternative ground truth frames.
-    alt_gt_frames = gt_frames.compose_rotation(ambiguity_rot)
+    alt_gt_frames = gt_frames.compose_rotation(
+        ambiguity_rot)
 
-    fix_shape = lambda x: x.reshape(x.shape[:-2] + (8,))
+    def fix_shape(x): return x.reshape(x.shape[:-2] + (8,))
 
     # reshape back to original residue layout
     gt_frames = fix_shape(gt_frames)
     gt_exists = fix_shape(gt_exists)
     group_exists = fix_shape(group_exists)
-    residx_rigidgroup_is_ambiguous = fix_shape(residx_rigidgroup_is_ambiguous)
+    residx_rigidgroup_is_ambiguous = fix_shape(
+        residx_rigidgroup_is_ambiguous)
     alt_gt_frames = fix_shape(alt_gt_frames)
 
     return {
-        "rigidgroups_gt_frames": gt_frames,  # Rigid (..., 8)
+        # Rigid (..., 8)
+        "rigidgroups_gt_frames": gt_frames,
         "rigidgroups_gt_exists": gt_exists,  # (..., 8)
-        "rigidgroups_group_exists": group_exists,  # (..., 8)
-        "rigidgroups_group_is_ambiguous": residx_rigidgroup_is_ambiguous,  # (..., 8)
-        "rigidgroups_alt_gt_frames": alt_gt_frames,  # Rigid (..., 8)
+        # (..., 8)
+        "rigidgroups_group_exists": group_exists,
+        # (..., 8)
+        "rigidgroups_group_is_ambiguous": residx_rigidgroup_is_ambiguous,
+        # Rigid (..., 8)
+        "rigidgroups_alt_gt_frames": alt_gt_frames,
     }
 
 
@@ -197,7 +220,8 @@ def torsion_angles_to_frames(
     """Compute rigid group frames from torsion angles."""
     # Gather the default frames for all rigid groups.
     # geometry.Rigid3Array with shape (N, 8)
-    m = get_rc_tensor(rc.restype_rigid_group_default_frame, aatype)
+    m = get_rc_tensor(
+        rc.restype_rigid_group_default_frame, aatype)
     default_frames = geometry.Rigid3Array.from_array4x4(m)
 
     # Create the rotation matrices according to the given angles (each frame is
@@ -256,34 +280,41 @@ def torsion_angles_to_frames(
 
     # Create the global frames.
     # shape (N, 8)
-    all_frames_to_global = backb_to_global[..., None] @ all_frames_to_backb
+    all_frames_to_global = backb_to_global[...,
+                                           None] @ all_frames_to_backb
 
     return all_frames_to_global
 
 
 def frames_and_literature_positions_to_atom14_pos(
-    aatype: torch.Tensor, all_frames_to_global: geometry.Rigid3Array  # (*, N)  # (N, 8)
+    # (*, N)  # (N, 8)
+    aatype: torch.Tensor, all_frames_to_global: geometry.Rigid3Array
 ) -> geometry.Vec3Array:  # (*, N, 14)
     """Put atom literature positions (atom14 encoding) in each rigid group."""
     # Pick the appropriate transform for every atom.
-    residx_to_group_idx = get_rc_tensor(rc.restype_atom14_to_rigid_group, aatype)
+    residx_to_group_idx = get_rc_tensor(
+        rc.restype_atom14_to_rigid_group, aatype)
     group_mask = torch.nn.functional.one_hot(
         residx_to_group_idx, num_classes=8
     )  # shape (*, N, 14, 8)
 
     # geometry.Rigid3Array with shape (N, 14)
-    map_atoms_to_global = all_frames_to_global[..., None, :] * group_mask
-    map_atoms_to_global = map_atoms_to_global.map_tensor_fn(partial(torch.sum, dim=-1))
+    map_atoms_to_global = all_frames_to_global[...,
+                                               None, :] * group_mask
+    map_atoms_to_global = map_atoms_to_global.map_tensor_fn(
+        partial(torch.sum, dim=-1))
 
     # Gather the literature atom positions for each residue.
     # geometry.Vec3Array with shape (N, 14)
     lit_positions = geometry.Vec3Array.from_array(
-        get_rc_tensor(rc.restype_atom14_rigid_group_positions, aatype)
+        get_rc_tensor(
+            rc.restype_atom14_rigid_group_positions, aatype)
     )
 
     # Transform each atom from its local frame to the global frame.
     # geometry.Vec3Array with shape (N, 14)
-    pred_positions = map_atoms_to_global.apply_to_point(lit_positions)
+    pred_positions = map_atoms_to_global.apply_to_point(
+        lit_positions)
 
     # Mask out non-existing atoms.
     mask = get_rc_tensor(rc.restype_atom14_mask, aatype)
@@ -305,10 +336,13 @@ def extreme_ca_ca_distance_violations(
     next_ca_pos = positions[..., 1:, 1]  # (N - 1,)
     next_ca_mask = mask[..., 1:, 1]  # (N - 1)
     has_no_gap_mask = (
-        (residue_index[..., 1:] - residue_index[..., :-1]) == 1.0
+        (residue_index[..., 1:] -
+         residue_index[..., :-1]) == 1.0
     ).astype(positions.x.dtype)
-    ca_ca_distance = geometry.euclidean_distance(this_ca_pos, next_ca_pos, eps)
-    violations = (ca_ca_distance - rc.ca_ca) > max_angstrom_tolerance
+    ca_ca_distance = geometry.euclidean_distance(
+        this_ca_pos, next_ca_pos, eps)
+    violations = (ca_ca_distance -
+                  rc.ca_ca) > max_angstrom_tolerance
     mask = this_ca_mask * next_ca_mask * has_no_gap_mask
     return tensor_utils.masked_mean(mask=mask, value=violations, dim=-1)
 
@@ -328,12 +362,15 @@ def get_chi_atom_indices(device: torch.device):
         residue_chi_angles = rc.chi_angles_atoms[residue_name]
         atom_indices = []
         for chi_angle in residue_chi_angles:
-            atom_indices.append([rc.atom_order[atom] for atom in chi_angle])
+            atom_indices.append(
+                [rc.atom_order[atom] for atom in chi_angle])
         for _ in range(4 - len(atom_indices)):
-            atom_indices.append([0, 0, 0, 0])  # For chi angles not defined on the AA.
+            # For chi angles not defined on the AA.
+            atom_indices.append([0, 0, 0, 0])
         chi_atom_indices.append(atom_indices)
 
-    chi_atom_indices.append([[0, 0, 0, 0]] * 4)  # For UNKNOWN residue.
+    # For UNKNOWN residue.
+    chi_atom_indices.append([[0, 0, 0, 0]] * 4)
     return torch.tensor(chi_atom_indices, device=device)
 
 
@@ -395,7 +432,8 @@ def compute_chi_angles(
     # Copy the chi angle mask, add the UNKNOWN residue. Shape: [restypes, 4].
     chi_angles_mask = list(rc.chi_angles_mask)
     chi_angles_mask.append([0.0, 0.0, 0.0, 0.0])
-    chi_angles_mask = torch.tensor(chi_angles_mask, device=aatype.device)
+    chi_angles_mask = torch.tensor(
+        chi_angles_mask, device=aatype.device)
     # Compute the chi angle mask. Shape [num_res, chis=4].
     chi_mask = chi_angles_mask[aatype_gapless]
 
@@ -405,8 +443,10 @@ def compute_chi_angles(
         mask, atom_indices, dim=-1, no_batch_dims=no_batch_dims + 1
     )
     # Check if all 4 chi angle atoms were set. Shape: [num_res, chis=4].
-    chi_angle_atoms_mask = torch.prod(chi_angle_atoms_mask, dim=-1)
-    chi_mask = chi_mask * chi_angle_atoms_mask.to(chi_angles.dtype)
+    chi_angle_atoms_mask = torch.prod(
+        chi_angle_atoms_mask, dim=-1)
+    chi_mask = chi_mask * \
+        chi_angle_atoms_mask.to(chi_angles.dtype)
 
     return chi_angles, chi_mask
 
@@ -431,7 +471,8 @@ def make_transform_from_reference(
         reference frame, will give coordinates approximately equal
         the original coordinates (in the global frame).
     """
-    rotation = geometry.Rot3Array.from_two_vectors(c_xyz - b_xyz, a_xyz - b_xyz)
+    rotation = geometry.Rot3Array.from_two_vectors(
+        c_xyz - b_xyz, a_xyz - b_xyz)
     return geometry.Rigid3Array(rotation, b_xyz)
 
 

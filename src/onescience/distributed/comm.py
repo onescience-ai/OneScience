@@ -19,7 +19,8 @@ def set_p2p_tensor_dtype(dtype: torch.dtype):
 
 def build_from_tensor_shapes():
     return [
-        torch.empty(s, dtype=TENSOR_DTYPE, device="cuda", requires_grad=True)
+        torch.empty(s, dtype=TENSOR_DTYPE,
+                    device="cuda", requires_grad=True)
         for s in TENSOR_SHAPES
     ]
 

@@ -32,7 +32,8 @@ from onescience.utils.se3_transformer.runtime.utils import get_local_rank
 def _get_dataloader(dataset: Dataset, shuffle: bool, **kwargs) -> DataLoader:
     # Classic or distributed dataloader depending on the context
     sampler = (
-        DistributedSampler(dataset, shuffle=shuffle) if dist.is_initialized() else None
+        DistributedSampler(
+            dataset, shuffle=shuffle) if dist.is_initialized() else None
     )
     return DataLoader(
         dataset, shuffle=(shuffle and sampler is None), sampler=sampler, **kwargs

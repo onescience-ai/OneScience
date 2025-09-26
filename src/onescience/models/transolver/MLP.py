@@ -57,7 +57,8 @@ class MLP(torch.nn.Module):
             x = norm(x)
             if not self.relu_first:
                 x = x.relu_()
-            x = F.dropout(x, p=self.dropout, training=self.training)
+            x = F.dropout(x, p=self.dropout,
+                          training=self.training)
             x = lin.forward(x)
         return x
 

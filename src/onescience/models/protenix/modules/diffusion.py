@@ -46,7 +46,8 @@ class DiffusionConditioning(nn.Module):
         self.c_s_inputs = c_s_inputs
         # Line1-Line3:
         self.relpe = RelativePositionEncoding(c_z=c_z)
-        self.layernorm_z = LayerNorm(2 * self.c_z, create_offset=False)
+        self.layernorm_z = LayerNorm(
+            2 * self.c_z, create_offset=False)
         self.linear_no_bias_z = LinearNoBias(
             in_features=2 * self.c_z, out_features=self.c_z, precision=torch.float32
         )
@@ -55,15 +56,18 @@ class DiffusionConditioning(nn.Module):
         self.transition_z2 = Transition(c_in=self.c_z, n=2)
 
         # Line6-Line7
-        self.layernorm_s = LayerNorm(self.c_s + self.c_s_inputs, create_offset=False)
+        self.layernorm_s = LayerNorm(
+            self.c_s + self.c_s_inputs, create_offset=False)
         self.linear_no_bias_s = LinearNoBias(
             in_features=self.c_s + self.c_s_inputs,
             out_features=self.c_s,
             precision=torch.float32,
         )
         # Line8-Line9
-        self.fourier_embedding = FourierEmbedding(c=c_noise_embedding)
-        self.layernorm_n = LayerNorm(c_noise_embedding, create_offset=False)
+        self.fourier_embedding = FourierEmbedding(
+            c=c_noise_embedding)
+        self.layernorm_n = LayerNorm(
+            c_noise_embedding, create_offset=False)
         self.linear_no_bias_n = LinearNoBias(
             in_features=c_noise_embedding,
             out_features=self.c_s,
@@ -114,7 +118,8 @@ class DiffusionConditioning(nn.Module):
         pair_z = torch.cat(
             tensors=[z_trunk, self.relpe(input_feature_dict)], dim=-1
         )  # [..., N_tokens, N_tokens, 2*c_z]
-        pair_z = self.linear_no_bias_z(self.layernorm_z(pair_z))
+        pair_z = self.linear_no_bias_z(
+            self.layernorm_z(pair_z))
         if inplace_safe:
             pair_z += self.transition_z1(pair_z)
             pair_z += self.transition_z2(pair_z)
@@ -125,9 +130,11 @@ class DiffusionConditioning(nn.Module):
         single_s = torch.cat(
             tensors=[s_trunk, s_inputs], dim=-1
         )  # [..., N_tokens, c_s + c_s_inputs]
-        single_s = self.linear_no_bias_s(self.layernorm_s(single_s))
+        single_s = self.linear_no_bias_s(
+            self.layernorm_s(single_s))
         noise_n = self.fourier_embedding(
-            t_hat_noise_level=torch.log(input=t_hat_noise_level / self.sigma_data) / 4
+            t_hat_noise_level=torch.log(
+                input=t_hat_noise_level / self.sigma_data) / 4
         ).to(
             single_s.dtype
         )  # [..., N_sample, c_in]
@@ -140,8 +147,10 @@ class DiffusionConditioning(nn.Module):
             single_s += self.transition_s1(single_s)
             single_s += self.transition_s2(single_s)
         else:
-            single_s = single_s + self.transition_s1(single_s)
-            single_s = single_s + self.transition_s2(single_s)
+            single_s = single_s + \
+                self.transition_s1(single_s)
+            single_s = single_s + \
+                self.transition_s2(single_s)
         if not self.training and pair_z.shape[-2] > 2000:
             torch.cuda.empty_cache()
         return single_s, pair_z
@@ -182,7 +191,8 @@ class DiffusionSchedule:
         return self.sigma_data * torch.exp(self.p_mean + self.p_std * torch.randn(1))
 
     def get_inference_noise_schedule(self) -> torch.Tensor:
-        time_step_lists = torch.arange(start=0, end=1 + 1e-10, step=self.dt)
+        time_step_lists = torch.arange(
+            start=0, end=1 + 1e-10, step=self.dt)
         inference_noise_schedule = (
             self.sigma_data
             * (
@@ -209,13 +219,15 @@ class DiffusionModule(nn.Module):
         c_s: int = 384,
         c_z: int = 128,
         c_s_inputs: int = 449,
-        atom_encoder: dict[str, int] = {"n_blocks": 3, "n_heads": 4},
+        atom_encoder: dict[str, int] = {
+            "n_blocks": 3, "n_heads": 4},
         transformer: dict[str, int] = {
             "n_blocks": 24,
             "n_heads": 16,
             "drop_path_rate": 0,
         },
-        atom_decoder: dict[str, int] = {"n_blocks": 3, "n_heads": 4},
+        atom_decoder: dict[str, int] = {
+            "n_blocks": 3, "n_heads": 4},
         drop_path_rate: float = 0.0,
         blocks_per_ckpt: Optional[int] = None,
         use_fine_grained_checkpoint: bool = False,
@@ -266,7 +278,8 @@ class DiffusionModule(nn.Module):
             blocks_per_ckpt=blocks_per_ckpt,
         )
         # Alg20: line4
-        self.layernorm_s = LayerNorm(c_s, create_offset=False)
+        self.layernorm_s = LayerNorm(
+            c_s, create_offset=False)
         self.linear_no_bias_s = LinearNoBias(
             in_features=c_s,
             out_features=c_token,
@@ -280,7 +293,8 @@ class DiffusionModule(nn.Module):
             c_z=c_z,
             blocks_per_ckpt=blocks_per_ckpt,
         )
-        self.layernorm_a = LayerNorm(c_token, create_offset=False)
+        self.layernorm_a = LayerNorm(
+            c_token, create_offset=False)
         self.atom_attention_decoder = AtomAttentionDecoder(
             **atom_decoder,
             c_token=c_token,
@@ -400,7 +414,8 @@ class DiffusionModule(nn.Module):
             )  # [..., N_sample, N_token, c_token]
 
         a_token = self.diffusion_transformer(
-            a=a_token.to(dtype=torch.float32),  # Upcast all inputs
+            # Upcast all inputs
+            a=a_token.to(dtype=torch.float32),
             s=s_single.to(dtype=torch.float32),
             z=z_pair.to(dtype=torch.float32),
             inplace_safe=inplace_safe,
@@ -508,7 +523,8 @@ class DiffusionModule(nn.Module):
         )
         x_denoised = (
             1 / (1 + s_ratio**2) * x_noisy
-            + t_hat_noise_level[..., None, None] / torch.sqrt(1 + s_ratio**2) * r_update
+            + t_hat_noise_level[..., None, None] /
+            torch.sqrt(1 + s_ratio**2) * r_update
         ).to(r_update.dtype)
 
         return x_denoised

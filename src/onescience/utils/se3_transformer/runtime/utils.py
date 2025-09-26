@@ -41,11 +41,13 @@ def aggregate_residual(feats1, feats2, method: str):
         return {k: (v + feats1[k]) if k in feats1 else v for k, v in feats2.items()}
     elif method in ["cat", "concat"]:
         return {
-            k: torch.cat([v, feats1[k]], dim=1) if k in feats1 else v
+            k: torch.cat([v, feats1[k]],
+                         dim=1) if k in feats1 else v
             for k, v in feats2.items()
         }
     else:
-        raise ValueError("Method must be add/sum or cat/concat")
+        raise ValueError(
+            "Method must be add/sum or cat/concat")
 
 
 def degree_to_dim(degree: int) -> int:
@@ -56,7 +58,8 @@ def unfuse_features(features: Tensor, degrees: List[int]) -> Dict[str, Tensor]:
     return dict(
         zip(
             map(str, degrees),
-            features.split([degree_to_dim(deg) for deg in degrees], dim=-1),
+            features.split([degree_to_dim(deg)
+                           for deg in degrees], dim=-1),
         )
     )
 
@@ -69,7 +72,8 @@ def str2bool(v: Union[bool, str]) -> bool:
     elif v.lower() in ("no", "false", "f", "n", "0"):
         return False
     else:
-        raise argparse.ArgumentTypeError("Boolean value expected.")
+        raise argparse.ArgumentTypeError(
+            "Boolean value expected.")
 
 
 def to_cuda(x):
@@ -96,7 +100,8 @@ def init_distributed() -> bool:
     distributed = world_size > 1
     if distributed:
         backend = "nccl" if torch.cuda.is_available() else "gloo"
-        dist.init_process_group(backend=backend, init_method="env://")
+        dist.init_process_group(
+            backend=backend, init_method="env://")
         if backend == "nccl":
             torch.cuda.set_device(get_local_rank())
         else:
@@ -110,9 +115,12 @@ def increase_l2_fetch_granularity():
     _libcudart = ctypes.CDLL("libcudart.so")
     # set device limit on the current device
     # cudaLimitMaxL2FetchGranularity = 0x05
-    pValue = ctypes.cast((ctypes.c_int * 1)(), ctypes.POINTER(ctypes.c_int))
-    _libcudart.cudaDeviceSetLimit(ctypes.c_int(0x05), ctypes.c_int(128))
-    _libcudart.cudaDeviceGetLimit(pValue, ctypes.c_int(0x05))
+    pValue = ctypes.cast(
+        (ctypes.c_int * 1)(), ctypes.POINTER(ctypes.c_int))
+    _libcudart.cudaDeviceSetLimit(
+        ctypes.c_int(0x05), ctypes.c_int(128))
+    _libcudart.cudaDeviceGetLimit(
+        pValue, ctypes.c_int(0x05))
     assert pValue.contents.value == 128
 
 

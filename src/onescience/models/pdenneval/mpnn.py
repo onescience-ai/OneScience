@@ -55,34 +55,40 @@ class GNN_Layer(MessagePassing):
             Swish(),
         )
         self.message_net_2 = nn.Sequential(
-            nn.Linear(hidden_features, hidden_features), Swish()
+            nn.Linear(hidden_features,
+                      hidden_features), Swish()
         )
         self.update_net_1 = nn.Sequential(
-            nn.Linear(in_features + hidden_features + n_variables, hidden_features),
+            nn.Linear(in_features + hidden_features +
+                      n_variables, hidden_features),
             Swish(),
         )
         self.update_net_2 = nn.Sequential(
-            nn.Linear(hidden_features, out_features), Swish()
+            nn.Linear(hidden_features,
+                      out_features), Swish()
         )
         self.norm = InstanceNorm(hidden_features)
 
     def forward(self, x, u, pos, variables, edge_index, batch):
         """Propagate messages along edges"""
-        x = self.propagate(edge_index, x=x, u=u, pos=pos, variables=variables)
+        x = self.propagate(
+            edge_index, x=x, u=u, pos=pos, variables=variables)
         x = self.norm(x, batch)
         return x
 
     def message(self, x_i, x_j, u_i, u_j, pos_i, pos_j, variables_i):
         """Message update following formula 8 of the paper"""
         message = self.message_net_1(
-            torch.cat((x_i, x_j, u_i - u_j, pos_i - pos_j, variables_i), dim=-1)
+            torch.cat(
+                (x_i, x_j, u_i - u_j, pos_i - pos_j, variables_i), dim=-1)
         )
         message = self.message_net_2(message)
         return message
 
     def update(self, message, x, variables):
         """Node update following formula 9 of the paper"""
-        update = self.update_net_1(torch.cat((x, message, variables), dim=-1))
+        update = self.update_net_1(
+            torch.cat((x, message, variables), dim=-1))
         update = self.update_net_2(update)
         if self.in_features == self.out_features:
             return x + update
@@ -122,11 +128,13 @@ class MPNN(nn.Module):
         # encoder
         self.embedding_mlp = nn.Sequential(
             nn.Linear(
-                self.time_window + self.pde.spatial_dim + 1 + len(self.eq_variables),
+                self.time_window + self.pde.spatial_dim +
+                1 + len(self.eq_variables),
                 self.hidden_features,
             ),
             Swish(),
-            nn.Linear(self.hidden_features, self.hidden_features),
+            nn.Linear(self.hidden_features,
+                      self.hidden_features),
             Swish(),
         )
 
@@ -140,7 +148,8 @@ class MPNN(nn.Module):
                     time_window=self.time_window,
                     spatial_dim=self.pde.spatial_dim,
                     n_variables=len(self.eq_variables)
-                    + 1,  # (time is treated as equation variable)
+                    # (time is treated as equation variable)
+                    + 1,
                 )
                 for _ in range(self.hidden_layers)
             )
@@ -149,19 +158,23 @@ class MPNN(nn.Module):
         # decoder
         if self.time_window == 10:  # NEW ADD
             self.output_mlp = nn.Sequential(
-                nn.Conv1d(1, 8, 18, stride=5), Swish(), nn.Conv1d(8, 1, 14, stride=1)
+                nn.Conv1d(1, 8, 18, stride=5), Swish(
+                ), nn.Conv1d(8, 1, 14, stride=1)
             )
         if self.time_window == 20:
             self.output_mlp = nn.Sequential(
-                nn.Conv1d(1, 8, 15, stride=4), Swish(), nn.Conv1d(8, 1, 10, stride=1)
+                nn.Conv1d(1, 8, 15, stride=4), Swish(
+                ), nn.Conv1d(8, 1, 10, stride=1)
             )
         if self.time_window == 25:
             self.output_mlp = nn.Sequential(
-                nn.Conv1d(1, 8, 16, stride=3), Swish(), nn.Conv1d(8, 1, 14, stride=1)
+                nn.Conv1d(1, 8, 16, stride=3), Swish(
+                ), nn.Conv1d(8, 1, 14, stride=1)
             )
         if self.time_window == 50:
             self.output_mlp = nn.Sequential(
-                nn.Conv1d(1, 8, 12, stride=2), Swish(), nn.Conv1d(8, 1, 10, stride=1)
+                nn.Conv1d(1, 8, 12, stride=2), Swish(
+                ), nn.Conv1d(8, 1, 10, stride=1)
             )
 
     def forward(self, data: Data, v: int = 0) -> torch.Tensor:
@@ -185,12 +198,15 @@ class MPNN(nn.Module):
         t_pos = t_pos / self.pde.tmax
         for d in range(self.pde.spatial_dim):
             x_pos[:, d] = x_pos[:, d] / (
-                self.pde.spatial_domain[d][1] - self.pde.spatial_domain[d][0]
+                self.pde.spatial_domain[d][1] -
+                self.pde.spatial_domain[d][0]
             )
 
         # encode
-        node_input = torch.cat((u, x_pos, t_pos.unsqueeze(1), variables), dim=-1)
-        f = self.embedding_mlp(node_input)  # [bs*nx, hidden_dim]
+        node_input = torch.cat(
+            (u, x_pos, t_pos.unsqueeze(1), variables), dim=-1)
+        # [bs*nx, hidden_dim]
+        f = self.embedding_mlp(node_input)
 
         # process
         for i in range(self.hidden_layers):
@@ -199,18 +215,22 @@ class MPNN(nn.Module):
                 f,
                 u,
                 x_pos,
-                torch.cat((t_pos.unsqueeze(1), variables), dim=-1),
+                torch.cat(
+                    (t_pos.unsqueeze(1), variables), dim=-1),
                 edge_index,
                 batch,
             )
 
         # decode
-        dt = (self.pde.tmax - self.pde.tmin) / self.pde.resolution_t
-        dt = (torch.ones(1, self.time_window) * dt).to(f.device)  # [1, tw]
+        dt = (self.pde.tmax - self.pde.tmin) / \
+            self.pde.resolution_t
+        dt = (torch.ones(1, self.time_window)
+              * dt).to(f.device)  # [1, tw]
         dt = torch.cumsum(dt, dim=1)  # [1, tw]
         # [bs*nx, hidden_dim] -> [bs*nx, 1, hidden_dim]) -> conv1d -> [bs*nx, 1, tw] -> [bs*nx, tw] (diff)
         diff = self.output_mlp(f[:, None]).squeeze(1)
         # [bs*nx] -> [tw, bs*nx] -> [bs*nx, tw]
-        out = u[:, -1].repeat(self.time_window, 1).transpose(0, 1) + dt * diff
+        out = u[:, -1].repeat(self.time_window,
+                              1).transpose(0, 1) + dt * diff
         # print(out.shape)
         return out

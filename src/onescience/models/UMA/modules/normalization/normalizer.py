@@ -117,8 +117,10 @@ def create_normalizer(
             # try to load an NPZ file
             values = np.load(file)
             mean = values.get("mean")
-            rmsd = values.get("rmsd") or values.get("std")  # legacy files
-            tensor = None  # set to None since values read from file are prioritized
+            rmsd = values.get("rmsd") or values.get(
+                "std")  # legacy files
+            # set to None since values read from file are prioritized
+            tensor = None
         else:
             raise RuntimeError(
                 f"Normalizer file with extension '{extension}' is not supported."
@@ -163,7 +165,8 @@ def fit_normalizers(
     targets: list[str],
     dataset: Dataset,
     batch_size: int,
-    override_values: dict[str, dict[str, float]] | None = None,
+    override_values: dict[str,
+                          dict[str, float]] | None = None,
     rmsd_correction: int | None = None,
     element_references: dict | None = None,
     num_batches: int | None = None,
@@ -203,7 +206,8 @@ def fit_normalizers(
         generator=torch.Generator().manual_seed(seed),
     )
 
-    num_batches = num_batches if num_batches is not None else len(data_loader)
+    num_batches = num_batches if num_batches is not None else len(
+        data_loader)
     if num_batches > len(data_loader):
         logging.warning(
             f"The given num_batches {num_batches} is larger than total batches of size {batch_size} in dataset. "
@@ -234,7 +238,8 @@ def fit_normalizers(
 
     normalizers = {}
     for target in targets:
-        target_vector = torch.cat(target_vectors[target], dim=0)
+        target_vector = torch.cat(
+            target_vectors[target], dim=0)
         values = {"mean": target_vector.mean()}
         if target in override_values:
             for name, val in override_values[target].items():
@@ -244,7 +249,8 @@ def fit_normalizers(
             if rmsd_correction is None:
                 rmsd_correction = 0 if values["mean"] == 0.0 else 1
             values["rmsd"] = (
-                ((target_vector - values["mean"]) ** 2).sum()
+                ((target_vector -
+                 values["mean"]) ** 2).sum()
                 / max(len(target_vector) - rmsd_correction, 1)
             ).sqrt()
         normalizers[target] = create_normalizer(**values)
@@ -257,7 +263,8 @@ def load_normalizers_from_config(
     dataset: Dataset,
     seed: int = 0,
     checkpoint_dir: str | Path | None = None,
-    element_references: dict[str, LinearReferences] | None = None,
+    element_references: dict[str,
+                             LinearReferences] | None = None,
 ) -> dict[str, Normalizer]:
     """Create a dictionary with element references from a config."""
     # edit the config slightly to extract override args
@@ -271,7 +278,8 @@ def load_normalizers_from_config(
                 if isinstance(vals, dict)
             }
             config["fit"]["override_values"] = override_values
-            config["fit"]["targets"] = list(config["fit"]["targets"].keys())
+            config["fit"]["targets"] = list(
+                config["fit"]["targets"].keys())
 
     return _load_from_config(
         config,

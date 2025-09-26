@@ -46,13 +46,16 @@ def pseudo_beta_fn(
     )
 
     pseudo_beta = xnp.take_along_axis(
-        dense_atom_positions, pseudobeta_index[..., None, None], axis=-2
+        dense_atom_positions, pseudobeta_index[...,
+                                               None, None], axis=-2
     )
     pseudo_beta = xnp.squeeze(pseudo_beta, axis=-2)
 
     pseudo_beta_mask = xnp.take_along_axis(
-        dense_atom_masks, pseudobeta_index[..., None], axis=-1
+        dense_atom_masks, pseudobeta_index[...,
+                                           None], axis=-1
     ).astype(xnp.float32)
-    pseudo_beta_mask = xnp.squeeze(pseudo_beta_mask, axis=-1)
+    pseudo_beta_mask = xnp.squeeze(
+        pseudo_beta_mask, axis=-1)
 
     return pseudo_beta, pseudo_beta_mask

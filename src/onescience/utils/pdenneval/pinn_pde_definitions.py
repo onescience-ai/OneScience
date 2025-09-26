@@ -29,8 +29,10 @@ def pde_diffusion_reaction(x, y):
     u1 = y[..., 0].unsqueeze(1)
     u2 = y[..., 1].unsqueeze(1)
 
-    eq1 = du1_t - reaction_1(u1, u2) - d1 * (du1_xx + du1_yy)
-    eq2 = du2_t - reaction_2(u1, u2) - d2 * (du2_xx + du2_yy)
+    eq1 = du1_t - reaction_1(u1, u2) - \
+        d1 * (du1_xx + du1_yy)
+    eq2 = du2_t - reaction_2(u1, u2) - \
+        d2 * (du2_xx + du2_yy)
 
     return [eq1, eq2]
 
@@ -124,7 +126,8 @@ def pde_CFD1d(x, y, gamma):
     u_xx = dde.grad.jacobian(u_x, x, i=0, j=0)
 
     eq1 = h_t + hu_x
-    eq2 = h * (u_t + u * u_x) + p_x - eta * u_xx - (zeta + eta / 3.0) * u_xx
+    eq2 = h * (u_t + u * u_x) + p_x - eta * \
+        u_xx - (zeta + eta / 3.0) * u_xx
     eq3 = E_t + Fx_x
 
     return [eq1, eq2, eq3]
@@ -193,7 +196,8 @@ def pde_CFD3d(x, y, gamma):
     uy = y[..., 2].unsqueeze(1)  # vy
     uz = y[..., 3].unsqueeze(1)  # vz
     p = y[..., 4].unsqueeze(1)  # p
-    E = p / (gamma - 1.0) + 0.5 * h * (ux**2 + uy**2 + uz**2)
+    E = p / (gamma - 1.0) + 0.5 * h * \
+        (ux**2 + uy**2 + uz**2)
     E = E.unsqueeze(1)
     Fx = ux * (E + p)
     Fx = Fx.unsqueeze(1)
@@ -278,8 +282,10 @@ def pde_burgers2D(x, y, nu):
     dv_xx = dde.grad.hessian(dv_x, x, i=0, j=0)
     dv_yy = dde.grad.hessian(dv_y, x, i=0, j=1)
 
-    eq1 = du_t + y[:, 0:1] * du_x + y[:, 1:2] * du_y - nu * (du_xx + du_yy)
-    eq2 = dv_t + y[:, 0:1] * dv_x + y[:, 1:2] * dv_y - nu * (dv_xx + dv_yy)
+    eq1 = du_t + y[:, 0:1] * du_x + \
+        y[:, 1:2] * du_y - nu * (du_xx + du_yy)
+    eq2 = dv_t + y[:, 0:1] * dv_x + \
+        y[:, 1:2] * dv_y - nu * (dv_xx + dv_yy)
 
     return [eq1, eq2]
 
@@ -346,7 +352,8 @@ def pde_euler(x, y, gamma):
     uy = y[..., 2].unsqueeze(1)  # vy
     uz = y[..., 3].unsqueeze(1)  # vz
     p = y[..., 4].unsqueeze(1)  # p
-    E = p / (gamma - 1.0) + 0.5 * h * (ux**2 + uy**2 + uz**2)
+    E = p / (gamma - 1.0) + 0.5 * h * \
+        (ux**2 + uy**2 + uz**2)
     E = E.unsqueeze(1)
     Fx = ux * (E + p)
     Fx = Fx.unsqueeze(1)
@@ -393,9 +400,12 @@ def pde_euler(x, y, gamma):
     uz_zz = dde.grad.jacobian(uz_z, x, i=0, j=2)
 
     eq1 = h_t + hu_x + hu_y + hu_z
-    eq2 = h * (ux_t + ux * ux_x + uy * ux_y + uz * ux_z) + p_x
-    eq3 = h * (uy_t + ux * uy_x + uy * uy_y + uz * uy_z) + p_y
-    eq4 = h * (uz_t + ux * uz_x + uy * uz_y + uz * uz_z) + p_z
+    eq2 = h * (ux_t + ux * ux_x + uy *
+               ux_y + uz * ux_z) + p_x
+    eq3 = h * (uy_t + ux * uy_x + uy *
+               uy_y + uz * uy_z) + p_y
+    eq4 = h * (uz_t + ux * uz_x + uy *
+               uz_y + uz * uz_z) + p_z
     eq5 = E_t + Fx_x + Fy_y + Fz_z
 
     # print(Fx.shape, eq1.shape, eq2.shape, eq3.shape, eq4.shape, eq5.shape)

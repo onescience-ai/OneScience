@@ -11,22 +11,27 @@ YTOL = 0.999999
 
 def init_edge_rot_mat(edge_distance_vec, rot_clip=False):
     edge_vec_0 = edge_distance_vec
-    edge_vec_0_distance = torch.sqrt(torch.sum(edge_vec_0**2, dim=1))
+    edge_vec_0_distance = torch.sqrt(
+        torch.sum(edge_vec_0**2, dim=1))
 
     # Make sure the atoms are far enough apart
     # assert torch.min(edge_vec_0_distance) < 0.0001
     if len(edge_vec_0_distance) > 0 and torch.min(edge_vec_0_distance) < 0.0001:
-        logging.error(f"Error edge_vec_0_distance: {torch.min(edge_vec_0_distance)}")
+        logging.error(
+            f"Error edge_vec_0_distance: {torch.min(edge_vec_0_distance)}")
 
     norm_x = edge_vec_0 / (edge_vec_0_distance.view(-1, 1))
 
     if rot_clip:
         yprod = norm_x @ norm_x.new_tensor([0.0, 1.0, 0.0])
-        norm_x[yprod > YTOL] = norm_x.new_tensor([0.0, 1.0, 0.0])
-        norm_x[yprod < -YTOL] = norm_x.new_tensor([0.0, -1.0, 0.0])
+        norm_x[yprod > YTOL] = norm_x.new_tensor(
+            [0.0, 1.0, 0.0])
+        norm_x[yprod < -
+               YTOL] = norm_x.new_tensor([0.0, -1.0, 0.0])
 
     edge_vec_2 = torch.rand_like(edge_vec_0) - 0.5
-    edge_vec_2 = edge_vec_2 / (torch.sqrt(torch.sum(edge_vec_2**2, dim=1)).view(-1, 1))
+    edge_vec_2 = edge_vec_2 / \
+        (torch.sqrt(torch.sum(edge_vec_2**2, dim=1)).view(-1, 1))
     # Create two rotated copys of the random vectors in case the random vector is aligned with norm_x
     # With two 90 degree rotated vectors, at least one should not be aligned with norm_x
     edge_vec_2b = edge_vec_2.clone()
@@ -35,31 +40,42 @@ def init_edge_rot_mat(edge_distance_vec, rot_clip=False):
     edge_vec_2c = edge_vec_2.clone()
     edge_vec_2c[:, 1] = -edge_vec_2[:, 2]
     edge_vec_2c[:, 2] = edge_vec_2[:, 1]
-    vec_dot_b = torch.abs(torch.sum(edge_vec_2b * norm_x, dim=1)).view(-1, 1)
-    vec_dot_c = torch.abs(torch.sum(edge_vec_2c * norm_x, dim=1)).view(-1, 1)
+    vec_dot_b = torch.abs(
+        torch.sum(edge_vec_2b * norm_x, dim=1)).view(-1, 1)
+    vec_dot_c = torch.abs(
+        torch.sum(edge_vec_2c * norm_x, dim=1)).view(-1, 1)
 
-    vec_dot = torch.abs(torch.sum(edge_vec_2 * norm_x, dim=1)).view(-1, 1)
-    edge_vec_2 = torch.where(torch.gt(vec_dot, vec_dot_b), edge_vec_2b, edge_vec_2)
-    vec_dot = torch.abs(torch.sum(edge_vec_2 * norm_x, dim=1)).view(-1, 1)
-    edge_vec_2 = torch.where(torch.gt(vec_dot, vec_dot_c), edge_vec_2c, edge_vec_2)
+    vec_dot = torch.abs(
+        torch.sum(edge_vec_2 * norm_x, dim=1)).view(-1, 1)
+    edge_vec_2 = torch.where(
+        torch.gt(vec_dot, vec_dot_b), edge_vec_2b, edge_vec_2)
+    vec_dot = torch.abs(
+        torch.sum(edge_vec_2 * norm_x, dim=1)).view(-1, 1)
+    edge_vec_2 = torch.where(
+        torch.gt(vec_dot, vec_dot_c), edge_vec_2c, edge_vec_2)
 
-    vec_dot = torch.abs(torch.sum(edge_vec_2 * norm_x, dim=1))
+    vec_dot = torch.abs(
+        torch.sum(edge_vec_2 * norm_x, dim=1))
     # Check the vectors aren't aligned
     if len(vec_dot) > 0:
         assert torch.max(vec_dot) < 0.99
 
     norm_z = torch.cross(norm_x, edge_vec_2, dim=1)
-    norm_z = norm_z / (torch.sqrt(torch.sum(norm_z**2, dim=1, keepdim=True)))
-    norm_z = norm_z / (torch.sqrt(torch.sum(norm_z**2, dim=1)).view(-1, 1))
+    norm_z = norm_z / \
+        (torch.sqrt(torch.sum(norm_z**2, dim=1, keepdim=True)))
+    norm_z = norm_z / \
+        (torch.sqrt(torch.sum(norm_z**2, dim=1)).view(-1, 1))
     norm_y = torch.cross(norm_x, norm_z, dim=1)
-    norm_y = norm_y / (torch.sqrt(torch.sum(norm_y**2, dim=1, keepdim=True)))
+    norm_y = norm_y / \
+        (torch.sqrt(torch.sum(norm_y**2, dim=1, keepdim=True)))
 
     # Construct the 3D rotation matrix
     norm_x = norm_x.view(-1, 3, 1)
     norm_y = -norm_y.view(-1, 3, 1)
     norm_z = norm_z.view(-1, 3, 1)
 
-    edge_rot_mat_inv = torch.cat([norm_z, norm_x, norm_y], dim=2)
+    edge_rot_mat_inv = torch.cat(
+        [norm_z, norm_x, norm_y], dim=2)
     edge_rot_mat = torch.transpose(edge_rot_mat_inv, 1, 2)
 
     if rot_clip:
@@ -79,7 +95,8 @@ def wigner_D(
     gamma: torch.Tensor,
     _Jd: list[torch.Tensor],
 ) -> torch.Tensor:
-    alpha, beta, gamma = torch.broadcast_tensors(alpha, beta, gamma)
+    alpha, beta, gamma = torch.broadcast_tensors(
+        alpha, beta, gamma)
     J = _Jd[lv]
     Xa = _z_rot_mat(alpha, lv)
     Xb = _z_rot_mat(beta, lv)
@@ -88,7 +105,8 @@ def wigner_D(
 
 
 def _z_rot_mat(angle: torch.Tensor, lv: int) -> torch.Tensor:
-    M = angle.new_zeros((*angle.shape, 2 * lv + 1, 2 * lv + 1))
+    M = angle.new_zeros(
+        (*angle.shape, 2 * lv + 1, 2 * lv + 1))
 
     # The following code needs to replaced for a for loop because
     # torch.export barfs on outer product like operations
@@ -106,8 +124,10 @@ def _z_rot_mat(angle: torch.Tensor, lv: int) -> torch.Tensor:
     reversed_inds = list(range(2 * lv, -1, -1))
     frequencies = list(range(lv, -lv - 1, -1))
     for i in range(len(frequencies)):
-        M[..., inds[i], reversed_inds[i]] = torch.sin(frequencies[i] * angle)
-        M[..., inds[i], inds[i]] = torch.cos(frequencies[i] * angle)
+        M[..., inds[i], reversed_inds[i]] = torch.sin(
+            frequencies[i] * angle)
+        M[..., inds[i], inds[i]] = torch.cos(
+            frequencies[i] * angle)
     return M
 
 
@@ -121,10 +141,12 @@ def rotation_to_wigner(
     """
     set <rot_clip=True> to handle gradient instability when using gradient-based force/stress prediction.
     """
-    x = edge_rot_mat @ edge_rot_mat.new_tensor([0.0, 1.0, 0.0])
+    x = edge_rot_mat @ edge_rot_mat.new_tensor(
+        [0.0, 1.0, 0.0])
     alpha, beta = o3.xyz_to_angles(x)
     R = (
-        o3.angles_to_matrix(alpha, beta, torch.zeros_like(alpha)).transpose(-1, -2)
+        o3.angles_to_matrix(
+            alpha, beta, torch.zeros_like(alpha)).transpose(-1, -2)
         @ edge_rot_mat
     )
     gamma = torch.atan2(R[..., 0, 2], R[..., 0, 0])
@@ -154,7 +176,8 @@ def rotation_to_wigner(
             ).to(wigner.dtype)
             end = start + block.size()[1]
             wigner[mask, start:end, start:end] = block
-            wigner[~mask, start:end, start:end] = block_detach
+            wigner[~mask, start:end,
+                   start:end] = block_detach
             start = end
         else:
             block = wigner_D(lmax, alpha, beta, gamma, Jd)

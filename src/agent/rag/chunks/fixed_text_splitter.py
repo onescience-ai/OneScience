@@ -51,7 +51,8 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
         """Create a new TextSplitter."""
         super().__init__(**kwargs)
         self._fixed_separator = fixed_separator
-        self._separators = separators or ["\n\n", "\n", " ", ""]
+        self._separators = separators or [
+            "\n\n", "\n", " ", ""]
 
     def split_text(self, text: str) -> list[str]:
         """Split incoming text and return chunks."""
@@ -64,7 +65,8 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
         chunks_lengths = self._length_function(chunks)
         for chunk, chunk_length in zip(chunks, chunks_lengths):
             if chunk_length > self._chunk_size:
-                final_chunks.extend(self.recursive_split_text(chunk))
+                final_chunks.extend(
+                    self.recursive_split_text(chunk))
             else:
                 final_chunks.append(chunk)
 
@@ -83,7 +85,7 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
                 break
             if _s in text:
                 separator = _s
-                new_separators = self._separators[i + 1 :]
+                new_separators = self._separators[i + 1:]
                 break
 
         # Now that we have the separator, split the text
@@ -93,12 +95,14 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
             else:
                 splits = text.split(separator)
                 splits = [
-                    item + separator if i < len(splits) else item
+                    item +
+                    separator if i < len(splits) else item
                     for i, item in enumerate(splits)
                 ]
         else:
             splits = list(text)
-        splits = [s for s in splits if (s not in {"", "\n"})]
+        splits = [s for s in splits if (
+            s not in {"", "\n"})]
         _good_splits = []
         _good_splits_lengths = []  # cache the lengths of the splits
         _separator = "" if self._keep_separator else separator
@@ -119,7 +123,8 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
                     if not new_separators:
                         final_chunks.append(s)
                     else:
-                        other_info = self._split_text(s, new_separators)
+                        other_info = self._split_text(
+                            s, new_separators)
                         final_chunks.extend(other_info)
 
             if _good_splits:

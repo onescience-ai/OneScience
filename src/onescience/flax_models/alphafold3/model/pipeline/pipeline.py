@@ -150,7 +150,8 @@ class WholePdbPipeline:
         if random_seed is None:
             random_seed = random_state.randint(2**31)
 
-        random_state = np.random.RandomState(seed=random_seed)
+        random_state = np.random.RandomState(
+            seed=random_seed)
 
         logging_name = f"{fold_input.name}, random_seed={random_seed}"
         logging.info("processing %s", logging_name)
@@ -185,7 +186,8 @@ class WholePdbPipeline:
 
         # No chains after fixes
         if cleaned_struc.num_chains == 0:
-            raise MmcifNumChainsError(f"{logging_name}: No chains in structure!")
+            raise MmcifNumChainsError(
+                f"{logging_name}: No chains in structure!")
 
         polymer_ligand_bonds, ligand_ligand_bonds = (
             inter_chain_bonds.get_polymer_ligand_and_ligand_ligand_bonds(
@@ -242,8 +244,10 @@ class WholePdbPipeline:
                 f"({total_tokens} < {self._config.min_total_residues})"
             )
 
-        logging.info("Calculating bucket size for input with %d tokens.", total_tokens)
-        padded_token_length = calculate_bucket_size(total_tokens, self._config.buckets)
+        logging.info(
+            "Calculating bucket size for input with %d tokens.", total_tokens)
+        padded_token_length = calculate_bucket_size(
+            total_tokens, self._config.buckets)
         logging.info(
             "Got bucket size %d for input with %d tokens, resulting in %d padded"
             " tokens.",
@@ -253,10 +257,12 @@ class WholePdbPipeline:
         )
 
         # Padding shapes for all features.
-        num_atoms = padded_token_length * self._config.average_num_atoms_per_token
+        num_atoms = padded_token_length * \
+            self._config.average_num_atoms_per_token
         # Round up to next multiple of subset size.
         num_atoms = int(
-            np.ceil(num_atoms / self._config.atom_cross_att_queries_subset_size)
+            np.ceil(
+                num_atoms / self._config.atom_cross_att_queries_subset_size)
             * self._config.atom_cross_att_queries_subset_size
         )
         padding_shapes = features.PaddingShapes(
@@ -353,7 +359,8 @@ class WholePdbPipeline:
                 ccd=ccd,
                 padding_shapes=padding_shapes,
                 chemical_components_data=chemical_components_data,
-                random_state=(np.random.RandomState(_DETERMINISTIC_FRAMES_RANDOM_SEED)),
+                random_state=(np.random.RandomState(
+                    _DETERMINISTIC_FRAMES_RANDOM_SEED)),
                 ref_max_modified_date=ref_max_modified_date,
                 conformer_max_iterations=None,
                 ligand_ligand_bonds=ligand_ligand_bonds,
@@ -410,7 +417,8 @@ class WholePdbPipeline:
 
         np_example = batch.as_data_dict()
         if "num_iter_recycling" in np_example:
-            del np_example["num_iter_recycling"]  # that does not belong here
+            # that does not belong here
+            del np_example["num_iter_recycling"]
 
         for name, value in np_example.items():
             if (

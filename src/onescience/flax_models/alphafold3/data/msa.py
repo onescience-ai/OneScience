@@ -24,7 +24,8 @@ class Error(Exception):
 def _featurize(seq: str, chain_poly_type: str) -> str | list[int]:
     if mmcif_names.is_standard_polymer_type(chain_poly_type):
         featurized_seqs, _ = msa_features.extract_msa_features(
-            msa_sequences=[seq], chain_poly_type=chain_poly_type
+            msa_sequences=[
+                seq], chain_poly_type=chain_poly_type
         )
         return featurized_seqs[0].tolist()
     # For anything else simply require an identical match.
@@ -66,7 +67,8 @@ class Msa:
             order. Lowercase letters (insertions) are ignored when deduplicating.
         """
         if len(sequences) != len(descriptions):
-            raise ValueError("The number of sequences and descriptions must match.")
+            raise ValueError(
+                "The number of sequences and descriptions must match.")
 
         self.query_sequence = query_sequence
         self.chain_poly_type = chain_poly_type
@@ -78,19 +80,23 @@ class Msa:
             self.sequences = []
             self.descriptions = []
             # A replacement table that removes all lowercase characters.
-            deletion_table = str.maketrans("", "", string.ascii_lowercase)
+            deletion_table = str.maketrans(
+                "", "", string.ascii_lowercase)
             unique_sequences = set()
             for seq, desc in zip(sequences, descriptions, strict=True):
                 # Using string.translate is faster than re.sub('[a-z]+', '').
-                sequence_no_deletions = seq.translate(deletion_table)
+                sequence_no_deletions = seq.translate(
+                    deletion_table)
                 if sequence_no_deletions not in unique_sequences:
-                    unique_sequences.add(sequence_no_deletions)
+                    unique_sequences.add(
+                        sequence_no_deletions)
                     self.sequences.append(seq)
                     self.descriptions.append(desc)
 
         # Make sure the MSA always has at least the query.
         self.sequences = self.sequences or [query_sequence]
-        self.descriptions = self.descriptions or ["Original query"]
+        self.descriptions = self.descriptions or [
+            "Original query"]
 
         # Check if the 1st MSA sequence matches the query sequence. Since it may be
         # mutated by the search tool (jackhmmer) check using the featurized version.
@@ -115,7 +121,8 @@ class Msa:
           An Msa object created by merging multiple MSAs.
         """
         if not msas:
-            raise ValueError("At least one MSA must be provided.")
+            raise ValueError(
+                "At least one MSA must be provided.")
 
         query_sequence = msas[0].query_sequence
         chain_poly_type = msas[0].chain_poly_type
@@ -159,14 +166,16 @@ class Msa:
           An Msa object created by merging multiple A3Ms.
         """
         if not a3ms:
-            raise ValueError("At least one A3M must be provided.")
+            raise ValueError(
+                "At least one A3M must be provided.")
 
         query_sequence = None
         all_sequences = []
         all_descriptions = []
 
         for a3m in a3ms:
-            sequences, descriptions = parsers.parse_fasta(a3m)
+            sequences, descriptions = parsers.parse_fasta(
+                a3m)
             if query_sequence is None:
                 query_sequence = sequences[0]
 
@@ -259,12 +268,14 @@ class Msa:
                 msa_sequences=self.sequences, chain_poly_type=self.chain_poly_type
             )
         except ValueError as e:
-            raise Error(f"Error extracting MSA or deletion features: {e}") from e
+            raise Error(
+                f"Error extracting MSA or deletion features: {e}") from e
 
         if msa.shape == (0, 0):
             raise Error(f"Empty MSA feature for {self}")
 
-        species_ids = msa_features.extract_species_ids(self.descriptions)
+        species_ids = msa_features.extract_species_ids(
+            self.descriptions)
 
         return {
             "msa_species_identifiers": np.array(species_ids, dtype=object),
@@ -313,7 +324,8 @@ def get_msa_tool(
                 result2msa_options=msa_tool_config.result2msa_options,
             )
         case _:
-            raise ValueError(f"Unknown MSA tool: {msa_tool_config}.")
+            raise ValueError(
+                f"Unknown MSA tool: {msa_tool_config}.")
 
 
 def get_msa(
@@ -338,7 +350,8 @@ def get_msa(
     return Msa.from_a3m(
         query_sequence=target_sequence,
         chain_poly_type=chain_poly_type,
-        a3m=get_msa_tool(run_config.config).query(target_sequence).a3m,
+        a3m=get_msa_tool(run_config.config).query(
+            target_sequence).a3m,
         max_depth=run_config.crop_size,
         deduplicate=deduplicate,
     )

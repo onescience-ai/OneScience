@@ -55,7 +55,8 @@ def pickle_function_call(instance, method, subdir):
         subdir,
         datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"),
     )
-    wrap_it(pickle_function_call_wrapper, instance, method, output_dir=output_dir)
+    wrap_it(pickle_function_call_wrapper, instance,
+            method, output_dir=output_dir)
     return output_dir
 
 
@@ -73,7 +74,8 @@ if __name__ == "__main__":
     dog = Dog("fido")
     dog.bark("ruff")
 
-    output_dir = pickle_function_call(dog, "bark", "debugging")
+    output_dir = pickle_function_call(
+        dog, "bark", "debugging")
 
     dog.bark("ruff", kwarg="wooof")
 

@@ -96,7 +96,8 @@ class GraphPartition:
     def __post_init__(self):
         # after partition_size has been set in __init__
         if self.partition_size <= 0:
-            raise ValueError(f"Expected partition_size > 0, got {self.partition_size}")
+            raise ValueError(
+                f"Expected partition_size > 0, got {self.partition_size}")
         if not (0 <= self.partition_rank < self.partition_size):
             raise ValueError(
                 f"Expected 0 <= partition_rank < {self.partition_size}, got {self.partiton_rank}"
@@ -109,23 +110,29 @@ class GraphPartition:
             ]
 
         if self.scatter_indices is None:
-            self.scatter_indices = [None] * self.partition_size
+            self.scatter_indices = [
+                None] * self.partition_size
         if self.num_src_nodes_in_each_partition is None:
-            self.num_src_nodes_in_each_partition = [None] * self.partition_size
+            self.num_src_nodes_in_each_partition = [
+                None] * self.partition_size
         if self.num_dst_nodes_in_each_partition is None:
-            self.num_dst_nodes_in_each_partition = [None] * self.partition_size
+            self.num_dst_nodes_in_each_partition = [
+                None] * self.partition_size
         if self.num_indices_in_each_partition is None:
-            self.num_indices_in_each_partition = [None] * self.partition_size
+            self.num_indices_in_each_partition = [
+                None] * self.partition_size
 
     def to(self, *args, **kwargs):
         # move all tensors
         for attr in dir(self):
             attr_val = getattr(self, attr)
             if isinstance(attr_val, torch.Tensor):
-                setattr(self, attr, attr_val.to(*args, **kwargs))
+                setattr(self, attr, attr_val.to(
+                    *args, **kwargs))
 
         # handle scatter_indices separately
-        self.scatter_indices = [idx.to(*args, **kwargs) for idx in self.scatter_indices]
+        self.scatter_indices = [
+            idx.to(*args, **kwargs) for idx in self.scatter_indices]
 
         return self
 
@@ -187,8 +194,10 @@ def partition_graph_with_id_mapping(
     # global IDs of in each partition
     dst_nodes_in_each_partition = [None] * partition_size
     src_nodes_in_each_partition = [None] * partition_size
-    num_dst_nodes_in_each_partition = [None] * partition_size
-    num_src_nodes_in_each_partition = [None] * partition_size
+    num_dst_nodes_in_each_partition = [
+        None] * partition_size
+    num_src_nodes_in_each_partition = [
+        None] * partition_size
 
     dtype = global_indices.dtype
     input_device = global_indices.device
@@ -211,7 +220,8 @@ def partition_graph_with_id_mapping(
     graph_partition.map_global_edge_ids_to_concatenated_local = torch.empty_like(
         global_indices
     )
-    _map_global_src_ids_to_local = torch.empty_like(mapping_src_ids_to_ranks)
+    _map_global_src_ids_to_local = torch.empty_like(
+        mapping_src_ids_to_ranks)
 
     # temporarily track cum-sum of nodes per partition for "concatenated_local_ids"
     _src_id_offset = 0
@@ -225,14 +235,16 @@ def partition_graph_with_id_mapping(
         src_nodes_in_each_partition[rank] = torch.nonzero(
             mapping_src_ids_to_ranks == rank
         ).view(-1)
-        num_nodes = dst_nodes_in_each_partition[rank].numel()
+        num_nodes = dst_nodes_in_each_partition[rank].numel(
+        )
         if num_nodes == 0:
             raise RuntimeError(
                 f"Aborting partitioning, rank {rank} has 0 destination nodes to work on."
             )
         num_dst_nodes_in_each_partition[rank] = num_nodes
 
-        num_nodes = src_nodes_in_each_partition[rank].numel()
+        num_nodes = src_nodes_in_each_partition[rank].numel(
+        )
         num_src_nodes_in_each_partition[rank] = num_nodes
         if num_nodes == 0:
             raise RuntimeError(
@@ -247,7 +259,8 @@ def partition_graph_with_id_mapping(
             dtype=dtype,
             device=input_device,
         )
-        _map_global_src_ids_to_local[ids] = mapped_ids - _src_id_offset
+        _map_global_src_ids_to_local[ids] = mapped_ids - \
+            _src_id_offset
         graph_partition.map_global_src_ids_to_concatenated_local[ids] = mapped_ids
         graph_partition.map_concatenated_local_src_ids_to_global[mapped_ids] = ids
         _src_id_offset += ids.numel()
@@ -268,8 +281,10 @@ def partition_graph_with_id_mapping(
 
     # create local graph structures
     for rank in range(partition_size):
-        offset_start = global_offsets[dst_nodes_in_each_partition[rank]].view(-1)
-        offset_end = global_offsets[dst_nodes_in_each_partition[rank] + 1].view(-1)
+        offset_start = global_offsets[dst_nodes_in_each_partition[rank]].view(
+            -1)
+        offset_end = global_offsets[dst_nodes_in_each_partition[rank] +
+                                    1].view(-1)
         degree = offset_end - offset_start
         local_offsets = degree.view(-1).cumsum(dim=0)
         local_offsets = torch.cat(
@@ -307,7 +322,8 @@ def partition_graph_with_id_mapping(
 
         partitioned_src_ids = torch.cat(
             [
-                global_indices[offset_start[i] : offset_end[i]].clone()
+                global_indices[offset_start[i]
+                    : offset_end[i]].clone()
                 for i in range(len(offset_start))
             ]
         )
@@ -319,7 +335,8 @@ def partition_graph_with_id_mapping(
             global_src_ids_on_rank
         ]
 
-        _map_global_src_ids_to_local_graph = torch.zeros_like(mapping_src_ids_to_ranks)
+        _map_global_src_ids_to_local_graph = torch.zeros_like(
+            mapping_src_ids_to_ranks)
         _num_local_indices = 0
         for rank_offset in range(partition_size):
             mask = mapping_src_ids_to_ranks[global_src_ids_on_rank] == rank_offset
@@ -345,15 +362,18 @@ def partition_graph_with_id_mapping(
             _map_global_src_ids_to_local_graph[tmp_map] = tmp_ids
 
         local_indices = _map_global_src_ids_to_local_graph[partitioned_src_ids]
-        graph_partition.num_indices_in_each_partition[rank] = local_indices.size(0)
+        graph_partition.num_indices_in_each_partition[rank] = local_indices.size(
+            0)
 
         if rank == partition_rank:
             # local graph
             graph_partition.local_offsets = local_offsets
             graph_partition.local_indices = local_indices
-            graph_partition.num_local_indices = graph_partition.local_indices.size(0)
+            graph_partition.num_local_indices = graph_partition.local_indices.size(
+                0)
             graph_partition.num_local_dst_nodes = num_dst_nodes_in_each_partition[rank]
-            graph_partition.num_local_src_nodes = global_src_ids_on_rank.size(0)
+            graph_partition.num_local_src_nodes = global_src_ids_on_rank.size(
+                0)
 
             # partition-local mappings (local IDs to global)
             graph_partition.map_partitioned_src_ids_to_global = (
@@ -508,12 +528,14 @@ def partition_graph_by_coordinate_bbox(
     if dst_coordinates.size(-1) != dim:
         raise ValueError()
     if len(coordinate_separators_min) != partition_size:
-        a, b = len(coordinate_separators_min), partition_size
+        a, b = len(
+            coordinate_separators_min), partition_size
         error_msg = "Expected len(coordinate_separators_min) == partition_size"
         error_msg += f", but got {a} and {b} respectively"
         raise ValueError(error_msg)
     if len(coordinate_separators_max) != partition_size:
-        a, b = len(coordinate_separators_max), partition_size
+        a, b = len(
+            coordinate_separators_max), partition_size
         error_msg = "Expected len(coordinate_separators_max) == partition_size"
         error_msg += f", but got {a} and {b} respectively"
         raise ValueError(error_msg)
@@ -542,16 +564,19 @@ def partition_graph_by_coordinate_bbox(
 
     def _assign_ranks(mapping, coordinates):
         for p in range(partition_size):
-            mask = torch.ones_like(mapping).to(dtype=torch.bool)
+            mask = torch.ones_like(
+                mapping).to(dtype=torch.bool)
             for d in range(dim):
                 min_val, max_val = (
                     coordinate_separators_min[p][d],
                     coordinate_separators_max[p][d],
                 )
                 if min_val is not None:
-                    mask = mask & (coordinates[:, d] >= min_val)
+                    mask = mask & (
+                        coordinates[:, d] >= min_val)
                 if max_val is not None:
-                    mask = mask & (coordinates[:, d] < max_val)
+                    mask = mask & (
+                        coordinates[:, d] < max_val)
             mapping[mask] = p
 
     _assign_ranks(mapping_src_ids_to_ranks, src_coordinates)
@@ -605,12 +630,15 @@ class DistributedGraph:
 
         dist_manager = DistributedManager()
         self.device = dist_manager.device
-        self.partition_rank = dist_manager.group_rank(name=graph_partition_group_name)
-        self.partition_size = dist_manager.group_size(name=graph_partition_group_name)
+        self.partition_rank = dist_manager.group_rank(
+            name=graph_partition_group_name)
+        self.partition_size = dist_manager.group_size(
+            name=graph_partition_group_name)
         error_msg = f"Passed partition_size does not correspond to size of process_group, got {partition_size} and {self.partition_size} respectively."
         if self.partition_size != partition_size:
             raise AssertionError(error_msg)
-        self.process_group = dist_manager.group(name=graph_partition_group_name)
+        self.process_group = dist_manager.group(
+            name=graph_partition_group_name)
 
         if graph_partition is None:
             # default partitioning scheme

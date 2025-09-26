@@ -14,7 +14,8 @@ class Net(nn.Module):
     def __init__(self, configs):
         super(Net, self).__init__()
         self.configs = configs
-        self.pred_length = self.configs.total_length - self.configs.input_length
+        self.pred_length = self.configs.total_length - \
+            self.configs.input_length
 
         self.evo_net = Evolution_Network(
             self.configs.input_length, self.pred_length, base_c=32
@@ -23,7 +24,8 @@ class Net(nn.Module):
             self.configs.total_length, base_c=self.configs.ngf
         )
         self.gen_dec = Generative_Decoder(self.configs)
-        self.proj = Noise_Projector(self.configs.ngf, configs)
+        self.proj = Noise_Projector(
+            self.configs.ngf, configs)
 
         sample_tensor = torch.zeros(
             1, 1, self.configs.img_height, self.configs.img_width
@@ -38,20 +40,23 @@ class Net(nn.Module):
         height = frames.shape[3]
         width = frames.shape[4]
 
-        input_frames = frames[:, : self.configs.input_length]
+        input_frames = frames[:,
+                              : self.configs.input_length]
         input_frames = input_frames.reshape(
             batch, self.configs.input_length, height, width
         )
 
         # Evolution Network
         intensity, motion = self.evo_net(input_frames)
-        motion_ = motion.reshape(batch, self.pred_length, 2, height, width)
-        intensity_ = intensity.reshape(batch, self.pred_length, 1, height, width)
+        motion_ = motion.reshape(
+            batch, self.pred_length, 2, height, width)
+        intensity_ = intensity.reshape(
+            batch, self.pred_length, 1, height, width)
 
         series = []
         bilis = []
         last_frames = all_frames[
-            :, (self.configs.input_length - 1) : self.configs.input_length, :, :, 0
+            :, (self.configs.input_length - 1): self.configs.input_length, :, :, 0
         ]
 
         grid = self.grid.repeat(batch, 1, 1, 1)

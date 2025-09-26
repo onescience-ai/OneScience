@@ -14,18 +14,21 @@ def main(args):
         tied_list = [
             [int(item) for item in one.split()] for one in args.position_list.split(",")
         ]
-        global_designed_chain_list = [str(item) for item in args.chain_list.split()]
+        global_designed_chain_list = [
+            str(item) for item in args.chain_list.split()]
         my_dict = {}
         for json_str in json_list:
             result = json.loads(json_str)
             all_chain_list = sorted(
-                [item[-1:] for item in list(result) if item[:9] == "seq_chain"]
+                [item[-1:]
+                    for item in list(result) if item[:9] == "seq_chain"]
             )  # A, B, C, ...
             tied_positions_list = []
             for i, pos in enumerate(tied_list[0]):
                 temp_dict = {}
                 for j, chain in enumerate(global_designed_chain_list):
-                    temp_dict[chain] = [tied_list[j][i]]  # needs to be a list
+                    # needs to be a list
+                    temp_dict[chain] = [tied_list[j][i]]
                 tied_positions_list.append(temp_dict)
             my_dict[result["name"]] = tied_positions_list
     else:
@@ -38,25 +41,30 @@ def main(args):
                 [float(item) for item in one.split()]
                 for one in args.pos_neg_chain_betas.split(",")
             ]
-            chain_list_flat = [item for sublist in chain_list_input for item in sublist]
+            chain_list_flat = [
+                item for sublist in chain_list_input for item in sublist]
             chain_betas_flat = [
                 item for sublist in chain_betas_input for item in sublist
             ]
-            chain_betas_dict = dict(zip(chain_list_flat, chain_betas_flat))
+            chain_betas_dict = dict(
+                zip(chain_list_flat, chain_betas_flat))
         my_dict = {}
         for json_str in json_list:
             result = json.loads(json_str)
             all_chain_list = sorted(
-                [item[-1:] for item in list(result) if item[:9] == "seq_chain"]
+                [item[-1:]
+                    for item in list(result) if item[:9] == "seq_chain"]
             )  # A, B, C, ...
             tied_positions_list = []
-            chain_length = len(result[f"seq_chain_{all_chain_list[0]}"])
+            chain_length = len(
+                result[f"seq_chain_{all_chain_list[0]}"])
             for chains in chain_list_input:
                 for i in range(1, chain_length + 1):
                     temp_dict = {}
                     for j, chain in enumerate(chains):
                         if args.pos_neg_chain_list and chain in chain_list_flat:
-                            temp_dict[chain] = [[i], [chain_betas_dict[chain]]]
+                            temp_dict[chain] = [
+                                [i], [chain_betas_dict[chain]]]
                         else:
                             temp_dict[chain] = [
                                 [i],
@@ -73,7 +81,8 @@ if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    argparser.add_argument("--input_path", type=str, help="Path to the parsed PDBs")
+    argparser.add_argument(
+        "--input_path", type=str, help="Path to the parsed PDBs")
     argparser.add_argument(
         "--output_path", type=str, help="Path to the output dictionary"
     )

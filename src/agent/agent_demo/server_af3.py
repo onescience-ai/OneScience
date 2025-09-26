@@ -40,10 +40,12 @@ flags.FLAGS(sys.argv)
 
 def write_json(indic):
     file_root = "./input_files_tmp"
-    file_name = "input_" + str(random.randint(0, 1000000)) + ".json"
+    file_name = "input_" + \
+        str(random.randint(0, 1000000)) + ".json"
     file_root_ = os.path.join(file_root, file_name)
     while os.path.exists(file_root_):
-        file_name = "input_" + str(random.randint(0, 1000000)) + ".json"
+        file_name = "input_" + \
+            str(random.randint(0, 1000000)) + ".json"
         file_root_ = os.path.join(file_root, file_name)
     with open(file_root_, "w") as f:
         json.dump(indic, f, ensure_ascii=False)
@@ -56,7 +58,8 @@ def af3_infer(data: InputData_infer):
         flags.mark_flags_as_required(["output_dir"])
         json_path = write_json(data.json_dict)
         main(None, json_path)
-        user_id_dict[data.user_id] = [_OUTPUT_DIR.value, data.json_dict["name"]]
+        user_id_dict[data.user_id] = [
+            _OUTPUT_DIR.value, data.json_dict["name"]]
         return {"state": "done", "result": f"af3 results in {_OUTPUT_DIR.value}"}
     except Exception as e:
         print(e)

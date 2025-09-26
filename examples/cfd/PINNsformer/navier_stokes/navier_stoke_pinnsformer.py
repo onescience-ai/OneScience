@@ -19,7 +19,8 @@ random.seed(seed)
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
 
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device(
+    "cuda:1" if torch.cuda.is_available() else "cpu")
 epochs = 1000
 data = scipy.io.loadmat("./cylinder_nektar_wake.mat")
 
@@ -59,11 +60,16 @@ x_train = np.expand_dims(np.tile(x_train[:], (5)), -1)
 y_train = np.expand_dims(np.tile(y_train[:], (5)), -1)
 t_train = make_time_sequence(t_train, num_step=5, step=1e-2)
 
-x_train = torch.tensor(x_train, dtype=torch.float32, requires_grad=True).to(device)
-y_train = torch.tensor(y_train, dtype=torch.float32, requires_grad=True).to(device)
-t_train = torch.tensor(t_train, dtype=torch.float32, requires_grad=True).to(device)
-u_train = torch.tensor(u_train, dtype=torch.float32, requires_grad=True).to(device)
-v_train = torch.tensor(v_train, dtype=torch.float32, requires_grad=True).to(device)
+x_train = torch.tensor(
+    x_train, dtype=torch.float32, requires_grad=True).to(device)
+y_train = torch.tensor(
+    y_train, dtype=torch.float32, requires_grad=True).to(device)
+t_train = torch.tensor(
+    t_train, dtype=torch.float32, requires_grad=True).to(device)
+u_train = torch.tensor(
+    u_train, dtype=torch.float32, requires_grad=True).to(device)
+v_train = torch.tensor(
+    v_train, dtype=torch.float32, requires_grad=True).to(device)
 
 
 class MyDataset(Dataset):
@@ -81,9 +87,11 @@ class MyDataset(Dataset):
         return self.x[idx], self.y[idx], self.t[idx], self.u[idx], self.v[idx]
 
 
-dataset = MyDataset(x_train, y_train, t_train, u_train, v_train)
+dataset = MyDataset(
+    x_train, y_train, t_train, u_train, v_train)
 batch_size = 1000
-dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+dataloader = DataLoader(
+    dataset, batch_size=batch_size, shuffle=False)
 
 
 def init_weights(m):
@@ -92,9 +100,11 @@ def init_weights(m):
         m.bias.data.fill_(0.01)
 
 
-model = PINNsformer2D(d_out=2, d_hidden=128, d_model=32, N=1, heads=2).to(device)
+model = PINNsformer2D(
+    d_out=2, d_hidden=128, d_model=32, N=1, heads=2).to(device)
 model.apply(init_weights)
-optim = LBFGS(model.parameters(), line_search_fn="strong_wolfe")
+optim = LBFGS(model.parameters(),
+              line_search_fn="strong_wolfe")
 
 n_params = get_n_params(model)
 
@@ -212,8 +222,10 @@ for i in tqdm(range(1000)):
             create_graph=True,
         )[0]
 
-        f_u = u_t + (u * u_x + v * u_y) + p_x - 0.01 * (u_xx + u_yy)
-        f_v = v_t + (u * v_x + v * v_y) + p_y - 0.01 * (v_xx + v_yy)
+        f_u = u_t + (u * u_x + v * u_y) + \
+            p_x - 0.01 * (u_xx + u_yy)
+        f_v = v_t + (u * v_x + v * v_y) + \
+            p_y - 0.01 * (v_xx + v_yy)
 
         loss = (
             torch.mean((u[:, 0] - u_train) ** 2)
@@ -246,9 +258,12 @@ x_star = np.expand_dims(np.tile(x_star[:], (5)), -1)
 y_star = np.expand_dims(np.tile(y_star[:], (5)), -1)
 t_star = make_time_sequence(t_star, num_step=5, step=1e-2)
 
-x_star = torch.tensor(x_star, dtype=torch.float32, requires_grad=True).to(device)
-y_star = torch.tensor(y_star, dtype=torch.float32, requires_grad=True).to(device)
-t_star = torch.tensor(t_star, dtype=torch.float32, requires_grad=True).to(device)
+x_star = torch.tensor(
+    x_star, dtype=torch.float32, requires_grad=True).to(device)
+y_star = torch.tensor(
+    y_star, dtype=torch.float32, requires_grad=True).to(device)
+t_star = torch.tensor(
+    t_star, dtype=torch.float32, requires_grad=True).to(device)
 
 # with torch.no_grad():
 psi_and_p = model(x_star, y_star, t_star)
@@ -267,22 +282,27 @@ v_pred = v_pred.cpu().detach().numpy()[:, 0]
 p_pred = p_pred.cpu().detach().numpy()[:, 0]
 
 
-error_u = np.linalg.norm(u_star - u_pred, 2) / np.linalg.norm(u_star, 2)
-error_v = np.linalg.norm(v_star - v_pred, 2) / np.linalg.norm(v_star, 2)
-error_p = np.linalg.norm(p_star - p_pred, 2) / np.linalg.norm(p_star, 2)
+error_u = np.linalg.norm(
+    u_star - u_pred, 2) / np.linalg.norm(u_star, 2)
+error_v = np.linalg.norm(
+    v_star - v_pred, 2) / np.linalg.norm(v_star, 2)
+error_p = np.linalg.norm(
+    p_star - p_pred, 2) / np.linalg.norm(p_star, 2)
 
 if not os.path.exists("./result"):
     os.makedirs("./result")
 fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 # Predicted u(x,t)
-im0 = axes[0].imshow((p_star).reshape(50, 100), extent=[-3, 8, -2, 2], aspect="auto")
+im0 = axes[0].imshow((p_star).reshape(
+    50, 100), extent=[-3, 8, -2, 2], aspect="auto")
 axes[0].set_xlabel("x")
 axes[0].set_ylabel("y")
 axes[0].set_title("Exact p(x,y)")
 fig.colorbar(im0, ax=axes[0])
 
 # Exact u(x,t)
-im1 = axes[1].imshow((p_pred).reshape(50, 100), extent=[-3, 8, -2, 2], aspect="auto")
+im1 = axes[1].imshow((p_pred).reshape(
+    50, 100), extent=[-3, 8, -2, 2], aspect="auto")
 axes[1].set_xlabel("x")
 axes[1].set_ylabel("y")
 axes[1].set_title("Predicted p(x,y)")

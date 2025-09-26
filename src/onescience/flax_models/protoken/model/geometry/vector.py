@@ -42,7 +42,8 @@ class Vec3Array:
     easier use of vector instructions.
     """
 
-    x: jnp.ndarray = dataclasses.field(metadata={"dtype": jnp.float32})
+    x: jnp.ndarray = dataclasses.field(
+        metadata={"dtype": jnp.float32})
     y: jnp.ndarray
     z: jnp.ndarray
 
@@ -50,8 +51,10 @@ class Vec3Array:
         if hasattr(self.x, "dtype"):
             assert self.x.dtype == self.y.dtype
             assert self.x.dtype == self.z.dtype
-            assert all([x == y for x, y in zip(self.x.shape, self.y.shape)])
-            assert all([x == z for x, z in zip(self.x.shape, self.z.shape)])
+            assert all([x == y for x, y in zip(
+                self.x.shape, self.y.shape)])
+            assert all([x == z for x, z in zip(
+                self.x.shape, self.z.shape)])
 
     def __add__(self, other: Vec3Array) -> Vec3Array:
         return jax.tree_map(lambda x, y: x + y, self, other)
@@ -104,7 +107,8 @@ class Vec3Array:
     def zeros(cls, shape, dtype=jnp.float32):
         """Return Vec3Array corresponding to zeros of given shape."""
         return cls(
-            jnp.zeros(shape, dtype), jnp.zeros(shape, dtype), jnp.zeros(shape, dtype)
+            jnp.zeros(shape, dtype), jnp.zeros(
+                shape, dtype), jnp.zeros(shape, dtype)
         )  # pytype: disable=wrong-arg-count  # trace-all-classes
 
     def to_array(self) -> jnp.ndarray:
@@ -177,7 +181,8 @@ def euclidean_distance(
       Array of euclidean distances;
       shape will be result of broadcasting 'vec1' and 'vec2'
     """
-    distance_sq = square_euclidean_distance(vec1, vec2, epsilon**2)
+    distance_sq = square_euclidean_distance(
+        vec1, vec2, epsilon**2)
     distance = jnp.sqrt(distance_sq)
     return distance
 

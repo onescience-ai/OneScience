@@ -105,7 +105,8 @@ class Mesh_Reduced(torch.nn.Module):
             aggregation,
         )
         self.k = k
-        self.PivotalNorm = torch.nn.LayerNorm(output_encode_dim)
+        self.PivotalNorm = torch.nn.LayerNorm(
+            output_encode_dim)
 
     def knn_interpolate(
         self,
@@ -128,8 +129,10 @@ class Mesh_Reduced(torch.nn.Module):
             )
             y_idx, x_idx = assign_index[0], assign_index[1]
             diff = pos_x[x_idx] - pos_y[y_idx]
-            squared_distance = (diff * diff).sum(dim=-1, keepdim=True)
-            weights = 1.0 / torch.clamp(squared_distance, min=1e-16)
+            squared_distance = (
+                diff * diff).sum(dim=-1, keepdim=True)
+            weights = 1.0 / \
+                torch.clamp(squared_distance, min=1e-16)
 
         y = torch_scatter.scatter(
             x[x_idx] * weights, y_idx, 0, dim_size=pos_y.size(0), reduce="sum"
@@ -143,12 +146,17 @@ class Mesh_Reduced(torch.nn.Module):
     def encode(self, x, edge_features, graph, position_mesh, position_pivotal):
         x = self.encoder_processor(x, edge_features, graph)
         x = self.PivotalNorm(x)
-        nodes_index = torch.arange(graph.batch_size).to(x.device)
-        batch_mesh = nodes_index.repeat_interleave(graph.batch_num_nodes())
-        position_mesh_batch = position_mesh.repeat(graph.batch_size, 1)
-        position_pivotal_batch = position_pivotal.repeat(graph.batch_size, 1)
+        nodes_index = torch.arange(
+            graph.batch_size).to(x.device)
+        batch_mesh = nodes_index.repeat_interleave(
+            graph.batch_num_nodes())
+        position_mesh_batch = position_mesh.repeat(
+            graph.batch_size, 1)
+        position_pivotal_batch = position_pivotal.repeat(
+            graph.batch_size, 1)
         batch_pivotal = nodes_index.repeat_interleave(
-            torch.tensor([len(position_pivotal)] * graph.batch_size).to(x.device)
+            torch.tensor([len(position_pivotal)]
+                         * graph.batch_size).to(x.device)
         )
 
         x, _, _, _ = self.knn_interpolate(
@@ -163,12 +171,17 @@ class Mesh_Reduced(torch.nn.Module):
 
     def decode(self, x, edge_features, graph, position_mesh, position_pivotal):
 
-        nodes_index = torch.arange(graph.batch_size).to(x.device)
-        batch_mesh = nodes_index.repeat_interleave(graph.batch_num_nodes())
-        position_mesh_batch = position_mesh.repeat(graph.batch_size, 1)
-        position_pivotal_batch = position_pivotal.repeat(graph.batch_size, 1)
+        nodes_index = torch.arange(
+            graph.batch_size).to(x.device)
+        batch_mesh = nodes_index.repeat_interleave(
+            graph.batch_num_nodes())
+        position_mesh_batch = position_mesh.repeat(
+            graph.batch_size, 1)
+        position_pivotal_batch = position_pivotal.repeat(
+            graph.batch_size, 1)
         batch_pivotal = nodes_index.repeat_interleave(
-            torch.tensor([len(position_pivotal)] * graph.batch_size).to(x.device)
+            torch.tensor([len(position_pivotal)]
+                         * graph.batch_size).to(x.device)
         )
 
         x, _, _, _ = self.knn_interpolate(

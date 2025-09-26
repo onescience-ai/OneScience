@@ -105,7 +105,8 @@ def _convert_types(typ: type[_T], value: Any) -> _T:
             # can know the full set of values and types and therefore know the
             # non-existence must mean None.
             if isinstance(f.type, (types.UnionType, type(Optional[int]))):
-                constructors = [t for t in f.type.__args__ if t is not types.NoneType]
+                constructors = [
+                    t for t in f.type.__args__ if t is not types.NoneType]
                 if len(constructors) != 1:
                     raise TypeError(
                         "Optional works, Union with anything except None doesn't"
@@ -118,7 +119,8 @@ def _convert_types(typ: type[_T], value: Any) -> _T:
                 constructor = f.type
 
             if f.name in value:
-                kwargs[f.name] = _convert_types(constructor, value[f.name])
+                kwargs[f.name] = _convert_types(
+                    constructor, value[f.name])
             else:
                 raise ValueError(f"Missing value: {f.name}")
         return typ(**kwargs)
@@ -155,7 +157,8 @@ def _convert_types(typ: type[_T], value: Any) -> _T:
             return tuple(
                 _convert_types(t, v)
                 for t, (_, v) in zip(
-                    typ.__args__, sorted(value.items(), key=lambda x: int(x[0]))
+                    typ.__args__, sorted(
+                        value.items(), key=lambda x: int(x[0]))
                 )
             )
 

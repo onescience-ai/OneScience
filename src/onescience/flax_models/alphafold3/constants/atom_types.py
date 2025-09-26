@@ -160,7 +160,8 @@ ATOM37: tuple[str, ...] = (
     NZ,
     OXT,
 )  # pyformat: disable
-ATOM37_ORDER: Mapping[str, int] = {name: i for i, name in enumerate(ATOM37)}
+ATOM37_ORDER: Mapping[str, int] = {
+    name: i for i, name in enumerate(ATOM37)}
 ATOM37_NUM: Final[int] = len(ATOM37)  # := 37.
 
 # Used when we need to store protein atom data in a format that requires fixed
@@ -193,14 +194,16 @@ ATOM14: Mapping[str, tuple[str, ...]] = {
 
 # A compact atom encoding with 14 columns, padded with '' in empty slots.
 ATOM14_PADDED: Mapping[str, Sequence[str]] = {
-    k: [v for _, v in itertools.zip_longest(range(14), values, fillvalue="")]
+    k: [v for _, v in itertools.zip_longest(
+        range(14), values, fillvalue="")]
     for k, values in ATOM14.items()
 }
 
 ATOM14_ORDER: Mapping[str, Mapping[str, int]] = {
     k: {name: i for i, name in enumerate(v)} for k, v in ATOM14.items()
 }
-ATOM14_NUM: Final[int] = max(len(v) for v in ATOM14.values())
+ATOM14_NUM: Final[int] = max(len(v)
+                             for v in ATOM14.values())
 
 # Used when we need to store protein and nucleic atom library.
 DENSE_ATOM: Mapping[str, tuple[str, ...]] = {
@@ -427,7 +430,8 @@ DENSE_ATOM: Mapping[str, tuple[str, ...]] = {
 DENSE_ATOM_ORDER: Mapping[str, Mapping[str, int]] = {
     k: {name: i for i, name in enumerate(v)} for k, v in DENSE_ATOM.items()
 }
-DENSE_ATOM_NUM: Final[int] = max(len(v) for v in DENSE_ATOM.values())
+DENSE_ATOM_NUM: Final[int] = max(
+    len(v) for v in DENSE_ATOM.values())
 
 # Used when we need to store atom data in a format that requires fixed atom data
 # size for every nucleic molecule (e.g. a numpy array).
@@ -462,7 +466,8 @@ ATOM29: tuple[str, ...] = (
     "OP2",
     "P",
 )  # pyformat: disable
-ATOM29_ORDER: Mapping[str, int] = {atom_type: i for i, atom_type in enumerate(ATOM29)}
+ATOM29_ORDER: Mapping[str, int] = {
+    atom_type: i for i, atom_type in enumerate(ATOM29)}
 ATOM29_NUM: Final[int] = len(ATOM29)  # := 29
 
 # Hydrogens that exist depending on the protonation state of the residue.

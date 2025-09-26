@@ -40,7 +40,8 @@ def permute_pred_to_optimize_pocket_aligned_rmsd(
     true_coord_mask = true_coord_mask.bool()
     true_pocket_mask = true_pocket_mask.bool()
     true_ligand_mask = true_ligand_mask.bool()
-    assert pred_coord.size(-2) == true_coord.size(-2), "Atom numbers are difference."
+    assert pred_coord.size(
+        -2) == true_coord.size(-2), "Atom numbers are difference."
     assert pred_coord.dim() == 3
 
     # find entity_id/asym_id of pocket and ligand chains
@@ -49,11 +50,14 @@ def permute_pred_to_optimize_pocket_aligned_rmsd(
         masked_asym_id = atom_asym_id[atom_mask]
         masked_entity_id = atom_entity_id[atom_mask]
         assert (masked_asym_id[0] == masked_asym_id).all()
-        assert (masked_entity_id[0] == masked_entity_id).all()
+        assert (masked_entity_id[0]
+                == masked_entity_id).all()
         return masked_asym_id[0].item(), masked_entity_id[0].item()
 
-    pocket_asym_id, pocket_entity_id = _get_entity_and_asym_id(true_pocket_mask)
-    ligand_asym_id, ligand_entity_id = _get_entity_and_asym_id(true_ligand_mask)
+    pocket_asym_id, pocket_entity_id = _get_entity_and_asym_id(
+        true_pocket_mask)
+    ligand_asym_id, ligand_entity_id = _get_entity_and_asym_id(
+        true_ligand_mask)
 
     candidate_pockets = {}
     for i in torch.unique(atom_asym_id[atom_entity_id == pocket_entity_id]):
@@ -81,7 +85,8 @@ def permute_pred_to_optimize_pocket_aligned_rmsd(
 
     log_dict["num_sym_pocket"] = len(candidate_pockets)
     log_dict["num_sym_ligand"] = len(candidate_ligands)
-    log_dict["has_sym_chain"] = len(candidate_ligands) + len(candidate_pockets) > 2
+    log_dict["has_sym_chain"] = len(
+        candidate_ligands) + len(candidate_pockets) > 2
 
     # Enumerate over the batch dimension of pred_coord
     # to find the optimal chain assignment for each sample.
@@ -99,17 +104,22 @@ def permute_pred_to_optimize_pocket_aligned_rmsd(
                 mask=true_coord_mask[true_pocket_mask],
             )
             # Transform predicted coordinates according to the aligment results
-            aligned_pred_coord = apply_transform(coord.clone(), rot=rot, trans=trans)
+            aligned_pred_coord = apply_transform(
+                coord.clone(), rot=rot, trans=trans)
 
             # Find the best ligand
-            ordered_lig_asym_ids = [i for i in candidate_ligands]
-            orderd_lig_masks = [candidate_ligands[i] for i in ordered_lig_asym_ids]
+            ordered_lig_asym_ids = [
+                i for i in candidate_ligands]
+            orderd_lig_masks = [candidate_ligands[i]
+                                for i in ordered_lig_asym_ids]
             aligned_lig_coords = torch.stack(
                 [aligned_pred_coord[m] for m in orderd_lig_masks], dim=0
             )  # [N_lig, N_lig_atom, 3]
 
             if use_center_rmsd:
-                mask = true_coord_mask[true_ligand_mask].bool()  # [N_lig_atom]
+                # [N_lig_atom]
+                mask = true_coord_mask[true_ligand_mask].bool(
+                )
                 aligned_lig_center = aligned_lig_coords[:, mask, :].mean(
                     dim=-2, keepdim=True
                 )  # [N_lig, 1, 3]
@@ -148,7 +158,8 @@ def permute_pred_to_optimize_pocket_aligned_rmsd(
                 }
             if poc_asym_id == pocket_asym_id:
                 # record the unpermuted result
-                i = ordered_lig_asym_ids.index(ligand_asym_id)
+                i = ordered_lig_asym_ids.index(
+                    ligand_asym_id)
                 unpermuted_lig_rmsd = per_lig_rmsd[i].item()
                 unpermuted_results = {
                     "rmsd": unpermuted_lig_rmsd,
@@ -164,7 +175,8 @@ def permute_pred_to_optimize_pocket_aligned_rmsd(
             "algo:no_permute": best_results["pocket_asym_id"] == pocket_asym_id
             and best_results["ligand_asym_id"] == ligand_asym_id,
         }
-        improved_rmsd = (unpermuted_results["rmsd"] - best_results["rmsd"]).item()
+        improved_rmsd = (
+            unpermuted_results["rmsd"] - best_results["rmsd"]).item()
         if improved_rmsd >= 1e-12:
             # better
             per_sample_log_dict.update(
@@ -200,8 +212,10 @@ def permute_pred_to_optimize_pocket_aligned_rmsd(
         atom_indices = torch.arange(N_atom, device=device)
 
         permute_asym_pair = [
-            (best_results["pocket_asym_id"], pocket_asym_id),
-            (best_results["ligand_asym_id"], ligand_asym_id),
+            (best_results["pocket_asym_id"],
+             pocket_asym_id),
+            (best_results["ligand_asym_id"],
+             ligand_asym_id),
         ]
         for asym_new, asym_old in permute_asym_pair:
             if asym_new == asym_old:
@@ -209,11 +223,15 @@ def permute_pred_to_optimize_pocket_aligned_rmsd(
             # switch two chains
             ori_indices = atom_indices[atom_asym_id == asym_old]
             new_indices = atom_indices[atom_asym_id == asym_new]
-            atom_indices[ori_indices.tolist()] = new_indices.clone()
-            atom_indices[new_indices.tolist()] = ori_indices.clone()
+            atom_indices[ori_indices.tolist()
+                         ] = new_indices.clone()
+            atom_indices[new_indices.tolist()
+                         ] = ori_indices.clone()
 
-        aligned_pred_coord = best_results.pop("aligned_pred_coord")[atom_indices, :]
-        per_sample_log_dict["rmsd"] = best_results["rmsd"].item()
+        aligned_pred_coord = best_results.pop(
+            "aligned_pred_coord")[atom_indices, :]
+        per_sample_log_dict["rmsd"] = best_results["rmsd"].item(
+        )
 
         return atom_indices, aligned_pred_coord, per_sample_log_dict
 
@@ -223,22 +241,27 @@ def permute_pred_to_optimize_pocket_aligned_rmsd(
     sample_log_dicts = []
     for i in range(N_sample):
         atom_indices, aligned_pred_coord, per_sample_log_dict = (
-            _find_protein_ligand_chains_for_one_sample(pred_coord[i])
+            _find_protein_ligand_chains_for_one_sample(
+                pred_coord[i])
         )
         permute_pred_indices.append(atom_indices)
-        permuted_aligned_pred_coord.append(aligned_pred_coord)
+        permuted_aligned_pred_coord.append(
+            aligned_pred_coord)
         sample_log_dicts.append(per_sample_log_dict)
 
-    permuted_aligned_pred_coord = torch.stack(permuted_aligned_pred_coord, dim=0)
+    permuted_aligned_pred_coord = torch.stack(
+        permuted_aligned_pred_coord, dim=0)
 
     log_dict.update(
         traverse_and_aggregate(
-            sample_log_dicts, aggregation_func=lambda x_list: sum(x_list) / N_sample
+            sample_log_dicts, aggregation_func=lambda x_list: sum(
+                x_list) / N_sample
         )
     )
 
     # rmsd variance
-    all_sample_rmsd = torch.tensor([x["rmsd"] for x in sample_log_dicts]).float()
+    all_sample_rmsd = torch.tensor(
+        [x["rmsd"] for x in sample_log_dicts]).float()
     log_dict.update(
         {
             "rmsd_sample_std": all_sample_rmsd.std().item(),

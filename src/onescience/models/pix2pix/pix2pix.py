@@ -18,7 +18,8 @@ class MetaData(ModelMetaData):
     # Optimization
     jit: bool = True
     cuda_graphs: bool = True
-    amp_cpu: bool = False  # Reflect padding not supported in bfloat16
+    # Reflect padding not supported in bfloat16
+    amp_cpu: bool = False
     amp_gpu: bool = True
     # Inference
     onnx: bool = True
@@ -83,7 +84,8 @@ class Pix2Pix(Module):
         n_downsampling: int = 3,
         n_upsampling: int = 3,
         n_blocks: int = 3,
-        activation_fn: str = "relu",  # TODO need support for type Activation
+        # TODO need support for type Activation
+        activation_fn: str = "relu",
         batch_norm: bool = False,
         padding_type: str = "reflect",
     ):
@@ -122,13 +124,14 @@ class Pix2Pix(Module):
 
         model = [
             padding,
-            conv(in_channels, conv_layer_size, kernel_size=7, padding=0),
+            conv(in_channels, conv_layer_size,
+                 kernel_size=7, padding=0),
         ]
         if batch_norm:
             model.append(norm(conv_layer_size))
         model.append(activation)
 
-        ### downsample
+        # downsample
         for i in range(n_downsampling):
             mult = 2**i
             model.append(
@@ -141,10 +144,11 @@ class Pix2Pix(Module):
                 )
             )
             if batch_norm:
-                model.append(norm(conv_layer_size * mult * 2))
+                model.append(
+                    norm(conv_layer_size * mult * 2))
             model.append(activation)
 
-        ### resnet blocks
+        # resnet blocks
         mult = 2**n_downsampling
         for i in range(n_blocks):
             model += [
@@ -157,7 +161,7 @@ class Pix2Pix(Module):
                 )
             ]
 
-        ### upsample
+        # upsample
         for i in range(n_downsampling):
             mult = 2 ** (n_downsampling - i)
             model.append(
@@ -171,7 +175,8 @@ class Pix2Pix(Module):
                 )
             )
             if batch_norm:
-                model.append(norm(int(conv_layer_size * mult / 2)))
+                model.append(
+                    norm(int(conv_layer_size * mult / 2)))
             model.append(activation)
 
         # super-resolution layers
@@ -192,7 +197,8 @@ class Pix2Pix(Module):
 
         model += [
             padding,
-            conv(conv_layer_size, out_channels, kernel_size=7, padding=0),
+            conv(conv_layer_size, out_channels,
+                 kernel_size=7, padding=0),
         ]
         self.model = nn.Sequential(*model)
 
@@ -233,7 +239,8 @@ class ResnetBlock(nn.Module):
             "zero",
             "replicate",
         ]:
-            raise ValueError(f"Invalid padding type {padding_type}")
+            raise ValueError(
+                f"Invalid padding type {padding_type}")
 
         if dimension == 1:
             conv = nn.Conv1d
@@ -274,7 +281,8 @@ class ResnetBlock(nn.Module):
         else:
             p = 1  # Use built in conv padding
 
-        conv_block.append(conv(channels, channels, kernel_size=3, padding=p))
+        conv_block.append(
+            conv(channels, channels, kernel_size=3, padding=p))
         if use_batch_norm:
             conv_block.append(norm(channels))
         conv_block.append(activation)
@@ -282,7 +290,8 @@ class ResnetBlock(nn.Module):
         if padding_type != "zero":
             conv_block += [padding]
         conv_block += [
-            conv(channels, channels, kernel_size=3, padding=p),
+            conv(channels, channels,
+                 kernel_size=3, padding=p),
         ]
         if use_batch_norm:
             conv_block.append(norm(channels))

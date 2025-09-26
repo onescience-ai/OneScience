@@ -31,7 +31,8 @@ def build_mlp(
     # Create a torch sequential container
     mlp = nn.Sequential()
     for i in range(nlayers):
-        mlp.add_module("NN-" + str(i), nn.Linear(layer_sizes[i], layer_sizes[i + 1]))
+        mlp.add_module(
+            "NN-" + str(i), nn.Linear(layer_sizes[i], layer_sizes[i + 1]))
         mlp.add_module("Act-" + str(i), act[i]())
 
     return mlp
@@ -56,7 +57,8 @@ class Encoder(nn.Module):
             *[
                 build_mlp(
                     nnode_in_features,
-                    [mlp_hidden_dim for _ in range(nmlp_layers)],
+                    [mlp_hidden_dim for _ in range(
+                        nmlp_layers)],
                     nnode_out_features,
                     activation=activation,
                 ),
@@ -68,7 +70,8 @@ class Encoder(nn.Module):
             *[
                 build_mlp(
                     nedge_in_features,
-                    [mlp_hidden_dim for _ in range(nmlp_layers)],
+                    [mlp_hidden_dim for _ in range(
+                        nmlp_layers)],
                     nedge_out_features,
                     activation=activation,
                 ),
@@ -80,7 +83,8 @@ class Encoder(nn.Module):
             *[
                 build_mlp(
                     nnode_in_features,
-                    [mlp_hidden_dim for _ in range(nmlp_layers)],
+                    [mlp_hidden_dim for _ in range(
+                        nmlp_layers)],
                     nnode_out_features,
                     activation=activation,
                 ),
@@ -92,7 +96,8 @@ class Encoder(nn.Module):
             *[
                 build_mlp(
                     nedge_in_features,
-                    [mlp_hidden_dim for _ in range(nmlp_layers)],
+                    [mlp_hidden_dim for _ in range(
+                        nmlp_layers)],
                     nedge_out_features,
                     activation=activation,
                 ),
@@ -131,13 +136,15 @@ class InteractionNetwork(MessagePassing):
     ):
 
         # Aggregate features from neighbors
-        super(InteractionNetwork, self).__init__(aggr="mean")
+        super(InteractionNetwork, self).__init__(
+            aggr="mean")
         # Node MLP
         self.node_fn = nn.Sequential(
             *[
                 build_mlp(
                     nnode_in + nedge_out + boundary_dim,
-                    [mlp_hidden_dim for _ in range(nmlp_layers)],
+                    [mlp_hidden_dim for _ in range(
+                        nmlp_layers)],
                     nnode_out,
                     activation=activation,
                 ),
@@ -149,7 +156,8 @@ class InteractionNetwork(MessagePassing):
             *[
                 build_mlp(
                     nnode_in + nnode_in + nedge_in,
-                    [mlp_hidden_dim for _ in range(nmlp_layers)],
+                    [mlp_hidden_dim for _ in range(
+                        nmlp_layers)],
                     nedge_out,
                     activation=activation,
                 ),
@@ -193,7 +201,8 @@ class InteractionNetwork(MessagePassing):
 
         # Concat edge features with a final shape of [nedges, latent_dim*3]
 
-        edge_features = torch.cat([x_i, x_j, edge_features], dim=-1)
+        edge_features = torch.cat(
+            [x_i, x_j, edge_features], dim=-1)
 
         edge_features = self.edge_fn(edge_features)
         return edge_features
@@ -208,7 +217,8 @@ class InteractionNetwork(MessagePassing):
 
         # Concat node features with a final shape of
         boundary_all = boundary.repeat(x.shape[0], 1)
-        x_updated = torch.cat([x_updated, x, boundary_all], dim=-1)
+        x_updated = torch.cat(
+            [x_updated, x, boundary_all], dim=-1)
         x_updated = self.node_fn(x_updated)
 
         return x_updated, edge_features
@@ -279,7 +289,8 @@ class Processor(MessagePassing):
     ):
 
         for gnn in self.gnn_stacks:
-            x, edge_features = gnn(x, edge_index, edge_features, boundary)
+            x, edge_features = gnn(
+                x, edge_index, edge_features, boundary)
 
         for gnn in self.gnn_stacks_inbd:
             x_inbd, edge_inbd_features = gnn(

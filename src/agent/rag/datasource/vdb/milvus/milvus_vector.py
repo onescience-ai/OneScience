@@ -5,10 +5,10 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from packaging import version
 from pydantic import BaseModel, model_validator
+from pymilvus import FieldSchema  # type: ignore
 from pymilvus import (
     CollectionSchema,
     DataType,
-    FieldSchema,  # type: ignore
     Function,
     FunctionType,
     MilvusClient,
@@ -30,12 +30,16 @@ class MilvusConfig(BaseModel):
     """
 
     uri: str  # Milvus server URI
-    token: Optional[str] = None  # Optional token for authentication
-    user: Optional[str] = None  # Username for authentication
-    password: Optional[str] = None  # Password for authentication
+    # Optional token for authentication
+    token: Optional[str] = None
+    # Username for authentication
+    user: Optional[str] = None
+    # Password for authentication
+    password: Optional[str] = None
     batch_size: int = 100  # Batch size for operations
     database: str = "default"  # Database name
-    enable_hybrid_search: bool = False  # Flag to enable hybrid search
+    # Flag to enable hybrid search
+    enable_hybrid_search: bool = False
     analyzer_params: Optional[str] = None  # Analyzer params
 
     @model_validator(mode="before")
@@ -46,12 +50,15 @@ class MilvusConfig(BaseModel):
         Raises ValueError if required fields are missing.
         """
         if not values.get("uri"):
-            raise ValueError("config MILVUS_URI is required")
+            raise ValueError(
+                "config MILVUS_URI is required")
         if not values.get("token"):
             if not values.get("user"):
-                raise ValueError("config MILVUS_USER is required")
+                raise ValueError(
+                    "config MILVUS_USER is required")
             if not values.get("password"):
-                raise ValueError("config MILVUS_PASSWORD is required")
+                raise ValueError(
+                    "config MILVUS_PASSWORD is required")
         return values
 
     def to_milvus_params(self):
@@ -79,8 +86,10 @@ class MilvusVector(BaseVector):
         super().__init__(collection_name, embeddings)
         self._client_config = config
         self._client = self._init_client(config)
-        self._consistency_level = "Session"  # Consistency level for Milvus operations
-        self._fields: list[str] = []  # List of fields in the collection
+        # Consistency level for Milvus operations
+        self._consistency_level = "Session"
+        # List of fields in the collection
+        self._fields: list[str] = []
         self._vec_fields: list[str] = []
         self._sparse_files: list[str] = []
         if self._client.has_collection(collection_name):
@@ -109,8 +118,10 @@ class MilvusVector(BaseVector):
     def _load_collection_fields(self, fields: Optional[list[str]] = None) -> None:
         if fields is None:
             # Load collection fields from remote server
-            collection_info = self._client.describe_collection(self._collection_name)
-            fields = [field["name"] for field in collection_info["fields"]]
+            collection_info = self._client.describe_collection(
+                self._collection_name)
+            fields = [field["name"]
+                      for field in collection_info["fields"]]
         # Since primary field is auto-id, no need to track it
         self._fields = [
             f
@@ -122,12 +133,12 @@ class MilvusVector(BaseVector):
             )
         ]
         self._vec_fields = [
-            field[0 : -len(f"_{DENSE}")]
+            field[0: -len(f"_{DENSE}")]
             for field in fields
             if field.endswith(f"_{DENSE}")
         ]
         self._sparse_fields = [
-            field[0 : -len(f"_{SPARSE}")]
+            field[0: -len(f"_{SPARSE}")]
             for field in fields
             if field.endswith(f"_{SPARSE}")
         ]
@@ -152,7 +163,8 @@ class MilvusVector(BaseVector):
             )
         except Exception as e:
             logger.warning(
-                "Failed to check Milvus version: %s. Disabling hybrid search.", str(e)
+                "Failed to check Milvus version: %s. Disabling hybrid search.", str(
+                    e)
             )
             return False
 
@@ -176,8 +188,10 @@ class MilvusVector(BaseVector):
 
         insert_dict_list = []
         for doc in documents:
-            insert_dict = {TEXT: doc.page_content, **doc.metadata}
-            insert_dict = {k: v for k, v in insert_dict.items() if k in self._fields}
+            insert_dict = {
+                TEXT: doc.page_content, **doc.metadata}
+            insert_dict = {
+                k: v for k, v in insert_dict.items() if k in self._fields}
             for vec_field in self._vec_fields:
                 insert_dict[f"{vec_field}_{DENSE}"] = self._embeddings.embed_query(
                     insert_dict[vec_field]
@@ -189,7 +203,8 @@ class MilvusVector(BaseVector):
 
         for i in range(0, total_count, self._client_config.batch_size):
             # Insert into the collection.
-            batch_insert_list = insert_dict_list[i : i + self._client_config.batch_size]
+            batch_insert_list = insert_dict_list[i: i +
+                                                 self._client_config.batch_size]
             try:
                 ids = self._client.insert(
                     collection_name=self._collection_name, data=batch_insert_list
@@ -223,7 +238,8 @@ class MilvusVector(BaseVector):
         if self._client.has_collection(self._collection_name):
             ids = self.get_ids_by_metadata_field(key, value)
             if ids:
-                self._client.delete(collection_name=self._collection_name, pks=ids)
+                self._client.delete(
+                    collection_name=self._collection_name, pks=ids)
 
     def delete_by_ids(self, doc_ids: list[str]) -> None:
         """
@@ -237,28 +253,32 @@ class MilvusVector(BaseVector):
             )
             if result:
                 ids = [item["id"] for item in result]
-                self._client.delete(collection_name=self._collection_name, pks=ids)
+                self._client.delete(
+                    collection_name=self._collection_name, pks=ids)
 
     def delete(self) -> None:
         """
         Delete the entire collection.
         """
         if self._client.has_collection(self._collection_name):
-            self._client.drop_collection(self._collection_name, None)
+            self._client.drop_collection(
+                self._collection_name, None)
 
     def create_db(self) -> None:
         """
         Create the db
         """
         if self._client_config.database not in self._client.list_databases():
-            self._client.create_database(self._client_config.database)
+            self._client.create_database(
+                self._client_config.database)
 
     def drop_db(self) -> None:
         """
         Drop the db
         """
         if self._client_config.database in self._client.list_databases():
-            self._client.drop_database(self._client_config.database)
+            self._client.drop_database(
+                self._client_config.database)
 
     def text_exists(self, doc_id: str) -> bool:
         """
@@ -294,11 +314,13 @@ class MilvusVector(BaseVector):
         """
         docs = []
         for result in results[0]:
-            metadata = {k: v for k, v in result["entity"].items() if k != TEXT}
+            metadata = {
+                k: v for k, v in result["entity"].items() if k != TEXT}
             metadata["score"] = result["distance"]
 
             if result["distance"] > score_threshold:
-                doc = Document(page_content=result["entity"][TEXT], metadata=metadata)
+                doc = Document(
+                    page_content=result["entity"][TEXT], metadata=metadata)
                 docs.append(doc)
 
         return docs
@@ -309,10 +331,12 @@ class MilvusVector(BaseVector):
         """
         Search for documents by vector similarity.
         """
-        document_ids_filter = kwargs.get("document_ids_filter", "")
+        document_ids_filter = kwargs.get(
+            "document_ids_filter", "")
         filter = ""
         if document_ids_filter:
-            document_ids = ", ".join(f'"{doc_id}"' for doc_id in document_ids_filter)
+            document_ids = ", ".join(
+                f'"{doc_id}"' for doc_id in document_ids_filter)
             filter = f"{DOC_ID} in [{document_ids}]"
 
         query_vec = self._embeddings.embed_query(query)
@@ -328,7 +352,8 @@ class MilvusVector(BaseVector):
         return self._process_search_results(
             results,
             output_fields=output_fields or self._fields,
-            score_threshold=float(kwargs.get("score_threshold") or 0.0),
+            score_threshold=float(
+                kwargs.get("score_threshold") or 0.0),
         )
 
     def search_by_full_text(
@@ -342,10 +367,12 @@ class MilvusVector(BaseVector):
                 "Full-text search is not supported in current Milvus version (requires >= 2.5.0)"
             )
             return []
-        document_ids_filter = kwargs.get("document_ids_filter", "")
+        document_ids_filter = kwargs.get(
+            "document_ids_filter", "")
         filter = ""
         if document_ids_filter:
-            document_ids = ", ".join(f"'{doc_id}'" for doc_id in document_ids_filter)
+            document_ids = ", ".join(
+                f"'{doc_id}'" for doc_id in document_ids_filter)
             filter = f"{DOC_ID} in [{document_ids}]"
 
         results = self._client.search(
@@ -360,7 +387,8 @@ class MilvusVector(BaseVector):
         return self._process_search_results(
             results,
             output_fields=output_fields or self._fields,
-            score_threshold=float(kwargs.get("score_threshold") or 0.0),
+            score_threshold=float(
+                kwargs.get("score_threshold") or 0.0),
         )
 
     def create_collection(self, documents: list[Document], **kwargs):
@@ -381,9 +409,11 @@ class MilvusVector(BaseVector):
             )
         else:
             schema_info = COLLECTION_TO_SCHEMA[self._collection_name]
-            dim = len(self._embeddings.embed_query(documents[0].page_content))
+            dim = len(self._embeddings.embed_query(
+                documents[0].page_content))
             fields = [
-                FieldSchema(PRIMARY_KEY, DataType.INT64, is_primary=True, auto_id=True)
+                FieldSchema(
+                    PRIMARY_KEY, DataType.INT64, is_primary=True, auto_id=True)
             ]
             for tp_field in schema_info.get(FIELDS, []):
                 if tp_field[1] == "str":
@@ -403,15 +433,18 @@ class MilvusVector(BaseVector):
                             )
                         )
                 elif tp_field[1] == "int":
-                    fields.append(FieldSchema(tp_field[0], DataType.INT32))
+                    fields.append(FieldSchema(
+                        tp_field[0], DataType.INT32))
             for field in schema_info.get(VEC_FIELDS, []):
                 fields.append(
-                    FieldSchema(f"{field}_{DENSE}", DataType.FLOAT_VECTOR, dim=dim)
+                    FieldSchema(
+                        f"{field}_{DENSE}", DataType.FLOAT_VECTOR, dim=dim)
                 )
             for field in schema_info.get(TEXT_FIELDS, []):
                 if self._hybrid_search_enabled:
                     fields.append(
-                        FieldSchema(f"{field}_{SPARSE}", DataType.SPARSE_FLOAT_VECTOR)
+                        FieldSchema(
+                            f"{field}_{SPARSE}", DataType.SPARSE_FLOAT_VECTOR)
                     )
             schema = CollectionSchema(fields)
             if self._hybrid_search_enabled:
@@ -420,7 +453,8 @@ class MilvusVector(BaseVector):
                         Function(
                             name=f"{field}_bm25_emb",
                             input_field_names=[field],
-                            output_field_names=[f"{field}_{SPARSE}"],
+                            output_field_names=[
+                                f"{field}_{SPARSE}"],
                             function_type=FunctionType.BM25,
                         )
                     )
@@ -472,7 +506,9 @@ class MilvusVectorFactory(AbstractVectorFactory):
                 user=config.get("user", ""),
                 password=config.get("password", ""),
                 database=config.get("database", ""),
-                enable_hybrid_search=config.get("enable_hybrid_search", False),
-                analyzer_params=config.get("analyzer_params", ""),
+                enable_hybrid_search=config.get(
+                    "enable_hybrid_search", False),
+                analyzer_params=config.get(
+                    "analyzer_params", ""),
             ),
         )

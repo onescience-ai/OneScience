@@ -1,3 +1,4 @@
+import pyvista as pv
 import os
 import time
 
@@ -6,7 +7,6 @@ import torch
 
 print(torch.__version__)
 
-import pyvista as pv
 
 torch.manual_seed(2022)
 # torch.cuda.is_available = lambda : False
@@ -116,8 +116,10 @@ class S_Net(torch.nn.Module):
     def reset_parameters(self):
         for m in self.modules():
             if isinstance(m, torch.nn.Linear):
-                torch.nn.init.normal_(m.weight, mean=0, std=0.1)
-                torch.nn.init.normal_(m.bias, mean=0, std=0.1)
+                torch.nn.init.normal_(
+                    m.weight, mean=0, std=0.1)
+                torch.nn.init.normal_(
+                    m.bias, mean=0, std=0.1)
 
 
 def stressLE(e):
@@ -126,7 +128,8 @@ def stressLE(e):
     mu = YM / (2.0 * (1.0 + PR))
     trace_e = e[:, 0, 0] + e[:, 1, 1] + e[:, 2, 2]
     return (
-        lame1 * torch.einsum("ijk,i->ijk", identity[: len(e), ::], trace_e) + 2 * mu * e
+        lame1 * torch.einsum("ijk,i->ijk",
+                             identity[: len(e), ::], trace_e) + 2 * mu * e
     )
 
 
@@ -142,7 +145,8 @@ def Prep_B_physical_Hex(P, conn, nE):
     P_N6 = P[:, conn[:, 5]]
     P_N7 = P[:, conn[:, 6]]
     P_N8 = P[:, conn[:, 7]]
-    P_N = torch.stack([P_N1, P_N2, P_N3, P_N4, P_N5, P_N6, P_N7, P_N8])  # .double()
+    P_N = torch.stack(
+        [P_N1, P_N2, P_N3, P_N4, P_N5, P_N6, P_N7, P_N8])  # .double()
 
     x_, y_, z_ = 0.0, 0.0, 0.0
     # Shape grad in natural coords
@@ -197,7 +201,8 @@ def Prep_B_physical_Hex(P, conn, nE):
     dPy = torch.einsum("ij,iq->qj", P_N[:, 1, :], B)
     dPz = torch.einsum("ij,iq->qj", P_N[:, 2, :], B)
     J = torch.reshape(
-        torch.transpose(torch.cat((dPx, dPy, dPz), dim=0), 0, 1), [nE, 3, 3]
+        torch.transpose(torch.cat((dPx, dPy, dPz), dim=0), 0, 1), [
+            nE, 3, 3]
     )
     Jinv = torch.linalg.inv(J)
     detJ = torch.linalg.det(J)
@@ -219,7 +224,8 @@ def Prep_B_physical_Tet(P, conn, nE):
     g_, h_, r_ = 0.0, 0.0, 0.0
     # Shape grad in natural coords
     B = torch.tensor(
-        [[-1.0, -1.0, -1.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+        [[-1.0, -1.0, -1.0], [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
         device=dev,
     )  # .double()
 
@@ -228,7 +234,8 @@ def Prep_B_physical_Tet(P, conn, nE):
     dPy = torch.einsum("ij,iq->qj", P_N[:, 1, :], B)
     dPz = torch.einsum("ij,iq->qj", P_N[:, 2, :], B)
     J = torch.reshape(
-        torch.transpose(torch.cat((dPx, dPy, dPz), dim=0), 0, 1), [nE, 3, 3]
+        torch.transpose(torch.cat((dPx, dPy, dPz), dim=0), 0, 1), [
+            nE, 3, 3]
     )
     Jinv = torch.linalg.inv(J)
     detJ = torch.linalg.det(J)
@@ -247,13 +254,18 @@ def LE_Gauss(U, x, N_element, conn, Ele_info, eps_p, PEEQ, alpha, OUTPUT):
     U_N = torch.stack(U_N)  # .double()
 
     # Go through all integration pts
-    strainEnergy_at_elem = torch.zeros(N_element, device=dev)
+    strainEnergy_at_elem = torch.zeros(
+        N_element, device=dev)
     wt = 8.0 if CellType == 12 else 1.0
 
-    dUx = torch.einsum("ij,jil->jl", U_N[:, 0, :], B_physical)
-    dUy = torch.einsum("ij,jil->jl", U_N[:, 1, :], B_physical)
-    dUz = torch.einsum("ij,jil->jl", U_N[:, 2, :], B_physical)
-    grad_u = torch.reshape(torch.cat((dUx, dUy, dUz), dim=-1), [N_element, 3, 3])
+    dUx = torch.einsum(
+        "ij,jil->jl", U_N[:, 0, :], B_physical)
+    dUy = torch.einsum(
+        "ij,jil->jl", U_N[:, 1, :], B_physical)
+    dUz = torch.einsum(
+        "ij,jil->jl", U_N[:, 2, :], B_physical)
+    grad_u = torch.reshape(
+        torch.cat((dUx, dUy, dUz), dim=-1), [N_element, 3, 3])
 
     # Updated total strain
     strain = 0.5 * (grad_u + grad_u.permute(0, 2, 1))
@@ -273,21 +285,29 @@ def LE_Gauss(U, x, N_element, conn, Ele_info, eps_p, PEEQ, alpha, OUTPUT):
     delta_PEEQ = PEEQ_new - PEEQ_old
 
     # Compute functional
-    K_hard = 0.5 * (HardeningModulus(PEEQ_new) + HardeningModulus(PEEQ_old))
+    K_hard = 0.5 * \
+        (HardeningModulus(PEEQ_new) + HardeningModulus(PEEQ_old))
     if not KINEMATIC:
         SE = (
-            0.5 * torch.einsum("ijk,ijk->i", stress, strain_e)
+            0.5 * torch.einsum("ijk,ijk->i",
+                               stress, strain_e)
             + 0.5 * PEEQ_new * PEEQ_new * K_hard
-            + torch.einsum("ijk,ijk->i", stress, delta_eps_tensor)
+            + torch.einsum("ijk,ijk->i",
+                           stress, delta_eps_tensor)
             - PEEQ_new * K_hard * delta_PEEQ
         )
     else:
         delta_alpha = alpha_new - alpha_old
         SE = (
-            0.5 * torch.einsum("ijk,ijk->i", stress, strain_e)
-            + 0.5 * torch.einsum("ijk,ijk->i", alpha_new, alpha_new) / K_hard
-            + torch.einsum("ijk,ijk->i", stress, delta_eps_tensor)
-            - torch.einsum("ijk,ijk->i", alpha_new, delta_alpha) / K_hard
+            0.5 * torch.einsum("ijk,ijk->i",
+                               stress, strain_e)
+            + 0.5 *
+            torch.einsum("ijk,ijk->i", alpha_new,
+                         alpha_new) / K_hard
+            + torch.einsum("ijk,ijk->i",
+                           stress, delta_eps_tensor)
+            - torch.einsum("ijk,ijk->i",
+                           alpha_new, delta_alpha) / K_hard
         )
     strainEnergy_at_elem += SE * wt * detJ
 
@@ -338,14 +358,18 @@ def RadialReturn(eps_1, ep_in, PEEQ_in, alpha_in, KINEMATIC):
     if not KINEMATIC:
         trial_s_eff = MisesStress(deviatoric)
     else:
-        alpha_hydro, alpha_deviatoric = decomposition(alpha_out)
-        trial_s_eff = MisesStress(deviatoric - alpha_deviatoric)
+        alpha_hydro, alpha_deviatoric = decomposition(
+            alpha_out)
+        trial_s_eff = MisesStress(
+            deviatoric - alpha_deviatoric)
     sig_1 = sigma_trial
 
     # Check for yielding
-    yield_flag = trial_s_eff >= flow_stress  # if True, yielding has occurred
+    # if True, yielding has occurred
+    yield_flag = trial_s_eff >= flow_stress
 
-    dPEEQ = 0.0 * trial_s_eff[yield_flag]  # Initialize as array
+    # Initialize as array
+    dPEEQ = 0.0 * trial_s_eff[yield_flag]
 
     magic_number = np.sqrt(2.0 / 3.0)
     if len(dPEEQ) > 0:  # If at least one point is yielding
@@ -361,13 +385,17 @@ def RadialReturn(eps_1, ep_in, PEEQ_in, alpha_in, KINEMATIC):
 
                 # Newton update
                 c_pl = (
-                    trial_s_eff[yield_flag] - flow_stress[yield_flag] - 3.0 * mu * dPEEQ
+                    trial_s_eff[yield_flag] -
+                    flow_stress[yield_flag] -
+                    3.0 * mu * dPEEQ
                 ) / (3.0 * mu + H_curr)
                 dPEEQ = dPEEQ + c_pl
 
                 # Scale deviatoric part
-                scaler = 1.0 - 3.0 * mu * dPEEQ / trial_s_eff[yield_flag]
-                dev_new = torch.einsum("ijk,i->ijk", deviatoric[yield_flag], scaler)
+                scaler = 1.0 - 3.0 * mu * \
+                    dPEEQ / trial_s_eff[yield_flag]
+                dev_new = torch.einsum(
+                    "ijk,i->ijk", deviatoric[yield_flag], scaler)
 
                 # Update internal variables
                 ep_out[yield_flag] = ep_out[yield_flag] + 1.5 * torch.einsum(
@@ -376,7 +404,8 @@ def RadialReturn(eps_1, ep_in, PEEQ_in, alpha_in, KINEMATIC):
                     1.0 / trial_s_eff[yield_flag] * c_pl,
                 )
                 PEEQ_out[yield_flag] = PEEQ_out[yield_flag] + c_pl
-                flow_stress[yield_flag] = FlowStress(PEEQ_out[yield_flag])
+                flow_stress[yield_flag] = FlowStress(
+                    PEEQ_out[yield_flag])
 
                 # # Sanity check
                 # err = MisesStress( dev_new ) - flow_stress[yield_flag]
@@ -389,28 +418,36 @@ def RadialReturn(eps_1, ep_in, PEEQ_in, alpha_in, KINEMATIC):
 
             # Compute return direction
             xi = deviatoric - alpha_deviatoric
-            norm_xi = torch.sqrt(torch.einsum("ijk,ijk->i", xi, xi))
-            n = torch.einsum("ijk,i->ijk", xi, 1.0 / norm_xi)[yield_flag]
+            norm_xi = torch.sqrt(
+                torch.einsum("ijk,ijk->i", xi, xi))
+            n = torch.einsum(
+                "ijk,i->ijk", xi, 1.0 / norm_xi)[yield_flag]
 
             # Compute plastic multiplier increment
-            f_trial = (norm_xi - magic_number * sig_y0)[yield_flag]
+            f_trial = (norm_xi - magic_number *
+                       sig_y0)[yield_flag]
             d_gamma = f_trial / (2 * mu + 2.0 * C / 3.0)
 
             # Update internal variables
-            PEEQ_out[yield_flag] = PEEQ_out[yield_flag] + magic_number * d_gamma
+            PEEQ_out[yield_flag] = PEEQ_out[yield_flag] + \
+                magic_number * d_gamma
             ep_out[yield_flag] = ep_out[yield_flag] + torch.einsum(
                 "ijk,i->ijk", n, d_gamma
             )
-            flow_stress[yield_flag] = FlowStress(PEEQ_out[yield_flag])
+            flow_stress[yield_flag] = FlowStress(
+                PEEQ_out[yield_flag])
 
             # Update full stress tensor
-            sig_1[yield_flag] = stressLE(eps_1[yield_flag] - ep_out[yield_flag])
+            sig_1[yield_flag] = stressLE(
+                eps_1[yield_flag] - ep_out[yield_flag])
 
             # Update back stress tensor
             # # Linear Ziegler hardening, to match Abaqus theory manual
             xi2 = sig_1[yield_flag] - alpha_out[yield_flag]
-            norm_xi2 = torch.sqrt(torch.einsum("ijk,ijk->i", xi2, xi2))
-            n2 = torch.einsum("ijk,i->ijk", xi2, 1.0 / norm_xi2)
+            norm_xi2 = torch.sqrt(
+                torch.einsum("ijk,ijk->i", xi2, xi2))
+            n2 = torch.einsum(
+                "ijk,i->ijk", xi2, 1.0 / norm_xi2)
             # alpha_out[yield_flag] = alpha_out[yield_flag] + torch.einsum( 'ijk,i->ijk' , xi2 , C/sig_y0 * magic_number * d_gamma )
 
             # Linear Prager hardening
@@ -434,7 +471,7 @@ def ConvergenceCheck(arry, rel_tol):
     if len(arry) < 2 * num_check:
         return False
 
-    mean1 = np.mean(arry[-2 * num_check : -num_check])
+    mean1 = np.mean(arry[-2 * num_check: -num_check])
     mean2 = np.mean(arry[-num_check:])
 
     if np.abs(mean2) < 1e-6:
@@ -442,7 +479,8 @@ def ConvergenceCheck(arry, rel_tol):
         return True
 
     if (np.abs(mean1 - mean2) / np.abs(mean2)) < rel_tol:
-        print("Loss value converged to rel tol of " + str(rel_tol))
+        print(
+            "Loss value converged to rel tol of " + str(rel_tol))
         return True
     else:
         return False
@@ -492,7 +530,8 @@ class DeepMixedMethod:
 
         # Store common tensors for reuse
         global identity
-        identity = torch.zeros((self.domain["nE"], 3, 3), device=dev)
+        identity = torch.zeros(
+            (self.domain["nE"], 3, 3), device=dev)
         identity[:, 0, 0] = 1
         identity[:, 1, 1] = 1
         identity[:, 2, 2] = 1
@@ -519,9 +558,12 @@ class DeepMixedMethod:
         LBFGS_loss = {}
 
         # Initial condition, plastic strain and back stress
-        eps_p = torch.zeros((self.domain["nE"], 3, 3), device=dev)  # .double()
-        PEEQ = torch.zeros((self.domain["nE"]), device=dev)  # .double()
-        alpha = torch.zeros((self.domain["nE"], 3, 3), device=dev)  # .double()
+        eps_p = torch.zeros(
+            (self.domain["nE"], 3, 3), device=dev)  # .double()
+        PEEQ = torch.zeros(
+            (self.domain["nE"]), device=dev)  # .double()
+        alpha = torch.zeros(
+            (self.domain["nE"], 3, 3), device=dev)  # .double()
 
         # Begin training
         start_time = time.time()
@@ -529,9 +571,11 @@ class DeepMixedMethod:
 
         # Prep element shape function gradients
         if CellType == 12:
-            Ele_info = Prep_B_physical_Hex(nodesEn, EleConn, self.domain["nE"])
+            Ele_info = Prep_B_physical_Hex(
+                nodesEn, EleConn, self.domain["nE"])
         else:
-            Ele_info = Prep_B_physical_Tet(nodesEn, EleConn, self.domain["nE"])
+            Ele_info = Prep_B_physical_Tet(
+                nodesEn, EleConn, self.domain["nE"])
 
         all_diff = []
         for step in range(1, step_max + 1):
@@ -587,7 +631,8 @@ class DeepMixedMethod:
                 alpha,
                 True,
             )
-            curr_diff = self.SaveData(self.domain, u_pred, Data, tempL, step, ref_file)
+            curr_diff = self.SaveData(
+                self.domain, u_pred, Data, tempL, step, ref_file)
             all_diff.append(curr_diff)
 
             # Update internal variables
@@ -602,11 +647,13 @@ class DeepMixedMethod:
             print("Saving trained model")
             torch.save(
                 self.S_Net.state_dict(),
-                os.path.join(model_dir, f"TrainedModel_Step{step}"),
+                os.path.join(
+                    model_dir, f"TrainedModel_Step{step}"),
             )
 
         end_time = time.time()
-        print("simulation time = " + str(end_time - start_time - IO_time) + "s")
+        print("simulation time = " +
+              str(end_time - start_time - IO_time) + "s")
 
         return all_diff
 
@@ -616,24 +663,30 @@ class DeepMixedMethod:
         if EXAMPLE == 1:
             mag = 0 if UNIFORM else 0.2
             Ux = (
-                phix * (1 - phix) * phiy * (1 - phiy) * uP[:, 0]
-                + (phiy + torch.sin(phiy * np.pi * 2) * mag) * u_applied
+                phix * (1 - phix) * phiy *
+                (1 - phiy) * uP[:, 0]
+                + (phiy + torch.sin(phiy * np.pi * 2)
+                   * mag) * u_applied
             )
-            Uy = phix * (1 - phix) * phiy * (1 - phiy) * uP[:, 1]
+            Uy = phix * (1 - phix) * phiy * \
+                (1 - phiy) * uP[:, 1]
             Uz = 0 * uP[:, 2]
 
             # Ux = phiy * u_applied * 0
             # Uy = phiy * u_applied
 
         elif EXAMPLE == 2:
-            Ux = phix * (1 - phix) * phiy * (1 - phiy) * uP[:, 0] + phiy * u_applied
-            Uy = phix * (1 - phix) * phiy * (1 - phiy) * uP[:, 1]
+            Ux = phix * (1 - phix) * phiy * \
+                (1 - phiy) * uP[:, 0] + phiy * u_applied
+            Uy = phix * (1 - phix) * phiy * \
+                (1 - phiy) * uP[:, 1]
             Uz = 0 * uP[:, 2]
 
         elif EXAMPLE == 3:
             Ux = phix * uP[:, 0]  # ux = 0 @ x = 0
             Uy = (
-                phiy * (1 - phiy) * uP[:, 1] + phiy * u_applied
+                phiy * (1 - phiy) *
+                uP[:, 1] + phiy * u_applied
             )  # uy = 0 @ y = 0, uy = applied @ y=Ly
             Uz = phiz * uP[:, 2]  # uz = 0 @ z = 0
 
@@ -666,7 +719,8 @@ class DeepMixedMethod:
         try:
             # Save training loss
             LBFGS_loss_D1 = np.array(LBFGS_loss[1])
-            fn_ = os.path.join(log_dir, fn + "Training_loss.npy")  # 关键修改
+            fn_ = os.path.join(
+                log_dir, fn + "Training_loss.npy")  # 关键修改
             np.save(fn_, LBFGS_loss_D1)
         except:
             pass
@@ -709,7 +763,8 @@ class DeepMixedMethod:
         stress_vMis = torch.pow(
             0.5
             * (
-                torch.pow((IP_Stress[:, 0] - IP_Stress[:, 1]), 2)
+                torch.pow(
+                    (IP_Stress[:, 0] - IP_Stress[:, 1]), 2)
                 + torch.pow((IP_Stress[:, 1] - IP_Stress[:, 2]), 2)
                 + torch.pow((IP_Stress[:, 2] - IP_Stress[:, 0]), 2)
                 + 6
@@ -736,21 +791,25 @@ class DeepMixedMethod:
         IP_Plastic_Strain = IP_Plastic_Strain.cpu().detach().numpy()
         IP_Stress = IP_Stress.cpu().detach().numpy()
         IP_Alpha = IP_Alpha.cpu().detach().numpy()
-        stress_vMis = stress_vMis.unsqueeze(1).cpu().detach().numpy()
+        stress_vMis = stress_vMis.unsqueeze(
+            1).cpu().detach().numpy()
         PEEQ = PEEQ.unsqueeze(1).cpu().detach().numpy()
         U = U.cpu().detach().numpy()
 
         # Write vtk
         cells = np.concatenate(
             [
-                np.ones([self.domain["nE"], 1], dtype=np.int32) * NodePerCell,
+                np.ones([self.domain["nE"], 1],
+                        dtype=np.int32) * NodePerCell,
                 self.domain["EleConn"].numpy(),
             ],
             axis=1,
         ).ravel()
-        celltypes = np.empty(self.domain["nE"], dtype=np.uint8)
+        celltypes = np.empty(
+            self.domain["nE"], dtype=np.uint8)
         celltypes[:] = CellType
-        grid = pv.UnstructuredGrid(cells, celltypes, self.domain["Energy"].numpy())
+        grid = pv.UnstructuredGrid(
+            cells, celltypes, self.domain["Energy"].numpy())
 
         # Nodal data
         names = ["Ux", "Uy", "Uz"]
@@ -787,7 +846,8 @@ class DeepMixedMethod:
             "A13",
         ]
         Data = np.concatenate(
-            (IP_Strain, IP_Plastic_Strain, IP_Stress, stress_vMis, PEEQ, IP_Alpha),
+            (IP_Strain, IP_Plastic_Strain,
+             IP_Stress, stress_vMis, PEEQ, IP_Alpha),
             axis=1,
         )
         for idx, n in enumerate(names):
@@ -801,7 +861,8 @@ class DeepMixedMethod:
         # Displacements
         names = ["Ux_Abaqus", "Uy_Abaqus", "Uz_Abaqus"]
         for idx, n in enumerate(names):
-            grid.point_data[n] = Out1[idx][step, : self.domain["nN"]]
+            grid.point_data[n] = Out1[idx][step,
+                                           : self.domain["nN"]]
         # Compute difference
         names = ["Ux", "Uy", "Uz"]
         diff = []
@@ -811,10 +872,12 @@ class DeepMixedMethod:
             grid.point_data[n + "_diff"] = np.abs(
                 FEM - ML
             )  # / np.mean( np.abs(FEM) ) * 100.
-            diff.append(np.mean(grid.point_data[n + "_diff"]))
+            diff.append(
+                np.mean(grid.point_data[n + "_diff"]))
 
         # PEEQ at IP
-        grid.cell_data["PEEQ_Abaqus"] = Out1[3][step, : self.domain["nE"]]
+        grid.cell_data["PEEQ_Abaqus"] = Out1[3][step,
+                                                : self.domain["nE"]]
         FEM = grid.cell_data["PEEQ_Abaqus"]
         ML = grid.cell_data["PEEQ"]
         grid.cell_data["PEEQ_diff"] = np.abs(
@@ -823,7 +886,8 @@ class DeepMixedMethod:
         diff.append(np.mean(grid.cell_data["PEEQ_diff"]))
 
         # VM at IP
-        grid.cell_data["Mises_Abaqus"] = Out1[4][step, : self.domain["nE"]]
+        grid.cell_data["Mises_Abaqus"] = Out1[4][step,
+                                                 : self.domain["nE"]]
         FEM = grid.cell_data["Mises_Abaqus"]
         ML = grid.cell_data["Mises"]
         grid.cell_data["Mises_diff"] = np.abs(
@@ -832,7 +896,8 @@ class DeepMixedMethod:
         diff.append(np.mean(grid.cell_data["Mises_diff"]))
 
         # Write
-        vtk_path = os.path.join(result_dir, f"{fn}_Results.vtk")
+        vtk_path = os.path.join(
+            result_dir, f"{fn}_Results.vtk")
         grid.save(vtk_path)
 
         # 保存DiffLog到log目录
@@ -858,9 +923,11 @@ class DeepMixedMethod:
         # Prep element shape function gradients
         st2 = time.time()
         if CellType == 12:
-            Ele_info = Prep_B_physical_Hex(nodesEn, EleConn, self.domain["nE"])
+            Ele_info = Prep_B_physical_Hex(
+                nodesEn, EleConn, self.domain["nE"])
         else:
-            Ele_info = Prep_B_physical_Tet(nodesEn, EleConn, self.domain["nE"])
+            Ele_info = Prep_B_physical_Tet(
+                nodesEn, EleConn, self.domain["nE"])
         prep_time = time.time() - st2
 
         u_pred = self.getUP(nodesEn, u_applied)
@@ -877,7 +944,8 @@ class DeepMixedMethod:
         )
         sim_time = time.time() - st
 
-        self.SaveData(self.domain, u_pred, Data, None, step, ref_file)
+        self.SaveData(self.domain, u_pred,
+                      Data, None, step, ref_file)
 
         # Update internal variables
         eps_p = Data[2].to(dev).detach()

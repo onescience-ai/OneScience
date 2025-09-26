@@ -16,14 +16,16 @@ MutableFeatureDict: TypeAlias = MutableMapping[str, np.ndarray]
 
 def fix_features(msa_features: MutableFeatureDict) -> MutableFeatureDict:
     """Renames the deletion_matrix feature."""
-    msa_features["deletion_matrix"] = msa_features.pop("deletion_matrix_int")
+    msa_features["deletion_matrix"] = msa_features.pop(
+        "deletion_matrix_int")
     return msa_features
 
 
 def get_profile_features(msa: np.ndarray, deletion_matrix: np.ndarray) -> FeatureDict:
     """Returns the MSA profile and deletion_mean features."""
     num_restypes = residue_names.POLYMER_TYPES_NUM_WITH_UNKNOWN_AND_GAP
-    profile = msa_profile.compute_msa_profile(msa=msa, num_residue_types=num_restypes)
+    profile = msa_profile.compute_msa_profile(
+        msa=msa, num_residue_types=num_restypes)
 
     return {
         "profile": profile.astype(np.float32),

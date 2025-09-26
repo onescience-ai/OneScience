@@ -12,7 +12,8 @@ from onescience.flax_models.alphafold3.cpp import cif_dict
 
 def main(argv: Sequence[str]) -> None:
     if len(argv) != 3:
-        raise ValueError("Must specify input_file components.cif and output_file")
+        raise ValueError(
+            "Must specify input_file components.cif and output_file")
 
     _, input_file, output_file = argv
 
@@ -34,7 +35,8 @@ def main(argv: Sequence[str]) -> None:
 
     print(f"Writing {output_file}", flush=True)
     with open(output_file, "wb") as f:
-        pickle.dump(result, f, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(
+            result, f, protocol=pickle.HIGHEST_PROTOCOL)
     print("Done", flush=True)
 
 

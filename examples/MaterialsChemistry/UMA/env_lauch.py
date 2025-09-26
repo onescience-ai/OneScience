@@ -1,5 +1,7 @@
 # env_launch.py
 from __future__ import annotations
+from enum import Enum
+from dataclasses import dataclass, field
 
 import argparse
 import logging
@@ -33,8 +35,6 @@ RESULTS_DIR = "results"
 CONFIG_FILE_NAME = "canonical_config.yaml"
 
 # ------- JobConfig（保留最小字段；YAML 里的 scheduler 会被忽略） -------
-from dataclasses import dataclass, field
-from enum import Enum
 
 
 class DeviceType(str, Enum):
@@ -53,8 +53,10 @@ class Metadata:
 
 @dataclass
 class JobConfig:
-    run_name: str = field(default_factory=lambda: get_timestamp_uid())
-    timestamp_id: str = field(default_factory=lambda: get_timestamp_uid())
+    run_name: str = field(
+        default_factory=lambda: get_timestamp_uid())
+    timestamp_id: str = field(
+        default_factory=lambda: get_timestamp_uid())
     run_dir: str = "/tmp"  # 建议在 YAML 中设置
     device_type: DeviceType = DeviceType.CUDA
     debug: bool = False
@@ -70,12 +72,15 @@ class JobConfig:
         self.run_dir = os.path.abspath(self.run_dir)
         self.metadata = Metadata(
             commit=get_commit_hash(),
-            log_dir=os.path.join(self.run_dir, self.timestamp_id, LOG_DIR_NAME),
+            log_dir=os.path.join(
+                self.run_dir, self.timestamp_id, LOG_DIR_NAME),
             checkpoint_dir=os.path.join(
                 self.run_dir, self.timestamp_id, CHECKPOINT_DIR_NAME
             ),
-            results_dir=os.path.join(self.run_dir, self.timestamp_id, RESULTS_DIR),
-            config_path=os.path.join(self.run_dir, self.timestamp_id, CONFIG_FILE_NAME),
+            results_dir=os.path.join(
+                self.run_dir, self.timestamp_id, RESULTS_DIR),
+            config_path=os.path.join(
+                self.run_dir, self.timestamp_id, CONFIG_FILE_NAME),
         )
 
 
@@ -102,10 +107,12 @@ def get_canonical_config(config):
     config.job = job
 
     # 清理未使用的顶层 keys（除了 ALLOWED_TOP_LEVEL_KEYS）
-    all_keys = set(config.keys()).difference(ALLOWED_TOP_LEVEL_KEYS)
+    all_keys = set(config.keys()).difference(
+        ALLOWED_TOP_LEVEL_KEYS)
     used_keys = set()
     for key in all_keys:
-        copy_cfg = OmegaConf.create({k: v for k, v in config.items() if k != key})
+        copy_cfg = OmegaConf.create(
+            {k: v for k, v in config.items() if k != key})
         try:
             OmegaConf.resolve(copy_cfg)
         except InterpolationKeyError:
@@ -119,7 +126,8 @@ def get_canonical_config(config):
 
     OmegaConf.resolve(config)
     return OmegaConf.create(
-        {k: v for k, v in config.items() if k in ALLOWED_TOP_LEVEL_KEYS}
+        {k: v for k, v in config.items(
+        ) if k in ALLOWED_TOP_LEVEL_KEYS}
     )
 
 
@@ -130,13 +138,17 @@ def get_hydra_config_from_yaml(config_yml: str, overrides_args: list[str]):
     from omegaconf import OmegaConf
 
     os.environ["HYDRA_FULL_ERROR"] = "1"
-    config_directory = os.path.dirname(os.path.abspath(config_yml))
+    config_directory = os.path.dirname(
+        os.path.abspath(config_yml))
     config_name = os.path.basename(config_yml)
-    hydra.initialize_config_dir(config_directory, version_base="1.1")
-    cfg = hydra.compose(config_name=config_name, overrides=overrides_args or [])
+    hydra.initialize_config_dir(
+        config_directory, version_base="1.1")
+    cfg = hydra.compose(
+        config_name=config_name, overrides=overrides_args or [])
 
     # 合入最小 JobConfig 结构
-    cfg = OmegaConf.merge({"job": OmegaConf.structured(JobConfig)}, cfg)
+    cfg = OmegaConf.merge(
+        {"job": OmegaConf.structured(JobConfig)}, cfg)
 
     # >>> 这里强制所有 rank 共享一个 timestamp_id <<<
     shared_id = (
@@ -155,16 +167,19 @@ def get_hydra_config_from_yaml(config_yml: str, overrides_args: list[str]):
 # ----------------- 主流程 -----------------
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", type=str, required=True)
+    parser.add_argument(
+        "-c", "--config", type=str, required=True)
     args, override_args = parser.parse_known_args()
 
-    cfg = get_hydra_config_from_yaml(args.config, override_args or [])
+    cfg = get_hydra_config_from_yaml(
+        args.config, override_args or [])
 
     # 目录与保存配置
     os.makedirs(cfg.job.run_dir, exist_ok=True)
     os.makedirs(cfg.job.metadata.log_dir, exist_ok=True)
     OmegaConf.save(cfg, cfg.job.metadata.config_path)
-    logging.info(f"saved canonical config to {cfg.job.metadata.config_path}")
+    logging.info(
+        f"saved canonical config to {cfg.job.metadata.config_path}")
 
     # 环境与日志
     setup_env_vars()
@@ -204,8 +219,10 @@ def main():
 
     # 日志系统（可选）
     if cfg.job.logger and DistributedManager().rank == 0 and not cfg.job.debug:
-        logger_initializer = hydra.utils.instantiate(cfg.job.logger)
-        simple_config = OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
+        logger_initializer = hydra.utils.instantiate(
+            cfg.job.logger)
+        simple_config = OmegaConf.to_container(
+            cfg, resolve=True, throw_on_missing=True)
         logger_initializer(
             config=simple_config,
             run_id=cfg.job.timestamp_id,

@@ -21,7 +21,8 @@ def _make_restype_rigidgroup_dense_atom_idx():
     # Create an array with the atom names.
     # shape (num_restypes, num_rigidgroups, 3_atoms):
     # (31, 8, 3)
-    base_atom_indices = np.zeros((NUM_RESTYPES_WITH_UNK_AND_GAP, 8, 3), dtype=np.int32)
+    base_atom_indices = np.zeros(
+        (NUM_RESTYPES_WITH_UNK_AND_GAP, 8, 3), dtype=np.int32)
 
     # 4,5,6,7: 'chi1,2,3,4-group'
     for restype, restype_letter in enumerate(residue_names.PROTEIN_TYPES_ONE_LETTER):
@@ -51,7 +52,8 @@ def _make_restype_rigidgroup_dense_atom_idx():
         # 0: backbone frame only.
         # we have aa + unk + gap, so we want to start after those
         resnum = nanum + NUM_AA_WITH_UNK_AND_GAP
-        base_atom_indices[resnum, 0, :] = nucleic_rigid_atoms
+        base_atom_indices[resnum, 0,
+                          :] = nucleic_rigid_atoms
 
     return base_atom_indices
 
@@ -68,18 +70,22 @@ def _make_restype_pseudobeta_idx():
         restype_name = residue_names.PROTEIN_COMMON_ONE_TO_THREE[restype_letter]
         atom_names = list(atom_types.ATOM14[restype_name])
         if restype_name in {"GLY"}:
-            restype_pseudobeta_index[restype] = atom_names.index("CA")
+            restype_pseudobeta_index[restype] = atom_names.index(
+                "CA")
         else:
-            restype_pseudobeta_index[restype] = atom_names.index("CB")
+            restype_pseudobeta_index[restype] = atom_names.index(
+                "CB")
     for nanum, resname in enumerate(residue_names.NUCLEIC_TYPES):
         atom_names = list(atom_types.DENSE_ATOM[resname])
         # 0: backbone frame only.
         # we have aa + unk , so we want to start after those
         restype = nanum + NUM_AA_WITH_UNK_AND_GAP
         if resname in {"A", "G", "DA", "DG"}:
-            restype_pseudobeta_index[restype] = atom_names.index("C4")
+            restype_pseudobeta_index[restype] = atom_names.index(
+                "C4")
         else:
-            restype_pseudobeta_index[restype] = atom_names.index("C2")
+            restype_pseudobeta_index[restype] = atom_names.index(
+                "C2")
     return restype_pseudobeta_index
 
 
@@ -88,14 +94,17 @@ RESTYPE_PSEUDOBETA_INDEX = _make_restype_pseudobeta_idx()
 
 def _make_aatype_dense_atom_to_atom37():
     """Map from dense_atom to atom37 per residue type."""
-    restype_dense_atom_to_atom37 = []  # mapping (restype, dense_atom) --> atom37
+    restype_dense_atom_to_atom37 = [
+    ]  # mapping (restype, dense_atom) --> atom37
     for rt in residue_names.PROTEIN_TYPES_ONE_LETTER:
         atom_names = list(
             atom_types.ATOM14_PADDED[residue_names.PROTEIN_COMMON_ONE_TO_THREE[rt]]
         )
-        atom_names.extend([""] * (NUM_DENSE - len(atom_names)))
+        atom_names.extend(
+            [""] * (NUM_DENSE - len(atom_names)))
         restype_dense_atom_to_atom37.append(
-            [(atom_types.ATOM37_ORDER[name] if name else 0) for name in atom_names]
+            [(atom_types.ATOM37_ORDER[name] if name else 0)
+             for name in atom_names]
         )
     # Add dummy mapping for restype 'UNK', '-' (gap), and nucleics [but not DN].
     for _ in range(2 + len(residue_names.NUCLEIC_TYPES_WITH_UNKNOWN)):

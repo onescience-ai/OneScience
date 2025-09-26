@@ -15,7 +15,8 @@ def pseudo_beta_fn(aatype, all_atom_positions, all_atom_mask):
     cb_idx = atom_order["CB"]
 
     is_gly = jnp.equal(aatype, restype_order["G"])
-    is_gly_tile = jnp.tile(is_gly[..., None], [1] * len(is_gly.shape) + [3])
+    is_gly_tile = jnp.tile(is_gly[..., None], [
+                           1] * len(is_gly.shape) + [3])
     pseudo_beta = jnp.where(
         is_gly_tile,
         all_atom_positions[..., ca_idx, :],
@@ -24,9 +25,11 @@ def pseudo_beta_fn(aatype, all_atom_positions, all_atom_mask):
 
     if all_atom_mask is not None:
         pseudo_beta_mask = jnp.where(
-            is_gly, all_atom_mask[..., ca_idx], all_atom_mask[..., cb_idx]
+            is_gly, all_atom_mask[...,
+                                  ca_idx], all_atom_mask[..., cb_idx]
         )
-        pseudo_beta_mask = pseudo_beta_mask.astype(jnp.float32)
+        pseudo_beta_mask = pseudo_beta_mask.astype(
+            jnp.float32)
         return pseudo_beta, pseudo_beta_mask
     else:
         return pseudo_beta
@@ -39,7 +42,8 @@ def pseudo_beta_fn_np(aatype, all_atom_positions, all_atom_mask):
     cb_idx = atom_order["CB"]
 
     is_gly = np.equal(aatype, restype_order["G"])
-    is_gly_tile = np.tile(is_gly[..., None], [1] * len(is_gly.shape) + [3])
+    is_gly_tile = np.tile(is_gly[..., None], [
+                          1] * len(is_gly.shape) + [3])
     pseudo_beta = np.where(
         is_gly_tile,
         all_atom_positions[..., ca_idx, :],
@@ -48,15 +52,17 @@ def pseudo_beta_fn_np(aatype, all_atom_positions, all_atom_mask):
 
     if all_atom_mask is not None:
         pseudo_beta_mask = np.where(
-            is_gly, all_atom_mask[..., ca_idx], all_atom_mask[..., cb_idx]
+            is_gly, all_atom_mask[...,
+                                  ca_idx], all_atom_mask[..., cb_idx]
         )
-        pseudo_beta_mask = pseudo_beta_mask.astype(np.float32)
+        pseudo_beta_mask = pseudo_beta_mask.astype(
+            np.float32)
         return pseudo_beta, pseudo_beta_mask
     else:
         return pseudo_beta
 
 
-##### numpy version is implemented in data/preprocess.py
+# numpy version is implemented in data/preprocess.py
 def calculate_dihedral_angle_jnp(A, B, C, D):
     a = B - A
     b = C - B
@@ -70,7 +76,8 @@ def calculate_dihedral_angle_jnp(A, B, C, D):
             jnp.einsum("ij,ij->i", n1, n2)
             / (
                 jnp.maximum(
-                    jnp.linalg.norm(n1, axis=1) * jnp.linalg.norm(n2, axis=1), 1e-6
+                    jnp.linalg.norm(
+                        n1, axis=1) * jnp.linalg.norm(n2, axis=1), 1e-6
                 )
             ),
             -1.0,
@@ -82,14 +89,16 @@ def calculate_dihedral_angle_jnp(A, B, C, D):
             jnp.einsum("ij,ij->i", n1, n2)
             / (
                 jnp.maximum(
-                    jnp.linalg.norm(n1, axis=1) * jnp.linalg.norm(n2, axis=1), 1e-6
+                    jnp.linalg.norm(
+                        n1, axis=1) * jnp.linalg.norm(n2, axis=1), 1e-6
                 )
             ),
             -1.0,
             1.0,
         )
     )  # * 180 / jnp.pi
-    angles = jnp.where(mask, angles_candidate_1, angles_candidate_2)
+    angles = jnp.where(
+        mask, angles_candidate_1, angles_candidate_2)
     return angles
 
 
@@ -98,25 +107,36 @@ def get_ppo_angles_sin_cos(atom37_positions):
     ca_pos = atom37_positions[:, 1, :]
     c_pos = atom37_positions[:, 2, :]
     # phi: CA(n), C(n), N(n), CA(n+1)
-    a1, a2, a3, a4 = c_pos[:-1], n_pos[1:], ca_pos[1:], c_pos[1:]
-    phi_angle_values = calculate_dihedral_angle_jnp(a1, a2, a3, a4)
-    phi_angle_values = jnp.concatenate([jnp.zeros(1), phi_angle_values])
+    a1, a2, a3, a4 = c_pos[:-
+                           1], n_pos[1:], ca_pos[1:], c_pos[1:]
+    phi_angle_values = calculate_dihedral_angle_jnp(
+        a1, a2, a3, a4)
+    phi_angle_values = jnp.concatenate(
+        [jnp.zeros(1), phi_angle_values])
     # psi: N(n), CA(n), C(n), N(n+1)
-    a1, a2, a3, a4 = n_pos[:-1], ca_pos[:-1], c_pos[:-1], n_pos[1:]
-    psi_angle_values = calculate_dihedral_angle_jnp(a1, a2, a3, a4)
-    psi_angle_values = jnp.concatenate([psi_angle_values, jnp.zeros(1)])
+    a1, a2, a3, a4 = n_pos[:-
+                           1], ca_pos[:-1], c_pos[:-1], n_pos[1:]
+    psi_angle_values = calculate_dihedral_angle_jnp(
+        a1, a2, a3, a4)
+    psi_angle_values = jnp.concatenate(
+        [psi_angle_values, jnp.zeros(1)])
     # omega: CA(n), C(n+1), N(n+1), CA(n+1)
-    a1, a2, a3, a4 = ca_pos[:-1], c_pos[:-1], n_pos[1:], ca_pos[1:]
-    omega_angle_values = calculate_dihedral_angle_jnp(a1, a2, a3, a4)
-    omega_angle_values = jnp.concatenate([omega_angle_values, jnp.zeros(1)])
+    a1, a2, a3, a4 = ca_pos[:-
+                            1], c_pos[:-1], n_pos[1:], ca_pos[1:]
+    omega_angle_values = calculate_dihedral_angle_jnp(
+        a1, a2, a3, a4)
+    omega_angle_values = jnp.concatenate(
+        [omega_angle_values, jnp.zeros(1)])
 
     ppo_angle_tensor = jnp.stack(
-        [phi_angle_values, psi_angle_values, omega_angle_values], axis=1
+        [phi_angle_values, psi_angle_values,
+            omega_angle_values], axis=1
     )
     ppo_angle_sin_cos = jnp.concatenate(
         [jnp.sin(ppo_angle_tensor), jnp.cos(ppo_angle_tensor)], axis=1
     )
-    ppo_anlge_mask = jnp.ones(ppo_angle_tensor.shape, dtype=jnp.int32)
+    ppo_anlge_mask = jnp.ones(
+        ppo_angle_tensor.shape, dtype=jnp.int32)
     ppo_anlge_mask = ppo_anlge_mask.at[0, 0].set(0)
     ppo_anlge_mask = ppo_anlge_mask.at[-1, 1].set(0)
     ppo_anlge_mask = ppo_anlge_mask.at[-1, 2].set(0)
@@ -141,7 +161,8 @@ def make_data_pair(
     data_pairs = []
     rand_indexes = jax.random.choice(
         rng_key,
-        a=jnp.arange(0, nsamples_per_device - num_adversarial_samples, dtype=jnp.int32),
+        a=jnp.arange(0, nsamples_per_device -
+                     num_adversarial_samples, dtype=jnp.int32),
         shape=(num_data_pairs,),
         replace=False,
     )
@@ -171,7 +192,8 @@ def make_data_pair(
         torsion_angles_sin_cos, _ = get_ppo_angles_sin_cos(
             reconstructed_atom37_positions
         )
-        data_pair["neg"][map_key_idx("torsion_angles_sin_cos")] = torsion_angles_sin_cos
+        data_pair["neg"][map_key_idx(
+            "torsion_angles_sin_cos")] = torsion_angles_sin_cos
 
         if recycle_vq_codes:
             data_pair["neg"][map_key_idx("prev_vq_codes")] = (
@@ -183,7 +205,8 @@ def make_data_pair(
 
 
 def make_2d_features(data_dict, nres, exlucde_neighbor):
-    mask_2d = data_dict["seq_mask"][:, :, None] * data_dict["seq_mask"][:, None, :]
+    mask_2d = data_dict["seq_mask"][:, :,
+                                    None] * data_dict["seq_mask"][:, None, :]
     data_dict["dist_gt_perms"] = jnp.expand_dims(
         jnp.linalg.norm(
             (
@@ -194,15 +217,16 @@ def make_2d_features(data_dict, nres, exlucde_neighbor):
         )
         * mask_2d,
         axis=1,
-    )  ### add perms dimension
+    )  # add perms dimension
 
     perms_mask = jnp.triu(
-        jnp.ones((nres, nres), dtype=jnp.int32), -exlucde_neighbor + 1
+        jnp.ones((nres, nres), dtype=jnp.int32), -
+        exlucde_neighbor + 1
     ) * jnp.tril(jnp.ones((nres, nres), dtype=jnp.int32), exlucde_neighbor - 1)
     dist_mask_perms = mask_2d * (1 - perms_mask)[None, :, :]
     dist_mask_perms = dist_mask_perms.reshape(
         -1, 1, nres, nres
-    )  ### add perms dimension
+    )  # add perms dimension
 
     data_dict["dist_mask_perms"] = dist_mask_perms
 
@@ -219,9 +243,11 @@ def mask_aatype(aatype, decoding_steps=10):
     ) / float(decoding_steps)
 
     mask_ratio = np.cos(np.pi * decoding_step * 0.5)  # (B,)
-    mask = np.random.rand(*aatype.shape) < mask_ratio[:, None]  # (B, L)
+    mask = np.random.rand(
+        *aatype.shape) < mask_ratio[:, None]  # (B, L)
 
-    mask_token = np.ones_like(aatype, dtype=np.int32) * 20  # 20 is the mask
+    mask_token = np.ones_like(
+        aatype, dtype=np.int32) * 20  # 20 is the mask
     masked_aatype = np.where(mask, mask_token, aatype)
 
     return masked_aatype

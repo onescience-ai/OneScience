@@ -32,8 +32,10 @@ def masked_mean(mask, value, dim, eps=1e-4):
 
 
 def pts_to_distogram(pts, min_bin=2.3125, max_bin=21.6875, no_bins=64):
-    boundaries = torch.linspace(min_bin, max_bin, no_bins - 1, device=pts.device)
-    dists = torch.sqrt(torch.sum((pts.unsqueeze(-2) - pts.unsqueeze(-3)) ** 2, dim=-1))
+    boundaries = torch.linspace(
+        min_bin, max_bin, no_bins - 1, device=pts.device)
+    dists = torch.sqrt(torch.sum(
+        (pts.unsqueeze(-2) - pts.unsqueeze(-3)) ** 2, dim=-1))
     return torch.bucketize(dists, boundaries)
 
 
@@ -51,7 +53,8 @@ def dict_multimap(fn, dicts):
 
 
 def one_hot(x, v_bins):
-    reshaped_bins = v_bins.view(((1,) * len(x.shape)) + (len(v_bins),))
+    reshaped_bins = v_bins.view(
+        ((1,) * len(x.shape)) + (len(v_bins),))
     diffs = x[..., None] - reshaped_bins
     am = torch.argmin(torch.abs(diffs), dim=-1)
     return nn.functional.one_hot(am, num_classes=len(v_bins)).float()
@@ -61,11 +64,14 @@ def batched_gather(data, inds, dim=0, no_batch_dims=0):
     ranges = []
     for i, s in enumerate(data.shape[:no_batch_dims]):
         r = torch.arange(s)
-        r = r.view(*(*((1,) * i), -1, *((1,) * (len(inds.shape) - i - 1))))
+        r = r.view(
+            *(*((1,) * i), -1, *((1,) * (len(inds.shape) - i - 1))))
         ranges.append(r)
 
-    remaining_dims = [slice(None) for _ in range(len(data.shape) - no_batch_dims)]
-    remaining_dims[dim - no_batch_dims if dim >= 0 else dim] = inds
+    remaining_dims = [slice(None) for _ in range(
+        len(data.shape) - no_batch_dims)]
+    remaining_dims[dim -
+                   no_batch_dims if dim >= 0 else dim] = inds
     ranges.extend(remaining_dims)
     return data[ranges]
 

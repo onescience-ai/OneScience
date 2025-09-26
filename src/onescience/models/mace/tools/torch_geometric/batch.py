@@ -44,7 +44,8 @@ class Batch(Data):
         :obj:`follow_batch`.
         Will exclude any keys given in :obj:`exclude_keys`."""
 
-        keys = list(set(data_list[0].keys) - set(exclude_keys))
+        keys = list(
+            set(data_list[0].keys) - set(exclude_keys))
         assert "batch" not in keys and "ptr" not in keys
 
         batch = cls()
@@ -86,14 +87,16 @@ class Batch(Data):
 
                 # Add a batch dimension to items whose `cat_dim` is `None`:
                 if isinstance(item, Tensor) and cat_dim is None:
-                    cat_dim = 0  # Concatenate along this new batch dimension.
+                    # Concatenate along this new batch dimension.
+                    cat_dim = 0
                     item = item.unsqueeze(0)
                     device = item.device
                 elif isinstance(item, Tensor):
                     size = item.size(cat_dim)
                     device = item.device
 
-                batch[key].append(item)  # Append item to the attribute list.
+                # Append item to the attribute list.
+                batch[key].append(item)
 
                 slices[key].append(size + slices[key][-1])
                 inc = data.__inc__(key, item)
@@ -105,15 +108,19 @@ class Batch(Data):
                     if isinstance(size, Tensor):
                         for j, size in enumerate(size.tolist()):
                             tmp = f"{key}_{j}_batch"
-                            batch[tmp] = [] if i == 0 else batch[tmp]
+                            batch[tmp] = [
+                            ] if i == 0 else batch[tmp]
                             batch[tmp].append(
-                                torch.full((size,), i, dtype=torch.long, device=device)
+                                torch.full(
+                                    (size,), i, dtype=torch.long, device=device)
                             )
                     else:
                         tmp = f"{key}_batch"
-                        batch[tmp] = [] if i == 0 else batch[tmp]
+                        batch[tmp] = [
+                        ] if i == 0 else batch[tmp]
                         batch[tmp].append(
-                            torch.full((size,), i, dtype=torch.long, device=device)
+                            torch.full(
+                                (size,), i, dtype=torch.long, device=device)
                         )
 
             if hasattr(data, "__num_nodes__"):
@@ -123,12 +130,15 @@ class Batch(Data):
 
             num_nodes = data.num_nodes
             if num_nodes is not None:
-                item = torch.full((num_nodes,), i, dtype=torch.long, device=device)
+                item = torch.full(
+                    (num_nodes,), i, dtype=torch.long, device=device)
                 batch.batch.append(item)
                 batch.ptr.append(batch.ptr[-1] + num_nodes)
 
-        batch.batch = None if len(batch.batch) == 0 else batch.batch
-        batch.ptr = None if len(batch.ptr) == 1 else batch.ptr
+        batch.batch = None if len(
+            batch.batch) == 0 else batch.batch
+        batch.ptr = None if len(
+            batch.ptr) == 1 else batch.ptr
         batch.__slices__ = slices
         batch.__cumsum__ = cumsum
         batch.__cat_dims__ = cat_dims
@@ -179,12 +189,14 @@ class Batch(Data):
                     dim = self.__cat_dims__[key]
                     start = self.__slices__[key][idx]
                     end = self.__slices__[key][idx + 1]
-                    item = item.narrow(dim, start, end - start)
+                    item = item.narrow(
+                        dim, start, end - start)
                 else:
                     start = self.__slices__[key][idx]
                     end = self.__slices__[key][idx + 1]
                     item = item[start:end]
-                    item = item[0] if len(item) == 1 else item
+                    item = item[0] if len(
+                        item) == 1 else item
 
             # Decrease its value by `cumsum` value:
             cum = self.__cumsum__[key][idx]
@@ -215,7 +227,8 @@ class Batch(Data):
             idx = idx.flatten().tolist()
 
         elif isinstance(idx, np.ndarray) and idx.dtype == np.bool:
-            idx = idx.flatten().nonzero()[0].flatten().tolist()
+            idx = idx.flatten().nonzero()[
+                0].flatten().tolist()
 
         elif isinstance(idx, Sequence) and not isinstance(idx, str):
             pass

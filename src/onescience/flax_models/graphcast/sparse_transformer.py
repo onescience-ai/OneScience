@@ -70,18 +70,21 @@ class _ModelConfig:
         # Compute key_size and value_size from d_model // num_heads.
         if self.key_size is None:
             if self.d_model % self.num_heads != 0:
-                raise ValueError("num_heads has to divide d_model exactly")
+                raise ValueError(
+                    "num_heads has to divide d_model exactly")
             self.key_size = self.d_model // self.num_heads
         if self.value_size is None:
             if self.d_model % self.num_heads != 0:
-                raise ValueError("num_heads has to divide d_model exactly")
+                raise ValueError(
+                    "num_heads has to divide d_model exactly")
             self.value_size = self.d_model // self.num_heads
 
 
 def get_mask_block_size(mask: sp.sparse.csr_matrix) -> int:
     """Get blocksize of the adjacency matrix (attn mask) for the permuted mesh."""
     # sub-diagonal bandwidth
-    lbandwidth = (np.arange(mask.shape[0]) - (mask != 0).argmax(axis=0) + 1).max()
+    lbandwidth = (np.arange(
+        mask.shape[0]) - (mask != 0).argmax(axis=0) + 1).max()
     # super-diagonal bandwidth
     ubandwidth = (
         (mask.shape[0] - 1)
@@ -95,11 +98,13 @@ def get_mask_block_size(mask: sp.sparse.csr_matrix) -> int:
 
 def ffw(x: jnp.ndarray, cfg: _ModelConfig) -> jnp.ndarray:
     """Feed-forward block."""
-    ffw_winit = hk.initializers.VarianceScaling(cfg.ffw_winit_mult / cfg.num_layers)
+    ffw_winit = hk.initializers.VarianceScaling(
+        cfg.ffw_winit_mult / cfg.num_layers)
     ffw_winit_final = hk.initializers.VarianceScaling(
         cfg.ffw_winit_final_mult / cfg.num_layers
     )
-    x = hk.Linear(cfg.ffw_hidden, name="ffw_up", w_init=ffw_winit)(x)
+    x = hk.Linear(cfg.ffw_hidden, name="ffw_up",
+                  w_init=ffw_winit)(x)
     x = getattr(jax.nn, cfg.activation)(x)
     return hk.Linear(cfg.d_model, name="ffw_down", w_init=ffw_winit_final)(x)
 
@@ -114,9 +119,12 @@ def triblockdiag_softmax(
     m = jnp.max(
         jnp.stack(
             [
-                jax.lax.stop_gradient(logits_d.max(-1, keepdims=True)),
-                jax.lax.stop_gradient(logits_u.max(-1, keepdims=True)),
-                jax.lax.stop_gradient(logits_l.max(-1, keepdims=True)),
+                jax.lax.stop_gradient(
+                    logits_d.max(-1, keepdims=True)),
+                jax.lax.stop_gradient(
+                    logits_u.max(-1, keepdims=True)),
+                jax.lax.stop_gradient(
+                    logits_l.max(-1, keepdims=True)),
             ]
         ),
         axis=0,
@@ -160,9 +168,12 @@ def triblockdiag_mha(
 
     # q shape is (batch, num_blocks, block_size, num_heads, qk_dim)
     # k shape is (batch, num_blocks + 2, block_size, num_heads, qk_dim)
-    logits_d = qk_prod(q, k[:, 1:-1, ...]) * cfg.key_size**-0.5
-    logits_u = qk_prod(q, k[:, 2:, ...]) * cfg.key_size**-0.5
-    logits_l = qk_prod(q, k[:, :-2, ...]) * cfg.key_size**-0.5
+    logits_d = qk_prod(
+        q, k[:, 1:-1, ...]) * cfg.key_size**-0.5
+    logits_u = qk_prod(
+        q, k[:, 2:, ...]) * cfg.key_size**-0.5
+    logits_l = qk_prod(
+        q, k[:, :-2, ...]) * cfg.key_size**-0.5
 
     # apply mask
     logits_d = jnp.where(mask[:, 0, ...], logits_d, -1e30)
@@ -182,18 +193,21 @@ def triblockdiag_mha(
     # x shape is (batch, num_blocks, block_size, num_heads, d_model)
     x = out_d + out_u + out_l
 
-    x = jnp.reshape(x, x.shape[:-2] + (cfg.num_heads * cfg.value_size,))
+    x = jnp.reshape(
+        x, x.shape[:-2] + (cfg.num_heads * cfg.value_size,))
     attn_winit_final = hk.initializers.VarianceScaling(
         cfg.attn_winit_final_mult / cfg.num_layers
     )
-    x = hk.Linear(cfg.d_model, name="mha_final", w_init=attn_winit_final)(x)
+    x = hk.Linear(cfg.d_model, name="mha_final",
+                  w_init=attn_winit_final)(x)
     return x
 
 
 def multihead_linear(x: jnp.ndarray, qkv: str, cfg: _ModelConfig) -> jnp.ndarray:
     """Linearly project `x` to have `head_size` dimensions per head."""
     head_size = cfg.value_size if qkv == "v" else cfg.key_size
-    attn_winit = hk.initializers.VarianceScaling(cfg.attn_winit_mult / cfg.num_layers)
+    attn_winit = hk.initializers.VarianceScaling(
+        cfg.attn_winit_mult / cfg.num_layers)
     out = hk.Linear(
         cfg.num_heads * head_size,
         w_init=attn_winit,
@@ -230,19 +244,22 @@ def mha(
         )
 
     # Wrap softmax weights for upcasting & downcasting in case of BF16 activations
-    weights = utils.wrap_fn_for_upcast_downcast(logits, jax.nn.softmax)
+    weights = utils.wrap_fn_for_upcast_downcast(
+        logits, jax.nn.softmax)
 
     # Note: our mask never has all 0 rows, since nodes always have self edges,
     # so no need to account for that possibility explicitly.
 
     x = jnp.einsum("bhtT,bThd->bthd", weights, v)
-    x = jnp.reshape(x, x.shape[:-2] + (cfg.num_heads * cfg.value_size,))
+    x = jnp.reshape(
+        x, x.shape[:-2] + (cfg.num_heads * cfg.value_size,))
 
     attn_winit_final = hk.initializers.VarianceScaling(
         cfg.attn_winit_final_mult / cfg.num_layers
     )
 
-    x = hk.Linear(cfg.d_model, name="mha_final", w_init=attn_winit_final)(x)
+    x = hk.Linear(cfg.d_model, name="mha_final",
+                  w_init=attn_winit_final)(x)
     return x
 
 
@@ -260,7 +277,8 @@ def _make_splash_mha(
 ) -> Callable[..., jnp.ndarray]:
     """Construct attention kernel."""
     if mask_type == "full":
-        mask = np.broadcast_to(mask[None], (num_heads, *mask.shape)).astype(np.bool_)
+        mask = np.broadcast_to(
+            mask[None], (num_heads, *mask.shape)).astype(np.bool_)
 
     block_sizes = splash_attention.BlockSizes(
         block_q=block_q,
@@ -297,7 +315,8 @@ def splash_mha(
 
     _, _, num_heads, head_dim = q.shape
 
-    assert head_dim % 128 == 0  # splash attention kernel requires this
+    # splash attention kernel requires this
+    assert head_dim % 128 == 0
 
     attn = _make_splash_mha(
         mask=mask,
@@ -317,17 +336,19 @@ def splash_mha(
         q *= cfg.key_size**-0.5
 
     # (batch, nodes, num_heads, head_dim) -> (batch, num_heads, nodes, head_dim)
-    reformat = lambda y: y.transpose(0, 2, 1, 3)
+    def reformat(y): return y.transpose(0, 2, 1, 3)
     x = attn(q=reformat(q), k=reformat(k), v=reformat(v))
     x = x.transpose(0, 2, 1, 3)
 
-    x = jnp.reshape(x, x.shape[:-2] + (cfg.num_heads * cfg.value_size,))
+    x = jnp.reshape(
+        x, x.shape[:-2] + (cfg.num_heads * cfg.value_size,))
 
     attn_winit_final = hk.initializers.VarianceScaling(
         cfg.attn_winit_final_mult / cfg.num_layers
     )
 
-    x = hk.Linear(cfg.d_model, name="mha_final", w_init=attn_winit_final)(x)
+    x = hk.Linear(cfg.d_model, name="mha_final",
+                  w_init=attn_winit_final)(x)
     return x
 
 
@@ -356,8 +377,8 @@ def mask_block_diags(
         [
             jnp.array(
                 mask[
-                    i * block_size : (i + 1) * block_size,
-                    i * block_size : (i + 1) * block_size,
+                    i * block_size: (i + 1) * block_size,
+                    i * block_size: (i + 1) * block_size,
                 ].toarray()
             )
             for i in range(mask.shape[0] // block_size)
@@ -367,34 +388,38 @@ def mask_block_diags(
         [
             jnp.array(
                 mask[
-                    i * block_size : (i + 1) * block_size,
-                    (i + 1) * block_size : (i + 2) * block_size,
+                    i * block_size: (i + 1) * block_size,
+                    (i + 1) * block_size: (i + 2) * block_size,
                 ].toarray()
             )
             for i in range(mask.shape[0] // block_size - 1)
         ]
-        + [jnp.zeros((block_size, block_size), dtype=mask.dtype)]
+        + [jnp.zeros((block_size, block_size),
+                     dtype=mask.dtype)]
     )
     mask_lower_diag_blocks = jnp.stack(
-        [jnp.zeros((block_size, block_size), dtype=mask.dtype)]
+        [jnp.zeros((block_size, block_size),
+                   dtype=mask.dtype)]
         + [
             jnp.array(
                 mask[
-                    (i + 1) * block_size : (i + 2) * block_size,
-                    i * block_size : (i + 1) * block_size,
+                    (i + 1) * block_size: (i + 2) * block_size,
+                    i * block_size: (i + 1) * block_size,
                 ].toarray()
             )
             for i in range(mask.shape[0] // block_size - 1)
         ]
     )
-    mask = jnp.stack([mask_daig_blocks, mask_upper_diag_blocks, mask_lower_diag_blocks])
+    mask = jnp.stack(
+        [mask_daig_blocks, mask_upper_diag_blocks, mask_lower_diag_blocks])
     mask = jnp.expand_dims(mask, (0, 3))
     return mask
 
 
 def _pad_mask(mask, num_padding_nodes: Tuple[int, int]) -> jnp.ndarray:
     q_padding, kv_padding = num_padding_nodes
-    mask_padding_rows = sp.sparse.csr_matrix((q_padding, mask.shape[1]), dtype=np.bool_)
+    mask_padding_rows = sp.sparse.csr_matrix(
+        (q_padding, mask.shape[1]), dtype=np.bool_)
     mask = sp.sparse.vstack([mask, mask_padding_rows])
     mask_padding_cols = sp.sparse.csr_matrix(
         (mask.shape[0], kv_padding), dtype=np.bool_
@@ -423,10 +448,12 @@ class WeatherMeshMask(splash_attention.splash_attention_mask.Mask):
 
     def __getitem__(self, idx) -> np.ndarray:
         if len(idx) != 2:
-            raise NotImplementedError(f"Unsupported slice: {idx}")
+            raise NotImplementedError(
+                f"Unsupported slice: {idx}")
         q_slice, kv_slice = idx
         if not isinstance(q_slice, slice) or not isinstance(kv_slice, slice):
-            raise NotImplementedError(f"Unsupported slice: {idx}")
+            raise NotImplementedError(
+                f"Unsupported slice: {idx}")
 
         return self.mask[q_slice, kv_slice].toarray()
 
@@ -451,16 +478,19 @@ class Block(hk.Module):
                 # efficiency.
 
                 # Add padding so that number of nodes is divisible into blocks
-                x = jnp.pad(x, ((0, 0), (0, self.num_padding_nodes), (0, 0)))
+                x = jnp.pad(
+                    x, ((0, 0), (0, self.num_padding_nodes), (0, 0)))
                 x = x.reshape(
                     x.shape[0],
                     x.shape[1] // self._cfg.mask_block_size,
                     self._cfg.mask_block_size,
                     x.shape[-1],
                 )
-                x = triblockdiag_mha(x, x, mask=self.mask, cfg=self._cfg)
+                x = triblockdiag_mha(
+                    x, x, mask=self.mask, cfg=self._cfg)
                 x = x.reshape(
-                    x.shape[0], self.num_nodes + self.num_padding_nodes, x.shape[-1]
+                    x.shape[0], self.num_nodes +
+                    self.num_padding_nodes, x.shape[-1]
                 )
                 return x[:, : self.num_nodes, :]
 
@@ -474,8 +504,10 @@ class Block(hk.Module):
                 # efficiency.
 
                 # Add padding so that number of nodes is divisible by block sizes.
-                x = jnp.pad(x, ((0, 0), (0, self.num_padding_nodes[0]), (0, 0)))
-                x = splash_mha(x, x, mask=self.mask, cfg=self._cfg)
+                x = jnp.pad(
+                    x, ((0, 0), (0, self.num_padding_nodes[0]), (0, 0)))
+                x = splash_mha(
+                    x, x, mask=self.mask, cfg=self._cfg)
                 return x[:, : self.num_nodes, :]
 
             else:
@@ -488,12 +520,14 @@ class Block(hk.Module):
 
         x = x + attn(
             norm_conditioning_layer(
-                layernorm(x, create_scale=False, create_offset=False)
+                layernorm(x, create_scale=False,
+                          create_offset=False)
             )
         )
         x = x + ffw(
             norm_conditioning_layer(
-                layernorm(x, create_scale=False, create_offset=False)
+                layernorm(x, create_scale=False,
+                          create_offset=False)
             ),
             self._cfg,
         )
@@ -529,31 +563,39 @@ class Transformer(hk.Module):
         # Construct mask and deduce block size.
         mask = adj_mat**attention_k_hop
         mask_block_size = get_mask_block_size(mask)
-        logging.info("mask_block_size: %s.", mask_block_size)
+        logging.info("mask_block_size: %s.",
+                     mask_block_size)
 
         if attention_type == "triblockdiag_mha":
             # we will stack the nodes in blocks of 'block_size' nodes, so we need to
             # pad the input such that (num_nodes + num_padding_nodes) % block_size = 0
             self.num_padding_nodes = int(
-                np.ceil(mask.shape[0] / mask_block_size) * mask_block_size
+                np.ceil(
+                    mask.shape[0] / mask_block_size) * mask_block_size
                 - mask.shape[0]
             )
-            self.mask = mask_block_diags(mask, self.num_padding_nodes, mask_block_size)
+            self.mask = mask_block_diags(
+                mask, self.num_padding_nodes, mask_block_size)
         elif attention_type == "splash_mha":
-            max_q_block_size = np.maximum(block_q, block_q_dkv)
-            max_kv_block_size = np.maximum(block_kv, block_kv_dkv)
+            max_q_block_size = np.maximum(
+                block_q, block_q_dkv)
+            max_kv_block_size = np.maximum(
+                block_kv, block_kv_dkv)
             q_padding = int(
-                np.ceil(mask.shape[0] / max_q_block_size) * max_q_block_size
+                np.ceil(
+                    mask.shape[0] / max_q_block_size) * max_q_block_size
                 - mask.shape[0]
             )
             kv_padding = int(
-                np.ceil(mask.shape[1] / max_kv_block_size) * max_kv_block_size
+                np.ceil(
+                    mask.shape[1] / max_kv_block_size) * max_kv_block_size
                 - mask.shape[1]
             )
             self.num_padding_nodes = (q_padding, kv_padding)
             mask = _pad_mask(mask, self.num_padding_nodes)
             if mask_type == "lazy":
-                splash_mask = [WeatherMeshMask(mask) for _ in range(num_heads)]
+                splash_mask = [WeatherMeshMask(
+                    mask) for _ in range(num_heads)]
                 self.mask = splash_attention.splash_attention_mask.MultiHeadMask(
                     splash_mask
                 )
@@ -563,7 +605,8 @@ class Transformer(hk.Module):
             self.mask = jnp.array(mask.toarray())
             self.num_padding_nodes = 0
         else:
-            raise ValueError("Unsupported attention type: %s" % attention_type)
+            raise ValueError(
+                "Unsupported attention type: %s" % attention_type)
 
         # Construct config for use within class.
         self._cfg = _ModelConfig(
@@ -598,7 +641,8 @@ class Transformer(hk.Module):
             )(x, norm_conditioning=jnp.expand_dims(global_norm_conditioning, 1))
 
         x = norm_conditioning_layer(
-            layernorm(x, create_scale=False, create_offset=False)
+            layernorm(x, create_scale=False,
+                      create_offset=False)
         )
 
         return x

@@ -16,14 +16,18 @@ def validate_fold_input(fold_input: folding_input.Input):
     """Validates the fold input contains MSA and templates for featurisation."""
     for i, chain in enumerate(fold_input.protein_chains):
         if chain.unpaired_msa is None:
-            raise ValueError(f"Protein chain {i + 1} is missing unpaired MSA.")
+            raise ValueError(
+                f"Protein chain {i + 1} is missing unpaired MSA.")
         if chain.paired_msa is None:
-            raise ValueError(f"Protein chain {i + 1} is missing paired MSA.")
+            raise ValueError(
+                f"Protein chain {i + 1} is missing paired MSA.")
         if chain.templates is None:
-            raise ValueError(f"Protein chain {i + 1} is missing Templates.")
+            raise ValueError(
+                f"Protein chain {i + 1} is missing Templates.")
     for i, chain in enumerate(fold_input.rna_chains):
         if chain.unpaired_msa is None:
-            raise ValueError(f"RNA chain {i + 1} is missing unpaired MSA.")
+            raise ValueError(
+                f"RNA chain {i + 1} is missing unpaired MSA.")
 
 
 def featurise_input(

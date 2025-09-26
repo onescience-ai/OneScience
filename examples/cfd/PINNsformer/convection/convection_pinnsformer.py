@@ -22,11 +22,15 @@ device = "cuda:0" if torch.cuda.is_available() else "cpu"
 epochs = 1000
 
 # Train PINNsformer
-res, b_left, b_right, b_upper, b_lower = get_data([0, 2 * np.pi], [0, 1], 51, 51)
-res_test, _, _, _, _ = get_data([0, 2 * np.pi], [0, 1], 101, 101)
+res, b_left, b_right, b_upper, b_lower = get_data(
+    [0, 2 * np.pi], [0, 1], 51, 51)
+res_test, _, _, _, _ = get_data(
+    [0, 2 * np.pi], [0, 1], 101, 101)
 
-res, b_left, b_right, b_upper, b_lower = get_data([0, 2 * np.pi], [0, 1], 51, 51)
-res_test, _, _, _, _ = get_data([0, 2 * np.pi], [0, 1], 101, 101)
+res, b_left, b_right, b_upper, b_lower = get_data(
+    [0, 2 * np.pi], [0, 1], 51, 51)
+res_test, _, _, _, _ = get_data(
+    [0, 2 * np.pi], [0, 1], 101, 101)
 
 res = make_time_sequence(res, num_step=5, step=1e-4)
 b_left = make_time_sequence(b_left, num_step=5, step=1e-4)
@@ -34,11 +38,16 @@ b_right = make_time_sequence(b_right, num_step=5, step=1e-4)
 b_upper = make_time_sequence(b_upper, num_step=5, step=1e-4)
 b_lower = make_time_sequence(b_lower, num_step=5, step=1e-4)
 
-res = torch.tensor(res, dtype=torch.float32, requires_grad=True).to(device)
-b_left = torch.tensor(b_left, dtype=torch.float32, requires_grad=True).to(device)
-b_right = torch.tensor(b_right, dtype=torch.float32, requires_grad=True).to(device)
-b_upper = torch.tensor(b_upper, dtype=torch.float32, requires_grad=True).to(device)
-b_lower = torch.tensor(b_lower, dtype=torch.float32, requires_grad=True).to(device)
+res = torch.tensor(res, dtype=torch.float32,
+                   requires_grad=True).to(device)
+b_left = torch.tensor(
+    b_left, dtype=torch.float32, requires_grad=True).to(device)
+b_right = torch.tensor(
+    b_right, dtype=torch.float32, requires_grad=True).to(device)
+b_upper = torch.tensor(
+    b_upper, dtype=torch.float32, requires_grad=True).to(device)
+b_lower = torch.tensor(
+    b_lower, dtype=torch.float32, requires_grad=True).to(device)
 
 x_res, t_res = res[:, :, 0:1], res[:, :, 1:2]
 x_left, t_left = b_left[:, :, 0:1], b_left[:, :, 1:2]
@@ -53,10 +62,12 @@ def init_weights(m):
         m.bias.data.fill_(0.01)
 
 
-model = PINNsformer1D(d_out=1, d_hidden=128, d_model=32, N=1, heads=2).to(device)
+model = PINNsformer1D(
+    d_out=1, d_hidden=128, d_model=32, N=1, heads=2).to(device)
 
 model.apply(init_weights)
-optim = LBFGS(model.parameters(), line_search_fn="strong_wolfe")
+optim = LBFGS(model.parameters(),
+              line_search_fn="strong_wolfe")
 
 print(model)
 print(get_n_params(model))
@@ -89,9 +100,11 @@ for i in pbar:
 
         loss_res = torch.mean((u_t + 50 * u_x) ** 2)
         loss_bc = torch.mean((pred_upper - pred_lower) ** 2)
-        loss_ic = torch.mean((pred_left[:, 0] - torch.sin(x_left[:, 0])) ** 2)
+        loss_ic = torch.mean(
+            (pred_left[:, 0] - torch.sin(x_left[:, 0])) ** 2)
 
-        loss_track.append([loss_res.item(), loss_bc.item(), loss_ic.item()])
+        loss_track.append(
+            [loss_res.item(), loss_bc.item(), loss_ic.item()])
 
         loss = loss_res + loss_bc + loss_ic
         optim.zero_grad()
@@ -109,8 +122,10 @@ print(
 print("Train Loss: {:4f}".format(np.sum(loss_track[-1])))
 
 # Visualize PINNsformer
-res_test = make_time_sequence(res_test, num_step=5, step=1e-4)
-res_test = torch.tensor(res_test, dtype=torch.float32, requires_grad=True).to(device)
+res_test = make_time_sequence(
+    res_test, num_step=5, step=1e-4)
+res_test = torch.tensor(
+    res_test, dtype=torch.float32, requires_grad=True).to(device)
 x_test, t_test = res_test[:, :, 0:1], res_test[:, :, 1:2]
 
 with torch.no_grad():
@@ -121,7 +136,8 @@ pred = pred.reshape(101, 101)
 
 if not os.path.exists("./model"):
     os.makedirs("./model")
-torch.save(model.state_dict(), "./model/convection_pinnsformer.pt")
+torch.save(model.state_dict(),
+           "./model/convection_pinnsformer.pt")
 
 mat = scipy.io.loadmat("./convection.mat")
 u = mat["u"].reshape(101, 101)
@@ -136,21 +152,24 @@ if not os.path.exists("./result"):
     os.makedirs("./result")
 fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 # Predicted u(x,t)
-im0 = axes[0].imshow(pred, extent=[0, np.pi * 2, 1, 0], aspect="auto")
+im0 = axes[0].imshow(
+    pred, extent=[0, np.pi * 2, 1, 0], aspect="auto")
 axes[0].set_xlabel("x")
 axes[0].set_ylabel("t")
 axes[0].set_title("Predicted u(x,t)")
 fig.colorbar(im0, ax=axes[0])
 
 # Exact u(x,t)
-im1 = axes[1].imshow(u, extent=[0, np.pi * 2, 1, 0], aspect="auto")
+im1 = axes[1].imshow(
+    u, extent=[0, np.pi * 2, 1, 0], aspect="auto")
 axes[1].set_xlabel("x")
 axes[1].set_ylabel("t")
 axes[1].set_title("Exact u(x,t)")
 fig.colorbar(im1, ax=axes[1])
 
 # Absolute Error
-im2 = axes[2].imshow(np.abs(pred - u), extent=[0, np.pi * 2, 1, 0], aspect="auto")
+im2 = axes[2].imshow(
+    np.abs(pred - u), extent=[0, np.pi * 2, 1, 0], aspect="auto")
 axes[2].set_xlabel("x")
 axes[2].set_ylabel("t")
 axes[2].set_title("Absolute Error")

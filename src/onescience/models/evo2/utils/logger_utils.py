@@ -46,20 +46,27 @@ class WandbConfig(BaseModel):
     entity: (
         str | None
     )  # The team posting this run (default: your username or your default team)
-    project: str  # The name of the project to which this run will belong.
+    # The name of the project to which this run will belong.
+    project: str
     name: str | None = (
         None  # Display name for the run. By default, it is set by NeMoLogger to experiment name
     )
     # save_dir: #Path where data is saved. "This is handled by NeMoLogger"
     tags: List[str] | None  # Tags associated with this run.
-    group: str | None  # A unique string shared by all runs in a given group.
+    # A unique string shared by all runs in a given group.
+    group: str | None
     job_type: str | None = (
-        None  # Type of run, which is useful when you're grouping runs together into larger experiments.
+        # Type of run, which is useful when you're grouping runs together into larger experiments.
+        None
     )
-    offline: bool  # Run offline (data can be streamed later to wandb servers).
-    id: str | None  # Sets the version, mainly used to resume a previous run.
-    anonymous: bool  # Enables or explicitly disables anonymous logging.
-    log_model: bool  # Save checkpoints in wandb dir to upload on W&B servers.
+    # Run offline (data can be streamed later to wandb servers).
+    offline: bool
+    # Sets the version, mainly used to resume a previous run.
+    id: str | None
+    # Enables or explicitly disables anonymous logging.
+    anonymous: bool
+    # Save checkpoints in wandb dir to upload on W&B servers.
+    log_model: bool
 
 
 def setup_nemo_lightning_logger(
@@ -92,12 +99,14 @@ def setup_nemo_lightning_logger(
     if wandb_config is not None:
         if wandb_config.name is None:
             wandb_config.name = name
-        wandb_logger = WandbLogger(save_dir=save_dir, **wandb_config.model_dump())
+        wandb_logger = WandbLogger(
+            save_dir=save_dir, **wandb_config.model_dump())
     else:
         wandb_logger = None
         logging.warning("WandB is currently turned off.")
     if initialize_tensorboard_logger:
-        tb_logger = TensorBoardLogger(save_dir=root_dir, name=name, version=version)
+        tb_logger = TensorBoardLogger(
+            save_dir=root_dir, name=name, version=version)
     else:
         tb_logger = None
         logging.warning(

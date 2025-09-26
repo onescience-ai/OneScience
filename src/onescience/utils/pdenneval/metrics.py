@@ -9,7 +9,8 @@ def MSE(pred, target):
     """
     assert pred.shape == target.shape
     temp_shape = [0, len(pred.shape) - 1]
-    temp_shape.extend([i for i in range(1, len(pred.shape) - 1)])
+    temp_shape.extend(
+        [i for i in range(1, len(pred.shape) - 1)])
     pred = pred.permute(
         temp_shape
     )  # (bs, x1, ..., xd, t, v) -> (bs, v, x1, ..., xd, t)
@@ -41,7 +42,8 @@ def L2RE(pred, target):
     """
     assert pred.shape == target.shape
     temp_shape = [0, len(pred.shape) - 1]
-    temp_shape.extend([i for i in range(1, len(pred.shape) - 1)])
+    temp_shape.extend(
+        [i for i in range(1, len(pred.shape) - 1)])
     pred = pred.permute(
         temp_shape
     )  # (bs, x1, ..., xd, t, v) -> (bs, v, x1, ..., xd, t)
@@ -66,5 +68,6 @@ def MaxError(pred, target):
     """
     errors = torch.abs(pred - target)
     nc = errors.shape[-1]
-    res, _ = torch.max(errors.reshape([-1, nc]), dim=0)  # retain the last dim
+    # retain the last dim
+    res, _ = torch.max(errors.reshape([-1, nc]), dim=0)
     return res  # (v)

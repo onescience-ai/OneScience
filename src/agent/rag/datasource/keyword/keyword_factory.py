@@ -12,7 +12,8 @@ class Keyword:
 
     def _init_keyword(self) -> BaseKeyword:
         keyword_type = "jieba"
-        keyword_factory = self.get_keyword_factory(keyword_type)
+        keyword_factory = self.get_keyword_factory(
+            keyword_type)
         return keyword_factory(self._config)
 
     @staticmethod
@@ -23,7 +24,8 @@ class Keyword:
 
                 return None
             case _:
-                raise ValueError(f"Keyword store {keyword_type} is not supported.")
+                raise ValueError(
+                    f"Keyword store {keyword_type} is not supported.")
 
     def create(self, texts: list[Document], **kwargs):
         self._keyword_processor.create(texts, **kwargs)
@@ -49,4 +51,5 @@ class Keyword:
             if callable(method):
                 return method
 
-        raise AttributeError(f"'Keyword' object has no attribute '{name}'")
+        raise AttributeError(
+            f"'Keyword' object has no attribute '{name}'")

@@ -38,8 +38,10 @@ def tanimoto_sim(smiles1, smiles2):
     for i in range(smiles1.shape[0]):
         mol1 = Chem.MolFromSmiles(smiles1[i], sanitize=True)
         mol2 = Chem.MolFromSmiles(smiles2[i], sanitize=True)
-        fp1 = AllChem.GetMorganFingerprintAsBitVect(mol1, 2, nBits=2048)
-        fp2 = AllChem.GetMorganFingerprintAsBitVect(mol2, 2, nBits=2048)
+        fp1 = AllChem.GetMorganFingerprintAsBitVect(
+            mol1, 2, nBits=2048)
+        fp2 = AllChem.GetMorganFingerprintAsBitVect(
+            mol2, 2, nBits=2048)
         score = DataStructs.FingerprintSimilarity(fp1, fp2)
         scores.append(score)
     return scores
@@ -63,11 +65,15 @@ def smi2pdbqt(smi, pdbqt_path):
 
 
 def dsdp_reward(smi: str, cached_file_path: str, dsdp_script_path: str):
-    smi_save_dir = os.path.join(cached_file_path, f"temp-ligand.pdbqt")
+    smi_save_dir = os.path.join(
+        cached_file_path, f"temp-ligand.pdbqt")
     smi2pdbqt(smi, smi_save_dir)
-    out_dir = os.path.join(cached_file_path, f"temp-dock.pdbqt")
-    log_dir = os.path.join(cached_file_path, f"temp-log.log")
-    cmd = ["bash", dsdp_script_path, smi_save_dir, out_dir, log_dir]
+    out_dir = os.path.join(
+        cached_file_path, f"temp-dock.pdbqt")
+    log_dir = os.path.join(
+        cached_file_path, f"temp-log.log")
+    cmd = ["bash", dsdp_script_path,
+           smi_save_dir, out_dir, log_dir]
     subprocess.run(cmd, check=True, shell=True)
     with open(log_dir, "r") as f:
         lines = f.readlines()
@@ -81,34 +87,40 @@ def dsdp_batch_reward(
     dsdp_script_path: str,
     gen_lig_pdbqt: bool = True,
 ):
-    ### smiles: (N,)
+    # smiles: (N,)
     scores = []
     if gen_lig_pdbqt:
         name_list = []
         print("Generating pdbqt files...")
         for i in tqdm(range(smiles.shape[0])):
             smi = smiles[i]
-            smi_save_dir = os.path.join(cached_file_path, f"ligands/{i}.pdbqt")
+            smi_save_dir = os.path.join(
+                cached_file_path, f"ligands/{i}.pdbqt")
             smi2pdbqt(smi, smi_save_dir)
             name_list.append(f"{i}.pdbqt")
-        ## create name list file
-        name_list_path = os.path.join(cached_file_path, "name_list.txt")
+        # create name list file
+        name_list_path = os.path.join(
+            cached_file_path, "name_list.txt")
         with open(name_list_path, "w") as f:
             f.write("\n".join(name_list))
     else:
-        name_list_path = os.path.join(cached_file_path, "name_list.txt")
+        name_list_path = os.path.join(
+            cached_file_path, "name_list.txt")
         with open(name_list_path, "r") as f:
             name_list = f.readlines()
         name_list = [s.strip() for s in name_list]
-    ## run dsdp script
+    # run dsdp script
     print("Estimating DSDP reward...")
     t_0 = datetime.datetime.now()
 
-    ## seq run
+    # seq run
     for i in tqdm(range(len(name_list))):
-        out_dir = os.path.join(cached_file_path, f"outputs/{i}.out")
-        log_dir = os.path.join(cached_file_path, f"logs/{i}.log")
-        lig_dir = os.path.join(cached_file_path, f"ligands/{i}.pdbqt")
+        out_dir = os.path.join(
+            cached_file_path, f"outputs/{i}.out")
+        log_dir = os.path.join(
+            cached_file_path, f"logs/{i}.log")
+        lig_dir = os.path.join(
+            cached_file_path, f"ligands/{i}.pdbqt")
         cmd = f"{dsdp_script_path} {lig_dir} {out_dir} {log_dir}"
         subprocess.run(
             cmd,
@@ -122,9 +134,10 @@ def dsdp_batch_reward(
     print(f"Time used: {t_1 - t_0}")
     print("Reading log files...")
     for i in tqdm(range(len(name_list))):
-        log_dir = os.path.join(cached_file_path, f"logs/{i}.log")
+        log_dir = os.path.join(
+            cached_file_path, f"logs/{i}.log")
         with open(log_dir, "r") as f:
             lines = f.readlines()
             ss = [float(s.split()[-1]) for s in lines]
-        scores.append(ss[0])  ## the highest
+        scores.append(ss[0])  # the highest
     return scores

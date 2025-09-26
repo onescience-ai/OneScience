@@ -49,9 +49,11 @@ class BaseMSE(th.nn.MSELoss):
             whether the mean of the channels should be taken
         """
         if not (prediction.ndim == 6 and target.ndim == 6):
-            raise AssertionError("Expected predictions to have 6 dimensions")
+            raise AssertionError(
+                "Expected predictions to have 6 dimensions")
 
-        d = ((target - prediction) ** 2).mean(dim=(0, 1, 2, 4, 5))
+        d = ((target - prediction) **
+             2).mean(dim=(0, 1, 2, 4, 5))
         if average_channels:
             return th.mean(d)
         else:
@@ -84,9 +86,11 @@ class WeightedMSE(th.nn.MSELoss):
         """
 
         if len(trainer.output_variables) != len(self.loss_weights):
-            raise ValueError("Length of outputs and loss_weights is not the same!")
+            raise ValueError(
+                "Length of outputs and loss_weights is not the same!")
 
-        self.loss_weights = self.loss_weights.to(device=trainer.device)
+        self.loss_weights = self.loss_weights.to(
+            device=trainer.device)
 
     def forward(self, prediction, target, average_channels=True):
         """
@@ -103,9 +107,11 @@ class WeightedMSE(th.nn.MSELoss):
             whether the mean of the channels should be taken
         """
         if not (prediction.ndim == 6 and target.ndim == 6):
-            raise AssertionError("Expected predictions to have 6 dimensions")
+            raise AssertionError(
+                "Expected predictions to have 6 dimensions")
 
-        d = ((target - prediction) ** 2).mean(dim=(0, 1, 2, 4, 5)) * self.loss_weights
+        d = ((target - prediction) **
+             2).mean(dim=(0, 1, 2, 4, 5)) * self.loss_weights
         if average_channels:
             return th.mean(d)
         else:
@@ -159,13 +165,15 @@ class OceanMSE(th.nn.MSELoss):
     def forward(self, prediction, target, average_channels=True):
 
         if not self.lsm_sum_calculated:
-            self.lsm_sum = th.broadcast_to(self.lsm_tensor, target.shape).sum()
+            self.lsm_sum = th.broadcast_to(
+                self.lsm_tensor, target.shape).sum()
             self.lsm_var_sum = th.broadcast_to(self.lsm_tensor, target.shape).sum(
                 dim=(0, 1, 2, 4, 5)
             )
             self.lsm_sum_calculated = True
         # average weighted
-        ocean_err = ((target - prediction) ** 2) * self.lsm_tensor
+        ocean_err = ((target - prediction)
+                     ** 2) * self.lsm_tensor
         ocean_mean_err = ocean_err.sum(dim=(0, 1, 2, 4, 5))
         if average_channels:
             return th.sum(ocean_mean_err) / self.lsm_sum

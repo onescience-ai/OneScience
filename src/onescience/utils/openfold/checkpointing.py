@@ -1,13 +1,14 @@
+import torch.utils.checkpoint
+import torch
 import importlib
 from functools import partial
 from typing import Any, Callable, List, Optional
 
-deepspeed_is_installed = importlib.util.find_spec("deepspeed") is not None
+deepspeed_is_installed = importlib.util.find_spec(
+    "deepspeed") is not None
 if deepspeed_is_installed:
     import deepspeed
 
-import torch
-import torch.utils.checkpoint
 
 BLOCK_ARG = Any
 BLOCK_ARGS = List[BLOCK_ARG]
@@ -20,7 +21,8 @@ def get_checkpoint_fn():
     if deepspeed_is_configured:
         checkpoint = deepspeed.checkpointing.checkpoint
     else:
-        checkpoint = partial(torch.utils.checkpoint.checkpoint, use_reentrant=False)
+        checkpoint = partial(
+            torch.utils.checkpoint.checkpoint, use_reentrant=False)
 
     return checkpoint
 
@@ -71,7 +73,8 @@ def checkpoint_blocks(
     if blocks_per_ckpt is None or not torch.is_grad_enabled():
         return exec(blocks, args)
     elif blocks_per_ckpt < 1 or blocks_per_ckpt > len(blocks):
-        raise ValueError("blocks_per_ckpt must be between 1 and len(blocks)")
+        raise ValueError(
+            "blocks_per_ckpt must be between 1 and len(blocks)")
 
     checkpoint = get_checkpoint_fn()
 

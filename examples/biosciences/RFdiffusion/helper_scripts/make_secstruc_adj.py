@@ -40,9 +40,12 @@ def main():
             torch.FloatTensor(ss), torch.tensor(xyz)
         ).float()
         ss_tens, mask = mask_ss(ss, idx, max_mask=0)
-        ss_argmax = torch.argmax(ss_tens[:, :4], dim=1).float()
-        torch.save(ss_argmax, os.path.join(args.out_dir, f"{name}_ss.pt"))
-        torch.save(block_adj, os.path.join(args.out_dir, f"{name}_adj.pt"))
+        ss_argmax = torch.argmax(
+            ss_tens[:, :4], dim=1).float()
+        torch.save(ss_argmax, os.path.join(
+            args.out_dir, f"{name}_ss.pt"))
+        torch.save(block_adj, os.path.join(
+            args.out_dir, f"{name}_adj.pt"))
 
 
 def get_args():
@@ -118,14 +121,16 @@ def mask_ss(ss, idx, min_mask=0, max_mask=1.0):
         offset = random.randint(-8, 1)
         try:
 
-            ss[start + offset : start + offset + width] = 3
+            ss[start + offset: start + offset + width] = 3
         except:
             stuck_counter += 1
     ss = torch.tensor(ss)
     ss = torch.nn.functional.one_hot(ss, num_classes=4)
-    ss = torch.cat((ss, torch.tensor(idx)[..., None]), dim=-1)
+    ss = torch.cat(
+        (ss, torch.tensor(idx)[..., None]), dim=-1)
     #     mask = torch.where(torch.argmax(ss[:,:-1], dim=-1) == 3, False, True)
-    mask = torch.tensor(np.where(np.argmax(ss[:, :-1].numpy(), axis=-1) == 3))
+    mask = torch.tensor(
+        np.where(np.argmax(ss[:, :-1].numpy(), axis=-1) == 3))
     return ss, mask
 
 
@@ -214,7 +219,8 @@ def construct_block_adj_matrix(sstruct, xyz, cutoff=6, include_loops=False):
 
     # Ending edge case: last segment is length one
     if not end == sstruct.shape[0]:
-        segments.append((sstruct[-1], begin, sstruct.shape[0]))
+        segments.append(
+            (sstruct[-1], begin, sstruct.shape[0]))
 
     block_adj = torch.zeros_like(dist)
     for i in range(len(segments)):
@@ -250,7 +256,7 @@ def parse_pdb_torch(filename):
     return parse_pdb_lines_torch(lines)
 
 
-#'''
+# '''
 def parse_pdb_lines_torch(lines):
 
     # indices of residues observed in the structure
@@ -262,7 +268,8 @@ def parse_pdb_lines_torch(lines):
                 pdb_idx.append(idx)
 
     # 4 BB + up to 10 SC atoms
-    xyz = np.full((len(pdb_idx), 27, 3), np.nan, dtype=np.float32)
+    xyz = np.full((len(pdb_idx), 27, 3),
+                  np.nan, dtype=np.float32)
     for l in lines:
         if l[:4] != "ATOM":
             continue
@@ -275,7 +282,8 @@ def parse_pdb_lines_torch(lines):
         idx = pdb_idx.index((chain, resNo))
         for i_atm, tgtatm in enumerate(aa2long[aa2num[aa]]):
             if tgtatm == atom:
-                xyz[idx, i_atm, :] = [float(l[30:38]), float(l[38:46]), float(l[46:54])]
+                xyz[idx, i_atm, :] = [
+                    float(l[30:38]), float(l[38:46]), float(l[46:54])]
                 break
     # save atom mask
     mask = np.logical_not(np.isnan(xyz[..., 0]))
@@ -297,7 +305,8 @@ def parse_pdb_lines(lines, parse_hetatom=False, ignore_het_h=True):
         for l in lines
         if l[:4] == "ATOM" and l[12:16].strip() == "CA"
     ]
-    seq = [aa2num[r[1]] if r[1] in aa2num.keys() else 20 for r in res]
+    seq = [aa2num[r[1]] if r[1]
+           in aa2num.keys() else 20 for r in res]
     pdb_idx = [
         (l[21:22].strip(), int(l[22:26].strip()))
         for l in lines
@@ -305,7 +314,8 @@ def parse_pdb_lines(lines, parse_hetatom=False, ignore_het_h=True):
     ]  # chain letter, res num
 
     # 4 BB + up to 10 SC atoms
-    xyz = np.full((len(res), 27, 3), np.nan, dtype=np.float32)
+    xyz = np.full((len(res), 27, 3),
+                  np.nan, dtype=np.float32)
     for l in lines:
         if l[:4] != "ATOM":
             continue
@@ -320,7 +330,8 @@ def parse_pdb_lines(lines, parse_hetatom=False, ignore_het_h=True):
             if (
                 tgtatm is not None and tgtatm.strip() == atom.strip()
             ):  # ignore whitespace
-                xyz[idx, i_atm, :] = [float(l[30:38]), float(l[38:46]), float(l[46:54])]
+                xyz[idx, i_atm, :] = [
+                    float(l[30:38]), float(l[38:46]), float(l[46:54])]
                 break
 
     # save atom mask
@@ -341,12 +352,14 @@ def parse_pdb_lines(lines, parse_hetatom=False, ignore_het_h=True):
 
     out = {
         "xyz": xyz,  # cartesian coordinates, [Lx14]
-        "mask": mask,  # mask showing which atoms are present in the PDB file, [Lx14]
+        # mask showing which atoms are present in the PDB file, [Lx14]
+        "mask": mask,
         "idx": np.array(
             [i[1] for i in pdb_idx]
         ),  # residue numbers in the PDB file, [L]
         "seq": np.array(seq),  # amino acid sequence, [L]
-        "pdb_idx": pdb_idx,  # list of (chain letter, residue number) in the pdb file, [L]
+        # list of (chain letter, residue number) in the pdb file, [L]
+        "pdb_idx": pdb_idx,
     }
     # heteroatoms (ligands, etc)
     if parse_hetatom:
@@ -361,7 +374,8 @@ def parse_pdb_lines(lines, parse_hetatom=False, ignore_het_h=True):
                         name=l[16:20],
                     )
                 )
-                xyz_het.append([float(l[30:38]), float(l[38:46]), float(l[46:54])])
+                xyz_het.append(
+                    [float(l[30:38]), float(l[38:46]), float(l[46:54])])
 
         out["xyz_het"] = np.array(xyz_het)
         out["info_het"] = info_het
@@ -1083,13 +1097,16 @@ def get_sse(ca_coord):
 
     _radians_to_angle = 2 * np.pi / 360
 
-    _r_helix = ((89 - 12) * _radians_to_angle, (89 + 12) * _radians_to_angle)
-    _a_helix = ((50 - 20) * _radians_to_angle, (50 + 20) * _radians_to_angle)
+    _r_helix = ((89 - 12) * _radians_to_angle,
+                (89 + 12) * _radians_to_angle)
+    _a_helix = ((50 - 20) * _radians_to_angle,
+                (50 + 20) * _radians_to_angle)
     ((5.5 - 0.5), (5.5 + 0.5))
     _d3_helix = ((5.3 - 0.5), (5.3 + 0.5))
     _d4_helix = ((6.4 - 0.6), (6.4 + 0.6))
 
-    _r_strand = ((124 - 14) * _radians_to_angle, (124 + 14) * _radians_to_angle)
+    _r_strand = ((124 - 14) * _radians_to_angle,
+                 (124 + 14) * _radians_to_angle)
     _a_strand = (
         (-180) * _radians_to_angle,
         (-125) * _radians_to_angle,
@@ -1118,15 +1135,19 @@ def get_sse(ca_coord):
     for i in range(1, len(ca_coord) - 3):
         d4i_coord[i] = (ca_coord[i - 1], ca_coord[i + 3])
     for i in range(1, len(ca_coord) - 1):
-        ri_coord[i] = (ca_coord[i - 1], ca_coord[i], ca_coord[i + 1])
+        ri_coord[i] = (ca_coord[i - 1],
+                       ca_coord[i], ca_coord[i + 1])
     for i in range(1, len(ca_coord) - 2):
-        ai_coord[i] = (ca_coord[i - 1], ca_coord[i], ca_coord[i + 1], ca_coord[i + 2])
+        ai_coord[i] = (ca_coord[i - 1], ca_coord[i],
+                       ca_coord[i + 1], ca_coord[i + 2])
 
     d2i = distance(d2i_coord[:, 0], d2i_coord[:, 1])
     d3i = distance(d3i_coord[:, 0], d3i_coord[:, 1])
     d4i = distance(d4i_coord[:, 0], d4i_coord[:, 1])
-    ri = angle(ri_coord[:, 0], ri_coord[:, 1], ri_coord[:, 2])
-    ai = dihedral(ai_coord[:, 0], ai_coord[:, 1], ai_coord[:, 2], ai_coord[:, 3])
+    ri = angle(ri_coord[:, 0],
+               ri_coord[:, 1], ri_coord[:, 2])
+    ai = dihedral(
+        ai_coord[:, 0], ai_coord[:, 1], ai_coord[:, 2], ai_coord[:, 3])
 
     sse = ["L"] * len(ca_coord)
 
@@ -1154,7 +1175,7 @@ def get_sse(ca_coord):
             counter += 1
         else:
             if counter >= 5:
-                is_helix[i - counter : i] = True
+                is_helix[i - counter: i] = True
             counter = 0
     # Extend the helices by one at each end if CA meets extension criteria
     i = 0
@@ -1162,12 +1183,14 @@ def get_sse(ca_coord):
         if is_helix[i]:
             sse[i] = "H"
             if (d3i[i - 1] >= _d3_helix[0] and d3i[i - 1] <= _d3_helix[1]) or (
-                ri[i - 1] >= _r_helix[0] and ri[i - 1] <= _r_helix[1]
+                ri[i - 1] >= _r_helix[0] and ri[i -
+                                                1] <= _r_helix[1]
             ):
                 sse[i - 1] = "H"
             sse[i] = "H"
             if (d3i[i + 1] >= _d3_helix[0] and d3i[i + 1] <= _d3_helix[1]) or (
-                ri[i + 1] >= _r_helix[0] and ri[i + 1] <= _r_helix[1]
+                ri[i + 1] >= _r_helix[0] and ri[i +
+                                                1] <= _r_helix[1]
             ):
                 sse[i + 1] = "H"
         i += 1
@@ -1187,7 +1210,8 @@ def get_sse(ca_coord):
             ri[i] >= _r_strand[0]
             and ri[i] <= _r_strand[1]
             and (
-                (ai[i] >= _a_strand[0] and ai[i] <= _a_strand[1])
+                (ai[i] >= _a_strand[0]
+                 and ai[i] <= _a_strand[1])
                 or (ai[i] >= _a_strand[2] and ai[i] <= _a_strand[3])
             )
         ):
@@ -1209,9 +1233,9 @@ def get_sse(ca_coord):
                     contacts += 1
         else:
             if counter >= 4:
-                is_strand[i - counter : i] = True
+                is_strand[i - counter: i] = True
             elif counter == 3 and contacts >= 5:
-                is_strand[i - counter : i] = True
+                is_strand[i - counter: i] = True
             counter = 0
             contacts = 0
     # Extend the strands by one at each end if CA meets extension criteria

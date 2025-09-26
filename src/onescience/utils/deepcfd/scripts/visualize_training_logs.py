@@ -39,10 +39,13 @@ with open(log_file, "r") as f:
 
 epochs = list(range(1, len(train_loss) + 1))
 
-fig, axs = plt.subplots(ncols=2, sharex=True, figsize=(14, 8))
+fig, axs = plt.subplots(
+    ncols=2, sharex=True, figsize=(14, 8))
 
-axs[0].plot(epochs[initial_epoch:], train_loss[initial_epoch:], label="Train Loss")
-axs[0].plot(epochs[initial_epoch:], val_loss[initial_epoch:], label="Validation Loss")
+axs[0].plot(epochs[initial_epoch:],
+            train_loss[initial_epoch:], label="Train Loss")
+axs[0].plot(epochs[initial_epoch:],
+            val_loss[initial_epoch:], label="Validation Loss")
 axs[0].set_xlabel("Epoch")
 axs[0].set_ylabel("Loss")
 axs[0].legend()
@@ -50,9 +53,12 @@ axs[0].legend()
 axs[1].plot(
     epochs[initial_epoch:], train_total_mse[initial_epoch:], label="Train Total MSE"
 )
-axs[1].plot(epochs[initial_epoch:], train_ux_mse[initial_epoch:], label="Train Ux MSE")
-axs[1].plot(epochs[initial_epoch:], train_uy_mse[initial_epoch:], label="Train Uy MSE")
-axs[1].plot(epochs[initial_epoch:], train_p_mse[initial_epoch:], label="Train p MSE")
+axs[1].plot(epochs[initial_epoch:],
+            train_ux_mse[initial_epoch:], label="Train Ux MSE")
+axs[1].plot(epochs[initial_epoch:],
+            train_uy_mse[initial_epoch:], label="Train Uy MSE")
+axs[1].plot(epochs[initial_epoch:],
+            train_p_mse[initial_epoch:], label="Train p MSE")
 axs[1].plot(
     epochs[initial_epoch:], val_total_mse[initial_epoch:], label="Validation Total MSE"
 )
@@ -62,7 +68,8 @@ axs[1].plot(
 axs[1].plot(
     epochs[initial_epoch:], val_uy_mse[initial_epoch:], label="Validation Uy MSE"
 )
-axs[1].plot(epochs[initial_epoch:], val_p_mse[initial_epoch:], label="Validation p MSE")
+axs[1].plot(epochs[initial_epoch:],
+            val_p_mse[initial_epoch:], label="Validation p MSE")
 axs[1].set_xlabel("Epoch")
 axs[1].set_ylabel("MSE")
 axs[1].legend()

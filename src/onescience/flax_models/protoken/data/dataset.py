@@ -47,7 +47,8 @@ protoken_dtype_dic = {
 #                           "backbone_affine_tensor", "torsion_angles_sin_cos", "torsion_angles_mask", "atom14_atom_exists",
 #                           "dist_gt_perms", "dist_mask_perms", "perms_padding_mask", "single_repr", "pair_repr", "tmscore", "names"]
 
-protoken_input_feature = PROTOKEN_PREPROCESSED_FEATURE + ["names", "supervised_mask"]
+protoken_input_feature = PROTOKEN_PREPROCESSED_FEATURE + \
+    ["names", "supervised_mask"]
 
 
 def create_dataset_protoken(
@@ -108,12 +109,14 @@ class DatasetGenerator_Protoken:
 
     def _get_train_data(self, prot_name):
         """get train data"""
-        pdb_path = os.path.join(self.train_data_dir, prot_name + ".pdb")
+        pdb_path = os.path.join(
+            self.train_data_dir, prot_name + ".pdb")
         feature = protoken_basic_generator(
             pdb_path, NUM_RES=self.NRES, EXCLUDE_NEIGHBOR=self.exclude_neighbor
         )
         feature = [
-            np.array(x).astype(protoken_dtype_dic[protoken_input_feature[i]])
+            np.array(x).astype(
+                protoken_dtype_dic[protoken_input_feature[i]])
             for i, x in enumerate(feature)
         ]
         return feature
@@ -138,8 +141,10 @@ class DatasetGenerator_Protoken:
 
     def parallel(self):
         """parallel data loading"""
-        pool = multiprocessing.Pool(processes=self.num_parallel_worker)
-        batch_feature = pool.map(self._get_train_data, self.names)
+        pool = multiprocessing.Pool(
+            processes=self.num_parallel_worker)
+        batch_feature = pool.map(
+            self._get_train_data, self.names)
         pool.close()
         pool.join()
 
@@ -161,16 +166,22 @@ def add_supervised_signal(feature, signal_path):
         signal = pkl.load(f)
     signal_names = signal["pdb_names"]
     if signal_names[0].endswith(".pdb"):
-        signal_names = [name.split(".")[0] for name in signal_names]
+        signal_names = [name.split(".")[0]
+                        for name in signal_names]
     new_signal_single = []
     new_signal_pair = []
     new_signal_tmscore = []
     for tmp_name in feature[-1]:
-        new_signal_single.append(signal["single_super"][signal_names.index(tmp_name)])
-        new_signal_pair.append(signal["pair_super"][signal_names.index(tmp_name)])
-        new_signal_tmscore.append(signal["TM_score"][signal_names.index(tmp_name)])
-    new_signal_single = np.concatenate(new_signal_single, axis=0)
-    new_signal_pair = np.concatenate(new_signal_pair, axis=0)
+        new_signal_single.append(
+            signal["single_super"][signal_names.index(tmp_name)])
+        new_signal_pair.append(
+            signal["pair_super"][signal_names.index(tmp_name)])
+        new_signal_tmscore.append(
+            signal["TM_score"][signal_names.index(tmp_name)])
+    new_signal_single = np.concatenate(
+        new_signal_single, axis=0)
+    new_signal_pair = np.concatenate(
+        new_signal_pair, axis=0)
     # new_signal_tmscore = np.concatenate(new_signal_tmscore, axis=0)
     feature.append(new_signal_single)
     feature.append(new_signal_pair)
@@ -182,7 +193,8 @@ def load_h5_file(signal_path, name):
     """load supervised signal"""
     # with open(signal_path, 'rb') as f:
     #     signal = pkl.load(f)
-    f = h5py.File(os.path.join(signal_path, f"{name}_signal.h5"), "r")
+    f = h5py.File(os.path.join(
+        signal_path, f"{name}_signal.h5"), "r")
     single_super = f["single_super"][()]
     pair_super = f["pair_super"][()]
     # TM_score = f['TM_score'][()]
@@ -194,8 +206,10 @@ def load_supervised_signal_from_h5(
     signal_path, name_list, idx, num_parallel_worker=32, NRES=256, BATCH_SIZE=256
 ):
     selected_name_list = [name_list[i] for i in idx]
-    pool = multiprocessing.Pool(processes=num_parallel_worker)
-    batch_feature = pool.map(partial(load_h5_file, signal_path), selected_name_list)
+    pool = multiprocessing.Pool(
+        processes=num_parallel_worker)
+    batch_feature = pool.map(
+        partial(load_h5_file, signal_path), selected_name_list)
 
     single_super = np.zeros(
         (BATCH_SIZE, NRES, 384), dtype=protoken_dtype_dic["single_repr"]
@@ -203,11 +217,14 @@ def load_supervised_signal_from_h5(
     pair_super = np.zeros(
         (BATCH_SIZE, NRES, NRES, 128), dtype=protoken_dtype_dic["pair_repr"]
     )
-    mask = np.zeros(BATCH_SIZE, dtype=protoken_dtype_dic["supervised_mask"])
+    mask = np.zeros(
+        BATCH_SIZE, dtype=protoken_dtype_dic["supervised_mask"])
     mask[idx] = 1
 
-    single_super[idx] = np.array([batch_feature[i][0][0] for i in range(len(idx))])
-    pair_super[idx] = np.array([batch_feature[i][1][0] for i in range(len(idx))])
+    single_super[idx] = np.array(
+        [batch_feature[i][0][0] for i in range(len(idx))])
+    pair_super[idx] = np.array(
+        [batch_feature[i][1][0] for i in range(len(idx))])
 
     return single_super, pair_super, mask
 
@@ -224,7 +241,8 @@ def load_supervised_signal(
 ):
     with open(tmscore_dic_path, "rb") as f:
         tmscore_dic = pkl.load(f)
-    tmscore_list = np.asarray([tmscore_dic[name] for name in prot_names])
+    tmscore_list = np.asarray(
+        [tmscore_dic[name] for name in prot_names])
 
     # sample 16 proteins with highest TM-score
     tmscore_mask = tmscore_list >= tmscore_threshold
@@ -263,7 +281,8 @@ def load_train_data(
 ):
     name_list, single_super, pair_super, supervise_mask = load_supervised_signal(
         supervised_signal_path,
-        os.path.join(supervised_signal_path, "tmscore_dic.pkl"),
+        os.path.join(supervised_signal_path,
+                     "tmscore_dic.pkl"),
         prot_names=prot_names,
         sample_num=sample_num,
         tmscore_threshold=tmscore_threshold,
@@ -314,7 +333,8 @@ class DatasetGenerator_Protoken_Namelist:
             pdb_path, NUM_RES=self.NRES, EXCLUDE_NEIGHBOR=self.exclude_neighbor
         )
         feature = [
-            np.array(x).astype(protoken_dtype_dic[protoken_input_feature[i]])
+            np.array(x).astype(
+                protoken_dtype_dic[protoken_input_feature[i]])
             for i, x in enumerate(feature)
         ]
         return feature
@@ -339,8 +359,10 @@ class DatasetGenerator_Protoken_Namelist:
 
     def parallel(self):
         """parallel data loading"""
-        pool = multiprocessing.Pool(processes=self.num_parallel_worker)
-        batch_feature = pool.map(self._get_train_data, self.pdb_path_list)
+        pool = multiprocessing.Pool(
+            processes=self.num_parallel_worker)
+        batch_feature = pool.map(
+            self._get_train_data, self.pdb_path_list)
         pool.close()
         pool.join()
 
@@ -366,8 +388,10 @@ def load_supervised_signal_namelist(
     supervised_signal_path_list, num_parallel_worker=32, tmscore_threshold=0.80
 ):
 
-    pool = multiprocessing.Pool(processes=num_parallel_worker)
-    supervised_signal_dicts = pool.map(read_pkl, supervised_signal_path_list)
+    pool = multiprocessing.Pool(
+        processes=num_parallel_worker)
+    supervised_signal_dicts = pool.map(
+        read_pkl, supervised_signal_path_list)
     pool.close()
     pool.join()
 
@@ -381,8 +405,10 @@ def load_supervised_signal_namelist(
         TMscore.append(d["TM-score"])
 
     return (
-        np.array(single_super, dtype=protoken_dtype_dic["single_repr"]),
-        np.array(pair_super, dtype=protoken_dtype_dic["pair_repr"]),
+        np.array(single_super,
+                 dtype=protoken_dtype_dic["single_repr"]),
+        np.array(
+            pair_super, dtype=protoken_dtype_dic["pair_repr"]),
         np.array(
             np.array(TMscore) > tmscore_threshold,
             dtype=protoken_dtype_dic["supervised_mask"],
@@ -411,7 +437,8 @@ def load_train_data_namelist(
         single_super = np.array(
             data["single_super"], dtype=protoken_dtype_dic["single_repr"]
         )
-        pair_super = np.array(data["pair_super"], dtype=protoken_dtype_dic["pair_repr"])
+        pair_super = np.array(
+            data["pair_super"], dtype=protoken_dtype_dic["pair_repr"])
         supervise_mask = np.array(
             data["TM-score"] > tmscore_threshold,
             dtype=protoken_dtype_dic["supervised_mask"],
@@ -423,7 +450,8 @@ def load_train_data_namelist(
         pair_super = np.zeros(
             (320, 256, 256, 128), dtype=protoken_dtype_dic["pair_repr"]
         )
-        supervise_mask = np.zeros(320, dtype=protoken_dtype_dic["supervised_mask"])
+        supervise_mask = np.zeros(
+            320, dtype=protoken_dtype_dic["supervised_mask"])
 
     pdb_path_trunk = [p[0] for p in name_list_trunk]
 
@@ -490,7 +518,8 @@ def get_crop_idx(feature, crop_len):
             crop_start_idx = 0
             crop_end_idx = crop_len
         else:
-            crop_start_idx = np.random.randint(0, seq_len - crop_len + 1)
+            crop_start_idx = np.random.randint(
+                0, seq_len - crop_len + 1)
             crop_end_idx = crop_start_idx + crop_len
 
     return crop_start_idx, crop_end_idx
@@ -500,9 +529,12 @@ def random_crop_feature(feature, crop_start_idx, crop_end_idx):
     # feature has been padded to a certain length
     new_feature = {}
 
-    new_feature["aatype"] = feature["aatype"][:, crop_start_idx:crop_end_idx]
-    new_feature["seq_mask"] = feature["seq_mask"][:, crop_start_idx:crop_end_idx]
-    new_feature["fake_aatype"] = feature["fake_aatype"][:, crop_start_idx:crop_end_idx]
+    new_feature["aatype"] = feature["aatype"][:,
+                                              crop_start_idx:crop_end_idx]
+    new_feature["seq_mask"] = feature["seq_mask"][:,
+                                                  crop_start_idx:crop_end_idx]
+    new_feature["fake_aatype"] = feature["fake_aatype"][:,
+                                                        crop_start_idx:crop_end_idx]
     new_feature["residue_index"] = feature["residue_index"][
         :, crop_start_idx:crop_end_idx
     ]
@@ -524,11 +556,13 @@ def random_crop_feature(feature, crop_start_idx, crop_end_idx):
     new_feature["torsion_angles_sin_cos"] = feature["torsion_angles_sin_cos"][
         :, crop_start_idx:crop_end_idx, :
     ]
-    ## new_feature['torsion_angles_mask'] = feature['torsion_angles_mask'][:, crop_start_idx:crop_end_idx, :]
-    ## torsion angles mask bug
-    torsion_angles_mask = np.tile(feature["seq_mask"][0, :, None], (1, 3))
+    # new_feature['torsion_angles_mask'] = feature['torsion_angles_mask'][:, crop_start_idx:crop_end_idx, :]
+    # torsion angles mask bug
+    torsion_angles_mask = np.tile(
+        feature["seq_mask"][0, :, None], (1, 3))
     torsion_angles_mask[0, 0] = 0
-    torsion_angles_mask[np.sum(feature["seq_mask"]) - 1, 1:3] = 0
+    torsion_angles_mask[np.sum(
+        feature["seq_mask"]) - 1, 1:3] = 0
     new_feature["torsion_angles_mask"] = torsion_angles_mask[None, ...][
         :, crop_start_idx:crop_end_idx, :
     ]
@@ -576,7 +610,8 @@ def load_train_data_pickle(
     )
     feature_path = feature_path_name if feature_path_name is not None else feature_path
     name_list_trunk = name_list[start_idx:end_idx]
-    training_feat_path = [p[feature_path] for p in name_list_trunk]
+    training_feat_path = [p[feature_path]
+                          for p in name_list_trunk]
     tmscore_list = [p["TM-score"] for p in name_list_trunk]
     # data_batch, time_consumings, speed_io_Gps = read_files_in_parallel(gt_feat_path, num_parallel_worker = num_parallel_worker)
     data_batch = read_files_in_parallel(
@@ -593,9 +628,11 @@ def load_train_data_pickle(
         crop_indexes[:, -num_adversarial_samples:, :] = crop_indexes[
             :, :num_adversarial_samples, :
         ]
-        crop_indexes = [tuple(c) for c in crop_indexes.reshape(-1, 2)]
+        crop_indexes = [tuple(c)
+                        for c in crop_indexes.reshape(-1, 2)]
         data_batch = [
-            random_crop_feature(d, crop_start_idx, crop_end_idx)
+            random_crop_feature(
+                d, crop_start_idx, crop_end_idx)
             for d, (crop_start_idx, crop_end_idx) in zip(data_batch, crop_indexes)
         ]
         # parallel processing
@@ -613,19 +650,23 @@ def load_train_data_pickle(
         # else:
         #     batch_feature[k] = [data[k] for data in data_batch]
         if k != "name" and k != "TM-score":
-            batch_feature[k] = np.concatenate([data[k] for data in data_batch], axis=0)
+            batch_feature[k] = np.concatenate(
+                [data[k] for data in data_batch], axis=0)
 
-    batch_feature["TM-score"] = np.asarray(tmscore_list, np.float32)
+    batch_feature["TM-score"] = np.asarray(
+        tmscore_list, np.float32)
 
     # print('time_consumings: ', time_consumings, '\nspeed_io_Gps: ', speed_io_Gps, 'GB/s')
     # print('time_consumings_add: ', time_consumings_add, '\nspeed_io_Gps_add: ', speed_io_Gps_add, 'GB/s')
 
     # batch_feature['TM-score'] = np.asarray(batch_feature['TM-score'], np.float32)
-    batch_feature["TM-score"] = np.array(tmscore_list, np.float32)
+    batch_feature["TM-score"] = np.array(
+        tmscore_list, np.float32)
 
-    ###### [0.8, 1.0] scale to [0.0, 1.0]
+    # [0.8, 1.0] scale to [0.0, 1.0]
     batch_feature["supervised_mask"] = np.array(
-        (batch_feature["TM-score"] - tmscore_threshold) / (1.0 - tmscore_threshold),
+        (batch_feature["TM-score"] -
+         tmscore_threshold) / (1.0 - tmscore_threshold),
         dtype=protoken_dtype_dic["supervised_mask"],
     )
     batch_feature["supervised_mask"] = np.clip(
@@ -656,7 +697,8 @@ def load_train_data_pickle_lite(
 
     feature_path = feature_path_name
     name_list_trunk = name_list[start_idx:end_idx]
-    training_feat_path = [p[feature_path] for p in name_list_trunk]
+    training_feat_path = [p[feature_path]
+                          for p in name_list_trunk]
     # data_batch, time_consumings, speed_io_Gps = read_files_in_parallel(gt_feat_path, num_parallel_worker = num_parallel_worker)
     data_batch = read_files_in_parallel(
         training_feat_path, num_parallel_worker=num_parallel_worker
@@ -666,9 +708,11 @@ def load_train_data_pickle_lite(
     # crop features # may need parallel processing
     # time0 = datetime.datetime.now()
     if random_crop:
-        crop_indexes = [get_crop_idx(d, crop_len) for d in data_batch]
+        crop_indexes = [get_crop_idx(
+            d, crop_len) for d in data_batch]
         data_batch = [
-            random_crop_feature(d, crop_start_idx, crop_end_idx)
+            random_crop_feature(
+                d, crop_start_idx, crop_end_idx)
             for d, (crop_start_idx, crop_end_idx) in zip(data_batch, crop_indexes)
         ]
         # parallel processing
@@ -686,7 +730,8 @@ def load_train_data_pickle_lite(
         # else:
         #     batch_feature[k] = [data[k] for data in data_batch]
         if k != "name" and k != "TM-score":
-            batch_feature[k] = np.concatenate([data[k] for data in data_batch], axis=0)
+            batch_feature[k] = np.concatenate(
+                [data[k] for data in data_batch], axis=0)
 
     return batch_feature
 
@@ -712,7 +757,8 @@ def load_train_data_pickle_inverse_folding_confidence(
         d["gt_feature"] if native_or_recon[i] else d["recon_feature"]
         for i, d in enumerate(data_batch)
     ]
-    crop_indexes = [get_crop_idx(d, crop_len) for d in feature_batch]
+    crop_indexes = [get_crop_idx(
+        d, crop_len) for d in feature_batch]
     feature_batch = [
         random_crop_feature(d, crop_start_idx, crop_end_idx)
         for d, (crop_start_idx, crop_end_idx) in zip(feature_batch, crop_indexes)
@@ -750,8 +796,10 @@ def load_train_data_pickle_inverse_folding_confidence(
         for d, (crop_start_idx, crop_end_idx) in zip(data_batch, crop_indexes)
     ]
 
-    batch_feature["loss_mask"] = native_or_recon.astype(np.bool_)
-    batch_feature["lddt"] = np.concatenate(batch_feature["lddt"]).astype(np.float32)
+    batch_feature["loss_mask"] = native_or_recon.astype(
+        np.bool_)
+    batch_feature["lddt"] = np.concatenate(
+        batch_feature["lddt"]).astype(np.float32)
     batch_feature["vq_indexes"] = np.concatenate(batch_feature["vq_indexes"]).astype(
         np.int32
     )

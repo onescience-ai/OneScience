@@ -56,7 +56,6 @@ from onescience.models.evo2.utils.logger_utils import (
     setup_nemo_lightning_logger,
 )
 
-
 torch._dynamo.config.suppress_errors = True
 
 
@@ -66,7 +65,8 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         description="Train a Hyena model using NeMo 2.0.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    data_group = parser.add_mutually_exclusive_group(required=True)
+    data_group = parser.add_mutually_exclusive_group(
+        required=True)
 
     data_group.add_argument(
         "-d",
@@ -181,7 +181,8 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         action="store_true",
         help="Set to enable sequence parallelism.",
     )
-    parser.add_argument("--fp8", action="store_true", help="Set to enable FP8")
+    parser.add_argument(
+        "--fp8", action="store_true", help="Set to enable FP8")
     parser.add_argument(
         "--micro-batch-size",
         type=int,
@@ -246,7 +247,8 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         default="nccl",
         help="TP communication backend to use. Defaults to 'nccl'.",
     )
-    parser.add_argument("--align-param-gather", action="store_true", default=False)
+    parser.add_argument(
+        "--align-param-gather", action="store_true", default=False)
     # parser.add_argument("--straggler-detection", action="store_true", default=False)
     parser.add_argument(
         "--model-size",
@@ -392,7 +394,8 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         default=False,
         help="Log training parameters shapes and dtypes for debugging.",
     )
-    parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate.")
+    parser.add_argument(
+        "--lr", type=float, default=3e-4, help="Learning rate.")
     parser.add_argument(
         "--min-lr",
         type=float,
@@ -519,7 +522,8 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         default=True,
         help="Disable saving the last checkpoint.",
     )
-    recompute_group = parser.add_mutually_exclusive_group(required=False)
+    recompute_group = parser.add_mutually_exclusive_group(
+        required=False)
     recompute_group.add_argument(
         "--no-activation-checkpointing", action="store_true", default=False
     )
@@ -613,11 +617,14 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         config_modifiers_init["num_layers"] = args.num_layers
 
     if args.model_size not in HYENA_MODEL_OPTIONS:
-        raise ValueError(f"Invalid model size: {args.model_size}")
-    evo2_config = HYENA_MODEL_OPTIONS[args.model_size](**config_modifiers_init)
+        raise ValueError(
+            f"Invalid model size: {args.model_size}")
+    evo2_config = HYENA_MODEL_OPTIONS[args.model_size](
+        **config_modifiers_init)
 
     # Instantiate model.
-    model = llm.HyenaModel(evo2_config, tokenizer=data_module.tokenizer)
+    model = llm.HyenaModel(
+        evo2_config, tokenizer=data_module.tokenizer)
 
     # Setup callbacks.
     callbacks = [
@@ -630,7 +637,8 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         callbacks.append(nl_callbacks.PreemptionCallback())
     if args.debug_ddp_parity_freq > 0:
         callbacks.append(
-            nl_callbacks.DdpParityChecker(interval=args.debug_ddp_parity_freq)
+            nl_callbacks.DdpParityChecker(
+                interval=args.debug_ddp_parity_freq)
         )
     if args.log_parameters_and_shapes:
         callbacks.append(nl_callbacks.ParameterDebugger())
@@ -669,7 +677,8 @@ def train(args: argparse.Namespace) -> nl.Trainer:
                 tp_comm_overlap_cfg=tp_comm_overlap_cfg,
                 tp_comm_bootstrap_backend=args.tp_comm_overlap_backend,
                 wgrad_deferral_limit=22,  # default from NeMo
-                overlap_param_gather_with_optimizer_step=False,  # Currently disabled due to an issue with checkpointing.
+                # Currently disabled due to an issue with checkpointing.
+                overlap_param_gather_with_optimizer_step=False,
                 align_param_gather=args.align_param_gather,
             )
         )
@@ -735,7 +744,7 @@ def train(args: argparse.Namespace) -> nl.Trainer:
             log_model=args.wandb_log_model,
         )
     )
-    
+
     nemo_logger = setup_nemo_lightning_logger(
         root_dir=args.result_dir,
         name=args.experiment_name,
@@ -744,7 +753,8 @@ def train(args: argparse.Namespace) -> nl.Trainer:
     )
 
     if args.create_checkpoint_callback:
-        checkpoint_path = str(Path(nemo_logger.save_dir) / "checkpoints")
+        checkpoint_path = str(
+            Path(nemo_logger.save_dir) / "checkpoints")
         checkpoint_callback = nl_callbacks.ModelCheckpoint(
             dirpath=checkpoint_path,
             save_last=args.save_last_checkpoint,
@@ -780,12 +790,13 @@ def train(args: argparse.Namespace) -> nl.Trainer:
     ddp: DistributedDataParallelConfig = DistributedDataParallelConfig(
         check_for_nan_in_grad=True,
         overlap_grad_reduce=args.overlap_grad_reduce,
-        overlap_param_gather=args.overlap_param_gather,  # Verify that this works using
+        # Verify that this works using
+        overlap_param_gather=args.overlap_param_gather,
         grad_reduce_in_fp32=args.grad_reduce_in_fp32,
         align_param_gather=args.align_param_gather,
         average_in_collective=not args.no_average_in_collective,
     )
-    
+
     # Initialize Megatron Strategy and Trainer.
     strategy = nl.MegatronStrategy(
         ddp=ddp,
@@ -798,10 +809,10 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         ckpt_save_optimizer=True,
         ckpt_async_save=args.ckpt_async_save,
         save_ckpt_format=args.ckpt_format,
-        ckpt_load_strictness="log_all",  # or rebasing to https://github.com/NVIDIA/NeMo/pull/11988/files#diff-7667eae242a8ef776bff78cd08e79bc81df4896a450f0a781f6ed317a3dfb7ffR139
+        # or rebasing to https://github.com/NVIDIA/NeMo/pull/11988/files#diff-7667eae242a8ef776bff78cd08e79bc81df4896a450f0a781f6ed317a3dfb7ffR139
+        ckpt_load_strictness="log_all",
     )
     from lightning.fabric.plugins.environments import LightningEnvironment
-
 
     trainer = nl.Trainer(
         devices=args.devices,

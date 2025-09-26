@@ -109,7 +109,8 @@ def concatenate_tensors_across_shards(
         torch.Tensor: Concatenated tensor.
     """
     # Retrieve tensor shards.
-    tensors = [shard["module"][tensor_name] for shard in data_shards]
+    tensors = [shard["module"][tensor_name]
+               for shard in data_shards]
 
     # Check shape of tensors without tensor parallelism, i.e. stored in all shards of the checkpoint.
     if partition_dim is None:
@@ -120,10 +121,12 @@ def concatenate_tensors_across_shards(
                 )
                 # Get the distribution of tensors[0] and tensor.
                 if verbose:
-                    ref_tensor = tensors[0].flatten().to(torch.float32)
+                    ref_tensor = tensors[0].flatten().to(
+                        torch.float32)
                     ref_min, ref_max = ref_tensor.min(), ref_tensor.max()
 
-                    q = torch.tensor([0.25, 0.5, 0.75], device=ref_tensor.device)
+                    q = torch.tensor(
+                        [0.25, 0.5, 0.75], device=ref_tensor.device)
                     ref_quantiles = ref_tensor.quantile(q)
                     logging.info(
                         f"rank0 tensor: min={ref_min}, max={ref_max} quantiles={ref_quantiles}"
@@ -131,7 +134,8 @@ def concatenate_tensors_across_shards(
 
                     target_tensor = tensor.flatten().to(torch.float32)
                     target_min, target_max = target_tensor.min(), target_tensor.max()
-                    target_quantiles = target_tensor.quantile(q)
+                    target_quantiles = target_tensor.quantile(
+                        q)
                     logging.info(
                         f"rank{i} tensor: min={target_min}, max={target_max} quantiles={target_quantiles}"
                     )
@@ -196,7 +200,8 @@ def split_tensor_across_shards(
                 f"Cannot shard {tensor_name} of dimension {tensor.shape[partition_dim]} across {n_shards} evenly."
             )
         for chunk, data_shard in zip(
-            torch.chunk(tensor, chunks=n_shards, dim=partition_dim),
+            torch.chunk(tensor, chunks=n_shards,
+                        dim=partition_dim),
             data_shards,
         ):
             data_shard["module"][tensor_name] = chunk.clone()
@@ -232,7 +237,8 @@ def check_params(
         verbose (bool, optional): Whether to print detailed information. Defaults to False.
     """
     # Expected model parameters.
-    expected = set(expected) if not isinstance(expected, set) else expected
+    expected = set(expected) if not isinstance(
+        expected, set) else expected
     # Detected model parameters.
     model_param_names = []
     for k in detected:
@@ -245,21 +251,25 @@ def check_params(
     if verbose:
         logging.info(
             "Detected Params:\n  {detected_params}".format(
-                detected_params="\n  ".join(detected_param_set)
+                detected_params="\n  ".join(
+                    detected_param_set)
             )
         )
 
     # Log unexpected model parameters.
     missing_params = expected - detected_param_set
     extra_params = detected_param_set - expected
-    extra_params = [param for param in extra_params if param not in buffers]
+    extra_params = [
+        param for param in extra_params if param not in buffers]
     extra_params = [
         param for param in extra_params if not param.endswith("._extra_state")
     ]
     if len(extra_params) > 0:
-        logging.info(f"WARNING: detected extra params: {extra_params}")
+        logging.info(
+            f"WARNING: detected extra params: {extra_params}")
     if len(missing_params) > 0:
-        logging.info(f"WARNING: missing params: {missing_params}")
+        logging.info(
+            f"WARNING: missing params: {missing_params}")
     if not (extra_params or missing_params):
         logging.info("No missing or extra params detected!")
 
@@ -294,7 +304,8 @@ def convert_model_weights(
         # Ignore FP8 extra state.
         if model_parameter.endswith("._extra_state"):
             if "extra_state" in model_parameter:
-                logging.info(f"Ignoring {model_parameter} -> contains extra state.")
+                logging.info(
+                    f"Ignoring {model_parameter} -> contains extra state.")
             skipped += 1
             continue
 
@@ -340,15 +351,18 @@ def convert_model_weights(
         )
 
     if not exclude_extra:
-        logging.info("Adding extra states from rank0 input shard...")
+        logging.info(
+            "Adding extra states from rank0 input shard...")
         rank0_model = input_data_shards[0]["module"]
         for k in rank0_model.keys():
             for i, output_shard in enumerate(output_data_shards):
                 if k not in output_shard["module"]:
                     if i == 0:
-                        logging.info(f"Adding {k} to output shards.")
+                        logging.info(
+                            f"Adding {k} to output shards.")
                     output_shard["module"][k] = rank0_model[k]
-        new_params = len(output_data_shards[0]["module"]) - num_params
+        new_params = len(
+            output_data_shards[0]["module"]) - num_params
         logging.info(
             f"Added {new_params} extra states, total params: {num_params + new_params}"
         )
@@ -368,7 +382,8 @@ def convert_model_weights(
             output_data_shard,
             output_path,
         )
-        logging.info(f"Converted checkpoint saved to: {output_path}")
+        logging.info(
+            f"Converted checkpoint saved to: {output_path}")
 
 
 def convert_zero1_model_parallel_checkpoint(
@@ -393,20 +408,25 @@ def convert_zero1_model_parallel_checkpoint(
     """
     # Argument validation.
     if not os.path.exists(source_dir):
-        raise ValueError(f"Input checkpoint dir ({source_dir}) not found.")
+        raise ValueError(
+            f"Input checkpoint dir ({source_dir}) not found.")
     os.makedirs(output_dir, exist_ok=True)
-    logging.info(f"Converting checkpoint from {source_dir} to {output_dir}")
+    logging.info(
+        f"Converting checkpoint from {source_dir} to {output_dir}")
 
     # Identify all checkpoint model path files.
-    parameter_paths = sorted(glob(f"{source_dir}/{glob_pattern}"))
+    parameter_paths = sorted(
+        glob(f"{source_dir}/{glob_pattern}"))
     if len(parameter_paths) == 0:
-        raise ValueError(f"No parameter files found in {source_dir}")
+        raise ValueError(
+            f"No parameter files found in {source_dir}")
 
     # Load all shards from the ZeRo1 checkpoint.
     input_data_shards = [
         torch.load(path, map_location=DEVICE) for path in parameter_paths
     ]
-    buffers = {buf for x in input_data_shards for buf in x.get("buffer_names", [])}
+    buffers = {buf for x in input_data_shards for buf in x.get(
+        "buffer_names", [])}
 
     # Initialize output MP shards.
     output_data_shards = [
@@ -418,7 +438,8 @@ def convert_zero1_model_parallel_checkpoint(
         }
         for _ in range(model_parallel)
     ]
-    model_parameter_names = input_data_shards[0]["module"].keys()
+    model_parameter_names = input_data_shards[0]["module"].keys(
+    )
 
     # Check no missing or extra params
     check_params(

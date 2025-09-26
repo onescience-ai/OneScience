@@ -62,7 +62,8 @@ class BaseVector(ABC):
         for text in texts.copy():
             if text.metadata and "doc_id" in text.metadata:
                 doc_id = text.metadata["doc_id"]
-                exists_duplicate_node = self.text_exists(doc_id)
+                exists_duplicate_node = self.text_exists(
+                    doc_id)
                 if exists_duplicate_node:
                     texts.remove(text)
 

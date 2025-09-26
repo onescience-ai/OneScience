@@ -33,7 +33,8 @@ class LogHalfHorseshoePrior(Prior):
     :type lb: float or torch.Tensor, optional
     """
 
-    arg_constraints = {"scale": constraints.positive, "lb": constraints.positive}
+    arg_constraints = {
+        "scale": constraints.positive, "lb": constraints.positive}
     support = constraints.real
 
     def __init__(self, scale, lb=1e-6, validate_args=None):
@@ -53,12 +54,15 @@ class LogHalfHorseshoePrior(Prior):
         return torch.log(torch.log(1 + 3 * (self.scale / self.transform(X)) ** 2)) + X
 
     def rsample(self, sample_shape=torch.Size([])):
-        local_shrinkage = HalfCauchy(1).rsample(self.scale.shape).to(self.lb)
+        local_shrinkage = HalfCauchy(1).rsample(
+            self.scale.shape).to(self.lb)
         param_sample = (
-            HalfNormal(local_shrinkage * self.scale).rsample(sample_shape).to(self.lb)
+            HalfNormal(
+                local_shrinkage * self.scale).rsample(sample_shape).to(self.lb)
         )
         if len(self.lb) > 1:
-            param_sample[param_sample < self.lb[0]] = self.lb[0]
+            param_sample[param_sample <
+                         self.lb[0]] = self.lb[0]
         else:
             param_sample[param_sample < self.lb] = self.lb
         return param_sample.log()

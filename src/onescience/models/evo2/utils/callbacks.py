@@ -40,7 +40,8 @@ class PredictionWriter(BasePredictionWriter, pl.Callback):
         self,
         output_dir: str | os.PathLike,
         write_interval: IntervalT,
-        batch_dim_key_defaults: dict[str, int] | None = None,
+        batch_dim_key_defaults: dict[str,
+                                     int] | None = None,
         seq_dim_key_defaults: dict[str, int] | None = None,
     ):
         """Initializes the callback.
@@ -107,7 +108,8 @@ class PredictionWriter(BasePredictionWriter, pl.Callback):
 
         # NOTE store the batch_idx so we do not need to rely on filenames for reconstruction of inputs. This is wrapped
         # in a tensor and list container to ensure compatibility with batch_collator.
-        prediction["batch_idx"] = torch.tensor([batch_idx], dtype=torch.int64)
+        prediction["batch_idx"] = torch.tensor(
+            [batch_idx], dtype=torch.int64)
 
         torch.save(prediction, result_path)
         logging.info(
@@ -162,4 +164,5 @@ class PredictionWriter(BasePredictionWriter, pl.Callback):
         else:
             keys = "tensor"
         torch.save(prediction, result_path)
-        logging.info(f"Inference predictions are stored in {result_path}\n{keys}")
+        logging.info(
+            f"Inference predictions are stored in {result_path}\n{keys}")

@@ -4,13 +4,14 @@ import numpy as np
 import torch
 from scipy.spatial.transform import Rotation
 
-### First define geometric operations on the SO3 manifold
+# First define geometric operations on the SO3 manifold
 
 
 # hat map from vector space R^3 to Lie algebra so(3)
 def hat(v):
     hat_v = torch.zeros([v.shape[0], 3, 3])
-    hat_v[:, 0, 1], hat_v[:, 0, 2], hat_v[:, 1, 2] = -v[:, 2], v[:, 1], -v[:, 0]
+    hat_v[:, 0, 1], hat_v[:, 0, 2], hat_v[:,
+                                          1, 2] = -v[:, 2], v[:, 1], -v[:, 0]
     return hat_v + -hat_v.transpose(2, 1)
 
 
@@ -85,7 +86,8 @@ def igso3_density_angle(omega, t, L=L_default):
 # grad_R log IGSO3(R; I_3, t)
 def igso3_score(R, t, L=L_default):
     omega = Omega(R)
-    unit_vector = np.einsum("Nij,Njk->Nik", R, log(R)) / omega[:, None, None]
+    unit_vector = np.einsum(
+        "Nij,Njk->Nik", R, log(R)) / omega[:, None, None]
     return unit_vector * d_logf_d_omega(omega, t, L)[:, None, None]
 
 
@@ -103,31 +105,37 @@ def calculate_igso3(*, num_sigma, num_omega, min_sigma, max_sigma):
             be too low or it will create numerical instability.
     """
     # Discretize omegas for calculating CDFs. Skip omega=0.
-    discrete_omega = np.linspace(0, np.pi, num_omega + 1)[1:]
+    discrete_omega = np.linspace(
+        0, np.pi, num_omega + 1)[1:]
 
     # Exponential noise schedule.  This choice is closely tied to the
     # scalings used when simulating the reverse time SDE. For each step n,
     # discrete_sigma[n] = min_eps^(1-n/num_eps) * max_eps^(n/num_eps)
     discrete_sigma = (
-        10 ** np.linspace(np.log10(min_sigma), np.log10(max_sigma), num_sigma + 1)[1:]
+        10 ** np.linspace(np.log10(min_sigma),
+                          np.log10(max_sigma), num_sigma + 1)[1:]
     )
 
     # Compute the pdf and cdf values for the marginal distribution of the angle
     # of rotation (which is needed for sampling)
     pdf_vals = np.asarray(
-        [igso3_density_angle(discrete_omega, sigma**2) for sigma in discrete_sigma]
+        [igso3_density_angle(discrete_omega, sigma**2)
+         for sigma in discrete_sigma]
     )
-    cdf_vals = np.asarray([pdf.cumsum() / num_omega * np.pi for pdf in pdf_vals])
+    cdf_vals = np.asarray(
+        [pdf.cumsum() / num_omega * np.pi for pdf in pdf_vals])
 
     # Compute the norms of the scores.  This are used to scale the rotation axis when
     # computing the score as a vector.
     score_norm = np.asarray(
-        [d_logf_d_omega(discrete_omega, sigma**2) for sigma in discrete_sigma]
+        [d_logf_d_omega(discrete_omega, sigma**2)
+         for sigma in discrete_sigma]
     )
 
     # Compute the standard deviation of the score norm for each sigma
     exp_score_norms = np.sqrt(
-        np.sum(score_norm**2 * pdf_vals, axis=1) / np.sum(pdf_vals, axis=1)
+        np.sum(score_norm**2 * pdf_vals, axis=1) /
+        np.sum(pdf_vals, axis=1)
     )
     return {
         "cdf": cdf_vals,

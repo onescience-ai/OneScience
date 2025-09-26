@@ -29,11 +29,13 @@ def reshape_fields(
         img = np.expand_dims(img, 0)
 
     if img.shape[3] > 720:
-        img = img[:, :, 0:720]  # remove last pixel for era5 data
+        # remove last pixel for era5 data
+        img = img[:, :, 0:720]
 
     n_history = n_history
 
-    n_channels = np.shape(img)[1]  # this will either be N_in_channels or N_out_channels
+    # this will either be N_in_channels or N_out_channels
+    n_channels = np.shape(img)[1]
     channels = in_channels if inp_or_tar == "inp" else out_channels
 
     if normalize and train:
@@ -56,8 +58,10 @@ def reshape_fields(
         img = np.roll(img, y_roll, axis=-1)
 
     if inp_or_tar == "inp":
-        img = np.reshape(img, (n_channels * (n_history + 1), img_shape_x, img_shape_y))
+        img = np.reshape(
+            img, (n_channels * (n_history + 1), img_shape_x, img_shape_y))
     elif inp_or_tar == "tar":
-        img = np.reshape(img, (n_channels, img_shape_x, img_shape_y))
+        img = np.reshape(
+            img, (n_channels, img_shape_x, img_shape_y))
 
     return torch.as_tensor(img)

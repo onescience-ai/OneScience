@@ -46,7 +46,8 @@ from onescience.flax_models.alphafold3.model.components import utils
 _HOME_DIR = pathlib.Path(os.environ.get("HOME"))
 _DEFAULT_MODEL_DIR = _HOME_DIR / "models"
 _DEFAULT_DB_DIR = _HOME_DIR / "public_databases"
-_DEFAULT_MMSEQS_DB_DIR = _HOME_DIR / "public_databases/mmseqsDB"
+_DEFAULT_MMSEQS_DB_DIR = _HOME_DIR / \
+    "public_databases/mmseqsDB"
 
 # Input and output paths.
 _JSON_PATH = flags.DEFINE_string(
@@ -250,7 +251,8 @@ _MMSEQS_N_CPU = flags.DEFINE_integer(
 # Template search configuration.
 _MAX_TEMPLATE_DATE = flags.DEFINE_string(
     "max_template_date",
-    "2021-09-30",  # By default, use the date from the AlphaFold 3 paper.
+    # By default, use the date from the AlphaFold 3 paper.
+    "2021-09-30",
     "Maximum template release date to consider. Format: YYYY-MM-DD. All"
     " templates released after this date will be ignored. Controls also whether"
     " to allow use of model coordinates for a chemical component from the CCD"
@@ -399,7 +401,8 @@ class ModelRunner:
             return model.Model(self._model_config)(batch)
 
         return functools.partial(
-            jax.jit(forward_fn.apply, device=self._device), self.model_params
+            jax.jit(forward_fn.apply,
+                    device=self._device), self.model_params
         )
 
     def run_inference(
@@ -408,7 +411,8 @@ class ModelRunner:
         """Computes a forward pass of the model on a featurised example."""
         featurised_example = jax.device_put(
             jax.tree_util.tree_map(
-                jnp.asarray, utils.remove_invalidly_typed_feats(featurised_example)
+                jnp.asarray, utils.remove_invalidly_typed_feats(
+                    featurised_example)
             ),
             self._device,
         )
@@ -416,11 +420,13 @@ class ModelRunner:
         result = self._model(rng_key, featurised_example)
         result = jax.tree.map(np.asarray, result)
         result = jax.tree.map(
-            lambda x: x.astype(jnp.float32) if x.dtype == jnp.bfloat16 else x,
+            lambda x: x.astype(
+                jnp.float32) if x.dtype == jnp.bfloat16 else x,
             result,
         )
         result = dict(result)
-        identifier = self.model_params["__meta__"]["__identifier__"].tobytes()
+        identifier = self.model_params["__meta__"]["__identifier__"].tobytes(
+        )
         result["__identifier__"] = identifier
         return result
 
@@ -436,7 +442,8 @@ class ModelRunner:
                 batch=batch, result=result, target_name=target_name
             )
         )
-        num_tokens = len(inference_results[0].metadata["token_chain_ids"])
+        num_tokens = len(
+            inference_results[0].metadata["token_chain_ids"])
         embeddings = {}
         if "single_embeddings" in result:
             embeddings["single_embeddings"] = result["single_embeddings"][:num_tokens]
@@ -474,9 +481,11 @@ def predict_structure(
 ) -> Sequence[ResultsForSeed]:
     """Runs the full inference pipeline to predict structures for each seed."""
 
-    print(f"Featurising data with {len(fold_input.rng_seeds)} seed(s)...")
+    print(
+        f"Featurising data with {len(fold_input.rng_seeds)} seed(s)...")
     featurisation_start_time = time.time()
-    ccd = chemical_components.cached_ccd(user_ccd=fold_input.user_ccd)
+    ccd = chemical_components.cached_ccd(
+        user_ccd=fold_input.user_ccd)
     featurised_examples = featurisation.featurise_input(
         fold_input=fold_input,
         buckets=buckets,
@@ -496,15 +505,18 @@ def predict_structure(
     all_inference_start_time = time.time()
     all_inference_results = []
     for seed, example in zip(fold_input.rng_seeds, featurised_examples):
-        print(f"Running model inference with seed {seed}...")
+        print(
+            f"Running model inference with seed {seed}...")
         inference_start_time = time.time()
         rng_key = jax.random.PRNGKey(seed)
-        result = model_runner.run_inference(example, rng_key)
+        result = model_runner.run_inference(
+            example, rng_key)
         print(
             f"Running model inference with seed {seed} took"
             f" {time.time() - inference_start_time:.2f} seconds."
         )
-        print(f"Extracting inference results with seed {seed}...")
+        print(
+            f"Extracting inference results with seed {seed}...")
         extract_structures = time.time()
         inference_results, embeddings = (
             model_runner.extract_inference_results_and_maybe_embeddings(
@@ -538,7 +550,8 @@ def write_fold_input_json(
 ) -> None:
     """Writes the input JSON to the output directory."""
     os.makedirs(output_dir, exist_ok=True)
-    path = os.path.join(output_dir, f"{fold_input.sanitised_name()}_data.json")
+    path = os.path.join(
+        output_dir, f"{fold_input.sanitised_name()}_data.json")
     print(f"Writing model input JSON to {path}")
     with open(path, "wt") as f:
         f.write(fold_input.to_json())
@@ -555,7 +568,8 @@ def write_outputs(
     max_ranking_result = None
     try:
         output_terms = (
-            pathlib.Path(onescience.flax_models.alphafold3.cpp.__file__).parent
+            pathlib.Path(
+                onescience.flax_models.alphafold3.cpp.__file__).parent
             / "OUTPUT_TERMS_OF_USE.md"
         ).read_text()
     except FileNotFoundError:
@@ -564,21 +578,25 @@ def write_outputs(
     for results_for_seed in all_inference_results:
         seed = results_for_seed.seed
         for sample_idx, result in enumerate(results_for_seed.inference_results):
-            sample_dir = os.path.join(output_dir, f"seed-{seed}_sample-{sample_idx}")
+            sample_dir = os.path.join(
+                output_dir, f"seed-{seed}_sample-{sample_idx}")
             os.makedirs(sample_dir, exist_ok=True)
             post_processing.write_output(
                 inference_result=result,
                 output_dir=sample_dir,
                 name=f"{job_name}_seed-{seed}_sample-{sample_idx}",
             )
-            ranking_score = float(result.metadata["ranking_score"])
-            ranking_scores.append((seed, sample_idx, ranking_score))
+            ranking_score = float(
+                result.metadata["ranking_score"])
+            ranking_scores.append(
+                (seed, sample_idx, ranking_score))
             if max_ranking_score is None or ranking_score > max_ranking_score:
                 max_ranking_score = ranking_score
                 max_ranking_result = result
 
         if embeddings := results_for_seed.embeddings:
-            embeddings_dir = os.path.join(output_dir, f"seed-{seed}_embeddings")
+            embeddings_dir = os.path.join(
+                output_dir, f"seed-{seed}_embeddings")
             os.makedirs(embeddings_dir, exist_ok=True)
             post_processing.write_embeddings(
                 embeddings=embeddings,
@@ -586,7 +604,8 @@ def write_outputs(
                 name=f"{job_name}_seed-{seed}",
             )
 
-    if max_ranking_result is not None:  # True iff ranking_scores non-empty.
+    # True iff ranking_scores non-empty.
+    if max_ranking_result is not None:
         post_processing.write_output(
             inference_result=max_ranking_result,
             output_dir=output_dir,
@@ -597,10 +616,12 @@ def write_outputs(
         # Save csv of ranking scores with seeds and sample indices, to allow easier
         # comparison of ranking scores across different runs.
         with open(
-            os.path.join(output_dir, f"{job_name}_ranking_scores.csv"), "wt"
+            os.path.join(
+                output_dir, f"{job_name}_ranking_scores.csv"), "wt"
         ) as f:
             writer = csv.writer(f)
-            writer.writerow(["seed", "sample", "ranking_score"])
+            writer.writerow(
+                ["seed", "sample", "ranking_score"])
             writer.writerows(ranking_scores)
 
 
@@ -616,7 +637,8 @@ def replace_db_dir(path_with_db_dir: str, db_dirs: Sequence[str]) -> str:
             f"{path_with_db_dir} with ${{DB_DIR}} not found in any of {db_dirs}."
         )
     if not os.path.exists(path_with_db_dir):
-        raise FileNotFoundError(f"{path_with_db_dir} does not exist.")
+        raise FileNotFoundError(
+            f"{path_with_db_dir} does not exist.")
     return path_with_db_dir
 
 
@@ -654,10 +676,12 @@ def replace_mmseqs_db_dir(
             "uniref90_db",
         ]
 
-        is_mmseqs_db = any(path_with_db_dir.endswith(suffix) for suffix in db_suffixes)
+        is_mmseqs_db = any(path_with_db_dir.endswith(
+            suffix) for suffix in db_suffixes)
 
         for mmseqs_db_dir in mmseqs_db_dirs:
-            path = template.substitute(MMSEQS_DB_DIR=mmseqs_db_dir)
+            path = template.substitute(
+                MMSEQS_DB_DIR=mmseqs_db_dir)
             if is_mmseqs_db:
                 if os.path.exists(path):
                     return path
@@ -683,7 +707,8 @@ def replace_mmseqs_db_dir(
             f"{path_with_db_dir} with ${{DB_DIR}} not found in any of {db_dirs}."
         )
     if not is_jackhmmer_db and not os.path.exists(path_with_db_dir):
-        raise FileNotFoundError(f"{path_with_db_dir} does not exist.")
+        raise FileNotFoundError(
+            f"{path_with_db_dir} does not exist.")
     return path_with_db_dir
 
 
@@ -780,7 +805,8 @@ def process_fold_input(
         print("Skipping data pipeline...")
         # Load model immediately when skipping pipeline
         if model_runner is not None:
-            print("Loading model parameters (no pipeline to wait for)...")
+            print(
+                "Loading model parameters (no pipeline to wait for)...")
             load_model_callback()
     else:
         print("Running data pipeline...")
@@ -804,7 +830,8 @@ def process_fold_input(
             ref_max_modified_date=ref_max_modified_date,
             conformer_max_iterations=conformer_max_iterations,
         )
-        print(f"Writing outputs with {len(fold_input.rng_seeds)} seed(s)...")
+        print(
+            f"Writing outputs with {len(fold_input.rng_seeds)} seed(s)...")
         write_outputs(
             all_inference_results=all_inference_results,
             output_dir=output_dir,
@@ -812,16 +839,19 @@ def process_fold_input(
         )
         output = all_inference_results
 
-    print(f"Fold job {fold_input.name} done, output written to {output_dir}\n")
+    print(
+        f"Fold job {fold_input.name} done, output written to {output_dir}\n")
     return output
 
 
 def main(_):
     if _JAX_COMPILATION_CACHE_DIR.value is not None:
-        jax.config.update("jax_compilation_cache_dir", _JAX_COMPILATION_CACHE_DIR.value)
+        jax.config.update(
+            "jax_compilation_cache_dir", _JAX_COMPILATION_CACHE_DIR.value)
 
     if _JSON_PATH.value is None == _INPUT_DIR.value is None:
-        raise ValueError("Exactly one of --json_path or --input_dir must be specified.")
+        raise ValueError(
+            "Exactly one of --json_path or --input_dir must be specified.")
 
     if not _RUN_INFERENCE.value and not _RUN_DATA_PIPELINE.value:
         raise ValueError(
@@ -846,7 +876,8 @@ def main(_):
     try:
         os.makedirs(_OUTPUT_DIR.value, exist_ok=True)
     except OSError as e:
-        print(f"Failed to create output directory {_OUTPUT_DIR.value}: {e}")
+        print(
+            f"Failed to create output directory {_OUTPUT_DIR.value}: {e}")
         raise
 
     # if _RUN_INFERENCE.value:
@@ -890,10 +921,12 @@ def main(_):
     )
     print("\n" + "\n".join(notice) + "\n")
 
-    max_template_date = datetime.date.fromisoformat(_MAX_TEMPLATE_DATE.value)
+    max_template_date = datetime.date.fromisoformat(
+        _MAX_TEMPLATE_DATE.value)
     if _RUN_DATA_PIPELINE.value:
         if not _USE_MMSEQS.value:
-            expand_path = lambda x: replace_db_dir(x, DB_DIR.value)
+            def expand_path(x): return replace_db_dir(
+                x, DB_DIR.value)
             data_pipeline_config = pipeline.DataPipelineConfig(
                 jackhmmer_binary_path=_JACKHMMER_BINARY_PATH.value,
                 nhmmer_binary_path=_NHMMER_BINARY_PATH.value,
@@ -901,17 +934,25 @@ def main(_):
                 hmmsearch_binary_path=_HMMSEARCH_BINARY_PATH.value,
                 hmmbuild_binary_path=_HMMBUILD_BINARY_PATH.value,
                 mmseqs_binary_path=_MMSEQS_BINARY_PATH.value,
-                small_bfd_database_path=expand_path(_SMALL_BFD_DATABASE_PATH.value),
-                mgnify_database_path=expand_path(_MGNIFY_DATABASE_PATH.value),
+                small_bfd_database_path=expand_path(
+                    _SMALL_BFD_DATABASE_PATH.value),
+                mgnify_database_path=expand_path(
+                    _MGNIFY_DATABASE_PATH.value),
                 uniprot_cluster_annot_database_path=expand_path(
                     _UNIPROT_CLUSTER_ANNOT_DATABASE_PATH.value
                 ),
-                uniref90_database_path=expand_path(_UNIREF90_DATABASE_PATH.value),
-                ntrna_database_path=expand_path(_NTRNA_DATABASE_PATH.value),
-                rfam_database_path=expand_path(_RFAM_DATABASE_PATH.value),
-                rna_central_database_path=expand_path(_RNA_CENTRAL_DATABASE_PATH.value),
-                pdb_database_path=expand_path(_PDB_DATABASE_PATH.value),
-                seqres_database_path=expand_path(_SEQRES_DATABASE_PATH.value),
+                uniref90_database_path=expand_path(
+                    _UNIREF90_DATABASE_PATH.value),
+                ntrna_database_path=expand_path(
+                    _NTRNA_DATABASE_PATH.value),
+                rfam_database_path=expand_path(
+                    _RFAM_DATABASE_PATH.value),
+                rna_central_database_path=expand_path(
+                    _RNA_CENTRAL_DATABASE_PATH.value),
+                pdb_database_path=expand_path(
+                    _PDB_DATABASE_PATH.value),
+                seqres_database_path=expand_path(
+                    _SEQRES_DATABASE_PATH.value),
                 jackhmmer_n_cpu=_JACKHMMER_N_CPU.value,
                 nhmmer_n_cpu=_NHMMER_N_CPU.value,
                 max_template_date=max_template_date,
@@ -920,7 +961,7 @@ def main(_):
                 result2msa_options=_R2MSA_OPTIONS.value,
             )
         else:
-            expand_path = lambda x: replace_mmseqs_db_dir(
+            def expand_path(x): return replace_mmseqs_db_dir(
                 x, DB_DIR.value, MMSEQS_DB_DIR.value
             )
             data_pipeline_config = pipeline.DataPipelineConfig(
@@ -933,18 +974,24 @@ def main(_):
                 small_bfd_database_path=expand_path(
                     _MMSEQS_SMALL_BFD_DATABASE_PATH.value
                 ),
-                mgnify_database_path=expand_path(_MMSEQS_MGNIFY_DATABASE_PATH.value),
+                mgnify_database_path=expand_path(
+                    _MMSEQS_MGNIFY_DATABASE_PATH.value),
                 uniprot_cluster_annot_database_path=expand_path(
                     _MMSEQS_UNIPROT_CLUSTER_ANNOT_DATABASE_PATH.value
                 ),
                 uniref90_database_path=expand_path(
                     _MMSEQS_UNIREF90_DATABASE_PATH.value
                 ),
-                ntrna_database_path=expand_path(_NTRNA_DATABASE_PATH.value),
-                rfam_database_path=expand_path(_RFAM_DATABASE_PATH.value),
-                rna_central_database_path=expand_path(_RNA_CENTRAL_DATABASE_PATH.value),
-                pdb_database_path=expand_path(_PDB_DATABASE_PATH.value),
-                seqres_database_path=expand_path(_SEQRES_DATABASE_PATH.value),
+                ntrna_database_path=expand_path(
+                    _NTRNA_DATABASE_PATH.value),
+                rfam_database_path=expand_path(
+                    _RFAM_DATABASE_PATH.value),
+                rna_central_database_path=expand_path(
+                    _RNA_CENTRAL_DATABASE_PATH.value),
+                pdb_database_path=expand_path(
+                    _PDB_DATABASE_PATH.value),
+                seqres_database_path=expand_path(
+                    _SEQRES_DATABASE_PATH.value),
                 mmseqs_n_cpu=_MMSEQS_N_CPU.value,
                 nhmmer_n_cpu=_NHMMER_N_CPU.value,
                 max_template_date=max_template_date,
@@ -985,14 +1032,18 @@ def main(_):
     num_fold_inputs = 0
     for fold_input in fold_inputs:
         if _NUM_SEEDS.value is not None:
-            print(f"Expanding fold job {fold_input.name} to {_NUM_SEEDS.value} seeds")
-            fold_input = fold_input.with_multiple_seeds(_NUM_SEEDS.value)
+            print(
+                f"Expanding fold job {fold_input.name} to {_NUM_SEEDS.value} seeds")
+            fold_input = fold_input.with_multiple_seeds(
+                _NUM_SEEDS.value)
         process_fold_input(
             fold_input=fold_input,
             data_pipeline_config=data_pipeline_config,
             model_runner=model_runner,
-            output_dir=os.path.join(_OUTPUT_DIR.value, fold_input.sanitised_name()),
-            buckets=tuple(int(bucket) for bucket in _BUCKETS.value),
+            output_dir=os.path.join(
+                _OUTPUT_DIR.value, fold_input.sanitised_name()),
+            buckets=tuple(int(bucket)
+                          for bucket in _BUCKETS.value),
             ref_max_modified_date=max_template_date,
             conformer_max_iterations=_CONFORMER_MAX_ITERATIONS.value,
             force_output_dir=_FORCE_OUTPUT_DIR.value,

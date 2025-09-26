@@ -1,5 +1,5 @@
 ##
-## lk and lk term
+# lk and lk term
 # (LJ_RADIUS LJ_WDEPTH LK_DGFREE LK_LAMBDA LK_VOLUME)
 type2ljlk = {
     "CNH2": (1.968297, 0.094638, 3.077030, 3.5000, 13.500000),
@@ -77,7 +77,7 @@ type2hb = {
 
 
 ##
-## hbond term
+# hbond term
 class HbDonType:
     PBA = 0
     IND = 1

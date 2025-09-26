@@ -90,7 +90,8 @@ class DLLogger(Logger):
             dllogger.init(
                 backends=[
                     dllogger.JSONStreamBackend(
-                        Verbosity.DEFAULT, str(save_dir / filename)
+                        Verbosity.DEFAULT, str(
+                            save_dir / filename)
                     )
                 ]
             )
@@ -131,7 +132,8 @@ class WandbLogger(Logger):
     @rank_zero_only
     def log_hyperparams(self, params: Dict[str, Any]) -> None:
         params = self._sanitize_params(params)
-        self.experiment.config.update(params, allow_val_change=True)
+        self.experiment.config.update(
+            params, allow_val_change=True)
 
     @rank_zero_only
     def log_metrics(

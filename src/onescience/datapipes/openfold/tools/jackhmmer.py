@@ -31,7 +31,8 @@ class Jackhmmer:
         incdom_e: Optional[float] = None,
         dom_e: Optional[float] = None,
         num_streamed_chunks: Optional[int] = None,
-        streaming_callback: Optional[Callable[[int], None]] = None,
+        streaming_callback: Optional[Callable[[
+            int], None]] = None,
     ):
         """Initializes the Python Jackhmmer wrapper.
 
@@ -58,8 +59,10 @@ class Jackhmmer:
         self.num_streamed_chunks = num_streamed_chunks
 
         if not os.path.exists(self.database_path) and num_streamed_chunks is None:
-            logging.error("Could not find Jackhmmer database %s", database_path)
-            raise ValueError(f"Could not find Jackhmmer database {database_path}")
+            logging.error(
+                "Could not find Jackhmmer database %s", database_path)
+            raise ValueError(
+                f"Could not find Jackhmmer database {database_path}")
 
         self.n_cpu = n_cpu
         self.n_iter = n_iter
@@ -81,7 +84,8 @@ class Jackhmmer:
     ) -> Mapping[str, Any]:
         """Queries the database chunk using Jackhmmer."""
         with utils.tmpdir_manager() as query_tmp_dir:
-            sto_path = os.path.join(query_tmp_dir, "output.sto")
+            sto_path = os.path.join(
+                query_tmp_dir, "output.sto")
 
             # The F1/F2/F3 are the expected proportion to pass each of the filtering
             # stages (which get progressively more expensive), reducing these
@@ -112,21 +116,26 @@ class Jackhmmer:
                 str(self.n_iter),
             ]
             if self.get_tblout:
-                tblout_path = os.path.join(query_tmp_dir, "tblout.txt")
+                tblout_path = os.path.join(
+                    query_tmp_dir, "tblout.txt")
                 cmd_flags.extend(["--tblout", tblout_path])
 
             if self.z_value:
                 cmd_flags.extend(["-Z", str(self.z_value)])
 
             if self.dom_e is not None:
-                cmd_flags.extend(["--domE", str(self.dom_e)])
+                cmd_flags.extend(
+                    ["--domE", str(self.dom_e)])
 
             if self.incdom_e is not None:
-                cmd_flags.extend(["--incdomE", str(self.incdom_e)])
+                cmd_flags.extend(
+                    ["--incdomE", str(self.incdom_e)])
 
-            cmd = [self.binary_path] + cmd_flags + [input_fasta_path, database_path]
+            cmd = [self.binary_path] + cmd_flags + \
+                [input_fasta_path, database_path]
 
-            logging.info('Launching subprocess "%s"', " ".join(cmd))
+            logging.info(
+                'Launching subprocess "%s"', " ".join(cmd))
             process = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
@@ -136,7 +145,8 @@ class Jackhmmer:
 
             if retcode:
                 raise RuntimeError(
-                    "Jackhmmer failed\nstderr:\n%s\n" % stderr.decode("utf-8")
+                    "Jackhmmer failed\nstderr:\n%s\n" % stderr.decode(
+                        "utf-8")
                 )
 
             # Get e-values for each target name
@@ -149,7 +159,8 @@ class Jackhmmer:
                 with open(sto_path) as f:
                     sto = f.read()
             else:
-                sto = parsers.truncate_stockholm_msa(sto_path, max_sequences)
+                sto = parsers.truncate_stockholm_msa(
+                    sto_path, max_sequences)
 
         raw_output = dict(
             sto=sto,
@@ -178,12 +189,17 @@ class Jackhmmer:
                     self.database_path,
                     max_sequences,
                 )
-                single_chunk_results.append(single_chunk_result)
+                single_chunk_results.append(
+                    single_chunk_result)
             return single_chunk_results
 
         db_basename = os.path.basename(self.database_path)
-        db_remote_chunk = lambda db_idx: f"{self.database_path}.{db_idx}"
-        db_local_chunk = lambda db_idx: f"/tmp/ramdisk/{db_basename}.{db_idx}"
+
+        def db_remote_chunk(
+            db_idx): return f"{self.database_path}.{db_idx}"
+
+        def db_local_chunk(
+            db_idx): return f"/tmp/ramdisk/{db_basename}.{db_idx}"
 
         # Remove existing files to prevent OOM
         for f in glob.glob(db_local_chunk("[0-9]*")):
@@ -194,7 +210,8 @@ class Jackhmmer:
 
         # Download the (i+1)-th chunk while Jackhmmer is running on the i-th chunk
         with futures.ThreadPoolExecutor(max_workers=2) as executor:
-            chunked_outputs = [[] for _ in range(len(input_fasta_paths))]
+            chunked_outputs = [
+                [] for _ in range(len(input_fasta_paths))]
             for i in range(1, self.num_streamed_chunks + 1):
                 # Copy the chunk locally
                 if i == 1:
@@ -215,7 +232,8 @@ class Jackhmmer:
                 for fasta_idx, input_fasta_path in enumerate(input_fasta_paths):
                     chunked_outputs[fasta_idx].append(
                         self._query_chunk(
-                            input_fasta_path, db_local_chunk(i), max_sequences
+                            input_fasta_path, db_local_chunk(
+                                i), max_sequences
                         )
                     )
 

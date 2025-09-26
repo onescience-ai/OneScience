@@ -11,7 +11,8 @@ import jax.numpy as jnp
 @functools.partial(jax.custom_vjp, nondiff_argnums=(1, 2))
 def reduce_precision(x, exponent_bits, mantissa_bits):
     return jax.tree_util.tree_map(
-        lambda y: jax.lax.reduce_precision(y, exponent_bits, mantissa_bits), x
+        lambda y: jax.lax.reduce_precision(
+            y, exponent_bits, mantissa_bits), x
     )
 
 
@@ -24,7 +25,8 @@ def reduce_precision_bwd(exponent_bits, mantissa_bits, res, dout):
     return (reduce_precision(dout, exponent_bits, mantissa_bits),)
 
 
-reduce_precision.defvjp(reduce_precision_fwd, reduce_precision_bwd)
+reduce_precision.defvjp(
+    reduce_precision_fwd, reduce_precision_bwd)
 
 
 def wrap_fn_for_upcast_downcast(
@@ -48,16 +50,19 @@ def wrap_fn_for_upcast_downcast(
         orig_dtype = inputs.dtype
 
     if f32_upcast:
-        inputs = jax.tree_util.tree_map(lambda x: x.astype(jnp.float32), inputs)
+        inputs = jax.tree_util.tree_map(
+            lambda x: x.astype(jnp.float32), inputs)
 
         if guard_against_excess_precision:
             # This is evil magic to guard against differences in precision in the QK
             # calculation between the forward pass and backwards pass. This is like
             # --xla_allow_excess_precision=false but scoped here.
             finfo = jnp.finfo(orig_dtype)  # jnp important!
-            inputs = reduce_precision(inputs, finfo.nexp, finfo.nmant)
+            inputs = reduce_precision(
+                inputs, finfo.nexp, finfo.nmant)
 
     output = fn(inputs)
     if f32_upcast:
-        output = jax.tree_util.tree_map(lambda x: x.astype(orig_dtype), output)
+        output = jax.tree_util.tree_map(
+            lambda x: x.astype(orig_dtype), output)
     return output

@@ -22,7 +22,8 @@ def _kernel_crps_implementation(pred: Tensor, obs: Tensor, biased: bool) -> Tens
     #                           = 2 sum_(j=1)^m j x_j - 2 sum (m - i + 1) x_i
     #                           = 2 sum_(i=1)^m (2i - m - 1) x_i
     m = pred.size(-1)
-    i = torch.arange(1, m + 1, device=pred.device, dtype=pred.dtype)
+    i = torch.arange(
+        1, m + 1, device=pred.device, dtype=pred.dtype)
     denom = m * m if biased else m * (m - 1)
     factor = (2 * i - m - 1) / denom
     spread = torch.sum(factor * pred, dim=-1)
@@ -127,7 +128,8 @@ def _crps_gaussian(mean: Tensor, std: Tensor, obs: Union[Tensor, np.ndarray]) ->
         )
 
     d = (obs - mean) / std
-    phi = torch.exp(-0.5 * d**2) / torch.sqrt(torch.as_tensor(2 * torch.pi))
+    phi = torch.exp(-0.5 * d**2) / \
+        torch.sqrt(torch.as_tensor(2 * torch.pi))
 
     # Note, simplified expression below is not exactly Gaussian CDF
     Phi = torch.erf(d / torch.sqrt(torch.as_tensor(2.0)))
@@ -261,7 +263,8 @@ def _crps_from_counts(
             + str(counts.shape[0])
             + "+1."
         )
-    cdf_hat = torch.cumsum(counts / torch.sum(counts, dim=0), dim=0)
+    cdf_hat = torch.cumsum(
+        counts / torch.sum(counts, dim=0), dim=0)
     return _crps_from_cdf(bin_edges, cdf_hat, obs)
 
 
@@ -318,15 +321,19 @@ def crps(
         Map of CRPS
     """
     if method not in ["kernel", "sort", "histogram"]:
-        raise ValueError("Method must either be 'kernel', 'sort' or 'histogram'.")
+        raise ValueError(
+            "Method must either be 'kernel', 'sort' or 'histogram'.")
 
     n = pred.shape[dim]
-    obs = torch.as_tensor(obs, device=pred.device, dtype=pred.dtype)
+    obs = torch.as_tensor(
+        obs, device=pred.device, dtype=pred.dtype)
     if method in ["kernel", "sort"]:
         return kcrps(pred, obs, dim=dim)
     else:
-        pred = pred.unsqueeze(0).transpose(0, dim + 1).squeeze(dim + 1)
+        pred = pred.unsqueeze(0).transpose(
+            0, dim + 1).squeeze(dim + 1)
         number_of_bins = max(int(np.sqrt(n)), 100)
-        bin_edges, cdf = cdf_function(pred, bins=number_of_bins)
+        bin_edges, cdf = cdf_function(
+            pred, bins=number_of_bins)
         _crps = _crps_from_cdf(bin_edges, cdf, obs)
         return _crps

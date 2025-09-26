@@ -57,10 +57,12 @@ def create_batch(device: str):
     atoms_list = [atoms.repeat((size, size, size))]
     print("Number of atoms", len(atoms_list[0]))
 
-    configs = [data.config_from_atoms(atoms) for atoms in atoms_list]
+    configs = [data.config_from_atoms(
+        atoms) for atoms in atoms_list]
     data_loader = torch_geometric.dataloader.DataLoader(
         dataset=[
-            data.AtomicData.from_config(config, z_table=table, cutoff=cutoff)
+            data.AtomicData.from_config(
+                config, z_table=table, cutoff=cutoff)
             for config in configs
         ],
         batch_size=1,
@@ -100,7 +102,8 @@ def test_mace(device, default_dtype):  # pylint: disable=W0621
 
     model_defaults = create_mace(device)
     tmp_model = mace_compile.prepare(create_mace)(device)
-    model_compiled = torch.compile(tmp_model, mode="default")
+    model_compiled = torch.compile(
+        tmp_model, mode="default")
 
     batch = create_batch(device)
     output1 = model_defaults(batch, training=True)
@@ -125,7 +128,8 @@ def test_eager_benchmark(benchmark, default_dtype):  # pylint: disable=W0621
 @pytest.mark.parametrize("enable_amp", [False, True], ids=["fp32", "mixed"])
 def test_compile_benchmark(benchmark, compile_mode, enable_amp):
     if enable_amp:
-        pytest.skip(reason="autocast compiler assertion aten.slice_scatter.default")
+        pytest.skip(
+            reason="autocast compiler assertion aten.slice_scatter.default")
 
     with tools.torch_tools.default_dtype(torch.float32):
         batch = create_batch("cuda")
@@ -145,7 +149,8 @@ def test_graph_breaks():
 
     batch = create_batch("cuda")
     model = mace_compile.prepare(create_mace)("cuda")
-    explanation = dynamo.explain(model)(batch, training=False)
+    explanation = dynamo.explain(
+        model)(batch, training=False)
 
     # these clutter the output but might be useful for investigating graph breaks
     explanation.ops_per_graph = None

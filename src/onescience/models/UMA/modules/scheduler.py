@@ -24,10 +24,12 @@ def warmup_lr_lambda(current_step: int, optim_config):
         )
 
     if current_step <= optim_config["warmup_steps"]:
-        alpha = current_step / float(optim_config["warmup_steps"])
+        alpha = current_step / \
+            float(optim_config["warmup_steps"])
         return optim_config["warmup_factor"] * (1.0 - alpha) + alpha
     else:
-        idx = bisect(optim_config["lr_milestones"], current_step)
+        idx = bisect(
+            optim_config["lr_milestones"], current_step)
         return pow(optim_config["lr_gamma"], idx)
 
 
@@ -53,7 +55,8 @@ class CosineLRLambda:
             if current_step >= self.max_epochs:
                 return self.lr_min_factor
             return self.lr_min_factor + 0.5 * (1 - self.lr_min_factor) * (
-                1 + math.cos(math.pi * (current_step / self.max_epochs))
+                1 + math.cos(math.pi *
+                             (current_step / self.max_epochs))
             )
 
 
@@ -85,16 +88,19 @@ class LRScheduler:
 
             self.config["lr_lambda"] = scheduler_lambda_fn
         if self.scheduler_type != "Null":
-            self.scheduler = getattr(lr_scheduler, self.scheduler_type)
+            self.scheduler = getattr(
+                lr_scheduler, self.scheduler_type)
             scheduler_args = self.filter_kwargs(config)
-            self.scheduler = self.scheduler(optimizer, **scheduler_args)
+            self.scheduler = self.scheduler(
+                optimizer, **scheduler_args)
 
     def step(self, metrics=None, epoch=None) -> None:
         if self.scheduler_type == "Null":
             return
         if self.scheduler_type == "ReduceLROnPlateau":
             if metrics is None:
-                raise Exception("Validation set required for ReduceLROnPlateau.")
+                raise Exception(
+                    "Validation set required for ReduceLROnPlateau.")
             self.scheduler.step(metrics)
         else:
             self.scheduler.step()

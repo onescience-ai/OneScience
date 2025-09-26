@@ -38,41 +38,51 @@ class MOLEInterface:
 def recursive_replace_so2m0_linear(model, replacement_factory):
     for _, child in model.named_children():
         if isinstance(child, torch.nn.Module):
-            recursive_replace_so2m0_linear(child, replacement_factory)
+            recursive_replace_so2m0_linear(
+                child, replacement_factory)
         if isinstance(child, SO2_Convolution):
             target_device = child.fc_m0.weight.device
-            child.fc_m0 = replacement_factory(child.fc_m0).to(target_device)
+            child.fc_m0 = replacement_factory(
+                child.fc_m0).to(target_device)
 
 
 def recursive_replace_so2_MOLE(model, replacement_factory):
     for _, child in model.named_children():
         if isinstance(child, torch.nn.Module):
-            recursive_replace_so2_MOLE(child, replacement_factory)
+            recursive_replace_so2_MOLE(
+                child, replacement_factory)
         if isinstance(child, SO2_Convolution):
             target_device = child.fc_m0.weights.device
-            child.fc_m0 = replacement_factory(child.fc_m0).to(target_device)
+            child.fc_m0 = replacement_factory(
+                child.fc_m0).to(target_device)
             for so2_module in child.so2_m_conv:
-                so2_module.fc = replacement_factory(so2_module.fc).to(target_device)
+                so2_module.fc = replacement_factory(
+                    so2_module.fc).to(target_device)
 
 
 def recursive_replace_so2_linear(model, replacement_factory):
     for _, child in model.named_children():
         if isinstance(child, torch.nn.Module):
-            recursive_replace_so2_linear(child, replacement_factory)
+            recursive_replace_so2_linear(
+                child, replacement_factory)
         if isinstance(child, SO2_Convolution):
             target_device = child.fc_m0.weight.device
-            child.fc_m0 = replacement_factory(child.fc_m0).to(target_device)
+            child.fc_m0 = replacement_factory(
+                child.fc_m0).to(target_device)
             for so2_module in child.so2_m_conv:
-                so2_module.fc = replacement_factory(so2_module.fc).to(target_device)
+                so2_module.fc = replacement_factory(
+                    so2_module.fc).to(target_device)
 
 
 def recursive_replace_all_linear(model, replacement_factory):
     for child_name, child in model.named_children():
         if isinstance(child, torch.nn.Linear):
             target_device = child.weight.device
-            setattr(model, child_name, replacement_factory(child).to(target_device))
+            setattr(model, child_name, replacement_factory(
+                child).to(target_device))
         elif isinstance(child, torch.nn.Module):
-            recursive_replace_all_linear(child, replacement_factory)
+            recursive_replace_all_linear(
+                child, replacement_factory)
 
 
 def recursive_replace_notso2_linear(model, replacement_factory):
@@ -81,9 +91,11 @@ def recursive_replace_notso2_linear(model, replacement_factory):
             continue
         if isinstance(child, torch.nn.Linear):
             target_device = child.weight.device
-            setattr(model, child_name, replacement_factory(child).to(target_device))
+            setattr(model, child_name, replacement_factory(
+                child).to(target_device))
         elif isinstance(child, torch.nn.Module):
-            recursive_replace_notso2_linear(child, replacement_factory)
+            recursive_replace_notso2_linear(
+                child, replacement_factory)
 
 
 def model_search_and_replace(
@@ -92,7 +104,8 @@ def model_search_and_replace(
     if layers is None:
         layers = list(range(len(model.blocks)))
     for layer_idx in layers:
-        module_search_function(model.blocks[layer_idx], replacement_factory)
+        module_search_function(
+            model.blocks[layer_idx], replacement_factory)
 
 
 def replace_linear_with_shared_linear(
@@ -177,7 +190,8 @@ def convert_model_to_MOLE_model(
     model.mole_type = mole_type
 
     routing_mlp_dim = (
-        use_composition_embedding + 1  # always use dataset/csd_mixed_emb
+        # always use dataset/csd_mixed_emb
+        use_composition_embedding + 1
     ) * model.sphere_channels
 
     model.routing_mlp = nn.Sequential(
@@ -208,7 +222,8 @@ def convert_model_to_MOLE_model(
     )
 
     model.mole_dropout = torch.nn.Dropout(mole_dropout)
-    model.mole_expert_coefficient_norm = norm_str_to_fn(mole_expert_coefficient_norm)
+    model.mole_expert_coefficient_norm = norm_str_to_fn(
+        mole_expert_coefficient_norm)
     model.act = act()
 
     if model.use_composition_embedding:
@@ -251,4 +266,5 @@ def convert_model_to_MOLE_model(
             layers=layers_mole,
         )
     else:
-        raise ValueError(f"Not a valid mole_type {mole_type}")
+        raise ValueError(
+            f"Not a valid mole_type {mole_type}")

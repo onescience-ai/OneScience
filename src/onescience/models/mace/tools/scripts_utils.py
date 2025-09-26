@@ -72,7 +72,8 @@ def get_dataset_from_xyz(
             - Dictionary of atomic energies (or None if not available)
     """
     # Convert input paths to lists if they're not already
-    train_paths = [train_path] if isinstance(train_path, str) else train_path
+    train_paths = [train_path] if isinstance(
+        train_path, str) else train_path
     valid_paths = (
         [valid_path]
         if isinstance(valid_path, str) and valid_path is not None
@@ -90,8 +91,10 @@ def get_dataset_from_xyz(
     all_test_configs = []
 
     # For tracking atomic energies across files
-    atomic_energies_values = {}  # Element Z -> list of energy values
-    atomic_energies_counts = {}  # Element Z -> count of files with this element
+    # Element Z -> list of energy values
+    atomic_energies_values = {}
+    # Element Z -> count of files with this element
+    atomic_energies_counts = {}
 
     # Process training files
     for i, path in enumerate(train_paths):
@@ -100,7 +103,8 @@ def get_dataset_from_xyz(
             file_path=path,
             config_type_weights=config_type_weights,
             key_specification=key_specification,
-            extract_atomic_energies=True,  # Extract from all files to average
+            # Extract from all files to average
+            extract_atomic_energies=True,
             keep_isolated_atoms=keep_isolated_atoms,
             head_name=head_name,
         )
@@ -113,13 +117,16 @@ def get_dataset_from_xyz(
                     atomic_energies_values[element] = []
                     atomic_energies_counts[element] = 0
 
-                atomic_energies_values[element].append(energy)
+                atomic_energies_values[element].append(
+                    energy)
                 atomic_energies_counts[element] += 1
 
-        log_dataset_contents(train_configs, f"Training set {i+1}/{len(train_paths)}")
+        log_dataset_contents(
+            train_configs, f"Training set {i+1}/{len(train_paths)}")
 
     # Log total training set info
-    log_dataset_contents(all_train_configs, "Total Training set")
+    log_dataset_contents(
+        all_train_configs, "Total Training set")
 
     # Process validation files if provided
     if valid_paths:
@@ -137,17 +144,21 @@ def get_dataset_from_xyz(
             )
 
         # Log total validation set info
-        log_dataset_contents(all_valid_configs, "Total Validation set")
+        log_dataset_contents(
+            all_valid_configs, "Total Validation set")
         train_configs = all_train_configs
         valid_configs = all_valid_configs
     else:
         # Split training data if no validation files are provided
-        logging.info("No validation set provided, splitting training data instead.")
+        logging.info(
+            "No validation set provided, splitting training data instead.")
         train_configs, valid_configs = data.random_train_valid_split(
             all_train_configs, valid_fraction, seed, work_dir
         )
-        log_dataset_contents(train_configs, "Random Split Training set")
-        log_dataset_contents(valid_configs, "Random Split Validation set")
+        log_dataset_contents(
+            train_configs, "Random Split Training set")
+        log_dataset_contents(
+            valid_configs, "Random Split Validation set")
 
     test_configs_by_type = []
     if test_paths:
@@ -161,16 +172,20 @@ def get_dataset_from_xyz(
             )
             all_test_configs.extend(test_configs)
 
-            log_dataset_contents(test_configs, f"Test set {i+1}/{len(test_paths)}")
+            log_dataset_contents(
+                test_configs, f"Test set {i+1}/{len(test_paths)}")
 
         # Create list of tuples (config_type, list(Atoms))
-        test_configs_by_type = data.test_config_types(all_test_configs)
-        log_dataset_contents(all_test_configs, "Total Test set")
+        test_configs_by_type = data.test_config_types(
+            all_test_configs)
+        log_dataset_contents(
+            all_test_configs, "Total Test set")
 
     atomic_energies_dict = {}
     for element, values in atomic_energies_values.items():
         if atomic_energies_counts[element] > 1:
-            atomic_energies_dict[element] = sum(values) / len(values)
+            atomic_energies_dict[element] = sum(
+                values) / len(values)
             logging.debug(
                 f"Element {element} found in {atomic_energies_counts[element]} files. Using average E0: {atomic_energies_dict[element]:.6f} eV"
             )
@@ -212,7 +227,8 @@ def print_git_commit():
         logging.debug(f"Current Git commit: {commit}")
         return commit
     except Exception as e:  # pylint: disable=W0703
-        logging.debug(f"Error accessing Git repository: {e}")
+        logging.debug(
+            f"Error accessing Git repository: {e}")
         return "None"
 
 
@@ -240,13 +256,15 @@ def extract_config_mace_model(model: torch.nn.Module) -> Dict[str, Any]:
 
     scale = model.scale_shift.scale
     shift = model.scale_shift.shift
-    heads = model.heads if hasattr(model, "heads") else ["default"]
+    heads = model.heads if hasattr(
+        model, "heads") else ["default"]
     model_mlp_irreps = (
         o3.Irreps(str(model.readouts[-1].hidden_irreps))
         if model.num_interactions.item() > 1
         else 1
     )
-    mlp_irreps = o3.Irreps(f"{model_mlp_irreps.count((0, 1)) // len(heads)}x0e")
+    mlp_irreps = o3.Irreps(
+        f"{model_mlp_irreps.count((0, 1)) // len(heads)}x0e")
     try:
         correlation = (
             len(model.products[0].symmetric_contractions.contractions[0].weights) + 1
@@ -310,20 +328,24 @@ def remove_pt_head(
         ValueError: If the model is not a multihead model or if the specified head is not found
     """
     if not hasattr(model, "heads") or len(model.heads) <= 1:
-        raise ValueError("Model must be a multihead model with more than one head")
+        raise ValueError(
+            "Model must be a multihead model with more than one head")
 
     # Get index of head to keep
     if head_to_keep is None:
         # Find first non-PT head
         try:
-            head_idx = next(i for i, h in enumerate(model.heads) if h != "pt_head")
+            head_idx = next(i for i, h in enumerate(
+                model.heads) if h != "pt_head")
         except StopIteration as e:
-            raise ValueError("No non-PT head found in model") from e
+            raise ValueError(
+                "No non-PT head found in model") from e
     else:
         try:
             head_idx = model.heads.index(head_to_keep)
         except ValueError as e:
-            raise ValueError(f"Head {head_to_keep} not found in model") from e
+            raise ValueError(
+                f"Head {head_to_keep} not found in model") from e
 
     # Extract config and modify for single head
     model_config = extract_config_mace_model(model)
@@ -337,7 +359,8 @@ def remove_pt_head(
     )
     model_config["atomic_inter_scale"] = model.scale_shift.scale[head_idx].item()
     model_config["atomic_inter_shift"] = model.scale_shift.shift[head_idx].item()
-    mlp_count_irreps = model_config["MLP_irreps"].count((0, 1))
+    mlp_count_irreps = model_config["MLP_irreps"].count(
+        (0, 1))
     # model_config["MLP_irreps"] = o3.Irreps(f"{mlp_count_irreps}x0e")
 
     new_model = model.__class__(**model_config)
@@ -346,11 +369,12 @@ def remove_pt_head(
 
     for name, param in state_dict.items():
         if "atomic_energies" in name:
-            new_state_dict[name] = param[head_idx : head_idx + 1]
+            new_state_dict[name] = param[head_idx: head_idx + 1]
         elif "scale" in name or "shift" in name:
-            new_state_dict[name] = param[head_idx : head_idx + 1]
+            new_state_dict[name] = param[head_idx: head_idx + 1]
         elif "readouts" in name:
-            channels_per_head = param.shape[0] // len(model.heads)
+            channels_per_head = param.shape[0] // len(
+                model.heads)
             start_idx = head_idx * channels_per_head
             end_idx = start_idx + channels_per_head
             if "linear_2.weight" in name:
@@ -387,7 +411,8 @@ def remove_pt_head(
 
 
 def extract_model(model: torch.nn.Module, map_location: str = "cpu") -> torch.nn.Module:
-    model_copy = model.__class__(**extract_config_mace_model(model))
+    model_copy = model.__class__(
+        **extract_config_mace_model(model))
     model_copy.load_state_dict(model.state_dict())
     return model_copy.to(map_location)
 
@@ -431,37 +456,52 @@ def convert_from_json_format(dict_input):
             modules.blocks.RealAgnosticInteractionBlock
         )
     dict_output["r_max"] = float(dict_input["r_max"])
-    dict_output["num_bessel"] = int(dict_input["num_bessel"])
-    dict_output["num_polynomial_cutoff"] = float(dict_input["num_polynomial_cutoff"])
+    dict_output["num_bessel"] = int(
+        dict_input["num_bessel"])
+    dict_output["num_polynomial_cutoff"] = float(
+        dict_input["num_polynomial_cutoff"])
     dict_output["max_ell"] = int(dict_input["max_ell"])
-    dict_output["num_interactions"] = int(dict_input["num_interactions"])
-    dict_output["num_elements"] = int(dict_input["num_elements"])
-    dict_output["hidden_irreps"] = o3.Irreps(dict_input["hidden_irreps"])
-    dict_output["MLP_irreps"] = o3.Irreps(dict_input["MLP_irreps"])
-    dict_output["avg_num_neighbors"] = float(dict_input["avg_num_neighbors"])
+    dict_output["num_interactions"] = int(
+        dict_input["num_interactions"])
+    dict_output["num_elements"] = int(
+        dict_input["num_elements"])
+    dict_output["hidden_irreps"] = o3.Irreps(
+        dict_input["hidden_irreps"])
+    dict_output["MLP_irreps"] = o3.Irreps(
+        dict_input["MLP_irreps"])
+    dict_output["avg_num_neighbors"] = float(
+        dict_input["avg_num_neighbors"])
     dict_output["gate"] = torch.nn.functional.silu
-    dict_output["atomic_energies"] = np.array(dict_input["atomic_energies"])
+    dict_output["atomic_energies"] = np.array(
+        dict_input["atomic_energies"])
     dict_output["atomic_numbers"] = dict_input["atomic_numbers"]
-    dict_output["correlation"] = int(dict_input["correlation"])
+    dict_output["correlation"] = int(
+        dict_input["correlation"])
     dict_output["radial_type"] = dict_input["radial_type"]
-    dict_output["radial_MLP"] = ast.literal_eval(dict_input["radial_MLP"])
-    dict_output["pair_repulsion"] = ast.literal_eval(dict_input["pair_repulsion"])
+    dict_output["radial_MLP"] = ast.literal_eval(
+        dict_input["radial_MLP"])
+    dict_output["pair_repulsion"] = ast.literal_eval(
+        dict_input["pair_repulsion"])
     dict_output["distance_transform"] = dict_input["distance_transform"]
-    dict_output["atomic_inter_scale"] = float(dict_input["atomic_inter_scale"])
-    dict_output["atomic_inter_shift"] = float(dict_input["atomic_inter_shift"])
+    dict_output["atomic_inter_scale"] = float(
+        dict_input["atomic_inter_scale"])
+    dict_output["atomic_inter_shift"] = float(
+        dict_input["atomic_inter_shift"])
 
     return dict_output
 
 
 def load_from_json(f: str, map_location: str = "cpu") -> torch.nn.Module:
-    extra_files_extract = {"commit.txt": None, "config.json": None}
+    extra_files_extract = {
+        "commit.txt": None, "config.json": None}
     model_jit_load = torch.jit.load(
         f, _extra_files=extra_files_extract, map_location=map_location
     )
     model_load_yaml = modules.ScaleShiftMACE(
         **convert_from_json_format(json.loads(extra_files_extract["config.json"]))
     )
-    model_load_yaml.load_state_dict(model_jit_load.state_dict())
+    model_load_yaml.load_state_dict(
+        model_jit_load.state_dict())
     return model_load_yaml.to(map_location)
 
 
@@ -486,7 +526,8 @@ def get_atomic_energies(E0s, train_collection, z_table) -> dict:
                 ) from e
         else:
             if E0s.endswith(".json"):
-                logging.info(f"Loading atomic energies from {E0s}")
+                logging.info(
+                    f"Loading atomic energies from {E0s}")
                 with open(E0s, "r", encoding="utf-8") as f:
                     atomic_energies_dict = json.load(f)
                     atomic_energies_dict = {
@@ -494,7 +535,8 @@ def get_atomic_energies(E0s, train_collection, z_table) -> dict:
                     }
             else:
                 try:
-                    atomic_energies_eval = ast.literal_eval(E0s)
+                    atomic_energies_eval = ast.literal_eval(
+                        E0s)
                     if not all(
                         isinstance(value, dict)
                         for value in atomic_energies_eval.values()
@@ -502,7 +544,8 @@ def get_atomic_energies(E0s, train_collection, z_table) -> dict:
                         atomic_energies_dict = atomic_energies_eval
                     else:
                         atomic_energies_dict = atomic_energies_eval
-                    assert isinstance(atomic_energies_dict, dict)
+                    assert isinstance(
+                        atomic_energies_dict, dict)
                 except Exception as e:
                     raise RuntimeError(
                         f"E0s specified invalidly, error {e} occured"
@@ -516,16 +559,22 @@ def get_atomic_energies(E0s, train_collection, z_table) -> dict:
 
 def get_avg_num_neighbors(head_configs, args, train_loader, device):
     if all(head_config.compute_avg_num_neighbors for head_config in head_configs):
-        logging.info("Computing average number of neighbors")
-        avg_num_neighbors = modules.compute_avg_num_neighbors(train_loader)
+        logging.info(
+            "Computing average number of neighbors")
+        avg_num_neighbors = modules.compute_avg_num_neighbors(
+            train_loader)
         if args.distributed:
-            num_graphs = torch.tensor(len(train_loader.dataset)).to(device)
-            num_neighbors = num_graphs * torch.tensor(avg_num_neighbors).to(device)
-            torch.distributed.all_reduce(num_graphs, op=torch.distributed.ReduceOp.SUM)
+            num_graphs = torch.tensor(
+                len(train_loader.dataset)).to(device)
+            num_neighbors = num_graphs * \
+                torch.tensor(avg_num_neighbors).to(device)
+            torch.distributed.all_reduce(
+                num_graphs, op=torch.distributed.ReduceOp.SUM)
             torch.distributed.all_reduce(
                 num_neighbors, op=torch.distributed.ReduceOp.SUM
             )
-            avg_num_neighbors_out = (num_neighbors / num_graphs).item()
+            avg_num_neighbors_out = (
+                num_neighbors / num_graphs).item()
         else:
             avg_num_neighbors_out = avg_num_neighbors
     else:
@@ -542,7 +591,8 @@ def get_avg_num_neighbors(head_configs, args, train_loader, device):
             f"Unusual average number of neighbors: {avg_num_neighbors_out:.1f}"
         )
     else:
-        logging.info(f"Average number of neighbors: {avg_num_neighbors_out}")
+        logging.info(
+            f"Average number of neighbors: {avg_num_neighbors_out}")
     return avg_num_neighbors_out
 
 
@@ -556,7 +606,8 @@ def get_loss_fn(
             energy_weight=args.energy_weight, forces_weight=args.forces_weight
         )
     elif args.loss == "forces_only":
-        loss_fn = modules.WeightedForcesLoss(forces_weight=args.forces_weight)
+        loss_fn = modules.WeightedForcesLoss(
+            forces_weight=args.forces_weight)
     elif args.loss == "virials":
         loss_fn = modules.WeightedEnergyForcesVirialsLoss(
             energy_weight=args.energy_weight,
@@ -603,7 +654,8 @@ def get_loss_fn(
             dipole_weight=args.dipole_weight,
         )
     else:
-        loss_fn = modules.WeightedEnergyForcesLoss(energy_weight=1.0, forces_weight=1.0)
+        loss_fn = modules.WeightedEnergyForcesLoss(
+            energy_weight=1.0, forces_weight=1.0)
     return loss_fn
 
 
@@ -617,7 +669,8 @@ def get_swa(
     assert dipole_only is False, "Stage Two for dipole fitting not implemented"
     swas.append(True)
     if args.start_swa is None:
-        args.start_swa = max(1, args.max_num_epochs // 4 * 3)
+        args.start_swa = max(
+            1, args.max_num_epochs // 4 * 3)
     else:
         if args.start_swa >= args.max_num_epochs:
             logging.warning(
@@ -625,7 +678,8 @@ def get_swa(
             )
             swas[-1] = False
     if args.loss == "forces_only":
-        raise ValueError("Can not select Stage Two with forces only loss.")
+        raise ValueError(
+            "Can not select Stage Two with forces only loss.")
     if args.loss == "virials":
         loss_fn_energy = modules.WeightedEnergyForcesVirialsLoss(
             energy_weight=args.swa_energy_weight,
@@ -743,8 +797,10 @@ def get_optimizer(
             raise ImportError(
                 "`schedulefree` is not installed. Please install it via `pip install schedulefree` or `pip install mace-torch[schedulefree]`"
             ) from exc
-        _param_options = {k: v for k, v in param_options.items() if k != "amsgrad"}
-        optimizer = adamw_schedulefree.AdamWScheduleFree(**_param_options)
+        _param_options = {
+            k: v for k, v in param_options.items() if k != "amsgrad"}
+        optimizer = adamw_schedulefree.AdamWScheduleFree(
+            **_param_options)
     else:
         optimizer = torch.optim.Adam(**param_options)
     return optimizer
@@ -767,7 +823,8 @@ def setup_wandb(args: argparse.Namespace):
                 return o.__dict__
             return super().default(o)
 
-    args_dict_json = json.dumps(args_dict, cls=CustomEncoder)
+    args_dict_json = json.dumps(
+        args_dict, cls=CustomEncoder)
     for key in args.wandb_log_hypers:
         wandb_config[key] = args_dict[key]
     tools.init_wandb(
@@ -796,7 +853,8 @@ def dict_to_array(input_data, heads):
         unique_keys.update(inner_dict.keys())
     unique_keys = list(unique_keys)
     sorted_keys = sorted([int(key) for key in unique_keys])
-    result_array = np.zeros((len(input_data), len(sorted_keys)))
+    result_array = np.zeros(
+        (len(input_data), len(sorted_keys)))
     for _, (head_name, inner_dict) in enumerate(input_data.items()):
         for key, value in inner_dict.items():
             key_index = sorted_keys.index(int(key))
@@ -822,7 +880,8 @@ class LRScheduler:
                 patience=args.scheduler_patience,
             )
         else:
-            raise RuntimeError(f"Unknown scheduler: '{args.scheduler}'")
+            raise RuntimeError(
+                f"Unknown scheduler: '{args.scheduler}'")
 
     def step(self, metrics=None, epoch=None):  # pylint: disable=E1123
         if self._optimizer_type == "schedulefree":
@@ -857,7 +916,8 @@ def check_path_ase_read(filename: Optional[str]) -> bool:
         num_h5_files = len(list(filepath.glob("*.h5")))
         num_hdf5_files = len(list(filepath.glob("*.hdf5")))
         num_ldb_files = len(list(filepath.glob("*.lmdb")))
-        num_aselmbd_files = len(list(filepath.glob("*.aselmdb")))
+        num_aselmbd_files = len(
+            list(filepath.glob("*.aselmdb")))
         num_mdb_files = len(list(filepath.glob("*.mdb")))
         if (
             num_h5_files
@@ -870,7 +930,8 @@ def check_path_ase_read(filename: Optional[str]) -> bool:
             # print all the files in the directory extension in the directory for debugging
             for file in os.listdir(filepath):
                 print(file)
-            raise RuntimeError(f"No supported files found in directory '{filename}'")
+            raise RuntimeError(
+                f"No supported files found in directory '{filename}'")
         return False
     if filepath.suffix in (".h5", ".hdf5", ".lmdb", ".aselmdb", ".mdb"):
         return False

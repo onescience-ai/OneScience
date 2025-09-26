@@ -47,7 +47,8 @@ def read_indices_csv(csv: Union[str, Path]) -> pd.DataFrame:
     Returns:
         pd.DataFrame : A pandas DataFrame.
     """
-    df = pd.read_csv(csv, na_values=PANDAS_NA_VALUES, keep_default_na=False, dtype=str)
+    df = pd.read_csv(csv, na_values=PANDAS_NA_VALUES,
+                     keep_default_na=False, dtype=str)
     return df
 
 

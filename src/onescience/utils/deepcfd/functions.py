@@ -12,7 +12,7 @@ def split_tensors(*tensors, ratio):
     for tensor in tensors:
         assert len(tensor) == count
         split1.append(tensor[: int(len(tensor) * ratio)])
-        split2.append(tensor[int(len(tensor) * ratio) :])
+        split2.append(tensor[int(len(tensor) * ratio):])
     if len(tensors) == 1:
         split1, split2 = split1[0], split2[0]
     return split1, split2
@@ -52,7 +52,8 @@ def visualize(sample_y, out_y, error, s):
     nx = sample_y.shape[2]
     ny = sample_y.shape[3]
 
-    plot_options = {"cmap": "jet", "origin": "lower", "extent": [0, nx, 0, ny]}
+    plot_options = {
+        "cmap": "jet", "origin": "lower", "extent": [0, nx, 0, ny]}
 
     plt.figure()
     fig = plt.gcf()
@@ -60,49 +61,59 @@ def visualize(sample_y, out_y, error, s):
 
     plt.subplot(3, 3, 1)
     plt.title("CFD", fontsize=18)
-    plt.imshow(np.transpose(sample_y[s, 0, :, :]), vmin=minu, vmax=maxu, **plot_options)
+    plt.imshow(np.transpose(
+        sample_y[s, 0, :, :]), vmin=minu, vmax=maxu, **plot_options)
     plt.colorbar(orientation="horizontal")
     plt.ylabel("Ux", fontsize=18)
 
     plt.subplot(3, 3, 2)
     plt.title("CNN", fontsize=18)
-    plt.imshow(np.transpose(out_y[s, 0, :, :]), vmin=minu, vmax=maxu, **plot_options)
+    plt.imshow(np.transpose(
+        out_y[s, 0, :, :]), vmin=minu, vmax=maxu, **plot_options)
     plt.colorbar(orientation="horizontal")
 
     plt.subplot(3, 3, 3)
     plt.title("Error", fontsize=18)
-    plt.imshow(np.transpose(error[s, 0, :, :]), vmin=mineu, vmax=maxeu, **plot_options)
+    plt.imshow(np.transpose(
+        error[s, 0, :, :]), vmin=mineu, vmax=maxeu, **plot_options)
     plt.colorbar(orientation="horizontal")
 
     plt.subplot(3, 3, 4)
-    plt.imshow(np.transpose(sample_y[s, 1, :, :]), vmin=minv, vmax=maxv, **plot_options)
+    plt.imshow(np.transpose(
+        sample_y[s, 1, :, :]), vmin=minv, vmax=maxv, **plot_options)
     plt.colorbar(orientation="horizontal")
     plt.ylabel("Uy", fontsize=18)
 
     plt.subplot(3, 3, 5)
-    plt.imshow(np.transpose(out_y[s, 1, :, :]), vmin=minv, vmax=maxv, **plot_options)
+    plt.imshow(np.transpose(
+        out_y[s, 1, :, :]), vmin=minv, vmax=maxv, **plot_options)
     plt.colorbar(orientation="horizontal")
 
     plt.subplot(3, 3, 6)
-    plt.imshow(np.transpose(error[s, 1, :, :]), vmin=minev, vmax=maxev, **plot_options)
+    plt.imshow(np.transpose(
+        error[s, 1, :, :]), vmin=minev, vmax=maxev, **plot_options)
     plt.colorbar(orientation="horizontal")
 
     plt.subplot(3, 3, 7)
-    plt.imshow(np.transpose(sample_y[s, 2, :, :]), vmin=minp, vmax=maxp, **plot_options)
+    plt.imshow(np.transpose(
+        sample_y[s, 2, :, :]), vmin=minp, vmax=maxp, **plot_options)
     plt.colorbar(orientation="horizontal")
     plt.ylabel("p", fontsize=18)
 
     plt.subplot(3, 3, 8)
-    plt.imshow(np.transpose(out_y[s, 2, :, :]), vmin=minp, vmax=maxp, **plot_options)
+    plt.imshow(np.transpose(
+        out_y[s, 2, :, :]), vmin=minp, vmax=maxp, **plot_options)
     plt.colorbar(orientation="horizontal")
 
     plt.subplot(3, 3, 9)
-    plt.imshow(np.transpose(error[s, 2, :, :]), vmin=minep, vmax=maxep, **plot_options)
+    plt.imshow(np.transpose(
+        error[s, 2, :, :]), vmin=minep, vmax=maxep, **plot_options)
     plt.colorbar(orientation="horizontal")
 
     plt.tight_layout()
 
-    save_path = os.path.join(result_dir, f"visualization_{s}.png")
+    save_path = os.path.join(
+        result_dir, f"visualization_{s}.png")
     plt.savefig(save_path, dpi=300)
     plt.show()
     plt.close()

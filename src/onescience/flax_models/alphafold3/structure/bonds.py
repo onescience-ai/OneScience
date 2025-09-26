@@ -47,8 +47,10 @@ class Bonds(table.Table):
         atom_key: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Returns the indices of the from/dest atoms in the atom_key array."""
-        from_atom_missing = ~np.isin(self.from_atom_key, atom_key)
-        dest_atom_missing = ~np.isin(self.dest_atom_key, atom_key)
+        from_atom_missing = ~np.isin(
+            self.from_atom_key, atom_key)
+        dest_atom_missing = ~np.isin(
+            self.dest_atom_key, atom_key)
         if np.any(from_atom_missing):
             raise ValueError(
                 f"No atoms for from_atom_key {self.from_atom_key[from_atom_missing]}"
@@ -71,9 +73,12 @@ class Bonds(table.Table):
     def restrict_to_atoms(self, atom_key: np.ndarray) -> Self:
         if not self.size:  # Early-out for empty table.
             return self
-        from_atom_mask = np.isin(self.from_atom_key, atom_key)
-        dest_atom_mask = np.isin(self.dest_atom_key, atom_key)
-        mask = np.logical_and(from_atom_mask, dest_atom_mask)
+        from_atom_mask = np.isin(
+            self.from_atom_key, atom_key)
+        dest_atom_mask = np.isin(
+            self.dest_atom_key, atom_key)
+        mask = np.logical_and(
+            from_atom_mask, dest_atom_mask)
         return typing.cast(Bonds, self.filter(mask=mask))
 
     def to_mmcif_dict_from_atom_arrays(
@@ -100,7 +105,8 @@ class Bonds(table.Table):
           insertion_code: A (num_atom,) array of insertion code strings.
         """
         mmcif_dict = collections.defaultdict(list)
-        ptnr1_indices, ptnr2_indices = self.get_atom_indices(atom_key)
+        ptnr1_indices, ptnr2_indices = self.get_atom_indices(
+            atom_key)
 
         mmcif_dict["_struct_conn.ptnr1_label_asym_id"] = chain_id[ptnr1_indices]
         mmcif_dict["_struct_conn.ptnr2_label_asym_id"] = chain_id[ptnr2_indices]
@@ -127,7 +133,8 @@ class Bonds(table.Table):
         mmcif_dict["_struct_conn.pdbx_ptnr2_label_alt_id"] = label_alt_id
 
         # We need to set this to make visualisation work in NGL/PyMOL.
-        mmcif_dict["_struct_conn.pdbx_value_order"] = ["?"] * self.size
+        mmcif_dict["_struct_conn.pdbx_value_order"] = [
+            "?"] * self.size
 
         # We use a symmetry of 1_555 which is the no-op transformation. Other
         # values are used when bonds involve atoms that only exist after expanding
@@ -142,8 +149,10 @@ class Bonds(table.Table):
             mmcif_dict["_struct_conn.id"].append(
                 f"{bond_type}{bond_type_counter[bond_type]}"
             )
-            mmcif_dict["_struct_conn.pdbx_role"].append(bond_row["role"])
-            mmcif_dict["_struct_conn.conn_type_id"].append(bond_type)
+            mmcif_dict["_struct_conn.pdbx_role"].append(
+                bond_row["role"])
+            mmcif_dict["_struct_conn.conn_type_id"].append(
+                bond_type)
 
         bond_types = np.unique(self.type)
         mmcif_dict["_struct_conn_type.id"] = bond_types
@@ -189,7 +198,8 @@ def concat_with_atom_keys(
         if not atom_key.size:
             assert bonds is None or bonds.size == 0
             continue
-        assert np.min(atom_key, initial=0) >= 0  # Should always be non-negative!
+        # Should always be non-negative!
+        assert np.min(atom_key, initial=0) >= 0
         offset = max_key + 1
         offset_atom_key = atom_key + offset
         atom_keys_to_concat.append(offset_atom_key)
@@ -197,11 +207,14 @@ def concat_with_atom_keys(
         if bonds is not None:
             types_to_concat.append(bonds.type)
             roles_to_concat.append(bonds.role)
-            from_atom_keys_to_concat.append(bonds.from_atom_key + offset)
-            dest_atom_keys_to_concat.append(bonds.dest_atom_key + offset)
+            from_atom_keys_to_concat.append(
+                bonds.from_atom_key + offset)
+            dest_atom_keys_to_concat.append(
+                bonds.dest_atom_key + offset)
 
     if atom_keys_to_concat:
-        concatted_atom_keys = np.concatenate(atom_keys_to_concat, axis=0)
+        concatted_atom_keys = np.concatenate(
+            atom_keys_to_concat, axis=0)
     else:
         concatted_atom_keys = np.array([], dtype=np.int64)
 
@@ -212,13 +225,16 @@ def concat_with_atom_keys(
             == len(from_atom_keys_to_concat)
             == len(dest_atom_keys_to_concat)
         )
-        num_bonds = sum(b.size for b in bonds_tables if b is not None)
+        num_bonds = sum(
+            b.size for b in bonds_tables if b is not None)
         concatted_bonds = Bonds(
             key=np.arange(num_bonds, dtype=np.int64),
             type=np.concatenate(types_to_concat, axis=0),
             role=np.concatenate(roles_to_concat, axis=0),
-            from_atom_key=np.concatenate(from_atom_keys_to_concat, axis=0),
-            dest_atom_key=np.concatenate(dest_atom_keys_to_concat, axis=0),
+            from_atom_key=np.concatenate(
+                from_atom_keys_to_concat, axis=0),
+            dest_atom_key=np.concatenate(
+                dest_atom_keys_to_concat, axis=0),
         )
     else:
         concatted_bonds = None

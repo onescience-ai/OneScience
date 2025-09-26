@@ -43,8 +43,11 @@ class GaussianSmearing(torch.nn.Module):
         super().__init__()
         self.num_output = num_gaussians
         offset = torch.linspace(start, stop, num_gaussians)
-        self.coeff = -0.5 / (basis_width_scalar * (offset[1] - offset[0])).item() ** 2
-        self.register_buffer("offset", offset, persistent=False)
+        self.coeff = -0.5 / \
+            (basis_width_scalar *
+             (offset[1] - offset[0])).item() ** 2
+        self.register_buffer(
+            "offset", offset, persistent=False)
 
     def forward(self, dist) -> torch.Tensor:
         dist = dist.view(-1, 1) - self.offset.view(1, -1)
@@ -64,7 +67,8 @@ class RadialMLP(nn.Module):
             if i == 0:
                 continue
 
-            modules.append(nn.Linear(input_channels, channels_list[i], bias=True))
+            modules.append(
+                nn.Linear(input_channels, channels_list[i], bias=True))
             input_channels = channels_list[i]
 
             if i == len(channels_list) - 1:

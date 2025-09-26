@@ -47,7 +47,8 @@ class DataPipeline(object):
                 parser = MMCIFParser(mmcif_file=mmcif)
                 bioassembly_dict = parser.get_bioassembly()
             elif dataset == "Distillation":
-                parser = DistillationMMCIFParser(mmcif_file=mmcif)
+                parser = DistillationMMCIFParser(
+                    mmcif_file=mmcif)
                 bioassembly_dict = parser.get_structure_dict()
             else:
                 raise NotImplementedError(
@@ -63,7 +64,8 @@ class DataPipeline(object):
 
             atom_array = bioassembly_dict["atom_array"]
             atom_array.set_annotation(
-                "resolution", [parser.resolution] * len(atom_array)
+                "resolution", [
+                    parser.resolution] * len(atom_array)
             )
 
             tokenizer = AtomArrayTokenizer(atom_array)
@@ -75,7 +77,8 @@ class DataPipeline(object):
             return sample_indices_list, bioassembly_dict
 
         except Exception as e:
-            logging.warning("Gen data failed for %s due to %s", mmcif, e)
+            logging.warning(
+                "Gen data failed for %s due to %s", mmcif, e)
             return [], {}
 
     @staticmethod
@@ -92,7 +95,8 @@ class DataPipeline(object):
         entity_to_asym_id = defaultdict(set)
         for atom in atom_array:
             entity_id = atom.label_entity_id
-            entity_to_asym_id[entity_id].add(atom.asym_id_int)
+            entity_to_asym_id[entity_id].add(
+                atom.asym_id_int)
         return entity_to_asym_id
 
     @staticmethod
@@ -114,7 +118,8 @@ class DataPipeline(object):
         assert os.path.exists(
             bioassembly_dict_fpath
         ), f"File not exists {bioassembly_dict_fpath}"
-        bioassembly_dict = load_gzip_pickle(bioassembly_dict_fpath)
+        bioassembly_dict = load_gzip_pickle(
+            bioassembly_dict_fpath)
 
         return bioassembly_dict
 
@@ -139,7 +144,8 @@ class DataPipeline(object):
             assert np.isin(
                 chain_id, np.unique(atom_array.chain_id)
             ), f"PDB {bioassembly_dict['pdb_id']} {chain_id_field}:{chain_id} not in atom_array"
-            chain_asym_id = atom_array[atom_array.chain_id == chain_id].asym_id_int[0]
+            chain_asym_id = atom_array[atom_array.chain_id ==
+                                       chain_id].asym_id_int[0]
             ref_chain_indices.append(chain_asym_id)
             if one_sample["type"] == "chain":
                 break
@@ -350,6 +356,7 @@ class DataPipeline(object):
         strucio.save_structure(
             file_path=output_cif_file,
             array=atom_array,
-            data_block=os.path.basename(output_cif_file).replace(".cif", ""),
+            data_block=os.path.basename(
+                output_cif_file).replace(".cif", ""),
             include_bonds=include_bonds,
         )

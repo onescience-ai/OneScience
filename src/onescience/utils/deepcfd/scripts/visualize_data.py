@@ -48,8 +48,8 @@ y = pickle.load(open(data_y_filename, "rb"))
 x = torch.FloatTensor(x)
 y = torch.FloatTensor(y)
 
-truth = y[index : (index + 1)].cpu().detach().numpy()
-inputs = x[index : (index + 1)].cpu().detach().numpy()
+truth = y[index: (index + 1)].cpu().detach().numpy()
+inputs = x[index: (index + 1)].cpu().detach().numpy()
 
 plt.figure()
 fig = plt.gcf()
@@ -72,11 +72,13 @@ def update_plot():
 
     state_dict = torch.load(model_filename)
     model.load_state_dict(state_dict)
-    out = model(x[index : (index + 1)]).detach().numpy()
+    out = model(x[index: (index + 1)]).detach().numpy()
     error = abs(out - truth)
 
     fig.suptitle(
-        "Best at epoch " + str(last_saved) + " (current: " + str(current_epoch) + ")"
+        "Best at epoch " +
+        str(last_saved) +
+        " (current: " + str(current_epoch) + ")"
     )
 
     plt.subplot(3, 3, 1)
@@ -191,7 +193,8 @@ while True:
         lines = f.readlines()
         for line in reversed(lines):
             if line.startswith("Epoch #"):
-                current_epoch = int(line.split("Epoch #")[1])
+                current_epoch = int(
+                    line.split("Epoch #")[1])
                 break
         for line in reversed(lines):
             if line.startswith("Epoch #"):

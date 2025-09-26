@@ -36,7 +36,8 @@ def target_per_atom(atoms_lens, target_samples) -> bool:
         other_dim_constant = True
     else:
         other_dim_constant = (
-            len({np.array(sample).shape[1:] for sample in target_samples}) == 1
+            len({np.array(sample).shape[1:]
+                for sample in target_samples}) == 1
         )
 
     return bool(first_dim_proportional and other_dim_constant)
@@ -57,14 +58,17 @@ def target_extensive(atoms_lens, target_samples, threshold: float = 0.2):
     # Get the per-atom normalized properties
     try:
         compiled_target_array = np.array(
-            [sample / atom_len for sample, atom_len in zip(atoms_lens, target_samples)]
+            [sample / atom_len for sample,
+                atom_len in zip(atoms_lens, target_samples)]
         )
     except TypeError:
         return False
 
     # Calculate the normalized standard deviation of each element in the property output
-    target_samples_mean = np.mean(compiled_target_array, axis=0)
-    target_samples_normalized = compiled_target_array / target_samples_mean
+    target_samples_mean = np.mean(
+        compiled_target_array, axis=0)
+    target_samples_normalized = compiled_target_array / \
+        target_samples_mean
 
     # If there's not much variation in the per-atom normalized properties,
     # guess extensive!
@@ -157,10 +161,12 @@ def guess_property_metadata(atoms_list):
     if hasattr(atoms, "info"):
         for key in atoms.info:
             # Grab the property samples from the list of atoms
-            target_samples = [np.array(atoms.info[key]) for atoms in atoms_list]
+            target_samples = [
+                np.array(atoms.info[key]) for atoms in atoms_list]
 
             # Guess the metadata
-            targets[f"info.{key}"] = guess_target_metadata(atoms_len, target_samples)
+            targets[f"info.{key}"] = guess_target_metadata(
+                atoms_len, target_samples)
 
             # Log a warning so the user knows what's happening
             logging.warning(
@@ -169,7 +175,8 @@ def guess_property_metadata(atoms_list):
     if hasattr(atoms, "calc") and atoms.calc is not None:
         for key in atoms.calc.results:
             # Grab the property samples from the list of atoms
-            target_samples = [np.array(atoms.calc.results[key]) for atoms in atoms_list]
+            target_samples = [
+                np.array(atoms.calc.results[key]) for atoms in atoms_list]
 
             # stress needs to be handled separately in case it was saved in voigt (6, ) notation
             # atoms2graphs will always request voigt=False so turn it into full 3x3
@@ -184,7 +191,8 @@ def guess_property_metadata(atoms_list):
                 ]
 
             # Guess the metadata
-            targets[f"{key}"] = guess_target_metadata(atoms_len, target_samples)
+            targets[f"{key}"] = guess_target_metadata(
+                atoms_len, target_samples)
 
             # Log a warning so the user knows what's happening
             logging.warning(

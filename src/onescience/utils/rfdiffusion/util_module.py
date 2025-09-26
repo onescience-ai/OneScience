@@ -23,7 +23,8 @@ def init_lecun_normal(module):
         alpha_normal_cdf = normal.cdf(torch.tensor(alpha))
         p = (
             alpha_normal_cdf
-            + (normal.cdf(torch.tensor(beta)) - alpha_normal_cdf) * uniform
+            + (normal.cdf(torch.tensor(beta)) -
+               alpha_normal_cdf) * uniform
         )
 
         v = torch.clamp(2 * p - 1, -1 + 1e-8, 1 - 1e-8)
@@ -33,10 +34,13 @@ def init_lecun_normal(module):
         return x
 
     def sample_truncated_normal(shape):
-        stddev = np.sqrt(1.0 / shape[-1]) / 0.87962566103423978  # shape[-1] = fan_in
+        # shape[-1] = fan_in
+        stddev = np.sqrt(
+            1.0 / shape[-1]) / 0.87962566103423978
         return stddev * truncated_normal(torch.rand(shape))
 
-    module.weight = torch.nn.Parameter((sample_truncated_normal(module.weight.shape)))
+    module.weight = torch.nn.Parameter(
+        (sample_truncated_normal(module.weight.shape)))
     return module
 
 
@@ -50,7 +54,8 @@ def init_lecun_normal_param(weight):
         alpha_normal_cdf = normal.cdf(torch.tensor(alpha))
         p = (
             alpha_normal_cdf
-            + (normal.cdf(torch.tensor(beta)) - alpha_normal_cdf) * uniform
+            + (normal.cdf(torch.tensor(beta)) -
+               alpha_normal_cdf) * uniform
         )
 
         v = torch.clamp(2 * p - 1, -1 + 1e-8, 1 - 1e-8)
@@ -60,10 +65,13 @@ def init_lecun_normal_param(weight):
         return x
 
     def sample_truncated_normal(shape):
-        stddev = np.sqrt(1.0 / shape[-1]) / 0.87962566103423978  # shape[-1] = fan_in
+        # shape[-1] = fan_in
+        stddev = np.sqrt(
+            1.0 / shape[-1]) / 0.87962566103423978
         return stddev * truncated_normal(torch.rand(shape))
 
-    weight = torch.nn.Parameter((sample_truncated_normal(weight.shape)))
+    weight = torch.nn.Parameter(
+        (sample_truncated_normal(weight.shape)))
     return weight
 
 
@@ -96,7 +104,8 @@ class Dropout(nn.Module):
         shape = list(x.shape)
         if not self.broadcast_dim == None:
             shape[self.broadcast_dim] = 1
-        mask = self.sampler.sample(shape).to(x.device).view(shape)
+        mask = self.sampler.sample(
+            shape).to(x.device).view(shape)
 
         x = mask * x / (1.0 - self.p_drop)
         return x
@@ -105,7 +114,8 @@ class Dropout(nn.Module):
 def rbf(D):
     # Distance radial basis function
     D_min, D_max, D_count = 0.0, 20.0, 36
-    D_mu = torch.linspace(D_min, D_max, D_count).to(D.device)
+    D_mu = torch.linspace(
+        D_min, D_max, D_count).to(D.device)
     D_mu = D_mu[None, :]
     D_sigma = (D_max - D_min) / D_count
     D_expand = torch.unsqueeze(D, -1)
@@ -171,7 +181,8 @@ def make_topk_graph(xyz, pair, idx, top_k=64, kmin=32, eps=1e-6):
 
     # distance map from current CA coordinates
     D = (
-        torch.cdist(xyz, xyz) + torch.eye(L, device=device).unsqueeze(0) * 999.9
+        torch.cdist(xyz, xyz) + torch.eye(L,
+                                          device=device).unsqueeze(0) * 999.9
     )  # (B, L, L)
     # seq sep
     sep = idx[:, None, :] - idx[:, :, None]
@@ -205,7 +216,8 @@ def make_rotX(angs, eps=1e-6):
     B, L = angs.shape[:2]
     NORM = torch.linalg.norm(angs, dim=-1) + eps
 
-    RTs = torch.eye(4, device=angs.device).repeat(B, L, 1, 1)
+    RTs = torch.eye(
+        4, device=angs.device).repeat(B, L, 1, 1)
 
     RTs[:, :, 1, 1] = angs[:, :, 0] / NORM
     RTs[:, :, 1, 2] = -angs[:, :, 1] / NORM
@@ -219,7 +231,8 @@ def make_rotZ(angs, eps=1e-6):
     B, L = angs.shape[:2]
     NORM = torch.linalg.norm(angs, dim=-1) + eps
 
-    RTs = torch.eye(4, device=angs.device).repeat(B, L, 1, 1)
+    RTs = torch.eye(
+        4, device=angs.device).repeat(B, L, 1, 1)
 
     RTs[:, :, 0, 0] = angs[:, :, 0] / NORM
     RTs[:, :, 0, 1] = -angs[:, :, 1] / NORM
@@ -233,7 +246,8 @@ def make_rot_axis(angs, u, eps=1e-6):
     B, L = angs.shape[:2]
     NORM = torch.linalg.norm(angs, dim=-1) + eps
 
-    RTs = torch.eye(4, device=angs.device).repeat(B, L, 1, 1)
+    RTs = torch.eye(
+        4, device=angs.device).repeat(B, L, 1, 1)
 
     ct = angs[:, :, 0] / NORM
     st = angs[:, :, 1] / NORM
@@ -257,18 +271,23 @@ class ComputeAllAtomCoords(nn.Module):
     def __init__(self):
         super(ComputeAllAtomCoords, self).__init__()
 
-        self.base_indices = nn.Parameter(base_indices, requires_grad=False)
-        self.RTs_in_base_frame = nn.Parameter(RTs_by_torsion, requires_grad=False)
-        self.xyzs_in_base_frame = nn.Parameter(xyzs_in_base_frame, requires_grad=False)
+        self.base_indices = nn.Parameter(
+            base_indices, requires_grad=False)
+        self.RTs_in_base_frame = nn.Parameter(
+            RTs_by_torsion, requires_grad=False)
+        self.xyzs_in_base_frame = nn.Parameter(
+            xyzs_in_base_frame, requires_grad=False)
 
     def forward(self, seq, xyz, alphas, non_ideal=False, use_H=True):
         B, L = xyz.shape[:2]
 
         Rs, Ts = rigid_from_3_points(
-            xyz[..., 0, :], xyz[..., 1, :], xyz[..., 2, :], non_ideal=non_ideal
+            xyz[..., 0, :], xyz[..., 1, :], xyz[...,
+                                                2, :], non_ideal=non_ideal
         )
 
-        RTF0 = torch.eye(4).repeat(B, L, 1, 1).to(device=Rs.device)
+        RTF0 = torch.eye(4).repeat(
+            B, L, 1, 1).to(device=Rs.device)
 
         # bb
         RTF0[:, :, :3, :3] = Rs
@@ -300,11 +319,13 @@ class ComputeAllAtomCoords(nn.Module):
 
         # CB bend
         basexyzs = self.xyzs_in_base_frame[seq]
-        NCr = 0.5 * (basexyzs[:, :, 2, :3] + basexyzs[:, :, 0, :3])
+        NCr = 0.5 * \
+            (basexyzs[:, :, 2, :3] + basexyzs[:, :, 0, :3])
         CAr = basexyzs[:, :, 1, :3]
         CBr = basexyzs[:, :, 4, :3]
         CBrotaxis1 = (CBr - CAr).cross(NCr - CAr)
-        CBrotaxis1 /= torch.linalg.norm(CBrotaxis1, dim=-1, keepdim=True) + 1e-8
+        CBrotaxis1 /= torch.linalg.norm(
+            CBrotaxis1, dim=-1, keepdim=True) + 1e-8
 
         # CB twist
         NCp = basexyzs[:, :, 2, :3] - basexyzs[:, :, 0, :3]
@@ -315,12 +336,16 @@ class ComputeAllAtomCoords(nn.Module):
             * NCr
         )
         CBrotaxis2 = (CBr - CAr).cross(NCpp)
-        CBrotaxis2 /= torch.linalg.norm(CBrotaxis2, dim=-1, keepdim=True) + 1e-8
+        CBrotaxis2 /= torch.linalg.norm(
+            CBrotaxis2, dim=-1, keepdim=True) + 1e-8
 
-        CBrot1 = make_rot_axis(alphas[:, :, 7, :], CBrotaxis1)
-        CBrot2 = make_rot_axis(alphas[:, :, 8, :], CBrotaxis2)
+        CBrot1 = make_rot_axis(
+            alphas[:, :, 7, :], CBrotaxis1)
+        CBrot2 = make_rot_axis(
+            alphas[:, :, 8, :], CBrotaxis2)
 
-        RTF8 = torch.einsum("brij,brjk,brkl->bril", RTF0, CBrot1, CBrot2)
+        RTF8 = torch.einsum(
+            "brij,brjk,brkl->bril", RTF0, CBrot1, CBrot2)
 
         # chi1 + CG bend
         RTF4 = torch.einsum(
@@ -356,13 +381,15 @@ class ComputeAllAtomCoords(nn.Module):
         )
 
         RTframes = torch.stack(
-            (RTF0, RTF1, RTF2, RTF3, RTF4, RTF5, RTF6, RTF7, RTF8), dim=2
+            (RTF0, RTF1, RTF2, RTF3, RTF4,
+             RTF5, RTF6, RTF7, RTF8), dim=2
         )
 
         xyzs = torch.einsum(
             "brtij,brtj->brti",
             RTframes.gather(
-                2, self.base_indices[seq][..., None, None].repeat(1, 1, 1, 4, 4)
+                2, self.base_indices[seq][..., None, None].repeat(
+                    1, 1, 1, 4, 4)
             ),
             basexyzs,
         )

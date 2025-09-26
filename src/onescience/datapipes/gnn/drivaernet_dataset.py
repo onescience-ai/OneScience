@@ -75,15 +75,18 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
         num_samples: int = 10,
         coeff_filename: str = "AeroCoefficients_DrivAerNet_FilteredCorrected.csv",
         invar_keys: Iterable[str] = ("pos",),
-        outvar_keys: Iterable[str] = ("p", "wallShearStress"),
-        normalize_keys: Iterable[str] = ("p", "wallShearStress"),
+        outvar_keys: Iterable[str] = (
+            "p", "wallShearStress"),
+        normalize_keys: Iterable[str] = (
+            "p", "wallShearStress"),
         cache_dir: str | Path = "./cache/",
         force_reload: bool = False,
         name: str = "dataset",
         verbose: bool = False,
         **kwargs,
     ) -> None:
-        DGLDataset.__init__(self, name=name, force_reload=force_reload, verbose=verbose)
+        DGLDataset.__init__(
+            self, name=name, force_reload=force_reload, verbose=verbose)
         Datapipe.__init__(self, meta=MetaData())
 
         self.data_dir = Path(data_dir)
@@ -96,7 +99,8 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
 
         self.split = split.lower()
         if split not in (splits := ["train", "val", "test"]):
-            raise ValueError(f"{split = } is not supported, must be one of {splits}.")
+            raise ValueError(
+                f"{split = } is not supported, must be one of {splits}.")
 
         self.num_samples = num_samples
         self.input_keys = list(invar_keys)
@@ -104,7 +108,8 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
         self.normalize_keys = list(normalize_keys)
 
         self.cache_dir = (
-            self._get_cache_dir(self.data_dir, Path(cache_dir))
+            self._get_cache_dir(
+                self.data_dir, Path(cache_dir))
             if cache_dir is not None
             else None
         )
@@ -115,7 +120,8 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
         )
 
         # Read coefficients file which contains Cd, Cl etc.
-        coeffs = pd.read_csv(self.data_dir / coeff_filename, index_col="Design")
+        coeffs = pd.read_csv(
+            self.data_dir / coeff_filename, index_col="Design")
         coeffs = coeffs.join(design_ids, how="inner")
 
         # Read projected areas file which is in YAML-like format with entries that look like:
@@ -123,7 +129,8 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
         with open(self.data_dir / "projected_areas.txt", encoding="utf-8") as f:
             y = yaml.safe_load(f)
         proj_areas = pd.DataFrame.from_dict(
-            {k.removeprefix("combined_").removesuffix(".stl"): v for k, v in y.items()},
+            {k.removeprefix("combined_").removesuffix(
+                ".stl"): v for k, v in y.items()},
             orient="index",
             columns=["proj_area_x"],
         )
@@ -153,7 +160,8 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
             "DrivAer_F_D_WM_WW_0978",
             "DrivAer_F_D_WM_WW_3641",
         }
-        coeffs = coeffs.drop(missing_ids | empty_wss, errors="ignore")
+        coeffs = coeffs.drop(
+            missing_ids | empty_wss, errors="ignore")
 
         # Merge projected areas into the coeffs dataframe.
         coeffs = coeffs.join(proj_areas, how="inner")
@@ -174,8 +182,10 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
             for k, v in {
                 "p": (-94.50448, 117.25317),
                 "wallShearStress": (
-                    torch.tensor([-0.56926626, 0.0027714, -0.07354721]),
-                    torch.tensor([0.82198745, 0.45956784, 0.7490267]),
+                    torch.tensor(
+                        [-0.56926626, 0.0027714, -0.07354721]),
+                    torch.tensor(
+                        [0.82198745, 0.45956784, 0.7490267]),
                 ),
             }.items()
         }
@@ -192,7 +202,8 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
 
     def __getitem__(self, idx: int) -> dgl.DGLGraph:
         if not 0 <= idx < len(self):
-            raise IndexError(f"Invalid {idx = }, must be in [0, {len(self)})")
+            raise IndexError(
+                f"Invalid {idx = }, must be in [0, {len(self)})")
 
         coeffs = self.coeffs.iloc[idx]
         gname = coeffs.name
@@ -201,19 +212,25 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
             # Caching is disabled - create the graph.
             graph = self._create_dgl_graph(gname)
         else:
-            cached_graph_filename = self.cache_dir / (gname + ".bin")
+            cached_graph_filename = self.cache_dir / \
+                (gname + ".bin")
             if not self._force_reload and cached_graph_filename.is_file():
-                gs, _ = dgl.load_graphs(str(cached_graph_filename))
+                gs, _ = dgl.load_graphs(
+                    str(cached_graph_filename))
                 if len(gs) != 1:
-                    raise ValueError(f"Expected to load 1 graph but got {len(gs)}.")
+                    raise ValueError(
+                        f"Expected to load 1 graph but got {len(gs)}.")
                 graph = gs[0]
             else:
                 graph = self._create_dgl_graph(gname)
-                dgl.save_graphs(str(cached_graph_filename), [graph])
+                dgl.save_graphs(
+                    str(cached_graph_filename), [graph])
 
         # Set graph inputs/outputs.
-        graph.ndata["x"] = torch.cat([graph.ndata[k] for k in self.input_keys], dim=-1)
-        graph.ndata["y"] = torch.cat([graph.ndata[k] for k in self.output_keys], dim=-1)
+        graph.ndata["x"] = torch.cat(
+            [graph.ndata[k] for k in self.input_keys], dim=-1)
+        graph.ndata["y"] = torch.cat(
+            [graph.ndata[k] for k in self.output_keys], dim=-1)
 
         return {
             "name": gname,
@@ -255,7 +272,8 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
             # Traversal API is faster comparing to iterating over mesh.cell.
             polys = mesh.GetPolys()
             if polys is None:
-                raise ValueError("Failed to get polygons from the mesh.")
+                raise ValueError(
+                    "Failed to get polygons from the mesh.")
 
             polys.InitTraversal()
 
@@ -269,7 +287,8 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
                         (id_list.GetId(j), id_list.GetId(j + 1))
                     )
                 # Add the final edge between the last and the first vertices.
-                edge_list.append((id_list.GetId(num_ids - 1), id_list.GetId(0)))
+                edge_list.append(
+                    (id_list.GetId(num_ids - 1), id_list.GetId(0)))
 
             return edge_list
 
@@ -300,7 +319,8 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
             probe_out = probe.GetOutput()
             wss_arr = probe_out.GetPointData().GetArray("wallShearStress")
             num_points = p_out.GetNumberOfPoints()
-            wss = torch.empty((num_points, 3), dtype=torch.float32)
+            wss = torch.empty(
+                (num_points, 3), dtype=torch.float32)
             for i in range(num_points):
                 x, y, z = wss_arr.GetTuple3(i)
                 wss[i, 0] = x
@@ -323,34 +343,44 @@ class DrivAerNetDataset(DGLDataset, Datapipe):
             graph = dgl.to_bidirected(graph)
 
         # Assign node features using the vertex data
-        graph.ndata["pos"] = torch.tensor(p_mesh.points, dtype=torch.float32)
+        graph.ndata["pos"] = torch.tensor(
+            p_mesh.points, dtype=torch.float32)
 
         if (k := "p") in self.output_keys:
-            graph.ndata[k] = torch.tensor(p_mesh.point_data[k], dtype=torch.float32)
+            graph.ndata[k] = torch.tensor(
+                p_mesh.point_data[k], dtype=torch.float32)
 
         if (k := "wallShearStress") in self.output_keys:
-            wss_vtk_path = self.wss_vtk_dir / (name + ".vtk")
-            graph.ndata[k] = permute_mesh(p_vtk_path, wss_vtk_path)
+            wss_vtk_path = self.wss_vtk_dir / \
+                (name + ".vtk")
+            graph.ndata[k] = permute_mesh(
+                p_vtk_path, wss_vtk_path)
 
         # Normalize nodes.
         for k in self.input_keys + self.output_keys:
             if k not in self.normalize_keys:
                 continue
-            v = (graph.ndata[k] - self.nstats[k]["mean"]) / self.nstats[k]["std"]
-            graph.ndata[k] = v.unsqueeze(-1) if v.ndim == 1 else v
+            v = (graph.ndata[k] - self.nstats[k]
+                 ["mean"]) / self.nstats[k]["std"]
+            graph.ndata[k] = v.unsqueeze(
+                -1) if v.ndim == 1 else v
 
         # Add edge features which contain relative edge nodes displacement and
         # displacement norm. Stored as `x` in the graph edge data.
         u, v = graph.edges()
         pos = graph.ndata["pos"]
         disp = pos[u] - pos[v]
-        disp_norm = torch.linalg.norm(disp, dim=-1, keepdim=True)
-        graph.edata["x"] = torch.cat((disp, disp_norm), dim=-1)
+        disp_norm = torch.linalg.norm(
+            disp, dim=-1, keepdim=True)
+        graph.edata["x"] = torch.cat(
+            (disp, disp_norm), dim=-1)
 
         # Normalize edges.
         for k, v in graph.edata.items():
-            v = (v - self.estats[k]["mean"]) / self.estats[k]["std"]
-            graph.edata[k] = v.unsqueeze(-1) if v.ndim == 1 else v
+            v = (v - self.estats[k]["mean"]
+                 ) / self.estats[k]["std"]
+            graph.edata[k] = v.unsqueeze(
+                -1) if v.ndim == 1 else v
 
         return graph
 

@@ -54,7 +54,8 @@ class TemplatePairStack(nn.Module):
         mask = jnp.reshape(pair_mask, flatten_shape[:-1])
 
         act = self.pair_transition(act, mask)
-        updated_pair_act = jnp.reshape(act, act_shape)  # (Nres,Nres,128)
+        updated_pair_act = jnp.reshape(
+            act, act_shape)  # (Nres,Nres,128)
         return updated_pair_act
 
 
@@ -125,10 +126,12 @@ class FlashSingleTemplateEmbedding(nn.Module):
                 dropout_rate=self.dropout_rate,
                 norm_method=self.norm_method,
             )
-            template_layers.append(template_pair_stack_block)
+            template_layers.append(
+                template_pair_stack_block)
         self.template_pair_stack = template_layers
 
-        self.n, self.ca, self.c = [atom_order[a] for a in ("N", "CA", "C")]
+        self.n, self.ca, self.c = [
+            atom_order[a] for a in ("N", "CA", "C")]
 
         self.output_layer_norm = ActFuncWrapper(
             nn.LayerNorm(
@@ -174,15 +177,19 @@ class FlashSingleTemplateEmbedding(nn.Module):
         )
 
         unit_vector = (
-            jnp.expand_dims(backbone_mask_2d * unit_vector[0], -1).astype(self._dtype),
-            jnp.expand_dims(backbone_mask_2d * unit_vector[1], -1).astype(self._dtype),
-            jnp.expand_dims(backbone_mask_2d * unit_vector[2], -1).astype(self._dtype),
+            jnp.expand_dims(
+                backbone_mask_2d * unit_vector[0], -1).astype(self._dtype),
+            jnp.expand_dims(
+                backbone_mask_2d * unit_vector[1], -1).astype(self._dtype),
+            jnp.expand_dims(
+                backbone_mask_2d * unit_vector[2], -1).astype(self._dtype),
         )  # return to self._dtype
 
         act_tmp += self.unit_vector_0(unit_vector[0])
         act_tmp += self.unit_vector_1(unit_vector[1])
         act_tmp += self.unit_vector_2(unit_vector[2])
-        act_tmp += self.backbone_mask_2d_dense(jnp.expand_dims(backbone_mask_2d, -1))
+        act_tmp += self.backbone_mask_2d_dense(
+            jnp.expand_dims(backbone_mask_2d, -1))
         act_tmp += self.embedding2d(pair_activations)
 
         act_output = act_tmp

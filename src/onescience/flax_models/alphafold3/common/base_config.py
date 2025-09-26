@@ -58,10 +58,12 @@ class ConfigMeta(type):
         cls = super().__new__(mcs, name, bases, classdict)
 
         def _coercable_fields(self) -> Mapping[str, tuple[ConfigMeta, Any]]:
-            type_hints = typing.get_type_hints(self.__class__)
+            type_hints = typing.get_type_hints(
+                self.__class__)
             fields = dataclasses.fields(self.__class__)
             field_to_type_and_default = {
-                field.name: (_strip_optional(type_hints[field.name]), field.default)
+                field.name: (_strip_optional(
+                    type_hints[field.name]), field.default)
                 for field in fields
             }
             coercable_fields = {
@@ -90,7 +92,8 @@ class ConfigMeta(type):
                         case _Autocreate():
                             # Construct from field defaults.
                             setattr(
-                                self, field_name, field_type(**field_value.defaults)
+                                self, field_name, field_type(
+                                    **field_value.defaults)
                             )
                         case Mapping():
                             # Field value is not yet a `Config` instance; Assume we can create
@@ -98,9 +101,11 @@ class ConfigMeta(type):
                             args = {}
                             # Apply default args first, if present.
                             if isinstance(field_default, _Autocreate):
-                                args.update(field_default.defaults)
+                                args.update(
+                                    field_default.defaults)
                             args.update(field_value)
-                            setattr(self, field_name, field_type(**args))
+                            setattr(self, field_name,
+                                    field_type(**args))
                         case _:
                             pass
                 except TypeError as e:
@@ -125,7 +130,8 @@ class BaseConfig(metaclass=ConfigMeta):
     """
 
     # Provided by dataclasses.make_dataclass
-    __dataclass_fields__: ClassVar[dict[str, dataclasses.Field[Any]]]
+    __dataclass_fields__: ClassVar[dict[str,
+                                        dataclasses.Field[Any]]]
 
     # Overridden by metaclass
     @property

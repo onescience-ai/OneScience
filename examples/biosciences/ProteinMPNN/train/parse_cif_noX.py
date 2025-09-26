@@ -34,24 +34,29 @@ RES_NAMES = [
 
 RES_NAMES_1 = "ARNDCQEGHILKMFPSTWYV"
 
-to1letter = {aaa: a for a, aaa in zip(RES_NAMES_1, RES_NAMES)}
-to3letter = {a: aaa for a, aaa in zip(RES_NAMES_1, RES_NAMES)}
+to1letter = {aaa: a for a, aaa in zip(
+    RES_NAMES_1, RES_NAMES)}
+to3letter = {a: aaa for a, aaa in zip(
+    RES_NAMES_1, RES_NAMES)}
 
 ATOM_NAMES = [
     ("N", "CA", "C", "O", "CB"),  # ala
-    ("N", "CA", "C", "O", "CB", "CG", "CD", "NE", "CZ", "NH1", "NH2"),  # arg
+    ("N", "CA", "C", "O", "CB", "CG", "CD",
+     "NE", "CZ", "NH1", "NH2"),  # arg
     ("N", "CA", "C", "O", "CB", "CG", "OD1", "ND2"),  # asn
     ("N", "CA", "C", "O", "CB", "CG", "OD1", "OD2"),  # asp
     ("N", "CA", "C", "O", "CB", "SG"),  # cys
     ("N", "CA", "C", "O", "CB", "CG", "CD", "OE1", "NE2"),  # gln
     ("N", "CA", "C", "O", "CB", "CG", "CD", "OE1", "OE2"),  # glu
     ("N", "CA", "C", "O"),  # gly
-    ("N", "CA", "C", "O", "CB", "CG", "ND1", "CD2", "CE1", "NE2"),  # his
+    ("N", "CA", "C", "O", "CB", "CG",
+     "ND1", "CD2", "CE1", "NE2"),  # his
     ("N", "CA", "C", "O", "CB", "CG1", "CG2", "CD1"),  # ile
     ("N", "CA", "C", "O", "CB", "CG", "CD1", "CD2"),  # leu
     ("N", "CA", "C", "O", "CB", "CG", "CD", "CE", "NZ"),  # lys
     ("N", "CA", "C", "O", "CB", "CG", "SD", "CE"),  # met
-    ("N", "CA", "C", "O", "CB", "CG", "CD1", "CD2", "CE1", "CE2", "CZ"),  # phe
+    ("N", "CA", "C", "O", "CB", "CG", "CD1",
+     "CD2", "CE1", "CE2", "CZ"),  # phe
     ("N", "CA", "C", "O", "CB", "CG", "CD"),  # pro
     ("N", "CA", "C", "O", "CB", "OG"),  # ser
     ("N", "CA", "C", "O", "CB", "OG1", "CG2"),  # thr
@@ -71,7 +76,8 @@ ATOM_NAMES = [
         "CZ3",
         "CH2",
     ),  # trp
-    ("N", "CA", "C", "O", "CB", "CG", "CD1", "CD2", "CE1", "CE2", "CZ", "OH"),  # tyr
+    ("N", "CA", "C", "O", "CB", "CG", "CD1",
+     "CD2", "CE1", "CE2", "CZ", "OH"),  # tyr
     ("N", "CA", "C", "O", "CB", "CG1", "CG2"),  # val
 ]
 
@@ -138,17 +144,23 @@ def TMalign(chainA, chainB):
 
     # temp files to save the two input protein chains
     # and TMalign transformation
-    fA = tempfile.NamedTemporaryFile(mode="w+t", dir="/dev/shm")
-    fB = tempfile.NamedTemporaryFile(mode="w+t", dir="/dev/shm")
-    mtx = tempfile.NamedTemporaryFile(mode="w+t", dir="/dev/shm")
+    fA = tempfile.NamedTemporaryFile(
+        mode="w+t", dir="/dev/shm")
+    fB = tempfile.NamedTemporaryFile(
+        mode="w+t", dir="/dev/shm")
+    mtx = tempfile.NamedTemporaryFile(
+        mode="w+t", dir="/dev/shm")
 
     # create temp PDB files keep track of residue indices which were saved
-    idxA = writepdb(fA, chainA["xyz"], chainA["seq"], bfac=chainA["bfac"])
-    idxB = writepdb(fB, chainB["xyz"], chainB["seq"], bfac=chainB["bfac"])
+    idxA = writepdb(
+        fA, chainA["xyz"], chainA["seq"], bfac=chainA["bfac"])
+    idxB = writepdb(
+        fB, chainB["xyz"], chainB["seq"], bfac=chainB["bfac"])
 
     # run TMalign
     tm = subprocess.Popen(
-        "/home/aivan/prog/TMalign %s %s -m %s" % (fA.name, fB.name, mtx.name),
+        "/home/aivan/prog/TMalign %s %s -m %s" % (
+            fA.name, fB.name, mtx.name),
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -186,7 +198,8 @@ def TMalign(chainA, chainB):
     mask = np.logical_and(ss1, ss2)
 
     alnAB = np.stack(
-        (idxA[(np.cumsum(ss1) - 1)[mask]], idxB[(np.cumsum(ss2) - 1)[mask]])
+        (idxA[(np.cumsum(ss1) - 1)[mask]],
+         idxB[(np.cumsum(ss2) - 1)[mask]])
     )
 
     alnBA = np.stack((alnAB[1], alnAB[0]))
@@ -196,7 +209,8 @@ def TMalign(chainA, chainB):
     fB.close()
     mtx.close()
 
-    resAB = {"rmsd": rmsd, "seqid": seqid, "tm": tm1, "aln": alnAB, "t": t, "u": u}
+    resAB = {"rmsd": rmsd, "seqid": seqid,
+             "tm": tm1, "aln": alnAB, "t": t, "u": u}
     resBA = {
         "rmsd": rmsd,
         "seqid": seqid,
@@ -225,7 +239,8 @@ def get_tm_pairs(chains):
         L = chains[A]["xyz"].shape[0]
         aln = np.arange(L)[chains[A]["mask"][:, 1]]
         aln = np.stack((aln, aln))
-        tm_pairs.update({(A, A): {"rmsd": 0.0, "seqid": 1.0, "tm": 1.0, "aln": aln}})
+        tm_pairs.update(
+            {(A, A): {"rmsd": 0.0, "seqid": 1.0, "tm": 1.0, "aln": aln}})
 
     return tm_pairs
 
@@ -239,8 +254,9 @@ def parseOperationExpression(expression):
         pos = e.find("-")
         if pos > 0:
             start = int(e[0:pos])
-            stop = int(e[pos + 1 :])
-            operations.extend([str(i) for i in range(start, stop + 1)])
+            stop = int(e[pos + 1:])
+            operations.extend(
+                [str(i) for i in range(start, stop + 1)])
         else:
             operations.append(e)
 
@@ -269,10 +285,12 @@ def parseAssemblies(data, chids):
         key = oper_list.getValue("id", k)
         val = np.eye(4)
         for i in range(3):
-            val[i, 3] = float(oper_list.getValue("vector[%d]" % (i + 1), k))
+            val[i, 3] = float(oper_list.getValue(
+                "vector[%d]" % (i + 1), k))
             for j in range(3):
                 val[i, j] = float(
-                    oper_list.getValue("matrix[%d][%d]" % (i + 1, j + 1), k)
+                    oper_list.getValue(
+                        "matrix[%d][%d]" % (i + 1, j + 1), k)
                 )
         opers.update({key: val})
 
@@ -281,11 +299,13 @@ def parseAssemblies(data, chids):
     for index in range(assembly_gen.getRowCount()):
 
         # Retrieve the assembly_id attribute value for this assembly
-        assemblyId = assembly_gen.getValue("assembly_id", index)
+        assemblyId = assembly_gen.getValue(
+            "assembly_id", index)
         ids.append(assemblyId)
 
         # Retrieve the operation expression for this assembly from the oper_expression attribute
-        oper_expression = assembly_gen.getValue("oper_expression", index)
+        oper_expression = assembly_gen.getValue(
+            "oper_expression", index)
 
         oper_list = [
             parseOperationExpression(expression)
@@ -294,18 +314,24 @@ def parseAssemblies(data, chids):
         ]
 
         # chain IDs which the transform should be applied to
-        chains.append(assembly_gen.getValue("asym_id_list", index))
+        chains.append(assembly_gen.getValue(
+            "asym_id_list", index))
 
-        index_asmb = min(index, assembly_data.getRowCount() - 1)
-        details.append(assembly_data.getValue("details", index_asmb))
-        method.append(assembly_data.getValue("method_details", index_asmb))
+        index_asmb = min(
+            index, assembly_data.getRowCount() - 1)
+        details.append(assembly_data.getValue(
+            "details", index_asmb))
+        method.append(assembly_data.getValue(
+            "method_details", index_asmb))
 
         #
         if len(oper_list) == 1:
-            xform = np.stack([opers[o] for o in oper_list[0]])
+            xform = np.stack([opers[o]
+                             for o in oper_list[0]])
         elif len(oper_list) == 2:
             xform = np.stack(
-                [opers[o1] @ opers[o2] for o1 in oper_list[0] for o2 in oper_list[1]]
+                [opers[o1] @ opers[o2] for o1 in oper_list[0]
+                    for o2 in oper_list[1]]
             )
 
         else:
@@ -344,11 +370,13 @@ def parse_mmcif(filename):
     if entity_poly is None:
         return {}, {}
 
-    pdbx_poly_seq_scheme = data.getObj("pdbx_poly_seq_scheme")
+    pdbx_poly_seq_scheme = data.getObj(
+        "pdbx_poly_seq_scheme")
     pdb2asym = dict(
         {
             (
-                r[pdbx_poly_seq_scheme.getIndex("pdb_strand_id")],
+                r[pdbx_poly_seq_scheme.getIndex(
+                    "pdb_strand_id")],
                 r[pdbx_poly_seq_scheme.getIndex("asym_id")],
             )
             for r in data.getObj("pdbx_poly_seq_scheme").getRowList()
@@ -365,7 +393,8 @@ def parse_mmcif(filename):
     # get canonical sequences for polypeptide chains
     num2seq = {
         r[entity_poly.getIndex("entity_id")]: r[
-            entity_poly.getIndex("pdbx_seq_one_letter_code_can")
+            entity_poly.getIndex(
+                "pdbx_seq_one_letter_code_can")
         ].replace("\n", "")
         for r in entity_poly.getRowList()
         if r[entity_poly.getIndex("type")] == "polypeptide(L)"
@@ -382,15 +411,18 @@ def parse_mmcif(filename):
     #    num2seq[num] += (to1letter[res] if res in to1letter.keys() else 'X')
 
     # modified residues
-    pdbx_struct_mod_residue = data.getObj("pdbx_struct_mod_residue")
+    pdbx_struct_mod_residue = data.getObj(
+        "pdbx_struct_mod_residue")
     if pdbx_struct_mod_residue is None:
         modres = {}
     else:
         modres = dict(
             {
                 (
-                    r[pdbx_struct_mod_residue.getIndex("label_comp_id")],
-                    r[pdbx_struct_mod_residue.getIndex("parent_comp_id")],
+                    r[pdbx_struct_mod_residue.getIndex(
+                        "label_comp_id")],
+                    r[pdbx_struct_mod_residue.getIndex(
+                        "parent_comp_id")],
                 )
                 for r in pdbx_struct_mod_residue.getRowList()
             }
@@ -425,11 +457,13 @@ def parse_mmcif(filename):
         for k, val in [
             ("atm", "label_atom_id"),  # atom name
             ("atype", "type_symbol"),  # atom chemical type
-            ("res", "label_comp_id"),  # residue name (3-letter)
+            # residue name (3-letter)
+            ("res", "label_comp_id"),
             # ('chid', 'auth_asym_id'), # chain ID
             ("chid", "label_asym_id"),  # chain ID
             ("num", "label_seq_id"),  # sequence number
-            ("alt", "label_alt_id"),  # alternative location ID
+            # alternative location ID
+            ("alt", "label_alt_id"),
             ("x", "Cartn_x"),  # xyz coords
             ("y", "Cartn_y"),
             ("z", "Cartn_z"),
@@ -484,7 +518,8 @@ def parse_mmcif(filename):
         else:
             if res in modres.keys() and modres[res] in to1letter.keys():
                 res = modres[res]
-                c["seq"] = c["seq"][: num - 1] + to1letter[res] + c["seq"][num:]
+                c["seq"] = c["seq"][: num - 1] + \
+                    to1letter[res] + c["seq"][num:]
             else:
                 res = "GLY"
 
@@ -512,13 +547,15 @@ def parse_mmcif(filename):
     res = None
     if data.getObj("refine") is not None:
         try:
-            res = float(data.getObj("refine").getValue("ls_d_res_high", 0))
+            res = float(data.getObj(
+                "refine").getValue("ls_d_res_high", 0))
         except:
             res = None
 
     if (data.getObj("em_3d_reconstruction") is not None) and (res is None):
         try:
-            res = float(data.getObj("em_3d_reconstruction").getValue("resolution", 0))
+            res = float(data.getObj(
+                "em_3d_reconstruction").getValue("resolution", 0))
         except:
             res = None
 
@@ -527,7 +564,8 @@ def parse_mmcif(filename):
     for ch in chids:
         mask = chains[ch]["mask"][:, :3].sum(1) == 3
         ref_seq = chains[ch]["seq"]
-        atom_seq = "".join([a if m else "-" for a, m in zip(ref_seq, mask)])
+        atom_seq = "".join(
+            [a if m else "-" for a, m in zip(ref_seq, mask)])
         seq.append([ref_seq, atom_seq])
 
     metadata = {
@@ -568,7 +606,8 @@ if "chains" in metadata.keys() and len(metadata["chains"]) > 0:
             if tm_ab is None:
                 tm_a.append([0.0, 0.0, 999.9])
             else:
-                tm_a.append([tm_ab[k] for k in ["tm", "seqid", "rmsd"]])
+                tm_a.append([tm_ab[k]
+                            for k in ["tm", "seqid", "rmsd"]])
         tm.append(tm_a)
     metadata.update({"tm": tm})
 
@@ -589,7 +628,8 @@ for k, v in chains.items():
     )
 
     torch.save(
-        {kc: torch.Tensor(vc) if kc != "seq" else str(vc) for kc, vc in v.items()},
+        {kc: torch.Tensor(vc) if kc != "seq" else str(
+            vc) for kc, vc in v.items()},
         f"{OUT}_{k}.pt",
     )
 

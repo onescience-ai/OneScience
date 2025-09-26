@@ -62,7 +62,8 @@ class UnitTransformer:
             if inverse:
                 orig_shape = X.shape
                 return (
-                    X * (self.std[:, component] - 1e-8) + self.mean[:, component]
+                    X * (self.std[:, component] -
+                         1e-8) + self.mean[:, component]
                 ).view(orig_shape)
             else:
                 return (X - self.mean[:, component]) / self.std[:, component]
@@ -75,7 +76,8 @@ class UnitGaussianNormalizer(object):
         self.mean = torch.mean(x, 0)
         self.std = torch.std(x, 0)
         self.eps = eps
-        self.time_last = time_last  # if the time dimension is the last dim
+        # if the time dimension is the last dim
+        self.time_last = time_last
 
     def encode(self, x):
         x = (x - self.mean) / (self.std + self.eps)
@@ -88,10 +90,12 @@ class UnitGaussianNormalizer(object):
             mean = self.mean
         else:
             if self.mean.ndim == sample_idx.ndim or self.time_last:
-                std = self.std[sample_idx] + self.eps  # batch*n
+                std = self.std[sample_idx] + \
+                    self.eps  # batch*n
                 mean = self.mean[sample_idx]
             if self.mean.ndim > sample_idx.ndim and not self.time_last:
-                std = self.std[..., sample_idx] + self.eps  # T*batch*n
+                # T*batch*n
+                std = self.std[..., sample_idx] + self.eps
                 mean = self.mean[..., sample_idx]
         # x is in shape of batch*(spatial discretization size) or T*batch*(spatial discretization size)
         x = (x * std) + mean
@@ -102,7 +106,8 @@ class UnitGaussianNormalizer(object):
             self.mean = self.mean.to(device)
             self.std = self.std.to(device)
         else:
-            self.mean = torch.from_numpy(self.mean).to(device)
+            self.mean = torch.from_numpy(
+                self.mean).to(device)
             self.std = torch.from_numpy(self.std).to(device)
         return self
 

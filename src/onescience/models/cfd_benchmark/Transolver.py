@@ -74,13 +74,15 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.__name__ = "Transolver"
         self.args = args
-        ## embedding
+        # embedding
         if (
             args.unified_pos and args.geotype != "unstructured"
         ):  # only for structured mesh
-            self.pos = unified_pos_embedding(args.shapelist, args.ref, device=device)
+            self.pos = unified_pos_embedding(
+                args.shapelist, args.ref, device=device)
             self.preprocess = MLP(
-                args.fun_dim + args.ref ** len(args.shapelist),
+                args.fun_dim +
+                args.ref ** len(args.shapelist),
                 args.n_hidden * 2,
                 args.n_hidden,
                 n_layers=0,
@@ -103,7 +105,7 @@ class Model(nn.Module):
                 nn.Linear(args.n_hidden, args.n_hidden),
             )
 
-        ## models
+        # models
         self.blocks = nn.ModuleList(
             [
                 Transolver_block(
@@ -122,7 +124,8 @@ class Model(nn.Module):
             ]
         )
         self.placeholder = nn.Parameter(
-            (1 / (args.n_hidden)) * torch.rand(args.n_hidden, dtype=torch.float)
+            (1 / (args.n_hidden)) *
+            torch.rand(args.n_hidden, dtype=torch.float)
         )
         self.initialize_weights()
 

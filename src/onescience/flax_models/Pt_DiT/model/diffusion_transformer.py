@@ -11,7 +11,7 @@ from onescience.flax_models.Pt_DiT.module.transformer import NormBlock
 
 from .transformer import AttentionBlock, TransitionBlock
 
-###### Diffusion Transformer Model from: https://github.com/kvfrans/jax-diffusion-transformer
+# Diffusion Transformer Model from: https://github.com/kvfrans/jax-diffusion-transformer
 
 
 class TimestepEmbedder(nn.Module):
@@ -28,9 +28,11 @@ class TimestepEmbedder(nn.Module):
         hidden_size = self.config.hidden_size
         arr_dtype = jnp.bfloat16 if self.global_config.bf16_flag else jnp.float32
         x = self.timestep_embedding(t)
-        x = nn.Dense(hidden_size, kernel_init=normal(0.02), dtype=arr_dtype)(x)
+        x = nn.Dense(hidden_size, kernel_init=normal(
+            0.02), dtype=arr_dtype)(x)
         x = nn.silu(x)
-        x = nn.Dense(hidden_size, kernel_init=normal(0.02), dtype=arr_dtype)(x)
+        x = nn.Dense(hidden_size, kernel_init=normal(
+            0.02), dtype=arr_dtype)(x)
         return x
 
     # t is between [0, max_period]. It's the INTEGER timestep, not the fractional (0,1).;
@@ -56,7 +58,7 @@ class TimestepEmbedder(nn.Module):
         args = t[:, None] * freqs[None]
         embedding = jnp.concatenate(
             [jnp.cos(args), jnp.sin(args)], axis=-1
-        )  ### TODO: pi here?
+        )  # TODO: pi here?
         return embedding
 
 
@@ -76,16 +78,18 @@ class LabelEmbedder(nn.Module):
             rng = self.make_rng("label_dropout")
             batch_size = labels.shape[0]
             drop_ids = jax.random.bernoulli(
-                rng, self.config.label_drop_rate, (batch_size,)
+                rng, self.config.label_drop_rate, (
+                    batch_size,)
             )
         else:
             drop_ids = force_drop_ids == 1
-        labels = jnp.where(drop_ids, self.config.num_classes, labels)
+        labels = jnp.where(
+            drop_ids, self.config.num_classes, labels)
         return labels
 
     @nn.compact
     def __call__(self, labels, force_drop_ids=None):
-        ### labels: (B,)
+        # labels: (B,)
 
         arr_dtype = jnp.bfloat16 if self.global_config.bf16_flag else jnp.float32
         embedding_table = nn.Embed(
@@ -112,25 +116,27 @@ class adaLN(nn.Module):
 
     @nn.compact
     def __call__(self, x, cond, other_inputs=()):
-        #### Input: x: (B, ..., F) [CURRENTLY: (B, T, F)], cond: (B, F)
+        # Input: x: (B, ..., F) [CURRENTLY: (B, T, F)], cond: (B, F)
 
-        #### 1. generate alpha, gamma, beta
+        # 1. generate alpha, gamma, beta
         hidden_size = self.hidden_size
         arr_dtype = jnp.bfloat16 if self.global_config.bf16_flag else jnp.float32
         cond = get_activation(self.activation)(cond)
         cond = nn.Dense(
             features=3 * hidden_size,
             kernel_init=(
-                zeros_init() if (not self.global_config.test_flag) else xavier_uniform()
+                zeros_init() if (
+                    not self.global_config.test_flag) else xavier_uniform()
             ),
             dtype=arr_dtype,
             param_dtype=jnp.float32,
         )(
             cond
         )  # (B, 3 * F)
-        alpha, beta, gamma = jnp.split(cond, 3, -1)  # (B, F)
+        alpha, beta, gamma = jnp.split(
+            cond, 3, -1)  # (B, F)
 
-        #### 2. main function
+        # 2. main function
         norm_small = self.global_config.norm_small
         act, d_act = x, x
         d_act = NormBlock(eps=norm_small)(d_act)
@@ -149,21 +155,24 @@ class DiffusionTransformerBlock(nn.Module):
 
     @nn.compact
     def __call__(self, tokens, tokens_mask, tokens_rope_index, cond):
-        ### Inputs: tokens: (B, T, F), cond: (B, F)
-        ### Returns: act: (B, T, F)
+        # Inputs: tokens: (B, T, F), cond: (B, F)
+        # Returns: act: (B, T, F)
 
         act = tokens
-        #### 1. Attention
-        attention_block = AttentionBlock(self.config.attention, self.global_config)
-        add_info = (tokens_mask, tokens_rope_index)  ### should be in order
+        # 1. Attention
+        attention_block = AttentionBlock(
+            self.config.attention, self.global_config)
+        # should be in order
+        add_info = (tokens_mask, tokens_rope_index)
         act = adaLN(
             **self.config.adaLN,
             global_config=self.global_config,
             module=attention_block
         )(act, cond, add_info)
 
-        #### 2. Transition
-        transition_block = TransitionBlock(self.config.transition, self.global_config)
+        # 2. Transition
+        transition_block = TransitionBlock(
+            self.config.transition, self.global_config)
         act = adaLN(
             **self.config.adaLN,
             global_config=self.global_config,
@@ -188,7 +197,8 @@ class DiffusionTransformerOutput(nn.Module):
         cond = nn.Dense(
             features=self.hidden_size * 2,
             kernel_init=(
-                zeros_init() if (not self.global_config.test_flag) else xavier_uniform()
+                zeros_init() if (
+                    not self.global_config.test_flag) else xavier_uniform()
             ),
             dtype=arr_dtype,
             param_dtype=jnp.float32,
@@ -196,12 +206,14 @@ class DiffusionTransformerOutput(nn.Module):
         beta, gamma = jnp.split(cond, 2, -1)
 
         act = tokens
-        act = NormBlock(eps=self.global_config.norm_small)(act)
+        act = NormBlock(
+            eps=self.global_config.norm_small)(act)
         act = act * (1 + gamma[:, None]) + beta[:, None]
         act = nn.Dense(
             features=self.output_size,
             kernel_init=(
-                zeros_init() if (not self.global_config.test_flag) else xavier_uniform()
+                zeros_init() if (
+                    not self.global_config.test_flag) else xavier_uniform()
             ),
             dtype=arr_dtype,
             param_dtype=jnp.float32,
@@ -210,7 +222,8 @@ class DiffusionTransformerOutput(nn.Module):
         return act
 
 
-TimeEmbedding = TimestepEmbedder  ### TODO: time embedding need to be checked
+# TODO: time embedding need to be checked
+TimeEmbedding = TimestepEmbedder
 LabelEmbedding = LabelEmbedder
 
 
@@ -261,7 +274,7 @@ class DiffusionTransformer(nn.Module):
             param_dtype=jnp.float32,
         )(tokens)
 
-        ### DiT
+        # DiT
         for _ in range(self.config.n_iterations):
             tokens = DiffusionTransformerBlock(
                 self.config.dit_block, self.global_config
@@ -273,7 +286,7 @@ class DiffusionTransformer(nn.Module):
             global_config=self.global_config
         )(
             tokens, condition_emb
-        )  ## (B, T, C)
+        )  # (B, T, C)
 
-        ### TODO: some other reshape / transformation maybe needed here
+        # TODO: some other reshape / transformation maybe needed here
         return tokens

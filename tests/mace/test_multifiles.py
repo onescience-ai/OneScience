@@ -28,7 +28,8 @@ def create_test_atoms(num_atoms=5, seed=42):
     positions = rng.rand(num_atoms, 3) * 5.0
 
     # Create random atomic numbers (H, C, N, O)
-    atomic_numbers = rng.choice([1, 6, 7, 8], size=num_atoms)
+    atomic_numbers = rng.choice(
+        [1, 6, 7, 8], size=num_atoms)
 
     # Create atoms object
     atoms = Atoms(
@@ -40,11 +41,14 @@ def create_test_atoms(num_atoms=5, seed=42):
 
     # Add random energy, forces and stress
     energy = float(rng.uniform(-15.0, -5.0))
-    forces = rng.rand(num_atoms, 3) * 0.5 - 0.25  # Forces between -0.25 and 0.25 eV/Å
-    stress = rng.rand(6) * 0.2 - 0.1  # Stress tensor in Voigt notation
+    # Forces between -0.25 and 0.25 eV/Å
+    forces = rng.rand(num_atoms, 3) * 0.5 - 0.25
+    # Stress tensor in Voigt notation
+    stress = rng.rand(6) * 0.2 - 0.1
 
     # Add calculator to atoms with results
-    calc = SinglePointCalculator(atoms, energy=energy, forces=forces, stress=stress)
+    calc = SinglePointCalculator(
+        atoms, energy=energy, forces=forces, stress=stress)
     atoms.calc = calc
 
     # Mark isolated atoms with config_type
@@ -65,7 +69,8 @@ def create_xyz_file(atoms_list, filename):
 def create_e0s_file(e0s_dict, filename):
     """Create an E0s JSON file with isolated atom energies."""
     # Convert keys to integers since MACE expects atomic numbers as integers
-    e0s_dict_int_keys = {int(k): v for k, v in e0s_dict.items()}
+    e0s_dict_int_keys = {
+        int(k): v for k, v in e0s_dict.items()}
 
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(e0s_dict_int_keys, f)
@@ -91,7 +96,8 @@ def create_h5_dataset(xyz_file, output_dir, e0s_file=None, r_max=5.0, seed=42):
 
     # Find the path to the preprocess_data.py script
     preprocess_script = (
-        Path(__file__).parent.parent / "mace" / "cli" / "preprocess_data.py"
+        Path(__file__).parent.parent / "mace" /
+        "cli" / "preprocess_data.py"
     )
 
     # Set up command to run preprocess_data.py
@@ -113,7 +119,8 @@ def create_h5_dataset(xyz_file, output_dir, e0s_file=None, r_max=5.0, seed=42):
     # Set up environment
     env = os.environ.copy()
     env["PYTHONPATH"] = (
-        str(Path(__file__).parent.parent) + ":" + env.get("PYTHONPATH", "")
+        str(Path(__file__).parent.parent) +
+        ":" + env.get("PYTHONPATH", "")
     )
 
     # Run the script
@@ -127,8 +134,10 @@ def create_h5_dataset(xyz_file, output_dir, e0s_file=None, r_max=5.0, seed=42):
         print("Preprocess stderr:", process.stderr.decode())
     except subprocess.CalledProcessError as e:
         print("Preprocess failed with error:", e)
-        print("Stdout:", e.stdout.decode() if e.stdout else "")
-        print("Stderr:", e.stderr.decode() if e.stderr else "")
+        print("Stdout:", e.stdout.decode()
+              if e.stdout else "")
+        print("Stderr:", e.stderr.decode()
+              if e.stderr else "")
         raise
 
     return output_dir
@@ -157,20 +166,23 @@ def create_lmdb_dataset(atoms_list, folder_path, head_name="Default"):
         metadata = {"format_version": 1}
         txn.put(
             "metadata".encode("ascii"),
-            zlib.compress(orjson.dumps(metadata, option=orjson.OPT_SERIALIZE_NUMPY)),
+            zlib.compress(orjson.dumps(
+                metadata, option=orjson.OPT_SERIALIZE_NUMPY)),
         )
 
         # Store nextid
         nextid = len(atoms_list) + 1
         txn.put(
             "nextid".encode("ascii"),
-            zlib.compress(orjson.dumps(nextid, option=orjson.OPT_SERIALIZE_NUMPY)),
+            zlib.compress(orjson.dumps(
+                nextid, option=orjson.OPT_SERIALIZE_NUMPY)),
         )
 
         # Store deleted_ids (empty)
         txn.put(
             "deleted_ids".encode("ascii"),
-            zlib.compress(orjson.dumps([], option=orjson.OPT_SERIALIZE_NUMPY)),
+            zlib.compress(orjson.dumps(
+                [], option=orjson.OPT_SERIALIZE_NUMPY)),
         )
 
         # Store each atom
@@ -202,7 +214,8 @@ def create_lmdb_dataset(atoms_list, folder_path, head_name="Default"):
             # Store the atom in LMDB
             txn.put(
                 f"{id_num}".encode("ascii"),
-                zlib.compress(orjson.dumps(dct, option=orjson.OPT_SERIALIZE_NUMPY)),
+                zlib.compress(orjson.dumps(
+                    dct, option=orjson.OPT_SERIALIZE_NUMPY)),
             )
 
     # Close the environment
@@ -220,7 +233,8 @@ def test_multifile_training():
         # Set up file paths
         xyz_file1 = os.path.join(temp_dir, "data1.xyz")
         xyz_file2 = os.path.join(temp_dir, "data2.xyz")
-        iso_atoms_file = os.path.join(temp_dir, "isolated_atoms.xyz")
+        iso_atoms_file = os.path.join(
+            temp_dir, "isolated_atoms.xyz")
         h5_folder = os.path.join(temp_dir, "h5_data")
         lmdb_folder1 = os.path.join(
             temp_dir, "lmdb_data1_lmdb"
@@ -231,7 +245,8 @@ def test_multifile_training():
 
         config_path = os.path.join(temp_dir, "config.yaml")
         results_dir = os.path.join(temp_dir, "results")
-        checkpoints_dir = os.path.join(temp_dir, "checkpoints")
+        checkpoints_dir = os.path.join(
+            temp_dir, "checkpoints")
         model_dir = os.path.join(temp_dir, "models")
         e0s_file = os.path.join(temp_dir, "e0s.json")
 
@@ -255,7 +270,8 @@ def test_multifile_training():
             atom = Atoms(
                 numbers=[z], positions=[[0, 0, 0]], cell=np.eye(3) * 10.0, pbc=True
             )
-            energy = float(rng.uniform(-5.0, -1.0))  # Random reference energy
+            # Random reference energy
+            energy = float(rng.uniform(-5.0, -1.0))
             forces = np.zeros((1, 3))
             stress = np.zeros(6)
             calc = SinglePointCalculator(
@@ -263,9 +279,11 @@ def test_multifile_training():
             )
             atom.calc = calc
             atom.info["config_type"] = "IsolatedAtom"
-            atom.info["REF_energy"] = energy  # Make sure energy is in the right place
+            # Make sure energy is in the right place
+            atom.info["REF_energy"] = energy
             isolated_atoms.append(atom)
-            e0s_dict[str(z)] = energy  # Store energy for E0s file
+            # Store energy for E0s file
+            e0s_dict[str(z)] = energy
 
         # Create E0s file
         create_e0s_file(e0s_dict, e0s_file)
@@ -298,7 +316,8 @@ def test_multifile_training():
 
         # Create h5 data from xyz file, using both isolated atoms and real data
         all_atoms_for_h5 = isolated_atoms + xyz_atoms2
-        all_atoms_xyz = os.path.join(temp_dir, "all_atoms_for_h5.xyz")
+        all_atoms_xyz = os.path.join(
+            temp_dir, "all_atoms_for_h5.xyz")
         create_xyz_file(all_atoms_for_h5, all_atoms_xyz)
         create_h5_dataset(all_atoms_xyz, h5_folder)
 
@@ -309,8 +328,10 @@ def test_multifile_training():
         lmdb_atoms2 = [
             create_test_atoms(num_atoms=5, seed=seeds[4] + i) for i in range(10)
         ]
-        create_lmdb_dataset(lmdb_atoms1, lmdb_folder1, head_name="head1")
-        create_lmdb_dataset(lmdb_atoms2, lmdb_folder2, head_name="head2")
+        create_lmdb_dataset(
+            lmdb_atoms1, lmdb_folder1, head_name="head1")
+        create_lmdb_dataset(
+            lmdb_atoms2, lmdb_folder2, head_name="head2")
 
         # Create config.yaml for training with proper format specification
         config = {
@@ -360,16 +381,19 @@ def test_multifile_training():
 
         # Import the modified run_train from our local module
         run_train_script = (
-            Path(__file__).parent.parent / "mace" / "cli" / "run_train.py"
+            Path(__file__).parent.parent /
+            "mace" / "cli" / "run_train.py"
         )
 
         # Run training with subprocess
-        cmd = [sys.executable, str(run_train_script), f"--config={config_path}"]
+        cmd = [sys.executable, str(
+            run_train_script), f"--config={config_path}"]
 
         # Set environment to add the current path to PYTHONPATH
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            str(Path(__file__).parent.parent) + ":" + env.get("PYTHONPATH", "")
+            str(Path(__file__).parent.parent) +
+            ":" + env.get("PYTHONPATH", "")
         )
 
         # Run the process
@@ -378,7 +402,8 @@ def test_multifile_training():
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            check=False,  # Don't raise exception on non-zero exit, we'll check manually
+            # Don't raise exception on non-zero exit, we'll check manually
+            check=False,
         )
 
         # Print output for debugging
@@ -393,25 +418,31 @@ def test_multifile_training():
         ), f"Training failed with error: {process.stderr.decode()}"
 
         # Check that model was created
-        model_path = os.path.join(model_dir, "multifile_test.model")
-        assert os.path.exists(model_path), f"Model was not created at {model_path}"
+        model_path = os.path.join(
+            model_dir, "multifile_test.model")
+        assert os.path.exists(
+            model_path), f"Model was not created at {model_path}"
 
         # Try to load and run the model
         model = torch.load(model_path, map_location="cpu")
         assert model is not None, "Failed to load model"
 
         # Create a calculator
-        calc = MACECalculator(model_paths=model_path, device="cpu", head="head1")
+        calc = MACECalculator(
+            model_paths=model_path, device="cpu", head="head1")
 
         # Run prediction on a test atom
-        test_atom = create_test_atoms(num_atoms=5, seed=99999)
+        test_atom = create_test_atoms(
+            num_atoms=5, seed=99999)
         test_atom.calc = calc
         energy = test_atom.get_potential_energy()
         forces = test_atom.get_forces()
 
         # Assert we got sensible outputs
-        assert np.isfinite(energy), "Model produced non-finite energy"
-        assert np.all(np.isfinite(forces)), "Model produced non-finite forces"
+        assert np.isfinite(
+            energy), "Model produced non-finite energy"
+        assert np.all(np.isfinite(forces)
+                      ), "Model produced non-finite forces"
 
     finally:
         # Clean up
@@ -435,11 +466,13 @@ def test_multiple_xyz_per_head():
             os.path.join(temp_dir, f"test_data{i}.xyz") for i in range(1, 3)
         ]  # 2 test files
 
-        iso_atoms_file = os.path.join(temp_dir, "isolated_atoms.xyz")
+        iso_atoms_file = os.path.join(
+            temp_dir, "isolated_atoms.xyz")
 
         config_path = os.path.join(temp_dir, "config.yaml")
         results_dir = os.path.join(temp_dir, "results")
-        checkpoints_dir = os.path.join(temp_dir, "checkpoints")
+        checkpoints_dir = os.path.join(
+            temp_dir, "checkpoints")
         model_dir = os.path.join(temp_dir, "models")
         e0s_file = os.path.join(temp_dir, "e0s.json")
 
@@ -453,7 +486,8 @@ def test_multiple_xyz_per_head():
 
         # Create test data for each format
         rng = np.random.RandomState(42)
-        seeds = rng.randint(0, 10000, size=10)  # More seeds for multiple files
+        # More seeds for multiple files
+        seeds = rng.randint(0, 10000, size=10)
 
         # Create isolated atoms for E0s (one of each element)
         isolated_atoms = []
@@ -463,7 +497,8 @@ def test_multiple_xyz_per_head():
             atom = Atoms(
                 numbers=[z], positions=[[0, 0, 0]], cell=np.eye(3) * 10.0, pbc=True
             )
-            energy = float(rng.uniform(-5.0, -1.0))  # Random reference energy
+            # Random reference energy
+            energy = float(rng.uniform(-5.0, -1.0))
             forces = np.zeros((1, 3))
             stress = np.zeros(6)
             calc = SinglePointCalculator(
@@ -472,7 +507,8 @@ def test_multiple_xyz_per_head():
             atom.calc = calc
             atom.info["config_type"] = "IsolatedAtom"
             isolated_atoms.append(atom)
-            e0s_dict[str(z)] = energy  # Store energy for E0s file
+            # Store energy for E0s file
+            e0s_dict[str(z)] = energy
 
         # Create E0s file
         create_e0s_file(e0s_dict, e0s_file)
@@ -551,16 +587,19 @@ def test_multiple_xyz_per_head():
 
         # Import the modified run_train from our local module
         run_train_script = (
-            Path(__file__).parent.parent / "mace" / "cli" / "run_train.py"
+            Path(__file__).parent.parent /
+            "mace" / "cli" / "run_train.py"
         )
 
         # Run training with subprocess
-        cmd = [sys.executable, str(run_train_script), f"--config={config_path}"]
+        cmd = [sys.executable, str(
+            run_train_script), f"--config={config_path}"]
 
         # Set environment to add the current path to PYTHONPATH
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            str(Path(__file__).parent.parent) + ":" + env.get("PYTHONPATH", "")
+            str(Path(__file__).parent.parent) +
+            ":" + env.get("PYTHONPATH", "")
         )
 
         # Run the process
@@ -584,8 +623,10 @@ def test_multiple_xyz_per_head():
         ), f"Training failed with error: {process.stderr.decode()}"
 
         # Check that model was created
-        model_path = os.path.join(model_dir, "multi_xyz_test.model")
-        assert os.path.exists(model_path), f"Model was not created at {model_path}"
+        model_path = os.path.join(
+            model_dir, "multi_xyz_test.model")
+        assert os.path.exists(
+            model_path), f"Model was not created at {model_path}"
 
         # Try to load and run the model
         model = torch.load(model_path, map_location="cpu")
@@ -597,14 +638,17 @@ def test_multiple_xyz_per_head():
         )
 
         # Run prediction on a test atom
-        test_atom = create_test_atoms(num_atoms=5, seed=99999)
+        test_atom = create_test_atoms(
+            num_atoms=5, seed=99999)
         test_atom.calc = calc
         energy = test_atom.get_potential_energy()
         forces = test_atom.get_forces()
 
         # Assert we got sensible outputs
-        assert np.isfinite(energy), "Model produced non-finite energy"
-        assert np.all(np.isfinite(forces)), "Model produced non-finite forces"
+        assert np.isfinite(
+            energy), "Model produced non-finite energy"
+        assert np.all(np.isfinite(forces)
+                      ), "Model produced non-finite forces"
 
     finally:
         # Clean up
@@ -628,11 +672,13 @@ def test_single_xyz_per_head():
             os.path.join(temp_dir, f"test_data{i}.xyz") for i in range(1, 2)
         ]  # 2 test files
 
-        iso_atoms_file = os.path.join(temp_dir, "isolated_atoms.xyz")
+        iso_atoms_file = os.path.join(
+            temp_dir, "isolated_atoms.xyz")
 
         config_path = os.path.join(temp_dir, "config.yaml")
         results_dir = os.path.join(temp_dir, "results")
-        checkpoints_dir = os.path.join(temp_dir, "checkpoints")
+        checkpoints_dir = os.path.join(
+            temp_dir, "checkpoints")
         model_dir = os.path.join(temp_dir, "models")
         e0s_file = os.path.join(temp_dir, "e0s.json")
 
@@ -646,7 +692,8 @@ def test_single_xyz_per_head():
 
         # Create test data for each format
         rng = np.random.RandomState(42)
-        seeds = rng.randint(0, 10000, size=10)  # More seeds for multiple files
+        # More seeds for multiple files
+        seeds = rng.randint(0, 10000, size=10)
 
         # Create isolated atoms for E0s (one of each element)
         isolated_atoms = []
@@ -656,7 +703,8 @@ def test_single_xyz_per_head():
             atom = Atoms(
                 numbers=[z], positions=[[0, 0, 0]], cell=np.eye(3) * 10.0, pbc=True
             )
-            energy = float(rng.uniform(-5.0, -1.0))  # Random reference energy
+            # Random reference energy
+            energy = float(rng.uniform(-5.0, -1.0))
             forces = np.zeros((1, 3))
             stress = np.zeros(6)
             calc = SinglePointCalculator(
@@ -665,7 +713,8 @@ def test_single_xyz_per_head():
             atom.calc = calc
             atom.info["config_type"] = "IsolatedAtom"
             isolated_atoms.append(atom)
-            e0s_dict[str(z)] = energy  # Store energy for E0s file
+            # Store energy for E0s file
+            e0s_dict[str(z)] = energy
 
         # Create E0s file
         create_e0s_file(e0s_dict, e0s_file)
@@ -744,16 +793,19 @@ def test_single_xyz_per_head():
 
         # Import the modified run_train from our local module
         run_train_script = (
-            Path(__file__).parent.parent / "mace" / "cli" / "run_train.py"
+            Path(__file__).parent.parent /
+            "mace" / "cli" / "run_train.py"
         )
 
         # Run training with subprocess
-        cmd = [sys.executable, str(run_train_script), f"--config={config_path}"]
+        cmd = [sys.executable, str(
+            run_train_script), f"--config={config_path}"]
 
         # Set environment to add the current path to PYTHONPATH
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            str(Path(__file__).parent.parent) + ":" + env.get("PYTHONPATH", "")
+            str(Path(__file__).parent.parent) +
+            ":" + env.get("PYTHONPATH", "")
         )
 
         # Run the process
@@ -777,8 +829,10 @@ def test_single_xyz_per_head():
         ), f"Training failed with error: {process.stderr.decode()}"
 
         # Check that model was created
-        model_path = os.path.join(model_dir, "multi_xyz_test.model")
-        assert os.path.exists(model_path), f"Model was not created at {model_path}"
+        model_path = os.path.join(
+            model_dir, "multi_xyz_test.model")
+        assert os.path.exists(
+            model_path), f"Model was not created at {model_path}"
 
         # Try to load and run the model
         model = torch.load(model_path, map_location="cpu")
@@ -790,14 +844,17 @@ def test_single_xyz_per_head():
         )
 
         # Run prediction on a test atom
-        test_atom = create_test_atoms(num_atoms=5, seed=99999)
+        test_atom = create_test_atoms(
+            num_atoms=5, seed=99999)
         test_atom.calc = calc
         energy = test_atom.get_potential_energy()
         forces = test_atom.get_forces()
 
         # Assert we got sensible outputs
-        assert np.isfinite(energy), "Model produced non-finite energy"
-        assert np.all(np.isfinite(forces)), "Model produced non-finite forces"
+        assert np.isfinite(
+            energy), "Model produced non-finite energy"
+        assert np.all(np.isfinite(forces)
+                      ), "Model produced non-finite forces"
 
     finally:
         # Clean up
@@ -811,13 +868,16 @@ def test_multihead_finetuning_different_formats():
     temp_dir = tempfile.mkdtemp()
     try:
         # Set up file paths
-        xyz_file = os.path.join(temp_dir, "finetuning_xyz.xyz")
+        xyz_file = os.path.join(
+            temp_dir, "finetuning_xyz.xyz")
         h5_folder = os.path.join(temp_dir, "h5_data")
-        iso_atoms_file = os.path.join(temp_dir, "isolated_atoms.xyz")
+        iso_atoms_file = os.path.join(
+            temp_dir, "isolated_atoms.xyz")
 
         config_path = os.path.join(temp_dir, "config.yaml")
         results_dir = os.path.join(temp_dir, "results")
-        checkpoints_dir = os.path.join(temp_dir, "checkpoints")
+        checkpoints_dir = os.path.join(
+            temp_dir, "checkpoints")
         model_dir = os.path.join(temp_dir, "models")
         e0s_file = os.path.join(temp_dir, "e0s.json")
 
@@ -848,7 +908,8 @@ def test_multihead_finetuning_different_formats():
             )
             atom.calc = calc
             atom.info["config_type"] = "IsolatedAtom"
-            atom.info["REF_energy"] = energy  # Make sure energy is in the right place
+            # Make sure energy is in the right place
+            atom.info["REF_energy"] = energy
             atom.arrays["REF_forces"] = forces
             atom.info["REF_stress"] = stress
             isolated_atoms.append(atom)
@@ -883,11 +944,13 @@ def test_multihead_finetuning_different_formats():
             atom.info["REF_stress"] = atom.calc.results["stress"]
             atom.info["head"] = "h5_head"  # Assign head
 
-        h5_atoms_xyz = os.path.join(temp_dir, "h5_atoms.xyz")
+        h5_atoms_xyz = os.path.join(
+            temp_dir, "h5_atoms.xyz")
         create_xyz_file(h5_atoms, h5_atoms_xyz)
         # Include isolated atoms for E0s in the h5 dataset
         all_atoms_for_h5 = h5_atoms + isolated_atoms
-        all_atoms_h5_xyz = os.path.join(temp_dir, "all_atoms_for_h5.xyz")
+        all_atoms_h5_xyz = os.path.join(
+            temp_dir, "all_atoms_for_h5.xyz")
         create_xyz_file(all_atoms_for_h5, all_atoms_h5_xyz)
         create_h5_dataset(all_atoms_h5_xyz, h5_folder)
 
@@ -924,7 +987,8 @@ def test_multihead_finetuning_different_formats():
         finetuning_params = {
             "name": "multihead_finetuned",
             "config": config_path,
-            "foundation_model": "small",  # Use the small foundation model
+            # Use the small foundation model
+            "foundation_model": "small",
             "energy_weight": 1.0,
             "forces_weight": 10.0,
             "model": "MACE",
@@ -949,11 +1013,13 @@ def test_multihead_finetuning_different_formats():
 
         # Run finetuning
         run_train_script = (
-            Path(__file__).parent.parent / "mace" / "cli" / "run_train.py"
+            Path(__file__).parent.parent /
+            "mace" / "cli" / "run_train.py"
         )
         env = os.environ.copy()
         env["PYTHONPATH"] = (
-            str(Path(__file__).parent.parent) + ":" + env.get("PYTHONPATH", "")
+            str(Path(__file__).parent.parent) +
+            ":" + env.get("PYTHONPATH", "")
         )
 
         cmd = [sys.executable, str(run_train_script)]
@@ -984,12 +1050,15 @@ def test_multihead_finetuning_different_formats():
         ), f"Finetuning failed with error: {process.stderr.decode()}"
 
         # Check that model was created
-        model_path = os.path.join(model_dir, "multihead_finetuned.model")
-        assert os.path.exists(model_path), f"Model was not created at {model_path}"
+        model_path = os.path.join(
+            model_dir, "multihead_finetuned.model")
+        assert os.path.exists(
+            model_path), f"Model was not created at {model_path}"
 
         # Load model and verify it has the expected heads
         model = torch.load(model_path, map_location="cpu")
-        assert hasattr(model, "heads"), "Model does not have heads attribute"
+        assert hasattr(
+            model, "heads"), "Model does not have heads attribute"
         assert set(["xyz_head", "h5_head", "pt_head"]).issubset(
             set(model.heads)
         ), "Expected heads not found in model"
@@ -1002,7 +1071,8 @@ def test_multihead_finetuning_different_formats():
             head="xyz_head",
             default_dtype="float64",
         )
-        test_atom = create_test_atoms(num_atoms=5, seed=99999)
+        test_atom = create_test_atoms(
+            num_atoms=5, seed=99999)
         test_atom.calc = calc_xyz
         energy_xyz = test_atom.get_potential_energy()
         forces_xyz = test_atom.get_forces()
@@ -1019,10 +1089,14 @@ def test_multihead_finetuning_different_formats():
         forces_h5 = test_atom.get_forces()
 
         # Verify results
-        assert np.isfinite(energy_xyz), "xyz_head produced non-finite energy"
-        assert np.all(np.isfinite(forces_xyz)), "xyz_head produced non-finite forces"
-        assert np.isfinite(energy_h5), "h5_head produced non-finite energy"
-        assert np.all(np.isfinite(forces_h5)), "h5_head produced non-finite forces"
+        assert np.isfinite(
+            energy_xyz), "xyz_head produced non-finite energy"
+        assert np.all(np.isfinite(forces_xyz)
+                      ), "xyz_head produced non-finite forces"
+        assert np.isfinite(
+            energy_h5), "h5_head produced non-finite energy"
+        assert np.all(np.isfinite(forces_h5)
+                      ), "h5_head produced non-finite forces"
 
     finally:
         # Clean up

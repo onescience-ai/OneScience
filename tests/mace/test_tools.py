@@ -16,7 +16,8 @@ from onescience.models.mace.tools import (
 def test_atomic_number_table():
     table = AtomicNumberTable(zs=[1, 8])
     array = np.array([8, 8, 1])
-    indices = atomic_numbers_to_indices(array, z_table=table)
+    indices = atomic_numbers_to_indices(
+        array, z_table=table)
     expected = np.array([1, 1, 0], dtype=int)
     assert np.allclose(expected, indices)
 
@@ -33,16 +34,23 @@ class MyModel(nn.Module):
 def test_save_load():
     model = MyModel()
     initial_lr = 0.001
-    optimizer = optim.SGD(model.parameters(), lr=initial_lr, momentum=0.9)
-    scheduler = optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=0.99)
+    optimizer = optim.SGD(
+        model.parameters(), lr=initial_lr, momentum=0.9)
+    scheduler = optim.lr_scheduler.ExponentialLR(
+        optimizer=optimizer, gamma=0.99)
 
     with tempfile.TemporaryDirectory() as directory:
-        handler = CheckpointHandler(directory=directory, tag="test", keep=True)
-        handler.save(state=CheckpointState(model, optimizer, scheduler), epochs=50)
+        handler = CheckpointHandler(
+            directory=directory, tag="test", keep=True)
+        handler.save(state=CheckpointState(
+            model, optimizer, scheduler), epochs=50)
 
         optimizer.step()
         scheduler.step()
-        assert not np.isclose(optimizer.param_groups[0]["lr"], initial_lr)
+        assert not np.isclose(
+            optimizer.param_groups[0]["lr"], initial_lr)
 
-        handler.load_latest(state=CheckpointState(model, optimizer, scheduler))
-        assert np.isclose(optimizer.param_groups[0]["lr"], initial_lr)
+        handler.load_latest(state=CheckpointState(
+            model, optimizer, scheduler))
+        assert np.isclose(
+            optimizer.param_groups[0]["lr"], initial_lr)

@@ -22,13 +22,16 @@ class StructureConfidenceFullEncoder(json.JSONEncoder):
         # Cast to np.float64 before rounding, since casting to Python float will
         # cast to a 64 bit float, potentially undoing np.float32 rounding.
         atom_plddts = np.round(
-            np.clip(np.asarray(o.atom_plddts, dtype=np.float64), 0.0, 99.99), 2
+            np.clip(np.asarray(o.atom_plddts,
+                    dtype=np.float64), 0.0, 99.99), 2
         ).astype(float)
         contact_probs = np.round(
-            np.clip(np.asarray(o.contact_probs, dtype=np.float64), 0.0, 1.0), 2
+            np.clip(np.asarray(o.contact_probs,
+                    dtype=np.float64), 0.0, 1.0), 2
         ).astype(float)
         pae = np.round(
-            np.clip(np.asarray(o.pae, dtype=np.float64), 0.0, 99.9), 1
+            np.clip(np.asarray(
+                o.pae, dtype=np.float64), 0.0, 99.9), 1
         ).astype(float)
         return """\
 {
@@ -41,8 +44,10 @@ class StructureConfidenceFullEncoder(json.JSONEncoder):
 }""" % (
             super().encode(o.atom_chain_ids),
             super().encode(list(atom_plddts)).replace("NaN", "null"),
-            super().encode([list(x) for x in contact_probs]).replace("NaN", "null"),
-            super().encode([list(x) for x in pae]).replace("NaN", "null"),
+            super().encode([list(x) for x in contact_probs]).replace(
+                "NaN", "null"),
+            super().encode([list(x) for x in pae]).replace(
+                "NaN", "null"),
             super().encode(o.token_chain_ids),
             super().encode(o.token_res_ids),
         )
@@ -105,7 +110,8 @@ class ConfidenceCategory(enum.Enum):
             return cls.LOW
         if 0 <= confidence < 50:
             return cls.DISORDERED
-        raise ValueError(f"Confidence score out of range [0, 100]: {confidence}")
+        raise ValueError(
+            f"Confidence score out of range [0, 100]: {confidence}")
 
 
 @dataclasses.dataclass()
@@ -123,7 +129,8 @@ class AtomConfidence:
             len(v) == num_res
             for v in [self.chain_id, self.confidence, self.confidence_category]
         ):
-            raise ValueError("All confidence fields must have the same length.")
+            raise ValueError(
+                "All confidence fields must have the same length.")
 
     @classmethod
     def from_inference_result(cls, inference_result: model.InferenceResult) -> Self:
@@ -143,12 +150,15 @@ class AtomConfidence:
             "confidence_category": [],
         }
         for atom_number, atom in enumerate(struc.iter_atoms()):
-            this_confidence = float(struc.atom_b_factor[atom_number])
+            this_confidence = float(
+                struc.atom_b_factor[atom_number])
             as_dict["chain_id"].append(atom["chain_id"])
             as_dict["atom_number"].append(atom_number)
-            as_dict["confidence"].append(round(this_confidence, 2))
+            as_dict["confidence"].append(
+                round(this_confidence, 2))
             as_dict["confidence_category"].append(
-                ConfidenceCategory.from_confidence_score(this_confidence)
+                ConfidenceCategory.from_confidence_score(
+                    this_confidence)
             )
         return cls(**as_dict)
 
@@ -166,7 +176,8 @@ class AtomConfidence:
         output["confidence_category"] = [
             k.to_char() for k in output["confidence_category"]
         ]
-        output["atom_number"] = [int(k) for k in output["atom_number"]]
+        output["atom_number"] = [
+            int(k) for k in output["atom_number"]]
         return _dump_json(output)
 
 
@@ -202,9 +213,12 @@ class StructureConfidenceSummary:
         return cls(
             ptm=float(inference_result.metadata["ptm"]),
             iptm=float(inference_result.metadata["iptm"]),
-            ranking_score=float(inference_result.metadata["ranking_score"]),
-            fraction_disordered=float(inference_result.metadata["fraction_disordered"]),
-            has_clash=float(inference_result.metadata["has_clash"]),
+            ranking_score=float(
+                inference_result.metadata["ranking_score"]),
+            fraction_disordered=float(
+                inference_result.metadata["fraction_disordered"]),
+            has_clash=float(
+                inference_result.metadata["has_clash"]),
             chain_pair_pae_min=inference_result.metadata["chain_pair_pae_min"],
             chain_pair_iptm=inference_result.metadata["chain_pair_iptm"],
             chain_ptm=inference_result.metadata["iptm_ichain"],
@@ -221,7 +235,8 @@ class StructureConfidenceSummary:
             if isinstance(data, np.ndarray):
                 # Cast to np.float64 before rounding, since casting to Python float will
                 # cast to a 64 bit float, potentially undoing np.float32 rounding.
-                rounded_data = np.round(data.astype(np.float64), decimals=2).tolist()
+                rounded_data = np.round(data.astype(
+                    np.float64), decimals=2).tolist()
             else:
                 rounded_data = np.round(data, decimals=2)
             return rounded_data
@@ -252,7 +267,8 @@ class StructureConfidenceFull:
         contact_probs = inference_result.numerical_data["contact_probs"]
         if not isinstance(contact_probs, np.ndarray):
             logging.info("%s", type(contact_probs))
-            raise TypeError("contact_probs should be a numpy array.")
+            raise TypeError(
+                "contact_probs should be a numpy array.")
 
         struc = inference_result.predicted_structure
         chain_ids = struc.chain_id.tolist()

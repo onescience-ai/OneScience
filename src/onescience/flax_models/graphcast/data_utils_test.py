@@ -22,18 +22,21 @@ class DataUtilsTest(parameterized.TestCase):
                 [
                     0,
                     data_utils.AVG_SEC_PER_YEAR,
-                    data_utils.AVG_SEC_PER_YEAR * 42,  # 42 years.
+                    # 42 years.
+                    data_utils.AVG_SEC_PER_YEAR * 42,
                 ]
             )
         )
-        np.testing.assert_array_equal(year_progress, np.zeros(year_progress.shape))
+        np.testing.assert_array_equal(
+            year_progress, np.zeros(year_progress.shape))
 
     def test_year_progress_is_almost_one_before_year_ends(self):
         year_progress = data_utils.get_year_progress(
             np.array(
                 [
                     data_utils.AVG_SEC_PER_YEAR - 1,
-                    (data_utils.AVG_SEC_PER_YEAR - 1) * 42,  # ~42 years
+                    (data_utils.AVG_SEC_PER_YEAR - 1) *
+                    42,  # ~42 years
                 ]
             )
         )
@@ -45,9 +48,11 @@ class DataUtilsTest(parameterized.TestCase):
     def test_day_progress_computes_for_all_times_and_longitudes(self):
         times = np.random.randint(low=0, high=1e10, size=10)
         longitudes = np.arange(0, 360.0, 1.0)
-        day_progress = data_utils.get_day_progress(times, longitudes)
+        day_progress = data_utils.get_day_progress(
+            times, longitudes)
         with self.subTest("Day progress is computed for all times and longinutes"):
-            self.assertSequenceEqual(day_progress.shape, (len(times), len(longitudes)))
+            self.assertSequenceEqual(
+                day_progress.shape, (len(times), len(longitudes)))
 
     @parameterized.named_parameters(
         dict(
@@ -73,16 +78,19 @@ class DataUtilsTest(parameterized.TestCase):
         self, year, month, day, hour, minute, second
     ):
         # Datetime from a timestamp.
-        dt = datetime.datetime(year, month, day, hour, minute, second)
+        dt = datetime.datetime(
+            year, month, day, hour, minute, second)
         # Epoch time.
         epoch_time = datetime.datetime(1970, 1, 1)
         # Seconds since epoch.
-        seconds_since_epoch = np.array([(dt - epoch_time).total_seconds()])
+        seconds_since_epoch = np.array(
+            [(dt - epoch_time).total_seconds()])
 
         # Longitudes with 1 degree resolution.
         longitudes = np.arange(0, 360.0, 1.0)
 
-        day_progress = data_utils.get_day_progress(seconds_since_epoch, longitudes)
+        day_progress = data_utils.get_day_progress(
+            seconds_since_epoch, longitudes)
         with self.subTest("Day progress >= 0"):
             self.assertTrue(np.all(day_progress >= 0.0))
         with self.subTest("Day progress < 1"):
@@ -99,7 +107,8 @@ class DataUtilsTest(parameterized.TestCase):
             ),
             longitude=np.array([0.0]),
         )
-        np.testing.assert_array_equal(day_progress, np.zeros(day_progress.shape))
+        np.testing.assert_array_equal(
+            day_progress, np.zeros(day_progress.shape))
 
     def test_day_progress_specific_value(self):
         day_progress = data_utils.get_day_progress(
@@ -118,7 +127,8 @@ class DataUtilsTest(parameterized.TestCase):
         )
         for feature in progress_features.values():
             with self.subTest(f"Valid dimensions for {feature}"):
-                self.assertSequenceEqual(feature.dims, feature_dimensions)
+                self.assertSequenceEqual(
+                    feature.dims, feature_dimensions)
 
         with self.subTest("Valid values for day_progress"):
             np.testing.assert_array_equal(
@@ -169,9 +179,11 @@ class DataUtilsTest(parameterized.TestCase):
         with self.subTest("Original value was not removed"):
             self.assertIn("var1", all_variables)
         with self.subTest("Year progress feature was added"):
-            self.assertIn(data_utils.YEAR_PROGRESS, all_variables)
+            self.assertIn(
+                data_utils.YEAR_PROGRESS, all_variables)
         with self.subTest("Day progress feature was added"):
-            self.assertIn(data_utils.DAY_PROGRESS, all_variables)
+            self.assertIn(
+                data_utils.DAY_PROGRESS, all_variables)
 
     def test_add_derived_vars_existing_vars_not_overridden(self):
         dims = ["x", "lon", "datetime"]
@@ -196,18 +208,23 @@ class DataUtilsTest(parameterized.TestCase):
         data_utils.add_derived_vars(data)
 
         with self.subTest("Year progress feature was not overridden"):
-            np.testing.assert_allclose(data[data_utils.YEAR_PROGRESS], 0.111)
+            np.testing.assert_allclose(
+                data[data_utils.YEAR_PROGRESS], 0.111)
         with self.subTest("Day progress feature was not overridden"):
-            np.testing.assert_allclose(data[data_utils.DAY_PROGRESS], 0.222)
+            np.testing.assert_allclose(
+                data[data_utils.DAY_PROGRESS], 0.222)
 
     @parameterized.named_parameters(
-        dict(testcase_name="missing_datetime", coord_name="lon"),
-        dict(testcase_name="missing_lon", coord_name="datetime"),
+        dict(testcase_name="missing_datetime",
+             coord_name="lon"),
+        dict(testcase_name="missing_lon",
+             coord_name="datetime"),
     )
     def test_add_derived_vars_missing_coordinate_raises_value_error(self, coord_name):
         with self.subTest(f"Missing {coord_name} coordinate"):
             data = xa.Dataset(
-                data_vars={"var1": (["x", coord_name], 8 * np.random.randn(2, 2))},
+                data_vars={
+                    "var1": (["x", coord_name], 8 * np.random.randn(2, 2))},
                 coords={
                     coord_name: np.array([0.0, 0.5]),
                 },
@@ -217,13 +234,15 @@ class DataUtilsTest(parameterized.TestCase):
 
     def test_add_tisr_var_variable_added(self):
         data = xa.Dataset(
-            data_vars={"var1": (["time", "lat", "lon"], np.full((2, 2, 2), 8.0))},
+            data_vars={
+                "var1": (["time", "lat", "lon"], np.full((2, 2, 2), 8.0))},
             coords={
                 "lat": np.array([2.0, 1.0]),
                 "lon": np.array([0.0, 0.5]),
                 "time": np.array([100, 200], dtype="timedelta64[s]"),
                 "datetime": xa.Variable(
-                    "time", np.array([10, 20], dtype="datetime64[D]")
+                    "time", np.array(
+                        [10, 20], dtype="datetime64[D]")
                 ),
             },
         )
@@ -244,14 +263,16 @@ class DataUtilsTest(parameterized.TestCase):
                 "lon": np.array([0.0, 0.5]),
                 "time": np.array([100, 200], dtype="timedelta64[s]"),
                 "datetime": xa.Variable(
-                    "time", np.array([10, 20], dtype="datetime64[D]")
+                    "time", np.array(
+                        [10, 20], dtype="datetime64[D]")
                 ),
             },
         )
 
         data_utils.add_derived_vars(data)
 
-        np.testing.assert_allclose(data[data_utils.TISR], 1200.0)
+        np.testing.assert_allclose(
+            data[data_utils.TISR], 1200.0)
 
     def test_add_tisr_var_works_with_batch_dim_size_one(self):
         data = xa.Dataset(
@@ -266,7 +287,8 @@ class DataUtilsTest(parameterized.TestCase):
                 "lon": np.array([0.0, 0.5]),
                 "time": np.array([100, 200], dtype="timedelta64[s]"),
                 "datetime": xa.Variable(
-                    ("batch", "time"), np.array([[10, 20]], dtype="datetime64[D]")
+                    ("batch", "time"), np.array(
+                        [[10, 20]], dtype="datetime64[D]")
                 ),
             },
         )
@@ -289,7 +311,8 @@ class DataUtilsTest(parameterized.TestCase):
                 "time": np.array([100, 200], dtype="timedelta64[s]"),
                 "datetime": xa.Variable(
                     ("batch", "time"),
-                    np.array([[10, 20], [100, 200]], dtype="datetime64[D]"),
+                    np.array([[10, 20], [100, 200]],
+                             dtype="datetime64[D]"),
                 ),
             },
         )

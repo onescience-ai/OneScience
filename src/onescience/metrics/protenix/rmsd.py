@@ -26,7 +26,8 @@ def rmsd(
     assert pred_pose.shape == true_pose.shape  # [..., N, 3]
 
     if mask is None:
-        mask = torch.ones(true_pose.shape[:-1], device=true_pose.device)
+        mask = torch.ones(
+            true_pose.shape[:-1], device=true_pose.device)
 
     # [...]
     err2 = (torch.square(pred_pose - true_pose).sum(dim=-1) * mask).sum(
@@ -61,26 +62,31 @@ def align_pred_to_true(
         pred_pose = pred_pose * atom_mask.unsqueeze(-1)
         true_pose = true_pose * atom_mask.unsqueeze(-1)
     else:
-        atom_mask = torch.ones(*pred_pose.shape[:-1]).to(pred_pose.device)
+        atom_mask = torch.ones(
+            *pred_pose.shape[:-1]).to(pred_pose.device)
 
     if weight is None:
         weight = atom_mask
     else:
         weight = weight * atom_mask
 
-    weighted_n_atoms = torch.sum(weight, dim=-1, keepdim=True).unsqueeze(-1)
+    weighted_n_atoms = torch.sum(
+        weight, dim=-1, keepdim=True).unsqueeze(-1)
     pred_pose_centroid = (
-        torch.sum(pred_pose * weight.unsqueeze(-1), dim=-2, keepdim=True)
+        torch.sum(pred_pose * weight.unsqueeze(-1),
+                  dim=-2, keepdim=True)
         / weighted_n_atoms
     )
     pred_pose_centered = pred_pose - pred_pose_centroid
     true_pose_centroid = (
-        torch.sum(true_pose * weight.unsqueeze(-1), dim=-2, keepdim=True)
+        torch.sum(true_pose * weight.unsqueeze(-1),
+                  dim=-2, keepdim=True)
         / weighted_n_atoms
     )
     true_pose_centered = true_pose - true_pose_centroid
     H_mat = torch.matmul(
-        (pred_pose_centered * weight.unsqueeze(-1)).transpose(-2, -1),
+        (pred_pose_centered *
+         weight.unsqueeze(-1)).transpose(-2, -1),
         true_pose_centered * atom_mask.unsqueeze(-1),
     )
     u, s, v = torch.svd(H_mat)
@@ -105,7 +111,8 @@ def align_pred_to_true(
     )
 
     pred_pose_translated = (
-        torch.matmul(pred_pose_centered, rot.transpose(-1, -2)) + true_pose_centroid
+        torch.matmul(pred_pose_centered,
+                     rot.transpose(-1, -2)) + true_pose_centroid
     )
 
     return pred_pose_translated, rot, translate
@@ -145,8 +152,10 @@ def partially_aligned_rmsd(
         weight=weight,
         allowing_reflection=allowing_reflection,
     )
-    transformed_pose = torch.matmul(pred_pose, rot.transpose(-1, -2)) + translate
-    err_atom = torch.square(transformed_pose - true_pose).sum(dim=-1) * atom_mask
+    transformed_pose = torch.matmul(
+        pred_pose, rot.transpose(-1, -2)) + translate
+    err_atom = torch.square(
+        transformed_pose - true_pose).sum(dim=-1) * atom_mask
     aligned_mask, unaligned_mask = atom_mask * align_mask.float(), atom_mask * (
         1 - align_mask.float()
     )
@@ -156,8 +165,10 @@ def partially_aligned_rmsd(
     unaligned_part_err_square = (err_atom * unaligned_mask).sum(
         dim=-1
     ) / unaligned_mask.sum(dim=-1)
-    aligned_part_rmsd = aligned_part_err_square.add(eps).sqrt()
-    unaligned_part_rmsd = unaligned_part_err_square.add(eps).sqrt()
+    aligned_part_rmsd = aligned_part_err_square.add(
+        eps).sqrt()
+    unaligned_part_rmsd = unaligned_part_err_square.add(
+        eps).sqrt()
     if reduce:
         aligned_part_rmsd = aligned_part_rmsd.mean()
         unaligned_part_rmsd = unaligned_part_rmsd.mean()
@@ -223,7 +234,8 @@ def weighted_rigid_align(
     if len(atom_weight.shape) == len(x.shape) - 1:
         assert atom_weight.shape[:-1] == x.shape[:-2]
     else:
-        assert len(atom_weight.shape) == 1 and atom_weight.shape[-1] == x.shape[-2]
+        assert len(
+            atom_weight.shape) == 1 and atom_weight.shape[-1] == x.shape[-2]
 
     if stop_gradient:
         with torch.no_grad():

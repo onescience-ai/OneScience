@@ -37,7 +37,8 @@ def einsum_with_dot_precision(
         subscript,
         a.astype(precision.operand_dtype),
         b.astype(precision.operand_dtype),
-        precision=_get_precision(jax.default_backend().lower(), precision),
+        precision=_get_precision(
+            jax.default_backend().lower(), precision),
         preferred_element_type=precision.accumulator_dtype,
     )
     assert result.dtype == precision.accumulator_dtype
@@ -82,12 +83,14 @@ def _attend(
     if mask is not None:
         q_len_or_indices = q.shape[-3] if q_indices is None else q_indices
         k_len_or_indices = k.shape[-3] if k_indices is None else k_indices
-        mask = mask.as_array(q_len_or_indices, k_len_or_indices)
+        mask = mask.as_array(
+            q_len_or_indices, k_len_or_indices)
 
     if mask is not None:
         mask_value = float(jnp.finfo(logits.dtype).min)
 
-        logits = jnp.where(jnp.asarray(mask), logits, mask_value)
+        logits = jnp.where(jnp.asarray(
+            mask), logits, mask_value)
 
     weights = _softmax(logits)
 

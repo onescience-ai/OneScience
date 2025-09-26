@@ -36,7 +36,8 @@ def metrics_dict(metric_fun: Callable) -> Callable:
         key: Hashable = None,
         **kwargs,
     ) -> Metrics:
-        error = metric_fun(prediction, target, key, **kwargs)
+        error = metric_fun(
+            prediction, target, key, **kwargs)
         return Metrics(
             metric=torch.mean(error).item(),
             total=torch.sum(error).item(),
@@ -111,7 +112,8 @@ def magnitude_error(
 ) -> torch.Tensor:
     assert prediction[key].shape[1] > 1
     return torch.abs(
-        torch.norm(prediction[key], p=p, dim=-1) - torch.norm(target[key], p=p, dim=-1)
+        torch.norm(prediction[key], p=p, dim=-1) -
+        torch.norm(target[key], p=p, dim=-1)
     )
 
 
@@ -169,8 +171,10 @@ def energy_forces_within_threshold(
     key: Hashable = None,
 ) -> Metrics:
     # Note that this natoms should be the count of free atoms we evaluate over.
-    assert target["natoms"].sum() == prediction["forces"].size(0)
-    assert target["natoms"].size(0) == prediction["energy"].size(0)
+    assert target["natoms"].sum(
+    ) == prediction["forces"].size(0)
+    assert target["natoms"].size(
+        0) == prediction["energy"].size(0)
 
     # compute absolute error on per-atom forces and energy per system.
     # then count the no. of systems where max force error is < 0.03 and max
@@ -181,14 +185,16 @@ def energy_forces_within_threshold(
     success = 0
     total = int(target["natoms"].size(0))
 
-    error_forces = torch.abs(target["forces"] - prediction["forces"])
-    error_energy = torch.abs(target["energy"] - prediction["energy"])
+    error_forces = torch.abs(
+        target["forces"] - prediction["forces"])
+    error_energy = torch.abs(
+        target["energy"] - prediction["energy"])
 
     start_idx = 0
     for i, n in enumerate(target["natoms"]):
         if (
             error_energy[i] < e_thresh
-            and error_forces[start_idx : start_idx + n].max() < f_thresh
+            and error_forces[start_idx: start_idx + n].max() < f_thresh
         ):
             success += 1
         start_idx += n
@@ -205,7 +211,8 @@ def energy_within_threshold(
     # then count the no. of systems where max energy error is < 0.02.
     # threshold is set based on OC20 leaderboard
     e_thresh = 0.02
-    error_energy = torch.abs(target["energy"] - prediction["energy"])
+    error_energy = torch.abs(
+        target["energy"] - prediction["energy"])
 
     success = (error_energy < e_thresh).sum().item()
     total = target["energy"].size(0)
@@ -218,8 +225,10 @@ def average_distance_within_threshold(
     target: dict[str, torch.Tensor],
     key: Hashable = None,
 ) -> Metrics:
-    pred_pos = torch.split(prediction["positions"], prediction["natoms"].tolist())
-    target_pos = torch.split(target["positions"], target["natoms"].tolist())
+    pred_pos = torch.split(
+        prediction["positions"], prediction["natoms"].tolist())
+    target_pos = torch.split(
+        target["positions"], target["natoms"].tolist())
 
     mean_distance = []
     for idx, ml_pos in enumerate(pred_pos):
@@ -228,8 +237,10 @@ def average_distance_within_threshold(
                 np.linalg.norm(
                     min_diff(
                         ml_pos.detach().cpu().numpy(),
-                        target_pos[idx].detach().cpu().numpy(),
-                        target["cell"][idx].detach().cpu().numpy(),
+                        target_pos[idx].detach(
+                        ).cpu().numpy(),
+                        target["cell"][idx].detach(
+                        ).cpu().numpy(),
                         target["pbc"].tolist(),
                     ),
                     axis=1,
@@ -273,5 +284,6 @@ def min_diff(
 def get_metrics_fn(function_name: str) -> Callable:
     contents = globals()
     if function_name.startswith("_") or function_name not in contents:
-        raise ValueError(f"Unknown metric function name {function_name}")
+        raise ValueError(
+            f"Unknown metric function name {function_name}")
     return contents[function_name]

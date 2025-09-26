@@ -34,7 +34,8 @@ def insolation(
     """
     # pylint: disable=invalid-name
     if len(lat.shape) != len(lon.shape):
-        raise ValueError("'lat' and 'lon' must have the same number of dimensions")
+        raise ValueError(
+            "'lat' and 'lon' must have the same number of dimensions")
     if len(lat.shape) >= 2 and lat.shape != lon.shape:
         raise ValueError(
             f"shape mismatch between lat ({lat.shape} and lon ({lon.shape})"
@@ -70,21 +71,25 @@ def insolation(
         new_lon = lon.astype(np.float32)
     # Longitude of the earth relative to the orbit, 1st order approximation
     lambda_m0 = ecc * (1.0 + beta) * np.sin(om)
-    lambda_m = lambda_m0 + 2.0 * np.pi * (days_arr - 80.5) / 365.0
+    lambda_m = lambda_m0 + 2.0 * \
+        np.pi * (days_arr - 80.5) / 365.0
     lambda_ = lambda_m + 2.0 * ecc * np.sin(lambda_m - om)
     # Solar declination
     dec = np.arcsin(np.sin(eps) * np.sin(lambda_))
     # Hour angle
     h = 2 * np.pi * (days_arr + new_lon / 360.0)
     # Distance
-    rho = (1.0 - ecc**2.0) / (1.0 + ecc * np.cos(lambda_ - om))
+    rho = (1.0 - ecc**2.0) / \
+        (1.0 + ecc * np.cos(lambda_ - om))
 
     # Insolation
     sol = (
         scale
         * (
-            np.sin(np.pi / 180.0 * lat[None, ...]) * np.sin(dec)
-            - np.cos(np.pi / 180.0 * lat[None, ...]) * np.cos(dec) * np.cos(h)
+            np.sin(np.pi / 180.0 *
+                   lat[None, ...]) * np.sin(dec)
+            - np.cos(np.pi / 180.0 *
+                     lat[None, ...]) * np.cos(dec) * np.cos(h)
         )
         * rho**-2.0
     )

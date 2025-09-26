@@ -72,7 +72,8 @@ class _ArrayGrid:
                     f"Expected {2 * (latitude_nodes - 1)}, got {longitude_nodes}"
                 )
         else:
-            raise ValueError(f"Unexpected latitude_spacing={latitude_spacing}")
+            raise ValueError(
+                f"Unexpected latitude_spacing={latitude_spacing}")
         max_wavenumber = int(longitude_nodes // 2) - 1
         grid = cls(
             longitude_wavenumbers=max_wavenumber + 1,
@@ -111,7 +112,8 @@ class _ArrayGrid:
 def _infer_latitude_spacing(lat: np.ndarray) -> str:
     """Infers the type of latitude spacing given the latitude."""
     if not np.all(np.diff(lat) > 0.0):
-        raise ValueError("Latitude values are expected to be sorted.")
+        raise ValueError(
+            "Latitude values are expected to be sorted.")
 
     if np.allclose(np.diff(lat), lat[1] - lat[0]):
         if np.isclose(max(lat), 90.0):
@@ -179,7 +181,8 @@ class Grid:
     def __init__(
         self, grid: _ArrayGrid, lat_coords: np.ndarray, lon_coords: np.ndarray
     ):
-        _verify_nodal_axes(lat_coords, lon_coords, grid.nodal_axes)
+        _verify_nodal_axes(
+            lat_coords, lon_coords, grid.nodal_axes)
         self._underlying = grid
         # Record the exact original lat/lon coords so we can return them exactly
         # from an inverse transform, avoiding any xarray merge issues if coordinates
@@ -196,7 +199,8 @@ class Grid:
         return xarray.DataArray(
             data=self._total_wavenumber_coords,
             dims=("total_wavenumber",),
-            coords={"total_wavenumber": self._total_wavenumber_coords},
+            coords={
+                "total_wavenumber": self._total_wavenumber_coords},
         )
 
     @property
@@ -205,7 +209,8 @@ class Grid:
         return xarray.DataArray(
             data=self._longitude_wavenumber_coords,
             dims=("longitude_wavenumber",),
-            coords={"longitude_wavenumber": self._longitude_wavenumber_coords},
+            coords={
+                "longitude_wavenumber": self._longitude_wavenumber_coords},
         )
 
     def to_nodal(self, modal_data: xarray.DataArray) -> xarray.DataArray:
@@ -230,12 +235,14 @@ class Grid:
             ) or not np.all(
                 modal.coords["total_wavenumber"] == self._total_wavenumber_coords
             ):
-                raise ValueError("Wavenumber coords don't follow required convention.")
+                raise ValueError(
+                    "Wavenumber coords don't follow required convention.")
 
             return xarray_jax.apply_ufunc(
                 self._underlying.to_nodal,
                 modal,
-                input_core_dims=[["longitude_wavenumber", "total_wavenumber"]],
+                input_core_dims=[
+                    ["longitude_wavenumber", "total_wavenumber"]],
                 output_core_dims=[["lon", "lat"]],
             ).assign_coords(
                 lon=self._lon_coords,
@@ -281,16 +288,19 @@ def sample(
     """
     if grid is None:
         grid = Grid.for_nodal_data(template)
-    dims = [d for d in template.dims if d not in ("lat", "lon")]
+    dims = [
+        d for d in template.dims if d not in ("lat", "lon")]
     shape = [template.sizes[d] for d in dims]
     coords = {
         name: coord
         for name, coord in template.coords.items()
         if name not in ("lat", "lon")
     }
-    dims.extend(("total_wavenumber", "longitude_wavenumber"))
+    dims.extend(
+        ("total_wavenumber", "longitude_wavenumber"))
     shape.extend(
-        (len(grid.total_wavenumber_coords), len(grid.longitude_wavenumber_coords))
+        (len(grid.total_wavenumber_coords), len(
+            grid.longitude_wavenumber_coords))
     )
     coords.update(
         {
@@ -311,7 +321,8 @@ def sample(
     # summing their squares at each total_wavenumber, sums to the corresponding
     # value in the power spectrum:
     multiplier = mask * np.sqrt(
-        power_spectrum / mask.sum("longitude_wavenumber", skipna=False)
+        power_spectrum /
+        mask.sum("longitude_wavenumber", skipna=False)
     )
     # And a standard normalization factor used in this implementation of the
     # spherical harmonic transform:
@@ -335,7 +346,8 @@ def spherical_white_noise_like(template: xarray.Dataset) -> xarray.Dataset:
         return sample(
             key=key,
             power_spectrum=xarray_jax.DataArray(
-                data=np.array([1 / num_wavenumbers for _ in range(num_wavenumbers)]),
+                data=np.array(
+                    [1 / num_wavenumbers for _ in range(num_wavenumbers)]),
                 dims=["total_wavenumber"],
             ),
             template=data_array,
@@ -371,7 +383,8 @@ def rho_inverse_cdf(min_value: float, max_value: float, rho: float, cdf: Any) ->
       Quantiles of the distribution, with same shape/type as `cdf`.
     """
     return (
-        min_value ** (1 / rho) + cdf * (max_value ** (1 / rho) - min_value ** (1 / rho))
+        min_value ** (1 / rho) + cdf * (max_value **
+                                        (1 / rho) - min_value ** (1 / rho))
     ) ** rho
 
 
@@ -408,11 +421,13 @@ def stochastic_churn_rate_schedule(
     churn_max_noise_level: float = 50.0,
 ) -> np.ndarray:
     """Computes a stochastic churn rate for each noise level."""
-    num_noise_levels = len(noise_levels) - 1  # Exclude final zero noise level.
+    num_noise_levels = len(noise_levels) - \
+        1  # Exclude final zero noise level.
     # As in the Elucidated Diffusion paper, clamp this so it doesn't increase the
     # variance by a factor of more than 2, no matter how few noise levels are
     # used:
-    per_step_churn_rate = min(stochastic_churn_rate / num_noise_levels, np.sqrt(2) - 1)
+    per_step_churn_rate = min(
+        stochastic_churn_rate / num_noise_levels, np.sqrt(2) - 1)
     return (
         (churn_min_noise_level <= noise_levels[:-1])
         & (noise_levels[:-1] <= churn_max_noise_level)
@@ -427,13 +442,16 @@ def apply_stochastic_churn(
 ) -> tuple[Any, jax.typing.ArrayLike]:
     """Returns x at higher noise level, and the higher noise level itself."""
     # We increase the noise level of x a bit before taking it down again:
-    new_noise_level = noise_level * (1.0 + stochastic_churn_rate)
+    new_noise_level = noise_level * \
+        (1.0 + stochastic_churn_rate)
     noise_diff = new_noise_level**2 - noise_level**2
     # stochastic_churn_rate == 0 => new_noise_level == noise_level
     # => noise_diff == 0. This can resolve to a negative value because of
     # floating point rounding errors. To avoid this we clamp noise_diff to zero if
     # it's negative.
     noise_diff = jnp.maximum(noise_diff, 0)
-    extra_noise_stddev = jnp.sqrt(noise_diff) * noise_level_inflation_factor
-    updated_x = x + spherical_white_noise_like(x) * extra_noise_stddev
+    extra_noise_stddev = jnp.sqrt(
+        noise_diff) * noise_level_inflation_factor
+    updated_x = x + \
+        spherical_white_noise_like(x) * extra_noise_stddev
     return updated_x, new_noise_level

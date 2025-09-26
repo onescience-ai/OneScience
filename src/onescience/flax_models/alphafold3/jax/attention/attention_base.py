@@ -132,13 +132,16 @@ class Mask:
             )
 
         if self.q_start is not None:
-            mask.append(q_indices >= self.q_start[..., None, :])
+            mask.append(
+                q_indices >= self.q_start[..., None, :])
 
         if self.q_end is not None:
-            mask.append(q_indices < self.q_end[..., None, :])
+            mask.append(
+                q_indices < self.q_end[..., None, :])
 
         if self.k_start is not None:
-            mask.append(k_indices >= self.k_start[..., None])
+            mask.append(
+                k_indices >= self.k_start[..., None])
 
         if self.k_end is not None:
             mask.append(k_indices < self.k_end[..., None])
@@ -146,13 +149,15 @@ class Mask:
         if self.is_causal:
             mask.append(q_indices >= k_indices)
 
-        logical_and = functools.partial(functools.reduce, jnp.logical_and)
+        logical_and = functools.partial(
+            functools.reduce, jnp.logical_and)
         return jax.lax.broadcast_to_rank(logical_and(mask), 3) if mask else None
 
     def take(self, *attrs: str) -> tuple[Any, ...]:
         """Returns a mask with attrs removed and the removed attrs."""
         default_mask = type(self)()
-        replacements = {attr: getattr(default_mask, attr) for attr in attrs}
+        replacements = {attr: getattr(
+            default_mask, attr) for attr in attrs}
         values = (getattr(self, attr) for attr in attrs)
         return dataclasses.replace(self, **replacements), *values
 
@@ -167,10 +172,14 @@ class Mask:
             return lambda a, b: b if a is None else a if b is None else op(a, b)
 
         return Mask(
-            bool_mask=combine(jnp.logical_and)(self.bool_mask, other.bool_mask),
-            q_end=combine(jnp.minimum)(self.q_end, other.q_end),
-            k_start=combine(jnp.maximum)(self.k_start, other.k_start),
-            k_end=combine(jnp.minimum)(self.k_end, other.k_end),
+            bool_mask=combine(jnp.logical_and)(
+                self.bool_mask, other.bool_mask),
+            q_end=combine(jnp.minimum)(
+                self.q_end, other.q_end),
+            k_start=combine(jnp.maximum)(
+                self.k_start, other.k_start),
+            k_end=combine(jnp.minimum)(
+                self.k_end, other.k_end),
             is_causal=self.is_causal or other.is_causal,
         )
 
@@ -179,7 +188,8 @@ CAUSAL_MASK = Mask(is_causal=True)
 
 
 SoftmaxResidual = (
-    tuple[Float[Array, "*B H T"], Float[Array, "*B H T"]] | Float[Array, "*B H T"]
+    tuple[Float[Array, "*B H T"],
+          Float[Array, "*B H T"]] | Float[Array, "*B H T"]
 )
 
 
@@ -235,11 +245,13 @@ class DotProductAttention(abc.ABC):
         value: Float[Array | array_view.ArrayView, "*B t h D"],
         *,
         precision: (
-            DotPrecisionLike | tuple[DotPrecisionLike, DotPrecisionLike]
+            DotPrecisionLike | tuple[DotPrecisionLike,
+                                     DotPrecisionLike]
         ) = jax.lax.Precision.DEFAULT,
         logits_dtype: DTypeLike | type[AUTO] = AUTO,
         bias: Float[Array, "*#B #H #T #t"] | None = None,
-        mask: Bool[Array, "*#B #H #T #t"] | Mask | None = None,
+        mask: Bool[Array,
+                   "*#B #H #T #t"] | Mask | None = None,
         q_indices: Int[Array, "*#B #H T"] | None = None,
         k_indices: Int[Array, "*#B #H t"] | None = None,
     ) -> Float[Array, "*B T H D"]:
@@ -302,11 +314,13 @@ class DotProductAttention(abc.ABC):
         value: Float[Array | array_view.ArrayView, "*B t h D"],
         *,
         precision: (
-            DotPrecisionLike | tuple[DotPrecisionLike, DotPrecisionLike]
+            DotPrecisionLike | tuple[DotPrecisionLike,
+                                     DotPrecisionLike]
         ) = jax.lax.Precision.DEFAULT,
         logits_dtype: DTypeLike | type[AUTO] = AUTO,
         bias: Float[Array, "*#B #H #T #t"] | None = None,
-        mask: Bool[Array, "*#B #H #T #t"] | Mask | None = None,
+        mask: Bool[Array,
+                   "*#B #H #T #t"] | Mask | None = None,
         q_indices: Int[Array, "*#B #H T"] | None = None,
         k_indices: Int[Array, "*#B #H t"] | None = None,
     ) -> Float[Array, "*B T H D"]:

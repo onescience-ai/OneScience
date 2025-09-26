@@ -18,7 +18,8 @@ from onescience.flax_models.alphafold3.jax.attention import (
 from onescience.flax_models.alphafold3.jax.attention import xla_attention
 from onescience.flax_models.alphafold3.jax.common import triton_utils
 
-Implementation: TypeAlias = Literal["cudnn", "xla", "triton"]
+Implementation: TypeAlias = Literal["cudnn",
+                                    "xla", "triton"]
 
 
 @jaxtyping.jaxtyped(typechecker=typeguard.typechecked)
@@ -32,7 +33,8 @@ def dot_product_attention(
     implementation: Implementation | None = None,
     logits_dtype: DTypeLike | None = None,
     precision: (
-        jax.lax.Precision | tuple[jax.lax.Precision, jax.lax.Precision] | None
+        jax.lax.Precision | tuple[jax.lax.Precision,
+                                  jax.lax.Precision] | None
     ) = None,
 ) -> Float[Array, "*B T H D"]:
     """Performs scaled dot-product attention.
@@ -87,7 +89,8 @@ def dot_product_attention(
 
     if implementation == "cudnn":
         if logits_dtype is not None:
-            raise ValueError("logits_dtype is not supported for cudnn implementation.")
+            raise ValueError(
+                "logits_dtype is not supported for cudnn implementation.")
         if precision is not None:
             raise NotImplementedError(
                 "precision is not supported for cudnn implementation."

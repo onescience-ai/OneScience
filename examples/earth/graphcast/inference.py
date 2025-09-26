@@ -16,10 +16,12 @@ torch.serialization.add_safe_globals([ScalarFloat])
 current_path = os.getcwd()
 sys.path.append(current_path)
 
-config_file_path = os.path.join(current_path, "conf/config.yaml")
+config_file_path = os.path.join(
+    current_path, "conf/config.yaml")
 cfg = YParams(config_file_path, "graphcast")
 cfg["num_samples_per_year"] = 24
-test_dataset = ERA5HDF5Datapipe(params=cfg, distributed=False, num_steps=1)
+test_dataset = ERA5HDF5Datapipe(
+    params=cfg, distributed=False, num_steps=1)
 test_dataloader = test_dataset.test_dataloader()
 
 ckpt = torch.load(
@@ -30,7 +32,8 @@ ckpt = torch.load(
 model_dtype = torch.bfloat16 if cfg.full_bf16 else torch.float32
 
 input_dim_grid_nodes = (
-    len(cfg.channels) + cfg.use_cos_zenith + 4 * cfg.use_time_of_year_index
+    len(cfg.channels) + cfg.use_cos_zenith +
+    4 * cfg.use_time_of_year_index
 ) * (cfg.num_history + 1) + cfg.num_channels_static
 graphcast_model = GraphCastNet(
     mesh_level=cfg.mesh_level,
@@ -50,9 +53,12 @@ graphcast_model = GraphCastNet(
     recompute_activation=cfg.recompute_activation,
 )
 
-graphcast_model.set_checkpoint_encoder(cfg.checkpoint_encoder)
-graphcast_model.set_checkpoint_decoder(cfg.checkpoint_decoder)
-graphcast_model = graphcast_model.to(dtype=model_dtype).to("cuda:0")
+graphcast_model.set_checkpoint_encoder(
+    cfg.checkpoint_encoder)
+graphcast_model.set_checkpoint_decoder(
+    cfg.checkpoint_decoder)
+graphcast_model = graphcast_model.to(
+    dtype=model_dtype).to("cuda:0")
 graphcast_model.load_state_dict(ckpt["model_state_dict"])
 
 if hasattr(graphcast_model, "module"):
@@ -64,7 +70,8 @@ else:
     longitudes = graphcast_model.longitudes
     lat_lon_grid = graphcast_model.lat_lon_grid
 static_data = (
-    StaticData(cfg.static_dataset_path, latitudes, longitudes).get().to(device="cuda:0")
+    StaticData(cfg.static_dataset_path, latitudes,
+               longitudes).get().to(device="cuda:0")
 )
 # ⚠️ 你的 checkpoint key
 pred = []
@@ -79,8 +86,10 @@ with torch.no_grad():
         in_idx = data[3].item()
 
         cos_zenith = torch.squeeze(cos_zenith, dim=2)
-        cos_zenith = torch.clamp(cos_zenith, min=0.0) - 1.0 / torch.pi
-        day_of_year, time_of_day = divmod(in_idx * cfg.dt, 24)
+        cos_zenith = torch.clamp(
+            cos_zenith, min=0.0) - 1.0 / torch.pi
+        day_of_year, time_of_day = divmod(
+            in_idx * cfg.dt, 24)
         normalized_day_of_year = torch.tensor(
             (day_of_year / 365) * (np.pi / 2), dtype=torch.float32, device="cuda:0"
         )
@@ -89,10 +98,14 @@ with torch.no_grad():
             dtype=torch.float32,
             device="cuda:0",
         )
-        sin_day_of_year = torch.sin(normalized_day_of_year).expand(1, 1, 721, 1440)
-        cos_day_of_year = torch.cos(normalized_day_of_year).expand(1, 1, 721, 1440)
-        sin_time_of_day = torch.sin(normalized_time_of_day).expand(1, 1, 721, 1440)
-        cos_time_of_day = torch.cos(normalized_time_of_day).expand(1, 1, 721, 1440)
+        sin_day_of_year = torch.sin(
+            normalized_day_of_year).expand(1, 1, 721, 1440)
+        cos_day_of_year = torch.cos(
+            normalized_day_of_year).expand(1, 1, 721, 1440)
+        sin_time_of_day = torch.sin(
+            normalized_time_of_day).expand(1, 1, 721, 1440)
+        cos_time_of_day = torch.cos(
+            normalized_time_of_day).expand(1, 1, 721, 1440)
         invar = torch.concat(
             (
                 invar,
@@ -106,10 +119,12 @@ with torch.no_grad():
             dim=1,
         )
 
-        invar, outvar = invar.to(dtype=model_dtype), outvar.to(dtype=model_dtype)
+        invar, outvar = invar.to(
+            dtype=model_dtype), outvar.to(dtype=model_dtype)
         outvar_pred = graphcast_model(invar)
 
-        print(f"infer process: {j+1}/{len(test_dataloader)}")
+        print(
+            f"infer process: {j+1}/{len(test_dataloader)}")
         pred.append(outvar_pred.float().cpu().numpy())
         label.append(outvar.float().cpu().numpy())
 

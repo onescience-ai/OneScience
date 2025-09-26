@@ -101,7 +101,8 @@ def get_model(spatial_dim, if_temporal, args):
     if spatial_dim == 1:
         model = DeepONetCartesianProd1D(
             size=model_args["input_size"],
-            in_channel_branch=model_args["in_channels"] * initial_step,
+            in_channel_branch=model_args["in_channels"] *
+            initial_step,
             query_dim=model_args["query_dim"],
             out_channel=model_args["out_channels"],
             activation=model_args["act"],
@@ -110,7 +111,8 @@ def get_model(spatial_dim, if_temporal, args):
     elif spatial_dim == 2:
         model = DeepONetCartesianProd2D(
             size=model_args["input_size"],
-            in_channel_branch=model_args["in_channels"] * initial_step,
+            in_channel_branch=model_args["in_channels"] *
+            initial_step,
             query_dim=model_args["query_dim"],
             out_channel=model_args["out_channels"],
             activation=model_args["act"],
@@ -144,37 +146,45 @@ def train_loop(
         grid = grid[0]  # reduce batch
         x, y, grid = to_device([x, y, grid], device)
         # reshape input
-        input_shape = list(x.shape)[:-2]  # (bs, x1, ..., xd)
+        # (bs, x1, ..., xd)
+        input_shape = list(x.shape)[:-2]
         input_shape.append(-1)  # (bs, x1, ..., xd, -1)
         if if_temporal:
             if train_args["training_type"] == "single":
                 pred = model((x.reshape(input_shape), grid))
-                loss += loss_fn(pred.reshape(bs, -1), y.reshape(bs, -1))
+                loss += loss_fn(pred.reshape(bs, -1),
+                                y.reshape(bs, -1))
                 train_loss += loss.item()
             else:  # autoregressive
                 grid = grid[..., 0, :-1]
-                pred = y[..., :initial_step, :]  # (bs, x1, ..., xd, init_t, v)
+                # (bs, x1, ..., xd, init_t, v)
+                pred = y[..., :initial_step, :]
 
                 for t in range(initial_step, t_train):
                     # Reshape input tensor into [b, x1, ..., xd, t_init*v]
                     model_input = x.reshape(input_shape)
                     # Extract target at current time step
-                    target = y[..., t : t + 1, :]
+                    target = y[..., t: t + 1, :]
                     # Model run
-                    model_output = model((model_input, grid)).unsqueeze(-2)
+                    model_output = model(
+                        (model_input, grid)).unsqueeze(-2)
                     # Loss calculation
                     _loss = loss_fn(
-                        model_output.reshape(bs, -1), target.reshape(bs, -1)
+                        model_output.reshape(
+                            bs, -1), target.reshape(bs, -1)
                     )
                     loss += _loss
                     # Concatenate the prediction at current time step into the
                     # prediction tensor
-                    pred = torch.cat((pred, model_output), -2)
+                    pred = torch.cat(
+                        (pred, model_output), -2)
                     # Concatenate the prediction at the current time step to be used
                     # as input for the next time step
-                    x = torch.cat((x[..., 1:, :], model_output), dim=-2)
+                    x = torch.cat(
+                        (x[..., 1:, :], model_output), dim=-2)
 
-                train_loss += loss_fn(pred.reshape(bs, -1), y.reshape(bs, -1)).item()
+                train_loss += loss_fn(pred.reshape(bs, -1),
+                                      y.reshape(bs, -1)).item()
 
             train_l_inf = torch.max(
                 (torch.abs(pred.reshape(bs, -1) - y.reshape(bs, -1)))
@@ -184,11 +194,13 @@ def train_loop(
             u = y[..., 0, 1:2]
             grid = grid[..., 0, :-1]
             pred = model((a, grid))
-            loss += loss_fn(pred.reshape([bs, -1]), u.reshape([bs, -1]))
+            loss += loss_fn(pred.reshape([bs, -1]),
+                            u.reshape([bs, -1]))
             train_loss += loss.item()
             train_l_inf = max(
                 train_l_inf,
-                torch.max((torch.abs(pred.reshape(bs, -1) - u.reshape(bs, -1)))).item(),
+                torch.max(
+                    (torch.abs(pred.reshape(bs, -1) - u.reshape(bs, -1)))).item(),
             )
 
         optimizer.zero_grad()
@@ -217,32 +229,40 @@ def val_loop(val_loader, model, initial_step, if_temporal, device, train_args):
         t_train = y.shape[-2]
         grid = grid[0]  # reduce batch
         x, y, grid = to_device([x, y, grid], device)
-        pred = y[..., :initial_step, :]  # (bs, x1, ..., xd, init_t, v)
+        # (bs, x1, ..., xd, init_t, v)
+        pred = y[..., :initial_step, :]
         # reshape input
-        input_shape = list(x.shape)[:-2]  # (bs, x1, ..., xd)
+        # (bs, x1, ..., xd)
+        input_shape = list(x.shape)[:-2]
         input_shape.append(-1)  # (bs, x1, ..., xd, -1)
 
         if if_temporal:
             if train_args["training_type"] == "single":
                 pred = model((x.reshape(input_shape), grid))
-                val_loss += loss_fn(pred.reshape(bs, -1), y.reshape(bs, -1)).item()
+                val_loss += loss_fn(pred.reshape(bs, -1),
+                                    y.reshape(bs, -1)).item()
             else:  # autoregressive loop
                 grid = grid[..., 0, :-1]
                 for t in range(initial_step, t_train):
                     # Reshape input tensor into [b, x1, ..., xd, t_init*v]
                     model_input = x.reshape(input_shape)
                     # Model run
-                    model_output = model((model_input, grid)).unsqueeze(-2)
+                    model_output = model(
+                        (model_input, grid)).unsqueeze(-2)
                     # Concatenate the prediction at current time step into the
                     # prediction tensor
-                    pred = torch.cat((pred, model_output), -2)
+                    pred = torch.cat(
+                        (pred, model_output), -2)
                     # Concatenate the prediction at the current time step to be used
                     # as input for the next time step
-                    x = torch.cat((x[..., 1:, :], model_output), dim=-2)
-                val_loss += loss_fn(pred.reshape(bs, -1), y.reshape(bs, -1)).item()
+                    x = torch.cat(
+                        (x[..., 1:, :], model_output), dim=-2)
+                val_loss += loss_fn(pred.reshape(bs, -1),
+                                    y.reshape(bs, -1)).item()
             val_l_inf = max(
                 val_l_inf,
-                torch.max((torch.abs(pred.reshape(bs, -1) - y.reshape(bs, -1)))),
+                torch.max(
+                    (torch.abs(pred.reshape(bs, -1) - y.reshape(bs, -1)))),
             )
 
         else:  # DarcyFlow
@@ -250,10 +270,12 @@ def val_loop(val_loader, model, initial_step, if_temporal, device, train_args):
             u = y[..., 0, 1:2]
             grid = grid[..., 0, :-1]
             pred = model((a, grid))
-            val_loss += loss_fn(pred.reshape([bs, -1]), u.reshape([bs, -1])).item()
+            val_loss += loss_fn(pred.reshape(
+                [bs, -1]), u.reshape([bs, -1])).item()
             val_l_inf = max(
                 val_l_inf,
-                torch.max((torch.abs(pred.reshape(bs, -1) - u.reshape(bs, -1)))),
+                torch.max(
+                    (torch.abs(pred.reshape(bs, -1) - u.reshape(bs, -1)))),
             )
 
     val_loss /= len(val_loader)  # MSE
@@ -283,9 +305,11 @@ def test_loop(
         t_train = y.shape[-2]
         grid = grid[0]  # reduce batch
         x, y, grid = to_device([x, y, grid], device)
-        pred = y[..., :initial_step, :]  # (bs, x1, ..., xd, init_t, v)
+        # (bs, x1, ..., xd, init_t, v)
+        pred = y[..., :initial_step, :]
         # reshape input
-        input_shape = list(x.shape)[:-2]  # (bs, x1, ..., xd)
+        # (bs, x1, ..., xd)
+        input_shape = list(x.shape)[:-2]
         input_shape.append(-1)  # (bs, x1, ..., xd, -1)
         if if_temporal:
             if train_args["training_type"] == "single":
@@ -296,13 +320,16 @@ def test_loop(
                     # Reshape input tensor into [b, x1, ..., xd, t_init*v]
                     model_input = x.reshape(input_shape)
                     # Model run
-                    model_output = model((model_input, grid)).unsqueeze(-2)
+                    model_output = model(
+                        (model_input, grid)).unsqueeze(-2)
                     # Concatenate the prediction at current time step into the
                     # prediction tensor
-                    pred = torch.cat((pred, model_output), -2)
+                    pred = torch.cat(
+                        (pred, model_output), -2)
                     # Concatenate the prediction at the current time step to be used
                     # as input for the next time step
-                    x = torch.cat((x[..., 1:, :], model_output), dim=-2)
+                    x = torch.cat(
+                        (x[..., 1:, :], model_output), dim=-2)
         else:  # DarcyFlow
             a = y[..., 0, 0:1]
             y = y[..., 0, 1:2]
@@ -327,38 +354,44 @@ def test_loop(
 
 def main(args):
     # init
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cuda:0" if torch.cuda.is_available() else "cpu")
     checkpoint = (
         torch.load(args["model_path"])
         if not args["if_training"] or args["continue_training"]
         else None
     )
-    saved_model_name = args["train"].get("save_name", args["model_name"])
+    saved_model_name = args["train"].get(
+        "save_name", args["model_name"])
     saved_model_name = (
         saved_model_name
         + f"_lr{args['optimizer']['lr']}"
         + f"_bs{args['dataloader']['batch_size']}"
     )
     saved_dir = os.path.join(
-        args["output_dir"], os.path.splitext(args["dataset"]["file_name"])[0]
+        args["output_dir"], os.path.splitext(
+            args["dataset"]["file_name"])[0]
     )
     if not os.path.exists(saved_dir):
         os.makedirs(saved_dir)
 
     # data get dataloader
     train_data, val_data = get_dataset(args)
-    train_loader, val_loader = get_dataloader(train_data, val_data, args)
+    train_loader, val_loader = get_dataloader(
+        train_data, val_data, args)
     # set some train args
     _, sample, _ = next(iter(val_loader))
     spatial_dim = len(sample.shape) - 3
     if_temporal = True if sample.shape[-2] != 1 else False
-    args["train"].update({"dx": train_data.dx, "dt": train_data.dt})
+    args["train"].update(
+        {"dx": train_data.dx, "dt": train_data.dt})
 
     # model
     model = get_model(spatial_dim, if_temporal, args)
-    ## if test, load model from checkpoint
+    # if test, load model from checkpoint
     if not args["if_training"]:
-        model.load_state_dict(checkpoint["model_state_dict"])
+        model.load_state_dict(
+            checkpoint["model_state_dict"])
         if torch.cuda.device_count() > 8:
             model = nn.DataParallel(model)
         model.to(device)
@@ -387,10 +420,12 @@ def main(args):
                 print(f"{name}: {val:.6f}")
         print("Done")
         return
-    ## if continue training, resume model from checkpoint
+    # if continue training, resume model from checkpoint
     if args["continue_training"]:
-        print(f"continue training, load checkpoint from {args['model_path']}")
-        model.load_state_dict(checkpoint["model_state_dict"])
+        print(
+            f"continue training, load checkpoint from {args['model_path']}")
+        model.load_state_dict(
+            checkpoint["model_state_dict"])
     if torch.cuda.device_count() > 8:
         model = nn.DataParallel(model)
     model.to(device)
@@ -398,14 +433,16 @@ def main(args):
     # optimizer
     optim_args = args["optimizer"]
     optim_name = optim_args.pop("name")
-    ## if continue training, resume optimizer and scheduler from checkpoint
+    # if continue training, resume optimizer and scheduler from checkpoint
     if args["continue_training"]:
         optimizer = getattr(torch.optim, optim_name)(
-            [{"params": model.parameters(), "initial_lr": optim_args["lr"]}],
+            [{"params": model.parameters(
+            ), "initial_lr": optim_args["lr"]}],
             **optim_args,
         )
     else:
-        optimizer = getattr(torch.optim, optim_name)(model.parameters(), **optim_args)
+        optimizer = getattr(torch.optim, optim_name)(
+            model.parameters(), **optim_args)
 
     # scheduler
     start_epoch = 0
@@ -421,10 +458,11 @@ def main(args):
 
     # train
     print(f"start training from epoch {start_epoch}")
-    pbar = tqdm(range(start_epoch, args["epochs"]), dynamic_ncols=True, smoothing=0.05)
+    pbar = tqdm(range(
+        start_epoch, args["epochs"]), dynamic_ncols=True, smoothing=0.05)
     loss_curve = []
     for epoch in pbar:
-        ## train loop
+        # train loop
         train_loss, train_l_inf = train_loop(
             train_loader,
             model,
@@ -439,8 +477,9 @@ def main(args):
             f"[Epoch {epoch}] train_loss: {train_loss:.5e}, l_inf: {train_l_inf:.5e}"
         )
         loss_curve.append(train_loss)
-        ## save latest
-        saved_path = os.path.join(saved_dir, saved_model_name)
+        # save latest
+        saved_path = os.path.join(
+            saved_dir, saved_model_name)
         model_state_dict = (
             model.module.state_dict()
             if torch.cuda.device_count() > 8
@@ -455,7 +494,7 @@ def main(args):
             },
             saved_path + "-latest.pt",
         )
-        ## validate
+        # validate
         if (epoch + 1) % args["save_period"] == 0:
             val_loss, L_inf = val_loop(
                 val_loader,
@@ -465,10 +504,12 @@ def main(args):
                 device,
                 args["train"],
             )
-            print(f"[Epoch {epoch}] val_loss: {val_loss:.5e}, L_inf: {L_inf:.5e}")
-            print("================================================", flush=True)
+            print(
+                f"[Epoch {epoch}] val_loss: {val_loss:.5e}, L_inf: {L_inf:.5e}")
+            print(
+                "================================================", flush=True)
             if val_loss < min_val_loss:
-                ### save best
+                # save best
                 min_val_loss = val_loss
                 torch.save(
                     {
@@ -486,13 +527,15 @@ def main(args):
                     saved_path + "-best.pt",
                 )
 
-    torch.save({"loss_curve": loss_curve}, saved_path + "_loss_curve.pt")
+    torch.save({"loss_curve": loss_curve},
+               saved_path + "_loss_curve.pt")
     print("Done.")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("config_file", type=str, help="Path to config file")
+    parser.add_argument(
+        "config_file", type=str, help="Path to config file")
     cmd_args = parser.parse_args()
     with open(cmd_args.config_file, "r") as f:
         args = yaml.safe_load(f)

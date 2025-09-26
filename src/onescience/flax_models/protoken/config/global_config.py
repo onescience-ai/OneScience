@@ -14,4 +14,5 @@ GLOBAL_CONFIG = {
     "use_dropout": False,  # True
     "global_dropout_rate": 0.0,
 }
-GLOBAL_CONFIG = ml_collections.ConfigDict(copy.deepcopy(GLOBAL_CONFIG))
+GLOBAL_CONFIG = ml_collections.ConfigDict(
+    copy.deepcopy(GLOBAL_CONFIG))

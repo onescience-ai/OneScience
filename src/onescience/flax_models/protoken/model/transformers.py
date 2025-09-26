@@ -66,7 +66,8 @@ class SelfResidualTransformer(nn.Module):
             self_attention=True,
         )
 
-        attention_ = nn.checkpoint(Attention) if self.remat_flag else Attention
+        attention_ = nn.checkpoint(
+            Attention) if self.remat_flag else Attention
         self.attention = attention_(
             global_config=self.global_config,
             q_data_dim=self.q_act_dim,
@@ -87,7 +88,8 @@ class SelfResidualTransformer(nn.Module):
             accumulated_scale=self.attn_scale,
         )
 
-        ffn_ = nn.checkpoint(FeedForwardNet) if self.remat_flag else FeedForwardNet
+        ffn_ = nn.checkpoint(
+            FeedForwardNet) if self.remat_flag else FeedForwardNet
         self.ffn = ffn_(
             global_config=self.global_config,
             input_dim=self.q_act_dim,
@@ -115,7 +117,7 @@ class SelfResidualTransformer(nn.Module):
     def __call__(
         self, act, accumulated_act, attention_masks, pair_act=0.0, pos_index=None
     ):
-        ### Shapes:
+        # Shapes:
 
         q_act = act
         k_act = act
@@ -127,7 +129,8 @@ class SelfResidualTransformer(nn.Module):
             q_act, k_act, v_act, attention_masks, pair_act=pair_act
         )
 
-        attention_output = self.attention(q_act, k_act, v_act, pair_bias_fp32)
+        attention_output = self.attention(
+            q_act, k_act, v_act, pair_bias_fp32)
         residual_act, accumulated_act = self.post_attention(
             residual_act, attention_output, q_mask, accumulated_act
         )

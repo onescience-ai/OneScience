@@ -66,8 +66,10 @@ class MGNTrainer:
         )
         if cfg.jit:
             if not self.model.meta.jit:
-                raise ValueError("MeshGraphNet is not yet JIT-compatible.")
-            self.model = torch.jit.script(self.model).to(self.dist.device)
+                raise ValueError(
+                    "MeshGraphNet is not yet JIT-compatible.")
+            self.model = torch.jit.script(
+                self.model).to(self.dist.device)
         else:
             self.model = self.model.to(self.dist.device)
         if cfg.watch_model and not cfg.jit and self.dist.rank == 0:
@@ -94,15 +96,18 @@ class MGNTrainer:
             if cfg.use_apex:
                 from apex.optimizers import FusedAdam
 
-                self.optimizer = FusedAdam(self.model.parameters(), lr=cfg.lr)
+                self.optimizer = FusedAdam(
+                    self.model.parameters(), lr=cfg.lr)
         except ImportError:
             rank_zero_logger.warning(
                 "NVIDIA Apex (https://github.com/nvidia/apex) is not installed, "
                 "FusedAdam optimizer will not be used."
             )
         if self.optimizer is None:
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=cfg.lr)
-        rank_zero_logger.info(f"Using {self.optimizer.__class__.__name__} optimizer")
+            self.optimizer = torch.optim.Adam(
+                self.model.parameters(), lr=cfg.lr)
+        rank_zero_logger.info(
+            f"Using {self.optimizer.__class__.__name__} optimizer")
 
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(
             self.optimizer, lr_lambda=lambda epoch: cfg.lr_decay_rate**epoch
@@ -132,7 +137,8 @@ class MGNTrainer:
     def forward(self, graph):
         # forward pass
         with autocast(enabled=self.amp):
-            pred = self.model(graph.ndata["x"], graph.edata["x"], graph)
+            pred = self.model(
+                graph.ndata["x"], graph.edata["x"], graph)
             loss = self.criterion(pred, graph.ndata["y"])
             return loss
 
@@ -162,7 +168,8 @@ def main(cfg: DictConfig) -> None:
         mode=cfg.wandb_mode,
     )  # Wandb logger
     logger = PythonLogger("main")  # General python logger
-    rank_zero_logger = RankZeroLoggingWrapper(logger, dist)  # Rank 0 logger
+    rank_zero_logger = RankZeroLoggingWrapper(
+        logger, dist)  # Rank 0 logger
     rank_zero_logger.file_logging()
 
     trainer = MGNTrainer(cfg, rank_zero_logger)

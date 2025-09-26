@@ -46,9 +46,12 @@ class AutoEDeepONet(AutoCfdModel):
         self.act_on_output = act_on_output
         self.num_label_samples = num_label_samples
 
-        self.branch1_dims = [dim_branch1] + [width] * branch_depth
-        self.branch2_dims = [dim_branch2] + [width] * branch_depth
-        self.trunk_dims = [trunk_dim] + [width] * trunk_depth
+        self.branch1_dims = [
+            dim_branch1] + [width] * branch_depth
+        self.branch2_dims = [
+            dim_branch2] + [width] * branch_depth
+        self.trunk_dims = [trunk_dim] + \
+            [width] * trunk_depth
         print(self.trunk_dims)
 
         act_fn = get_act_fn(act_name, act_norm)
@@ -61,7 +64,8 @@ class AutoEDeepONet(AutoCfdModel):
         # we will be using an entire frame as label.
         self.trunk_net = Ffn(self.trunk_dims, act_fn=act_fn)
 
-        self.bias = nn.Parameter(torch.zeros(1))  # type: ignore
+        self.bias = nn.Parameter(
+            torch.zeros(1))  # type: ignore
 
     def forward(
         self,
@@ -85,7 +89,8 @@ class AutoEDeepONet(AutoCfdModel):
         # Only use the u channel, because using more channels is to expensive
         inputs = inputs[:, 0]  # (B, h, w)
         # Flatten
-        flat_inputs = inputs.view(batch_size, -1)  # (B, h * w)
+        flat_inputs = inputs.view(
+            batch_size, -1)  # (B, h * w)
 
         b1 = self.branch1(flat_inputs)  # (b, p)
         b2 = self.branch2(case_params)  # (b, p)
@@ -103,18 +108,22 @@ class AutoEDeepONet(AutoCfdModel):
         x_trunk = self.trunk_net(x_trunk)  # (k, p)
         x_trunk = x_trunk.unsqueeze(0)  # (1, k, p)
         x_branch = x_branch.unsqueeze(1)  # (b, 1, p)
-        preds = torch.sum(x_branch * x_trunk, dim=-1) + self.bias  # (b, k)
+        preds = torch.sum(
+            x_branch * x_trunk, dim=-1) + self.bias  # (b, k)
 
         # Use values of input field at query points as residuals
-        residuals = inputs[:, query_idxs[:, 0], query_idxs[:, 1]]  # (b, k)
+        residuals = inputs[:, query_idxs[:,
+                                         0], query_idxs[:, 1]]  # (b, k)
         preds = preds + residuals
 
         if label is not None:
             # Use only the u channel
             label = label[:, 0]  # (B, w, h)
-            labels = label[:, query_idxs[:, 0], query_idxs[:, 1]]  # (b, k)
+            labels = label[:, query_idxs[:, 0],
+                           query_idxs[:, 1]]  # (b, k)
             assert preds.shape == labels.shape, f"{preds.shape}, {labels.shape}"
-            loss = self.loss_fn(preds=preds, labels=labels)  # (b, k)
+            loss = self.loss_fn(
+                preds=preds, labels=labels)  # (b, k)
             return dict(
                 preds=preds,
                 loss=loss,
@@ -152,7 +161,8 @@ class AutoEDeepONet(AutoCfdModel):
         preds = self.forward(
             inputs=inputs, case_params=case_params, query_idxs=query_idxs
         )["preds"]
-        preds = preds.view(-1, 1, height, width)  # (b, 1, h, w)
+        # (b, 1, h, w)
+        preds = preds.view(-1, 1, height, width)
         return preds
 
     def generate_many(
@@ -166,7 +176,8 @@ class AutoEDeepONet(AutoCfdModel):
                 Returns:
                     list of tensors, each of shape (b, c, h, w)
         """
-        assert len(inputs.shape) == len(case_params.shape) + 2
+        assert len(inputs.shape) == len(
+            case_params.shape) + 2
         if inputs.dim() == 3:
             inputs = inputs.unsqueeze(0)  # (1, c, h, w)
             case_params = case_params.unsqueeze(0)  # (1, p)

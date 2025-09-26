@@ -70,13 +70,15 @@ def _get_checkpoint_filename(
 
     # Input file name
     checkpoint_filename = str(
-        Path(path).resolve() / f"{base_name}.{model_parallel_rank}"
+        Path(path).resolve() /
+        f"{base_name}.{model_parallel_rank}"
     )
 
     # If epoch is provided load that file
     file_extension = ".pt"
     if index is not None:
-        checkpoint_filename = checkpoint_filename + f".{index}"
+        checkpoint_filename = checkpoint_filename + \
+            f".{index}"
         checkpoint_filename += file_extension
     # Otherwise try loading the latest epoch or rolling checkpoint
     else:
@@ -94,7 +96,8 @@ def _get_checkpoint_filename(
             file_idx = [
                 int(
                     re.sub(
-                        f"^{base_name}.{model_parallel_rank}.|" + file_extension,
+                        f"^{base_name}.{model_parallel_rank}.|" +
+                        file_extension,
                         "",
                         fname,
                     )
@@ -104,9 +107,11 @@ def _get_checkpoint_filename(
             file_idx.sort()
             # If we are saving index by 1 to get the next free file name
             if saving:
-                checkpoint_filename = checkpoint_filename + f".{file_idx[-1]+1}"
+                checkpoint_filename = checkpoint_filename + \
+                    f".{file_idx[-1]+1}"
             else:
-                checkpoint_filename = checkpoint_filename + f".{file_idx[-1]}"
+                checkpoint_filename = checkpoint_filename + \
+                    f".{file_idx[-1]}"
             checkpoint_filename += file_extension
         else:
             checkpoint_filename += ".0" + file_extension
@@ -158,7 +163,8 @@ def _unique_model_names(
 
 def save_checkpoint(
     path: str,
-    models: Union[torch.nn.Module, List[torch.nn.Module], None] = None,
+    models: Union[torch.nn.Module,
+                  List[torch.nn.Module], None] = None,
     optimizer: Union[optimizer, None] = None,
     scheduler: Union[scheduler, None] = None,
     scaler: Union[scaler, None] = None,
@@ -201,31 +207,38 @@ def save_checkpoint(
         models = _unique_model_names(models)
         for name, model in models.items():
             # Get full file path / name
-            file_name = _get_checkpoint_filename(path, name, index=epoch, saving=True)
+            file_name = _get_checkpoint_filename(
+                path, name, index=epoch, saving=True)
 
             # Save state dictionary
             torch.save(model.state_dict(), file_name)
-            checkpoint_logging.success(f"Saved model state dictionary: {file_name}")
+            checkpoint_logging.success(
+                f"Saved model state dictionary: {file_name}")
 
     # == Saving training checkpoint ==
     checkpoint_dict = {}
     # Optimizer state dict
     if optimizer:
-        checkpoint_dict["optimizer_state_dict"] = optimizer.state_dict()
+        checkpoint_dict["optimizer_state_dict"] = optimizer.state_dict(
+        )
 
     # Scheduler state dict
     if scheduler:
-        checkpoint_dict["scheduler_state_dict"] = scheduler.state_dict()
+        checkpoint_dict["scheduler_state_dict"] = scheduler.state_dict(
+        )
 
     # Scheduler state dict
     if scaler:
-        checkpoint_dict["scaler_state_dict"] = scaler.state_dict()
+        checkpoint_dict["scaler_state_dict"] = scaler.state_dict(
+        )
     # Static capture is being used, save its grad scaler
     if _StaticCapture._amp_scalers:
-        checkpoint_dict["static_capture_state_dict"] = _StaticCapture.state_dict()
+        checkpoint_dict["static_capture_state_dict"] = _StaticCapture.state_dict(
+        )
 
     # Output file name
-    output_filename = _get_checkpoint_filename(path, index=epoch, saving=True)
+    output_filename = _get_checkpoint_filename(
+        path, index=epoch, saving=True)
     if epoch:
         checkpoint_dict["epoch"] = epoch
 
@@ -235,12 +248,14 @@ def save_checkpoint(
             checkpoint_dict,
             output_filename,
         )
-        checkpoint_logging.success(f"Saved training checkpoint: {output_filename}")
+        checkpoint_logging.success(
+            f"Saved training checkpoint: {output_filename}")
 
 
 def load_checkpoint(
     path: str,
-    models: Union[torch.nn.Module, List[torch.nn.Module], None] = None,
+    models: Union[torch.nn.Module,
+                  List[torch.nn.Module], None] = None,
     optimizer: Union[optimizer, None] = None,
     scheduler: Union[scheduler, None] = None,
     scaler: Union[scaler, None] = None,
@@ -290,50 +305,62 @@ def load_checkpoint(
         models = _unique_model_names(models)
         for name, model in models.items():
             # Get full file path / name
-            file_name = _get_checkpoint_filename(path, name, index=epoch)
+            file_name = _get_checkpoint_filename(
+                path, name, index=epoch)
             if not Path(file_name).exists():
                 checkpoint_logging.error(
                     f"Could not find valid model file {file_name}, skipping load"
                 )
                 continue
             # Load state dictionary
-            model.load_state_dict(torch.load(file_name, map_location=device))
+            model.load_state_dict(torch.load(
+                file_name, map_location=device))
 
             checkpoint_logging.success(
                 f"Loaded model state dictionary {file_name} to device {device}"
             )
 
     # == Loading training checkpoint ==
-    checkpoint_filename = _get_checkpoint_filename(path, index=epoch)
+    checkpoint_filename = _get_checkpoint_filename(
+        path, index=epoch)
     if not Path(checkpoint_filename).is_file():
         checkpoint_logging.warning(
             "Could not find valid checkpoint file, skipping load"
         )
         return 0
 
-    checkpoint_dict = torch.load(checkpoint_filename, map_location=device)
+    checkpoint_dict = torch.load(
+        checkpoint_filename, map_location=device)
     checkpoint_logging.success(
         f"Loaded checkpoint file {checkpoint_filename} to device {device}"
     )
 
     # Optimizer state dict
     if optimizer and "optimizer_state_dict" in checkpoint_dict:
-        optimizer.load_state_dict(checkpoint_dict["optimizer_state_dict"])
-        checkpoint_logging.success("Loaded optimizer state dictionary")
+        optimizer.load_state_dict(
+            checkpoint_dict["optimizer_state_dict"])
+        checkpoint_logging.success(
+            "Loaded optimizer state dictionary")
 
     # Scheduler state dict
     if scheduler and "scheduler_state_dict" in checkpoint_dict:
-        scheduler.load_state_dict(checkpoint_dict["scheduler_state_dict"])
-        checkpoint_logging.success("Loaded scheduler state dictionary")
+        scheduler.load_state_dict(
+            checkpoint_dict["scheduler_state_dict"])
+        checkpoint_logging.success(
+            "Loaded scheduler state dictionary")
 
     # Scaler state dict
     if scaler and "scaler_state_dict" in checkpoint_dict:
-        scaler.load_state_dict(checkpoint_dict["scaler_state_dict"])
-        checkpoint_logging.success("Loaded grad scaler state dictionary")
+        scaler.load_state_dict(
+            checkpoint_dict["scaler_state_dict"])
+        checkpoint_logging.success(
+            "Loaded grad scaler state dictionary")
 
     if "static_capture_state_dict" in checkpoint_dict:
-        _StaticCapture.load_state_dict(checkpoint_dict["static_capture_state_dict"])
-        checkpoint_logging.success("Loaded static capture state dictionary")
+        _StaticCapture.load_state_dict(
+            checkpoint_dict["static_capture_state_dict"])
+        checkpoint_logging.success(
+            "Loaded static capture state dictionary")
 
     epoch = 0
     if "epoch" in checkpoint_dict:

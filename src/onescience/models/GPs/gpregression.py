@@ -77,7 +77,8 @@ class GPR(ExactGP):
         y_std = torch.tensor(1.0)
         train_y_sc = (train_y - y_mean) / y_std
 
-        ExactGP.__init__(self, train_x, train_y_sc, likelihood)
+        ExactGP.__init__(
+            self, train_x, train_y_sc, likelihood)
 
         # registering mean and std of the raw response
         self.register_buffer("y_mean", y_mean)
@@ -91,27 +92,32 @@ class GPR(ExactGP):
             self.likelihood.initialize(noise=noise)
 
         self.likelihood.register_prior(
-            "noise_prior", LogHalfHorseshoePrior(0.01, lb_noise), "raw_noise"
+            "noise_prior", LogHalfHorseshoePrior(
+                0.01, lb_noise), "raw_noise"
         )
         if fix_noise:
             self.likelihood.raw_noise.requires_grad_(False)
 
         if isinstance(correlation_kernel, str):
             try:
-                correlation_kernel_class = getattr(kernels, correlation_kernel)
+                correlation_kernel_class = getattr(
+                    kernels, correlation_kernel)
                 correlation_kernel = correlation_kernel_class(
-                    ard_num_dims=self.train_inputs[0].size(1),
+                    ard_num_dims=self.train_inputs[0].size(
+                        1),
                     lengthscale_constraint=Positive(
                         transform=torch.exp, inv_transform=torch.log
                     ),
                 )
                 correlation_kernel.register_prior(
                     "lengthscale_prior",
-                    MollifiedUniformPrior(math.log(0.1), math.log(10)),
+                    MollifiedUniformPrior(
+                        math.log(0.1), math.log(10)),
                     "raw_lengthscale",
                 )
             except:
-                raise RuntimeError("%s not an allowed kernel" % correlation_kernel)
+                raise RuntimeError(
+                    "%s not an allowed kernel" % correlation_kernel)
         elif not isinstance(correlation_kernel, gpytorch.kernels.Kernel):
             raise RuntimeError(
                 "specified correlation kernel is not a `gpytorch.kernels.Kernel` instance"
@@ -125,7 +131,8 @@ class GPR(ExactGP):
         )
         # register priors
         self.covar_module.register_prior(
-            "outputscale_prior", LogNormalPrior(1e-6, 1.0), "outputscale"
+            "outputscale_prior", LogNormalPrior(
+                1e-6, 1.0), "outputscale"
         )
 
     def forward(self, x: torch.Tensor) -> MultivariateNormal:
@@ -156,7 +163,8 @@ class GPR(ExactGP):
             else:
                 # for batched GPs
                 num_samples = self.train_targets.shape[0]
-                output = self(x.unsqueeze(0).repeat(num_samples, 1, 1))
+                output = self(x.unsqueeze(
+                    0).repeat(num_samples, 1, 1))
 
             if return_std and include_noise:
                 output = self.likelihood(output)

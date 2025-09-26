@@ -33,14 +33,16 @@ def _get_adj_matrix_for_edge_set(
     receiver_n_node = graph.nodes[receiver_node_set].n_node[0]
 
     # Build adjacency matrix.
-    adj_mat = sparse.csr_matrix((sender_n_node, receiver_n_node), dtype=np.bool_)
+    adj_mat = sparse.csr_matrix(
+        (sender_n_node, receiver_n_node), dtype=np.bool_)
     edge_set = graph.edges[edge_set_key]
     s, r = edge_set.indices
     adj_mat[s, r] = True
     if add_self_edges:
         # Should only do this if we are certain the adjacency matrix is square.
         assert sender_node_set == receiver_node_set
-        adj_mat[np.arange(sender_n_node), np.arange(receiver_n_node)] = True
+        adj_mat[np.arange(sender_n_node), np.arange(
+            receiver_n_node)] = True
     return adj_mat
 
 
@@ -97,7 +99,8 @@ class MeshTransformer(hk.Module):
         self._maybe_init_batch_first_transformer(x)
 
         y = jnp.transpose(features, axes=[1, 0, 2])
-        y = self._batch_first_transformer(y, global_norm_conditioning)
+        y = self._batch_first_transformer(
+            y, global_norm_conditioning)
         y = jnp.transpose(y, axes=[1, 0, 2])
         x = x._replace(
             nodes={

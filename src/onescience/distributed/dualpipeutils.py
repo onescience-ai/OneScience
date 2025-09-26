@@ -40,7 +40,8 @@ def run_backward(tensors: List[torch.Tensor], grad_tensors: List[torch.Tensor]) 
         allow_unreachable=True,
         accumulate_grad=True,
     )
-    Variable._execution_engine.run_backward(tensors, grad_tensors, **kwargs)
+    Variable._execution_engine.run_backward(
+        tensors, grad_tensors, **kwargs)
 
 
 def chunk_tensor(x, chunks, dim):
@@ -63,16 +64,19 @@ def scatter(inputs, chunks, dim):
     assert isinstance(inputs, (torch.Tensor, tuple, list))
     if isinstance(inputs, torch.Tensor):
         inputs = (inputs,)
-    assert all(x is None or isinstance(x, torch.Tensor) for x in inputs)
+    assert all(x is None or isinstance(x, torch.Tensor)
+               for x in inputs)
     inputs = [chunk_tensor(x, chunks, dim) for x in inputs]
-    microbatches = [microbatch for microbatch in zip(*inputs)]
+    microbatches = [
+        microbatch for microbatch in zip(*inputs)]
     if len(microbatches) == 0:
         microbatches = [() for _ in range(chunks)]
     return microbatches
 
 
 def gather(micro_outputs, dim):
-    assert isinstance(micro_outputs[0], (torch.Tensor, tuple, list))
+    assert isinstance(
+        micro_outputs[0], (torch.Tensor, tuple, list))
     if isinstance(micro_outputs[0], torch.Tensor):
         micro_outputs = [(x,) for x in micro_outputs]
     outputs = [x for x in zip(*micro_outputs)]

@@ -88,7 +88,8 @@ class ConfigManager(object):
         for key, value in config_dict.items():
             assert "." not in key
             if isinstance(value, (dict)):
-                children_keys, children_configs = self._get_config_infos(value)
+                children_keys, children_configs = self._get_config_infos(
+                    value)
                 all_keys.update(
                     {
                         f"{key}.{child_key}": child_value_type
@@ -163,20 +164,24 @@ class ConfigManager(object):
                 ]:
                     local_configs[key] = None
                 elif dtype == bool:
-                    local_configs[key] = get_bool_value(new_configs[full_key])
+                    local_configs[key] = get_bool_value(
+                        new_configs[full_key])
                 elif isinstance(value, (ListValue, list)):
                     local_configs[key] = (
-                        [dtype(s) for s in new_configs[full_key].strip().split(",")]
+                        [dtype(s) for s in new_configs[full_key].strip().split(
+                            ",")]
                         if new_configs[full_key].strip()
                         else []
                     )
                 else:
-                    local_configs[key] = dtype(new_configs[full_key])
+                    local_configs[key] = dtype(
+                        new_configs[full_key])
             elif isinstance(value, GlobalConfigValue):
                 local_configs[key] = global_configs[value.global_key]
             else:
                 if not allow_none and default_value is None:
-                    raise Exception(f"config {full_key} not allowed to be none")
+                    raise Exception(
+                        f"config {full_key} not allowed to be none")
                 local_configs[key] = default_value
         for key, value in local_configs.items():
             if not isinstance(value, dict):
@@ -206,7 +211,8 @@ def parse_configs(
     Returns:
         ConfigDict: The merged configuration dictionary.
     """
-    manager = ConfigManager(configs, fill_required_with_null=fill_required_with_null)
+    manager = ConfigManager(
+        configs, fill_required_with_null=fill_required_with_null)
     parser = argparse.ArgumentParser()
     # Register arguments
     for key, (
@@ -221,7 +227,8 @@ def parse_configs(
         )
     # Merge user commandline pargs with default ones
     merged_configs = manager.merge_configs(
-        vars(parser.parse_args(arg_str.split())) if arg_str else {}
+        vars(parser.parse_args(arg_str.split())
+             ) if arg_str else {}
     )
     return merged_configs
 

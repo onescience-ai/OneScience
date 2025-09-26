@@ -27,9 +27,12 @@ class RagServer:
             self.config = default_config
 
     def transform(self, file_path: str, **kwargs) -> list[Document]:
-        documents = DocProcessor.process(file_path=file_path, **kwargs)
-        preprocessor = SummaryPreprocessor(self.config["chat_model"])
-        documents = [preprocessor.preprocess(doc) for doc in documents]
+        documents = DocProcessor.process(
+            file_path=file_path, **kwargs)
+        preprocessor = SummaryPreprocessor(
+            self.config["chat_model"])
+        documents = [preprocessor.preprocess(
+            doc) for doc in documents]
         emb_config = self.config["embeddings"]
         embeddings = EmbeddingModel[emb_config["factory_name"]](
             **emb_config["model_config"]
@@ -47,7 +50,8 @@ class RagServer:
         all_documents = []
         for document in documents:
             # parse document to nodes
-            document_nodes = splitter.split_documents([document])
+            document_nodes = splitter.split_documents(
+                [document])
             split_documents = []
             for document_node in document_nodes:
                 if document_node.page_content.strip():
@@ -63,12 +67,14 @@ class RagServer:
 
     def load(self, documents: list[Document], **kwargs):
         vec_config = self._gen_vector_config(**kwargs)
-        vector = Vector(vec_config, self.config["embeddings"])
+        vector = Vector(
+            vec_config, self.config["embeddings"])
         vector.create(documents)
 
     def clean(self, node_ids: Optional[list[str]], **kwargs):
         vec_config = self._gen_vector_config(**kwargs)
-        vector = Vector(vec_config, self.config["embeddings"])
+        vector = Vector(
+            vec_config, self.config["embeddings"])
         if node_ids:
             vector.delete_by_ids(node_ids)
         else:
@@ -76,7 +82,8 @@ class RagServer:
 
     def delete(self, **kwargs):
         vec_config = self._gen_vector_config(**kwargs)
-        vector = Vector(vec_config, self.config["embeddings"])
+        vector = Vector(
+            vec_config, self.config["embeddings"])
         vector.delete()
 
     def retrieve(
@@ -90,7 +97,8 @@ class RagServer:
             self.config["vector_type"] == VectorType.MILVUS.value
             and "collection_name" not in kwargs
         ):
-            processor = CollectionPreprocessor(self.config["chat_model"])
+            processor = CollectionPreprocessor(
+                self.config["chat_model"])
             collection_names = processor.preprocess(query)
         else:
             collection_names = kwargs["collection_name"]
@@ -147,6 +155,7 @@ class RagServer:
                 "You should must private collection when you use milvus vector"
             )
         if vector_type == VectorType.MILVUS.value:
-            vec_config["collection_name"] = kwargs.get("collection_name")
+            vec_config["collection_name"] = kwargs.get(
+                "collection_name")
 
         return vec_config

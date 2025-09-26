@@ -34,12 +34,14 @@ class RelativePositionEmbedding(nn.Module):
     ):
 
         (x, alpha, beta, gamma) = jax.tree_map(
-            lambda t: jnp.asarray(t, dtype=self._dtype), (x, alpha, beta, gamma)
+            lambda t: jnp.asarray(
+                t, dtype=self._dtype), (x, alpha, beta, gamma)
         )
 
         scale = (beta - alpha) / jnp.log(gamma / alpha)
         x_abs = jnp.abs(x)
-        gx = jnp.log((x_abs + 1e-5) / alpha) * scale + alpha  ## Liyh: 1e-5?
+        gx = jnp.log((x_abs + 1e-5) / alpha) * \
+            scale + alpha  # Liyh: 1e-5?
         gx = jnp.minimum(beta, gx)
         gx = jnp.sign(x) * gx
 
@@ -47,21 +49,22 @@ class RelativePositionEmbedding(nn.Module):
         ret = jax.lax.select(cond, gx, x)
         ret = jnp.clip(ret, -beta, beta)
 
-        #### ret += beta
-        ### Asymptotic symmetry
+        # ret += beta
+        # Asymptotic symmetry
         ret += beta - 1
         cond = jnp.greater(ret, -0.5)
-        ret = jax.lax.select(cond, ret, jnp.ones_like(ret) * (2 * beta - 1.0))
+        ret = jax.lax.select(
+            cond, ret, jnp.ones_like(ret) * (2 * beta - 1.0))
 
         return jnp.asarray(ret, dtype=jnp.int32)
 
     def __call__(self, q_idx, k_idx):
         """Compute binned relative position encoding"""
-        ### q_idx, k_idx: [..., Nres,]
+        # q_idx, k_idx: [..., Nres,]
         # [..., Nres, 1]
         context_position = jnp.expand_dims(
             q_idx, -1
-        )  ## Liyh: support batch dim? zhenyu: yes
+        )  # Liyh: support batch dim? zhenyu: yes
         # [..., Nres]
         memory_position = jnp.expand_dims(k_idx, -2)
         # [..., Nres, Nres]
@@ -79,7 +82,8 @@ class RelativePositionEmbedding(nn.Module):
             beta=self.num_buckets,
             gamma=self.max_distance,
         )
-        relpos_onehot = onehot(relpos_bucket, 2 * self.num_buckets)
+        relpos_onehot = onehot(
+            relpos_bucket, 2 * self.num_buckets)
         # [..., Nres, Nres], [..., Nres, Nres, 2*num_buckets]
         return relpos_bucket, relpos_onehot  # int32, float32
 
@@ -91,9 +95,11 @@ class Softmax1(nn.Module):
     def __call__(self, logits):
         zeros = jnp.zeros_like(logits)
         zeros, _ = jnp.split(zeros, (1,), axis=self.axis)
-        logits_1 = jnp.concatenate([zeros, logits], self.axis)
+        logits_1 = jnp.concatenate(
+            [zeros, logits], self.axis)
         softmax = nn.softmax(logits_1, axis=self.axis)
-        _, softmax1 = jnp.split(softmax, (1,), axis=self.axis)
+        _, softmax1 = jnp.split(
+            softmax, (1,), axis=self.axis)
         return softmax1
 
 
@@ -128,7 +134,7 @@ class TransMatMul(nn.Module):
 
     @nn.compact
     def __call__(self, tensor, weights):
-        ### tensor.ndim>=1; weights.ndim==2
+        # tensor.ndim>=1; weights.ndim==2
 
         t_shape = tensor.shape
         tensor = self._reshape(tensor)
@@ -155,9 +161,12 @@ class RotaryEmbedding(nn.Module):
 
     def setup(self):
 
-        inv_freq = 1.0 / (10000 ** (jnp.arange(0, self.dim, 2) / self.dim))
-        self.inv_freq = jnp.asarray(inv_freq.repeat(2, 0), jnp.float32)
-        self.t = jnp.arange(self.t_max, dtype=jnp.float32).reshape((1, -1))
+        inv_freq = 1.0 / \
+            (10000 ** (jnp.arange(0, self.dim, 2) / self.dim))
+        self.inv_freq = jnp.asarray(
+            inv_freq.repeat(2, 0), jnp.float32)
+        self.t = jnp.arange(
+            self.t_max, dtype=jnp.float32).reshape((1, -1))
 
     def __call__(self, q, k, pos_idx=0):
         # pos_idx: (...,len);

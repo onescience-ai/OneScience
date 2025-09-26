@@ -23,7 +23,8 @@ class GatedLinearUnit(abc.ABC):
         x: Float[Array, "*B M K"],
         weight: Float[Array, "K 2 N"],
         *,
-        activation: Callable[[jax.Array], jax.Array] | None = None,
+        activation: Callable[[jax.Array],
+                             jax.Array] | None = None,
         precision: jax.lax.Precision | None = None,
         **kwargs,
     ) -> Float[Array, "*B M N"]:
@@ -53,7 +54,8 @@ class GatedLinearUnit(abc.ABC):
         def _vmap_rule(
             axis_size, in_batched, *args, fn: jax.custom_batching.custom_vmap
         ):
-            sequential_vmap = jax.custom_batching.sequential_vmap(fn.fun)
+            sequential_vmap = jax.custom_batching.sequential_vmap(
+                fn.fun)
             return sequential_vmap.vmap_rule(axis_size, in_batched, *args)
 
         return _vmap_rule
@@ -62,8 +64,10 @@ class GatedLinearUnit(abc.ABC):
         self, fn: Callable[..., Any], **kwargs
     ) -> jax.custom_batching.custom_vmap:
         fn_closed = functools.partial(fn, **kwargs)
-        fn_closed = jax.custom_batching.custom_vmap(fn_closed)
-        vmap_rule = functools.partial(self.vmap_rule_forward, fn=fn_closed)
+        fn_closed = jax.custom_batching.custom_vmap(
+            fn_closed)
+        vmap_rule = functools.partial(
+            self.vmap_rule_forward, fn=fn_closed)
         fn_closed.def_vmap(vmap_rule)
         return fn_closed
 
@@ -85,7 +89,8 @@ def gated_linear_unit_xla(
     x: Float[Array, "*B M K"],
     weight: Float[Array, "K 2 N"],
     *,
-    activation: Callable[[jax.Array], jax.Array] | None = None,
+    activation: Callable[[jax.Array],
+                         jax.Array] | None = None,
     precision: jax.lax.Precision | None = None,
 ) -> Float[Array, "*B M N"]:
     """Applies a gated linear unit (https://arxiv.org/abs/1612.08083).
@@ -108,7 +113,8 @@ def gated_linear_unit_xla(
       The output array.
     """
 
-    weight_reshaped = jax.lax.collapse(weight, start_dimension=-2, stop_dimension=None)
+    weight_reshaped = jax.lax.collapse(
+        weight, start_dimension=-2, stop_dimension=None)
     assert weight_reshaped.ndim == 2
 
     y = jnp.dot(x, weight_reshaped, precision=precision)

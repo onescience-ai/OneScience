@@ -158,7 +158,8 @@ class Model(Module):
     ) -> Tensor:
         edge_features = self.edge_encoder(edge_features)
         node_features = self.node_encoder(node_features)
-        x = self.processor(node_features, edge_features, graph)
+        x = self.processor(
+            node_features, edge_features, graph)
         x = self.node_decoder(x)
         return x
 
@@ -215,8 +216,10 @@ class MeshGraphNetProcessor(nn.Module):
         layers = list(chain(*zip(edge_blocks, node_blocks)))
 
         self.processor_layers = nn.ModuleList(layers)
-        self.num_processor_layers = len(self.processor_layers)
-        self.set_checkpoint_segments(self.num_processor_checkpoint_segments)
+        self.num_processor_layers = len(
+            self.processor_layers)
+        self.set_checkpoint_segments(
+            self.num_processor_checkpoint_segments)
 
     def set_checkpoint_segments(self, checkpoint_segments: int):
         """
@@ -241,16 +244,19 @@ class MeshGraphNetProcessor(nn.Module):
             segment_size = self.num_processor_layers // checkpoint_segments
             self.checkpoint_segments = []
             for i in range(0, self.num_processor_layers, segment_size):
-                self.checkpoint_segments.append((i, i + segment_size))
+                self.checkpoint_segments.append(
+                    (i, i + segment_size))
             self.checkpoint_fn = set_checkpoint_fn(True)
         else:
             self.checkpoint_fn = set_checkpoint_fn(False)
-            self.checkpoint_segments = [(0, self.num_processor_layers)]
+            self.checkpoint_segments = [
+                (0, self.num_processor_layers)]
 
     def run_function(
         self, segment_start: int, segment_end: int
     ) -> Callable[
-        [Tensor, Tensor, Union[DGLGraph, List[DGLGraph]]], Tuple[Tensor, Tensor]
+        [Tensor, Tensor, Union[DGLGraph, List[DGLGraph]]
+         ], Tuple[Tensor, Tensor]
     ]:
         """Custom forward for gradient checkpointing
 
@@ -291,7 +297,8 @@ class MeshGraphNetProcessor(nn.Module):
     ) -> Tensor:
         for segment_start, segment_end in self.checkpoint_segments:
             edge_features, node_features = self.checkpoint_fn(
-                self.run_function(segment_start, segment_end),
+                self.run_function(
+                    segment_start, segment_end),
                 node_features,
                 edge_features,
                 graph,

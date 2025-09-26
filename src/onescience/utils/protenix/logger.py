@@ -47,7 +47,8 @@ def add_handlers(
     """
     fmt = "%(asctime)-15s [%(pathname)s:%(lineno)d] %(levelname)s %(name)s: %(message)s"
     formatter = logging.Formatter(fmt)
-    loglevel = getattr(logging, loglevel.upper(), logging.INFO)
+    loglevel = getattr(
+        logging, loglevel.upper(), logging.INFO)
     logger.setLevel(loglevel)
 
     if not logger.handlers:
@@ -61,7 +62,8 @@ def add_handlers(
 
     # we output to at most two streams: one stdout and one file
     if log_file_path is not None and len(logger.handlers) == 1:
-        handler = logging.FileHandler(log_file_path, mode="a")
+        handler = logging.FileHandler(
+            log_file_path, mode="a")
         handler.setLevel(logging.INFO)
         handler.setFormatter(formatter)
         logger.addHandler(handler)

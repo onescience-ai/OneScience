@@ -12,7 +12,8 @@ _Shape2DType: TypeAlias = tuple[int | None, int | None]
 class GlobalConfig(base_config.BaseConfig):
     bfloat16: Literal["all", "none", "intermediate"] = "all"
     final_init: Literal["zeros", "linear"] = "zeros"
-    pair_attention_chunk_size: Sequence[_Shape2DType] = ((1536, 128), (None, 32))
+    pair_attention_chunk_size: Sequence[_Shape2DType] = (
+        (1536, 128), (None, 32))
     pair_transition_shard_spec: Sequence[_Shape2DType] = (
         (2048, None),
         (None, 1024),

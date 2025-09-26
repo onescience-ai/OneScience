@@ -33,7 +33,8 @@ from onescience.models.UMA.components.calculate import CalculateRunner
 
 
 def get_kappa103_data_list(reference_data_path: str, debug=False):
-    atoms = ase.io.read(reference_data_path, format="extxyz", index=":")
+    atoms = ase.io.read(
+        reference_data_path, format="extxyz", index=":")
     if debug:
         atoms = atoms[:1]
     return atoms
@@ -66,7 +67,8 @@ class KappaRunner(CalculateRunner):
     # TODO continue if unfinished
     def calculate(self, job_num: int = 0, num_jobs: int = 1) -> list[dict[str, Any]]:
         max_steps = 5000
-        force_max = 1e-4  # Run until the forces are smaller than this in eV/A
+        # Run until the forces are smaller than this in eV/A
+        force_max = 1e-4
         symprec = 1e-5
         enforce_relax_symm = True
         conductivity_broken_symm = False
@@ -76,15 +78,18 @@ class KappaRunner(CalculateRunner):
 
         all_results = []
 
-        chunk_indices = np.array_split(range(len(self.input_data)), num_jobs)[job_num]
+        chunk_indices = np.array_split(
+            range(len(self.input_data)), num_jobs)[job_num]
 
         for i in tqdm(chunk_indices, desc="Running kappa calculations"):
             atoms = self.input_data[i]
 
-            mat_id = atoms.info.get(Key.mat_id, f"id-{len(all_results)}")
+            mat_id = atoms.info.get(
+                Key.mat_id, f"id-{len(all_results)}")
             init_info = deepcopy(atoms.info)
             formula = atoms.info.get("name", "unknown")
-            spg_num = MoyoDataset(MoyoAdapter.from_atoms(atoms)).number
+            spg_num = MoyoDataset(
+                MoyoAdapter.from_atoms(atoms)).number
 
             info_dict = {
                 "sid": mat_id,
@@ -106,15 +111,18 @@ class KappaRunner(CalculateRunner):
                 atoms.calc = self.calculator
                 if max_steps > 0:
                     if enforce_relax_symm:
-                        atoms.set_constraint(FixSymmetry(atoms))
+                        atoms.set_constraint(
+                            FixSymmetry(atoms))
 
                     # Use standard mask for no-tilt constraint
                     filtered_atoms = FrechetCellFilter(
                         atoms, mask=[True] * 3 + [False] * 3
                     )
 
-                    optimizer = FIRE(filtered_atoms, logfile=None)
-                    optimizer.run(fmax=force_max, steps=max_steps)
+                    optimizer = FIRE(
+                        filtered_atoms, logfile=None)
+                    optimizer.run(
+                        fmax=force_max, steps=max_steps)
 
                     reached_max_steps = optimizer.Nsteps >= max_steps
                     if reached_max_steps:
@@ -130,7 +138,8 @@ class KappaRunner(CalculateRunner):
                     atoms.info = init_info | atoms.info
 
                     # Check if symmetry was broken during relaxation
-                    relaxed_spg = MoyoDataset(MoyoAdapter.from_atoms(atoms)).number
+                    relaxed_spg = MoyoDataset(
+                        MoyoAdapter.from_atoms(atoms)).number
                     broken_symmetry = spg_num != relaxed_spg
                     relax_dict = {
                         "max_stress": max_stress,
@@ -144,8 +153,10 @@ class KappaRunner(CalculateRunner):
                     f"Failed to relax {formula=}, {mat_id=}: {exc!r}", stacklevel=2
                 )
                 traceback.print_exc()
-                info_dict["errors"].append(f"RelaxError: {exc!r}")
-                info_dict["error_traceback"].append(traceback.format_exc())
+                info_dict["errors"].append(
+                    f"RelaxError: {exc!r}")
+                info_dict["error_traceback"].append(
+                    traceback.format_exc())
                 results = info_dict | relax_dict
                 all_results.append(results)
                 continue
@@ -155,9 +166,12 @@ class KappaRunner(CalculateRunner):
                 # Initialize phono3py with the relaxed structure
                 ph3 = ltc.init_phono3py(
                     atoms,
-                    fc2_supercell=atoms.info.get("fc2_supercell", [2, 2, 2]),
-                    fc3_supercell=atoms.info.get("fc3_supercell", [2, 2, 2]),
-                    q_point_mesh=atoms.info.get("q_point_mesh", [10, 10, 10]),
+                    fc2_supercell=atoms.info.get(
+                        "fc2_supercell", [2, 2, 2]),
+                    fc3_supercell=atoms.info.get(
+                        "fc3_supercell", [2, 2, 2]),
+                    q_point_mesh=atoms.info.get(
+                        "q_point_mesh", [10, 10, 10]),
                     displacement_distance=self.displacement,
                     symprec=symprec,
                 )
@@ -166,11 +180,13 @@ class KappaRunner(CalculateRunner):
                 ph3, fc2_set, freqs = ltc.get_fc2_and_freqs(
                     ph3,
                     calculator=self.calculator,
-                    pbar_kwargs={"leave": False, "disable": not prog_bar},
+                    pbar_kwargs={"leave": False,
+                                 "disable": not prog_bar},
                 )
 
                 # Check for imaginary frequencies
-                has_imaginary_freqs = check_imaginary_freqs(freqs)
+                has_imaginary_freqs = check_imaginary_freqs(
+                    freqs)
                 freqs_dict = {
                     Key.has_imag_ph_modes: has_imaginary_freqs,
                     Key.ph_freqs: freqs,
@@ -182,11 +198,13 @@ class KappaRunner(CalculateRunner):
                 )
 
                 if ltc_condition:  # Calculate third-order force constants
-                    logging.info(f"Calculating FC3 for {mat_id}")
+                    logging.info(
+                        f"Calculating FC3 for {mat_id}")
                     ltc.calculate_fc3_set(
                         ph3,
                         calculator=self.calculator,
-                        pbar_kwargs={"leave": False, "disable": not prog_bar},
+                        pbar_kwargs={
+                            "leave": False, "disable": not prog_bar},
                     )
                     ph3.produce_fc3(symmetrize_fc3r=True)
 
@@ -204,14 +222,17 @@ class KappaRunner(CalculateRunner):
                     f"Failed to calculate force sets {mat_id}: {exc!r}", stacklevel=2
                 )
                 traceback.print_exc()
-                info_dict["errors"].append(f"ForceConstantError: {exc!r}")
-                info_dict["error_traceback"].append(traceback.format_exc())
+                info_dict["errors"].append(
+                    f"ForceConstantError: {exc!r}")
+                info_dict["error_traceback"].append(
+                    traceback.format_exc())
                 results = info_dict | relax_dict
                 all_results.append(results)
                 continue
 
             try:  # Calculate thermal conductivity
-                logging.info(f"Calculating kappa for {mat_id}")
+                logging.info(
+                    f"Calculating kappa for {mat_id}")
                 ph3, kappa_dict, _cond = ltc.calculate_conductivity(
                     ph3, temperatures=temperatures
                 )
@@ -220,8 +241,10 @@ class KappaRunner(CalculateRunner):
                     f"Failed to calculate conductivity {mat_id}: {exc!r}", stacklevel=2
                 )
                 traceback.print_exc()
-                info_dict["errors"].append(f"ConductivityError: {exc!r}")
-                info_dict["error_traceback"].append(traceback.format_exc())
+                info_dict["errors"].append(
+                    f"ConductivityError: {exc!r}")
+                info_dict["error_traceback"].append(
+                    traceback.format_exc())
                 results = info_dict | relax_dict | freqs_dict
                 all_results.append(results)
                 continue

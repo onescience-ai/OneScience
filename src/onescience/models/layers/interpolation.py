@@ -181,8 +181,10 @@ def smooth_step_1_weighting(dist_vec: Tensor, dx: Tensor) -> Tensor:
         Weights derived using the `smooth_step_1` interpolation of the distance vector.
     """
     normalized_dist_vec = dist_vec / dx
-    lower_point = smooth_step_1(normalized_dist_vec[..., 0, :])
-    upper_point = smooth_step_1(-normalized_dist_vec[..., -1, :])
+    lower_point = smooth_step_1(
+        normalized_dist_vec[..., 0, :])
+    upper_point = smooth_step_1(
+        -normalized_dist_vec[..., -1, :])
     return _hyper_cube_weighting(lower_point, upper_point)
 
 
@@ -205,8 +207,10 @@ def smooth_step_2_weighting(dist_vec: Tensor, dx: Tensor) -> Tensor:
         Weights derived using the `smooth_step_2` interpolation of the distance vector.
     """
     normalized_dist_vec = dist_vec / dx
-    lower_point = smooth_step_2(normalized_dist_vec[..., 0, :])
-    upper_point = smooth_step_2(-normalized_dist_vec[..., -1, :])
+    lower_point = smooth_step_2(
+        normalized_dist_vec[..., 0, :])
+    upper_point = smooth_step_2(
+        -normalized_dist_vec[..., -1, :])
     return _hyper_cube_weighting(lower_point, upper_point)
 
 
@@ -230,8 +234,10 @@ def gaussian_weighting(dist_vec: Tensor, dx: Tensor) -> Tensor:
     dim = dx.size(-1)
     sharpen = 2.0
     sigma = dx / sharpen
-    factor = 1.0 / ((2.0 * math.pi) ** (dim / 2.0) * sigma.prod())
-    gaussian = torch.exp(-0.5 * torch.square((dist_vec / sigma)))
+    factor = 1.0 / ((2.0 * math.pi) **
+                    (dim / 2.0) * sigma.prod())
+    gaussian = torch.exp(-0.5 *
+                         torch.square((dist_vec / sigma)))
     gaussian = factor * gaussian.prod(dim=-1)
     norm = gaussian.sum(dim=2, keepdim=True)
     weights = torch.unsqueeze(gaussian / norm, dim=3)
@@ -255,7 +261,8 @@ def _gather_nd(params: Tensor, indices: Tensor) -> Tensor:
             f"the last dimension of indices must less or equal to the rank of params. Got indices:{indices.shape}, params:{params.shape}. {m} > {n}"
         )
 
-    indices = indices.reshape((num_samples, m)).transpose(0, 1).tolist()
+    indices = indices.reshape(
+        (num_samples, m)).transpose(0, 1).tolist()
     output = params[indices]  # (num_samples, ...)
     return output.reshape(out_shape).contiguous()
 
@@ -277,8 +284,10 @@ def index_values_high_mem(points: Tensor, idx: Tensor) -> Tensor:
     Tensor
         Indexed values from the `points` tensor.
     """
-    idx = idx.unsqueeze(3).repeat_interleave(points.size(-1), dim=3)
-    points = points.unsqueeze(1).repeat_interleave(idx.size(1), dim=1)
+    idx = idx.unsqueeze(3).repeat_interleave(
+        points.size(-1), dim=3)
+    points = points.unsqueeze(
+        1).repeat_interleave(idx.size(1), dim=1)
     out = torch.gather(points, dim=2, index=idx)
     return out
 
@@ -301,14 +310,16 @@ def index_values_low_mem(points: Tensor, idx: Tensor) -> Tensor:
     num_features = points.shape[2]
     batch_indices = torch.reshape(
         torch.tile(
-            torch.unsqueeze(torch.arange(0, batch_size).to(device), dim=0),
+            torch.unsqueeze(torch.arange(
+                0, batch_size).to(device), dim=0),
             (num_points * K,),
         ),
         [-1],
     )  # BNK
     point_indices = torch.reshape(idx, [-1])  # BNK
     vertices = _gather_nd(
-        points, torch.stack((batch_indices, point_indices), dim=1)
+        points, torch.stack(
+            (batch_indices, point_indices), dim=1)
     )  # BNKxC
     vertices4d = torch.reshape(
         vertices, [batch_size, num_points, K, num_features]
@@ -331,38 +342,45 @@ def _grid_knn_idx(
 
     # find nearest neighbors of query points from a grid
     # dx vector on grid
-    dx = torch.tensor([(x[1] - x[0]) / (x[2] - 1) for x in grid])
+    dx = torch.tensor(
+        [(x[1] - x[0]) / (x[2] - 1) for x in grid])
     dx = dx.view(1, 1, len(grid)).to(device)
 
     # min point on grid (this will change if we are padding the grid)
-    start = torch.tensor([val[0] for val in grid]).to(device)
+    start = torch.tensor([val[0]
+                         for val in grid]).to(device)
     if padding:
         start = start - (k * dx)
     start = start.view(1, 1, len(grid))
 
     # this is the center nearest neighbor in the grid
-    center_idx = (((query_points - start) / dx) + (stride / 2.0 % 1.0)).to(torch.int64)
+    center_idx = (((query_points - start) / dx) +
+                  (stride / 2.0 % 1.0)).to(torch.int64)
 
     # index window
     idx_add = (
-        torch.arange(-((stride - 1) // 2), stride // 2 + 1).view(1, 1, -1).to(device)
+        torch.arange(-((stride - 1) // 2), stride //
+                     2 + 1).view(1, 1, -1).to(device)
     )
 
     # find all index in window around center index
     # TODO make for more general diminsions
     if len(grid) == 1:
         idx_row_0 = center_idx[..., 0:1] + idx_add
-        idx = idx_row_0.view(idx_row_0.shape[0:2] + torch.Size([int(stride)]))
+        idx = idx_row_0.view(
+            idx_row_0.shape[0:2] + torch.Size([int(stride)]))
     elif len(grid) == 2:
         dim_size_1 = grid[1][2]
         if padding:
             dim_size_1 += 2 * k
-        idx_row_0 = dim_size_1 * (center_idx[..., 0:1] + idx_add)
+        idx_row_0 = dim_size_1 * \
+            (center_idx[..., 0:1] + idx_add)
         idx_row_0 = idx_row_0.unsqueeze(-1)
         idx_row_1 = center_idx[..., 1:2] + idx_add
         idx_row_1 = idx_row_1.unsqueeze(2)
         idx = (idx_row_0 + idx_row_1).view(
-            idx_row_0.shape[0:2] + torch.Size([int(stride**2)])
+            idx_row_0.shape[0:2] +
+            torch.Size([int(stride**2)])
         )
     elif len(grid) == 3:
         dim_size_1 = grid[1][2]
@@ -370,14 +388,17 @@ def _grid_knn_idx(
         if padding:
             dim_size_1 += 2 * k
             dim_size_2 += 2 * k
-        idx_row_0 = dim_size_2 * dim_size_1 * (center_idx[..., 0:1] + idx_add)
+        idx_row_0 = dim_size_2 * dim_size_1 * \
+            (center_idx[..., 0:1] + idx_add)
         idx_row_0 = idx_row_0.unsqueeze(-1).unsqueeze(-1)
-        idx_row_1 = dim_size_2 * (center_idx[..., 1:2] + idx_add)
+        idx_row_1 = dim_size_2 * \
+            (center_idx[..., 1:2] + idx_add)
         idx_row_1 = idx_row_1.unsqueeze(2).unsqueeze(-1)
         idx_row_2 = center_idx[..., 2:3] + idx_add
         idx_row_2 = idx_row_2.unsqueeze(2).unsqueeze(3)
         idx = (idx_row_0 + idx_row_1 + idx_row_2).view(
-            idx_row_0.shape[0:2] + torch.Size([int(stride**3)])
+            idx_row_0.shape[0:2] +
+            torch.Size([int(stride**3)])
         )
     else:
         raise RuntimeError
@@ -430,7 +451,8 @@ def interpolation(
     elif interpolation_type == "gaussian":
         stride = 5
     else:
-        raise RuntimeError(f"Interpolation type {interpolation_type} not supported")
+        raise RuntimeError(
+            f"Interpolation type {interpolation_type} not supported")
 
     # set device
     device = query_points.device
@@ -444,7 +466,8 @@ def interpolation(
     # NOTE the mesh grid is padded by stride//2
     k = stride // 2
     linspace = [
-        torch.linspace(x[0] - k * dx_i, x[1] + k * dx_i, x[2] + 2 * k)
+        torch.linspace(x[0] - k * dx_i,
+                       x[1] + k * dx_i, x[2] + 2 * k)
         for x, dx_i in zip(grid, dx)
     ]
     meshgrid = torch.meshgrid(linspace)
@@ -456,14 +479,17 @@ def interpolation(
 
     # reshape query points, context grid and mesh grid for easier indexing
     # [1, grid_dim_1*grid_dim_2*..., 2-4]
-    nr_grid_points = int(torch.tensor([x[2] + 2 * k for x in grid]).prod())
+    nr_grid_points = int(torch.tensor(
+        [x[2] + 2 * k for x in grid]).prod())
     meshgrid = meshgrid.view(1, nr_grid_points, dims)
-    context_grid = torch.reshape(context_grid, [1, nr_channels, nr_grid_points])
+    context_grid = torch.reshape(
+        context_grid, [1, nr_channels, nr_grid_points])
     context_grid = torch.swapaxes(context_grid, 1, 2)
     query_points = query_points.unsqueeze(0)
 
     # compute index of nearest neighbor on grid to query points
-    idx = _grid_knn_idx(query_points, grid, stride, padding=True)
+    idx = _grid_knn_idx(
+        query_points, grid, stride, padding=True)
 
     # index mesh grid to get distance vector
     if mem_speed_trade:
@@ -492,9 +518,11 @@ def interpolation(
 
     # index context grid with index
     if mem_speed_trade:
-        context_grid_idx = index_values_low_mem(context_grid, idx)
+        context_grid_idx = index_values_low_mem(
+            context_grid, idx)
     else:
-        context_grid_idx = index_values_high_mem(context_grid, idx)
+        context_grid_idx = index_values_high_mem(
+            context_grid, idx)
 
     # interpolate points
     product = weights * context_grid_idx

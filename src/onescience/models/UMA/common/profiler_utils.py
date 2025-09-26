@@ -25,7 +25,8 @@ def get_default_profiler_handler(
     def trace_handler(p):
         if all_ranks or distutils.is_master():
             trace_name = f"{run_id}_rank_{distutils.get_rank()}.pt.trace.json"
-            output_path = os.path.join(output_dir, trace_name)
+            output_path = os.path.join(
+                output_dir, trace_name)
             logging.info(f"Saving trace in {output_path}")
             p.export_chrome_trace(output_path)
             if logger:
@@ -58,7 +59,8 @@ def get_profile_schedule(wait: int = 5, warmup: int = 5, active: int = 2):
                 p.step()
     """
     total_profile_steps = wait + warmup + active
-    profile_schedule = torch.profiler.schedule(wait=wait, warmup=warmup, active=active)
+    profile_schedule = torch.profiler.schedule(
+        wait=wait, warmup=warmup, active=active)
 
     return profile_schedule, total_profile_steps
 
@@ -71,9 +73,11 @@ class ProfilerCallback(Callback):
         warmup_steps: int = 5,
         active_steps: int = 2,
         all_ranks: bool = False,
-        activities: tuple = (ProfilerActivity.CPU, ProfilerActivity.CUDA),
+        activities: tuple = (
+            ProfilerActivity.CPU, ProfilerActivity.CUDA),
     ) -> None:
-        profile_dir = os.path.join(job_config.metadata.log_dir, "profiles")
+        profile_dir = os.path.join(
+            job_config.metadata.log_dir, "profiles")
         os.makedirs(profile_dir, exist_ok=True)
         logger = (
             WandBSingletonLogger.get_instance()

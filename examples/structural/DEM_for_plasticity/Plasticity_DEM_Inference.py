@@ -141,7 +141,8 @@ x_var = {"x_lr": 0.5, "neuron": 100, "act_func": "tanh"}
 lr = x_var["x_lr"]
 H = int(x_var["neuron"])
 act_fn = x_var["act_func"]
-print("LR: " + str(lr) + ", H: " + str(H) + ", act fn: " + act_fn)
+print("LR: " + str(lr) + ", H: " +
+      str(H) + ", act fn: " + act_fn)
 f = open(base + "DiffLog", "w")
 f.close()
 
@@ -166,9 +167,12 @@ for step in range(1, step_max + 1):
     u_applied = disp_schedule[step]
 
     # Load trained net
-    model_path = os.path.join(base, "model", f"TrainedModel_Step{step}")  # <- 这里修改
-    DEM.S_Net.load_state_dict(torch.load(model_path))  # <- 这里修改
-    data = DEM.Eval([eps_p, PEEQ, alpha], u_applied, step, ref_file)
+    model_path = os.path.join(
+        base, "model", f"TrainedModel_Step{step}")  # <- 这里修改
+    DEM.S_Net.load_state_dict(
+        torch.load(model_path))  # <- 这里修改
+    data = DEM.Eval([eps_p, PEEQ, alpha],
+                    u_applied, step, ref_file)
 
     # Update
     eps_p, PEEQ, alpha, prep_time, sim_time = data

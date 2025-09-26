@@ -33,10 +33,12 @@ def setlevels(X, qual_index=None, return_label=False):
             l = np.sort(np.unique(temp[..., j])).tolist()
             labels.append(l)
             # l =  torch.unique(temp[..., j], sorted = True).tolist()
-            temp[..., j] = torch.tensor([*map(lambda m: l.index(m), temp[..., j])])
+            temp[..., j] = torch.tensor(
+                [*map(lambda m: l.index(m), temp[..., j])])
     else:
         l = torch.unique(temp, sorted=True)
-        temp = torch.tensor([*map(lambda m: l.tolist().index(m), temp)])
+        temp = torch.tensor(
+            [*map(lambda m: l.tolist().index(m), temp)])
 
     if temp.dtype == object:
         temp = temp.astype(float)
@@ -102,7 +104,8 @@ class GPPLUS(GPR):
         quant_index = list(all_index.difference(qual_index))
         num_levels_per_var = list(qual_ind_lev.values())
         # ------------------- lm columns --------------------------
-        lm_columns = list(set(qual_index).difference(lv_columns))
+        lm_columns = list(
+            set(qual_index).difference(lv_columns))
         if len(lm_columns) > 0:
             qual_kernel_columns = [*lv_columns, lm_columns]
         else:
@@ -110,10 +113,12 @@ class GPPLUS(GPR):
 
         #########################
         if len(qual_index) > 0:
-            train_x = setlevels(train_x, qual_index=qual_index)
+            train_x = setlevels(
+                train_x, qual_index=qual_index)
         #
         if multiple_noise:
-            noise_indices = list(range(0, num_levels_per_var[0]))
+            noise_indices = list(
+                range(0, num_levels_per_var[0]))
         else:
             noise_indices = []
 
@@ -148,10 +153,13 @@ class GPPLUS(GPR):
             qual_kernels = []
             for i in range(len(qual_kernel_columns)):
                 qual_kernels.append(
-                    kernels.RBFKernel(active_dims=torch.arange(lv_dim) + lv_dim * i)
+                    kernels.RBFKernel(
+                        active_dims=torch.arange(lv_dim) + lv_dim * i)
                 )
-                qual_kernels[i].initialize(**{"lengthscale": 1.0})
-                qual_kernels[i].raw_lengthscale.requires_grad_(False)
+                qual_kernels[i].initialize(
+                    **{"lengthscale": 1.0})
+                qual_kernels[i].raw_lengthscale.requires_grad_(
+                    False)
 
         if len(quant_index) == 0:
             correlation_kernel = qual_kernels[0]
@@ -159,14 +167,17 @@ class GPPLUS(GPR):
                 correlation_kernel *= qual_kernels[i]
         else:
             try:
-                quant_correlation_class = getattr(kernels, quant_correlation_class)
+                quant_correlation_class = getattr(
+                    kernels, quant_correlation_class)
             except:
-                raise RuntimeError("%s not an allowed kernel" % quant_correlation_class)
+                raise RuntimeError(
+                    "%s not an allowed kernel" % quant_correlation_class)
 
             if quant_correlation_class_name == "RBFKernel":
                 quant_kernel = quant_correlation_class(
                     ard_num_dims=len(quant_index),
-                    active_dims=len(qual_kernel_columns) * lv_dim
+                    active_dims=len(
+                        qual_kernel_columns) * lv_dim
                     + torch.arange(len(quant_index)),
                     lengthscale_constraint=Positive(
                         transform=torch.exp, inv_transform=torch.log
@@ -175,46 +186,58 @@ class GPPLUS(GPR):
             elif quant_correlation_class_name == "Rough_RBF":
                 quant_kernel = quant_correlation_class(
                     ard_num_dims=len(quant_index),
-                    active_dims=len(qual_kernel_columns) * lv_dim
+                    active_dims=len(
+                        qual_kernel_columns) * lv_dim
                     + torch.arange(len(quant_index)),
                     lengthscale_constraint=Positive(
-                        transform=lambda x: 2.0 ** (-0.5) * torch.pow(10, -x / 2),
-                        inv_transform=lambda x: -2.0 * torch.log10(x / 2.0),
+                        transform=lambda x: 2.0 ** (-0.5) *
+                        torch.pow(10, -x / 2),
+                        inv_transform=lambda x: -
+                        2.0 * torch.log10(x / 2.0),
                     ),
                 )
 
             elif quant_correlation_class_name == "Matern12Kernel":
                 quant_kernel = quant_correlation_class(
                     ard_num_dims=len(quant_index),
-                    active_dims=len(qual_kernel_columns) * lv_dim
+                    active_dims=len(
+                        qual_kernel_columns) * lv_dim
                     + torch.arange(len(quant_index)),
                     lengthscale_constraint=Positive(
-                        transform=lambda x: 2.0 ** (-0.5) * torch.pow(10, -x / 2),
-                        inv_transform=lambda x: -2.0 * torch.log10(x / 2.0),
+                        transform=lambda x: 2.0 ** (-0.5) *
+                        torch.pow(10, -x / 2),
+                        inv_transform=lambda x: -
+                        2.0 * torch.log10(x / 2.0),
                     ),
                 )
 
             elif quant_correlation_class_name == "Matern32Kernel":
                 quant_kernel = quant_correlation_class(
                     ard_num_dims=len(quant_index),
-                    active_dims=len(qual_kernel_columns) * lv_dim
+                    active_dims=len(
+                        qual_kernel_columns) * lv_dim
                     + torch.arange(len(quant_index)),
                     # lengthscale_constraint= Positive(transform= torch.exp,inv_transform= torch.log)
                     lengthscale_constraint=Positive(
-                        transform=lambda x: 2.0 ** (-0.5) * torch.pow(10, -x / 2),
-                        inv_transform=lambda x: -2.0 * torch.log10(x / 2.0),
+                        transform=lambda x: 2.0 ** (-0.5) *
+                        torch.pow(10, -x / 2),
+                        inv_transform=lambda x: -
+                        2.0 * torch.log10(x / 2.0),
                     ),
                 )
 
             elif quant_correlation_class_name == "Matern52Kernel":
                 quant_kernel = quant_correlation_class(
                     ard_num_dims=len(quant_index),
-                    active_dims=len(qual_kernel_columns) * lv_dim
+                    active_dims=len(
+                        qual_kernel_columns) * lv_dim
                     + torch.arange(len(quant_index)),
                     # lengthscale_constraint= Positive(transform= torch.exp,inv_transform= torch.log)
                     lengthscale_constraint=Positive(
-                        transform=lambda x: 2.0 ** (-0.5) * torch.pow(10, -x / 2),
-                        inv_transform=lambda x: -2.0 * torch.log10(x / 2.0),
+                        transform=lambda x: 2.0 ** (-0.5) *
+                        torch.pow(10, -x / 2),
+                        inv_transform=lambda x: -
+                        2.0 * torch.log10(x / 2.0),
                     ),
                 )
 
@@ -222,18 +245,20 @@ class GPPLUS(GPR):
 
                 quant_kernel.register_prior(
                     "lengthscale_prior",
-                    MollifiedUniformPrior(math.log(0.1), math.log(10)),
+                    MollifiedUniformPrior(
+                        math.log(0.1), math.log(10)),
                     "raw_lengthscale",
                 )
 
             elif quant_correlation_class_name == "Rough_RBF":
                 quant_kernel.register_prior(
-                    "lengthscale_prior", NormalPrior(-3.0, 3.0), "raw_lengthscale"
+                    "lengthscale_prior", NormalPrior(
+                        -3.0, 3.0), "raw_lengthscale"
                 )
 
             elif quant_correlation_class_name == "Matern12Kernel":
                 quant_kernel.register_prior(
-                    #'lengthscale_prior', MollifiedUniformPrior(math.log(0.1),math.log(10)),'raw_lengthscale'
+                    # 'lengthscale_prior', MollifiedUniformPrior(math.log(0.1),math.log(10)),'raw_lengthscale'
                     "lengthscale_prior",
                     NormalPrior(-3.0, 3.0),
                     "raw_lengthscale",
@@ -241,7 +266,7 @@ class GPPLUS(GPR):
 
             elif quant_correlation_class_name == "Matern32Kernel":
                 quant_kernel.register_prior(
-                    #'lengthscale_prior', MollifiedUniformPrior(math.log(0.1),math.log(10)),'raw_lengthscale'
+                    # 'lengthscale_prior', MollifiedUniformPrior(math.log(0.1),math.log(10)),'raw_lengthscale'
                     "lengthscale_prior",
                     NormalPrior(-3.0, 3.0),
                     "raw_lengthscale",
@@ -249,7 +274,7 @@ class GPPLUS(GPR):
 
             elif quant_correlation_class_name == "Matern52Kernel":
                 quant_kernel.register_prior(
-                    #'lengthscale_prior', MollifiedUniformPrior(math.log(0.1),math.log(10)),'raw_lengthscale'
+                    # 'lengthscale_prior', MollifiedUniformPrior(math.log(0.1),math.log(10)),'raw_lengthscale'
                     "lengthscale_prior",
                     NormalPrior(-3.0, 3.0),
                     "raw_lengthscale",
@@ -259,7 +284,8 @@ class GPPLUS(GPR):
                 temp = qual_kernels[0]
                 for i in range(1, len(qual_kernels)):
                     temp *= qual_kernels[i]
-                correlation_kernel = temp * quant_kernel  # + qual_kernel + quant_kernel
+                # + qual_kernel + quant_kernel
+                correlation_kernel = temp * quant_kernel
             else:
                 correlation_kernel = quant_kernel
 
@@ -274,8 +300,10 @@ class GPPLUS(GPR):
         )
 
         # register index and transforms
-        self.register_buffer("quant_index", torch.tensor(quant_index))
-        self.register_buffer("qual_index", torch.tensor(qual_index))
+        self.register_buffer(
+            "quant_index", torch.tensor(quant_index))
+        self.register_buffer(
+            "qual_index", torch.tensor(qual_index))
 
         self.num_levels_per_var = num_levels_per_var
         self.lv_dim = lv_dim
@@ -285,7 +313,7 @@ class GPPLUS(GPR):
         self.zeta = []
         self.perm_dict = []
         self.A_matrix = []
-        self.collocation_x = collocation_x  ####### ADDED
+        self.collocation_x = collocation_x  # ADDED
         self.alpha = 1.0
         self.beta = 20.0
         self.covar_inv = None
@@ -299,12 +327,14 @@ class GPPLUS(GPR):
             for i in range(len(qual_kernel_columns)):
                 if type(qual_kernel_columns[i]) == int:
                     num = self.num_levels_per_var[
-                        qual_index.index(qual_kernel_columns[i])
+                        qual_index.index(
+                            qual_kernel_columns[i])
                     ]
                     cat = [num]
                 else:
                     cat = [
-                        self.num_levels_per_var[qual_index.index(k)]
+                        self.num_levels_per_var[qual_index.index(
+                            k)]
                         for k in qual_kernel_columns[i]
                     ]
                     num = sum(cat)
@@ -323,39 +353,47 @@ class GPPLUS(GPR):
                     layers=NN_layers,
                     name=str(qual_kernel_columns[i]),
                 ).to(**tkwargs)
-                self.A_matrix.append(model_temp.to(**tkwargs))
+                self.A_matrix.append(
+                    model_temp.to(**tkwargs))
 
         self.basis = basis
         i = 0
         if self.basis == "single":
-            self.mean_module = gpytorch.means.ConstantMean(prior=NormalPrior(0.0, 1.0))
+            self.mean_module = gpytorch.means.ConstantMean(
+                prior=NormalPrior(0.0, 1.0))
             self.mean_module.constant.data = torch.tensor(
                 [0.0]
             )  # Set the desired value
-            self.mean_module.constant.requires_grad = False  # Fix the hyperparameter
+            # Fix the hyperparameter
+            self.mean_module.constant.requires_grad = False
         elif self.basis == "multiple_constant":
             if basis_function_size is None:
                 basis_function_size = train_x.shape[1] - 1
-            self.num_sources = int(torch.max(train_x[:, -1]))
+            self.num_sources = int(
+                torch.max(train_x[:, -1]))
             for i in range(self.num_sources + 1):
                 if i == 0:
-                    setattr(self, "mean_module_" + str(i), gpytorch.means.ZeroMean())
+                    setattr(self, "mean_module_" +
+                            str(i), gpytorch.means.ZeroMean())
 
                 else:
                     # Constant
                     setattr(
                         self,
                         "mean_module_" + str(i),
-                        gpytorch.means.ConstantMean(prior=NormalPrior(0.0, 0.3)),
+                        gpytorch.means.ConstantMean(
+                            prior=NormalPrior(0.0, 0.3)),
                     )
 
         elif self.basis == "multiple_polynomial":
             if basis_function_size is None:
                 basis_function_size = train_x.shape[1] - 1
-            self.num_sources = int(torch.max(train_x[:, -1]))
+            self.num_sources = int(
+                torch.max(train_x[:, -1]))
             for i in range(self.num_sources + 1):
                 if i == 0:
-                    setattr(self, "mean_module_" + str(i), gpytorch.means.ZeroMean())
+                    setattr(self, "mean_module_" +
+                            str(i), gpytorch.means.ZeroMean())
                 else:
                     setattr(
                         self,
@@ -367,7 +405,7 @@ class GPPLUS(GPR):
                         ),
                     )
         elif self.basis == "neural_network":
-            ############################################### One NN for ALL
+            # One NN for ALL
             if len(qual_index) == 0:
                 setattr(
                     self,
@@ -377,7 +415,8 @@ class GPPLUS(GPR):
                         input_size=train_x.shape[1],
                         num_classes=4,
                         layers=NN_layers_base,
-                        name=str("mean_module_" + str(i) + "_"),
+                        name=str("mean_module_" +
+                                 str(i) + "_"),
                     ),
                 )
             else:
@@ -386,10 +425,12 @@ class GPPLUS(GPR):
                     "mean_module_NN_All",
                     FFNN_for_Mean(
                         self,
-                        input_size=train_x.shape[1] - len(qual_index) + 2,
+                        input_size=train_x.shape[1] -
+                        len(qual_index) + 2,
                         num_classes=1,
                         layers=NN_layers_base,
-                        name=str("mean_module_" + str(i) + "_"),
+                        name=str("mean_module_" +
+                                 str(i) + "_"),
                     ),
                 )
         elif self.basis == "M3":
@@ -428,13 +469,15 @@ class GPPLUS(GPR):
             embeddings = []
             for i in range(len(self.qual_kernel_columns)):
                 temp = self.transform_categorical(
-                    x=x[:, self.qual_kernel_columns[i]].clone().type(torch.int64),
+                    x=x[:, self.qual_kernel_columns[i]
+                        ].clone().type(torch.int64),
                     perm_dict=self.perm_dict[i],
                     zeta=self.zeta[i],
                 )
                 embeddings.append(self.A_matrix[i](temp))
 
-            x = torch.cat([embeddings[0], x[..., self.quant_index]], dim=-1)
+            x = torch.cat(
+                [embeddings[0], x[..., self.quant_index]], dim=-1)
 
         if nd_flag == 1:
             x = x.reshape(*xsize[:-1], -1)
@@ -448,7 +491,8 @@ class GPPLUS(GPR):
                 for i in range(len(mean_x)):
                     qq = int(x_forward_raw[i, -1])
                     mean_x[i] = getattr(self, "mean_module_" + str(qq))(
-                        torch.tensor(x[i, -1].clone()).reshape(-1, 1)
+                        torch.tensor(
+                            x[i, -1].clone()).reshape(-1, 1)
                     )
             elif self.basis == "multiple_polynomial":
                 for i in range(len(mean_x)):
@@ -459,7 +503,8 @@ class GPPLUS(GPR):
                                 torch.tensor(
                                     (x[i, -1].clone().double().reshape(-1, 1)) ** 2
                                 ),
-                                torch.tensor(x[i, -1].clone().double()).reshape(-1, 1),
+                                torch.tensor(
+                                    x[i, -1].clone().double()).reshape(-1, 1),
                             ),
                             1,
                         )
@@ -472,21 +517,27 @@ class GPPLUS(GPR):
 
             elif self.basis == "M3":
                 if hasattr(self, "name_output"):
-                    mean_x = getattr(self, "mean_module_NN_All")(x.clone())
+                    mean_x = getattr(
+                        self, "mean_module_NN_All")(x.clone())
                 else:
-                    mean_x = getattr(self, "mean_module_NN_All")(x.clone()).reshape(-1)
+                    mean_x = getattr(self, "mean_module_NN_All")(
+                        x.clone()).reshape(-1)
 
             return mean_x
 
         ##########################################################################################
         if self.name_output == "u":
-            mean_x = multi_mean(x, x_forward_raw)[:, 0].reshape(-1)
+            mean_x = multi_mean(x, x_forward_raw)[
+                :, 0].reshape(-1)
         if self.name_output == "v":
-            mean_x = multi_mean(x, x_forward_raw)[:, 1].reshape(-1)
+            mean_x = multi_mean(x, x_forward_raw)[
+                :, 1].reshape(-1)
         if self.name_output == "p":
-            mean_x = multi_mean(x, x_forward_raw)[:, 2].reshape(-1)
+            mean_x = multi_mean(x, x_forward_raw)[
+                :, 2].reshape(-1)
         if self.name_output == "ro":
-            mean_x = multi_mean(x, x_forward_raw)[:, 3].reshape(-1)
+            mean_x = multi_mean(x, x_forward_raw)[
+                :, 3].reshape(-1)
         covar_x = self.covar_module(x)
 
         return MultivariateNormal(mean_x, covar_x)
@@ -503,7 +554,8 @@ class GPPLUS(GPR):
         )
 
     def noise_value(self):
-        noise = self.likelihood.noise_covar.noise.detach() * self.y_std**2
+        noise = self.likelihood.noise_covar.noise.detach() * \
+            self.y_std**2
         return noise
 
     def visualize_latent(self, suptitle=None):
@@ -513,7 +565,8 @@ class GPPLUS(GPR):
                 A = self.A_matrix[i]
 
                 positions = A(zeta)
-                level = torch.max(self.perm[i], axis=0)[0].tolist()
+                level = torch.max(self.perm[i], axis=0)[
+                    0].tolist()
                 perm = self.perm[i]
                 plot_sep(
                     positions=positions,
@@ -545,7 +598,8 @@ class GPPLUS(GPR):
 
     def get_params(self, name=None):
         params = {}
-        print("###################Parameters###########################")
+        print(
+            "###################Parameters###########################")
         for n, value in self.named_parameters():
             params[n] = value
         if name is None:
@@ -579,17 +633,20 @@ class GPPLUS(GPR):
     ) -> None:
 
         if any([i == 1 for i in num_levels]):
-            raise ValueError("Categorical variable has only one level!")
+            raise ValueError(
+                "Categorical variable has only one level!")
 
         if lv_dim == 1:
-            raise RuntimeWarning("1D latent variables are difficult to optimize!")
+            raise RuntimeWarning(
+                "1D latent variables are difficult to optimize!")
 
         for level in num_levels:
             if lv_dim > level - 0:
                 lv_dim = min(lv_dim, level - 1)
                 raise RuntimeWarning(
                     "The LV dimension can atmost be num_levels-1. "
-                    "Setting it to %s in place of %s" % (level - 1, lv_dim)
+                    "Setting it to %s in place of %s" % (
+                        level - 1, lv_dim)
                 )
 
         from itertools import product
@@ -615,7 +672,8 @@ class GPPLUS(GPR):
 
         perm_one_hot = []
         for i in range(perm.size()[1]):
-            perm_one_hot.append(torch.nn.functional.one_hot(perm[:, i]))
+            perm_one_hot.append(
+                torch.nn.functional.one_hot(perm[:, i]))
 
         perm_one_hot = torch.concat(perm_one_hot, axis=1)
 
@@ -628,7 +686,8 @@ class GPPLUS(GPR):
         if self.training == False:
             x = setlevels(x.cpu())
         if self.encoding_type == "one-hot":
-            index = [perm_dict[str(row.tolist())] for row in x]
+            index = [perm_dict[str(row.tolist())]
+                     for row in x]
 
             if x.dim() == 1:
                 x = x.reshape(
@@ -640,18 +699,21 @@ class GPPLUS(GPR):
         elif self.encoding_type == "uniform":
 
             temp2 = np.random.uniform(
-                0, 1, (len(self.perm), self.uniform_encoding_columns)
+                0, 1, (len(self.perm),
+                       self.uniform_encoding_columns)
             )
             dict = {}
             dict2 = {}
 
             for i in range(0, self.perm.shape[0]):
-                dict[tuple((self.perm[i, :]).numpy())] = temp2[i, :]
+                dict[tuple((self.perm[i, :]).numpy())
+                     ] = temp2[i, :]
 
             for i in range(0, x.shape[0]):
                 dict2[i] = dict[tuple((x[i]).numpy())]
 
-            x_one_hot = torch.from_numpy(np.array(list(dict2.values())))
+            x_one_hot = torch.from_numpy(
+                np.array(list(dict2.values())))
         else:
             raise ValueError("Invalid type")
 
@@ -666,7 +728,8 @@ class LinearMean_with_prior(gpytorch.means.Mean):
         super().__init__()
         self.register_parameter(
             name="weights",
-            parameter=torch.nn.Parameter(torch.randn(*batch_shape, input_size, 1)),
+            parameter=torch.nn.Parameter(
+                torch.randn(*batch_shape, input_size, 1)),
         )
         self.register_prior(
             name="weights_prior",
@@ -703,7 +766,8 @@ class FFNN(torch.nn.Module):
         # this case 10.
         self.hidden_num = len(layers)
         if self.hidden_num > 0:
-            self.fci = torch.nn.Linear(input_size, layers[0], bias=False)
+            self.fci = torch.nn.Linear(
+                input_size, layers[0], bias=False)
             lmgp.register_parameter("fci", self.fci.weight)
             lmgp.register_prior(
                 name="latent_prior_fci",
@@ -716,18 +780,22 @@ class FFNN(torch.nn.Module):
                 setattr(
                     self,
                     "h" + str(i),
-                    torch.nn.Linear(layers[i - 1], layers[i], bias=False),
+                    torch.nn.Linear(
+                        layers[i - 1], layers[i], bias=False),
                 )
                 lmgp.register_parameter(
-                    "h" + str(i), getattr(self, "h" + str(i)).weight
+                    "h" + str(i), getattr(self,
+                                          "h" + str(i)).weight
                 )
                 lmgp.register_prior(
                     name="latent_prior" + str(i),
-                    prior=gpytorch.priors.NormalPrior(0.0, 3.0),
+                    prior=gpytorch.priors.NormalPrior(
+                        0.0, 3.0),
                     param_or_closure="h" + str(i),
                 )
 
-            self.fce = torch.nn.Linear(layers[-1], num_classes, bias=False)
+            self.fce = torch.nn.Linear(
+                layers[-1], num_classes, bias=False)
             lmgp.register_parameter("fce", self.fce.weight)
             lmgp.register_prior(
                 name="latent_prior_fce",
@@ -735,7 +803,8 @@ class FFNN(torch.nn.Module):
                 param_or_closure="fce",
             )
         else:
-            self.fci = Linear_MAP(input_size, num_classes, bias=False)
+            self.fci = Linear_MAP(
+                input_size, num_classes, bias=False)
             lmgp.register_parameter(name, self.fci.weight)
             lmgp.register_prior(
                 name="latent_prior_" + name,
@@ -752,7 +821,8 @@ class FFNN(torch.nn.Module):
         if self.hidden_num > 0:
             x = torch.tanh(self.fci(x))
             for i in range(1, self.hidden_num):
-                x = torch.tanh(getattr(self, "h" + str(i))(x))
+                x = torch.tanh(
+                    getattr(self, "h" + str(i))(x))
 
             x = self.fce(x)
         else:
@@ -769,15 +839,18 @@ class FFNN_for_Mean(gpytorch.Module):
         # this case 10.
         self.hidden_num = len(layers)
         if self.hidden_num > 0:
-            self.fci = Linear_new(input_size, layers[0], bias=True, name="fci")
+            self.fci = Linear_new(
+                input_size, layers[0], bias=True, name="fci")
             for i in range(1, self.hidden_num):
                 setattr(
                     self,
                     "h" + str(i),
-                    Linear_new(layers[i - 1], layers[i], bias=True, name="h" + str(i)),
+                    Linear_new(
+                        layers[i - 1], layers[i], bias=True, name="h" + str(i)),
                 )
 
-            self.fce = Linear_new(layers[-1], num_classes, bias=True, name="fce")
+            self.fce = Linear_new(
+                layers[-1], num_classes, bias=True, name="fce")
         else:
             self.fci = Linear_new(
                 input_size, num_classes, bias=True, name="fci"
@@ -795,7 +868,8 @@ class FFNN_for_Mean(gpytorch.Module):
             # x = self.dropout(x)
             # x = self.fci(x)
             for i in range(1, self.hidden_num):
-                x = torch.tanh(getattr(self, "h" + str(i))(x))
+                x = torch.tanh(
+                    getattr(self, "h" + str(i))(x))
 
             x = self.fce(x)
             # x = torch.cat([x[...,:3] , torch.sigmoid(x[...,3]).unsqueeze(-1)] , dim = -1)
@@ -824,10 +898,14 @@ class NetworkM4(torch.nn.Module):
         activation = activation_list[activation]
         self.dim = layers[0]
 
-        self.U = torch.nn.Linear(input_dim, self.dim).to("cuda")
-        self.V = torch.nn.Linear(input_dim, self.dim).to("cuda")
-        self.H1 = torch.nn.Linear(input_dim, self.dim).to("cuda")
-        self.last = torch.nn.Linear(self.dim, output_dim).to("cuda")
+        self.U = torch.nn.Linear(
+            input_dim, self.dim).to("cuda")
+        self.V = torch.nn.Linear(
+            input_dim, self.dim).to("cuda")
+        self.H1 = torch.nn.Linear(
+            input_dim, self.dim).to("cuda")
+        self.last = torch.nn.Linear(
+            self.dim, output_dim).to("cuda")
 
         self.collocation_x = collocation_x
         self.alpha = 1.0
@@ -913,7 +991,8 @@ class Linear_new(gpytorch.means.Mean):
         self.name = str(name)
         self.register_parameter(
             name=str(self.name) + "weight",
-            parameter=Parameter(torch.empty((out_features, in_features))),
+            parameter=Parameter(torch.empty(
+                (out_features, in_features))),
         )
         self.register_prior(
             name=str(self.name) + "prior_m_weight_fci",
@@ -924,7 +1003,8 @@ class Linear_new(gpytorch.means.Mean):
         if bias:
             self.register_parameter(
                 name=str(self.name) + "bias",
-                parameter=Parameter(torch.empty(out_features)),
+                parameter=Parameter(
+                    torch.empty(out_features)),
             )
             self.register_prior(
                 name=str(self.name) + "prior_m_bias_fci",
@@ -946,9 +1026,11 @@ class Linear_new(gpytorch.means.Mean):
             fan_in, _ = torch.nn.init._calculate_fan_in_and_fan_out(
                 getattr(self, str(self.name) + "weight")
             )
-            bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
+            bound = 1 / \
+                math.sqrt(fan_in) if fan_in > 0 else 0
             torch.nn.init.uniform_(
-                getattr(self, str(self.name) + "bias"), -bound, bound
+                getattr(self, str(self.name) +
+                        "bias"), -bound, bound
             )
 
     def forward(self, input) -> torch.Tensor:
@@ -960,7 +1042,7 @@ class Linear_new(gpytorch.means.Mean):
             input,
             getattr(self, str(self.name) + "weight"),
             getattr(self, str(self.name) + "bias"),
-        )  ### Forced to Add .double() for NN in mean function
+        )  # Forced to Add .double() for NN in mean function
 
     def extra_repr(self) -> str:
         return "in_features={}, out_features={}, bias={}".format(

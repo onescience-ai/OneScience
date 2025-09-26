@@ -17,7 +17,8 @@ class SpectralConv2d_IrregularGeo(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.modes1 = (
-            modes1  # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            modes1
         )
         self.modes2 = modes2
         self.s1 = s1
@@ -58,10 +59,12 @@ class SpectralConv2d_IrregularGeo(nn.Module):
         # Multiply relevant Fourier modes
         # print(u.shape, u_ft.shape)
         factor1 = self.compl_mul2d(
-            u_ft[:, :, : self.modes1, : self.modes2], self.weights1
+            u_ft[:, :, : self.modes1,
+                 : self.modes2], self.weights1
         )
         factor2 = self.compl_mul2d(
-            u_ft[:, :, -self.modes1 :, : self.modes2], self.weights2
+            u_ft[:, :, -self.modes1:,
+                 : self.modes2], self.weights2
         )
 
         # Return to physical space
@@ -74,8 +77,10 @@ class SpectralConv2d_IrregularGeo(nn.Module):
                 dtype=torch.cfloat,
                 device=u.device,
             )
-            out_ft[:, :, : self.modes1, : self.modes2] = factor1
-            out_ft[:, :, -self.modes1 :, : self.modes2] = factor2
+            out_ft[:, :, : self.modes1,
+                   : self.modes2] = factor1
+            out_ft[:, :, -self.modes1:,
+                   : self.modes2] = factor2
             u = torch.fft.irfft2(out_ft, s=(s1, s2))
         else:
             out_ft = torch.cat([factor1, factor2], dim=-2)
@@ -98,8 +103,10 @@ class SpectralConv2d_IrregularGeo(nn.Module):
         k_x1 = (
             torch.cat(
                 (
-                    torch.arange(start=0, end=self.modes1, step=1),
-                    torch.arange(start=-(self.modes1), end=0, step=1),
+                    torch.arange(
+                        start=0, end=self.modes1, step=1),
+                    torch.arange(
+                        start=-(self.modes1), end=0, step=1),
                 ),
                 0,
             )
@@ -110,8 +117,10 @@ class SpectralConv2d_IrregularGeo(nn.Module):
         k_x2 = (
             torch.cat(
                 (
-                    torch.arange(start=0, end=self.modes2, step=1),
-                    torch.arange(start=-(self.modes2 - 1), end=0, step=1),
+                    torch.arange(
+                        start=0, end=self.modes2, step=1),
+                    torch.arange(
+                        start=-(self.modes2 - 1), end=0, step=1),
                 ),
                 0,
             )
@@ -157,8 +166,10 @@ class SpectralConv2d_IrregularGeo(nn.Module):
         k_x1 = (
             torch.cat(
                 (
-                    torch.arange(start=0, end=self.modes1, step=1),
-                    torch.arange(start=-(self.modes1), end=0, step=1),
+                    torch.arange(
+                        start=0, end=self.modes1, step=1),
+                    torch.arange(
+                        start=-(self.modes1), end=0, step=1),
                 ),
                 0,
             )
@@ -169,8 +180,10 @@ class SpectralConv2d_IrregularGeo(nn.Module):
         k_x2 = (
             torch.cat(
                 (
-                    torch.arange(start=0, end=self.modes2, step=1),
-                    torch.arange(start=-(self.modes2 - 1), end=0, step=1),
+                    torch.arange(
+                        start=0, end=self.modes2, step=1),
+                    torch.arange(
+                        start=-(self.modes2 - 1), end=0, step=1),
                 ),
                 0,
             )
@@ -216,16 +229,19 @@ class IPHI(nn.Module):
         self.width = width
         self.fc0 = nn.Linear(4, self.width)
         self.fc_code = nn.Linear(42, self.width)
-        self.fc_no_code = nn.Linear(3 * self.width, 4 * self.width)
+        self.fc_no_code = nn.Linear(
+            3 * self.width, 4 * self.width)
         self.fc1 = nn.Linear(4 * self.width, 4 * self.width)
         self.fc2 = nn.Linear(4 * self.width, 4 * self.width)
         self.fc3 = nn.Linear(4 * self.width, 4 * self.width)
         self.fc4 = nn.Linear(4 * self.width, 2)
         self.activation = torch.tanh
-        self.center = torch.tensor([0.0001, 0.0001], device="cuda").reshape(1, 1, 2)
+        self.center = torch.tensor(
+            [0.0001, 0.0001], device="cuda").reshape(1, 1, 2)
 
         self.B = np.pi * torch.pow(
-            2, torch.arange(0, self.width // 4, dtype=torch.float, device="cuda")
+            2, torch.arange(
+                0, self.width // 4, dtype=torch.float, device="cuda")
         ).reshape(1, 1, 1, self.width // 4)
 
     def forward(self, x, code=None):
@@ -234,17 +250,22 @@ class IPHI(nn.Module):
 
         # some feature engineering
         angle = torch.atan2(
-            x[:, :, 1] - self.center[:, :, 1], x[:, :, 0] - self.center[:, :, 0]
+            x[:, :, 1] - self.center[:, :, 1], x[:,
+                                                 :, 0] - self.center[:, :, 0]
         )
         radius = torch.norm(x - self.center, dim=-1, p=2)
-        xd = torch.stack([x[:, :, 0], x[:, :, 1], angle, radius], dim=-1)
+        xd = torch.stack(
+            [x[:, :, 0], x[:, :, 1], angle, radius], dim=-1)
 
         # sin features from NeRF
         b, n, d = xd.shape[0], xd.shape[1], xd.shape[2]
-        x_sin = torch.sin(self.B * xd.view(b, n, d, 1)).view(b, n, d * self.width // 4)
-        x_cos = torch.cos(self.B * xd.view(b, n, d, 1)).view(b, n, d * self.width // 4)
+        x_sin = torch.sin(
+            self.B * xd.view(b, n, d, 1)).view(b, n, d * self.width // 4)
+        x_cos = torch.cos(
+            self.B * xd.view(b, n, d, 1)).view(b, n, d * self.width // 4)
         xd = self.fc0(xd)
-        xd = torch.cat([xd, x_sin, x_cos], dim=-1).reshape(b, n, 3 * self.width)
+        xd = torch.cat([xd, x_sin, x_cos],
+                       dim=-1).reshape(b, n, 3 * self.width)
 
         if code != None:
             cd = self.fc_code(code)

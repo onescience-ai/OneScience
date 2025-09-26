@@ -13,7 +13,8 @@ from agent.rag.postprocess.rerank_base import BaseRerankRunner
 class WeightRerankRunner(BaseRerankRunner):
     def __init__(self, config: dict) -> None:
         self.top_k = config.get("top_k", None)
-        self.score_threshold = config.get("score_threshold", 0.0)
+        self.score_threshold = config.get(
+            "score_threshold", 0.0)
         self.vector_weight = config["vector_weight"]
 
     def run(
@@ -42,8 +43,10 @@ class WeightRerankRunner(BaseRerankRunner):
 
         documents = unique_documents
 
-        query_scores = self._calculate_keyword_score(query, documents)
-        query_vector_scores = [document.metadata["score"] for document in documents]
+        query_scores = self._calculate_keyword_score(
+            query, documents)
+        query_vector_scores = [
+            document.metadata["score"] for document in documents]
 
         rerank_documents = []
         for document, query_score, query_vector_score in zip(
@@ -75,7 +78,8 @@ class WeightRerankRunner(BaseRerankRunner):
         :return:
         """
         keyword_table_handler = JiebaKeywordTableHandler()
-        query_keywords = keyword_table_handler.extract_keywords(query, None)
+        query_keywords = keyword_table_handler.extract_keywords(
+            query, None)
         documents_keywords = []
         for document in documents:
             # get the document keywords
@@ -105,7 +109,8 @@ class WeightRerankRunner(BaseRerankRunner):
             )
             # IDF
             keyword_idf[keyword] = (
-                math.log((1 + total_documents) / (1 + doc_count_containing_keyword)) + 1
+                math.log((1 + total_documents) /
+                         (1 + doc_count_containing_keyword)) + 1
             )
 
         query_tfidf = {}
@@ -118,7 +123,8 @@ class WeightRerankRunner(BaseRerankRunner):
         # calculate all documents' TF-IDF
         documents_tfidf = []
         for document_keywords in documents_keywords:
-            document_keyword_counts = Counter(document_keywords)
+            document_keyword_counts = Counter(
+                document_keywords)
             document_tfidf = {}
             for keyword, count in document_keyword_counts.items():
                 tf = count
@@ -127,8 +133,10 @@ class WeightRerankRunner(BaseRerankRunner):
             documents_tfidf.append(document_tfidf)
 
         def cosine_similarity(vec1, vec2):
-            intersection = set(vec1.keys()) & set(vec2.keys())
-            numerator = sum(vec1[x] * vec2[x] for x in intersection)
+            intersection = set(
+                vec1.keys()) & set(vec2.keys())
+            numerator = sum(vec1[x] * vec2[x]
+                            for x in intersection)
 
             sum1 = sum(vec1[x] ** 2 for x in vec1)
             sum2 = sum(vec2[x] ** 2 for x in vec2)
@@ -141,7 +149,8 @@ class WeightRerankRunner(BaseRerankRunner):
 
         similarities = []
         for document_tfidf in documents_tfidf:
-            similarity = cosine_similarity(query_tfidf, document_tfidf)
+            similarity = cosine_similarity(
+                query_tfidf, document_tfidf)
             similarities.append(similarity)
 
         # for idx, similarity in enumerate(similarities):

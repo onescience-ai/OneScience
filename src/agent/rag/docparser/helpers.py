@@ -50,7 +50,8 @@ def detect_file_encodings(
             )
 
     if all(encoding["encoding"] is None for encoding in encodings):
-        raise RuntimeError(f"Could not detect encoding for {file_path}")
+        raise RuntimeError(
+            f"Could not detect encoding for {file_path}")
     return [FileEncoding(**enc) for enc in encodings if enc["encoding"] is not None]
 
 

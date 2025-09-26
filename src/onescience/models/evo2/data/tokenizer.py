@@ -72,7 +72,8 @@ class Evo2Tokenizer:
             if drop_empty_sequences and len(text_ids) == 0:
                 continue
             # Append EOD token (EOD ID: 0) if appropriate.
-            eod_length = int(append_eod and l == len(text) - 1)
+            eod_length = int(
+                append_eod and l == len(text) - 1)
             token_length = len(text_ids) + eod_length
             text_ids += [0] * eod_length
             if enforce_sample_length is not None:
@@ -83,7 +84,8 @@ class Evo2Tokenizer:
                         f"possible sample length of {enforce_sample_length}.)"
                     )
                 else:
-                    text_ids += [1] * (enforce_sample_length - token_length)
+                    text_ids += [1] * \
+                        (enforce_sample_length - token_length)
             # Append to document.
             doc_ids.append(text_ids)
         return doc_ids

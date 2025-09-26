@@ -47,12 +47,16 @@ def describe_fairchem():
     print(f"torch.version.cuda: {torch.version.cuda}")
     print(f"torch.cuda: is_available: {tc.is_available()}")
     if tc.is_available():
-        print("  __CUDNN VERSION:", torch.backends.cudnn.version())
-        print("  __Number CUDA Devices:", torch.cuda.device_count())
-        print("  __CUDA Device Name:", torch.cuda.get_device_name(0))
+        print("  __CUDNN VERSION:",
+              torch.backends.cudnn.version())
+        print("  __Number CUDA Devices:",
+              torch.cuda.device_count())
+        print("  __CUDA Device Name:",
+              torch.cuda.get_device_name(0))
         print(
             "  __CUDA Device Total Memory [GB]:",
-            torch.cuda.get_device_properties(0).total_memory / 1e9,
+            torch.cuda.get_device_properties(
+                0).total_memory / 1e9,
         )
     print(f"torch geometric: {tg.__version__}")
     print()
@@ -79,7 +83,8 @@ def train_test_val_split(
 
     for db in files:
         if os.path.exists(db):
-            raise Exception("{db} exists. Please delete it before proceeding.")
+            raise Exception(
+                "{db} exists. Please delete it before proceeding.")
 
     src = connect(ase_db)
     N = src.count()
@@ -101,16 +106,19 @@ def train_test_val_split(
     for _id in ids[0:train_end]:
         row = src.get(id=int(_id))
         # set add_additional_information to ensure row.data is added to atoms.info
-        train.write(row.toatoms(add_additional_information=True))
+        train.write(row.toatoms(
+            add_additional_information=True))
 
     for _id in ids[train_end:test_end]:
         row = src.get(id=int(_id))
         # set add_additional_information to ensure row.data is added to atoms.info
-        test.write(row.toatoms(add_additional_information=True))
+        test.write(row.toatoms(
+            add_additional_information=True))
 
     for _id in ids[test_end:]:
         row = src.get(id=int(_id))
         # set add_additional_information to ensure row.data is added to atoms.info
-        val.write(row.toatoms(add_additional_information=True))
+        val.write(row.toatoms(
+            add_additional_information=True))
 
     return [Path(f).absolute() for f in files]

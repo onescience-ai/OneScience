@@ -35,21 +35,27 @@ def get_earth_position_index(window_size, ndim=3):
 
     # Change the order of the index to calculate the index in total
     if ndim == 3:
-        coords_1 = torch.stack(torch.meshgrid([coords_zi, coords_hi, coords_w]))
-        coords_2 = torch.stack(torch.meshgrid([coords_zj, coords_hj, coords_w]))
+        coords_1 = torch.stack(torch.meshgrid(
+            [coords_zi, coords_hi, coords_w]))
+        coords_2 = torch.stack(torch.meshgrid(
+            [coords_zj, coords_hj, coords_w]))
     elif ndim == 2:
-        coords_1 = torch.stack(torch.meshgrid([coords_hi, coords_w]))
-        coords_2 = torch.stack(torch.meshgrid([coords_hj, coords_w]))
+        coords_1 = torch.stack(
+            torch.meshgrid([coords_hi, coords_w]))
+        coords_2 = torch.stack(
+            torch.meshgrid([coords_hj, coords_w]))
     coords_flatten_1 = torch.flatten(coords_1, 1)
     coords_flatten_2 = torch.flatten(coords_2, 1)
-    coords = coords_flatten_1[:, :, None] - coords_flatten_2[:, None, :]
+    coords = coords_flatten_1[:, :,
+                              None] - coords_flatten_2[:, None, :]
     coords = coords.permute(1, 2, 0).contiguous()
 
     # Shift the index for each dimension to start from 0
     if ndim == 3:
         coords[:, :, 2] += win_lon - 1
         coords[:, :, 1] *= 2 * win_lon - 1
-        coords[:, :, 0] *= (2 * win_lon - 1) * win_lat * win_lat
+        coords[:, :, 0] *= (2 * win_lon - 1) * \
+            win_lat * win_lat
     elif ndim == 2:
         coords[:, :, 1] += win_lon - 1
         coords[:, :, 0] *= 2 * win_lon - 1
@@ -134,7 +140,7 @@ def crop2d(x: torch.Tensor, resolution):
     padding_right = lon_pad - padding_left
 
     return x[
-        :, :, padding_top : Lat - padding_bottom, padding_left : Lon - padding_right
+        :, :, padding_top: Lat - padding_bottom, padding_left: Lon - padding_right
     ]
 
 
@@ -160,7 +166,7 @@ def crop3d(x: torch.Tensor, resolution):
     return x[
         :,
         :,
-        padding_front : Pl - padding_back,
-        padding_top : Lat - padding_bottom,
-        padding_left : Lon - padding_right,
+        padding_front: Pl - padding_back,
+        padding_top: Lat - padding_bottom,
+        padding_left: Lon - padding_right,
     ]

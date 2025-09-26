@@ -103,8 +103,10 @@ class Evoformer(hk.Module):
             self.config.pair_channel,
         )
         mask = token_features.mask
-        pair_mask = (mask[:, None] * mask[None, :]).astype(dtype)
-        assert pair_mask.shape == (num_residues, num_residues)
+        pair_mask = (mask[:, None] *
+                     mask[None, :]).astype(dtype)
+        assert pair_mask.shape == (
+            num_residues, num_residues)
         return (
             pair_activations,
             pair_mask,
@@ -145,7 +147,8 @@ class Evoformer(hk.Module):
         )
 
         gather_idxs = jnp.concatenate(
-            [gather_idxs_polymer_ligand, gather_idxs_ligand_ligand]
+            [gather_idxs_polymer_ligand,
+                gather_idxs_ligand_ligand]
         )
         contact_matrix = contact_matrix.at[gather_idxs[:, 0], gather_idxs[:, 1]].set(
             1.0
@@ -155,7 +158,8 @@ class Evoformer(hk.Module):
         contact_matrix = contact_matrix.at[0, 0].set(0.0)
 
         bonds_act = hm.Linear(self.config.pair_channel, name="bond_embedding")(
-            contact_matrix[:, :, None].astype(pair_activations.dtype)
+            contact_matrix[:, :, None].astype(
+                pair_activations.dtype)
         )
         return pair_activations + bonds_act
 
@@ -177,9 +181,11 @@ class Evoformer(hk.Module):
         asym_id = batch.token_features.asym_id
         # Construct a mask such that only intra-chain template features are
         # computed, since all templates are for each chain individually.
-        multichain_mask = (asym_id[:, None] == asym_id[None, :]).astype(dtype)
+        multichain_mask = (
+            asym_id[:, None] == asym_id[None, :]).astype(dtype)
 
-        template_fn = functools.partial(template_module, key=subkey)
+        template_fn = functools.partial(
+            template_module, key=subkey)
         template_act = template_fn(
             query_embedding=pair_activations,
             templates=templates,
@@ -199,9 +205,12 @@ class Evoformer(hk.Module):
     ) -> tuple[jnp.ndarray, jnp.ndarray]:
         """Processes MSA and returns updated pair activations."""
         dtype = pair_activations.dtype
-        msa_batch, key = featurization.shuffle_msa(key, msa_batch)
-        msa_batch = featurization.truncate_msa_batch(msa_batch, self.config.num_msa)
-        msa_feat = featurization.create_msa_feat(msa_batch).astype(dtype)
+        msa_batch, key = featurization.shuffle_msa(
+            key, msa_batch)
+        msa_batch = featurization.truncate_msa_batch(
+            msa_batch, self.config.num_msa)
+        msa_feat = featurization.create_msa_feat(
+            msa_batch).astype(dtype)
 
         msa_activations = hm.Linear(self.config.msa_channel, name="msa_activations")(
             msa_feat
@@ -213,7 +222,8 @@ class Evoformer(hk.Module):
         msa_mask = msa_batch.mask.astype(dtype)
 
         # Evoformer MSA stack.
-        evoformer_input = {"msa": msa_activations, "pair": pair_activations}
+        evoformer_input = {
+            "msa": msa_activations, "pair": pair_activations}
         masks = {"msa": msa_mask, "pair": pair_mask}
 
         def evoformer_fn(x):
@@ -240,10 +250,12 @@ class Evoformer(hk.Module):
         key: jnp.ndarray,
     ) -> dict[str, jnp.ndarray]:
 
-        assert self.global_config.bfloat16 in {"all", "none"}
+        assert self.global_config.bfloat16 in {
+            "all", "none"}
 
         num_residues = target_feat.shape[0]
-        assert batch.token_features.aatype.shape == (num_residues,)
+        assert batch.token_features.aatype.shape == (
+            num_residues,)
 
         dtype = jnp.bfloat16 if self.global_config.bfloat16 == "all" else jnp.float32
 
@@ -258,11 +270,13 @@ class Evoformer(hk.Module):
                 initializer=self.global_config.final_init,
             )(
                 hm.LayerNorm(name="prev_embedding_layer_norm")(
-                    prev["pair"].astype(pair_activations.dtype)
+                    prev["pair"].astype(
+                        pair_activations.dtype)
                 )
             )
 
-            pair_activations = self._relative_encoding(batch, pair_activations)
+            pair_activations = self._relative_encoding(
+                batch, pair_activations)
 
             pair_activations = self._embed_bonds(
                 batch=batch, pair_activations=pair_activations
@@ -293,7 +307,8 @@ class Evoformer(hk.Module):
                 initializer=self.global_config.final_init,
             )(
                 hm.LayerNorm(name="prev_single_embedding_layer_norm")(
-                    prev["single"].astype(single_activations.dtype)
+                    prev["single"].astype(
+                        single_activations.dtype)
                 )
             )
 
@@ -309,7 +324,8 @@ class Evoformer(hk.Module):
                     act=pair_act,
                     single_act=single_act,
                     pair_mask=pair_mask,
-                    seq_mask=batch.token_features.mask.astype(dtype),
+                    seq_mask=batch.token_features.mask.astype(
+                        dtype),
                 )
 
             pairformer_stack = hk.experimental.layer_stack(
@@ -325,7 +341,8 @@ class Evoformer(hk.Module):
                 num_residues,
                 self.config.pair_channel,
             )
-            assert single_activations.shape == (num_residues, self.config.seq_channel)
+            assert single_activations.shape == (
+                num_residues, self.config.seq_channel)
             assert len(target_feat.shape) == 2
             assert target_feat.shape[0] == num_residues
             output = {

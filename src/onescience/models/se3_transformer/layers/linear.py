@@ -49,7 +49,8 @@ class LinearSE3(nn.Module):
         self.weights = nn.ParameterDict(
             {
                 str(degree_out): nn.Parameter(
-                    torch.randn(channels_out, fiber_in[degree_out])
+                    torch.randn(
+                        channels_out, fiber_in[degree_out])
                     / np.sqrt(fiber_in[degree_out])
                 )
                 for degree_out, channels_out in fiber_out

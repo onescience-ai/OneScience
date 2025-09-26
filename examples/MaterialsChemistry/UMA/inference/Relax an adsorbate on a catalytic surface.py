@@ -21,7 +21,8 @@ def clear_cache(atoms):
 
 
 # === 加载模型 ===
-predictor = load_predict_unit("../checkpoint/uma-s-1p1.pt", device="cuda")
+predictor = load_predict_unit(
+    "../checkpoint/uma-s-1p1.pt", device="cuda")
 calc = FAIRChemCalculator(predictor, task_name="oc20")
 
 # === 构建体系 ===

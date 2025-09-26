@@ -55,11 +55,13 @@ def safe_select(condition, true_fn, false_fn):
     false_fn, false_args = jax.closure_convert(false_fn)
 
     true_args = jax.tree.map(
-        lambda x: jnp.where(condition, x, lax.stop_gradient(x)), true_args
+        lambda x: jnp.where(
+            condition, x, lax.stop_gradient(x)), true_args
     )
 
     false_args = jax.tree.map(
-        lambda x: jnp.where(condition, lax.stop_gradient(x), x), false_args
+        lambda x: jnp.where(
+            condition, lax.stop_gradient(x), x), false_args
     )
 
     return jax.tree.map(

@@ -26,34 +26,46 @@ def assert_rotation_matrix_equal(
 ):
     for field in dataclasses.fields(rotation_matrix.Rot3Array):
         field = field.name
-        np.testing.assert_array_equal(getattr(matrix1, field), getattr(matrix2, field))
+        np.testing.assert_array_equal(
+            getattr(matrix1, field), getattr(matrix2, field))
 
 
 def assert_rotation_matrix_close(
     mat1: rotation_matrix.Rot3Array, mat2: rotation_matrix.Rot3Array
 ):
-    np.testing.assert_array_almost_equal(mat1.to_array(), mat2.to_array(), 6)
+    np.testing.assert_array_almost_equal(
+        mat1.to_array(), mat2.to_array(), 6)
 
 
 def assert_array_equal_to_rotation_matrix(
     array: jnp.ndarray, matrix: rotation_matrix.Rot3Array
 ):
     """Check that array and Matrix match."""
-    np.testing.assert_array_equal(matrix.xx, array[..., 0, 0])
-    np.testing.assert_array_equal(matrix.xy, array[..., 0, 1])
-    np.testing.assert_array_equal(matrix.xz, array[..., 0, 2])
-    np.testing.assert_array_equal(matrix.yx, array[..., 1, 0])
-    np.testing.assert_array_equal(matrix.yy, array[..., 1, 1])
-    np.testing.assert_array_equal(matrix.yz, array[..., 1, 2])
-    np.testing.assert_array_equal(matrix.zx, array[..., 2, 0])
-    np.testing.assert_array_equal(matrix.zy, array[..., 2, 1])
-    np.testing.assert_array_equal(matrix.zz, array[..., 2, 2])
+    np.testing.assert_array_equal(
+        matrix.xx, array[..., 0, 0])
+    np.testing.assert_array_equal(
+        matrix.xy, array[..., 0, 1])
+    np.testing.assert_array_equal(
+        matrix.xz, array[..., 0, 2])
+    np.testing.assert_array_equal(
+        matrix.yx, array[..., 1, 0])
+    np.testing.assert_array_equal(
+        matrix.yy, array[..., 1, 1])
+    np.testing.assert_array_equal(
+        matrix.yz, array[..., 1, 2])
+    np.testing.assert_array_equal(
+        matrix.zx, array[..., 2, 0])
+    np.testing.assert_array_equal(
+        matrix.zy, array[..., 2, 1])
+    np.testing.assert_array_equal(
+        matrix.zz, array[..., 2, 2])
 
 
 def assert_array_close_to_rotation_matrix(
     array: jnp.ndarray, matrix: rotation_matrix.Rot3Array
 ):
-    np.testing.assert_array_almost_equal(matrix.to_array(), array, 6)
+    np.testing.assert_array_almost_equal(
+        matrix.to_array(), array, 6)
 
 
 def assert_vectors_equal(vec1: vector.Vec3Array, vec2: vector.Vec3Array):
@@ -63,13 +75,17 @@ def assert_vectors_equal(vec1: vector.Vec3Array, vec2: vector.Vec3Array):
 
 
 def assert_vectors_close(vec1: vector.Vec3Array, vec2: vector.Vec3Array):
-    np.testing.assert_allclose(vec1.x, vec2.x, atol=1e-6, rtol=0.0)
-    np.testing.assert_allclose(vec1.y, vec2.y, atol=1e-6, rtol=0.0)
-    np.testing.assert_allclose(vec1.z, vec2.z, atol=1e-6, rtol=0.0)
+    np.testing.assert_allclose(
+        vec1.x, vec2.x, atol=1e-6, rtol=0.0)
+    np.testing.assert_allclose(
+        vec1.y, vec2.y, atol=1e-6, rtol=0.0)
+    np.testing.assert_allclose(
+        vec1.z, vec2.z, atol=1e-6, rtol=0.0)
 
 
 def assert_array_close_to_vector(array: jnp.ndarray, vec: vector.Vec3Array):
-    np.testing.assert_allclose(vec.to_array(), array, atol=1e-6, rtol=0.0)
+    np.testing.assert_allclose(
+        vec.to_array(), array, atol=1e-6, rtol=0.0)
 
 
 def assert_array_equal_to_vector(array: jnp.ndarray, vec: vector.Vec3Array):
@@ -79,13 +95,15 @@ def assert_array_equal_to_vector(array: jnp.ndarray, vec: vector.Vec3Array):
 def assert_rigid_equal_to_rigid(
     rigid1: rigid_matrix_vector.Rigid3Array, rigid2: rigid_matrix_vector.Rigid3Array
 ):
-    assert_rot_trans_equal_to_rigid(rigid1.rotation, rigid1.translation, rigid2)
+    assert_rot_trans_equal_to_rigid(
+        rigid1.rotation, rigid1.translation, rigid2)
 
 
 def assert_rigid_close_to_rigid(
     rigid1: rigid_matrix_vector.Rigid3Array, rigid2: rigid_matrix_vector.Rigid3Array
 ):
-    assert_rot_trans_close_to_rigid(rigid1.rotation, rigid1.translation, rigid2)
+    assert_rot_trans_close_to_rigid(
+        rigid1.rotation, rigid1.translation, rigid2)
 
 
 def assert_rot_trans_equal_to_rigid(

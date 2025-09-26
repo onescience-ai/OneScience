@@ -68,7 +68,8 @@ class Custom_op_2(BaseTool):
 llm_cfg = {
     # Use a model service compatible with the OpenAI API, such as vLLM or Ollama:
     "model": "qwen7B",
-    "model_server": "http://localhost:8000/v1",  # base_url, also known as api_base
+    # base_url, also known as api_base
+    "model_server": "http://localhost:8000/v1",
     "api_key": "EMPTY",
     # (Optional) LLM hyperparameters for generation:
     "generate_cfg": {"top_p": 0.8},
@@ -106,6 +107,7 @@ while True:
     print("bot response:")
     for response in bot.run(messages=messages):
         # Streaming output.
-        response_plain_text = typewriter_print(response, response_plain_text)
+        response_plain_text = typewriter_print(
+            response, response_plain_text)
     # Append the bot responses to the chat history.
     messages.extend(response)

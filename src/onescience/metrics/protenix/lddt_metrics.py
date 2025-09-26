@@ -7,14 +7,16 @@ from onescience.models.protenix import sample_confidence
 
 
 def get_complex_level_rankers(scores, keys):
-    assert all([k in ["plddt", "gpde", "ranking_score"] for k in keys])
+    assert all([k in ["plddt", "gpde", "ranking_score"]
+               for k in keys])
     rankers = {}
     for key in keys:
         if key == "gpde":
             descending = False
         else:
             descending = True
-        ranking = scores[key].argsort(dim=0, descending=descending)
+        ranking = scores[key].argsort(
+            dim=0, descending=descending)
         rankers[f"{key}.rank1"] = lambda x, rank1_idx=ranking[0].item(): x[
             ..., rank1_idx
         ]
@@ -50,7 +52,8 @@ class LDDTMetrics(nn.Module):
         self.lddt_base = LDDT(eps=self.eps)
 
         self.complex_ranker_keys = configs.metrics.get(
-            "complex_ranker_keys", ["plddt", "gpde", "ranking_score"]
+            "complex_ranker_keys", [
+                "plddt", "gpde", "ranking_score"]
         )
 
     def compute_lddt(self, pred_dict: dict, label_dict: dict):
@@ -94,7 +97,8 @@ class LDDTMetrics(nn.Module):
                 dim=dim, index=median_index
             ),
         }
-        sample_aggregators = {**basic_sample_aggregators, **aggregators}
+        sample_aggregators = {
+            **basic_sample_aggregators, **aggregators}
 
         return {
             agg_name: agg_func(vals)
@@ -116,7 +120,8 @@ class LDDTMetrics(nn.Module):
         complex_lddt = self.aggregate(
             lddt_dict["complex"], aggregators=complex_level_ranker
         )
-        complex_lddt = add_diff_metrics(complex_lddt, self.complex_ranker_keys)
+        complex_lddt = add_diff_metrics(
+            complex_lddt, self.complex_ranker_keys)
         # Log metrics
         complex_lddt = {
             f"lddt/complex/{name}": value for name, value in complex_lddt.items()
@@ -137,14 +142,16 @@ class LDDT(nn.Module):
         )  # [N_sample, N_pair_sparse]
         thresholds = [0.5, 1, 2, 4]
         sparse_pair_lddt = (
-            torch.stack([distance_error_l1 < t for t in thresholds], dim=-1)
+            torch.stack(
+                [distance_error_l1 < t for t in thresholds], dim=-1)
             .to(dtype=distance_error_l1.dtype)
             .mean(dim=-1)
         )  # [N_sample, N_pair_sparse]
         del distance_error_l1
         # Compute mean
         if sparse_pair_lddt.numel() == 0:  # corespand to all zero in dense mask
-            sparse_pair_lddt = torch.zeros_like(sparse_pair_lddt)
+            sparse_pair_lddt = torch.zeros_like(
+                sparse_pair_lddt)
         lddt = torch.mean(sparse_pair_lddt, dim=-1)
         return lddt
 
@@ -156,12 +163,13 @@ class LDDT(nn.Module):
         else:
             lddt = []
             N_sample = pred_distance.shape[-2]
-            no_chunks = N_sample // chunk_size + (N_sample % chunk_size != 0)
+            no_chunks = N_sample // chunk_size + \
+                (N_sample % chunk_size != 0)
             for i in range(no_chunks):
                 lddt_i = self._chunk_base_forward(
                     pred_distance[
                         ...,
-                        i * chunk_size : (i + 1) * chunk_size,
+                        i * chunk_size: (i + 1) * chunk_size,
                         :,
                     ],
                     true_distance,
@@ -216,7 +224,8 @@ class LDDT(nn.Module):
                 "best": [N_eval]
                 "worst": [N_eval]
         """
-        lddt_indices = torch.nonzero(lddt_mask, as_tuple=True)
+        lddt_indices = torch.nonzero(
+            lddt_mask, as_tuple=True)
         l_index = lddt_indices[0]
         m_index = lddt_indices[1]
         pred_distance_sparse_lm, true_distance_sparse_lm = self._calc_sparse_dist(
@@ -237,7 +246,8 @@ class LDDT(nn.Module):
     ):
         # Distance mask
         distance_mask = (
-            true_coordinate_mask[..., None] * true_coordinate_mask[..., None, :]
+            true_coordinate_mask[..., None] *
+            true_coordinate_mask[..., None, :]
         )
         # Distances for all atom pairs
         # Note: we convert to bf16 for saving cuda memory, if performance drops, do not convert it
@@ -249,14 +259,16 @@ class LDDT(nn.Module):
         c_lm = distance < threshold  # [..., N_atom, N_atom]
         if is_nucleotide is not None:
             # Use a different radius for nucleotide
-            is_nucleotide_mask = is_nucleotide.bool()[..., None]
+            is_nucleotide_mask = is_nucleotide.bool(
+            )[..., None]
             c_lm = (distance < is_nucleotide_threshold) * is_nucleotide_mask + c_lm * (
                 ~is_nucleotide_mask
             )
 
         # Zero-out diagonals of c_lm and cast to float
         c_lm = c_lm * (
-            1 - torch.eye(n=c_lm.size(-1), device=c_lm.device, dtype=distance.dtype)
+            1 - torch.eye(n=c_lm.size(-1),
+                          device=c_lm.device, dtype=distance.dtype)
         )
         # Zero-out atom pairs without true coordinates
         c_lm = c_lm * distance_mask  # [..., N_atom, N_atom]

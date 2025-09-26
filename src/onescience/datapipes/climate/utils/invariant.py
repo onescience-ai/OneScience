@@ -16,15 +16,19 @@ def latlon_grid(
     equirectangular grid."""
 
     # get latitudes and longitudes from data shape
-    lat = np.linspace(*bounds[0], shape[0], dtype=np.float32)
+    lat = np.linspace(
+        *bounds[0], shape[0], dtype=np.float32)
 
     # does longitude wrap around the globe?
-    lon_wraparound = (bounds[1][0] % 360) == (bounds[1][1] % 360)
+    lon_wraparound = (bounds[1][0] %
+                      360) == (bounds[1][1] % 360)
     if lon_wraparound:
         # treat differently from lat due to wrap-around
-        lon = np.linspace(*bounds[1], shape[1] + 1, dtype=np.float32)[:-1]
+        lon = np.linspace(
+            *bounds[1], shape[1] + 1, dtype=np.float32)[:-1]
     else:
-        lon = np.linspace(*bounds[1], shape[1], dtype=np.float32)
+        lon = np.linspace(
+            *bounds[1], shape[1], dtype=np.float32)
 
     return np.meshgrid(lat, lon, indexing="ij")
 
@@ -103,21 +107,27 @@ class FileInvariant(Invariant):
     ):
         with xr.open_dataset(filename) as ds:
             self.data = ds[var_name].astype(np.float32)
-            self.lat = ds["latitude"].to_numpy().astype(np.float32)
-            self.lon = ds["longitude"].to_numpy().astype(np.float32)
+            self.lat = ds["latitude"].to_numpy().astype(
+                np.float32)
+            self.lon = ds["longitude"].to_numpy().astype(
+                np.float32)
 
         if self.lat.ndim == 1:
-            (self.lat, self.lon) = np.meshgrid(self.lat, self.lon, indexing="ij")
+            (self.lat, self.lon) = np.meshgrid(
+                self.lat, self.lon, indexing="ij")
 
         if normalize:
-            self.data = (self.data - self.data.mean()) / self.data.std()
+            self.data = (
+                self.data - self.data.mean()) / self.data.std()
 
         self.interp_method = interp_method
 
     def __call__(self, latlon: np.ndarray):
         (lat, lon) = latlon
-        lat = xr.DataArray(lat, dims=["latitude", "longitude"])
-        lon = xr.DataArray(lon, dims=["latitude", "longitude"])
+        lat = xr.DataArray(
+            lat, dims=["latitude", "longitude"])
+        lon = xr.DataArray(
+            lon, dims=["latitude", "longitude"])
         return self.data.interp(
             method=self.interp_method, latitude=lat, longitude=lon
         ).to_numpy()

@@ -18,12 +18,14 @@ def get_data_loader(params, distributed, mode):
         drop_last = True
         shuffle = True
         batch_size = int(params.batch_size)
-        sampler = DistributedSampler(dataset, shuffle=shuffle) if distributed else None
+        sampler = DistributedSampler(
+            dataset, shuffle=shuffle) if distributed else None
     elif mode == "valid":
         drop_last = False
         shuffle = False
         batch_size = int(params.batch_size)
-        sampler = DistributedSampler(dataset, shuffle=shuffle) if distributed else None
+        sampler = DistributedSampler(
+            dataset, shuffle=shuffle) if distributed else None
     else:
         drop_last = False
         sampler = None
@@ -79,8 +81,10 @@ class GetDataset(Dataset):
             self.normalize = True
 
     def _get_files_stats(self):
-        self.file_path = glob.glob(f"{self.params.count_data_path}/*.h5")
-        self.file_path = [os.path.basename(file) for file in self.file_path]
+        self.file_path = glob.glob(
+            f"{self.params.count_data_path}/*.h5")
+        self.file_path = [os.path.basename(
+            file) for file in self.file_path]
         self.file_path.sort()
 
         # select train-valid-test dataset according to 8-1-1
@@ -98,7 +102,8 @@ class GetDataset(Dataset):
                 f"Invalid mode {self.mode}. Use 'train', 'valid', or 'test'."
             )
         if not self.file_path:
-            raise RuntimeError(f"No .h5 files found in {self.params.wind_data_path}")
+            raise RuntimeError(
+                f"No .h5 files found in {self.params.wind_data_path}")
         self.n_years = len(self.file_path)
         self.files = [{} for _ in range(self.n_years)]
         self.n_samples_total = self.n_years * self.n_samples_per_year
@@ -127,7 +132,8 @@ class GetDataset(Dataset):
                     self.params.wind_data_path, data_type, self.file_path[year_idx]
                 )
             _files = h5py.File(file_path, "r")
-            self.files[year_idx][data_type] = _files[list(_files.keys())[0]]
+            self.files[year_idx][data_type] = _files[list(_files.keys())[
+                0]]
 
     def __len__(self):
         return self.n_samples_total
@@ -135,7 +141,8 @@ class GetDataset(Dataset):
     def __getitem__(self, global_idx):
 
         year_idx = int(global_idx / self.n_samples_per_year)
-        local_idx = int(global_idx % self.n_samples_per_year)
+        local_idx = int(global_idx %
+                        self.n_samples_per_year)
 
         if not self.files[year_idx]:
             self._open_file(year_idx)
@@ -224,15 +231,20 @@ def reshape_fields(
     if data_type.endswith("Sin") or data_type.endswith("Cos"):
         img = np.where(np.isnan(img), 0, img)
     else:
-        means = np.load(f"{params.global_means_path}/{data_type}_means.npy")
-        stds = np.load(f"{params.global_stds_path}/{data_type}_stds.npy")
+        means = np.load(
+            f"{params.global_means_path}/{data_type}_means.npy")
+        stds = np.load(
+            f"{params.global_stds_path}/{data_type}_stds.npy")
         img = np.where(np.isnan(img), means, img)
         if normalize:
             if params.normalization == "minmax":
-                raise Exception("minmax not supported. Use zscore")
+                raise Exception(
+                    "minmax not supported. Use zscore")
             if params.normalization == "zscore":
                 img = (img - means) / stds
     if add_noise:
-        img = img + np.random.normal(0, scale=params.noise_std, size=img.shape)
+        img = img + \
+            np.random.normal(
+                0, scale=params.noise_std, size=img.shape)
 
     return img

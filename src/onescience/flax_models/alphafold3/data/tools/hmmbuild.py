@@ -35,7 +35,8 @@ class Hmmbuild(object):
         self.singlemx = singlemx
         self.alphabet = alphabet
 
-        subprocess_utils.check_binary_exists(path=self.binary_path, name="hmmbuild")
+        subprocess_utils.check_binary_exists(
+            path=self.binary_path, name="hmmbuild")
 
     def build_profile_from_sto(self, sto: str, model_construction="fast") -> str:
         """Builds a HHM for the aligned sequences given as an A3M string.
@@ -69,7 +70,8 @@ class Hmmbuild(object):
         """
         lines = []
         for sequence, description in parsers.lazy_parse_fasta_string(a3m):
-            sequence = re.sub("[a-z]+", "", sequence)  # Remove inserted residues.
+            # Remove inserted residues.
+            sequence = re.sub("[a-z]+", "", sequence)
             lines.append(f">{description}\n{sequence}\n")
         msa = "".join(lines)
         return self._build_profile(msa, informat="afa")
@@ -96,11 +98,14 @@ class Hmmbuild(object):
           ValueError: If unspecified arguments are provided.
         """
         if model_construction not in {"hand", "fast"}:
-            raise ValueError(f"Bad {model_construction=}. Only hand or fast allowed.")
+            raise ValueError(
+                f"Bad {model_construction=}. Only hand or fast allowed.")
 
         with tempfile.TemporaryDirectory() as query_tmp_dir:
-            input_msa_path = os.path.join(query_tmp_dir, "query.msa")
-            output_hmm_path = os.path.join(query_tmp_dir, "output.hmm")
+            input_msa_path = os.path.join(
+                query_tmp_dir, "query.msa")
+            output_hmm_path = os.path.join(
+                query_tmp_dir, "output.hmm")
 
             with open(input_msa_path, "w") as f:
                 f.write(msa)
@@ -116,7 +121,8 @@ class Hmmbuild(object):
             if self.alphabet:
                 cmd_flags.append(f"--{self.alphabet}")
 
-            cmd_flags.extend([output_hmm_path, input_msa_path])
+            cmd_flags.extend(
+                [output_hmm_path, input_msa_path])
 
             cmd = [self.binary_path, *cmd_flags]
 

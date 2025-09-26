@@ -36,11 +36,13 @@ _POLYMER_FEATURES: Final[Mapping[str, np.float64 | np.int32 | object]] = {
     "template_sequence": object,
 }
 
-_LIGAND_FEATURES: Final[Mapping[str, Any]] = {"ligand_features": Mapping[str, Any]}
+_LIGAND_FEATURES: Final[Mapping[str, Any]] = {
+    "ligand_features": Mapping[str, Any]}
 
 
 TemplateFeatures: TypeAlias = Mapping[
-    str, np.ndarray | bytes | Mapping[str, np.ndarray | bytes]
+    str, np.ndarray | bytes | Mapping[str,
+                                      np.ndarray | bytes]
 ]
 _REQUIRED_METADATA_COLUMNS: Final[Sequence[str]] = (
     "seq_release_date",
@@ -116,13 +118,15 @@ def _encode_restype(
         # same as the RNA UNK.
         return [
             residue_names.POLYMER_TYPES_ORDER_WITH_UNKNOWN_AND_GAP.get(
-                residue_names.DNA_COMMON_ONE_TO_TWO.get(res, unk_nucleic),
+                residue_names.DNA_COMMON_ONE_TO_TWO.get(
+                    res, unk_nucleic),
                 unk_nucleic_idx,
             )
             for res in sequence
         ]
 
-    raise NotImplementedError(f'"{chain_poly_type}" unsupported.')
+    raise NotImplementedError(
+        f'"{chain_poly_type}" unsupported.')
 
 
 _DAYS_BEFORE_QUERY_DATE: Final[int] = 60
@@ -131,7 +135,8 @@ _HIT_DESCRIPTION_REGEX = re.compile(
     r".* length:(?P<length>\d+)\b.*"
 )
 
-_STANDARDIZED_AA = {"B": "D", "J": "X", "O": "X", "U": "C", "Z": "E"}
+_STANDARDIZED_AA = {"B": "D", "J": "X",
+                    "O": "X", "U": "C", "Z": "E"}
 
 
 class Error(Exception):
@@ -200,7 +205,7 @@ class Hit:
                 query_index += 1
                 hit_index += 1
 
-        structure_subseq = self.structure_sequence[self.start_index : self.end_index]
+        structure_subseq = self.structure_sequence[self.start_index: self.end_index]
         if self.matching_sequence != structure_subseq:
             # The seqres sequence doesn't match the structure sequence. Two cases:
             # 1. The sequences have the same length. The sequences are different
@@ -260,7 +265,8 @@ class Hit:
             return False
 
         return bool(
-            set(self.query_to_hit_mapping.values()) - set(self.unresolved_res_indices)
+            set(self.query_to_hit_mapping.values()) -
+            set(self.unresolved_res_indices)
         )
 
     @property
@@ -270,7 +276,8 @@ class Hit:
 
     def __post_init__(self):
         if not self.pdb_id.islower() and not self.pdb_id.isdigit():
-            raise ValueError(f"pdb_id must be lowercase {self.pdb_id}")
+            raise ValueError(
+                f"pdb_id must be lowercase {self.pdb_id}")
 
         if not (0 <= self.start_index <= self.end_index):
             raise ValueError(
@@ -286,7 +293,8 @@ class Hit:
             )
 
         if self.full_length < 0:
-            raise ValueError(f"Full length must be non-negative: {self.full_length}")
+            raise ValueError(
+                f"Full length must be non-negative: {self.full_length}")
 
     def keep(
         self,
@@ -336,7 +344,8 @@ class Hit:
             if min_align_ratio is not None and self.align_ratio <= min_align_ratio:
                 return False
         except template_realign.AlignmentError as e:
-            logging.warning("Failed to align %s: %s", self, str(e))
+            logging.warning(
+                "Failed to align %s: %s", self, str(e))
             return False
 
         return True
@@ -402,12 +411,14 @@ class Templates:
         self._structure_store = structure_store
 
         if any(h.query_sequence != self._query_sequence for h in self.hits):
-            raise ValueError("All hits must match the query sequence.")
+            raise ValueError(
+                "All hits must match the query sequence.")
 
         if self._hits:
             chain_poly_type = self._hits[0].chain_poly_type
             if any(h.chain_poly_type != chain_poly_type for h in self.hits):
-                raise ValueError("All hits must have the same chain_poly_type.")
+                raise ValueError(
+                    "All hits must have the same chain_poly_type.")
 
     @classmethod
     def from_seq_and_a3m(
@@ -501,7 +512,8 @@ class Templates:
 
         def hit_generator(a3m: str):
             if not a3m:
-                return  # Hmmsearch could return an empty string if there are no hits.
+                # Hmmsearch could return an empty string if there are no hits.
+                return
 
             for hit_seq, hit_desc in parsers.lazy_parse_fasta_string(a3m):
                 pdb_id, auth_chain_id, start, end, full_length = _parse_hit_description(
@@ -515,7 +527,8 @@ class Templates:
                     continue
 
                 # seq_unresolved_res_num are 1-based, setting to 0-based indices.
-                unresolved_indices = [i - 1 for i in unresolved_res_ids]
+                unresolved_indices = [
+                    i - 1 for i in unresolved_res_ids]
 
                 yield Hit(
                     pdb_id=pdb_id,
@@ -524,10 +537,12 @@ class Templates:
                     structure_sequence=sequence,
                     query_sequence=query_sequence,
                     unresolved_res_indices=unresolved_indices,
-                    start_index=start - 1,  # Raw value is residue number, not index.
+                    # Raw value is residue number, not index.
+                    start_index=start - 1,
                     end_index=end,
                     full_length=full_length,
-                    release_date=datetime.date.fromisoformat(release_date),
+                    release_date=datetime.date.fromisoformat(
+                        release_date),
                     chain_poly_type=chain_poly_type,
                 )
 
@@ -574,7 +589,9 @@ class Templates:
             return self._max_template_date
         return min(
             self._max_template_date,
-            self.query_release_date - datetime.timedelta(days=_DAYS_BEFORE_QUERY_DATE),
+            self.query_release_date -
+            datetime.timedelta(
+                days=_DAYS_BEFORE_QUERY_DATE),
         )
 
     def __repr__(self) -> str:
@@ -628,7 +645,8 @@ class Templates:
     ) -> Sequence[tuple[Hit, structure.Structure]]:
         """Returns hits + Structures, Structures filtered to the hit's chain."""
         results = []
-        structures = {struc.name.lower(): struc for struc in self.structures}
+        structures = {
+            struc.name.lower(): struc for struc in self.structures}
         for hit in self.hits:
             if not hit.is_valid:
                 raise InvalidTemplateError(
@@ -638,7 +656,8 @@ class Templates:
             label_chain_id = struc.polymer_auth_asym_id_to_label_asym_id().get(
                 hit.auth_chain_id
             )
-            results.append((hit, struc.filter(chain_id=label_chain_id)))
+            results.append(
+                (hit, struc.filter(chain_id=label_chain_id)))
         return results
 
     def featurize(
@@ -668,7 +687,8 @@ class Templates:
                 raise InvalidTemplateError(
                     f"Hits must be filtered before featurizing, got unprocessed {hit=}"
                 )
-            hits_by_pdb_id.setdefault(hit.pdb_id, []).append((idx, hit))
+            hits_by_pdb_id.setdefault(
+                hit.pdb_id, []).append((idx, hit))
 
         unsorted_features = []
         for struc in self.structures:
@@ -680,20 +700,27 @@ class Templates:
                     ]
                     hit_features = {
                         **get_polymer_features(
-                            chain=struc.filter(chain_id=label_chain_id),
+                            chain=struc.filter(
+                                chain_id=label_chain_id),
                             chain_poly_type=hit.chain_poly_type,
-                            query_sequence_length=len(hit.query_sequence),
+                            query_sequence_length=len(
+                                hit.query_sequence),
                             query_to_hit_mapping=hit.query_to_hit_mapping,
                         ),
                     }
                     if include_ligand_features:
-                        hit_features["ligand_features"] = _get_ligand_features(struc)
-                    unsorted_features.append((idx, hit_features))
+                        hit_features["ligand_features"] = _get_ligand_features(
+                            struc)
+                    unsorted_features.append(
+                        (idx, hit_features))
                 except Error as e:
-                    raise type(e)(f"Failed to featurise {hit=}") from e
+                    raise type(e)(
+                        f"Failed to featurise {hit=}") from e
 
-        sorted_features = sorted(unsorted_features, key=lambda x: x[0])
-        sorted_features = [feat for _, feat in sorted_features]
+        sorted_features = sorted(
+            unsorted_features, key=lambda x: x[0])
+        sorted_features = [
+            feat for _, feat in sorted_features]
         return package_template_features(
             hit_features=sorted_features,
             include_ligand_features=include_ligand_features,
@@ -723,16 +750,19 @@ class Templates:
                 )
 
         # Get the set of pdbs to load. In particular, remove duplicate PDB IDs.
-        targets_to_load = tuple({hit.pdb_id for hit in self.hits})
+        targets_to_load = tuple(
+            {hit.pdb_id for hit in self.hits})
 
         for target_name in targets_to_load:
             yield structure.from_mmcif(
-                mmcif_string=self._structure_store.get_mmcif_str(target_name),
+                mmcif_string=self._structure_store.get_mmcif_str(
+                    target_name),
                 fix_mse_residues=True,
                 fix_arginines=True,
                 include_water=False,
                 include_bonds=False,
-                include_other=True,  # For non-standard polymer chains.
+                # For non-standard polymer chains.
+                include_other=True,
             )
 
 
@@ -751,7 +781,8 @@ def _parse_hit_description(description: str) -> tuple[str, str, int, int, int]:
             int(match["length"]),
         )
     else:
-        raise ValueError(f'Could not parse description "{description}"')
+        raise ValueError(
+            f'Could not parse description "{description}"')
 
 
 def _parse_hit_metadata(
@@ -761,7 +792,8 @@ def _parse_hit_metadata(
 ) -> tuple[Any, str | None, Sequence[int] | None]:
     """Parse hit metadata by parsing mmCIF from structure store."""
     try:
-        cif = mmcif.from_string(structure_store.get_mmcif_str(pdb_id))
+        cif = mmcif.from_string(
+            structure_store.get_mmcif_str(pdb_id))
     except structure_stores.NotFoundError:
         logging.warning(
             "Failed to get mmCIF for %s (author chain %s).", pdb_id, auth_chain_id
@@ -824,18 +856,21 @@ def get_polymer_features(
       ValueError: If the input structure contains more than just a single chain.
     """
     if len(chain.polymer_auth_asym_id_to_label_asym_id()) != 1:
-        raise ValueError("The structure must be filtered to a single chain.")
+        raise ValueError(
+            "The structure must be filtered to a single chain.")
 
     if chain.name is None:
         raise ValueError("The structure must have a name.")
 
     if chain.release_date is None:
-        raise ValueError("The structure must have a release date.")
+        raise ValueError(
+            "The structure must have a release date.")
 
     auth_chain_id, label_chain_id = next(
         iter(chain.polymer_auth_asym_id_to_label_asym_id().items())
     )
-    chain_sequence = chain.chain_single_letter_sequence()[label_chain_id]
+    chain_sequence = chain.chain_single_letter_sequence()[
+        label_chain_id]
 
     polymer = _POLYMERS[chain_poly_type]
     positions, positions_mask = chain.to_res_arrays(
@@ -845,7 +880,8 @@ def get_polymer_features(
         (query_sequence_length, polymer.num_atom_types, 3), dtype=np.float64
     )
     template_all_atom_masks = np.zeros(
-        (query_sequence_length, polymer.num_atom_types), dtype=np.int64
+        (query_sequence_length,
+         polymer.num_atom_types), dtype=np.int64
     )
 
     template_sequence = ["-"] * query_sequence_length
@@ -855,7 +891,8 @@ def get_polymer_features(
         template_sequence[query_index] = chain_sequence[template_index]
 
     template_sequence = "".join(template_sequence)
-    template_aatype = _encode_restype(chain_poly_type, template_sequence)
+    template_aatype = _encode_restype(
+        chain_poly_type, template_sequence)
     template_name = f"{chain.name.lower()}_{auth_chain_id}"
     release_date = chain.release_date.strftime("%Y-%m-%d")
     return {
@@ -879,7 +916,8 @@ def _get_ligand_features(
 
     ligand_features = {}
     for ligand_chain_id in ligand_struc.chains:
-        idxs = np.where(ligand_struc.chain_id == ligand_chain_id)[0]
+        idxs = np.where(
+            ligand_struc.chain_id == ligand_chain_id)[0]
         if idxs.shape[0]:
             ligand_features[ligand_chain_id] = {
                 "ligand_atom_positions": ligand_struc.coords[idxs, :].astype(
@@ -906,14 +944,16 @@ def package_template_features(
         features_to_include.update(_LIGAND_FEATURES)
 
     features = {
-        feat: [single_hit_features[feat] for single_hit_features in hit_features]
+        feat: [single_hit_features[feat]
+               for single_hit_features in hit_features]
         for feat in features_to_include
     }
 
     stacked_features = {}
     for k, v in features.items():
         if k in _POLYMER_FEATURES:
-            v = np.stack(v, axis=0) if v else np.array([], dtype=_POLYMER_FEATURES[k])
+            v = np.stack(v, axis=0) if v else np.array(
+                [], dtype=_POLYMER_FEATURES[k])
         stacked_features[k] = v
 
     return stacked_features
@@ -953,5 +993,6 @@ def run_hmmsearch_with_a3m(
         filter_max=hmmsearch_config.filter_max,
     )
     # STO enables us to annotate query non-gap columns as reference columns.
-    sto = parsers.convert_a3m_to_stockholm(a3m, max_a3m_query_sequences)
+    sto = parsers.convert_a3m_to_stockholm(
+        a3m, max_a3m_query_sequences)
     return searcher.query_with_sto(sto, model_construction="hand")

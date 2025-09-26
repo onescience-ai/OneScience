@@ -57,19 +57,24 @@ class GenerateRunner(Runner):
                         retrieval_method="hybrid_search",
                     )
             context = "".join(context)
-            example_texts = "\n".join(self.tool_examples).strip()
+            example_texts = "\n".join(
+                self.tool_examples).strip()
             if example_texts != "":
-                context = f"{context}\n\n工具使用示例\n{example_texts}".strip()
+                context = f"{context}\n\n工具使用示例\n{example_texts}".strip(
+                )
             if len(context):
                 self.context = context
         if self.context:
             messages = [
-                SystemMessage(self.system_prompt + "\n\n" + self.context)
+                SystemMessage(
+                    self.system_prompt + "\n\n" + self.context)
             ] + state["messages"]
         else:
-            messages = [SystemMessage(self.system_prompt)] + state["messages"]
+            messages = [SystemMessage(
+                self.system_prompt)] + state["messages"]
         response = self.llm.invoke(messages)
-        self.logger.info(f"{self.name} response: {response}")
+        self.logger.info(
+            f"{self.name} response: {response}")
         return {"messages": [response]}
 
 
@@ -81,7 +86,8 @@ class ParseRunner(Runner):
 
     def node(self, state: StateLike) -> Dict:
         msg = state["messages"][-1]
-        tool_calls = msg.tool_calls if isinstance(msg, AIMessage) else []
+        tool_calls = msg.tool_calls if isinstance(
+            msg, AIMessage) else []
 
         msg = msg.content
         if "<solution>" in msg and "</solution>" not in msg:
@@ -89,8 +95,10 @@ class ParseRunner(Runner):
         if "<think>" in msg and "</think>" not in msg:
             msg += "</think>"
 
-        think_match = re.search(r"<think>(.*?)</think>", msg, re.DOTALL)
-        answer_match = re.search(r"<solution>(.*?)</solution>", msg, re.DOTALL)
+        think_match = re.search(
+            r"<think>(.*?)</think>", msg, re.DOTALL)
+        answer_match = re.search(
+            r"<solution>(.*?)</solution>", msg, re.DOTALL)
 
         if answer_match or think_match or len(tool_calls):
             return {"messages": []}

@@ -23,7 +23,8 @@ import numpy as np
 
 from . import struct_of_array, utils, vector
 
-COMPONENTS = ["xx", "xy", "xz", "yx", "yy", "yz", "zx", "zy", "zz"]
+COMPONENTS = ["xx", "xy", "xz", "yx",
+              "yy", "yz", "zx", "zy", "zz"]
 
 VERSION = "0.1"
 
@@ -32,7 +33,8 @@ VERSION = "0.1"
 class Rot3Array:
     """Rot3Array Matrix in 3 dimensional Space implemented as struct of arrays."""
 
-    xx: jnp.ndarray = dataclasses.field(metadata={"dtype": jnp.float32})
+    xx: jnp.ndarray = dataclasses.field(
+        metadata={"dtype": jnp.float32})
     xy: jnp.ndarray
     xz: jnp.ndarray
     yx: jnp.ndarray
@@ -72,9 +74,12 @@ class Rot3Array:
 
     def __matmul__(self, other: Rot3Array) -> Rot3Array:
         """Composes two Rot3Arrays."""
-        c0 = self.apply_to_point(vector.Vec3Array(other.xx, other.yx, other.zx))
-        c1 = self.apply_to_point(vector.Vec3Array(other.xy, other.yy, other.zy))
-        c2 = self.apply_to_point(vector.Vec3Array(other.xz, other.yz, other.zz))
+        c0 = self.apply_to_point(
+            vector.Vec3Array(other.xx, other.yx, other.zx))
+        c1 = self.apply_to_point(
+            vector.Vec3Array(other.xy, other.yy, other.zy))
+        c2 = self.apply_to_point(
+            vector.Vec3Array(other.xz, other.yz, other.zz))
         return Rot3Array(c0.x, c1.x, c2.x, c0.y, c1.y, c2.y, c0.z, c1.z, c2.z)
 
     @classmethod
@@ -114,16 +119,20 @@ class Rot3Array:
     def from_array(cls, array: jnp.ndarray) -> Rot3Array:
         """Construct Rot3Array Matrix from array of shape. [..., 3, 3]."""
         unstacked = utils.unstack(array, axis=-2)
-        unstacked = sum([utils.unstack(x, axis=-1) for x in unstacked], [])
+        unstacked = sum([utils.unstack(x, axis=-1)
+                        for x in unstacked], [])
         return cls(*unstacked)
 
     def to_array(self) -> jnp.ndarray:
         """Convert Rot3Array to array of shape [..., 3, 3]."""
         return jnp.stack(
             [
-                jnp.stack([self.xx, self.xy, self.xz], axis=-1),
-                jnp.stack([self.yx, self.yy, self.yz], axis=-1),
-                jnp.stack([self.zx, self.zy, self.zz], axis=-1),
+                jnp.stack(
+                    [self.xx, self.xy, self.xz], axis=-1),
+                jnp.stack(
+                    [self.yx, self.yy, self.yz], axis=-1),
+                jnp.stack(
+                    [self.zx, self.zy, self.zz], axis=-1),
             ],
             axis=-2,
         )
@@ -140,7 +149,8 @@ class Rot3Array:
     ) -> Rot3Array:
         """Construct Rot3Array from components of quaternion."""
         if normalize:
-            inv_norm = jax.lax.rsqrt(jnp.maximum(epsilon, w**2 + x**2 + y**2 + z**2))
+            inv_norm = jax.lax.rsqrt(jnp.maximum(
+                epsilon, w**2 + x**2 + y**2 + z**2))
             w *= inv_norm
             x *= inv_norm
             y *= inv_norm
@@ -161,7 +171,8 @@ class Rot3Array:
     @classmethod
     def random_uniform(cls, key, shape, dtype=jnp.float32) -> Rot3Array:
         """Samples uniform random Rot3Array according to Haar Measure."""
-        quat_array = jax.random.normal(key, tuple(shape) + (4,), dtype=dtype)
+        quat_array = jax.random.normal(
+            key, tuple(shape) + (4,), dtype=dtype)
         quats = utils.unstack(quat_array)
         return cls.from_quaternion(*quats)
 

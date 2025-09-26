@@ -38,7 +38,8 @@ class RelaxationRunner(CalculateRunner):
         input_data: AseDBDataset,
         calculate_properties: Sequence[str],
         save_relaxed_atoms: bool = True,
-        normalize_properties_by: dict[str, str] | None = None,
+        normalize_properties_by: dict[str,
+                                      str] | None = None,
         save_target_properties: Sequence[str] | None = None,
         **relax_kwargs,
     ):
@@ -78,7 +79,8 @@ class RelaxationRunner(CalculateRunner):
             list[dict[str, Any]] - List of dictionaries containing calculation results
         """
         all_results = []
-        chunk_indices = np.array_split(range(len(self.input_data)), num_jobs)[job_num]
+        chunk_indices = np.array_split(
+            range(len(self.input_data)), num_jobs)[job_num]
         for i in tqdm(chunk_indices, desc="Running relaxations"):
             atoms = self.input_data.get_atoms(i)
             results = {
@@ -91,14 +93,17 @@ class RelaxationRunner(CalculateRunner):
                 self._save_target_properties, atoms, self._normalize_properties_by
             )
             results.update(
-                {f"{key}_target": target_properties[key] for key in target_properties}
+                {f"{key}_target": target_properties[key]
+                    for key in target_properties}
             )
             if self._save_relaxed_atoms:
-                results["atoms_initial"] = MSONAtoms(atoms).as_dict()
+                results["atoms_initial"] = MSONAtoms(
+                    atoms).as_dict()
 
             try:
                 atoms.calc = self.calculator
-                atoms = relax_atoms(atoms, **self._relax_kwargs)
+                atoms = relax_atoms(
+                    atoms, **self._relax_kwargs)
                 results.update(
                     get_property_dict_from_atoms(
                         self._calculate_properties, atoms, self._normalize_properties_by
@@ -112,7 +117,8 @@ class RelaxationRunner(CalculateRunner):
                 )
 
             except Exception as ex:  # TODO too broad-figure out which to catch
-                results.update(dict.fromkeys(self._calculate_properties, np.nan))
+                results.update(dict.fromkeys(
+                    self._calculate_properties, np.nan))
                 results.update(
                     {
                         "errors": f"{ex!r}",
@@ -121,7 +127,8 @@ class RelaxationRunner(CalculateRunner):
                 )
 
             if self._save_relaxed_atoms:
-                results["atoms"] = MSONAtoms(atoms).as_dict()
+                results["atoms"] = MSONAtoms(
+                    atoms).as_dict()
 
             all_results.append(results)
 
@@ -144,7 +151,8 @@ class RelaxationRunner(CalculateRunner):
         """
         results_df = pd.DataFrame(results)
         results_df.to_json(
-            os.path.join(results_dir, f"relaxation_{num_jobs}-{job_num}.json.gz")
+            os.path.join(
+                results_dir, f"relaxation_{num_jobs}-{job_num}.json.gz")
         )
 
     def save_state(self, checkpoint_location: str, is_preemption: bool = False) -> bool:

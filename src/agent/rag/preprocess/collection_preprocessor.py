@@ -40,10 +40,12 @@ class MatchResult(BaseModel):
 class CollectionPreprocessor:
 
     def __init__(self, config: Dict):
-        self.llm = ChatModel[config["factory_name"]](**config["model"])
+        self.llm = ChatModel[config["factory_name"]](
+            **config["model"])
 
     def preprocess(self, task: str) -> list[str]:
-        parser = JsonOutputParser(pydantic_object=MatchResult)
+        parser = JsonOutputParser(
+            pydantic_object=MatchResult)
         prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", SYSTEM_TEMPLATE),
@@ -57,6 +59,8 @@ class CollectionPreprocessor:
         response = preprocess_chain.invoke(
             {"task": task, "collection_info": collection_info}
         )
-        result = MatchResult.model_validate_json(json.dumps(response))
-        print(f"collection_names: {result.collection_names}")
+        result = MatchResult.model_validate_json(
+            json.dumps(response))
+        print(
+            f"collection_names: {result.collection_names}")
         return result.collection_names

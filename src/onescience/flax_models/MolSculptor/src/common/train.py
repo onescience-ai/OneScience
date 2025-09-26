@@ -6,7 +6,7 @@ import optax
 from optax import Schedule
 
 
-## Learning schedule
+# Learning schedule
 def polynomial_decay_schedule(
     init_value: float,
     power: float,
@@ -27,8 +27,10 @@ def transformer_schedule(
 ):
 
     dim_scale = np.power(dimension, -0.5)
-    max_lr = learning_rate * dim_scale * np.power(warmup_steps, -0.5)
-    print(f"Using transformer learning rate, max rate is: {max_lr:.4e}")
+    max_lr = learning_rate * dim_scale * \
+        np.power(warmup_steps, -0.5)
+    print(
+        f"Using transformer learning rate, max rate is: {max_lr:.4e}")
 
     warmup_fn = optax.linear_schedule(
         init_value=0.0, end_value=max_lr, transition_steps=warmup_steps
@@ -39,7 +41,8 @@ def transformer_schedule(
         transition_begin=warmup_steps,
     )
     schedule_fn = optax.join_schedules(
-        schedules=[warmup_fn, decay_fn], boundaries=[warmup_steps]
+        schedules=[warmup_fn, decay_fn], boundaries=[
+            warmup_steps]
     )
 
     return schedule_fn

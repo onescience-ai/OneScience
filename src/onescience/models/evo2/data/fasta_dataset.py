@@ -38,12 +38,14 @@ class SimpleFastaDataset(torch.utils.data.Dataset):
         self.fasta = NvFaidx(fasta_path)
         self.seqids = sorted(self.fasta.keys())
         self.tokenizer = tokenizer
-        self.prepend_bos = prepend_bos  # needed for getting predictions for the requested set of tokens.
+        # needed for getting predictions for the requested set of tokens.
+        self.prepend_bos = prepend_bos
 
     def write_idx_map(self, output_dir: Path):
         """Write the index map to the output directory."""
         with open(output_dir / "seq_idx_map.json", "w") as f:
-            json.dump({seqid: idx for idx, seqid in enumerate(self.seqids)}, f)
+            json.dump(
+                {seqid: idx for idx, seqid in enumerate(self.seqids)}, f)
 
     def __len__(self):
         """Get the length of the dataset."""
@@ -51,10 +53,13 @@ class SimpleFastaDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         """Get an item from the dataset."""
-        sequence = self.fasta[self.seqids[idx]].sequence().upper()
+        sequence = self.fasta[self.seqids[idx]].sequence(
+        ).upper()
         tokenized_seq = self.tokenizer.text_to_ids(sequence)
-        if self.prepend_bos:  # in pretraining we use EOS to start new sequences.
-            tokens: list[int] = [self.tokenizer.eod] + tokenized_seq
+        # in pretraining we use EOS to start new sequences.
+        if self.prepend_bos:
+            tokens: list[int] = [
+                self.tokenizer.eod] + tokenized_seq
         else:
             tokens: list[int] = tokenized_seq
         loss_mask = torch.ones_like(

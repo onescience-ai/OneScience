@@ -8,8 +8,10 @@ from scipy.interpolate import griddata
 
 def format_axis_ticks(ax):
     """Format axis ticks for consistent appearance."""
-    ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
-    ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
+    ax.xaxis.set_major_formatter(
+        ticker.FormatStrFormatter("%.2f"))
+    ax.yaxis.set_major_formatter(
+        ticker.FormatStrFormatter("%.2f"))
     ax.tick_params(axis="both", which="major", labelsize=10)
 
 
@@ -33,7 +35,8 @@ def plot_predictions_and_residuals(
     """
 
     def plot_field(ax, x, y, field, title, levels):
-        contour = ax.tricontourf(x, y, field, levels=levels, cmap="jet")
+        contour = ax.tricontourf(
+            x, y, field, levels=levels, cmap="jet")
         plt.colorbar(contour, ax=ax)
         ax.set_title(title, fontsize=14, pad=10)
         ax.set_xlabel(r"$x$", fontsize=12)
@@ -89,9 +92,12 @@ def plot_predictions_and_residuals(
     plt.close(fig1)
 
     # Compute normalized residuals
-    res_pde1_np = (1 / w_pde1) * residual_pde1.detach().cpu().numpy()
-    res_pde2_np = (1 / w_pde2) * residual_pde2.detach().cpu().numpy()
-    res_pde3_np = (1 / w_pde3) * residual_pde3.detach().cpu().numpy()
+    res_pde1_np = (1 / w_pde1) * \
+        residual_pde1.detach().cpu().numpy()
+    res_pde2_np = (1 / w_pde2) * \
+        residual_pde2.detach().cpu().numpy()
+    res_pde3_np = (1 / w_pde3) * \
+        residual_pde3.detach().cpu().numpy()
 
     # Plot residuals
     fig2, axs2 = plt.subplots(1, 3, figsize=(18, 6))
@@ -101,7 +107,8 @@ def plot_predictions_and_residuals(
         collocation_x_np[:, 1],
         res_pde1_np,
         rf"Residual PDE 1 (Iteration {iteration})",
-        np.linspace(np.min(res_pde1_np), np.max(res_pde1_np), 2000),
+        np.linspace(np.min(res_pde1_np),
+                    np.max(res_pde1_np), 2000),
     )
     plot_field(
         axs2[1],
@@ -109,7 +116,8 @@ def plot_predictions_and_residuals(
         collocation_x_np[:, 1],
         res_pde2_np,
         rf"Residual PDE 2 (Iteration {iteration})",
-        np.linspace(np.min(res_pde2_np), np.max(res_pde2_np), 2000),
+        np.linspace(np.min(res_pde2_np),
+                    np.max(res_pde2_np), 2000),
     )
     plot_field(
         axs2[2],
@@ -117,7 +125,8 @@ def plot_predictions_and_residuals(
         collocation_x_np[:, 1],
         res_pde3_np,
         rf"Residual PDE 3 (Iteration {iteration})",
-        np.linspace(np.min(res_pde3_np), np.max(res_pde3_np), 2000),
+        np.linspace(np.min(res_pde3_np),
+                    np.max(res_pde3_np), 2000),
     )
     plt.tight_layout(pad=2.0)
     file_path2 = f"results/{problem}_residuals_iteration_{iteration}.png"
@@ -152,9 +161,12 @@ def plot_loss_history(
         ax.set_xlabel(xlabel, fontsize=12)
         ax.set_ylabel(ylabel, fontsize=12)
         ax.grid(True)
-        ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.0f"))
-        ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2e"))
-        ax.tick_params(axis="both", which="major", labelsize=10)
+        ax.xaxis.set_major_formatter(
+            ticker.FormatStrFormatter("%.0f"))
+        ax.yaxis.set_major_formatter(
+            ticker.FormatStrFormatter("%.2e"))
+        ax.tick_params(
+            axis="both", which="major", labelsize=10)
 
     # Unpack losses
     loss_pde1, loss_pde1_s = loss_pde1_hist_both
@@ -201,8 +213,10 @@ def plot_loss_history(
 
 def format_axis_ticks(ax):
     """Format axis ticks and labels for consistency."""
-    ax.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
-    ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
+    ax.xaxis.set_major_formatter(
+        ticker.FormatStrFormatter("%.2f"))
+    ax.yaxis.set_major_formatter(
+        ticker.FormatStrFormatter("%.2f"))
     ax.tick_params(axis="both", which="major", labelsize=10)
 
 
@@ -233,16 +247,20 @@ def plot_density_and_velocity_fields(u, v, p, ro, collocation_x, iteration, prob
     # Create a grid for interpolation
     grid_x, grid_y = np.meshgrid(
         np.linspace(
-            np.min(collocation_x_cpu[:, 0]), np.max(collocation_x_cpu[:, 0]), 100
+            np.min(collocation_x_cpu[:, 0]), np.max(
+                collocation_x_cpu[:, 0]), 100
         ),
         np.linspace(
-            np.min(collocation_x_cpu[:, 1]), np.max(collocation_x_cpu[:, 1]), 100
+            np.min(collocation_x_cpu[:, 1]), np.max(
+                collocation_x_cpu[:, 1]), 100
         ),
     )
 
     # Interpolate the U and V values onto the grid
-    grid_U = griddata(collocation_x_cpu, U_pred_np, (grid_x, grid_y), method="cubic")
-    grid_V = griddata(collocation_x_cpu, V_pred_np, (grid_x, grid_y), method="cubic")
+    grid_U = griddata(collocation_x_cpu, U_pred_np,
+                      (grid_x, grid_y), method="cubic")
+    grid_V = griddata(collocation_x_cpu, V_pred_np,
+                      (grid_x, grid_y), method="cubic")
 
     # Compute velocity squared
     velocity_squared = grid_U**2 + grid_V**2
@@ -258,7 +276,8 @@ def plot_density_and_velocity_fields(u, v, p, ro, collocation_x, iteration, prob
     plt.subplots_adjust(wspace=0.3, hspace=0.3)
 
     # Density subplot
-    levels_ro = np.linspace(np.min(ro_pred_np), np.max(ro_pred_np + 0.01), 2000)
+    levels_ro = np.linspace(
+        np.min(ro_pred_np), np.max(ro_pred_np + 0.01), 2000)
     contour_ro = axs[0, 0].tricontourf(
         collocation_x_cpu[:, 0],
         collocation_x_cpu[:, 1],
@@ -269,7 +288,8 @@ def plot_density_and_velocity_fields(u, v, p, ro, collocation_x, iteration, prob
         cmap="jet",
     )
     contour_ro.set_edgecolor("face")
-    cbar_ro = fig.colorbar(contour_ro, ax=axs[0, 0], fraction=0.046, pad=0.04)
+    cbar_ro = fig.colorbar(
+        contour_ro, ax=axs[0, 0], fraction=0.046, pad=0.04)
     format_colorbar_ticks(cbar_ro)
     axs[0, 0].set_title(
         rf"Density Distribution ($\rho$) at Iteration {iteration}", pad=7
@@ -283,14 +303,16 @@ def plot_density_and_velocity_fields(u, v, p, ro, collocation_x, iteration, prob
     axs[0, 1].streamplot(
         grid_x, grid_y, grid_U_masked, grid_V_masked, color="blue", density=2
     )
-    axs[0, 1].set_title(rf"Velocity Streamline at Iteration {iteration}", pad=7)
+    axs[0, 1].set_title(
+        rf"Velocity Streamline at Iteration {iteration}", pad=7)
     axs[0, 1].set_xlabel(r"$x$")
     axs[0, 1].set_ylabel(r"$y$")
     axs[0, 1].grid(True)
     format_axis_ticks(axs[0, 1])
 
     # U_pred subplot
-    levels_U = np.linspace(np.min(U_pred_np), np.max(U_pred_np), 2000)
+    levels_U = np.linspace(
+        np.min(U_pred_np), np.max(U_pred_np), 2000)
     contour_U = axs[1, 0].tricontourf(
         collocation_x_cpu[:, 0],
         collocation_x_cpu[:, 1],
@@ -299,16 +321,19 @@ def plot_density_and_velocity_fields(u, v, p, ro, collocation_x, iteration, prob
         cmap="jet",
     )
     contour_U.set_edgecolor("face")
-    cbar_U = fig.colorbar(contour_U, ax=axs[1, 0], fraction=0.046, pad=0.04)
+    cbar_U = fig.colorbar(
+        contour_U, ax=axs[1, 0], fraction=0.046, pad=0.04)
     format_colorbar_ticks(cbar_U)
-    axs[1, 0].set_title(rf"Predicted $u(x,y)$ at Iteration {iteration}", pad=7)
+    axs[1, 0].set_title(
+        rf"Predicted $u(x,y)$ at Iteration {iteration}", pad=7)
     axs[1, 0].set_xlabel(r"$x$")
     axs[1, 0].set_ylabel(r"$y$")
     axs[1, 0].grid(True)
     format_axis_ticks(axs[1, 0])
 
     # V_pred subplot
-    levels_V = np.linspace(np.min(V_pred_np), np.max(V_pred_np), 2000)
+    levels_V = np.linspace(
+        np.min(V_pred_np), np.max(V_pred_np), 2000)
     contour_V = axs[1, 1].tricontourf(
         collocation_x_cpu[:, 0],
         collocation_x_cpu[:, 1],
@@ -317,9 +342,11 @@ def plot_density_and_velocity_fields(u, v, p, ro, collocation_x, iteration, prob
         cmap="jet",
     )
     contour_V.set_edgecolor("face")
-    cbar_V = fig.colorbar(contour_V, ax=axs[1, 1], fraction=0.046, pad=0.04)
+    cbar_V = fig.colorbar(
+        contour_V, ax=axs[1, 1], fraction=0.046, pad=0.04)
     format_colorbar_ticks(cbar_V)
-    axs[1, 1].set_title(rf"Predicted $v(x,y)$ at Iteration {iteration}", pad=7)
+    axs[1, 1].set_title(
+        rf"Predicted $v(x,y)$ at Iteration {iteration}", pad=7)
     axs[1, 1].set_xlabel(r"$x$")
     axs[1, 1].set_ylabel(r"$y$")
     axs[1, 1].grid(True)

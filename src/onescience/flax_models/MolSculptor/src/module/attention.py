@@ -27,7 +27,7 @@ from ..common.utils import gather_neighbor, get_initializer
 from .transformer import NormBlock
 
 
-## Adapted from jax.experimental.pallas.ops.attention
+# Adapted from jax.experimental.pallas.ops.attention
 @functools.partial(jax.jit, static_argnames=["sm_scale", "causal", "attention_type"])
 def _attention(
     q: jnp.ndarray,  # (B, N, H, C)
@@ -40,21 +40,29 @@ def _attention(
 ):
     n_seq_q = q.shape[-3]
     n_seq_k = k.shape[-3]
-    logits = jnp.einsum("bqhc,bkhc->bhqk", q, k).astype(jnp.float32)
+    logits = jnp.einsum(
+        "bqhc,bkhc->bhqk", q, k).astype(jnp.float32)
 
     mask = None
     if segment_ids is not None:
         if attention_type == "self":
-            mask = jnp.expand_dims(segment_mask(segment_ids, segment_ids), 1)
+            mask = jnp.expand_dims(
+                segment_mask(segment_ids, segment_ids), 1)
         elif attention_type == "cross":
-            mask = jnp.expand_dims(segment_mask(*segment_ids), 1)
+            mask = jnp.expand_dims(
+                segment_mask(*segment_ids), 1)
         mask = jnp.broadcast_to(mask, logits.shape)
     if causal:
-        causal_mask = jnp.tril(jnp.ones((1, 1, n_seq_q, n_seq_k), dtype=bool))
-        causal_mask = jnp.broadcast_to(causal_mask, logits.shape)
-        mask = causal_mask if mask is None else jnp.logical_and(mask, causal_mask)
-    logits = logits if mask is None else jnp.where(mask, logits, float("-inf"))
-    weights = jax.nn.softmax(logits * sm_scale).astype(q.dtype)
+        causal_mask = jnp.tril(
+            jnp.ones((1, 1, n_seq_q, n_seq_k), dtype=bool))
+        causal_mask = jnp.broadcast_to(
+            causal_mask, logits.shape)
+        mask = causal_mask if mask is None else jnp.logical_and(
+            mask, causal_mask)
+    logits = logits if mask is None else jnp.where(
+        mask, logits, float("-inf"))
+    weights = jax.nn.softmax(
+        logits * sm_scale).astype(q.dtype)
 
     return jnp.einsum("bhqk,bkhc->bqhc", weights, v)
 
@@ -72,26 +80,34 @@ def _attention_withbias(
 ):
     n_seq_q = q.shape[-3]
     n_seq_k = k.shape[-3]
-    logits = jnp.einsum("bqhc,bkhc->bhqk", q, k).astype(jnp.float32)
+    logits = jnp.einsum(
+        "bqhc,bkhc->bhqk", q, k).astype(jnp.float32)
 
     mask = None
     if segment_ids is not None:
         if attention_type == "self":
-            mask = jnp.expand_dims(segment_mask(segment_ids, segment_ids), 1)
+            mask = jnp.expand_dims(
+                segment_mask(segment_ids, segment_ids), 1)
         elif attention_type == "cross":
-            mask = jnp.expand_dims(segment_mask(*segment_ids), 1)
+            mask = jnp.expand_dims(
+                segment_mask(*segment_ids), 1)
         mask = jnp.broadcast_to(mask, logits.shape)
     if causal:
-        causal_mask = jnp.tril(jnp.ones((1, 1, n_seq_q, n_seq_k), dtype=bool))
-        causal_mask = jnp.broadcast_to(causal_mask, logits.shape)
-        mask = causal_mask if mask is None else jnp.logical_and(mask, causal_mask)
-    logits = logits if mask is None else jnp.where(mask, logits, float("-inf"))
-    weights = jax.nn.softmax(logits * sm_scale + b.astype(jnp.float32)).astype(q.dtype)
+        causal_mask = jnp.tril(
+            jnp.ones((1, 1, n_seq_q, n_seq_k), dtype=bool))
+        causal_mask = jnp.broadcast_to(
+            causal_mask, logits.shape)
+        mask = causal_mask if mask is None else jnp.logical_and(
+            mask, causal_mask)
+    logits = logits if mask is None else jnp.where(
+        mask, logits, float("-inf"))
+    weights = jax.nn.softmax(
+        logits * sm_scale + b.astype(jnp.float32)).astype(q.dtype)
 
     return jnp.einsum("bhqk,bkhc->bqhc", weights, v)
 
 
-## adapt from deepmind gemma
+# adapt from deepmind gemma
 _MAX_WAVELENGTH = 10000
 
 
@@ -114,7 +130,8 @@ def apply_rope(
     fraction = 2 * jnp.arange(0, head_dim // 2) / head_dim
     timescale = max_wavelength**fraction
 
-    sinusoid_inp = positions[..., jnp.newaxis] / timescale[jnp.newaxis, jnp.newaxis, :]
+    sinusoid_inp = positions[..., jnp.newaxis] / \
+        timescale[jnp.newaxis, jnp.newaxis, :]
     sinusoid_inp = sinusoid_inp[..., jnp.newaxis, :]
     sin = jnp.sin(sinusoid_inp)
     cos = jnp.cos(sinusoid_inp)
@@ -122,7 +139,8 @@ def apply_rope(
     first_half, second_half = jnp.split(inputs, 2, axis=-1)
     first_part = first_half * cos - second_half * sin
     second_part = second_half * cos + first_half * sin
-    out = jnp.concatenate([first_part, second_part], axis=-1)
+    out = jnp.concatenate(
+        [first_part, second_part], axis=-1)
     return out.astype(inputs.dtype)
 
 
@@ -164,7 +182,8 @@ class AttentionKernel(nn.Module):
         sm_scale = 1.0 / math.sqrt(q.shape[-1])
         if flash_attention_flag:
             if has_bias:
-                q, k, v, b = jax.tree_util.tree_map(jnp.float32, (q, k, v, b))
+                q, k, v, b = jax.tree_util.tree_map(
+                    jnp.float32, (q, k, v, b))
                 out = _flash_attention_withbias(
                     q,
                     k,
@@ -178,7 +197,8 @@ class AttentionKernel(nn.Module):
                     block_k,
                 )
             else:
-                q, k, v = jax.tree_util.tree_map(jnp.float32, (q, k, v))
+                q, k, v = jax.tree_util.tree_map(
+                    jnp.float32, (q, k, v))
                 out = _flash_attention(
                     q, k, v, m, sm_scale, causal_flag, block_q, block_k
                 )
@@ -188,7 +208,8 @@ class AttentionKernel(nn.Module):
                     q, k, v, b, m, sm_scale, causal_flag, attention_type
                 )
             else:
-                out = _attention(q, k, v, m, sm_scale, causal_flag, attention_type)
+                out = _attention(
+                    q, k, v, m, sm_scale, causal_flag, attention_type)
 
         return out.astype(arr_dtype)
 
@@ -229,7 +250,7 @@ class PostAttention(nn.Module):
 
         x = jnp.reshape(x, (batch_size, n_seq, -1))
         if gating_flag:
-            ## (B, N, H*C) -> (B, N, H*C)
+            # (B, N, H*C) -> (B, N, H*C)
             gating_values = DenseModule(
                 features=n_channel * n_head,
                 use_bias=True,
@@ -241,11 +262,11 @@ class PostAttention(nn.Module):
             )(q.reshape(batch_size, n_seq, -1), **hyper_var_)
             gating_values = jnp.float32(gating_values)
             gating_values = nn.sigmoid(gating_values)
-            ## (B, N, H*C) * (B, N, H*C) -> (B, N, H*C)
+            # (B, N, H*C) * (B, N, H*C) -> (B, N, H*C)
             gating_values = arr_dtype(gating_values)
             x = x * gating_values
 
-        ## (B, N, H*C) -> (B, N, F)
+        # (B, N, H*C) -> (B, N, F)
         x = DenseModule(
             features=out_dim,
             use_bias=True,
@@ -340,7 +361,7 @@ class HyperAttentionEmbedding(nn.Module):
             This module is only used for self-attention, and so Q/K = N;
         """
 
-        ## basic config
+        # basic config
         arr_type = jnp.bfloat16 if self.global_config.bf16_flag else jnp.float32
         sparse_flag = self.global_config.sparse_flag
 
@@ -353,52 +374,61 @@ class HyperAttentionEmbedding(nn.Module):
         batch_size, n_seq, n_head, n_channel = q_i.shape
         assert k_i.shape == q_i.shape, "q and k must have the same shape."
 
-        ### Hyper Affine Kernel
+        # Hyper Affine Kernel
         if kernel_type == "hak":
 
             dim_r = int(self.config.dim_r)
 
-            ## (B, N, H, C) -> (B, H, N, C) -> (BH, N, C)
+            # (B, N, H, C) -> (B, H, N, C) -> (BH, N, C)
             q_i = jnp.swapaxes(q_i, -2, -3)
             q_i = jnp.reshape(q_i, (-1, n_seq, n_channel))
             k_i = jnp.swapaxes(k_i, -2, -3)
             k_i = jnp.reshape(k_i, (-1, n_seq, n_channel))
 
-            ## reshape z_ij
-            ## (B, N, N/n, H, C) -> (BH, N, n, C)
+            # reshape z_ij
+            # (B, N, N/n, H, C) -> (BH, N, n, C)
             z_ij = jnp.transpose(z_ij, (0, 3, 1, 2, 4))
-            z_ij = jnp.reshape(z_ij, (batch_size * n_head, n_seq, -1, n_channel))
+            z_ij = jnp.reshape(
+                z_ij, (batch_size * n_head, n_seq, -1, n_channel))
 
             if sparse_flag:
-                ## gather to get q_j and k_j
-                ## (B, N, n) -> (BH, N, n)
+                # gather to get q_j and k_j
+                # (B, N, n) -> (BH, N, n)
                 n_i = neighbor_or_rope_idxs[:, None, :, :]
                 n_i = jnp.tile(n_i, (1, n_head, 1, 1))
-                n_i = jnp.reshape(n_i, (batch_size * n_head, n_seq, -1))
-                ## (BH, N, C) -> (BH, N, n, C)
-                q_j = gather_neighbor(q_i, n_i, is_pair=False)
-                k_j = gather_neighbor(k_i, n_i, is_pair=False)
-                ## (B, N, n) * (B, N, n) -> (B, N, n) -> (BH, N, n)
+                n_i = jnp.reshape(
+                    n_i, (batch_size * n_head, n_seq, -1))
+                # (BH, N, C) -> (BH, N, n, C)
+                q_j = gather_neighbor(
+                    q_i, n_i, is_pair=False)
+                k_j = gather_neighbor(
+                    k_i, n_i, is_pair=False)
+                # (B, N, n) * (B, N, n) -> (B, N, n) -> (BH, N, n)
                 m_ij = m_ij * m_j
-                m_ij = jnp.tile(m_ij[:, None, :, :], (1, n_head, 1, 1))
-                m_ij = jnp.reshape(m_ij, (batch_size * n_head, n_seq, -1))
+                m_ij = jnp.tile(
+                    m_ij[:, None, :, :], (1, n_head, 1, 1))
+                m_ij = jnp.reshape(
+                    m_ij, (batch_size * n_head, n_seq, -1))
 
             else:  # dense mode
-                ## (BH, N, C) -> (BH, 1, N, C)
+                # (BH, N, C) -> (BH, 1, N, C)
                 q_j = jnp.expand_dims(q_i, axis=-3)
                 k_j = jnp.expand_dims(k_i, axis=-3)
-                ## (B, N, N) * (B, N, N) -> (B, N, N) -> (BH, N, N)
+                # (B, N, N) * (B, N, N) -> (B, N, N) -> (BH, N, N)
                 m_ij = m_ij * m_j
-                m_ij = jnp.tile(m_ij[:, None, :, :], (1, n_head, 1, 1))
-                m_ij = jnp.reshape(m_ij, (batch_size * n_head, n_seq, -1))
+                m_ij = jnp.tile(
+                    m_ij[:, None, :, :], (1, n_head, 1, 1))
+                m_ij = jnp.reshape(
+                    m_ij, (batch_size * n_head, n_seq, -1))
 
-            ## get the hyper embedding
+            # get the hyper embedding
             def apply_hak(x, x_ij, y_ij, m_ij, name="x"):
 
-                ## (BH, N, C) -> (BH, N, C)
-                x_i = ContinusConvolution(name, self.global_config)(x, x_ij, m_ij, y_ij)
-                ## (BH, N, C) -> (BH, N, C*r) -> (BH, N, C, r)
-                ## we use zeros init here in left matrix so that the init of kernel is vanilla attention
+                # (BH, N, C) -> (BH, N, C)
+                x_i = ContinusConvolution(
+                    name, self.global_config)(x, x_ij, m_ij, y_ij)
+                # (BH, N, C) -> (BH, N, C*r) -> (BH, N, C, r)
+                # we use zeros init here in left matrix so that the init of kernel is vanilla attention
                 dw_x_lora_left = nn.Dense(
                     features=n_channel * dim_r,
                     use_bias=False,
@@ -407,7 +437,8 @@ class HyperAttentionEmbedding(nn.Module):
                     name=f"dw{name}_lora_left",
                 )(x_i)
                 dw_x_lora_left = jnp.reshape(
-                    dw_x_lora_left, (-1, n_seq, n_channel, dim_r)
+                    dw_x_lora_left, (-1, n_seq,
+                                     n_channel, dim_r)
                 )
                 dw_x_lora_right = nn.Dense(
                     features=n_channel * dim_r,
@@ -416,7 +447,8 @@ class HyperAttentionEmbedding(nn.Module):
                     name=f"dw{name}_lora_right",
                 )(x_i)
                 dw_x_lora_right = jnp.reshape(
-                    dw_x_lora_right, (-1, n_seq, n_channel, dim_r)
+                    dw_x_lora_right, (-1,
+                                      n_seq, n_channel, dim_r)
                 )
                 # (BH, N, C, r) @ (BH, N, C, r) -> (BH, N, C, C)
                 dw_x_lora = jnp.einsum(
@@ -429,9 +461,11 @@ class HyperAttentionEmbedding(nn.Module):
                     - jnp.tril(dw_x_lora, -dim_r - 1)
                 )
                 # (BH, N, C, C) @ (BH, N, C) -> (BH, Q, C)
-                x_hyp = x + jnp.einsum("bqij,bqj->bqi", dw_x, x)
+                x_hyp = x + \
+                    jnp.einsum("bqij,bqj->bqi", dw_x, x)
                 # (BH, N, C) -> (B, N, H, C)
-                x_hyp = jnp.reshape(x_hyp, (batch_size, n_head, n_seq, n_channel))
+                x_hyp = jnp.reshape(
+                    x_hyp, (batch_size, n_head, n_seq, n_channel))
                 x_hyp = jnp.swapaxes(x_hyp, -2, -3)
 
                 return x_hyp
@@ -439,19 +473,25 @@ class HyperAttentionEmbedding(nn.Module):
             q_hyp = apply_hak(q_i, q_j, z_ij, m_ij, "q")
             k_hyp = apply_hak(k_i, k_j, z_ij, m_ij, "k")
 
-        ### RoPE Kernel
+        # RoPE Kernel
         elif kernel_type == "rope":
 
             if self.config.split_rope_flag:
                 q_i, q_i_rope = jnp.split(q_i, 2, axis=-2)
                 k_i, k_i_rope = jnp.split(k_i, 2, axis=-2)
-                q_i_rope = apply_rope(q_i_rope, neighbor_or_rope_idxs, n_channel)
-                k_i_rope = apply_rope(k_i_rope, neighbor_or_rope_idxs, n_channel)
-                q_hyp = jnp.concatenate([q_i, q_i_rope], axis=-2)
-                k_hyp = jnp.concatenate([k_i, k_i_rope], axis=-2)
+                q_i_rope = apply_rope(
+                    q_i_rope, neighbor_or_rope_idxs, n_channel)
+                k_i_rope = apply_rope(
+                    k_i_rope, neighbor_or_rope_idxs, n_channel)
+                q_hyp = jnp.concatenate(
+                    [q_i, q_i_rope], axis=-2)
+                k_hyp = jnp.concatenate(
+                    [k_i, k_i_rope], axis=-2)
             else:
-                q_hyp = apply_rope(q_i, neighbor_or_rope_idxs, n_channel)
-                k_hyp = apply_rope(k_i, neighbor_or_rope_idxs, n_channel)
+                q_hyp = apply_rope(
+                    q_i, neighbor_or_rope_idxs, n_channel)
+                k_hyp = apply_rope(
+                    k_i, neighbor_or_rope_idxs, n_channel)
 
         return q_hyp, k_hyp
 
@@ -460,7 +500,8 @@ class AttentionEmbedding(nn.Module):
 
     config: Union[Config, ConfigDict]
     global_config: Union[Config, ConfigDict]
-    hyper_lora_config: Union[Config, ConfigDict, None] = None
+    hyper_lora_config: Union[Config,
+                             ConfigDict, None] = None
 
     def setup(self):
 
@@ -479,7 +520,8 @@ class AttentionEmbedding(nn.Module):
         self.n_channel = self.dim_feature // self.n_head
         self.embedding_pair_flag = self.config.embedding_pair_flag
 
-        kernel_initializer = get_initializer(self.config.kernel_initializer)
+        kernel_initializer = get_initializer(
+            self.config.kernel_initializer)
         arg_dict = {
             "features": self.dim_feature,
             "use_bias": False,
@@ -504,7 +546,8 @@ class AttentionEmbedding(nn.Module):
         # self.v_gen = nn.Dense(features=self.dim_feature, use_bias=False, dtype=self.arr_dtype,
         #                       param_dtype=jnp.float32, kernel_init=kernel_initializer(), name='v_gen')
         if self.embedding_pair_flag:
-            self.z_gen = DenseModule(name="z_gen", **arg_dict)
+            self.z_gen = DenseModule(
+                name="z_gen", **arg_dict)
             # self.z_gen = nn.Dense(features=self.n_channel*self.n_head, kernel_init=kernel_initializer, name='z_gen',
             #                     use_bias=False, dtype=self.arr_dtype, param_dtype=jnp.float32)
 
@@ -531,7 +574,8 @@ class AttentionEmbedding(nn.Module):
             z: shape of (B, Q, Qn, H, C), pair activation;
         """
 
-        hyper_var_ = {"hyper_var": hyper_var} if self.hyper_lora_flag else {}
+        hyper_var_ = {
+            "hyper_var": hyper_var} if self.hyper_lora_flag else {}
         if self.attention_type == "self":
             s_i = single_act
             batch_size, n_q, _ = s_i.shape
@@ -543,19 +587,25 @@ class AttentionEmbedding(nn.Module):
             sq_i, sk_i = single_act
             batch_size, n_q, _ = sq_i.shape
             _, n_k, _ = sk_i.shape
-            q = self.q_gen(sq_i, **hyper_var_)  # (B, Q, H*C)
-            k = self.k_gen(sk_i, **hyper_var_)  # (B, K, H*C)
+            # (B, Q, H*C)
+            q = self.q_gen(sq_i, **hyper_var_)
+            # (B, K, H*C)
+            k = self.k_gen(sk_i, **hyper_var_)
             v = self.v_gen(sk_i, **hyper_var_)
 
-        q = jnp.reshape(q, (batch_size, n_q, self.n_head, self.n_channel))
-        k = jnp.reshape(k, (batch_size, n_k, self.n_head, self.n_channel))
-        v = jnp.reshape(v, (batch_size, n_k, self.n_head, self.n_channel))
+        q = jnp.reshape(
+            q, (batch_size, n_q, self.n_head, self.n_channel))
+        k = jnp.reshape(
+            k, (batch_size, n_k, self.n_head, self.n_channel))
+        v = jnp.reshape(
+            v, (batch_size, n_k, self.n_head, self.n_channel))
 
         if self.embedding_pair_flag:
             # (B, Q, Qn, Fz) -> (B, Q, Qn, H*C) -> (B, Q, Qn, H, C)
             _, _, n_qneigh, _ = pair_act.shape
             z = self.z_gen(pair_act, **hyper_var_)
-            z = jnp.reshape(z, (batch_size, n_q, n_qneigh, self.n_head, self.n_channel))
+            z = jnp.reshape(
+                z, (batch_size, n_q, n_qneigh, self.n_head, self.n_channel))
         else:
             z = None
 

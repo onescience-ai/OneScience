@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 
 # from netCDF4 import Dataset as DS
@@ -5,7 +6,6 @@ from onescience.utils.fcn import logging_utils
 
 logging_utils.config_logger()
 # from utils.YParams import YParams
-import torch
 
 
 def unlog_tp(x, eps=1e-5):
@@ -39,14 +39,17 @@ def weighted_acc(pred, target, weighted=True):
     np.shape(target)[2]
     #    pred -= mean(pred)
     #    target -= mean(target)
-    s = np.sum(np.cos(np.pi / 180 * lat_np(np.arange(0, num_lat), num_lat)))
+    s = np.sum(
+        np.cos(np.pi / 180 * lat_np(np.arange(0, num_lat), num_lat)))
     weight = (
-        np.expand_dims(latitude_weighting_factor(np.arange(0, num_lat), num_lat, s), -1)
+        np.expand_dims(latitude_weighting_factor(
+            np.arange(0, num_lat), num_lat, s), -1)
         if weighted
         else 1
     )
     r = (weight * pred * target).sum() / np.sqrt(
-        (weight * pred * pred).sum() * (weight * target * target).sum()
+        (weight * pred * pred).sum() *
+        (weight * target * target).sum()
     )
     return r
 
@@ -62,9 +65,11 @@ def weighted_acc_masked(pred, target, weighted=True, maskarray=1):
     np.shape(target)[2]
     pred -= mean(pred)
     target -= mean(target)
-    s = np.sum(np.cos(np.pi / 180 * lat(np.arange(0, num_lat), num_lat)))
+    s = np.sum(
+        np.cos(np.pi / 180 * lat(np.arange(0, num_lat), num_lat)))
     weight = (
-        np.expand_dims(latitude_weighting_factor(np.arange(0, num_lat), num_lat, s), -1)
+        np.expand_dims(latitude_weighting_factor(
+            np.arange(0, num_lat), num_lat, s), -1)
         if weighted
         else 1
     )
@@ -83,9 +88,11 @@ def weighted_rmse(pred, target):
     # takes in arrays of size [1, h, w]  and returns latitude-weighted rmse
     num_lat = np.shape(pred)[1]
     num_long = np.shape(target)[2]
-    s = np.sum(np.cos(np.pi / 180 * lat_np(np.arange(0, num_lat), num_lat)))
+    s = np.sum(
+        np.cos(np.pi / 180 * lat_np(np.arange(0, num_lat), num_lat)))
     weight = np.expand_dims(
-        latitude_weighting_factor(np.arange(0, num_lat), num_lat, s), -1
+        latitude_weighting_factor(
+            np.arange(0, num_lat), num_lat, s), -1
     )
     return np.sqrt(
         1
@@ -134,13 +141,17 @@ def weighted_rmse_torch_channels(
     # takes in arrays of size [n, c, h, w]  and returns latitude-weighted rmse for each chann
     num_lat = pred.shape[2]
     # num_long = target.shape[2]
-    lat_t = torch.arange(start=0, end=num_lat, device=pred.device)
+    lat_t = torch.arange(
+        start=0, end=num_lat, device=pred.device)
 
-    s = torch.sum(torch.cos(3.1416 / 180.0 * lat(lat_t, num_lat)))
+    s = torch.sum(
+        torch.cos(3.1416 / 180.0 * lat(lat_t, num_lat)))
     weight = torch.reshape(
-        latitude_weighting_factor_torch(lat_t, num_lat, s), (1, 1, -1, 1)
+        latitude_weighting_factor_torch(
+            lat_t, num_lat, s), (1, 1, -1, 1)
     )
-    result = torch.sqrt(torch.mean(weight * (pred - target) ** 2.0, dim=(-1, -2)))
+    result = torch.sqrt(torch.mean(
+        weight * (pred - target) ** 2.0, dim=(-1, -2)))
     return result
 
 
@@ -156,13 +167,17 @@ def weighted_acc_masked_torch_channels(
 ) -> torch.Tensor:
     # takes in arrays of size [n, c, h, w]  and returns latitude-weighted acc
     num_lat = pred.shape[2]
-    lat_t = torch.arange(start=0, end=num_lat, device=pred.device)
-    s = torch.sum(torch.cos(3.1416 / 180.0 * lat(lat_t, num_lat)))
+    lat_t = torch.arange(
+        start=0, end=num_lat, device=pred.device)
+    s = torch.sum(
+        torch.cos(3.1416 / 180.0 * lat(lat_t, num_lat)))
     weight = torch.reshape(
-        latitude_weighting_factor_torch(lat_t, num_lat, s), (1, 1, -1, 1)
+        latitude_weighting_factor_torch(
+            lat_t, num_lat, s), (1, 1, -1, 1)
     )
     result = torch.sum(maskarray * weight * pred * target, dim=(-1, -2)) / torch.sqrt(
-        torch.sum(maskarray * weight * pred * pred, dim=(-1, -2))
+        torch.sum(maskarray * weight *
+                  pred * pred, dim=(-1, -2))
         * torch.sum(maskarray * weight * target * target, dim=(-1, -2))
     )
     return result
@@ -175,10 +190,13 @@ def weighted_acc_torch_channels(
     # takes in arrays of size [n, c, h, w]  and returns latitude-weighted acc
     num_lat = pred.shape[2]
     # num_long = target.shape[2]
-    lat_t = torch.arange(start=0, end=num_lat, device=pred.device)
-    s = torch.sum(torch.cos(3.1416 / 180.0 * lat(lat_t, num_lat)))
+    lat_t = torch.arange(
+        start=0, end=num_lat, device=pred.device)
+    s = torch.sum(
+        torch.cos(3.1416 / 180.0 * lat(lat_t, num_lat)))
     weight = torch.reshape(
-        latitude_weighting_factor_torch(lat_t, num_lat, s), (1, 1, -1, 1)
+        latitude_weighting_factor_torch(
+            lat_t, num_lat, s), (1, 1, -1, 1)
     )
     result = torch.sum(weight * pred * target, dim=(-1, -2)) / torch.sqrt(
         torch.sum(weight * pred * pred, dim=(-1, -2))
@@ -198,7 +216,8 @@ def unweighted_acc_torch_channels(
     pred: torch.Tensor, target: torch.Tensor
 ) -> torch.Tensor:
     result = torch.sum(pred * target, dim=(-1, -2)) / torch.sqrt(
-        torch.sum(pred * pred, dim=(-1, -2)) * torch.sum(target * target, dim=(-1, -2))
+        torch.sum(pred * pred, dim=(-1, -2)) *
+        torch.sum(target * target, dim=(-1, -2))
     )
     return result
 
@@ -215,7 +234,11 @@ def top_quantiles_error_torch(pred: torch.Tensor, target: torch.Tensor) -> torch
     qlim = 3
     qcut = 0.1
     n, c, h, w = pred.size()
-    qtile = 1.0 - torch.logspace(-qlim, -qcut, steps=qs, device=pred.device)
-    P_tar = torch.quantile(target.view(n, c, h * w), q=qtile, dim=-1)
-    P_pred = torch.quantile(pred.view(n, c, h * w), q=qtile, dim=-1)
+    qtile = 1.0 - \
+        torch.logspace(-qlim, -qcut, steps=qs,
+                       device=pred.device)
+    P_tar = torch.quantile(target.view(
+        n, c, h * w), q=qtile, dim=-1)
+    P_pred = torch.quantile(
+        pred.view(n, c, h * w), q=qtile, dim=-1)
     return torch.mean(P_pred - P_tar, dim=0)

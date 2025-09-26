@@ -40,10 +40,12 @@ def collate_fn(batch: list):
     inputs = inputs[:, :-1]  # (b, 2, h, w)
 
     # Case params is a dict, turn it into a tensor
-    keys = [x for x in case_params[0].keys() if x not in ["rotated", "dx", "dy"]]
+    keys = [x for x in case_params[0].keys() if x not in [
+        "rotated", "dx", "dy"]]
     case_params_vec = []
     for case_param in case_params:
-        case_params_vec.append([case_param[k] for k in keys])
+        case_params_vec.append(
+            [case_param[k] for k in keys])
     case_params = torch.tensor(case_params_vec)  # (b, 5)
     # Build the kwargs dict for the model's forward method
     return dict(
@@ -68,7 +70,8 @@ def evaluate(
         return {"scores": {}, "preds": []}
 
     # Unwrap DDP model if necessary
-    model_eval = model.module if hasattr(model, "module") else model
+    model_eval = model.module if hasattr(
+        model, "module") else model
     model_eval.eval()
 
     if measure_time:
@@ -77,7 +80,8 @@ def evaluate(
     loader = DataLoader(
         data, batch_size=batch_size, shuffle=False, collate_fn=collate_fn
     )
-    scores = {name: [] for name in model_eval.loss_fn.get_score_names()}
+    scores = {name: []
+              for name in model_eval.loss_fn.get_score_names()}
     input_scores = deepcopy(scores)
     all_preds: List[Tensor] = []
 
@@ -100,7 +104,8 @@ def evaluate(
                 labels=labels[:, :1], preds=inputs[:, :1]
             )
             for key in input_scores:
-                input_scores[key].append(input_loss[key].cpu().tolist())
+                input_scores[key].append(
+                    input_loss[key].cpu().tolist())
 
             # Compute the prediction and its loss
             outputs: dict = model_eval(**batch)
@@ -109,7 +114,8 @@ def evaluate(
             height, width = labels.shape[2:]
 
             # When using DeepONetAuto, the prediction is a flattened.
-            preds = preds.view(-1, 1, height, width)  # (b, 1, h, w)
+            # (b, 1, h, w)
+            preds = preds.view(-1, 1, height, width)
             for key in scores:
                 scores[key].append(loss[key].cpu().tolist())
 
@@ -131,7 +137,8 @@ def evaluate(
         print("Memory usage:")
         print(torch.cuda.memory_summary("cuda"))
         print("Time usage:")
-        time_per_step = 1000 * (time.time() - start_time) / len(loader)
+        time_per_step = 1000 * \
+            (time.time() - start_time) / len(loader)
         print(f"Time (ms) per step: {time_per_step:.3f}")
         exit()
 
@@ -214,7 +221,8 @@ def train(
     dist = DistributedManager()
 
     # Create distributed sampler and data loader
-    sampler = DistributedSampler(train_data) if dist.world_size > 1 else None
+    sampler = DistributedSampler(
+        train_data) if dist.world_size > 1 else None
     train_loader = DataLoader(
         train_data,
         batch_size=batch_size,
@@ -233,7 +241,8 @@ def train(
         print(f"# GPUs: {dist.world_size}")
 
     optimizer = Adam(model.parameters(), lr=lr)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=lr_step_size, gamma=lr_gamma)
+    scheduler = lr_scheduler.StepLR(
+        optimizer, step_size=lr_step_size, gamma=lr_gamma)
 
     start_time = time.time()
     global_step = 0
@@ -288,26 +297,33 @@ def train(
         if dist.rank == 0 and (ep + 1) % eval_interval == 0:
             ckpt_dir = output_dir / f"ckpt-{ep}"
             ckpt_dir.mkdir(exist_ok=True, parents=True)
-            result = evaluate(model, dev_data, ckpt_dir, batch_size=eval_batch_size)
+            result = evaluate(
+                model, dev_data, ckpt_dir, batch_size=eval_batch_size)
             dev_scores = result["scores"]
-            dump_json(dev_scores, ckpt_dir / "dev_scores.json")
-            dump_json(ep_train_losses, ckpt_dir / "train_loss.json")
+            dump_json(dev_scores, ckpt_dir /
+                      "dev_scores.json")
+            dump_json(ep_train_losses,
+                      ckpt_dir / "train_loss.json")
 
             # Save checkpoint - unwrap DDP model
-            model_to_save = model.module if hasattr(model, "module") else model
+            model_to_save = model.module if hasattr(
+                model, "module") else model
             ckpt_path = ckpt_dir / "model.pt"
             print(f"Saving checkpoint to {ckpt_path}")
             if ckpt_path.exists():
                 ckpt_backup_path = ckpt_dir / "backup_model.pt"
-                print(f"Backing up old checkpoint to {ckpt_backup_path}")
+                print(
+                    f"Backing up old checkpoint to {ckpt_backup_path}")
                 copyfile(ckpt_path, ckpt_backup_path)
-            torch.save(model_to_save.state_dict(), ckpt_path)
+            torch.save(
+                model_to_save.state_dict(), ckpt_path)
 
             # Save average scores
             ep_scores = dict(
                 ep=ep,
                 train_loss=np.mean(ep_train_losses),
-                dev_loss=np.mean(dev_scores["all"]["nmse"]),  # type: ignore
+                # type: ignore
+                dev_loss=np.mean(dev_scores["all"]["nmse"]),
                 time=time.time() - ep_start_time,
             )
             dump_json(ep_scores, ckpt_dir / "scores.json")
@@ -319,15 +335,18 @@ def train(
     # Only rank 0 saves final training losses
     if dist.rank == 0:
         print("====== Training done ======")
-        dump_json(train_losses, output_dir / "train_losses.json")
-        plot_loss(train_losses, output_dir / "train_losses.png")
+        dump_json(train_losses, output_dir /
+                  "train_losses.json")
+        plot_loss(train_losses, output_dir /
+                  "train_losses.png")
 
 
 def main():
     # Initialize distributed environment
     DistributedManager.initialize()
     dist = DistributedManager()
-    print(f"Initialized process group: rank {dist.rank}, world size {dist.world_size}")
+    print(
+        f"Initialized process group: rank {dist.rank}, world size {dist.world_size}")
 
     args = Args().parse_args()
     if dist.rank == 0:
@@ -397,7 +416,8 @@ def main():
     if "test" in args.mode and dist.rank == 0:
         args.save(str(output_dir / "test_args.json"))
         # Unwrap model if DDP
-        model_to_test = model.module if hasattr(model, "module") else model
+        model_to_test = model.module if hasattr(
+            model, "module") else model
         load_best_ckpt(model_to_test, output_dir)
         test_dir = output_dir / "test"
         test_dir.mkdir(exist_ok=True)

@@ -22,7 +22,8 @@ class GenBlock(nn.Module):
         )
 
         if self.learned_shortcut:
-            self.conv_s = nn.Conv2d(fin, fout, kernel_size=1, bias=False)
+            self.conv_s = nn.Conv2d(
+                fin, fout, kernel_size=1, bias=False)
 
         self.conv_0 = spectral_norm(self.conv_0)
         self.conv_1 = spectral_norm(self.conv_1)
@@ -38,9 +39,11 @@ class GenBlock(nn.Module):
 
     def forward(self, x, evo):
         x_s = self.shortcut(x, evo)  # x_s = x
-        dx = self.conv_0(self.pad(self.actvn(self.norm_0(x, evo))))
+        dx = self.conv_0(
+            self.pad(self.actvn(self.norm_0(x, evo))))
         if self.double_conv:
-            dx = self.conv_1(self.pad(self.actvn(self.norm_1(dx, evo))))
+            dx = self.conv_1(
+                self.pad(self.actvn(self.norm_1(dx, evo))))
 
         out = x_s + dx
 
@@ -63,23 +66,28 @@ class SPADE(nn.Module):
 
         ks = 3
 
-        self.param_free_norm = nn.InstanceNorm2d(norm_nc, affine=False)
+        self.param_free_norm = nn.InstanceNorm2d(
+            norm_nc, affine=False)
         nhidden = 64
         ks = 3
         pw = ks // 2
         self.mlp_shared = nn.Sequential(
             nn.ReflectionPad2d(pw),
-            nn.Conv2d(label_nc, nhidden, kernel_size=ks, padding=0),
+            nn.Conv2d(label_nc, nhidden,
+                      kernel_size=ks, padding=0),
             nn.ReLU(),
         )
         self.pad = nn.ReflectionPad2d(pw)
-        self.mlp_gamma = nn.Conv2d(nhidden, norm_nc, kernel_size=ks, padding=0)
-        self.mlp_beta = nn.Conv2d(nhidden, norm_nc, kernel_size=ks, padding=0)
+        self.mlp_gamma = nn.Conv2d(
+            nhidden, norm_nc, kernel_size=ks, padding=0)
+        self.mlp_beta = nn.Conv2d(
+            nhidden, norm_nc, kernel_size=ks, padding=0)
 
     def forward(self, x, evo):
 
         normalized = self.param_free_norm(x)
-        evo = F.adaptive_avg_pool2d(evo, output_size=x.size()[2:])
+        evo = F.adaptive_avg_pool2d(
+            evo, output_size=x.size()[2:])
 
         actv = self.mlp_shared(evo)
 

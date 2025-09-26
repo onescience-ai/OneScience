@@ -83,7 +83,8 @@ class HydraModel(nn.Module):
         if finetune_config is not None:
             # Make it hard to sneak more fields into finetuneconfig
             assert (
-                len(set(finetune_config.keys()) - {"starting_checkpoint", "override"})
+                len(set(finetune_config.keys()) -
+                    {"starting_checkpoint", "override"})
                 == 0
             )
             starting_model: HydraModel = load_model_and_weights_from_checkpoint(
@@ -98,7 +99,8 @@ class HydraModel(nn.Module):
             # TODO this is a bit hacky to overrride attrs in the backbone
             if "override" in finetune_config:
                 for key, value in finetune_config["override"].items():
-                    setattr(starting_model.backbone, key, value)
+                    setattr(
+                        starting_model.backbone, key, value)
 
         if backbone is not None:
             backbone = copy.deepcopy(backbone)
@@ -144,7 +146,8 @@ class HydraModel(nn.Module):
                     **head_config,
                 )
 
-            self.output_heads = torch.nn.ModuleDict(self.output_heads)
+            self.output_heads = torch.nn.ModuleDict(
+                self.output_heads)
         elif starting_model is not None:
             self.output_heads = starting_model.output_heads
             logging.info(
@@ -174,7 +177,8 @@ class HydraModel(nn.Module):
                 device_type=self.device, enabled=self.output_heads[k].use_amp
             ):
                 if self.pass_through_head_outputs:
-                    out.update(self.output_heads[k](data, emb))
+                    out.update(
+                        self.output_heads[k](data, emb))
                 else:
                     out[k] = self.output_heads[k](data, emb)
 

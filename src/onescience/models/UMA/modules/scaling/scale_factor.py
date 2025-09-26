@@ -50,7 +50,8 @@ class ScaleFactor(nn.Module):
             torch.tensor(0.0), requires_grad=False
         )
         if enforce_consistency:
-            self._register_load_state_dict_pre_hook(self._enforce_consistency)
+            self._register_load_state_dict_pre_hook(
+                self._enforce_consistency)
 
     def _enforce_consistency(
         self,
@@ -73,7 +74,8 @@ class ScaleFactor(nn.Module):
         local_name_params = itertools.chain(
             self._parameters.items(), persistent_buffers.items()
         )
-        local_state = {k: v for k, v in local_name_params if v is not None}
+        local_state = {
+            k: v for k, v in local_name_params if v is not None}
 
         for name, param in local_state.items():
             key = prefix + name
@@ -81,7 +83,8 @@ class ScaleFactor(nn.Module):
                 continue
 
             input_param = state_dict[key]
-            _check_consistency(old=param, new=input_param, key=key)
+            _check_consistency(
+                old=param, new=input_param, key=key)
 
     @property
     def fitted(self) -> bool:
@@ -96,7 +99,8 @@ class ScaleFactor(nn.Module):
         if self.fitted:
             _check_consistency(
                 old=self.scale_factor,
-                new=torch.tensor(scale) if isinstance(scale, float) else scale,
+                new=torch.tensor(scale) if isinstance(
+                    scale, float) else scale,
                 key="scale_factor",
             )
         self.scale_factor.fill_(scale)
@@ -108,7 +112,8 @@ class ScaleFactor(nn.Module):
     @contextmanager
     @torch.jit.unused
     def fit_context_(self):
-        self.stats = _Stats(variance_in=0.0, variance_out=0.0, n_samples=0)
+        self.stats = _Stats(
+            variance_in=0.0, variance_out=0.0, n_samples=0)
         yield
         del self.stats
         self.stats = None
@@ -119,12 +124,15 @@ class ScaleFactor(nn.Module):
         for k, v in self.stats.items():
             assert v > 0, f"{k} is {v}"
 
-        self.stats["variance_in"] = self.stats["variance_in"] / self.stats["n_samples"]
+        self.stats["variance_in"] = self.stats["variance_in"] / \
+            self.stats["n_samples"]
         self.stats["variance_out"] = (
-            self.stats["variance_out"] / self.stats["n_samples"]
+            self.stats["variance_out"] /
+            self.stats["n_samples"]
         )
 
-        ratio = self.stats["variance_out"] / self.stats["variance_in"]
+        ratio = self.stats["variance_out"] / \
+            self.stats["variance_in"]
         value = math.sqrt(1 / ratio)
 
         self.set_(value)
@@ -136,17 +144,20 @@ class ScaleFactor(nn.Module):
     @torch.jit.unused
     def _observe(self, x: torch.Tensor, ref: torch.Tensor | None = None) -> None:
         if self.stats is None:
-            logging.debug("Observer not initialized but self.observe() called")
+            logging.debug(
+                "Observer not initialized but self.observe() called")
             return
 
         n_samples = x.shape[0]
-        self.stats["variance_out"] += torch.mean(torch.var(x, dim=0)).item() * n_samples
+        self.stats["variance_out"] += torch.mean(
+            torch.var(x, dim=0)).item() * n_samples
 
         if ref is None:
             self.stats["variance_in"] += n_samples
         else:
             self.stats["variance_in"] += (
-                torch.mean(torch.var(ref, dim=0)).item() * n_samples
+                torch.mean(torch.var(ref, dim=0)
+                           ).item() * n_samples
             )
         self.stats["n_samples"] += n_samples
 

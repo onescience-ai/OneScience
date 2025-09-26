@@ -25,7 +25,8 @@ USE_CUEQ_CG = os.environ.get("MACE_USE_CUEQ_CG", "0").lower() in (
 )
 
 _TP = collections.namedtuple("_TP", "op, args")
-_INPUT = collections.namedtuple("_INPUT", "tensor, start, stop")
+_INPUT = collections.namedtuple(
+    "_INPUT", "tensor, start, stop")
 
 
 def _wigner_nj(
@@ -36,7 +37,8 @@ def _wigner_nj(
 ):
     irrepss = [o3.Irreps(irreps) for irreps in irrepss]
     if filter_ir_mid is not None:
-        filter_ir_mid = [o3.Irrep(ir) for ir in filter_ir_mid]
+        filter_ir_mid = [o3.Irrep(ir)
+                         for ir in filter_ir_mid]
 
     if len(irrepss) == 1:
         (irreps,) = irrepss
@@ -64,15 +66,18 @@ def _wigner_nj(
                 if filter_ir_mid is not None and ir_out not in filter_ir_mid:
                     continue
 
-                C = o3.wigner_3j(ir_out.l, ir_left.l, ir.l, dtype=dtype)
+                C = o3.wigner_3j(
+                    ir_out.l, ir_left.l, ir.l, dtype=dtype)
                 if normalization == "component":
                     C *= ir_out.dim**0.5
                 if normalization == "norm":
                     C *= ir_left.dim**0.5 * ir.dim**0.5
 
-                C = torch.einsum("jk,ijl->ikl", C_left.flatten(1), C)
+                C = torch.einsum(
+                    "jk,ijl->ikl", C_left.flatten(1), C)
                 C = C.reshape(
-                    ir_out.dim, *(irreps.dim for irreps in irrepss_left), ir.dim
+                    ir_out.dim, *
+                    (irreps.dim for irreps in irrepss_left), ir.dim
                 )
                 for u in range(mul):
                     E = torch.zeros(
@@ -81,7 +86,8 @@ def _wigner_nj(
                         irreps_right.dim,
                         dtype=dtype,
                     )
-                    sl = slice(i + u * ir.dim, i + (u + 1) * ir.dim)
+                    sl = slice(i + u * ir.dim,
+                               i + (u + 1) * ir.dim)
                     E[..., sl] = C
                     ret += [
                         (
@@ -90,7 +96,8 @@ def _wigner_nj(
                                 op=(ir_left, ir, ir_out),
                                 args=(
                                     path_left,
-                                    _INPUT(len(irrepss_left), sl.start, sl.stop),
+                                    _INPUT(
+                                        len(irrepss_left), sl.start, sl.stop),
                                 ),
                             ),
                             E,
@@ -113,7 +120,8 @@ def U_matrix_real(
     irrepss = [o3.Irreps(irreps_in)] * correlation
 
     if correlation == 4:
-        filter_ir_mid = [(i, 1 if i % 2 == 0 else -1) for i in range(12)]
+        filter_ir_mid = [(i, 1 if i % 2 == 0 else -1)
+                         for i in range(12)]
 
     if use_cueq_cg is None:
         use_cueq_cg = USE_CUEQ_CG
@@ -121,7 +129,8 @@ def U_matrix_real(
         return compute_U_cueq(irreps_in, irreps_out=irreps_out, correlation=correlation)
 
     try:
-        wigners = _wigner_nj(irrepss, normalization, filter_ir_mid, dtype)
+        wigners = _wigner_nj(
+            irrepss, normalization, filter_ir_mid, dtype)
     except NotImplementedError as e:
         if CUET_AVAILABLE:
             return compute_U_cueq(
@@ -137,7 +146,8 @@ def U_matrix_real(
 
     for ir, _, base_o3 in wigners:
         if ir in irreps_out and ir == current_ir:
-            stack = torch.cat((stack, base_o3.squeeze().unsqueeze(-1)), dim=-1)
+            stack = torch.cat(
+                (stack, base_o3.squeeze().unsqueeze(-1)), dim=-1)
             last_ir = current_ir
         elif ir in irreps_out and ir != current_ir:
             if len(stack) != 0:
@@ -162,7 +172,8 @@ if CUET_AVAILABLE:
             U_matrix = cue.reduced_symmetric_tensor_product_basis(
                 irreps_in, correlation, keep_ir=ir, layout=cue.ir_mul
             ).array
-            U_matrix = U_matrix.reshape(ir.dim, *([irreps_in.dim] * correlation), -1)
+            U_matrix = U_matrix.reshape(
+                ir.dim, *([irreps_in.dim] * correlation), -1)
             if ir.dim == 1:
                 U_matrix = U_matrix[0]
             U.append(torch.tensor(U_matrix))
@@ -178,7 +189,8 @@ if CUET_AVAILABLE:
         def clebsch_gordan(
             cls, rep1: "O3_e3nn", rep2: "O3_e3nn", rep3: "O3_e3nn"
         ) -> np.ndarray:
-            rep1, rep2, rep3 = cls._from(rep1), cls._from(rep2), cls._from(rep3)
+            rep1, rep2, rep3 = cls._from(
+                rep1), cls._from(rep2), cls._from(rep3)
 
             if rep1.p * rep2.p == rep3.p:
                 return o3.wigner_3j(rep1.l, rep2.l, rep3.l).numpy()[None] * np.sqrt(

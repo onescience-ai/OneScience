@@ -60,16 +60,22 @@ class Graph:
         self.dtype = dtype
 
         # flatten lat/lon gird
-        self.lat_lon_grid_flat = lat_lon_grid.permute(2, 0, 1).view(2, -1).permute(1, 0)
+        self.lat_lon_grid_flat = lat_lon_grid.permute(
+            2, 0, 1).view(2, -1).permute(1, 0)
 
         # create the multi-mesh
-        _meshes = get_hierarchy_of_triangular_meshes_for_sphere(splits=mesh_level)
-        finest_mesh = _meshes[-1]  # get the last one in the list of meshes
-        self.finest_mesh_src, self.finest_mesh_dst = faces_to_edges(finest_mesh.faces)
-        self.finest_mesh_vertices = np.array(finest_mesh.vertices)
+        _meshes = get_hierarchy_of_triangular_meshes_for_sphere(
+            splits=mesh_level)
+        # get the last one in the list of meshes
+        finest_mesh = _meshes[-1]
+        self.finest_mesh_src, self.finest_mesh_dst = faces_to_edges(
+            finest_mesh.faces)
+        self.finest_mesh_vertices = np.array(
+            finest_mesh.vertices)
         if multimesh:
             mesh = merge_meshes(_meshes)
-            self.mesh_src, self.mesh_dst = faces_to_edges(mesh.faces)
+            self.mesh_src, self.mesh_dst = faces_to_edges(
+                mesh.faces)
             self.mesh_vertices = np.array(mesh.vertices)
         else:
             mesh = finest_mesh
@@ -80,10 +86,12 @@ class Graph:
     @staticmethod
     def khop_adj_all_k(g, kmax):
         if not g.is_homogeneous:
-            raise NotImplementedError("only homogeneous graph is supported")
+            raise NotImplementedError(
+                "only homogeneous graph is supported")
         min_degree = g.in_degrees().min()
         with torch.no_grad():
-            adj = g.adj_external(transpose=True, scipy_fmt=None)
+            adj = g.adj_external(
+                transpose=True, scipy_fmt=None)
             adj_k = adj
             adj_all = adj.clone()
             for _ in range(2, kmax + 1):
@@ -121,11 +129,14 @@ class Graph:
         mesh_graph = add_node_features(mesh_graph, mesh_pos)
         mesh_graph.ndata["lat_lon"] = xyz2latlon(mesh_pos)
         # ensure fields set to dtype to avoid later conversions
-        mesh_graph.ndata["x"] = mesh_graph.ndata["x"].to(dtype=self.dtype)
-        mesh_graph.edata["x"] = mesh_graph.edata["x"].to(dtype=self.dtype)
+        mesh_graph.ndata["x"] = mesh_graph.ndata["x"].to(
+            dtype=self.dtype)
+        mesh_graph.edata["x"] = mesh_graph.edata["x"].to(
+            dtype=self.dtype)
         if self.khop_neighbors > 0:
             # Make a graph whose edges connect the k-hop neighbors of the original graph.
-            khop_adj_bool = self.khop_adj_all_k(g=mesh_graph, kmax=self.khop_neighbors)
+            khop_adj_bool = self.khop_adj_all_k(
+                g=mesh_graph, kmax=self.khop_neighbors)
             mask = ~khop_adj_bool
         else:
             mask = None
@@ -155,8 +166,10 @@ class Graph:
         # create the grid2mesh bipartite graph
         cartesian_grid = latlon2xyz(self.lat_lon_grid_flat)
         n_nbrs = 4
-        neighbors = NearestNeighbors(n_neighbors=n_nbrs).fit(self.mesh_vertices)
-        distances, indices = neighbors.kneighbors(cartesian_grid)
+        neighbors = NearestNeighbors(
+            n_neighbors=n_nbrs).fit(self.mesh_vertices)
+        distances, indices = neighbors.kneighbors(
+            cartesian_grid)
 
         src, dst = [], []
         for i in range(len(cartesian_grid)):
@@ -169,28 +182,34 @@ class Graph:
         g2m_graph = create_heterograph(
             src, dst, ("grid", "g2m", "mesh"), dtype=torch.int32
         )
-        g2m_graph.srcdata["pos"] = cartesian_grid.to(torch.float32)
+        g2m_graph.srcdata["pos"] = cartesian_grid.to(
+            torch.float32)
         g2m_graph.dstdata["pos"] = torch.tensor(
             self.mesh_vertices,
             dtype=torch.float32,
         )
         g2m_graph.srcdata["lat_lon"] = self.lat_lon_grid_flat
-        g2m_graph.dstdata["lat_lon"] = xyz2latlon(g2m_graph.dstdata["pos"])
+        g2m_graph.dstdata["lat_lon"] = xyz2latlon(
+            g2m_graph.dstdata["pos"])
 
         g2m_graph = add_edge_features(
-            g2m_graph, (g2m_graph.srcdata["pos"], g2m_graph.dstdata["pos"])
+            g2m_graph, (g2m_graph.srcdata["pos"],
+                        g2m_graph.dstdata["pos"])
         )
 
         # avoid potential conversions at later points
-        g2m_graph.srcdata["pos"] = g2m_graph.srcdata["pos"].to(dtype=self.dtype)
-        g2m_graph.dstdata["pos"] = g2m_graph.dstdata["pos"].to(dtype=self.dtype)
+        g2m_graph.srcdata["pos"] = g2m_graph.srcdata["pos"].to(
+            dtype=self.dtype)
+        g2m_graph.dstdata["pos"] = g2m_graph.dstdata["pos"].to(
+            dtype=self.dtype)
         g2m_graph.ndata["pos"]["grid"] = g2m_graph.ndata["pos"]["grid"].to(
             dtype=self.dtype
         )
         g2m_graph.ndata["pos"]["mesh"] = g2m_graph.ndata["pos"]["mesh"].to(
             dtype=self.dtype
         )
-        g2m_graph.edata["x"] = g2m_graph.edata["x"].to(dtype=self.dtype)
+        g2m_graph.edata["x"] = g2m_graph.edata["x"].to(
+            dtype=self.dtype)
         if verbose:
             print("g2m graph:", g2m_graph)
         return g2m_graph
@@ -210,14 +229,17 @@ class Graph:
         """
         # create the mesh2grid bipartite graph
         cartesian_grid = latlon2xyz(self.lat_lon_grid_flat)
-        face_centroids = get_face_centroids(self.mesh_vertices, self.mesh_faces)
+        face_centroids = get_face_centroids(
+            self.mesh_vertices, self.mesh_faces)
         n_nbrs = 1
-        neighbors = NearestNeighbors(n_neighbors=n_nbrs).fit(face_centroids)
+        neighbors = NearestNeighbors(
+            n_neighbors=n_nbrs).fit(face_centroids)
         _, indices = neighbors.kneighbors(cartesian_grid)
         indices = indices.flatten()
 
         src = [p for i in indices for p in self.mesh_faces[i]]
-        dst = [i for i in range(len(cartesian_grid)) for _ in range(3)]
+        dst = [i for i in range(len(cartesian_grid))
+               for _ in range(3)]
         m2g_graph = create_heterograph(
             src, dst, ("mesh", "m2g", "grid"), dtype=torch.int32
         )  # number of edges is 3,114,720, exactly matches with the paper
@@ -226,24 +248,30 @@ class Graph:
             self.mesh_vertices,
             dtype=torch.float32,
         )
-        m2g_graph.dstdata["pos"] = cartesian_grid.to(dtype=torch.float32)
+        m2g_graph.dstdata["pos"] = cartesian_grid.to(
+            dtype=torch.float32)
 
-        m2g_graph.srcdata["lat_lon"] = xyz2latlon(m2g_graph.srcdata["pos"])
+        m2g_graph.srcdata["lat_lon"] = xyz2latlon(
+            m2g_graph.srcdata["pos"])
         m2g_graph.dstdata["lat_lon"] = self.lat_lon_grid_flat
 
         m2g_graph = add_edge_features(
-            m2g_graph, (m2g_graph.srcdata["pos"], m2g_graph.dstdata["pos"])
+            m2g_graph, (m2g_graph.srcdata["pos"],
+                        m2g_graph.dstdata["pos"])
         )
         # avoid potential conversions at later points
-        m2g_graph.srcdata["pos"] = m2g_graph.srcdata["pos"].to(dtype=self.dtype)
-        m2g_graph.dstdata["pos"] = m2g_graph.dstdata["pos"].to(dtype=self.dtype)
+        m2g_graph.srcdata["pos"] = m2g_graph.srcdata["pos"].to(
+            dtype=self.dtype)
+        m2g_graph.dstdata["pos"] = m2g_graph.dstdata["pos"].to(
+            dtype=self.dtype)
         m2g_graph.ndata["pos"]["grid"] = m2g_graph.ndata["pos"]["grid"].to(
             dtype=self.dtype
         )
         m2g_graph.ndata["pos"]["mesh"] = m2g_graph.ndata["pos"]["mesh"].to(
             dtype=self.dtype
         )
-        m2g_graph.edata["x"] = m2g_graph.edata["x"].to(dtype=self.dtype)
+        m2g_graph.edata["x"] = m2g_graph.edata["x"].to(
+            dtype=self.dtype)
 
         if verbose:
             print("m2g graph:", m2g_graph)

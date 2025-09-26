@@ -67,14 +67,16 @@ class ConvBlock(nn.Module):
             if hasattr(F, activation):
                 self.activation = getattr(F, activation)
             else:
-                raise ValueError(f"Activation type '{activation}' is not supported.")
+                raise ValueError(
+                    f"Activation type '{activation}' is not supported.")
         else:
             self.activation = nn.Identity()
 
         # Initialize normalization layer
         if normalization:
             if normalization == "groupnorm":
-                default_args = {"num_groups": 1, "num_channels": out_channels}
+                default_args = {
+                    "num_groups": 1, "num_channels": out_channels}
                 norm_args = {
                     **default_args,
                     **(normalization_args if normalization_args else {}),
@@ -157,14 +159,16 @@ class ConvTranspose(nn.Module):
             if hasattr(F, activation):
                 self.activation = getattr(F, activation)
             else:
-                raise ValueError(f"Activation type '{activation}' is not supported.")
+                raise ValueError(
+                    f"Activation type '{activation}' is not supported.")
         else:
             self.activation = nn.Identity()
 
         # Initialize normalization layer
         if normalization:
             if normalization == "groupnorm":
-                default_args = {"num_groups": 1, "num_channels": out_channels}
+                default_args = {
+                    "num_groups": 1, "num_channels": out_channels}
                 norm_args = {
                     **default_args,
                     **(normalization_args if normalization_args else {}),
@@ -289,17 +293,20 @@ class EncoderBlock(nn.Module):
                 self.layers.append(
                     ConvBlock(
                         in_channels=current_channels,
-                        out_channels=feature_map_channels[depth * num_conv_blocks + i],
+                        out_channels=feature_map_channels[depth *
+                                                          num_conv_blocks + i],
                         activation=activation,
                     )
                 )
-                current_channels = feature_map_channels[depth * num_conv_blocks + i]
+                current_channels = feature_map_channels[depth *
+                                                        num_conv_blocks + i]
 
             if (
                 depth < model_depth - 1
             ):  # Add pooling between levels but not at the last level
                 self.layers.append(
-                    Pool3d(pooling_type=pooling_type, kernel_size=pool_size)
+                    Pool3d(pooling_type=pooling_type,
+                           kernel_size=pool_size)
                 )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -363,11 +370,13 @@ class DecoderBlock(nn.Module):
                 self.layers.append(
                     ConvBlock(
                         in_channels=current_channels,
-                        out_channels=feature_map_channels[depth * num_conv_blocks + i],
+                        out_channels=feature_map_channels[depth *
+                                                          num_conv_blocks + i],
                         activation=conv_activation,
                     )
                 )
-                current_channels = feature_map_channels[depth * num_conv_blocks + i]
+                current_channels = feature_map_channels[depth *
+                                                        num_conv_blocks + i]
 
         # Final convolution
         self.layers.append(
@@ -487,7 +496,8 @@ class UNet(Module):
         for layer in self.decoder.layers:
             if isinstance(layer, ConvTranspose):
                 x = layer(x)
-                x = torch.cat([x, skip_features[concats]], dim=1)
+                x = torch.cat(
+                    [x, skip_features[concats]], dim=1)
                 concats += 1
             else:
                 x = layer(x)
@@ -502,7 +512,8 @@ if __name__ == "__main__":
         in_channels=1,
         out_channels=1,
         model_depth=5,
-        feature_map_channels=[64, 64, 128, 128, 256, 256, 512, 512, 1024, 1024],
+        feature_map_channels=[
+            64, 64, 128, 128, 256, 256, 512, 512, 1024, 1024],
         num_conv_blocks=2,
     ).cuda()
     x = model(inputs)

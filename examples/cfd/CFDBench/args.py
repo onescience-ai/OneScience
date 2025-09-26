@@ -96,6 +96,8 @@ class Args(Tap):
 
 
 def is_args_valid(args: Args):
-    assert any(key in args.data_name for key in ["poiseuille", "cavity", "karman"])
+    assert any(key in args.data_name for key in [
+               "poiseuille", "cavity", "karman"])
     assert args.batch_size > 0
-    assert args.model in ["deeponet", "unet", "fno", "resnet"]
+    assert args.model in [
+        "deeponet", "unet", "fno", "resnet"]

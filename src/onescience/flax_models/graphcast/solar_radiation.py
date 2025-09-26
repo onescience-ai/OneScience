@@ -131,9 +131,11 @@ def get_tsi(timestamps: Sequence[_TimestampLike], tsi_data: xa.DataArray) -> che
     """
     timestamps = pd.DatetimeIndex(timestamps)
     timestamps_date = pd.DatetimeIndex(timestamps.date)
-    day_fraction = (timestamps - timestamps_date) / pd.Timedelta(days=1)
+    day_fraction = (
+        timestamps - timestamps_date) / pd.Timedelta(days=1)
     year_length = 365 + timestamps.is_leap_year
-    year_fraction = (timestamps.dayofyear - 1 + day_fraction) / year_length
+    year_fraction = (timestamps.dayofyear -
+                     1 + day_fraction) / year_length
     fractional_year = timestamps.year + year_fraction
     return np.interp(fractional_year, tsi_data.coords["time"].data, tsi_data.data)
 
@@ -230,8 +232,10 @@ def _get_orbital_parameters(j2000_days: chex.Array) -> _OrbitalParameters:
 
     # Ecliptic longitude of the Sun - RLLLS(PTETA).
     rllls = jnp.dot(
-        jnp.stack([one, theta, sin_rel, cos_rel, sin_two_rel, cos_two_rel], axis=-1),
-        jnp.array([4.8952, 6.283320, -0.0075, -0.0326, -0.0003, 0.0002]),
+        jnp.stack([one, theta, sin_rel, cos_rel,
+                  sin_two_rel, cos_two_rel], axis=-1),
+        jnp.array([4.8952, 6.283320, -0.0075, -
+                  0.0326, -0.0003, 0.0002]),
     )
 
     # Angle in radians between the Earth's rotational axis and its orbital axis.
@@ -297,12 +301,14 @@ def _get_solar_sin_altitude(
       geographical coordinates. The returned array has the shape resulting from
       broadcasting all the inputs together.
     """
-    solar_time = op.rotational_phase + op.eq_of_time_seconds / _SECONDS_PER_DAY
+    solar_time = op.rotational_phase + \
+        op.eq_of_time_seconds / _SECONDS_PER_DAY
     # https://en.wikipedia.org/wiki/Hour_angle#Solar_hour_angle
     hour_angle = 2.0 * jnp.pi * solar_time + longitude
     # https://en.wikipedia.org/wiki/Solar_zenith_angle
     sin_altitude = (
-        cos_latitude * op.cos_declination * jnp.cos(hour_angle)
+        cos_latitude * op.cos_declination *
+        jnp.cos(hour_angle)
         + sin_latitude * op.sin_declination
     )
     return sin_altitude
@@ -342,7 +348,8 @@ def _get_radiation_flux(
     op = _get_orbital_parameters(j2000_days)
     # Attenuation of the solar radiation based on the solar distance.
     solar_factor = (1.0 / op.solar_distance_au) ** 2
-    sin_altitude = _get_solar_sin_altitude(op, sin_latitude, cos_latitude, longitude)
+    sin_altitude = _get_solar_sin_altitude(
+        op, sin_latitude, cos_latitude, longitude)
     return tsi * solar_factor * jnp.maximum(sin_altitude, 0.0)
 
 
@@ -401,7 +408,8 @@ def _get_integrated_radiation(
     # to all the inputs and adding `offsets` to `j2000_days` (will be broadcast
     # over all the other dimensions).
     fluxes = _get_radiation_flux(
-        j2000_days=jnp.expand_dims(j2000_days, axis=-1) + offsets,
+        j2000_days=jnp.expand_dims(
+            j2000_days, axis=-1) + offsets,
         sin_latitude=jnp.expand_dims(sin_latitude, axis=-1),
         cos_latitude=jnp.expand_dims(cos_latitude, axis=-1),
         longitude=jnp.expand_dims(longitude, axis=-1),
@@ -411,13 +419,15 @@ def _get_integrated_radiation(
     # Size of each bin in seconds. The instantaneous solar radiation flux is
     # returned in units of W⋅m⁻². Integrating over time expressed in seconds
     # yields a result in units of J⋅m⁻².
-    dx = (integration_period / num_integration_bins) / pd.Timedelta(seconds=1)
+    dx = (integration_period / num_integration_bins) / \
+        pd.Timedelta(seconds=1)
     return jax.scipy.integrate.trapezoid(fluxes, dx=dx)
 
 
 _get_integrated_radiation_jitted = jax.jit(
     _get_integrated_radiation,
-    static_argnames=["integration_period", "num_integration_bins"],
+    static_argnames=["integration_period",
+                     "num_integration_bins"],
 )
 
 
@@ -487,7 +497,8 @@ def get_toa_incident_solar_radiation(
     for idx, timestamp in enumerate(timestamps):
         results.append(
             fn(
-                j2000_days=jnp.array(_get_j2000_days(pd.Timestamp(timestamp))),
+                j2000_days=jnp.array(
+                    _get_j2000_days(pd.Timestamp(timestamp))),
                 sin_latitude=sin_lat,
                 cos_latitude=cos_lat,
                 longitude=lon,
@@ -544,13 +555,15 @@ def get_toa_incident_solar_radiation_for_xarray(
     Raises:
       ValueError: If there are missing coordinates or dimensions.
     """
-    missing_dims = set(["lat", "lon"]) - set(data_array_like.dims)
+    missing_dims = set(["lat", "lon"]) - \
+        set(data_array_like.dims)
     if missing_dims:
         raise ValueError(
             f"'{missing_dims}' dimensions are missing in `data_array_like`."
         )
 
-    missing_coords = set(["datetime", "lat", "lon"]) - set(data_array_like.coords)
+    missing_coords = set(
+        ["datetime", "lat", "lon"]) - set(data_array_like.coords)
     if missing_coords:
         raise ValueError(
             f"'{missing_coords}' coordinates are missing in `data_array_like`."
@@ -559,7 +572,8 @@ def get_toa_incident_solar_radiation_for_xarray(
     if "time" in data_array_like.dims:
         timestamps = data_array_like.coords["datetime"].data
     else:
-        timestamps = [data_array_like.coords["datetime"].data.item()]
+        timestamps = [
+            data_array_like.coords["datetime"].data.item()]
 
     radiation = get_toa_incident_solar_radiation(
         timestamps=timestamps,
@@ -572,9 +586,11 @@ def get_toa_incident_solar_radiation_for_xarray(
     )
 
     if "time" in data_array_like.dims:
-        output = xa.DataArray(radiation, dims=("time", "lat", "lon"))
+        output = xa.DataArray(
+            radiation, dims=("time", "lat", "lon"))
     else:
-        output = xa.DataArray(radiation[0], dims=("lat", "lon"))
+        output = xa.DataArray(
+            radiation[0], dims=("lat", "lon"))
 
     # Preserve as many of the original coordinates as possible, so long as the
     # dimension or the coordinate still exist in the output array.

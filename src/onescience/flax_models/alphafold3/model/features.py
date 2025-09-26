@@ -127,14 +127,16 @@ def _compute_asym_entity_and_sym_id(
         if chain_id not in seen_chain_ids:
             asym_id = len(seen_chain_ids) + 1
             seen_chain_ids.add(chain_id)
-            seq = ",".join(all_tokens.res_name[all_tokens.chain_id == chain_id])
+            seq = ",".join(
+                all_tokens.res_name[all_tokens.chain_id == chain_id])
             if seq not in seq_to_entity_id_sym_id:
                 entity_id = len(seq_to_entity_id_sym_id) + 1
                 sym_id = 1
             else:
                 entity_id, sym_id = seq_to_entity_id_sym_id[seq]
                 sym_id += 1
-            seq_to_entity_id_sym_id[seq] = (entity_id, sym_id)
+            seq_to_entity_id_sym_id[seq] = (
+                entity_id, sym_id)
 
             chain_ids.append(chain_id)
             asym_ids.append(asym_id)
@@ -205,7 +207,8 @@ def tokenizer(
         chain_type, chain_id, _ = key
 
         # Get names and global idxs for all atoms of this residue
-        _, _, _, res_names, atom_names, idxs = zip(*group_iter)
+        _, _, _, res_names, atom_names, idxs = zip(
+            *group_iter)
 
         # As of March 2023, all OTHER CHAINs in pdb are artificial nucleics.
         is_nucleic_backbone = (
@@ -223,15 +226,18 @@ def tokenizer(
                 # NOTE: This may get very large if we include hydrogens.
                 token_idxs.extend(idxs)
                 single_atom_token += [True] * len(idxs)
-                standard_token_idxs.extend([current_standard_token_id] * len(idxs))
+                standard_token_idxs.extend(
+                    [current_standard_token_id] * len(idxs))
             else:
                 # For standard protein residues take 'CA' if it exists, else first atom.
                 if "CA" in atom_names:
-                    token_idxs.append(idxs[atom_names.index("CA")])
+                    token_idxs.append(
+                        idxs[atom_names.index("CA")])
                 else:
                     token_idxs.append(idxs[0])
                 single_atom_token += [False]
-                standard_token_idxs.append(current_standard_token_id)
+                standard_token_idxs.append(
+                    current_standard_token_id)
             current_standard_token_id += 1
         elif is_nucleic_backbone:
             res_name = res_names[0]
@@ -242,21 +248,25 @@ def tokenizer(
                 # For non-standard nucleic residues take all atoms.
                 token_idxs.extend(idxs)
                 single_atom_token += [True] * len(idxs)
-                standard_token_idxs.extend([current_standard_token_id] * len(idxs))
+                standard_token_idxs.extend(
+                    [current_standard_token_id] * len(idxs))
             else:
                 # For standard nucleic residues take C1' if it exists, else first atom.
                 if "C1'" in atom_names:
-                    token_idxs.append(idxs[atom_names.index("C1'")])
+                    token_idxs.append(
+                        idxs[atom_names.index("C1'")])
                 else:
                     token_idxs.append(idxs[0])
                 single_atom_token += [False]
-                standard_token_idxs.append(current_standard_token_id)
+                standard_token_idxs.append(
+                    current_standard_token_id)
             current_standard_token_id += 1
         elif chain_type in mmcif_names.NON_POLYMER_CHAIN_TYPES:
             # For non-polymers take all atoms
             token_idxs.extend(idxs)
             single_atom_token += [True] * len(idxs)
-            standard_token_idxs.extend([current_standard_token_id] * len(idxs))
+            standard_token_idxs.extend(
+                [current_standard_token_id] * len(idxs))
             current_standard_token_id += len(idxs)
         else:
             # Chain type that we don't handle yet.
@@ -269,7 +279,8 @@ def tokenizer(
 
     assert len(token_idxs) == len(single_atom_token)
     assert len(token_idxs) == len(standard_token_idxs)
-    standard_token_idxs = np.array(standard_token_idxs, dtype=np.int32)
+    standard_token_idxs = np.array(
+        standard_token_idxs, dtype=np.int32)
 
     # Create the list of all tokens, represented as a flat AtomLayout with 1
     # representative atom per token.
@@ -319,7 +330,8 @@ def tokenizer(
             for atom_name, atom_element in atom_names_elements:
                 # Remove hydrogens if they are not in flat layout.
                 if atom_element in ["H", "D"] and (
-                    (chain_id, res_id, atom_name) not in all_atoms_uids
+                    (chain_id, res_id,
+                     atom_name) not in all_atoms_uids
                 ):
                     continue
                 elif (chain_id, res_id, atom_name) in all_atoms_uids:
@@ -358,26 +370,38 @@ def tokenizer(
         else:
             # ligands have only 1 atom per token
             padding = [""] * (max_atoms_per_token - 1)
-            atom_names = [all_tokens.atom_name[idx]] + padding
-            atom_elements = [all_tokens.atom_element[idx]] + padding
+            atom_names = [
+                all_tokens.atom_name[idx]] + padding
+            atom_elements = [
+                all_tokens.atom_element[idx]] + padding
 
         # Append the atoms to the target lists.
         target_atom_names.append(atom_names)
         target_atom_elements.append(atom_elements)
-        target_res_names.append([all_tokens.res_name[idx]] * max_atoms_per_token)
-        target_res_ids.append([all_tokens.res_id[idx]] * max_atoms_per_token)
-        target_chain_ids.append([all_tokens.chain_id[idx]] * max_atoms_per_token)
-        target_chain_types.append([all_tokens.chain_type[idx]] * max_atoms_per_token)
+        target_res_names.append(
+            [all_tokens.res_name[idx]] * max_atoms_per_token)
+        target_res_ids.append(
+            [all_tokens.res_id[idx]] * max_atoms_per_token)
+        target_chain_ids.append(
+            [all_tokens.chain_id[idx]] * max_atoms_per_token)
+        target_chain_types.append(
+            [all_tokens.chain_type[idx]] * max_atoms_per_token)
 
     # Make sure to get the right shape also for 0 tokens
     trg_shape = (num_tokens, max_atoms_per_token)
     all_token_atoms_layout = atom_layout.AtomLayout(
-        atom_name=np.array(target_atom_names, dtype=object).reshape(trg_shape),
-        atom_element=np.array(target_atom_elements, dtype=object).reshape(trg_shape),
-        res_name=np.array(target_res_names, dtype=object).reshape(trg_shape),
-        res_id=np.array(target_res_ids, dtype=int).reshape(trg_shape),
-        chain_id=np.array(target_chain_ids, dtype=object).reshape(trg_shape),
-        chain_type=np.array(target_chain_types, dtype=object).reshape(trg_shape),
+        atom_name=np.array(
+            target_atom_names, dtype=object).reshape(trg_shape),
+        atom_element=np.array(
+            target_atom_elements, dtype=object).reshape(trg_shape),
+        res_name=np.array(
+            target_res_names, dtype=object).reshape(trg_shape),
+        res_id=np.array(
+            target_res_ids, dtype=int).reshape(trg_shape),
+        chain_id=np.array(
+            target_chain_ids, dtype=object).reshape(trg_shape),
+        chain_type=np.array(
+            target_chain_types, dtype=object).reshape(trg_shape),
     )
 
     return all_tokens, all_token_atoms_layout, standard_token_idxs
@@ -417,11 +441,13 @@ class MSA:
             name=logging_name,
         )
         prot = substruct.filter_to_entity_type(protein=True)
-        num_unique_chains = len(set(prot.chain_single_letter_sequence().values()))
+        num_unique_chains = len(
+            set(prot.chain_single_letter_sequence().values()))
         need_msa_pairing = num_unique_chains > 1
 
         np_chains_list = []
-        input_chains_by_id = {chain.id: chain for chain in fold_input.chains}
+        input_chains_by_id = {
+            chain.id: chain for chain in fold_input.chains}
         nonempty_chain_ids = set(all_tokens.chain_id)
         for asym_id, chain_info in enumerate(substruct.iter_chains(), start=1):
             b_chain_id = chain_info["chain_id"]
@@ -431,10 +457,12 @@ class MSA:
             # Generalised "sequence" for ligands (can't trust residue name)
             chain_tokens = all_tokens[all_tokens.chain_id == b_chain_id]
             assert chain_tokens.res_name is not None
-            three_letter_sequence = ",".join(chain_tokens.res_name.tolist())
+            three_letter_sequence = ",".join(
+                chain_tokens.res_name.tolist())
             chain_num_tokens = len(chain_tokens.atom_name)
             if chain_type in mmcif_names.POLYMER_CHAIN_TYPES:
-                sequence = substruct.chain_single_letter_sequence()[b_chain_id]
+                sequence = substruct.chain_single_letter_sequence()[
+                    b_chain_id]
                 if chain_type in mmcif_names.NUCLEIC_ACID_CHAIN_TYPES:
                     # Only allow nucleic residue types for nucleic chains (can have some
                     # protein residues in e.g. tRNA, but that causes MSA search failures).
@@ -507,21 +535,24 @@ class MSA:
             all_seqs_msa_features = paired_msa.featurize()
 
             msa_features = data3.fix_features(msa_features)
-            all_seqs_msa_features = data3.fix_features(all_seqs_msa_features)
+            all_seqs_msa_features = data3.fix_features(
+                all_seqs_msa_features)
 
             msa_features = msa_features | {
                 f"{k}_all_seq": v for k, v in all_seqs_msa_features.items()
             }
             feats = msa_features
             feats["chain_id"] = b_chain_id
-            feats["asym_id"] = np.full(chain_num_tokens, asym_id)
+            feats["asym_id"] = np.full(
+                chain_num_tokens, asym_id)
             feats["entity_id"] = entity_id
             np_chains_list.append(feats)
 
         # Add profile features to each chain.
         for chain in np_chains_list:
             chain.update(
-                data3.get_profile_features(chain["msa"], chain["deletion_matrix"])
+                data3.get_profile_features(
+                    chain["msa"], chain["deletion_matrix"])
             )
 
         # Allow 50% of the MSA to come from MSA pairing.
@@ -534,13 +565,15 @@ class MSA:
                 nonempty_chain_ids=nonempty_chain_ids,
                 max_hits_per_species=max_paired_sequence_per_species,
             )
-            np_chains_list = msa_pairing.deduplicate_unpaired_sequences(np_chains_list)
+            np_chains_list = msa_pairing.deduplicate_unpaired_sequences(
+                np_chains_list)
 
         # Remove all gapped rows from all seqs.
         nonempty_asym_ids = []
         for chain in np_chains_list:
             if chain["chain_id"] in nonempty_chain_ids:
-                nonempty_asym_ids.append(chain["asym_id"][0])
+                nonempty_asym_ids.append(
+                    chain["asym_id"][0])
         if "msa_all_seq" in np_chains_list[0]:
             np_chains_list = msa_pairing.remove_all_gapped_rows_from_all_seqs(
                 np_chains_list, asym_ids=nonempty_asym_ids
@@ -574,8 +607,10 @@ class MSA:
 
         # Merge Chains.
         # Make sure the chain order is unaltered before slicing with tokens.
-        curr_chain_order = [chain["chain_id"] for chain in cropped_chains_list]
-        orig_chain_order = [chain["chain_id"] for chain in substruct.iter_chains()]
+        curr_chain_order = [chain["chain_id"]
+                            for chain in cropped_chains_list]
+        orig_chain_order = [chain["chain_id"]
+                            for chain in substruct.iter_chains()]
         assert curr_chain_order == orig_chain_order
         np_example = {
             "asym_id": np.concatenate(
@@ -589,8 +624,10 @@ class MSA:
                         feat, cropped_chains_list
                     )
         for feature in ["profile", "deletion_mean"]:
-            feature_list = [c[feature] for c in cropped_chains_list]
-            np_example[feature] = np.concatenate(feature_list, axis=0)
+            feature_list = [c[feature]
+                            for c in cropped_chains_list]
+            np_example[feature] = np.concatenate(
+                feature_list, axis=0)
 
         # Crop MSA rows to maximum size given by chains participating in the crop.
         max_allowed_unpaired = max(
@@ -611,7 +648,8 @@ class MSA:
             )
             np_example["msa_all_seq"] = np_example["msa_all_seq"][:max_allowed_paired]
 
-        np_example = merging_features.merge_paired_and_unpaired_msa(np_example)
+        np_example = merging_features.merge_paired_and_unpaired_msa(
+            np_example)
 
         # Crop MSA residues. Need to use the standard token indices, since msa does
         # not expand non-standard residues. This means that for expanded residues,
@@ -619,12 +657,14 @@ class MSA:
         new_cropping_idxs = standard_token_idxs
         for feature in data_constants.NUM_SEQ_NUM_RES_MSA_FEATURES:
             if feature in np_example:
-                np_example[feature] = np_example[feature][:, new_cropping_idxs].copy()
+                np_example[feature] = np_example[feature][:,
+                                                          new_cropping_idxs].copy()
         for feature in ["profile", "deletion_mean"]:
             np_example[feature] = np_example[feature][new_cropping_idxs]
 
         # Make MSA mask.
-        np_example["msa_mask"] = np.ones_like(np_example["msa"], dtype=np.float32)
+        np_example["msa_mask"] = np.ones_like(
+            np_example["msa"], dtype=np.float32)
 
         # Count MSA size before padding.
         num_alignments = np_example["msa"].shape[0]
@@ -638,17 +678,23 @@ class MSA:
             )
 
         return MSA(
-            rows=_pad_to(safe_cast_int8(np_example["msa"]), (msa_size, num_tokens)),
-            mask=_pad_to(np_example["msa_mask"].astype(bool), (msa_size, num_tokens)),
+            rows=_pad_to(safe_cast_int8(
+                np_example["msa"]), (msa_size, num_tokens)),
+            mask=_pad_to(np_example["msa_mask"].astype(
+                bool), (msa_size, num_tokens)),
             # deletion_matrix may be out of int8 range, but we mostly care about
             # small values since we arctan it in the model.
             deletion_matrix=_pad_to(
-                safe_cast_int8(np_example["deletion_matrix"]),
+                safe_cast_int8(
+                    np_example["deletion_matrix"]),
                 (msa_size, num_tokens),
             ),
-            profile=_pad_to(np_example["profile"], (num_tokens, None)),
-            deletion_mean=_pad_to(np_example["deletion_mean"], (num_tokens,)),
-            num_alignments=np.array(num_alignments, dtype=np.int32),
+            profile=_pad_to(
+                np_example["profile"], (num_tokens, None)),
+            deletion_mean=_pad_to(
+                np_example["deletion_mean"], (num_tokens,)),
+            num_alignments=np.array(
+                num_alignments, dtype=np.int32),
         )
 
     def index_msa_rows(self, indices: xnp_ndarray) -> Self:
@@ -719,7 +765,8 @@ class Templates:
         )
         np_chains_list = []
 
-        input_chains_by_id = {chain.id: chain for chain in fold_input.chains}
+        input_chains_by_id = {
+            chain.id: chain for chain in fold_input.chains}
 
         nonempty_chain_ids = set(all_tokens.chain_id)
         for chain_info in substruct.iter_chains():
@@ -730,7 +777,8 @@ class Templates:
             # Generalised "sequence" for ligands (can't trust residue name)
             chain_tokens = all_tokens[all_tokens.chain_id == chain_id]
             assert chain_tokens.res_name is not None
-            three_letter_sequence = ",".join(chain_tokens.res_name.tolist())
+            three_letter_sequence = ",".join(
+                chain_tokens.res_name.tolist())
             chain_num_tokens = len(chain_tokens.atom_name)
 
             # Don't compute features for chains not included in the crop, or ligands.
@@ -747,9 +795,11 @@ class Templates:
 
             if entity_id not in polymer_entity_features[skip_chain]:
                 if skip_chain:
-                    template_features = data3.empty_template_features(chain_num_tokens)
+                    template_features = data3.empty_template_features(
+                        chain_num_tokens)
                 else:
-                    assert isinstance(chain, folding_input.ProteinChain)
+                    assert isinstance(
+                        chain, folding_input.ProteinChain)
 
                     sorted_features = []
                     for template in chain.templates:
@@ -759,13 +809,16 @@ class Templates:
                             fix_arginines=True,
                             include_bonds=False,
                             include_water=False,
-                            include_other=True,  # For non-standard polymer chains.
+                            # For non-standard polymer chains.
+                            include_other=True,
                         )
                         hit_features = templates.get_polymer_features(
                             chain=struc,
                             chain_poly_type=mmcif_names.PROTEIN_CHAIN,
-                            query_sequence_length=len(chain.sequence),
-                            query_to_hit_mapping=dict(template.query_to_template_map),
+                            query_sequence_length=len(
+                                chain.sequence),
+                            query_to_hit_mapping=dict(
+                                template.query_to_template_map),
                         )
                         sorted_features.append(hit_features)
 
@@ -775,7 +828,8 @@ class Templates:
                     )
 
                     template_features = data3.fix_template_features(
-                        template_features=template_features, num_res=len(chain.sequence)
+                        template_features=template_features, num_res=len(
+                            chain.sequence)
                     )
 
                 template_features = _reduce_template_features(
@@ -784,7 +838,8 @@ class Templates:
                 polymer_entity_features[skip_chain][entity_id] = template_features
 
             seen_entities[three_letter_sequence] = entity_id
-            feats = polymer_entity_features[skip_chain][entity_id].copy()
+            feats = polymer_entity_features[skip_chain][entity_id].copy(
+            )
             feats["chain_id"] = chain_id
             np_chains_list.append(feats)
 
@@ -793,18 +848,22 @@ class Templates:
         # applied so that each chains templates can't see each other.
         for chain in np_chains_list:
             chain["template_aatype"] = _pad_to(
-                chain["template_aatype"], (max_templates, None)
+                chain["template_aatype"], (
+                    max_templates, None)
             )
             chain["template_atom_positions"] = _pad_to(
-                chain["template_atom_positions"], (max_templates, None, None, None)
+                chain["template_atom_positions"], (
+                    max_templates, None, None, None)
             )
             chain["template_atom_mask"] = _pad_to(
-                chain["template_atom_mask"], (max_templates, None, None)
+                chain["template_atom_mask"], (
+                    max_templates, None, None)
             )
 
         # Merge on token dimension.
         np_example = {
-            ft: np.concatenate([c[ft] for c in np_chains_list], axis=1)
+            ft: np.concatenate(
+                [c[ft] for c in np_chains_list], axis=1)
             for ft in np_chains_list[0]
             if ft in data_constants.TEMPLATE_FEATURES
         }
@@ -813,19 +872,22 @@ class Templates:
         # not expand non-standard residues. This means that for expanded residues,
         # we get repeated template information.
         for feature_name, v in np_example.items():
-            np_example[feature_name] = v[:max_templates, standard_token_idxs, ...]
+            np_example[feature_name] = v[:max_templates,
+                                         standard_token_idxs, ...]
 
         # Pad along the token dimension.
         templates_features = Templates(
             aatype=_pad_to(
-                np_example["template_aatype"], (None, padding_shapes.num_tokens)
+                np_example["template_aatype"], (
+                    None, padding_shapes.num_tokens)
             ),
             atom_positions=_pad_to(
                 np_example["template_atom_positions"],
                 (None, padding_shapes.num_tokens, None, None),
             ),
             atom_mask=_pad_to(
-                np_example["template_atom_mask"].astype(bool),
+                np_example["template_atom_mask"].astype(
+                    bool),
                 (None, padding_shapes.num_tokens, None),
             ),
         )
@@ -854,8 +916,10 @@ def _reduce_template_features(
 ) -> data3.FeatureDict:
     """Reduces template features to max num templates and defined feature set."""
     num_templates = template_features["template_aatype"].shape[0]
-    template_keep_mask = np.arange(num_templates) < max_templates
-    template_fields = data_constants.TEMPLATE_FEATURES + ("template_release_timestamp",)
+    template_keep_mask = np.arange(
+        num_templates) < max_templates
+    template_fields = data_constants.TEMPLATE_FEATURES + \
+        ("template_release_timestamp",)
     template_features = {
         k: v[template_keep_mask]
         for k, v in template_features.items()
@@ -901,7 +965,8 @@ class TokenFeatures:
 
         residue_index = all_tokens.res_id.astype(np.int32)
 
-        token_index = np.arange(1, len(all_tokens.atom_name) + 1).astype(np.int32)
+        token_index = np.arange(
+            1, len(all_tokens.atom_name) + 1).astype(np.int32)
 
         aatype = []
         for res_name, chain_type in zip(all_tokens.res_name, all_tokens.chain_type):
@@ -917,7 +982,8 @@ class TokenFeatures:
             elif chain_type in mmcif_names.NON_POLYMER_CHAIN_TYPES:
                 res_name = residue_names.UNK
             else:
-                raise ValueError(f"Chain type {chain_type} not polymer or ligand.")
+                raise ValueError(
+                    f"Chain type {chain_type} not polymer or ligand.")
             aa = residue_names.POLYMER_TYPES_ORDER_WITH_UNKNOWN_AND_GAP[res_name]
             aatype.append(aa)
         aatype = np.array(aatype, dtype=np.int32)
@@ -925,20 +991,25 @@ class TokenFeatures:
         mask = np.ones(all_tokens.shape[0], dtype=bool)
         chains = _compute_asym_entity_and_sym_id(all_tokens)
         m = dict(zip(chains.chain_id, chains.asym_id))
-        asym_id = np.array([m[c] for c in all_tokens.chain_id], dtype=np.int32)
+        asym_id = np.array(
+            [m[c] for c in all_tokens.chain_id], dtype=np.int32)
 
         m = dict(zip(chains.chain_id, chains.entity_id))
-        entity_id = np.array([m[c] for c in all_tokens.chain_id], dtype=np.int32)
+        entity_id = np.array(
+            [m[c] for c in all_tokens.chain_id], dtype=np.int32)
 
         m = dict(zip(chains.chain_id, chains.sym_id))
-        sym_id = np.array([m[c] for c in all_tokens.chain_id], dtype=np.int32)
+        sym_id = np.array(
+            [m[c] for c in all_tokens.chain_id], dtype=np.int32)
 
-        seq_length = np.array(all_tokens.shape[0], dtype=np.int32)
+        seq_length = np.array(
+            all_tokens.shape[0], dtype=np.int32)
 
         is_protein = all_tokens.chain_type == mmcif_names.PROTEIN_CHAIN
         is_rna = all_tokens.chain_type == mmcif_names.RNA_CHAIN
         is_dna = all_tokens.chain_type == mmcif_names.DNA_CHAIN
-        is_ligand = np.isin(all_tokens.chain_type, list(mmcif_names.LIGAND_CHAIN_TYPES))
+        is_ligand = np.isin(all_tokens.chain_type, list(
+            mmcif_names.LIGAND_CHAIN_TYPES))
         standard_polymer_chain = list(mmcif_names.NON_POLYMER_CHAIN_TYPES) + list(
             mmcif_names.STANDARD_POLYMER_CHAIN_TYPES
         )
@@ -948,22 +1019,35 @@ class TokenFeatures:
         is_water = all_tokens.chain_type == mmcif_names.WATER
 
         return TokenFeatures(
-            residue_index=_pad_to(residue_index, (padding_shapes.num_tokens,)),
-            token_index=_pad_to(token_index, (padding_shapes.num_tokens,)),
-            aatype=_pad_to(aatype, (padding_shapes.num_tokens,)),
-            mask=_pad_to(mask, (padding_shapes.num_tokens,)),
-            asym_id=_pad_to(asym_id, (padding_shapes.num_tokens,)),
-            entity_id=_pad_to(entity_id, (padding_shapes.num_tokens,)),
-            sym_id=_pad_to(sym_id, (padding_shapes.num_tokens,)),
+            residue_index=_pad_to(
+                residue_index, (padding_shapes.num_tokens,)),
+            token_index=_pad_to(
+                token_index, (padding_shapes.num_tokens,)),
+            aatype=_pad_to(
+                aatype, (padding_shapes.num_tokens,)),
+            mask=_pad_to(
+                mask, (padding_shapes.num_tokens,)),
+            asym_id=_pad_to(
+                asym_id, (padding_shapes.num_tokens,)),
+            entity_id=_pad_to(
+                entity_id, (padding_shapes.num_tokens,)),
+            sym_id=_pad_to(
+                sym_id, (padding_shapes.num_tokens,)),
             seq_length=seq_length,
-            is_protein=_pad_to(is_protein, (padding_shapes.num_tokens,)),
-            is_rna=_pad_to(is_rna, (padding_shapes.num_tokens,)),
-            is_dna=_pad_to(is_dna, (padding_shapes.num_tokens,)),
-            is_ligand=_pad_to(is_ligand, (padding_shapes.num_tokens,)),
+            is_protein=_pad_to(
+                is_protein, (padding_shapes.num_tokens,)),
+            is_rna=_pad_to(
+                is_rna, (padding_shapes.num_tokens,)),
+            is_dna=_pad_to(
+                is_dna, (padding_shapes.num_tokens,)),
+            is_ligand=_pad_to(
+                is_ligand, (padding_shapes.num_tokens,)),
             is_nonstandard_polymer_chain=_pad_to(
-                is_nonstandard_polymer_chain, (padding_shapes.num_tokens,)
+                is_nonstandard_polymer_chain, (
+                    padding_shapes.num_tokens,)
             ),
-            is_water=_pad_to(is_water, (padding_shapes.num_tokens,)),
+            is_water=_pad_to(
+                is_water, (padding_shapes.num_tokens,)),
         )
 
     @classmethod
@@ -1034,19 +1118,22 @@ class PredictedStructureInfo:
             all_token_atoms_layout.atom_name.astype(bool),
             (padding_shapes.num_tokens, None),
         )
-        residue_center_index = np.zeros(padding_shapes.num_tokens, dtype=np.int32)
+        residue_center_index = np.zeros(
+            padding_shapes.num_tokens, dtype=np.int32)
         for idx in range(all_tokens.shape[0]):
             repr_atom = all_tokens.atom_name[idx]
-            atoms = list(all_token_atoms_layout.atom_name[idx, :])
+            atoms = list(
+                all_token_atoms_layout.atom_name[idx, :])
             if repr_atom in atoms:
-                residue_center_index[idx] = atoms.index(repr_atom)
+                residue_center_index[idx] = atoms.index(
+                    repr_atom)
             else:
                 # Representative atoms can be missing if cropping the number of atoms
                 # per residue.
                 logging.warning(
                     "The representative atom in all_tokens (%s) is not in "
                     "all_token_atoms_layout (%s)",
-                    all_tokens[idx : idx + 1],
+                    all_tokens[idx: idx + 1],
                     all_token_atoms_layout[idx, :],
                 )
                 residue_center_index[idx] = 0
@@ -1098,15 +1185,18 @@ class PolymerLigandBondInfo:
 
         if bond_layout is not None:
             # Must convert to list before calling np.isin, will not work raw.
-            peptide_types = list(mmcif_names.PEPTIDE_CHAIN_TYPES)
+            peptide_types = list(
+                mmcif_names.PEPTIDE_CHAIN_TYPES)
             nucleic_types = list(mmcif_names.NUCLEIC_ACID_CHAIN_TYPES) + [
                 mmcif_names.OTHER_CHAIN
             ]
             # These atom renames are so that we can use the atom layout code with
             # all_tokens, which only has a single atom per token.
             atom_names = bond_layout.atom_name.copy()
-            atom_names[np.isin(bond_layout.chain_type, peptide_types)] = "CA"
-            atom_names[np.isin(bond_layout.chain_type, nucleic_types)] = "C1'"
+            atom_names[np.isin(
+                bond_layout.chain_type, peptide_types)] = "CA"
+            atom_names[np.isin(
+                bond_layout.chain_type, nucleic_types)] = "C1'"
             adjusted_bond_layout = atom_layout.AtomLayout(
                 atom_name=atom_names,
                 res_id=bond_layout.res_id,
@@ -1125,9 +1215,11 @@ class PolymerLigandBondInfo:
             # Create layout with correct shape when bond_layout is None.
             s = (0, 2)
             adjusted_bond_layout = atom_layout.AtomLayout(
-                atom_name=np.array([], dtype=object).reshape(s),
+                atom_name=np.array(
+                    [], dtype=object).reshape(s),
                 res_id=np.array([], dtype=int).reshape(s),
-                chain_id=np.array([], dtype=object).reshape(s),
+                chain_id=np.array(
+                    [], dtype=object).reshape(s),
             )
         adjusted_bond_layout = adjusted_bond_layout.copy_and_pad_to(
             (padding_shapes.num_tokens, 2)
@@ -1147,8 +1239,10 @@ class PolymerLigandBondInfo:
             )
         else:
             token_atoms_to_bonds = atom_layout.GatherInfo(
-                gather_idxs=np.zeros((padding_shapes.num_tokens, 2), dtype=int),
-                gather_mask=np.zeros((padding_shapes.num_tokens, 2), dtype=bool),
+                gather_idxs=np.zeros(
+                    (padding_shapes.num_tokens, 2), dtype=int),
+                gather_mask=np.zeros(
+                    (padding_shapes.num_tokens, 2), dtype=bool),
                 input_shape=np.array(
                     (
                         padding_shapes.num_tokens,
@@ -1226,8 +1320,10 @@ class LigandLigandBondInfo:
                 bond_layout.atom_name,
                 strict=True,
             ):
-                atom_a = (chain_id[0], res_id[0], atom_name[0])
-                atom_b = (chain_id[1], res_id[1], atom_name[1])
+                atom_a = (
+                    chain_id[0], res_id[0], atom_name[0])
+                atom_b = (
+                    chain_id[1], res_id[1], atom_name[1])
                 if atom_a in all_atom_ids and atom_b in all_atom_ids:
                     keep_mask.append(True)
                 else:
@@ -1236,7 +1332,8 @@ class LigandLigandBondInfo:
             bond_layout = bond_layout[keep_mask]
             # Remove any bonds to Hydrogen atoms.
             bond_layout = bond_layout[
-                ~np.char.startswith(bond_layout.atom_name.astype(str), "H").any(axis=1)
+                ~np.char.startswith(
+                    bond_layout.atom_name.astype(str), "H").any(axis=1)
             ]
             atom_names = bond_layout.atom_name
             adjusted_bond_layout = atom_layout.AtomLayout(
@@ -1249,9 +1346,11 @@ class LigandLigandBondInfo:
             # Create layout with correct shape when bond_layout is None.
             s = (0, 2)
             adjusted_bond_layout = atom_layout.AtomLayout(
-                atom_name=np.array([], dtype=object).reshape(s),
+                atom_name=np.array(
+                    [], dtype=object).reshape(s),
                 res_id=np.array([], dtype=int).reshape(s),
-                chain_id=np.array([], dtype=object).reshape(s),
+                chain_id=np.array(
+                    [], dtype=object).reshape(s),
             )
         # 10 x num_tokens as max_inter_bonds_ratio + max_intra_bonds_ration = 2.061.
         adjusted_bond_layout = adjusted_bond_layout.copy_and_pad_to(
@@ -1308,7 +1407,8 @@ class PseudoBetaInfo:
         atom_idxs = []
         for token_idx in range(all_token_atoms_layout.shape[0]):
             chain_type = all_token_atoms_layout.chain_type[token_idx, 0]
-            atom_names = list(all_token_atoms_layout.atom_name[token_idx, :])
+            atom_names = list(
+                all_token_atoms_layout.atom_name[token_idx, :])
             atom_idx = None
             is_nucleic_backbone = (
                 chain_type in mmcif_names.NUCLEIC_ACID_CHAIN_TYPES
@@ -1342,7 +1442,7 @@ class PseudoBetaInfo:
                     "%s: Unknown chain type for token %i. (%s)",
                     logging_name,
                     token_idx,
-                    all_token_atoms_layout[token_idx : token_idx + 1],
+                    all_token_atoms_layout[token_idx: token_idx + 1],
                 )
                 atom_idx = 0
             if atom_idx is None:
@@ -1358,7 +1458,7 @@ class PseudoBetaInfo:
                     "Using first valid atom (%s) instead.",
                     logging_name,
                     token_idx,
-                    all_token_atoms_layout[token_idx : token_idx + 1],
+                    all_token_atoms_layout[token_idx: token_idx + 1],
                     all_token_atoms_layout.atom_name[token_idx, atom_idx],
                 )
 
@@ -1421,7 +1521,8 @@ def random_augmentation(
 
     center = np.mean(positions, axis=0)
     rot = random_rotation(random_state)
-    positions_target = np.einsum("ij,kj->ki", rot, positions - center)
+    positions_target = np.einsum(
+        "ij,kj->ki", rot, positions - center)
 
     translation = random_state.normal(size=(3,))
     positions_target = positions_target + translation
@@ -1443,7 +1544,8 @@ def _get_reference_positions_from_ccd_cif(
         atom_x = np.array(["?"] * num_atoms)
         atom_y = np.array(["?"] * num_atoms)
         atom_z = np.array(["?"] * num_atoms)
-    pos = np.array([[x, y, z] for x, y, z in zip(atom_x, atom_y, atom_z)])
+    pos = np.array([[x, y, z]
+                   for x, y, z in zip(atom_x, atom_y, atom_z)])
     # Unknown reference coordinates are specified by '?' in chem comp dict.
     # Replace unknown reference coords with 0.
     if "?" in pos and "_chem_comp.pdbx_modified_date" in ccd_cif:
@@ -1457,12 +1559,15 @@ def _get_reference_positions_from_ccd_cif(
             atom_x = ccd_cif["_chem_comp_atom.model_Cartn_x"]
             atom_y = ccd_cif["_chem_comp_atom.model_Cartn_y"]
             atom_z = ccd_cif["_chem_comp_atom.model_Cartn_z"]
-            pos = np.array([[x, y, z] for x, y, z in zip(atom_x, atom_y, atom_z)])
+            pos = np.array(
+                [[x, y, z] for x, y, z in zip(atom_x, atom_y, atom_z)])
     if "?" in pos:
         if np.all(pos == "?"):
-            logging.warning("All ref positions unknown for: %s", logging_name)
+            logging.warning(
+                "All ref positions unknown for: %s", logging_name)
         else:
-            logging.warning("Some ref positions unknown for: %s", logging_name)
+            logging.warning(
+                "Some ref positions unknown for: %s", logging_name)
         pos[pos == "?"] = 0
     return np.array(pos, dtype=np.float32)
 
@@ -1500,18 +1605,22 @@ def get_reference(
     mol = None
     if ccd_cif:
         try:
-            mol = rdkit_utils.mol_from_ccd_cif(ccd_cif, remove_hydrogens=False)
+            mol = rdkit_utils.mol_from_ccd_cif(
+                ccd_cif, remove_hydrogens=False)
         except rdkit_utils.MolFromMmcifError:
-            logging.warning("Failed to construct mol from ccd_cif for: %s", res_name)
+            logging.warning(
+                "Failed to construct mol from ccd_cif for: %s", res_name)
     else:  # No CCD entry, use SMILES from chemical components data.
         if not (
             chemical_components_data.chem_comp
             and res_name in chemical_components_data.chem_comp
             and chemical_components_data.chem_comp[res_name].pdbx_smiles
         ):
-            raise ValueError(f"No CCD entry or SMILES for {res_name}.")
+            raise ValueError(
+                f"No CCD entry or SMILES for {res_name}.")
         smiles_string = chemical_components_data.chem_comp[res_name].pdbx_smiles
-        logging.info("Using SMILES for: %s - %s", res_name, smiles_string)
+        logging.info("Using SMILES for: %s - %s",
+                     res_name, smiles_string)
 
         mol = Chem.MolFromSmiles(smiles_string)
         if mol is None:
@@ -1527,7 +1636,8 @@ def get_reference(
         # No existing names, we assign them from the graph.
         mol = rdkit_utils.assign_atom_names_from_graph(mol)
         # Temporary CCD cif with just atom and bond information, no coordinates.
-        ccd_cif = rdkit_utils.mol_to_ccd_cif(mol, component_id="fake_cif")
+        ccd_cif = rdkit_utils.mol_to_ccd_cif(
+            mol, component_id="fake_cif")
 
     conformer = None
     atom_names = []
@@ -1538,7 +1648,8 @@ def get_reference(
     # If mol is not None (must be True for SMILES case), then we try and generate
     # an RDKit conformer.
     if mol is not None:
-        conformer_random_seed = int(random_state.randint(1, 1 << 31))
+        conformer_random_seed = int(
+            random_state.randint(1, 1 << 31))
         conformer = rdkit_utils.get_random_conformer(
             mol=mol,
             random_seed=conformer_random_seed,
@@ -1562,7 +1673,8 @@ def get_reference(
         charges = ccd_cif["_chem_comp_atom.charge"]
         type_symbols = ccd_cif["_chem_comp_atom.type_symbol"]
         elements = [
-            periodic_table.ATOMIC_NUMBER.get(elem_type.capitalize(), 0)
+            periodic_table.ATOMIC_NUMBER.get(
+                elem_type.capitalize(), 0)
             for elem_type in type_symbols
         ]
         pos = _get_reference_positions_from_ccd_cif(
@@ -1575,15 +1687,19 @@ def get_reference(
     pos = random_augmentation(pos, random_state)
 
     # Extract atom and bond information from CCD cif.
-    from_atom = ccd_cif.get("_chem_comp_bond.atom_id_1", None)
-    dest_atom = ccd_cif.get("_chem_comp_bond.atom_id_2", None)
+    from_atom = ccd_cif.get(
+        "_chem_comp_bond.atom_id_1", None)
+    dest_atom = ccd_cif.get(
+        "_chem_comp_bond.atom_id_2", None)
 
     features = {}
     for atom_name in atom_names:
         features[atom_name] = {}
         idx = atom_names.index(atom_name)
-        charge = 0 if charges[idx] == "?" else int(charges[idx])
-        atom_name_chars = np.array([ord(c) - 32 for c in atom_name], dtype=int)
+        charge = 0 if charges[idx] == "?" else int(
+            charges[idx])
+        atom_name_chars = np.array(
+            [ord(c) - 32 for c in atom_name], dtype=int)
         atom_name_chars = _pad_to(atom_name_chars, (4,))
         features[atom_name]["positions"] = pos[idx]
         features[atom_name]["mask"] = 1
@@ -1625,7 +1741,8 @@ class RefStructure:
         """Reference structure information for each residue."""
 
         # Get features per atom
-        padded_shape = (padding_shapes.num_tokens, all_token_atoms_layout.shape[1])
+        padded_shape = (
+            padding_shapes.num_tokens, all_token_atoms_layout.shape[1])
         result = {
             "positions": np.zeros((*padded_shape, 3), "float32"),
             "mask": np.zeros(padded_shape, "bool"),
@@ -1671,16 +1788,20 @@ class RefStructure:
                         atom_names_ligand = np.stack(
                             [from_atom, dest_atom], axis=1, dtype=object
                         )
-                        atom_names_all.append(atom_names_ligand)
+                        atom_names_all.append(
+                            atom_names_ligand)
                         res_ids_all.append(
-                            np.full_like(atom_names_ligand, res_id, dtype=int)
+                            np.full_like(
+                                atom_names_ligand, res_id, dtype=int)
                         )
                         chain_ids_all.append(
-                            np.full_like(atom_names_ligand, chain_id, dtype=object)
+                            np.full_like(
+                                atom_names_ligand, chain_id, dtype=object)
                         )
 
                 conformation = conformations.get(
-                    (chain_id, res_id), {atom_name: _DEFAULT_BLANK_REF}
+                    (chain_id, res_id), {
+                        atom_name: _DEFAULT_BLANK_REF}
                 )
                 if atom_name not in conformation:
                     logging.warning(
@@ -1688,7 +1809,8 @@ class RefStructure:
                         atom_name,
                         all_token_atoms_layout.res_name[idx],
                     )
-                ref = conformation.get(atom_name, _DEFAULT_BLANK_REF)
+                ref = conformation.get(
+                    atom_name, _DEFAULT_BLANK_REF)
             for k in ref:
                 result[k][idx] = ref[k]
 
@@ -1699,23 +1821,30 @@ class RefStructure:
                 all_token_atoms_layout.res_id[idx],
             )
             if space_str_id not in ref_space_uids:
-                ref_space_uids[space_str_id] = len(ref_space_uids)
+                ref_space_uids[space_str_id] = len(
+                    ref_space_uids)
             result["ref_space_uid"][idx] = ref_space_uids[space_str_id]
 
         if atom_names_all:
-            atom_names_all = np.concatenate(atom_names_all, axis=0)
-            res_ids_all = np.concatenate(res_ids_all, axis=0)
-            chain_ids_all = np.concatenate(chain_ids_all, axis=0)
+            atom_names_all = np.concatenate(
+                atom_names_all, axis=0)
+            res_ids_all = np.concatenate(
+                res_ids_all, axis=0)
+            chain_ids_all = np.concatenate(
+                chain_ids_all, axis=0)
             if ligand_ligand_bonds is not None:
                 adjusted_ligand_ligand_bonds = atom_layout.AtomLayout(
                     atom_name=np.concatenate(
-                        [ligand_ligand_bonds.atom_name, atom_names_all], axis=0
+                        [ligand_ligand_bonds.atom_name,
+                            atom_names_all], axis=0
                     ),
                     chain_id=np.concatenate(
-                        [ligand_ligand_bonds.chain_id, chain_ids_all], axis=0
+                        [ligand_ligand_bonds.chain_id,
+                            chain_ids_all], axis=0
                     ),
                     res_id=np.concatenate(
-                        [ligand_ligand_bonds.res_id, res_ids_all], axis=0
+                        [ligand_ligand_bonds.res_id,
+                            res_ids_all], axis=0
                     ),
                 )
             else:
@@ -1776,7 +1905,8 @@ class ConvertModelOutput:
         """Pads the all_token_atoms_layout and stores other data."""
         # Crop and pad the all_token_atoms_layout.
         token_atoms_layout = all_token_atoms_layout.copy_and_pad_to(
-            (padding_shapes.num_tokens, all_token_atoms_layout.shape[1])
+            (padding_shapes.num_tokens,
+             all_token_atoms_layout.shape[1])
         )
 
         return cls(
@@ -1793,12 +1923,18 @@ class ConvertModelOutput:
         """Construct atom layout object from dictionary."""
 
         return cls(
-            cleaned_struc=_unwrap(batch.get("cleaned_struc", None)),
-            token_atoms_layout=_unwrap(batch.get("token_atoms_layout", None)),
-            flat_output_layout=_unwrap(batch.get("flat_output_layout", None)),
-            empty_output_struc=_unwrap(batch.get("empty_output_struc", None)),
-            polymer_ligand_bonds=_unwrap(batch.get("polymer_ligand_bonds", None)),
-            ligand_ligand_bonds=_unwrap(batch.get("ligand_ligand_bonds", None)),
+            cleaned_struc=_unwrap(
+                batch.get("cleaned_struc", None)),
+            token_atoms_layout=_unwrap(
+                batch.get("token_atoms_layout", None)),
+            flat_output_layout=_unwrap(
+                batch.get("flat_output_layout", None)),
+            empty_output_struc=_unwrap(
+                batch.get("empty_output_struc", None)),
+            polymer_ligand_bonds=_unwrap(
+                batch.get("polymer_ligand_bonds", None)),
+            ligand_ligand_bonds=_unwrap(
+                batch.get("ligand_ligand_bonds", None)),
         )
 
     def as_data_dict(self) -> BatchDict:
@@ -1825,7 +1961,8 @@ class AtomCrossAtt:
     @classmethod
     def compute_features(
         cls,
-        all_token_atoms_layout: atom_layout.AtomLayout,  # (num_tokens, num_dense)
+        # (num_tokens, num_dense)
+        all_token_atoms_layout: atom_layout.AtomLayout,
         queries_subset_size: int,
         keys_subset_size: int,
         padding_shapes: PaddingShapes,
@@ -1833,39 +1970,48 @@ class AtomCrossAtt:
         """Computes gather indices and meta data to work with a flat atom list."""
 
         token_atoms_layout = all_token_atoms_layout.copy_and_pad_to(
-            (padding_shapes.num_tokens, all_token_atoms_layout.shape[1])
+            (padding_shapes.num_tokens,
+             all_token_atoms_layout.shape[1])
         )
-        token_atoms_mask = token_atoms_layout.atom_name.astype(bool)
+        token_atoms_mask = token_atoms_layout.atom_name.astype(
+            bool)
         flat_layout = token_atoms_layout[token_atoms_mask]
         num_atoms = flat_layout.shape[0]
 
-        padded_flat_layout = flat_layout.copy_and_pad_to((padding_shapes.num_atoms,))
+        padded_flat_layout = flat_layout.copy_and_pad_to(
+            (padding_shapes.num_atoms,))
 
         # Create the layout for queries
         num_subsets = padding_shapes.num_atoms // queries_subset_size
         lay_arr = padded_flat_layout.to_array()
         queries_layout = atom_layout.AtomLayout.from_array(
-            lay_arr.reshape((6, num_subsets, queries_subset_size))
+            lay_arr.reshape(
+                (6, num_subsets, queries_subset_size))
         )
 
         # Create the layout for the keys (the key subsets are centered around the
         # query subsets)
         # Create initial gather indices (contain out-of-bound indices)
         subset_centers = np.arange(
-            queries_subset_size / 2, padding_shapes.num_atoms, queries_subset_size
+            queries_subset_size /
+            2, padding_shapes.num_atoms, queries_subset_size
         )
         flat_to_key_gathers = (
             subset_centers[:, None]
-            + np.arange(-keys_subset_size / 2, keys_subset_size / 2)[None, :]
+            + np.arange(-keys_subset_size / 2,
+                        keys_subset_size / 2)[None, :]
         )
-        flat_to_key_gathers = flat_to_key_gathers.astype(int)
+        flat_to_key_gathers = flat_to_key_gathers.astype(
+            int)
         # Shift subsets with out-of-bound indices, such that they are fully within
         # the bounds.
         for row in range(flat_to_key_gathers.shape[0]):
             if flat_to_key_gathers[row, 0] < 0:
-                flat_to_key_gathers[row, :] -= flat_to_key_gathers[row, 0]
+                flat_to_key_gathers[row,
+                                    :] -= flat_to_key_gathers[row, 0]
             elif flat_to_key_gathers[row, -1] > num_atoms - 1:
-                overflow = flat_to_key_gathers[row, -1] - (num_atoms - 1)
+                overflow = flat_to_key_gathers[row, -1] - (
+                    num_atoms - 1)
                 flat_to_key_gathers[row, :] -= overflow
         # Create the keys layout.
         keys_layout = padded_flat_layout[flat_to_key_gathers]
@@ -1890,26 +2036,34 @@ class AtomCrossAtt:
 
         # Create gather indices for conversion of tokens layout to
         # queries and keys layout
-        token_idxs = np.arange(padding_shapes.num_tokens).astype(np.int64)
-        token_idxs = np.broadcast_to(token_idxs[:, None], token_atoms_layout.shape)
+        token_idxs = np.arange(
+            padding_shapes.num_tokens).astype(np.int64)
+        token_idxs = np.broadcast_to(
+            token_idxs[:, None], token_atoms_layout.shape)
         tokens_to_queries = atom_layout.GatherInfo(
             gather_idxs=atom_layout.convert(
-                token_atoms_to_queries, token_idxs, layout_axes=(0, 1)
+                token_atoms_to_queries, token_idxs, layout_axes=(
+                    0, 1)
             ),
             gather_mask=atom_layout.convert(
-                token_atoms_to_queries, token_atoms_mask, layout_axes=(0, 1)
+                token_atoms_to_queries, token_atoms_mask, layout_axes=(
+                    0, 1)
             ),
-            input_shape=np.array((padding_shapes.num_tokens,)),
+            input_shape=np.array(
+                (padding_shapes.num_tokens,)),
         )
 
         tokens_to_keys = atom_layout.GatherInfo(
             gather_idxs=atom_layout.convert(
-                token_atoms_to_keys, token_idxs, layout_axes=(0, 1)
+                token_atoms_to_keys, token_idxs, layout_axes=(
+                    0, 1)
             ),
             gather_mask=atom_layout.convert(
-                token_atoms_to_keys, token_atoms_mask, layout_axes=(0, 1)
+                token_atoms_to_keys, token_atoms_mask, layout_axes=(
+                    0, 1)
             ),
-            input_shape=np.array((padding_shapes.num_tokens,)),
+            input_shape=np.array(
+                (padding_shapes.num_tokens,)),
         )
 
         return cls(
@@ -1983,13 +2137,15 @@ class Frames:
             ref_structure.mask.astype(bool),
             layout_axes=(0, 1),
         )
-        ref_mask = ref_mask & all_token_atoms_to_all_tokens.gather_mask.astype(bool)
+        ref_mask = ref_mask & all_token_atoms_to_all_tokens.gather_mask.astype(
+            bool)
 
         all_frame_mask = []
 
         # Iterate over tokens
         for idx, args in enumerate(
-            zip(all_tokens.chain_type, all_tokens.chain_id, all_tokens.res_id)
+            zip(all_tokens.chain_type,
+                all_tokens.chain_id, all_tokens.res_id)
         ):
 
             chain_type, chain_id, res_id = args
@@ -2012,12 +2168,14 @@ class Frames:
                 else:
                     # [local_tokens]
                     local_dist = np.linalg.norm(
-                        ref_coordinates[idx] - ref_coordinates[local_token_idxs],
+                        ref_coordinates[idx] -
+                        ref_coordinates[local_token_idxs],
                         axis=-1,
                     )
                     local_mask = ref_mask[local_token_idxs]
                     cost = local_dist + 1e8 * ~local_mask
-                    cost = cost + 1e8 * (idx == local_token_idxs)
+                    cost = cost + 1e8 * \
+                        (idx == local_token_idxs)
                     # [local_tokens]
                     closest_idxs = np.argsort(cost, axis=0)
 
@@ -2028,7 +2186,8 @@ class Frames:
                     # Construct frame by placing the current token at the origin and two
                     # nearest atoms on either side.
                     global_frame_idxs = np.array(
-                        (global_closest_idxs[0], idx, global_closest_idxs[1])
+                        (global_closest_idxs[0],
+                         idx, global_closest_idxs[1])
                     )
 
                     # Check that the frame atoms are not colinear.
@@ -2045,11 +2204,15 @@ class Frames:
                             "Found identical coordinates: Assigning as colinear."
                         )
                     else:
-                        vec1 = vec1 / np.linalg.norm(vec1, axis=-1)
-                        vec2 = vec2 / np.linalg.norm(vec2, axis=-1)
-                        cos_angle = np.einsum("...k,...k->...", vec1, vec2)
+                        vec1 = vec1 / \
+                            np.linalg.norm(vec1, axis=-1)
+                        vec2 = vec2 / \
+                            np.linalg.norm(vec2, axis=-1)
+                        cos_angle = np.einsum(
+                            "...k,...k->...", vec1, vec2)
                         # <25 degree deviation is considered colinear.
-                        is_colinear = 1 - np.abs(cos_angle) < 0.0937
+                        is_colinear = 1 - \
+                            np.abs(cos_angle) < 0.0937
 
                     frame_mask = not is_colinear
             else:
@@ -2058,9 +2221,11 @@ class Frames:
 
             all_frame_mask.append(frame_mask)
 
-        all_frame_mask = np.array(all_frame_mask, dtype=bool)
+        all_frame_mask = np.array(
+            all_frame_mask, dtype=bool)
 
-        mask = _pad_to(all_frame_mask, (padding_shapes.num_tokens,))
+        mask = _pad_to(
+            all_frame_mask, (padding_shapes.num_tokens,))
 
         return cls(mask=mask)
 

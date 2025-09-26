@@ -86,10 +86,12 @@ class GraphCastProcessor(nn.Module):
             layers.append(MeshNodeBlock(*node_block_invars))
 
         self.processor_layers = nn.ModuleList(layers)
-        self.num_processor_layers = len(self.processor_layers)
+        self.num_processor_layers = len(
+            self.processor_layers)
         # per default, no checkpointing
         # one segment for compatability
-        self.checkpoint_segments = [(0, self.num_processor_layers)]
+        self.checkpoint_segments = [
+            (0, self.num_processor_layers)]
         self.checkpoint_fn = set_checkpoint_fn(False)
 
     def set_checkpoint_segments(self, checkpoint_segments: int):
@@ -115,12 +117,14 @@ class GraphCastProcessor(nn.Module):
             segment_size = self.num_processor_layers // checkpoint_segments
             self.checkpoint_segments = []
             for i in range(0, self.num_processor_layers, segment_size):
-                self.checkpoint_segments.append((i, i + segment_size))
+                self.checkpoint_segments.append(
+                    (i, i + segment_size))
 
             self.checkpoint_fn = set_checkpoint_fn(True)
         else:
             self.checkpoint_fn = set_checkpoint_fn(False)
-            self.checkpoint_segments = [(0, self.num_processor_layers)]
+            self.checkpoint_segments = [
+                (0, self.num_processor_layers)]
 
     def run_function(self, segment_start: int, segment_end: int):
         """Custom forward for gradient checkpointing
@@ -155,7 +159,8 @@ class GraphCastProcessor(nn.Module):
     ) -> Tensor:
         for segment_start, segment_end in self.checkpoint_segments:
             efeat, nfeat = self.checkpoint_fn(
-                self.run_function(segment_start, segment_end),
+                self.run_function(
+                    segment_start, segment_end),
                 efeat,
                 nfeat,
                 graph,
@@ -193,8 +198,10 @@ class GraphCastProcessorGraphTransformer(nn.Module):
         super().__init__()
         self.num_attention_heads = num_attention_heads
         self.hidden_dim = hidden_dim
-        self.attention_mask = torch.tensor(attention_mask, dtype=torch.bool)
-        self.register_buffer("mask", self.attention_mask, persistent=False)
+        self.attention_mask = torch.tensor(
+            attention_mask, dtype=torch.bool)
+        self.register_buffer(
+            "mask", self.attention_mask, persistent=False)
 
         layers = [
             #     te.pytorch.TransformerLayer(
@@ -210,9 +217,11 @@ class GraphCastProcessorGraphTransformer(nn.Module):
                 nhead=num_attention_heads,  # 等同于 num_attention_heads
                 dim_feedforward=hidden_dim,  # 等同于 ffn_hidden_size
                 activation="gelu",  # 激活函数可以选择 gelu 或 relu
-                batch_first=True,  # 使得输入张量维度为 (batch_size, seq_len, d_model)
+                # 使得输入张量维度为 (batch_size, seq_len, d_model)
+                batch_first=True,
             )
-            for _ in range(processor_layers)  # 创建多层 Transformer 编码器层
+            # 创建多层 Transformer 编码器层
+            for _ in range(processor_layers)
         ]
         self.processor_layers = nn.ModuleList(layers)
 

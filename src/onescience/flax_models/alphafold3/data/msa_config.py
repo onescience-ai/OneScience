@@ -112,7 +112,8 @@ class RunConfig:
 
     def __post_init__(self):
         if self.crop_size is not None and self.crop_size < 2:
-            raise ValueError(f"crop_size must be None or >= 2: {self.crop_size}")
+            raise ValueError(
+                f"crop_size must be None or >= 2: {self.crop_size}")
 
         _validate_chain_poly_type(self.chain_poly_type)
 
@@ -168,7 +169,8 @@ class TemplateFilterConfig:
             min_hit_length=None,
             deduplicate_sequences=False,
             max_hits=None,
-            max_template_date=datetime.date(3000, 1, 1),  # Very far in the future.
+            # Very far in the future.
+            max_template_date=datetime.date(3000, 1, 1),
         )
 
 

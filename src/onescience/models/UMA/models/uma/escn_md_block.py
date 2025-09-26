@@ -50,7 +50,8 @@ class Edgewise(torch.nn.Module):
 
         self.mappingReduced = mappingReduced
         self.SO3_grid = SO3_grid
-        self.edge_channels_list = copy.deepcopy(edge_channels_list)
+        self.edge_channels_list = copy.deepcopy(
+            edge_channels_list)
         self.act_type = act_type
 
         if self.act_type == "gate":
@@ -71,7 +72,8 @@ class Edgewise(torch.nn.Module):
             )
             extra_m0_output_channels = self.hidden_channels
         else:
-            raise ValueError(f"Unknown activation type {self.act_type}")
+            raise ValueError(
+                f"Unknown activation type {self.act_type}")
 
         self.so2_conv_1 = SO2_Convolution(
             2 * self.sphere_channels,
@@ -134,7 +136,8 @@ class Edgewise(torch.nn.Module):
         edge_distance_parititons = edge_distance.split(
             self.activation_checkpoint_chunk_size, dim=0
         )
-        x_edge_partitions = x_edge.split(self.activation_checkpoint_chunk_size, dim=0)
+        x_edge_partitions = x_edge.split(
+            self.activation_checkpoint_chunk_size, dim=0)
         new_embeddings = []
         # when chunking, we need to keep track of the start index of the chunk and give this information
         # to the mole layers
@@ -157,7 +160,8 @@ class Edgewise(torch.nn.Module):
             ac_mole_start_idx += edge_index_partitions[idx].shape[1]
 
             if len(new_embeddings) > 8:
-                new_embeddings = [torch.stack(new_embeddings).sum(axis=0)]
+                new_embeddings = [torch.stack(
+                    new_embeddings).sum(axis=0)]
         return torch.stack(new_embeddings).sum(axis=0)
 
     def forward_chunk(
@@ -176,7 +180,8 @@ class Edgewise(torch.nn.Module):
         set_mole_ac_start_index(self, ac_mole_start_idx)
 
         if gp_utils.initialized():
-            x_full = gp_utils.gather_from_model_parallel_region_sum_grad(x, dim=0)
+            x_full = gp_utils.gather_from_model_parallel_region_sum_grad(
+                x, dim=0)
             x_source = x_full[edge_index[0]]
             x_target = x_full[edge_index[1]]
         else:
@@ -187,10 +192,12 @@ class Edgewise(torch.nn.Module):
 
         with record_function("SO2Conv"):
             # Rotate the irreps to align with the edge
-            x_message = torch.bmm(wigner_and_M_mapping, x_message)
+            x_message = torch.bmm(
+                wigner_and_M_mapping, x_message)
 
             # SO2 convolution
-            x_message, x_0_gating = self.so2_conv_1(x_message, x_edge)
+            x_message, x_0_gating = self.so2_conv_1(
+                x_message, x_edge)
 
             # M-prime...
             x_message = self.act(x_0_gating, x_message)
@@ -203,7 +210,8 @@ class Edgewise(torch.nn.Module):
             x_message = x_message * env.view(-1, 1, 1)
 
             # Rotate back the irreps
-            x_message = torch.bmm(wigner_and_M_mapping_inv, x_message)
+            x_message = torch.bmm(
+                wigner_and_M_mapping_inv, x_message)
 
         # Compute the sum of the incoming neighboring messages for each target node
         new_embedding = torch.zeros(
@@ -212,7 +220,8 @@ class Edgewise(torch.nn.Module):
             device=x_message.device,
         )
 
-        new_embedding.index_add_(0, edge_index[1] - node_offset, x_message)
+        new_embedding.index_add_(
+            0, edge_index[1] - node_offset, x_message)
         # reset ac start index
         set_mole_ac_start_index(self, 0)
         return new_embedding
@@ -278,20 +287,25 @@ class GridAtomwise(torch.nn.Module):
         self.SO3_grid = SO3_grid
 
         self.grid_mlp = nn.Sequential(
-            nn.Linear(self.sphere_channels, self.hidden_channels, bias=False),
+            nn.Linear(self.sphere_channels,
+                      self.hidden_channels, bias=False),
             nn.SiLU(),
-            nn.Linear(self.hidden_channels, self.hidden_channels, bias=False),
+            nn.Linear(self.hidden_channels,
+                      self.hidden_channels, bias=False),
             nn.SiLU(),
-            nn.Linear(self.hidden_channels, self.sphere_channels, bias=False),
+            nn.Linear(self.hidden_channels,
+                      self.sphere_channels, bias=False),
         )
 
     def forward(self, x):
         # Project to grid
-        x_grid = self.SO3_grid["lmax_lmax"].to_grid(x, self.lmax, self.lmax)
+        x_grid = self.SO3_grid["lmax_lmax"].to_grid(
+            x, self.lmax, self.lmax)
         # Perform point-wise operations
         x_grid = self.grid_mlp(x_grid)
         # Project back to spherical harmonic coefficients
-        x = self.SO3_grid["lmax_lmax"].from_grid(x_grid, self.lmax, self.lmax)
+        x = self.SO3_grid["lmax_lmax"].from_grid(
+            x_grid, self.lmax, self.lmax)
         return x
 
 

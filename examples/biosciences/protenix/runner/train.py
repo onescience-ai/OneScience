@@ -54,11 +54,13 @@ class AF3Trainer(object):
         # Add for grad accumulation, it can increase real batch size
         self.iters_to_accumulate = self.configs.iters_to_accumulate
 
-        self.run_name = self.configs.run_name + "_" + time.strftime("%Y%m%d_%H%M%S")
+        self.run_name = self.configs.run_name + \
+            "_" + time.strftime("%Y%m%d_%H%M%S")
         run_names = DIST_WRAPPER.all_gather_object(
             self.run_name if DIST_WRAPPER.rank == 0 else None
         )
-        self.run_name = [name for name in run_names if name is not None][0]
+        self.run_name = [
+            name for name in run_names if name is not None][0]
         self.run_dir = f"{self.configs.base_dir}/{self.run_name}"
         self.checkpoint_dir = f"{self.run_dir}/checkpoints"
         self.prediction_dir = f"{self.run_dir}/predictions"
@@ -75,7 +77,8 @@ class AF3Trainer(object):
             os.makedirs(self.error_dir)
             save_config(
                 self.configs,
-                os.path.join(self.configs.base_dir, self.run_name, "config.yaml"),
+                os.path.join(
+                    self.configs.base_dir, self.run_name, "config.yaml"),
             )
 
         self.print(
@@ -92,7 +95,8 @@ class AF3Trainer(object):
                 config=vars(self.configs),
                 id=self.configs.wandb_id or None,
             )
-        self.train_metric_wrapper = SimpleMetricAggregator(["avg"])
+        self.train_metric_wrapper = SimpleMetricAggregator([
+                                                           "avg"])
 
     def init_env(self):
         """Init pytorch/cuda envs."""
@@ -102,10 +106,13 @@ class AF3Trainer(object):
         )
         self.use_cuda = torch.cuda.device_count() > 0
         if self.use_cuda:
-            self.device = torch.device("cuda:{}".format(DIST_WRAPPER.local_rank))
+            self.device = torch.device(
+                "cuda:{}".format(DIST_WRAPPER.local_rank))
             os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-            all_gpu_ids = ",".join(str(x) for x in range(torch.cuda.device_count()))
-            devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
+            all_gpu_ids = ",".join(
+                str(x) for x in range(torch.cuda.device_count()))
+            devices = os.getenv(
+                "CUDA_VISIBLE_DEVICES", all_gpu_ids)
             logging.info(
                 f"LOCAL_RANK: {DIST_WRAPPER.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]"
             )
@@ -113,13 +120,15 @@ class AF3Trainer(object):
         else:
             self.device = torch.device("cpu")
         if DIST_WRAPPER.world_size > 1:
-            timeout_seconds = int(os.environ.get("NCCL_TIMEOUT_SECOND", 600))
+            timeout_seconds = int(
+                os.environ.get("NCCL_TIMEOUT_SECOND", 600))
             dist.init_process_group(
                 backend="nccl", timeout=datetime.timedelta(seconds=timeout_seconds)
             )
         if not self.configs.deterministic_seed:
             # use rank-specific seed
-            rank_seed = hash((self.configs.seed, DIST_WRAPPER.rank, "init_seed"))
+            rank_seed = hash(
+                (self.configs.seed, DIST_WRAPPER.rank, "init_seed"))
             rank_seed = rank_seed % (2**32)
         else:
             rank_seed = self.configs.seed
@@ -145,7 +154,8 @@ class AF3Trainer(object):
         self.lddt_metrics = LDDTMetrics(self.configs)
 
     def init_model(self):
-        self.raw_model = Protenix(self.configs).to(self.device)
+        self.raw_model = Protenix(
+            self.configs).to(self.device)
         self.use_ddp = False
         if DIST_WRAPPER.world_size > 1:
             self.print(f"Using DDP")
@@ -171,11 +181,13 @@ class AF3Trainer(object):
             self.ema_wrapper.register()
 
         torch.cuda.empty_cache()
-        self.optimizer = get_optimizer(self.configs, self.model)
+        self.optimizer = get_optimizer(
+            self.configs, self.model)
         self.init_scheduler()
 
     def init_scheduler(self, **kwargs):
-        self.lr_scheduler = get_lr_scheduler(self.configs, self.optimizer, **kwargs)
+        self.lr_scheduler = get_lr_scheduler(
+            self.configs, self.optimizer, **kwargs)
 
     def init_data(self):
         self.train_dl, self.test_dls = get_dataloaders(
@@ -211,17 +223,20 @@ class AF3Trainer(object):
             skip_load_scheduler: bool = False,
         ):
             if not os.path.exists(checkpoint_path):
-                raise Exception(f"Given checkpoint path not exist [{checkpoint_path}]")
+                raise Exception(
+                    f"Given checkpoint path not exist [{checkpoint_path}]")
             self.print(
                 f"Loading from {checkpoint_path}, strict: {self.configs.load_strict}"
             )
-            checkpoint = torch.load(checkpoint_path, self.device)
-            sample_key = [k for k in checkpoint["model"].keys()][0]
+            checkpoint = torch.load(
+                checkpoint_path, self.device)
+            sample_key = [
+                k for k in checkpoint["model"].keys()][0]
             self.print(f"Sampled key: {sample_key}")
             if sample_key.startswith("module.") and not self.use_ddp:
                 # DDP checkpoint has module. prefix
                 checkpoint["model"] = {
-                    k[len("module.") :]: v for k, v in checkpoint["model"].items()
+                    k[len("module."):]: v for k, v in checkpoint["model"].items()
                 }
 
             self.model.load_state_dict(
@@ -231,7 +246,8 @@ class AF3Trainer(object):
             if not load_params_only:
                 if not skip_load_optimizer:
                     self.print(f"Loading optimizer state")
-                    self.optimizer.load_state_dict(checkpoint["optimizer"])
+                    self.optimizer.load_state_dict(
+                        checkpoint["optimizer"])
                 if not skip_load_step:
                     self.print(f"Loading checkpoint step")
                     self.step = checkpoint["step"] + 1
@@ -239,11 +255,14 @@ class AF3Trainer(object):
                     self.global_step = self.step * self.iters_to_accumulate
                 if not skip_load_scheduler:
                     self.print(f"Loading scheduler state")
-                    self.lr_scheduler.load_state_dict(checkpoint["scheduler"])
+                    self.lr_scheduler.load_state_dict(
+                        checkpoint["scheduler"])
                 else:
                     # reinitialize LR scheduler using the updated optimizer and step
-                    self.init_scheduler(last_epoch=self.step - 1)
-            self.print(f"Finish loading checkpoint, current step: {self.step}")
+                    self.init_scheduler(
+                        last_epoch=self.step - 1)
+            self.print(
+                f"Finish loading checkpoint, current step: {self.step}")
 
         # Load EMA model parameters
         if self.configs.load_ema_checkpoint_path:
@@ -318,20 +337,23 @@ class AF3Trainer(object):
             self._evaluate()
         if hasattr(self, "ema_wrapper"):
             self.ema_wrapper.apply_shadow()
-            self._evaluate(ema_suffix=f"ema{self.ema_wrapper.decay}_", mode=mode)
+            self._evaluate(
+                ema_suffix=f"ema{self.ema_wrapper.decay}_", mode=mode)
             self.ema_wrapper.restore()
 
     @torch.no_grad()
     def _evaluate(self, ema_suffix: str = "", mode: str = "eval"):
         # Init Metric Aggregator
-        simple_metric_wrapper = SimpleMetricAggregator(["avg"])
+        simple_metric_wrapper = SimpleMetricAggregator([
+                                                       "avg"])
         eval_precision = {
             "fp32": torch.float32,
             "bf16": torch.bfloat16,
             "fp16": torch.float16,
         }[self.configs.dtype]
         enable_amp = (
-            torch.autocast(device_type="cuda", dtype=eval_precision)
+            torch.autocast(device_type="cuda",
+                           dtype=eval_precision)
             if torch.cuda.is_available()
             else nullcontext()
         )
@@ -347,7 +369,8 @@ class AF3Trainer(object):
 
                 if index + 1 == total_batch_num and DIST_WRAPPER.world_size > 1:
                     # Gather all pids across ranks for avoiding duplicated evaluations when drop_last = False
-                    all_data_ids = DIST_WRAPPER.all_gather_object(evaluated_pids)
+                    all_data_ids = DIST_WRAPPER.all_gather_object(
+                        evaluated_pids)
                     dedup_ids = set(sum(all_data_ids, []))
                     if pid in dedup_ids:
                         print(
@@ -359,14 +382,18 @@ class AF3Trainer(object):
                 simple_metrics = {}
                 with enable_amp:
                     # Model forward
-                    batch, _ = self.model_forward(batch, mode=mode)
+                    batch, _ = self.model_forward(
+                        batch, mode=mode)
                     # Loss forward
-                    loss, loss_dict, batch = self.get_loss(batch, mode="eval")
+                    loss, loss_dict, batch = self.get_loss(
+                        batch, mode="eval")
                     # lDDT metrics
                     lddt_dict = self.get_metrics(batch)
-                    lddt_metrics = self.aggregate_metrics(lddt_dict, batch)
+                    lddt_metrics = self.aggregate_metrics(
+                        lddt_dict, batch)
                     simple_metrics.update(
-                        {k: v for k, v in lddt_metrics.items() if "diff" not in k}
+                        {k: v for k, v in lddt_metrics.items()
+                         if "diff" not in k}
                     )
                     simple_metrics.update(loss_dict)
 
@@ -382,7 +409,8 @@ class AF3Trainer(object):
                     torch.cuda.empty_cache()
 
             metrics = simple_metric_wrapper.calc()
-            self.print(f"Step {self.step}, eval {test_name}: {metrics}")
+            self.print(
+                f"Step {self.step}, eval {test_name}: {metrics}")
             if self.configs.use_wandb and DIST_WRAPPER.rank == 0:
                 wandb.log(metrics, step=self.step)
 
@@ -415,14 +443,19 @@ class AF3Trainer(object):
         )
 
         with enable_amp:
-            batch, _ = self.model_forward(batch, mode="train")
-            loss, loss_dict, _ = self.get_loss(batch, mode="train")
+            batch, _ = self.model_forward(
+                batch, mode="train")
+            loss, loss_dict, _ = self.get_loss(
+                batch, mode="train")
 
         if self.configs.dtype in ["bf16", "fp32"]:
             if is_loss_nan_check(loss):
-                self.print(f"Skip iteration with NaN loss: {self.step} steps")
-                loss = torch.tensor(0.0, device=loss.device, requires_grad=True)
-        scaler.scale(loss / self.iters_to_accumulate).backward()
+                self.print(
+                    f"Skip iteration with NaN loss: {self.step} steps")
+                loss = torch.tensor(
+                    0.0, device=loss.device, requires_grad=True)
+        scaler.scale(
+            loss / self.iters_to_accumulate).backward()
 
         # For simplicity, the global training step is used
         if (self.global_step + 1) % self.iters_to_accumulate == 0:
@@ -440,7 +473,8 @@ class AF3Trainer(object):
         for key, value in loss_dict.items():
             if "loss" not in key:
                 continue
-            self.train_metric_wrapper.add(key, value, namespace="train")
+            self.train_metric_wrapper.add(
+                key, value, namespace="train")
         torch.cuda.empty_cache()
 
     def progress_bar(self, desc: str = ""):
@@ -480,9 +514,12 @@ class AF3Trainer(object):
 
         while True:
             for batch in self.train_dl:
-                is_update_step = (self.global_step + 1) % self.iters_to_accumulate == 0
-                is_last_step = (self.step + 1) == self.configs.max_steps
-                step_need_log = (self.step + 1) % self.configs.log_interval == 0
+                is_update_step = (
+                    self.global_step + 1) % self.iters_to_accumulate == 0
+                is_last_step = (
+                    self.step + 1) == self.configs.max_steps
+                step_need_log = (
+                    self.step + 1) % self.configs.log_interval == 0
 
                 step_need_eval = (
                     self.configs.eval_interval > 0
@@ -505,15 +542,18 @@ class AF3Trainer(object):
                     self.ema_wrapper.update()
                 if step_need_log or is_last_step:
                     metrics = self.train_metric_wrapper.calc()
-                    self.print(f"Step {self.step} train: {metrics}")
-                    last_lr = self.lr_scheduler.get_last_lr()[0]
+                    self.print(
+                        f"Step {self.step} train: {metrics}")
+                    last_lr = self.lr_scheduler.get_last_lr()[
+                        0]
                     if DIST_WRAPPER.rank == 0:
                         if self.configs.use_wandb:
                             wandb.log(
                                 {"train/lr": last_lr},
                                 step=self.step,
                             )
-                        self.print(f"Step {self.step}, lr: {last_lr}")
+                        self.print(
+                            f"Step {self.step}, lr: {last_lr}")
                     if self.configs.use_wandb and DIST_WRAPPER.rank == 0:
                         wandb.log(metrics, step=self.step)
 
@@ -532,7 +572,8 @@ class AF3Trainer(object):
                 if self.global_step % self.iters_to_accumulate == 0:
                     self.step += 1
                 if self.step >= self.configs.max_steps:
-                    self.print(f"Finish training after {self.step} steps")
+                    self.print(
+                        f"Finish training after {self.step} steps")
                     break
             if self.step >= self.configs.max_steps:
                 break
@@ -547,7 +588,8 @@ def main():
         filemode="w",
     )
     configs_base["use_deepspeed_evo_attention"] = (
-        os.environ.get("USE_DEEPSPEED_EVO_ATTENTION", False) == "true"
+        os.environ.get(
+            "USE_DEEPSPEED_EVO_ATTENTION", False) == "true"
     )
     configs = {**configs_base, **{"data": data_configs}}
     configs = parse_configs(

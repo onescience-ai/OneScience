@@ -94,7 +94,8 @@ def drop_path(
     shape = (x.shape[0],) + (1,) * (
         x.ndim - 1
     )  # work with diff dim tensors, not just 2D ConvNets
-    random_tensor = keep_prob + torch.rand(shape, dtype=x.dtype, device=x.device)
+    random_tensor = keep_prob + \
+        torch.rand(shape, dtype=x.dtype, device=x.device)
     random_tensor.floor_()  # binarize
     output = x.div(keep_prob) * random_tensor
     return output
@@ -140,15 +141,19 @@ class DistributedMLP(nn.Module):
         hidden_features_local = hidden_features // comm_size
 
         # first set of hp
-        self.w1 = nn.Parameter(torch.ones(hidden_features_local, in_features, 1, 1))
-        self.b1 = nn.Parameter(torch.zeros(hidden_features_local))
+        self.w1 = nn.Parameter(torch.ones(
+            hidden_features_local, in_features, 1, 1))
+        self.b1 = nn.Parameter(
+            torch.zeros(hidden_features_local))
 
         # second set of hp
-        self.w2 = nn.Parameter(torch.ones(out_features, hidden_features_local, 1, 1))
+        self.w2 = nn.Parameter(torch.ones(
+            out_features, hidden_features_local, 1, 1))
         self.b2 = nn.Parameter(torch.zeros(out_features))
 
         self.act = act_layer()
-        self.drop = nn.Dropout(drop) if drop > 0.0 else nn.Identity()
+        self.drop = nn.Dropout(
+            drop) if drop > 0.0 else nn.Identity()
 
         if self.input_is_matmul_parallel:
             self.gather_shapes = compute_split_shapes(
@@ -171,18 +176,21 @@ class DistributedMLP(nn.Module):
                 x, dim=1, shapes=self.gather_shapes, group="model_parallel"
             )
 
-        x = copy_to_parallel_region(x, group="model_parallel")
+        x = copy_to_parallel_region(
+            x, group="model_parallel")
         x = F.conv2d(x, self.w1, bias=self.b1)
         x = self.act(x)
         x = self.drop(x)
         x = F.conv2d(x, self.w2, bias=None)
-        x = reduce_from_parallel_region(x, group="model_parallel")
+        x = reduce_from_parallel_region(
+            x, group="model_parallel")
         x = x + torch.reshape(self.b2, (1, -1, 1, 1))
         x = self.drop(x)
 
         # scatter if output is MP
         if self.output_is_matmul_parallel:
-            x = scatter_to_parallel_region(x, dim=1, group="model_parallel")
+            x = scatter_to_parallel_region(
+                x, dim=1, group="model_parallel")
 
         return x
 
@@ -204,10 +212,12 @@ class DistributedPatchEmbed(nn.Module):
         self.output_parallel = output_is_matmul_parallel
 
         # get comm sizes:
-        matmul_comm_size = DistributedManager().group_size("model_parallel")
+        matmul_comm_size = DistributedManager(
+        ).group_size("model_parallel")
 
         # compute parameters
-        num_patches = (inp_shape[1] // patch_size[1]) * (inp_shape[0] // patch_size[0])
+        num_patches = (
+            inp_shape[1] // patch_size[1]) * (inp_shape[0] // patch_size[0])
         self.inp_shape = (inp_shape[0], inp_shape[1])
         self.patch_size = patch_size
         self.num_patches = num_patches
@@ -247,7 +257,8 @@ class DistributedPatchEmbed(nn.Module):
             )
 
         if self.output_parallel:
-            x = copy_to_parallel_region(x, group="model_parallel")
+            x = copy_to_parallel_region(
+                x, group="model_parallel")
 
         B, C, H, W = x.shape
         if not (H == self.inp_shape[0] and W == self.inp_shape[1]):
@@ -303,7 +314,8 @@ class DistributedAFNO2D(nn.Module):
             )
 
         # get comm sizes:
-        matmul_comm_size = DistributedManager().group_size("model_parallel")
+        matmul_comm_size = DistributedManager(
+        ).group_size("model_parallel")
 
         self.fft_handle = torch.fft.rfft2
         self.ifft_handle = torch.fft.irfft2
@@ -360,7 +372,9 @@ class DistributedAFNO2D(nn.Module):
             )
         )
         self.b2 = nn.Parameter(
-            self.scale * torch.randn(self.num_blocks_local, self.block_size, 1, 1, 2)
+            self.scale *
+            torch.randn(self.num_blocks_local,
+                        self.block_size, 1, 1, 2)
         )
 
         # make sure we reduce them across rank
@@ -373,7 +387,8 @@ class DistributedAFNO2D(nn.Module):
         if not self.input_is_matmul_parallel:
             # distribute data
             num_chans = x.shape[1]
-            x = scatter_to_parallel_region(x, dim=1, group="model_parallel")
+            x = scatter_to_parallel_region(
+                x, dim=1, group="model_parallel")
 
         # bias
         bias = x
@@ -382,10 +397,12 @@ class DistributedAFNO2D(nn.Module):
         x = x.float()
         B, C, H, W = x.shape
         total_modes = H // 2 + 1
-        kept_modes = int(total_modes * self.hard_thresholding_fraction)
+        kept_modes = int(
+            total_modes * self.hard_thresholding_fraction)
 
         x = self.fft_handle(x, (H, W), (-2, -1), "ortho")
-        x = x.view(B, self.num_blocks_local, self.block_size, H, W // 2 + 1)
+        x = x.view(B, self.num_blocks_local,
+                   self.block_size, H, W // 2 + 1)
 
         # new
         x = torch.view_as_real(x)
@@ -397,7 +414,7 @@ class DistributedAFNO2D(nn.Module):
                     :,
                     :,
                     :,
-                    total_modes - kept_modes : total_modes + kept_modes,
+                    total_modes - kept_modes: total_modes + kept_modes,
                     :kept_modes,
                     :,
                 ],
@@ -406,7 +423,7 @@ class DistributedAFNO2D(nn.Module):
             )
         )
         o2[
-            :, :, :, total_modes - kept_modes : total_modes + kept_modes, :kept_modes, :
+            :, :, :, total_modes - kept_modes: total_modes + kept_modes, :kept_modes, :
         ] = self.mult_handle(o1, self.w2, self.b2)
 
         # finalize

@@ -50,7 +50,8 @@ def _parse_sequence_identifier(msa_sequence_identifier: str) -> Identifiers:
       An `Identifiers` instance with species_id. These
       can be empty in the case where no identifier was found.
     """
-    matches = re.search(_UNIPROT_PATTERN, msa_sequence_identifier.strip())
+    matches = re.search(
+        _UNIPROT_PATTERN, msa_sequence_identifier.strip())
     if matches:
         return Identifiers(species_id=matches.group("SpeciesIdentifier"))
     return Identifiers()
@@ -67,7 +68,8 @@ def _extract_sequence_identifier(description: str) -> str | None:
 
 def get_identifiers(description: str) -> Identifiers:
     """Computes extra MSA features from the description."""
-    sequence_identifier = _extract_sequence_identifier(description)
+    sequence_identifier = _extract_sequence_identifier(
+        description)
     if sequence_identifier is None:
         return Identifiers()
     else:

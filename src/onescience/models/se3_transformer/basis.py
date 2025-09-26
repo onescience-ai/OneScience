@@ -49,7 +49,8 @@ def get_all_clebsch_gordon(max_degree: int, device) -> List[List[Tensor]]:
         for d_out in range(max_degree + 1):
             K_Js = []
             for J in range(abs(d_in - d_out), d_in + d_out + 1):
-                K_Js.append(get_clebsch_gordon(J, d_in, d_out, device))
+                K_Js.append(get_clebsch_gordon(
+                    J, d_in, d_out, device))
             all_cb.append(K_Js)
     return all_cb
 
@@ -57,7 +58,8 @@ def get_all_clebsch_gordon(max_degree: int, device) -> List[List[Tensor]]:
 def get_spherical_harmonics(relative_pos: Tensor, max_degree: int) -> List[Tensor]:
     all_degrees = list(range(2 * max_degree + 1))
     with nvtx_range("spherical harmonics"):
-        sh = o3.spherical_harmonics(all_degrees, relative_pos, normalize=True)
+        sh = o3.spherical_harmonics(
+            all_degrees, relative_pos, normalize=True)
         return torch.split(sh, [degree_to_dim(d) for d in all_degrees], dim=1)
 
 
@@ -94,7 +96,8 @@ def get_basis_script(
                     )
                 )
 
-            basis[key] = torch.stack(K_Js, 2)  # Stack on second dim so order is n l f k
+            # Stack on second dim so order is n l f k
+            basis[key] = torch.stack(K_Js, 2)
             if amp:
                 basis[key] = basis[key].half()
             if use_pad_trick:
@@ -115,11 +118,13 @@ def update_basis_with_fused(
     num_edges = basis["0,0"].shape[0]
     device = basis["0,0"].device
     dtype = basis["0,0"].dtype
-    sum_dim = sum([degree_to_dim(d) for d in range(max_degree + 1)])
+    sum_dim = sum([degree_to_dim(d)
+                  for d in range(max_degree + 1)])
 
     # Fused per output degree
     for d_out in range(max_degree + 1):
-        sum_freq = sum([degree_to_dim(min(d, d_out)) for d in range(max_degree + 1)])
+        sum_freq = sum([degree_to_dim(min(d, d_out))
+                       for d in range(max_degree + 1)])
         basis_fused = torch.zeros(
             num_edges,
             sum_dim,
@@ -132,8 +137,8 @@ def update_basis_with_fused(
         for d_in in range(max_degree + 1):
             basis_fused[
                 :,
-                acc_d : acc_d + degree_to_dim(d_in),
-                acc_f : acc_f + degree_to_dim(min(d_out, d_in)),
+                acc_d: acc_d + degree_to_dim(d_in),
+                acc_f: acc_f + degree_to_dim(min(d_out, d_in)),
                 : degree_to_dim(d_out),
             ] = basis[f"{d_in},{d_out}"][:, :, :, : degree_to_dim(d_out)]
 
@@ -144,7 +149,8 @@ def update_basis_with_fused(
 
     # Fused per input degree
     for d_in in range(max_degree + 1):
-        sum_freq = sum([degree_to_dim(min(d, d_in)) for d in range(max_degree + 1)])
+        sum_freq = sum([degree_to_dim(min(d, d_in))
+                       for d in range(max_degree + 1)])
         basis_fused = torch.zeros(
             num_edges,
             degree_to_dim(d_in),
@@ -158,8 +164,8 @@ def update_basis_with_fused(
             basis_fused[
                 :,
                 :,
-                acc_f : acc_f + degree_to_dim(min(d_out, d_in)),
-                acc_d : acc_d + degree_to_dim(d_out),
+                acc_f: acc_f + degree_to_dim(min(d_out, d_in)),
+                acc_d: acc_d + degree_to_dim(d_out),
             ] = basis[f"{d_in},{d_out}"][:, :, :, : degree_to_dim(d_out)]
 
             acc_d += degree_to_dim(d_out)
@@ -172,7 +178,8 @@ def update_basis_with_fused(
         # Double sum this way because of JIT script
         sum_freq = sum(
             [
-                sum([degree_to_dim(min(d_in, d_out)) for d_in in range(max_degree + 1)])
+                sum([degree_to_dim(min(d_in, d_out))
+                    for d_in in range(max_degree + 1)])
                 for d_out in range(max_degree + 1)
             ]
         )
@@ -184,14 +191,15 @@ def update_basis_with_fused(
         for d_out in range(max_degree + 1):
             b = basis[f"out{d_out}_fused"]
             basis_fused[
-                :, :, acc_f : acc_f + b.shape[2], acc_d : acc_d + degree_to_dim(d_out)
+                :, :, acc_f: acc_f + b.shape[2], acc_d: acc_d + degree_to_dim(d_out)
             ] = b[:, :, :, : degree_to_dim(d_out)]
             acc_f += b.shape[2]
             acc_d += degree_to_dim(d_out)
 
         basis["fully_fused"] = basis_fused
 
-    del basis["0,0"]  # We know that the basis for l = k = 0 is filled with a constant
+    # We know that the basis for l = k = 0 is filled with a constant
+    del basis["0,0"]
     return basis
 
 
@@ -203,9 +211,11 @@ def get_basis(
     amp: bool = False,
 ) -> Dict[str, Tensor]:
     with nvtx_range("spherical harmonics"):
-        spherical_harmonics = get_spherical_harmonics(relative_pos, max_degree)
+        spherical_harmonics = get_spherical_harmonics(
+            relative_pos, max_degree)
     with nvtx_range("CB coefficients"):
-        clebsch_gordon = get_all_clebsch_gordon(max_degree, relative_pos.device)
+        clebsch_gordon = get_all_clebsch_gordon(
+            max_degree, relative_pos.device)
 
     with torch.autograd.set_grad_enabled(compute_gradients):
         with nvtx_range("bases"):

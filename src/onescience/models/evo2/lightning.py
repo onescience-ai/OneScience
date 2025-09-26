@@ -119,9 +119,11 @@ def some_first(seq: Iterable[Optional[T]]) -> T:
 def get_dtype_device(torch_object) -> Tuple[torch.dtype, torch.device]:  # noqa: D103
     match torch_object:
         case []:
-            raise ValueError("Looking up dtype on an empty list")
+            raise ValueError(
+                "Looking up dtype on an empty list")
         case {**data} if not data:
-            raise ValueError("Looking up dtype on an empty dict")
+            raise ValueError(
+                "Looking up dtype on an empty dict")
         case Tensor(dtype=dtype, device=device):
             return dtype, device
         case torch.nn.Module() as m:
@@ -147,8 +149,10 @@ def batch_collator(
     batches: Optional[Union[Tuple[ReductionT], List[ReductionT]]],
     batch_dim: int = 0,
     seq_dim: int = 1,
-    batch_dim_key_defaults: dict[str, int] = {"token_logits": 1},
-    seq_dim_key_defaults: dict[str, int] = {"token_logits": 0},
+    batch_dim_key_defaults: dict[str, int] = {
+        "token_logits": 1},
+    seq_dim_key_defaults: dict[str, int] = {
+        "token_logits": 0},
     preferred_gpu: int = 0,
 ) -> Optional[ReductionT]:
     """Takes a sequence of batches and collates them into a single batch.
@@ -193,7 +197,8 @@ def batch_collator(
         case [Tensor(), *_]:
             # If any tensor is on a GPU, move all to preferred GPU
             if any(t.is_cuda for t in batches):
-                device = torch.device(f"cuda:{preferred_gpu}")
+                device = torch.device(
+                    f"cuda:{preferred_gpu}")
                 batches = [t.to(device) for t in batches]
             # First shortcut if all tensors are 1D (they have at least one batch dim, and it must be at 0)
             if (
@@ -203,7 +208,8 @@ def batch_collator(
             ):
                 return torch.cat(batches, dim=0)
             # Find max sequence length across all tensors
-            max_seq_len = max(batch.size(seq_dim) for batch in batches)
+            max_seq_len = max(batch.size(seq_dim)
+                              for batch in batches)
             # Pad each tensor to max length along seq_dim
             padded_batches = []
             for batch in batches:
@@ -211,13 +217,17 @@ def batch_collator(
                 # e.g. for 3D tensor: [left_pad_dim2, right_pad_dim2, left_pad_dim1, right_pad_dim1, left_pad_dim0, right_pad_dim0]
                 pad_size = [0] * (2 * batch.ndim)
                 # Calculate padding needed at end of sequence dimension
-                pad_amount = max_seq_len - batch.size(seq_dim)
+                pad_amount = max_seq_len - \
+                    batch.size(seq_dim)
                 # Pad end of sequence dimension by putting padding amount in correct position
                 # For seq_dim=1 in 3D tensor: [0, 0, 0, pad_amount, 0, 0]
-                pad_size[2 * (batch.ndim - 1 - seq_dim) + 1] = pad_amount
-                padded_batch = torch.nn.functional.pad(batch, tuple(pad_size))
+                pad_size[2 * (batch.ndim - 1 -
+                              seq_dim) + 1] = pad_amount
+                padded_batch = torch.nn.functional.pad(
+                    batch, tuple(pad_size))
                 padded_batches.append(padded_batch)
-            padded_batch = torch.cat(padded_batches, dim=batch_dim)
+            padded_batch = torch.cat(
+                padded_batches, dim=batch_dim)
             assert padded_batch.size(seq_dim) == max_seq_len
             return padded_batch
         # Next 3 calls are the recursive calls into the sub-structures of the batch. We handle dictionaries, tuples, and lists
@@ -225,8 +235,10 @@ def batch_collator(
             return {
                 key: batch_collator(
                     [batch[key] for batch in batches],
-                    batch_dim=batch_dim_key_defaults.get(key, batch_dim),
-                    seq_dim=seq_dim_key_defaults.get(key, seq_dim),
+                    batch_dim=batch_dim_key_defaults.get(
+                        key, batch_dim),
+                    seq_dim=seq_dim_key_defaults.get(
+                        key, seq_dim),
                     batch_dim_key_defaults=batch_dim_key_defaults,
                     seq_dim_key_defaults=seq_dim_key_defaults,
                     preferred_gpu=preferred_gpu,
@@ -259,9 +271,11 @@ def batch_collator(
             ]
         # Final cases shouldn't happen, an empty sequence (no batches), or "other".
         case []:
-            raise ValueError("Cannot process an empty sequence")
+            raise ValueError(
+                "Cannot process an empty sequence")
         case _:
-            raise ValueError("Unsupported input structure in batch_collator")
+            raise ValueError(
+                "Unsupported input structure in batch_collator")
 
 
 # TODO(@jstjohn): Properly use the Generic for DataT and ReductionT usage. Define our own batch/output types.
@@ -359,7 +373,8 @@ class BionemoLightningModule(
         """
         super().__init__()
         self.config = config
-        self.module_construct_args: Optional[dict[str, Any]] = model_construct_args
+        self.module_construct_args: Optional[dict[str,
+                                                  Any]] = model_construct_args
         # ***must** be set up in configure_model() -- megatron constraint
         # also, must be called `module`: nemo expects the actual model to be stored this way
         self.module: Optional[MegatronModelType] = None
@@ -367,7 +382,8 @@ class BionemoLightningModule(
             config.get_loss_reduction_class()
         )
         self.optim = optimizer
-        self.optim.connect(self)  # This will bind the `configure_optimizers` method
+        # This will bind the `configure_optimizers` method
+        self.optim.connect(self)
         self._data_step = data_step
         self._forward_step = forward_step
         self.model_transform = model_transform
@@ -462,8 +478,9 @@ class BionemoLightningModule(
         match task:
             case "pretraining":
                 logits = (
-                    outputs["token_logits"].detach().transpose(0, 1)
-                )  #  [s, b, v] -> [b, s, v]
+                    outputs["token_logits"].detach(
+                    ).transpose(0, 1)
+                )  # [s, b, v] -> [b, s, v]
                 metric(logits, batch["labels"])
             case "classification":
                 classification_output = outputs["classification_output"]
@@ -477,16 +494,19 @@ class BionemoLightningModule(
                     ]  # shape [-1, num_classes]
                     assert classification_output.ndim == 2
 
-                    labels = batch["labels"].reshape(-1)[batch["loss_mask"].view(-1)]
+                    labels = batch["labels"].reshape(
+                        -1)[batch["loss_mask"].view(-1)]
                 metric(
-                    classification_output.reshape(-1, num_classes),
+                    classification_output.reshape(
+                        -1, num_classes),
                     labels.reshape(-1),
                 )
             case "regression":
                 regression_output = outputs["regression_output"]
                 metric(regression_output, batch["labels"])
             case _:
-                raise NotImplementedError(f"unrecognized task {task}")
+                raise NotImplementedError(
+                    f"unrecognized task {task}")
 
     def training_step(self, batch, batch_idx: Optional[int] = None) -> Tensor:
         """In mcore the loss-function is part of the forward-pass when labels are provided."""

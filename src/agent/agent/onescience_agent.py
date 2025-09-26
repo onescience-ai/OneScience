@@ -1,17 +1,17 @@
 #!/user/bin/env
+from agent.untils.until import gen_job_log_name, setup_global_logger
+from agent.agent.unit.tool_manager import match_tool_modules
+from agent.agent.unit.agent_state import AgentState
+from agent.agent.react_agent import ReactAgent
+import uuid
+import logging
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-sys.path.append(os.path.join(os.path.dirname(__file__), "unit"))
-
-import logging
-import uuid
-
-from agent.agent.react_agent import ReactAgent
-from agent.agent.unit.agent_state import AgentState
-from agent.agent.unit.tool_manager import match_tool_modules
-from agent.untils.until import gen_job_log_name, setup_global_logger
+sys.path.append(os.path.dirname(
+    os.path.dirname(os.path.dirname(__file__))))
+sys.path.append(os.path.join(
+    os.path.dirname(__file__), "unit"))
 
 
 class OnescienceAgent:
@@ -47,7 +47,8 @@ class OnescienceAgent:
         tool_modules = match_tool_modules(
             input, self.agent_config["chat_model"]["default"]
         )
-        self.logger.info(f"match tool modules: {tool_modules}")
+        self.logger.info(
+            f"match tool modules: {tool_modules}")
         if tool_modules and len(tool_modules):
             self.agent_config["tool_modules"] = tool_modules
         react = ReactAgent(
@@ -60,7 +61,8 @@ class OnescienceAgent:
 
 
 if __name__ == "__main__":
-    agent = OnescienceAgent("molsculptor", "http://a02r2n09:8000/v1")
+    agent = OnescienceAgent(
+        "molsculptor", "http://a02r2n09:8000/v1")
     agent.run(
         "请使用2个搜索步数帮我设计一个蛋白小分子结构，其中各参数初始化的配置文件路径为'../application/molsculptor/config.ini"
     )

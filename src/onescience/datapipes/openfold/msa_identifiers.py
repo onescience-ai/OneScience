@@ -51,7 +51,8 @@ def _parse_sequence_identifier(msa_sequence_identifier: str) -> Identifiers:
       An `Identifiers` instance with a uniprot_accession_id and species_id. These
       can be empty in the case where no identifier was found.
     """
-    matches = re.search(_UNIPROT_PATTERN, msa_sequence_identifier.strip())
+    matches = re.search(
+        _UNIPROT_PATTERN, msa_sequence_identifier.strip())
     if matches:
         return Identifiers(species_id=matches.group("SpeciesIdentifier"))
     return Identifiers()

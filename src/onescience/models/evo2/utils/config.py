@@ -52,7 +52,8 @@ class Evo2PreprocessingConfig(BaseModel):
     embed_reverse_complement: bool = False
     random_reverse_complement: float = 0.0
     random_lineage_dropout: float = 0.0
-    transcribe: None | Literal["transcribe", "back_transcribe"] = None
+    transcribe: None | Literal["transcribe",
+                               "back_transcribe"] = None
     force_uppercase: bool = False
     indexed_dataset_dtype: str = "uint8"
     # Tokenization Transforms

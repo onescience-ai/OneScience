@@ -68,20 +68,22 @@ def main(args):
         for line in open(x, "rb"):
             line = line.decode("utf-8", "ignore").rstrip()
 
-            if line[:6] == "HETATM" and line[17 : 17 + 3] == "MSE":
+            if line[:6] == "HETATM" and line[17: 17 + 3] == "MSE":
                 line = line.replace("HETATM", "ATOM  ")
                 line = line.replace("MSE", "MET")
 
             if line[:4] == "ATOM":
                 ch = line[21:22]
                 if ch == chain or chain is None:
-                    atom = line[12 : 12 + 4].strip()
-                    resi = line[17 : 17 + 3]
-                    resn = line[22 : 22 + 5].strip()
-                    x, y, z = [float(line[i : (i + 8)]) for i in [30, 38, 46]]
+                    atom = line[12: 12 + 4].strip()
+                    resi = line[17: 17 + 3]
+                    resn = line[22: 22 + 5].strip()
+                    x, y, z = [float(line[i: (i + 8)])
+                               for i in [30, 38, 46]]
 
                     if resn[-1].isalpha():
-                        resa, resn = resn[-1], int(resn[:-1]) - 1
+                        resa, resn = resn[-1], int(
+                            resn[:-1]) - 1
                     else:
                         resa, resn = "", int(resn) - 1
                     #         resn = int(resn)
@@ -99,7 +101,8 @@ def main(args):
                         seq[resn][resa] = resi
 
                     if atom not in xyz[resn][resa]:
-                        xyz[resn][resa][atom] = np.array([x, y, z])
+                        xyz[resn][resa][atom] = np.array(
+                            [x, y, z])
 
         # convert to numpy arrays, fill in missing values
         seq_, xyz_ = [], []
@@ -107,16 +110,19 @@ def main(args):
             for resn in range(min_resn, max_resn + 1):
                 if resn in seq:
                     for k in sorted(seq[resn]):
-                        seq_.append(aa_3_N.get(seq[resn][k], 20))
+                        seq_.append(
+                            aa_3_N.get(seq[resn][k], 20))
                 else:
                     seq_.append(20)
                 if resn in xyz:
                     for k in sorted(xyz[resn]):
                         for atom in atoms:
                             if atom in xyz[resn][k]:
-                                xyz_.append(xyz[resn][k][atom])
+                                xyz_.append(
+                                    xyz[resn][k][atom])
                             else:
-                                xyz_.append(np.full(3, np.nan))
+                                xyz_.append(
+                                    np.full(3, np.nan))
                 else:
                     for atom in atoms:
                         xyz_.append(np.full(3, np.nan))
@@ -184,10 +190,12 @@ def main(args):
         "y",
         "z",
     ]
-    extra_alphabet = [str(item) for item in list(np.arange(300))]
+    extra_alphabet = [str(item)
+                      for item in list(np.arange(300))]
     chain_alphabet = init_alphabet + extra_alphabet
 
-    biounit_names = glob.glob(folder_with_pdbs_path + "*.pdb")
+    biounit_names = glob.glob(
+        folder_with_pdbs_path + "*.pdb")
     for biounit in biounit_names:
         my_dict = {}
         s = 0
@@ -197,22 +205,29 @@ def main(args):
                 sidechain_atoms = ["CA"]
             else:
                 sidechain_atoms = ["N", "CA", "C", "O"]
-            xyz, seq = parse_PDB_biounits(biounit, atoms=sidechain_atoms, chain=letter)
+            xyz, seq = parse_PDB_biounits(
+                biounit, atoms=sidechain_atoms, chain=letter)
             if type(xyz) != str:
                 concat_seq += seq[0]
                 my_dict["seq_chain_" + letter] = seq[0]
                 coords_dict_chain = {}
                 if ca_only:
-                    coords_dict_chain["CA_chain_" + letter] = xyz.tolist()
+                    coords_dict_chain["CA_chain_" +
+                                      letter] = xyz.tolist()
                 else:
-                    coords_dict_chain["N_chain_" + letter] = xyz[:, 0, :].tolist()
-                    coords_dict_chain["CA_chain_" + letter] = xyz[:, 1, :].tolist()
-                    coords_dict_chain["C_chain_" + letter] = xyz[:, 2, :].tolist()
-                    coords_dict_chain["O_chain_" + letter] = xyz[:, 3, :].tolist()
-                my_dict["coords_chain_" + letter] = coords_dict_chain
+                    coords_dict_chain["N_chain_" +
+                                      letter] = xyz[:, 0, :].tolist()
+                    coords_dict_chain["CA_chain_" +
+                                      letter] = xyz[:, 1, :].tolist()
+                    coords_dict_chain["C_chain_" +
+                                      letter] = xyz[:, 2, :].tolist()
+                    coords_dict_chain["O_chain_" +
+                                      letter] = xyz[:, 3, :].tolist()
+                my_dict["coords_chain_" +
+                        letter] = coords_dict_chain
                 s += 1
         fi = biounit.rfind("/")
-        my_dict["name"] = biounit[(fi + 1) : -4]
+        my_dict["name"] = biounit[(fi + 1): -4]
         my_dict["num_of_chains"] = s
         my_dict["seq"] = concat_seq
         if s < len(chain_alphabet):

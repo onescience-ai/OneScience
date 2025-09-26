@@ -56,7 +56,8 @@ class ElasticityRunner(CalculateRunner):
         """
         all_results = []
 
-        chunk_indices = np.array_split(range(len(self.input_data)), num_jobs)[job_num]
+        chunk_indices = np.array_split(
+            range(len(self.input_data)), num_jobs)[job_num]
         for i in tqdm(chunk_indices, desc="Running elasticity calculations."):
             atoms = self.input_data.get_atoms(i)
             try:
@@ -69,13 +70,16 @@ class ElasticityRunner(CalculateRunner):
                 results["sid"] = atoms.info.get("sid", i)
                 # change results to GPa
                 results["elastic_tensor"] = (
-                    results["elastic_tensor"].voigt * eVA3_to_GPa
+                    results["elastic_tensor"].voigt *
+                    eVA3_to_GPa
                 )
                 results["shear_modulus_vrh"] = (
-                    results["shear_modulus_vrh"] * eVA3_to_GPa
+                    results["shear_modulus_vrh"] *
+                    eVA3_to_GPa
                 )
                 results["bulk_modulus_vrh"] = results["bulk_modulus_vrh"] * eVA3_to_GPa
-                results.update({"errors": "", "traceback": ""})
+                results.update(
+                    {"errors": "", "traceback": ""})
             except Exception as ex:
                 results = {
                     "sid": atoms.info["sid"],
@@ -107,7 +111,8 @@ class ElasticityRunner(CalculateRunner):
         """
         results_df = pd.DataFrame(results)
         results_df.to_json(
-            os.path.join(results_dir, f"elasticity_{num_jobs}-{job_num}.json.gz")
+            os.path.join(
+                results_dir, f"elasticity_{num_jobs}-{job_num}.json.gz")
         )
 
     def save_state(self, checkpoint_location: str, is_preemption: bool = False) -> bool:

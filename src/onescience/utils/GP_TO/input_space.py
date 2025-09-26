@@ -60,7 +60,8 @@ class InputSpace(object):
         if not isinstance(variable, Variable):
             raise TypeError
         elif variable.name in self._variables:
-            raise ValueError("Variable %s is already in the space" % variable.name)
+            raise ValueError(
+                "Variable %s is already in the space" % variable.name)
 
         self._variables[variable.name] = variable
         self._variable_names.append(variable.name)
@@ -72,7 +73,8 @@ class InputSpace(object):
                 # it is preferable to treat binary variables as
                 # quantitative anyways
                 self.qual_index.append(self.ndim)
-                self.num_levels[self.ndim] = len(variable.levels)
+                self.num_levels[self.ndim] = len(
+                    variable.levels)
             else:
                 self.quant_index.append(self.ndim)
         else:
@@ -128,7 +130,8 @@ class InputSpace(object):
 
         if len(self._variables) > 0:
             s.write("\n")
-            s.write("\n".join([str(var) for var in self.get_variables()]))
+            s.write("\n".join([str(var)
+                    for var in self.get_variables()]))
         return s.getvalue()
 
     def __len__(self):
@@ -144,7 +147,8 @@ class InputSpace(object):
         """
         conf_dict = {}
         for i, var in enumerate(self.get_variables()):
-            conf_dict[var.name] = var._transform_scalar(x[i])
+            conf_dict[var.name] = var._transform_scalar(
+                x[i])
         return conf_dict
 
     def get_array_from_dict(
@@ -161,12 +165,14 @@ class InputSpace(object):
         """
         out = np.zeros(self.ndim)
         for i, var in enumerate(self.get_variables()):
-            out[i] = var._inverse_transform_scalar(values[var.name])
+            out[i] = var._inverse_transform_scalar(
+                values[var.name])
         return out
 
     def random_sample(
         self,
-        rng: Optional[Union[int, np.random.RandomState]] = None,
+        rng: Optional[Union[int,
+                            np.random.RandomState]] = None,
         size: int = 1,
     ) -> np.ndarray:
         """
@@ -192,7 +198,8 @@ class InputSpace(object):
 
     def latinhypercube_sample(
         self,
-        rng: Optional[Union[int, np.random.RandomState]] = None,
+        rng: Optional[Union[int,
+                            np.random.RandomState]] = None,
         size: int = 1,
     ) -> np.ndarray:
         """
@@ -218,7 +225,8 @@ class InputSpace(object):
 
         if len(self.qual_index) > 0:
             for idx in self.qual_index:
-                out[:, idx] = self.get_variable_by_idx(idx).stratified_sample(rng, size)
+                out[:, idx] = self.get_variable_by_idx(
+                    idx).stratified_sample(rng, size)
 
         return out
 
@@ -247,7 +255,8 @@ def _latinhypercube_sample(
     grid_upper = grid_bounds[1:, :]
 
     # generate
-    grid = grid_lower + (grid_upper - grid_lower) * rng.rand(size, ndim)
+    grid = grid_lower + \
+        (grid_upper - grid_lower) * rng.rand(size, ndim)
 
     # shuffle and return
     for i in range(ndim):

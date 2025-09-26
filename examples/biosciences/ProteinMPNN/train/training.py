@@ -30,9 +30,11 @@ def main(args):
 
     scaler = torch.cuda.amp.GradScaler()
 
-    device = torch.device("cuda:0" if (torch.cuda.is_available()) else "cpu")
+    device = torch.device("cuda:0" if (
+        torch.cuda.is_available()) else "cpu")
 
-    base_folder = time.strftime(args.path_for_outputs, time.localtime())
+    base_folder = time.strftime(
+        args.path_for_outputs, time.localtime())
 
     if base_folder[-1] != "/":
         base_folder += "/"
@@ -73,13 +75,16 @@ def main(args):
         args.max_protein_length = 1000
         args.batch_size = 1000
 
-    train, valid, test = build_training_clusters(params, args.debug)
+    train, valid, test = build_training_clusters(
+        params, args.debug)
 
-    train_set = PDB_dataset(list(train.keys()), loader_pdb, train, params)
+    train_set = PDB_dataset(
+        list(train.keys()), loader_pdb, train, params)
     train_loader = torch.utils.data.DataLoader(
         train_set, worker_init_fn=worker_init_fn, **LOAD_PARAM
     )
-    valid_set = PDB_dataset(list(valid.keys()), loader_pdb, valid, params)
+    valid_set = PDB_dataset(
+        list(valid.keys()), loader_pdb, valid, params)
     valid_loader = torch.utils.data.DataLoader(
         valid_set, worker_init_fn=worker_init_fn, **LOAD_PARAM
     )
@@ -98,17 +103,22 @@ def main(args):
 
     if PATH:
         checkpoint = torch.load(PATH)
-        total_step = checkpoint["step"]  # write total_step from the checkpoint
-        epoch = checkpoint["epoch"]  # write epoch from the checkpoint
-        model.load_state_dict(checkpoint["model_state_dict"])
+        # write total_step from the checkpoint
+        total_step = checkpoint["step"]
+        # write epoch from the checkpoint
+        epoch = checkpoint["epoch"]
+        model.load_state_dict(
+            checkpoint["model_state_dict"])
     else:
         total_step = 0
         epoch = 0
 
-    optimizer = get_std_opt(model.parameters(), args.hidden_dim, total_step)
+    optimizer = get_std_opt(
+        model.parameters(), args.hidden_dim, total_step)
 
     if PATH:
-        optimizer.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        optimizer.optimizer.load_state_dict(
+            checkpoint["optimizer_state_dict"])
 
     with ProcessPoolExecutor(max_workers=12) as executor:
         q = queue.Queue(maxsize=3)
@@ -142,8 +152,10 @@ def main(args):
             pdb_dict_valid, truncate=None, max_length=args.max_protein_length
         )
 
-        loader_train = StructureLoader(dataset_train, batch_size=args.batch_size)
-        loader_valid = StructureLoader(dataset_valid, batch_size=args.batch_size)
+        loader_train = StructureLoader(
+            dataset_train, batch_size=args.batch_size)
+        loader_valid = StructureLoader(
+            dataset_valid, batch_size=args.batch_size)
 
         reload_c = 0
         for e in range(args.num_epochs):
@@ -212,9 +224,11 @@ def main(args):
                         log_probs = model(
                             X, S, mask, chain_M, residue_idx, chain_encoding_all
                         )
-                        _, loss_av_smoothed = loss_smoothed(S, log_probs, mask_for_loss)
+                        _, loss_av_smoothed = loss_smoothed(
+                            S, log_probs, mask_for_loss)
 
-                    scaler.scale(loss_av_smoothed).backward()
+                    scaler.scale(
+                        loss_av_smoothed).backward()
 
                     if args.gradient_norm > 0.0:
                         torch.nn.utils.clip_grad_norm_(
@@ -227,7 +241,8 @@ def main(args):
                     log_probs = model(
                         X, S, mask, chain_M, residue_idx, chain_encoding_all
                     )
-                    _, loss_av_smoothed = loss_smoothed(S, log_probs, mask_for_loss)
+                    _, loss_av_smoothed = loss_smoothed(
+                        S, log_probs, mask_for_loss)
                     loss_av_smoothed.backward()
 
                     if args.gradient_norm > 0.0:
@@ -237,11 +252,15 @@ def main(args):
 
                     optimizer.step()
 
-                loss, loss_av, true_false = loss_nll(S, log_probs, mask_for_loss)
+                loss, loss_av, true_false = loss_nll(
+                    S, log_probs, mask_for_loss)
 
-                train_sum += torch.sum(loss * mask_for_loss).cpu().data.numpy()
-                train_acc += torch.sum(true_false * mask_for_loss).cpu().data.numpy()
-                train_weights += torch.sum(mask_for_loss).cpu().data.numpy()
+                train_sum += torch.sum(loss *
+                                       mask_for_loss).cpu().data.numpy()
+                train_acc += torch.sum(true_false *
+                                       mask_for_loss).cpu().data.numpy()
+                train_weights += torch.sum(
+                    mask_for_loss).cpu().data.numpy()
 
                 total_step += 1
 
@@ -264,13 +283,17 @@ def main(args):
                         X, S, mask, chain_M, residue_idx, chain_encoding_all
                     )
                     mask_for_loss = mask * chain_M
-                    loss, loss_av, true_false = loss_nll(S, log_probs, mask_for_loss)
+                    loss, loss_av, true_false = loss_nll(
+                        S, log_probs, mask_for_loss)
 
-                    validation_sum += torch.sum(loss * mask_for_loss).cpu().data.numpy()
+                    validation_sum += torch.sum(
+                        loss * mask_for_loss).cpu().data.numpy()
                     validation_acc += (
-                        torch.sum(true_false * mask_for_loss).cpu().data.numpy()
+                        torch.sum(
+                            true_false * mask_for_loss).cpu().data.numpy()
                     )
-                    validation_weights += torch.sum(mask_for_loss).cpu().data.numpy()
+                    validation_weights += torch.sum(
+                        mask_for_loss).cpu().data.numpy()
 
             train_loss = train_sum / train_weights
             train_accuracy = train_acc / train_weights
@@ -305,7 +328,9 @@ def main(args):
             )
 
             checkpoint_filename_last = (
-                base_folder + "model_weights/epoch_last.pt".format(e + 1, total_step)
+                base_folder +
+                "model_weights/epoch_last.pt".format(
+                    e + 1, total_step)
             )
             torch.save(
                 {

@@ -16,18 +16,22 @@ def pov_from_atoms(mp_args) -> None:
     extra_cells = 2
     # try and guess which atoms are adsorbates since the tags aren't correct after running in vasp
     # ideally this would be fixed by getting the right adsorbate atoms from the initial configurations
-    atoms_organic = np.array([atom.symbol in {"C", "H", "O", "N"} for atom in atoms])
+    atoms_organic = np.array(
+        [atom.symbol in {"C", "H", "O", "N"} for atom in atoms])
     # get the bare surface (note: this will not behave correctly for nitrides/hydrides/carbides/etc)
     atoms_surface = atoms[~atoms_organic].copy()
     # replicate the bare surface
-    atoms_surface = atoms_surface.repeat((extra_cells * 2 + 1, extra_cells * 2 + 1, 1))
+    atoms_surface = atoms_surface.repeat(
+        (extra_cells * 2 + 1, extra_cells * 2 + 1, 1))
     # make an image of the adsorbate in the center of the slab
     atoms_adsorbate = atoms[atoms_organic]
-    atoms_adsorbate.positions += extra_cells * (atoms.cell[0, :] + atoms.cell[1, :])
+    atoms_adsorbate.positions += extra_cells * \
+        (atoms.cell[0, :] + atoms.cell[1, :])
     # add the adsorbate to the replicated surface, then center the positions on the adsorbate
     num_surface_atoms = len(atoms_surface)
     atoms_surface += atoms_adsorbate
-    atoms_surface.positions -= atoms_adsorbate.positions.mean(axis=0)
+    atoms_surface.positions -= atoms_adsorbate.positions.mean(
+        axis=0)
     # only include bonds for the adsorbate atoms
     bondpairs = get_bondpairs(atoms_surface)
     bondpairs = [
@@ -36,7 +40,8 @@ def pov_from_atoms(mp_args) -> None:
         if bond[0] >= num_surface_atoms and bond[1] >= num_surface_atoms
     ]
     # write the image with povray
-    bbox = (-6.4, -4, 6.4, 4)  # clip to a small region around the adsorbate
+    # clip to a small region around the adsorbate
+    bbox = (-6.4, -4, 6.4, 4)
     os.chdir(f"{out_path}")
     renderer = ase.io.write(
         "snapshot_%04i.pov" % idx,
@@ -70,7 +75,8 @@ def parallelize_generation(traj_path, out_path: str, n_procs) -> None:
     atoms_list = ase.io.read(traj_path, ":")
 
     # parallelizing image generation
-    mp_args_list = [(atoms, idx, out_path) for idx, atoms in enumerate(atoms_list)]
+    mp_args_list = [(atoms, idx, out_path)
+                    for idx, atoms in enumerate(atoms_list)]
     pool = mp.Pool(processes=n_procs)
     pool.map(pov_from_atoms, mp_args_list)
 
@@ -82,7 +88,8 @@ def parallelize_generation(traj_path, out_path: str, n_procs) -> None:
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--traj-path", required=True, help="Path to traj file")
+    parser.add_argument(
+        "--traj-path", required=True, help="Path to traj file")
     parser.add_argument(
         "--out-path",
         required=True,
@@ -101,4 +108,5 @@ if __name__ == "__main__":
     parser: argparse.ArgumentParser = get_parser()
     args: argparse.Namespace = parser.parse_args()
 
-    parallelize_generation(args.traj_path, args.out_path, args.num_workers)
+    parallelize_generation(
+        args.traj_path, args.out_path, args.num_workers)

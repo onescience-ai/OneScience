@@ -9,12 +9,12 @@
 @Usage   : Callback in mol_pipline.py
 """
 
+from unit_sup import constraint_function, reward_function, update_unique
+import numpy as np
+import jax.tree_util as jtu
 import os
 
 os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".90"
-import jax.tree_util as jtu
-import numpy as np
-from unit_sup import constraint_function, reward_function, update_unique
 
 
 def reward_f(decode_molecules, cached, config):
@@ -36,7 +36,8 @@ def reward_f(decode_molecules, cached, config):
 
     re_dict = dict()
 
-    scores, cached = reward_function(decode_molecules, cached)  # (dbs * r, m)
+    scores, cached = reward_function(
+        decode_molecules, cached)  # (dbs * r, m)
     # breakpoint() ## check here
     constraints = constraint_function(
         decode_molecules,
@@ -48,7 +49,7 @@ def reward_f(decode_molecules, cached, config):
         cached,
     )
 
-    ### concat father populations
+    # concat father populations
     scores = np.concatenate(
         [cached["scores"][-1], scores], axis=0
     )  # (dbs * r + dbs, m)

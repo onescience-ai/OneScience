@@ -35,7 +35,8 @@ def train(device, model, train_loader, optimizer, scheduler, reg=1):
         loss_press = criterion_func(
             out[cfd_data.surf, -1], targets[cfd_data.surf, -1]
         ).mean(dim=0)
-        loss_velo_var = criterion_func(out[:, :-1], targets[:, :-1]).mean(dim=0)
+        loss_velo_var = criterion_func(
+            out[:, :-1], targets[:, :-1]).mean(dim=0)
         loss_velo = loss_velo_var.mean()
         total_loss = loss_velo + reg * loss_press
 
@@ -63,7 +64,8 @@ def test(device, model, test_loader):
         loss_press = criterion_func(
             out[cfd_data.surf, -1], targets[cfd_data.surf, -1]
         ).mean(dim=0)
-        loss_velo_var = criterion_func(out[:, :-1], targets[:, :-1]).mean(dim=0)
+        loss_velo_var = criterion_func(
+            out[:, :-1], targets[:, :-1]).mean(dim=0)
         loss_velo = loss_velo_var.mean()
 
         losses_press.append(loss_press.item())
@@ -91,18 +93,21 @@ def main(
             output_device=dist.device,
         )
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=hparams["lr"])
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=hparams["lr"])
     lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
         max_lr=hparams["lr"],
-        total_steps=(len(train_dataset) // hparams["batch_size"] + 1)
+        total_steps=(len(train_dataset) //
+                     hparams["batch_size"] + 1)
         * hparams["nb_epochs"],
         final_div_factor=1000.0,
     )
     start = time.time()
 
     if dist.world_size > 1:
-        train_sampler = DistributedSampler(train_dataset, shuffle=True)
+        train_sampler = DistributedSampler(
+            train_dataset, shuffle=True)
         shuffle_flag = False
         num_workers = 1
     else:
@@ -131,8 +136,10 @@ def main(
         log_msg += f" - Train Loss: {train_loss:.4f}"
 
         if val_iter and (epoch == hparams["nb_epochs"] - 1 or epoch % val_iter == 0):
-            val_loader = DataLoader(val_dataset, batch_size=1)
-            loss_press_val, loss_velo_val = test(device, model, val_loader)
+            val_loader = DataLoader(
+                val_dataset, batch_size=1)
+            loss_press_val, loss_velo_val = test(
+                device, model, val_loader)
             val_loss = loss_velo_val + reg * loss_press_val
             del val_loader
             log_msg += f" - Val Loss: {val_loss:.4f}"
@@ -142,13 +149,17 @@ def main(
 
     end = time.time()
     time_elapsed = end - start
-    params_model = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    params_model = sum(
+        p.numel() for p in model.parameters() if p.requires_grad)
     if dist.rank == 0:
-        logging.info(f"Number of parameters: {params_model}")
-        logging.info(f"Time elapsed: {time_elapsed:.2f} seconds")
+        logging.info(
+            f"Number of parameters: {params_model}")
+        logging.info(
+            f"Time elapsed: {time_elapsed:.2f} seconds")
 
         to_save = model.module if dist.world_size > 1 else model
-        torch.save(to_save, os.path.join(path, f'model_{hparams["nb_epochs"]}.pth'))
+        torch.save(to_save, os.path.join(
+            path, f'model_{hparams["nb_epochs"]}.pth'))
 
     if val_iter and dist.rank == 0:
         log_data = {
@@ -160,5 +171,6 @@ def main(
             "coef_norm": coef_norm,
         }
         with open(os.path.join(path, f'log_{hparams["nb_epochs"]}.json'), "w") as f:
-            json.dump(log_data, f, indent=4, cls=NumpyEncoder)
+            json.dump(log_data, f, indent=4,
+                      cls=NumpyEncoder)
     return model

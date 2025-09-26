@@ -26,7 +26,8 @@ def compute_rmse(delta: np.ndarray) -> float:
 
 
 def compute_rel_rmse(delta: np.ndarray, target_val: np.ndarray) -> float:
-    target_norm = np.sqrt(np.mean(np.square(target_val))).item()
+    target_norm = np.sqrt(
+        np.mean(np.square(target_val))).item()
     return np.sqrt(np.mean(np.square(delta))).item() / (target_norm + 1e-9) * 100
 
 
@@ -50,7 +51,8 @@ def setup_logger(
 ):
     # Create a logger
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)  # Set to DEBUG to capture all levels
+    # Set to DEBUG to capture all levels
+    logger.setLevel(logging.DEBUG)
 
     # Create formatters
     formatter = logging.Formatter(
@@ -71,18 +73,21 @@ def setup_logger(
         os.makedirs(name=directory, exist_ok=True)
 
         # Create file handler for non-debug logs
-        main_log_path = os.path.join(directory, f"{tag}.log")
+        main_log_path = os.path.join(
+            directory, f"{tag}.log")
         fh_main = logging.FileHandler(main_log_path)
         fh_main.setLevel(level)
         fh_main.setFormatter(formatter)
         logger.addHandler(fh_main)
 
         # Create file handler for debug logs
-        debug_log_path = os.path.join(directory, f"{tag}_debug.log")
+        debug_log_path = os.path.join(
+            directory, f"{tag}_debug.log")
         fh_debug = logging.FileHandler(debug_log_path)
         fh_debug.setLevel(logging.DEBUG)
         fh_debug.setFormatter(formatter)
-        fh_debug.addFilter(lambda record: record.levelno >= logging.DEBUG)
+        fh_debug.addFilter(
+            lambda record: record.levelno >= logging.DEBUG)
         logger.addHandler(fh_debug)
 
 
@@ -134,7 +139,8 @@ class MetricsLogger:
     def __init__(self, directory: str, tag: str) -> None:
         self.directory = directory
         self.filename = tag + ".txt"
-        self.path = os.path.join(self.directory, self.filename)
+        self.path = os.path.join(
+            self.directory, self.filename)
 
     def log(self, d: Dict[str, Any]) -> None:
         os.makedirs(name=self.directory, exist_ok=True)

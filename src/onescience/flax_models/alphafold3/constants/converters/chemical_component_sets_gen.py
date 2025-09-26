@@ -10,7 +10,8 @@ import tqdm
 
 from onescience.flax_models.alphafold3.common import resources
 
-_CCD_PICKLE_FILE = resources.filename("constants/converters/ccd.pickle")
+_CCD_PICKLE_FILE = resources.filename(
+    "constants/converters/ccd.pickle")
 
 
 def find_ions_and_glycans_in_ccd(
@@ -53,7 +54,8 @@ def main(argv: Sequence[str]) -> None:
 
     print(f"Loading {_CCD_PICKLE_FILE}", flush=True)
     with open(_CCD_PICKLE_FILE, "rb") as f:
-        ccd: Mapping[str, Mapping[str, Sequence[str]]] = pickle.load(f)
+        ccd: Mapping[str, Mapping[str,
+                                  Sequence[str]]] = pickle.load(f)
     output_path = pathlib.Path(argv[1])
     output_path.parent.mkdir(exist_ok=True)
     print("Finding ions and glycans", flush=True)

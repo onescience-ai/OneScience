@@ -59,8 +59,10 @@ class Transformer3DBlock(nn.Module):
         norm_layer=nn.LayerNorm,
     ):
         super().__init__()
-        window_size = (2, 6, 12) if window_size is None else window_size
-        shift_size = (1, 3, 6) if shift_size is None else shift_size
+        window_size = (
+            2, 6, 12) if window_size is None else window_size
+        shift_size = (
+            1, 3, 6) if shift_size is None else shift_size
         self.dim = dim
         self.input_resolution = input_resolution
         self.num_heads = num_heads
@@ -88,7 +90,8 @@ class Transformer3DBlock(nn.Module):
             proj_drop=drop,
         )
 
-        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(
+            drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(
@@ -102,7 +105,8 @@ class Transformer3DBlock(nn.Module):
         self.roll = shift_pl and shift_lon and shift_lat
 
         if self.roll:
-            attn_mask = get_shift_window_mask(pad_resolution, window_size, shift_size)
+            attn_mask = get_shift_window_mask(
+                pad_resolution, window_size, shift_size)
         else:
             attn_mask = None
 
@@ -117,7 +121,8 @@ class Transformer3DBlock(nn.Module):
         x = x.view(B, Pl, Lat, Lon, C)
 
         # start pad
-        x = self.pad(x.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1)
+        x = self.pad(x.permute(0, 4, 1, 2, 3)
+                     ).permute(0, 2, 3, 4, 1)
 
         _, Pl_pad, Lat_pad, Lon_pad, _ = x.shape
 
@@ -126,16 +131,19 @@ class Transformer3DBlock(nn.Module):
             shifted_x = torch.roll(
                 x, shifts=(-shift_pl, -shift_lat, -shift_lat), dims=(1, 2, 3)
             )
-            x_windows = window_partition(shifted_x, self.window_size)
+            x_windows = window_partition(
+                shifted_x, self.window_size)
             # B*num_lon, num_pl*num_lat, win_pl, win_lat, win_lon, C
         else:
             shifted_x = x
-            x_windows = window_partition(shifted_x, self.window_size)
+            x_windows = window_partition(
+                shifted_x, self.window_size)
             # B*num_lon, num_pl*num_lat, win_pl, win_lat, win_lon, C
 
         win_pl, win_lat, win_lon = self.window_size
         x_windows = x_windows.view(
-            x_windows.shape[0], x_windows.shape[1], win_pl * win_lat * win_lon, C
+            x_windows.shape[0], x_windows.shape[1], win_pl *
+            win_lat * win_lon, C
         )
         # B*num_lon, num_pl*num_lat, win_pl*win_lat*win_lon, C
 
@@ -153,7 +161,8 @@ class Transformer3DBlock(nn.Module):
             )
             # B * Pl * Lat * Lon * C
             x = torch.roll(
-                shifted_x, shifts=(shift_pl, shift_lat, shift_lon), dims=(1, 2, 3)
+                shifted_x, shifts=(
+                    shift_pl, shift_lat, shift_lon), dims=(1, 2, 3)
             )
         else:
             shifted_x = window_reverse(
@@ -211,8 +220,10 @@ class Transformer2DBlock(nn.Module):
         norm_layer=nn.LayerNorm,
     ):
         super().__init__()
-        window_size = (6, 12) if window_size is None else window_size
-        shift_size = (3, 6) if shift_size is None else shift_size
+        window_size = (
+            6, 12) if window_size is None else window_size
+        shift_size = (
+            3, 6) if shift_size is None else shift_size
         self.dim = dim
         self.input_resolution = input_resolution
         self.num_heads = num_heads
@@ -239,7 +250,8 @@ class Transformer2DBlock(nn.Module):
             proj_drop=drop,
         )
 
-        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(
+            drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(
@@ -270,17 +282,21 @@ class Transformer2DBlock(nn.Module):
         x = x.view(B, Lat, Lon, C)
 
         # start pad
-        x = self.pad(x.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
+        x = self.pad(x.permute(0, 3, 1, 2)
+                     ).permute(0, 2, 3, 1)
         _, Lat_pad, Lon_pad, _ = x.shape
 
         shift_lat, shift_lon = self.shift_size
         if self.roll:
-            shifted_x = torch.roll(x, shifts=(-shift_lat, -shift_lat), dims=(1, 2))
-            x_windows = window_partition(shifted_x, self.window_size, ndim=2)
+            shifted_x = torch.roll(
+                x, shifts=(-shift_lat, -shift_lat), dims=(1, 2))
+            x_windows = window_partition(
+                shifted_x, self.window_size, ndim=2)
             # B*num_lon, num_lat, win_lat, win_lon, C
         else:
             shifted_x = x
-            x_windows = window_partition(shifted_x, self.window_size, ndim=2)
+            x_windows = window_partition(
+                shifted_x, self.window_size, ndim=2)
             # B*num_lon, num_lat, win_lat, win_lon, C
 
         win_lat, win_lon = self.window_size
@@ -302,7 +318,8 @@ class Transformer2DBlock(nn.Module):
                 attn_windows, self.window_size, Lat=Lat_pad, Lon=Lon_pad, ndim=2
             )
             # B * Lat * Lon * C
-            x = torch.roll(shifted_x, shifts=(shift_lat, shift_lon), dims=(1, 2))
+            x = torch.roll(shifted_x, shifts=(
+                shift_lat, shift_lon), dims=(1, 2))
         else:
             shifted_x = window_reverse(
                 attn_windows, self.window_size, Lat=Lat_pad, Lon=Lon_pad, ndim=2
@@ -310,7 +327,8 @@ class Transformer2DBlock(nn.Module):
             x = shifted_x
 
         # crop, end pad
-        x = crop2d(x.permute(0, 3, 1, 2), self.input_resolution).permute(0, 2, 3, 1)
+        x = crop2d(x.permute(0, 3, 1, 2),
+                   self.input_resolution).permute(0, 2, 3, 1)
 
         x = x.reshape(B, Lat * Lon, C)
         x = shortcut + self.drop_path(x)
@@ -366,14 +384,16 @@ class FuserLayer(nn.Module):
                     input_resolution=input_resolution,
                     num_heads=num_heads,
                     window_size=window_size,
-                    shift_size=(0, 0, 0) if i % 2 == 0 else None,
+                    shift_size=(
+                        0, 0, 0) if i % 2 == 0 else None,
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
                     qk_scale=qk_scale,
                     drop=drop,
                     attn_drop=attn_drop,
                     drop_path=(
-                        drop_path[i] if isinstance(drop_path, Sequence) else drop_path
+                        drop_path[i] if isinstance(
+                            drop_path, Sequence) else drop_path
                     ),
                     norm_layer=norm_layer,
                 )
@@ -460,14 +480,16 @@ class EncoderLayer(nn.Module):
                     input_resolution=input_resolution,
                     num_heads=num_heads,
                     window_size=window_size,
-                    shift_size=(0, 0) if i % 2 == 0 else None,
+                    shift_size=(
+                        0, 0) if i % 2 == 0 else None,
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
                     qk_scale=qk_scale,
                     drop=drop,
                     attn_drop=attn_drop,
                     drop_path=(
-                        drop_path[i] if isinstance(drop_path, Sequence) else drop_path
+                        drop_path[i] if isinstance(
+                            drop_path, Sequence) else drop_path
                     ),
                     norm_layer=norm_layer,
                 )
@@ -488,7 +510,8 @@ class EncoderLayer(nn.Module):
                     input_resolution=middle_resolution,
                     num_heads=num_heads_middle,
                     window_size=window_size,
-                    shift_size=(0, 0) if i % 2 == 0 else None,
+                    shift_size=(
+                        0, 0) if i % 2 == 0 else None,
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
                     qk_scale=qk_scale,
@@ -585,7 +608,8 @@ class DecoderLayer(nn.Module):
                     input_resolution=middle_resolution,
                     num_heads=num_heads_middle,
                     window_size=window_size,
-                    shift_size=(0, 0) if i % 2 == 0 else None,
+                    shift_size=(
+                        0, 0) if i % 2 == 0 else None,
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
                     qk_scale=qk_scale,
@@ -616,14 +640,16 @@ class DecoderLayer(nn.Module):
                     input_resolution=output_resolution,
                     num_heads=num_heads,
                     window_size=window_size,
-                    shift_size=(0, 0) if i % 2 == 0 else None,
+                    shift_size=(
+                        0, 0) if i % 2 == 0 else None,
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
                     qk_scale=qk_scale,
                     drop=drop,
                     attn_drop=attn_drop,
                     drop_path=(
-                        drop_path[i] if isinstance(drop_path, Sequence) else drop_path
+                        drop_path[i] if isinstance(
+                            drop_path, Sequence) else drop_path
                     ),
                     norm_layer=norm_layer,
                 )
@@ -631,7 +657,8 @@ class DecoderLayer(nn.Module):
             ]
         )
 
-        self.patchrecovery2d = PatchRecovery2D(img_size, patch_size, 2 * dim, out_chans)
+        self.patchrecovery2d = PatchRecovery2D(
+            img_size, patch_size, 2 * dim, out_chans)
 
     def forward(self, x, skip):
         B, Lat, Lon, C = skip.shape
@@ -640,8 +667,10 @@ class DecoderLayer(nn.Module):
         x = self.upsample(x)
         for blk in self.blocks:
             x = blk(x)
-        output = torch.concat([x, skip.reshape(B, -1, C)], dim=-1)
-        output = output.transpose(1, 2).reshape(B, -1, Lat, Lon)
+        output = torch.concat(
+            [x, skip.reshape(B, -1, C)], dim=-1)
+        output = output.transpose(
+            1, 2).reshape(B, -1, Lat, Lon)
         output = self.patchrecovery2d(output)
         return output
 
@@ -659,13 +688,16 @@ class SwinTransformer(nn.Module):
     def __init__(self, embed_dim, input_resolution, num_heads, window_size, depth):
         super().__init__()
         window_size = to_2tuple(window_size)
-        padding = get_pad2d(input_resolution, to_2tuple(window_size))
+        padding = get_pad2d(
+            input_resolution, to_2tuple(window_size))
         padding_left, padding_right, padding_top, padding_bottom = padding
         self.padding = padding
         self.pad = nn.ZeroPad2d(padding)
         input_resolution = list(input_resolution)
-        input_resolution[0] = input_resolution[0] + padding_top + padding_bottom
-        input_resolution[1] = input_resolution[1] + padding_left + padding_right
+        input_resolution[0] = input_resolution[0] + \
+            padding_top + padding_bottom
+        input_resolution[1] = input_resolution[1] + \
+            padding_left + padding_right
         self.layer = SwinTransformerStage(
             dim=embed_dim,
             out_dim=embed_dim,
@@ -692,8 +724,8 @@ class SwinTransformer(nn.Module):
         x = x[
             :,
             :,
-            padding_top : pad_lat - padding_bottom,
-            padding_left : pad_lon - padding_right,
+            padding_top: pad_lat - padding_bottom,
+            padding_left: pad_lon - padding_right,
         ]
 
         return x

@@ -41,9 +41,11 @@ def build_cpp_extension():
         )
 
         # Install to alphafold3 directory
-        print(f"Installing C++ extension to {alphafold3_dir}")
+        print(
+            f"Installing C++ extension to {alphafold3_dir}")
         subprocess.run(
-            ["cmake", "--install", ".", "--prefix", str(alphafold3_dir)],
+            ["cmake", "--install", ".",
+                "--prefix", str(alphafold3_dir)],
             cwd=build_dir,
             check=True,
         )
@@ -60,16 +62,19 @@ def build_cpp_extension():
         for cleanup_dir in cleanup_dirs:
             if cleanup_dir.exists():
                 print(f"  Removing {cleanup_dir}")
-                shutil.rmtree(cleanup_dir, ignore_errors=True)
+                shutil.rmtree(
+                    cleanup_dir, ignore_errors=True)
 
         print("✅ AlphaFold3 C++ extension built successfully!")
         return True
 
     except subprocess.CalledProcessError as e:
-        print(f"❌ Error building AlphaFold3 C++ extension: {e}")
+        print(
+            f"❌ Error building AlphaFold3 C++ extension: {e}")
         return False
     except FileNotFoundError as e:
-        print(f"❌ CMake not found. Please install CMake first: {e}")
+        print(
+            f"❌ CMake not found. Please install CMake first: {e}")
         return False
     finally:
         # Always try to clean up build directory, even if build failed
@@ -100,10 +105,12 @@ def build_alphafold3_data():
         print(
             "This usually means libcifpp is not properly installed or components.cif file is missing."
         )
-        print("Please install libcifpp first: https://github.com/PDB-REDO/libcifpp")
+        print(
+            "Please install libcifpp first: https://github.com/PDB-REDO/libcifpp")
         return False
     except Exception as e:
-        print(f"❌ Unexpected error building data files: {e}")
+        print(
+            f"❌ Unexpected error building data files: {e}")
         return False
 
 
@@ -120,7 +127,8 @@ def build_all():
     # Step 2: Build data files
     data_success = build_alphafold3_data()
     if not data_success:
-        print("❌ Failed to build data files. C++ extension was built successfully.")
+        print(
+            "❌ Failed to build data files. C++ extension was built successfully.")
         return False
 
     print("🎉 All AlphaFold3 components built successfully!")

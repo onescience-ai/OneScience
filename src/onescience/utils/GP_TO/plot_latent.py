@@ -11,7 +11,8 @@ def plot_ls(model, constraints_flag=True):
     #
     # plot latent values
 
-    zeta = torch.tensor(model.zeta, dtype=torch.float64).to(**tkwargs)
+    zeta = torch.tensor(
+        model.zeta, dtype=torch.float64).to(**tkwargs)
     # A = model.nn_model.weight.detach()
     perm = model.perm
     levels = model.num_levels_per_var
@@ -42,7 +43,8 @@ def plot_ls(model, constraints_flag=True):
                 color=colors[i % 10],
                 s=(i + 1) * 50 / levels[j],
             )
-            axs[j].set_title("Variable " + str(j), fontsize=15)
+            axs[j].set_title(
+                "Variable " + str(j), fontsize=15)
             axs[j].set_xlabel(r"$z_1$", fontsize=15)
             axs[j].set_ylabel(r"$z_2$", fontsize=15)
             axs[j].legend()
@@ -59,7 +61,8 @@ def constrains(z):
 
     rot = torch.atan(-1 * z[1, 1] / z[1, 0])
     R = torch.tensor(
-        [[torch.cos(rot), -1 * torch.sin(rot)], [torch.sin(rot), torch.cos(rot)]]
+        [[torch.cos(rot), -1 * torch.sin(rot)],
+         [torch.sin(rot), torch.cos(rot)]]
     ).to(**tkwargs)
 
     z = torch.matmul(R, z.T)

@@ -59,7 +59,8 @@ class Feature_Initializer(nn.Module):
         )  # 64
 
         self.pair_activations = nn.Dense(
-            features=self.pair_channel,  # rel_pos_feat_dim -> pair_channel: 64 -> 128
+            # rel_pos_feat_dim -> pair_channel: 64 -> 128
+            features=self.pair_channel,
             kernel_init=nn.initializers.lecun_normal(),
             dtype=self._dtype,
             param_dtype=jnp.float32,
@@ -104,7 +105,7 @@ class Feature_Initializer(nn.Module):
         # torsion_angles_sin_cos: self._dtype, torsion_angles_mask: self._dtype
         # decoy_affine_tensor: jnp.float32(?)
 
-        ### 将以下模块抽象成为feature_initializer:
+        # 将以下模块抽象成为feature_initializer:
         # '''
         template_pseudo_beta_mask = seq_mask  # (self._dtype)
         mask_2d = jnp.expand_dims(seq_mask, -1) * jnp.expand_dims(
@@ -112,7 +113,8 @@ class Feature_Initializer(nn.Module):
         )  # [Nres, 1] * [1, Nres] -> [Nres, Nres] (self._dtype)
         num_res = residue_index.shape[0]  # [Nres,]
         template_features = jnp.concatenate(
-            [jnp.reshape(torsion_angles_sin_cos, [num_res, 6]), torsion_angles_mask],
+            [jnp.reshape(torsion_angles_sin_cos, [
+                         num_res, 6]), torsion_angles_mask],
             axis=-1,
             dtype=self._dtype,
         )  # [Nres, 9] (self._dtype)
@@ -124,12 +126,14 @@ class Feature_Initializer(nn.Module):
             template_activations
         )  # [Nres, 256] (self._dtype)
 
-        single_activations_init = template_activations  # [Nres, 256] (self._dtype)
+        # [Nres, 256] (self._dtype)
+        single_activations_init = template_activations
 
         _, rel_pos = self.rel_pos(
             residue_index, residue_index
         )  # _: [Nres, Nres], rel_pos: [Nres, Nres, 64] (int32)
-        rel_pos = jnp.asarray(rel_pos, self._dtype)  # [Nres, Nres, 64] (self._dtype)
+        # [Nres, Nres, 64] (self._dtype)
+        rel_pos = jnp.asarray(rel_pos, self._dtype)
 
         pair_activations = self.pair_activations(
             rel_pos
@@ -213,7 +217,8 @@ class VQ_Encoder(nn.Module):
                 seq_act_dim=self.single_channel,  # 256
                 pair_act_dim=self.pair_channel,  # 128
                 outerproduct_dim=self.evoformer_cfg.outerproduct_dim,  # 32
-                hidden_dim=self.evoformer_cfg.hidden_dim,  # 256 Zhenyu: Double Check here.
+                # 256 Zhenyu: Double Check here.
+                hidden_dim=self.evoformer_cfg.hidden_dim,
                 num_head=self.evoformer_cfg.num_head,  # 8
                 dropout_rate=self.evoformer_cfg.dropout_rate,  # 0.05
                 gating=self.evoformer_cfg.gating,  # True
@@ -234,7 +239,8 @@ class VQ_Encoder(nn.Module):
         post_ffn_operation_list = ("Dropout",)
         for i_ in range(self.single_update_transformer_stack_num):
             if i_ == self.single_update_transformer_stack_num - 1:
-                post_ffn_operation_list = ("ResidualLN", "Dropout")
+                post_ffn_operation_list = (
+                    "ResidualLN", "Dropout")
             rt_block = SelfResidualTransformer(
                 global_config=self.global_config,
                 q_act_dim=self.single_channel,
@@ -282,7 +288,7 @@ class VQ_Encoder(nn.Module):
 
         self.extended_structure_module = StructureModule(
             self.global_config,
-            self.esm_cfg,  ### 1 * 8 layer
+            self.esm_cfg,  # 1 * 8 layer
             self.seq_len,  # 256
             frozen_IPA=True,
             share_weights=False,
@@ -310,7 +316,7 @@ class VQ_Encoder(nn.Module):
         # torsion_angles_sin_cos: self._dtype, torsion_angles_mask: self._dtype
         # decoy_affine_tensor: jnp.float32(?)
 
-        ### feature_initializer:
+        # feature_initializer:
         single_activations_init, pair_activations_init = self.feat_init(
             seq_mask,
             residue_index,
@@ -396,7 +402,8 @@ class VQ_Encoder(nn.Module):
             decoy_affine_tensor,
         )
 
-        final_single_activations = self.esm_post_ln(esm_single_act)  # 256
+        final_single_activations = self.esm_post_ln(
+            esm_single_act)  # 256
 
         return final_single_activations, single_activations, pair_activations
 
@@ -432,10 +439,10 @@ class MaskGITInverseFoldingModule(nn.Module):
             )
         )  # single_channel: 256
 
-        ### Inverse Folding Module
+        # Inverse Folding Module
         self.ifm_structure_module = StructureModule(
             self.global_config,
-            self.esm_cfg,  ### 1 * 8/12 layer
+            self.esm_cfg,  # 1 * 8/12 layer
             self.seq_len,  # 256
             frozen_IPA=True,
             share_weights=False,
@@ -515,7 +522,8 @@ class MaskGITInverseFoldingModule(nn.Module):
                 nn.silu,
                 nn.Dense(
                     features=20 + 1,
-                    kernel_init=nn.initializers.zeros_init(),  # nn.initializers.lecun_normal(),
+                    # nn.initializers.lecun_normal(),
+                    kernel_init=nn.initializers.zeros_init(),
                     dtype=self._dtype,
                     param_dtype=jnp.float32,
                 ),
@@ -544,9 +552,12 @@ class MaskGITInverseFoldingModule(nn.Module):
         # decoy_affine_tensor: jnp.float32(?)
 
         if self.freeze_encoder_activations:
-            single_activations = self.stop_gradient(single_activations)
-            pair_activations = self.stop_gradient(pair_activations)
-            esm_activations = self.stop_gradient(esm_activations)
+            single_activations = self.stop_gradient(
+                single_activations)
+            pair_activations = self.stop_gradient(
+                pair_activations)
+            esm_activations = self.stop_gradient(
+                esm_activations)
 
         single_activations_init, pair_activations_init = self.feat_init(
             seq_mask,
@@ -570,16 +581,20 @@ class MaskGITInverseFoldingModule(nn.Module):
             recycled_single_act + single_activations_init + aa_embedding
         )  # [Nres, 256] (self._dtype)
 
-        esm_activations_left = self.esm_activations_left(esm_activations)  # 128
-        esm_activations_right = self.esm_activations_right(esm_activations)  # 128
+        esm_activations_left = self.esm_activations_left(
+            esm_activations)  # 128
+        esm_activations_right = self.esm_activations_right(
+            esm_activations)  # 128
         esm_activations_pair = jnp.expand_dims(
             esm_activations_left, axis=-2
         ) + jnp.expand_dims(
             esm_activations_right, axis=-3
         )  # [Nres, Nres, 128]
 
-        aa_embedding_left = self.aa_embedding_left(aa_embedding)  # 128
-        aa_embedding_right = self.aa_embedding_right(aa_embedding)  # 128
+        aa_embedding_left = self.aa_embedding_left(
+            aa_embedding)  # 128
+        aa_embedding_right = self.aa_embedding_right(
+            aa_embedding)  # 128
         aa_embedding_pair = jnp.expand_dims(
             aa_embedding_left, axis=-2
         ) + jnp.expand_dims(
@@ -592,7 +607,8 @@ class MaskGITInverseFoldingModule(nn.Module):
         recycled_pair_act = self.linear_3(pair_activations) + self.linear_4(
             esm_activations_pair
         )
-        pair_activations = recycled_pair_act + pair_activations_init + aa_embedding_pair
+        pair_activations = recycled_pair_act + \
+            pair_activations_init + aa_embedding_pair
 
         (
             final_atom_positions,
@@ -612,7 +628,8 @@ class MaskGITInverseFoldingModule(nn.Module):
             decoy_affine_tensor,
         )
 
-        esm_single_act = self.esm_post_ln(esm_single_act)  # 256
+        esm_single_act = self.esm_post_ln(
+            esm_single_act)  # 256
 
         ###
         logits = self.logits_head(esm_single_act)  # MLP

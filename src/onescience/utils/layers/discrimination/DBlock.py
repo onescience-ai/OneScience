@@ -8,14 +8,18 @@ class DBlockDown(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(DBlockDown, self).__init__()
         self.relu = nn.ReLU()
-        self.conv1 = SpectralNorm(nn.Conv2d(in_channels, out_channels, 1))
+        self.conv1 = SpectralNorm(
+            nn.Conv2d(in_channels, out_channels, 1))
         self.conv3_1 = SpectralNorm(
-            nn.Conv2d(in_channels, in_channels, 3, stride=1, padding=1)
+            nn.Conv2d(in_channels, in_channels,
+                      3, stride=1, padding=1)
         )
         self.conv3_2 = SpectralNorm(
-            nn.Conv2d(in_channels, out_channels, 3, stride=1, padding=1)
+            nn.Conv2d(in_channels, out_channels,
+                      3, stride=1, padding=1)
         )
-        self.maxpool = nn.MaxPool2d(2, stride=2, return_indices=False, ceil_mode=False)
+        self.maxpool = nn.MaxPool2d(
+            2, stride=2, return_indices=False, ceil_mode=False)
 
     def forward(self, x):
         x1 = self.conv1(x)
@@ -34,14 +38,18 @@ class DBlockDownFirst(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(DBlockDownFirst, self).__init__()
         self.relu = nn.ReLU()
-        self.conv1 = SpectralNorm(nn.Conv2d(in_channels, out_channels, 1))
+        self.conv1 = SpectralNorm(
+            nn.Conv2d(in_channels, out_channels, 1))
         self.conv3_1 = SpectralNorm(
-            nn.Conv2d(in_channels, in_channels, 3, stride=1, padding=1)
+            nn.Conv2d(in_channels, in_channels,
+                      3, stride=1, padding=1)
         )
         self.conv3_2 = SpectralNorm(
-            nn.Conv2d(in_channels, out_channels, 3, stride=1, padding=1)
+            nn.Conv2d(in_channels, out_channels,
+                      3, stride=1, padding=1)
         )
-        self.maxpool = nn.MaxPool2d(2, stride=2, return_indices=False, ceil_mode=False)
+        self.maxpool = nn.MaxPool2d(
+            2, stride=2, return_indices=False, ceil_mode=False)
 
     def forward(self, x):
         x1 = self.conv1(x)
@@ -59,9 +67,11 @@ class DBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(DBlock, self).__init__()
         self.relu = nn.ReLU()
-        self.conv1 = SpectralNorm(nn.Conv2d(in_channels, out_channels, 1))
+        self.conv1 = SpectralNorm(
+            nn.Conv2d(in_channels, out_channels, 1))
         self.conv3 = SpectralNorm(
-            nn.Conv2d(in_channels, out_channels, 3, stride=1, padding=1)
+            nn.Conv2d(in_channels, out_channels,
+                      3, stride=1, padding=1)
         )
 
     def forward(self, x):
@@ -79,7 +89,8 @@ class DBlock3D_1(nn.Module):
         super(DBlock3D_1, self).__init__()
         self.relu = nn.ReLU()
         self.conv1 = SpectralNorm(
-            nn.Conv3d(in_channels, out_channels, kernel_size=(1, 1, 1))
+            nn.Conv3d(in_channels, out_channels,
+                      kernel_size=(1, 1, 1))
         )
         self.conv3_1 = SpectralNorm(
             nn.Conv3d(
@@ -91,7 +102,8 @@ class DBlock3D_1(nn.Module):
                 in_channels, out_channels, kernel_size=(3, 3, 3), padding=1, stride=1
             )
         )
-        self.maxpool_3d = nn.MaxPool3d(kernel_size=(2, 2, 2), stride=(2, 2, 2))
+        self.maxpool_3d = nn.MaxPool3d(
+            kernel_size=(2, 2, 2), stride=(2, 2, 2))
 
     def forward(self, x):
 
@@ -112,7 +124,8 @@ class DBlock3D_2(nn.Module):
         super(DBlock3D_2, self).__init__()
         self.relu = nn.ReLU()
         self.conv1 = SpectralNorm(
-            nn.Conv3d(in_channels, out_channels, kernel_size=(1, 1, 1))
+            nn.Conv3d(in_channels, out_channels,
+                      kernel_size=(1, 1, 1))
         )
         self.conv3_1 = SpectralNorm(
             nn.Conv3d(
@@ -124,7 +137,8 @@ class DBlock3D_2(nn.Module):
                 in_channels, out_channels, kernel_size=(3, 3, 3), padding=1, stride=1
             )
         )
-        self.maxpool_3d = nn.MaxPool3d(kernel_size=(2, 2, 2), stride=(2, 2, 2))
+        self.maxpool_3d = nn.MaxPool3d(
+            kernel_size=(2, 2, 2), stride=(2, 2, 2))
 
     def forward(self, x):
 
@@ -145,11 +159,13 @@ class LBlockDown(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(LBlockDown, self).__init__()
         self.up_conv = nn.Sequential(
-            spectral_norm(nn.Conv2d(in_channels, out_channels, 3, stride=2, padding=1))
+            spectral_norm(nn.Conv2d(
+                in_channels, out_channels, 3, stride=2, padding=1))
         )
         self.down_conv = nn.Sequential(
             nn.ReLU(inplace=False),
-            spectral_norm(nn.Conv2d(in_channels, out_channels, 3, stride=2, padding=1)),
+            spectral_norm(nn.Conv2d(
+                in_channels, out_channels, 3, stride=2, padding=1)),
         )
 
     def forward(self, x):
@@ -163,16 +179,20 @@ class ProjBlock(nn.Module):
     def __init__(self, in_channel, out_channel):
         super(ProjBlock, self).__init__()
         self.one_conv = spectral_norm(
-            nn.Conv2d(in_channel, out_channel, kernel_size=1, padding=0)
+            nn.Conv2d(in_channel, out_channel,
+                      kernel_size=1, padding=0)
         )
         self.double_conv = nn.Sequential(
-            spectral_norm(nn.Conv2d(in_channel, out_channel, kernel_size=3, padding=1)),
+            spectral_norm(nn.Conv2d(
+                in_channel, out_channel, kernel_size=3, padding=1)),
             nn.ReLU(),
             spectral_norm(
-                nn.Conv2d(out_channel, out_channel, kernel_size=3, padding=1)
+                nn.Conv2d(out_channel, out_channel,
+                          kernel_size=3, padding=1)
             ),
         )
-        self.maxpool = nn.MaxPool2d(2, stride=2, return_indices=False, ceil_mode=False)
+        self.maxpool = nn.MaxPool2d(
+            2, stride=2, return_indices=False, ceil_mode=False)
 
     def forward(self, x):
         x1 = self.one_conv(x)
@@ -190,7 +210,8 @@ class LastConv(nn.Module):
         super(LastConv, self).__init__()
         self.conv = nn.Sequential(
             nn.LeakyReLU(inplace=False),
-            spectral_norm(nn.Conv2d(in_channels, out_channels, 3)),
+            spectral_norm(
+                nn.Conv2d(in_channels, out_channels, 3)),
         )
 
     def forward(self, x):

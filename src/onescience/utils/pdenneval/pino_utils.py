@@ -17,7 +17,8 @@ from torch.utils.data import Dataset
 # to only pad the last dim
 def add_padding(x, num_pad):
     if max(num_pad) > 0:
-        res = F.pad(x, (num_pad[0], num_pad[1]), "constant", 0)
+        res = F.pad(
+            x, (num_pad[0], num_pad[1]), "constant", 0)
     else:
         res = x
     return res
@@ -27,7 +28,8 @@ def add_padding(x, num_pad):
 def add_padding2(x, num_pad1, num_pad2):
     if max(num_pad1) > 0 or max(num_pad2) > 0:
         res = F.pad(
-            x, (num_pad2[0], num_pad2[1], num_pad1[0], num_pad1[1]), "constant", 0.0
+            x, (num_pad2[0], num_pad2[1], num_pad1[0],
+                num_pad1[1]), "constant", 0.0
         )
     else:
         res = x
@@ -54,7 +56,7 @@ def add_padding3(x, num_pad1, num_pad2, num_pad3):
 
 def remove_padding(x, num_pad):
     if max(num_pad) > 0:
-        res = x[..., num_pad[0] : -num_pad[1]]
+        res = x[..., num_pad[0]: -num_pad[1]]
     else:
         res = x
     return res
@@ -62,7 +64,8 @@ def remove_padding(x, num_pad):
 
 def remove_padding2(x, num_pad1, num_pad2):
     if max(num_pad1) > 0 or max(num_pad2) > 0:
-        res = x[..., num_pad1[0] : -num_pad1[1], num_pad2[0] : -num_pad2[1]]
+        res = x[..., num_pad1[0]: -num_pad1[1],
+                num_pad2[0]: -num_pad2[1]]
     else:
         res = x
     return res
@@ -72,9 +75,9 @@ def remove_padding3(x, num_pad1, num_pad2, num_pad3):
     if max(num_pad1) > 0 or max(num_pad2) > 0 or max(num_pad3) > 0:
         res = x[
             ...,
-            num_pad1[0] : -num_pad1[1],
-            num_pad2[0] : -num_pad2[1],
-            num_pad3[0] : -num_pad3[1],
+            num_pad1[0]: -num_pad1[1],
+            num_pad2[0]: -num_pad2[1],
+            num_pad3[0]: -num_pad3[1],
         ]
     else:
         res = x
@@ -115,18 +118,22 @@ class PINODatasetSingle(Dataset):
     ):
 
         # file path, HDF5 file is assumed
-        file_path = os.path.abspath(saved_folder + file_name)
+        file_path = os.path.abspath(
+            saved_folder + file_name)
 
         # read data from HDF5 file
         with h5py.File(file_path, "r") as f:
-            ## data dim: [num_sample, t, x1, ..., xd] (The field dimension is 1)
+            # data dim: [num_sample, t, x1, ..., xd] (The field dimension is 1)
             # or [num_sample, t, x1, ..., xd, v] (The field dimension is v)
             if "tensor" in f.keys():  # scalar equations
-                ## data dim = [n, t, x1, ..., xd]
-                _data = np.array(f["tensor"], dtype=np.float32)  # batch, time, x,...
+                # data dim = [n, t, x1, ..., xd]
+                # batch, time, x,...
+                _data = np.array(
+                    f["tensor"], dtype=np.float32)
                 # recorrect the nt
                 nt = (
-                    min(_data.shape[1], f["t-coordinate"].shape[0])
+                    min(_data.shape[1],
+                        f["t-coordinate"].shape[0])
                     if f.get("t-coordinate", None)
                     else 1
                 )
@@ -135,18 +142,24 @@ class PINODatasetSingle(Dataset):
                     _data = _data[
                         ::reduced_batch, ::reduced_resolution_t, ::reduced_resolution
                     ]
-                    ## convert to [n, x1, ..., xd, t]
-                    _data = np.transpose(_data[:, :, :], (0, 2, 1))
-                    self.data = _data[:, :, :, None]  # batch, x, t, ch
-                    x = np.array(f["x-coordinate"], dtype="f")
+                    # convert to [n, x1, ..., xd, t]
+                    _data = np.transpose(
+                        _data[:, :, :], (0, 2, 1))
+                    # batch, x, t, ch
+                    self.data = _data[:, :, :, None]
+                    x = np.array(
+                        f["x-coordinate"], dtype="f")
                     t = (
-                        np.array(f["t-coordinate"], dtype="f")
+                        np.array(
+                            f["t-coordinate"], dtype="f")
                         if f.get("t-coordinate", None)
                         else np.array([0], dtype="f")
                     )
                     x = torch.tensor(x, dtype=torch.float)
-                    t = torch.tensor(t, dtype=torch.float)[:nt]
-                    X, T = torch.meshgrid((x, t), indexing="ij")
+                    t = torch.tensor(
+                        t, dtype=torch.float)[:nt]
+                    X, T = torch.meshgrid(
+                        (x, t), indexing="ij")
                     self.grid = torch.stack((X, T), axis=-1)[
                         ::reduced_resolution, ::reduced_resolution_t
                     ]
@@ -160,8 +173,9 @@ class PINODatasetSingle(Dataset):
                             ::reduced_resolution,
                             ::reduced_resolution,
                         ]
-                        ## convert to [n, x1, ..., xd, t]
-                        _data = np.transpose(_data[:, :, :, :], (0, 2, 3, 1))
+                        # convert to [n, x1, ..., xd, t]
+                        _data = np.transpose(
+                            _data[:, :, :, :], (0, 2, 3, 1))
                         self.data = _data
                         # nu: input
                         _data = np.array(
@@ -173,21 +187,32 @@ class PINODatasetSingle(Dataset):
                             ::reduced_resolution,
                             ::reduced_resolution,
                         ]
-                        ## convert to [n, x1, ..., xd, t]
-                        _data = np.transpose(_data[:, :, :, :], (0, 2, 3, 1))
-                        self.data = np.concatenate([_data, self.data], axis=-1)
-                        self.data = self.data[:, :, :, None, :]  # batch, x, y, t, ch
-                        x = np.array(f["x-coordinate"], dtype="f")
-                        y = np.array(f["y-coordinate"], dtype="f")
+                        # convert to [n, x1, ..., xd, t]
+                        _data = np.transpose(
+                            _data[:, :, :, :], (0, 2, 3, 1))
+                        self.data = np.concatenate(
+                            [_data, self.data], axis=-1)
+                        # batch, x, y, t, ch
+                        self.data = self.data[:,
+                                              :, :, None, :]
+                        x = np.array(
+                            f["x-coordinate"], dtype="f")
+                        y = np.array(
+                            f["y-coordinate"], dtype="f")
                         t = (
-                            np.array(f["t-coordinate"], dtype="f")
+                            np.array(
+                                f["t-coordinate"], dtype="f")
                             if f.get("t-coordinate", None)
                             else np.array([0], dtype="f")
                         )
-                        x = torch.tensor(x, dtype=torch.float)
-                        y = torch.tensor(y, dtype=torch.float)
-                        t = torch.tensor(t, dtype=torch.float)[:nt]
-                        X, Y, T = torch.meshgrid((x, y, t), indexing="ij")
+                        x = torch.tensor(
+                            x, dtype=torch.float)
+                        y = torch.tensor(
+                            y, dtype=torch.float)
+                        t = torch.tensor(
+                            t, dtype=torch.float)[:nt]
+                        X, Y, T = torch.meshgrid(
+                            (x, y, t), indexing="ij")
                         self.grid = torch.stack((X, Y, T), axis=-1)[
                             ::reduced_resolution,
                             ::reduced_resolution,
@@ -200,19 +225,27 @@ class PINODatasetSingle(Dataset):
                             ::reduced_resolution,
                             ::reduced_resolution,
                         ]
-                        _data = np.transpose(_data[:, :, :, :], (0, 2, 3, 1))
+                        _data = np.transpose(
+                            _data[:, :, :, :], (0, 2, 3, 1))
                         self.data = _data[:, :, :, :, None]
-                        x = np.array(f["x-coordinate"], dtype="f")
-                        y = np.array(f["y-coordinate"], dtype="f")
+                        x = np.array(
+                            f["x-coordinate"], dtype="f")
+                        y = np.array(
+                            f["y-coordinate"], dtype="f")
                         t = (
-                            np.array(f["t-coordinate"], dtype="f")[:nt]
+                            np.array(
+                                f["t-coordinate"], dtype="f")[:nt]
                             if f.get("t-coordinate", None)
                             else np.array([0], dtype="f")
                         )
-                        x = torch.tensor(x, dtype=torch.float)
-                        y = torch.tensor(y, dtype=torch.float)
-                        t = torch.tensor(t, dtype=torch.float)
-                        X, Y, T = torch.meshgrid((x, y, t), indexing="ij")
+                        x = torch.tensor(
+                            x, dtype=torch.float)
+                        y = torch.tensor(
+                            y, dtype=torch.float)
+                        t = torch.tensor(
+                            t, dtype=torch.float)
+                        X, Y, T = torch.meshgrid(
+                            (x, y, t), indexing="ij")
                         self.grid = torch.stack((X, Y, T), axis=-1)[
                             ::reduced_resolution,
                             ::reduced_resolution,
@@ -224,13 +257,15 @@ class PINODatasetSingle(Dataset):
                 )  # density: [batch, time, x1,..,xd]
                 idx_cfd = _data.shape
                 # recorrect the nt
-                nt = min(_data.shape[1], f["t-coordinate"].shape[0])
+                nt = min(
+                    _data.shape[1], f["t-coordinate"].shape[0])
                 if len(idx_cfd) == 3:  # 1D
                     self.data = np.zeros(
                         [
                             idx_cfd[0] // reduced_batch,
                             idx_cfd[2] // reduced_resolution,
-                            mt.ceil(idx_cfd[1] / reduced_resolution_t),
+                            mt.ceil(
+                                idx_cfd[1] / reduced_resolution_t),
                             3,
                         ],
                         dtype=np.float32,
@@ -239,9 +274,11 @@ class PINODatasetSingle(Dataset):
                     _data = _data[
                         ::reduced_batch, ::reduced_resolution_t, ::reduced_resolution
                     ]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data[:, :, :], (0, 2, 1))
-                    self.data[..., 0] = _data  # batch, x, t, ch
+                    # convert to [x1, ..., xd, t, v]
+                    _data = np.transpose(
+                        _data[:, :, :], (0, 2, 1))
+                    # batch, x, t, ch
+                    self.data[..., 0] = _data
                     # pressure
                     _data = np.array(
                         f["pressure"], dtype=np.float32
@@ -249,23 +286,33 @@ class PINODatasetSingle(Dataset):
                     _data = _data[
                         ::reduced_batch, ::reduced_resolution_t, ::reduced_resolution
                     ]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data[:, :, :], (0, 2, 1))
-                    self.data[..., 1] = _data  # batch, x, t, ch
+                    # convert to [x1, ..., xd, t, v]
+                    _data = np.transpose(
+                        _data[:, :, :], (0, 2, 1))
+                    # batch, x, t, ch
+                    self.data[..., 1] = _data
                     # Vx
-                    _data = np.array(f["Vx"], dtype=np.float32)  # batch, time, x,...
+                    # batch, time, x,...
+                    _data = np.array(
+                        f["Vx"], dtype=np.float32)
                     _data = _data[
                         ::reduced_batch, ::reduced_resolution_t, ::reduced_resolution
                     ]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data[:, :, :], (0, 2, 1))
-                    self.data[..., 2] = _data  # batch, x, t, ch
+                    # convert to [x1, ..., xd, t, v]
+                    _data = np.transpose(
+                        _data[:, :, :], (0, 2, 1))
+                    # batch, x, t, ch
+                    self.data[..., 2] = _data
 
-                    x = np.array(f["x-coordinate"], dtype="f")
-                    t = np.array(f["t-coordinate"], dtype="f")
+                    x = np.array(
+                        f["x-coordinate"], dtype="f")
+                    t = np.array(
+                        f["t-coordinate"], dtype="f")
                     x = torch.tensor(x, dtype=torch.float)
-                    t = torch.tensor(t, dtype=torch.float)[:nt]
-                    X, T = torch.meshgrid((x, t), indexing="ij")
+                    t = torch.tensor(
+                        t, dtype=torch.float)[:nt]
+                    X, T = torch.meshgrid(
+                        (x, t), indexing="ij")
                     self.grid = torch.stack((X, T), axis=-1)[
                         ::reduced_resolution, ::reduced_resolution_t
                     ]
@@ -276,7 +323,8 @@ class PINODatasetSingle(Dataset):
                             idx_cfd[0] // reduced_batch,
                             idx_cfd[2] // reduced_resolution,
                             idx_cfd[3] // reduced_resolution,
-                            mt.ceil(idx_cfd[1] / reduced_resolution_t),
+                            mt.ceil(
+                                idx_cfd[1] / reduced_resolution_t),
                             4,
                         ],
                         dtype=np.float32,
@@ -288,9 +336,11 @@ class PINODatasetSingle(Dataset):
                         ::reduced_resolution,
                         ::reduced_resolution,
                     ]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 1))
-                    self.data[..., 0] = _data  # batch, x, t, ch
+                    # convert to [x1, ..., xd, t, v]
+                    _data = np.transpose(
+                        _data, (0, 2, 3, 1))
+                    # batch, x, t, ch
+                    self.data[..., 0] = _data
                     # pressure
                     _data = np.array(
                         f["pressure"], dtype=np.float32
@@ -301,39 +351,54 @@ class PINODatasetSingle(Dataset):
                         ::reduced_resolution,
                         ::reduced_resolution,
                     ]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 1))
-                    self.data[..., 1] = _data  # batch, x, t, ch
+                    # convert to [x1, ..., xd, t, v]
+                    _data = np.transpose(
+                        _data, (0, 2, 3, 1))
+                    # batch, x, t, ch
+                    self.data[..., 1] = _data
                     # Vx
-                    _data = np.array(f["Vx"], dtype=np.float32)  # batch, time, x,...
+                    # batch, time, x,...
+                    _data = np.array(
+                        f["Vx"], dtype=np.float32)
                     _data = _data[
                         ::reduced_batch,
                         ::reduced_resolution_t,
                         ::reduced_resolution,
                         ::reduced_resolution,
                     ]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 1))
-                    self.data[..., 2] = _data  # batch, x, t, ch
+                    # convert to [x1, ..., xd, t, v]
+                    _data = np.transpose(
+                        _data, (0, 2, 3, 1))
+                    # batch, x, t, ch
+                    self.data[..., 2] = _data
                     # Vy
-                    _data = np.array(f["Vy"], dtype=np.float32)  # batch, time, x,...
+                    # batch, time, x,...
+                    _data = np.array(
+                        f["Vy"], dtype=np.float32)
                     _data = _data[
                         ::reduced_batch,
                         ::reduced_resolution_t,
                         ::reduced_resolution,
                         ::reduced_resolution,
                     ]
-                    ## convert to [x1, ..., xd, t, v]
-                    _data = np.transpose(_data, (0, 2, 3, 1))
-                    self.data[..., 3] = _data  # batch, x, t, ch
+                    # convert to [x1, ..., xd, t, v]
+                    _data = np.transpose(
+                        _data, (0, 2, 3, 1))
+                    # batch, x, t, ch
+                    self.data[..., 3] = _data
 
-                    x = np.array(f["x-coordinate"], dtype="f")
-                    y = np.array(f["y-coordinate"], dtype="f")
-                    t = np.array(f["t-coordinate"], dtype="f")
+                    x = np.array(
+                        f["x-coordinate"], dtype="f")
+                    y = np.array(
+                        f["y-coordinate"], dtype="f")
+                    t = np.array(
+                        f["t-coordinate"], dtype="f")
                     x = torch.tensor(x, dtype=torch.float)
                     y = torch.tensor(y, dtype=torch.float)
-                    t = torch.tensor(t, dtype=torch.float)[:nt]
-                    X, Y, T = torch.meshgrid((x, y, t), indexing="ij")
+                    t = torch.tensor(
+                        t, dtype=torch.float)[:nt]
+                    X, Y, T = torch.meshgrid(
+                        (x, y, t), indexing="ij")
                     self.grid = torch.stack((X, Y, T), axis=-1)[
                         ::reduced_resolution,
                         ::reduced_resolution,
@@ -341,14 +406,17 @@ class PINODatasetSingle(Dataset):
                     ]
 
         self.dx = x[reduced_resolution] - x[0]
-        self.dt = t[reduced_resolution_t] - t[0] if t.shape[0] > 1 else None
+        self.dt = t[reduced_resolution_t] - \
+            t[0] if t.shape[0] > 1 else None
         self.tmax = t[-1] if t.shape[0] > 1 else None
         if if_grid_norm:
-            self.grid[..., -1] = self.grid[..., -1] / max(0.01, self.tmax)
+            self.grid[..., -1] = self.grid[..., -
+                                           1] / max(0.01, self.tmax)
 
         # Define the max number of samples
         if num_samples_max > 0:
-            num_samples_max = min(num_samples_max, self.data.shape[0])
+            num_samples_max = min(
+                num_samples_max, self.data.shape[0])
         else:
             num_samples_max = self.data.shape[0]
 
@@ -385,13 +453,15 @@ class PINODatasetMult(Dataset):
         if_grid_norm=False,
     ):
         # file path, HDF5 file is assumed
-        self.file_path = os.path.abspath(saved_folder + file_name)
+        self.file_path = os.path.abspath(
+            saved_folder + file_name)
         self.sub = reduced_resolution
         self.sub_t = reduced_resolution_t
         # Extract list of seeds
         with h5py.File(self.file_path, "r") as f:
             seed_list = sorted(f.keys())
-            grid_x, grid_t = f[seed_list[0]]["grid"]["x"], f[seed_list[0]]["grid"]["t"]
+            grid_x, grid_t = f[seed_list[0]
+                               ]["grid"]["x"], f[seed_list[0]]["grid"]["t"]
             self.dx = grid_x[self.sub] - grid_x[0]
             self.dt = grid_t[self.sub_t] - grid_t[0]
             self.tmax = grid_t[-1]
@@ -399,14 +469,16 @@ class PINODatasetMult(Dataset):
 
         # Define the max number of samples
         if num_samples_max > 0:
-            num_samples_max = min(num_samples_max, len(seed_list))
+            num_samples_max = min(
+                num_samples_max, len(seed_list))
         else:
             num_samples_max = len(seed_list)
 
         # Construct test dataset
         test_idx = int(num_samples_max * (1 - test_ratio))
         if if_test:
-            self.seed_list = np.array(seed_list[test_idx:num_samples_max])
+            self.seed_list = np.array(
+                seed_list[test_idx:num_samples_max])
         else:
             self.seed_list = np.array(seed_list[:test_idx])
         self.initial_step = initial_step
@@ -425,7 +497,8 @@ class PINODatasetMult(Dataset):
             data = torch.tensor(data, dtype=torch.float)
 
             # convert to [x1, ..., xd, t, v]
-            permute_idx = list(range(1, len(data.shape) - 1))
+            permute_idx = list(
+                range(1, len(data.shape) - 1))
             permute_idx.extend(list([0, -1]))
             data = data.permute(permute_idx)
 
@@ -436,8 +509,10 @@ class PINODatasetMult(Dataset):
             # Convert the spatial coordinates to meshgrid
             if dim == 1:
                 data = data[:: self.sub, :: self.sub_t]
-                x = np.array(seed_group["grid"]["x"], dtype="f")
-                t = np.array(seed_group["grid"]["t"], dtype="f")
+                x = np.array(
+                    seed_group["grid"]["x"], dtype="f")
+                t = np.array(
+                    seed_group["grid"]["t"], dtype="f")
                 x = torch.tensor(x, dtype=torch.float)
                 t = torch.tensor(t, dtype=torch.float)
                 X, T = torch.meshgrid(x, t, indexing="ij")
@@ -445,19 +520,26 @@ class PINODatasetMult(Dataset):
                 grid = grid[:: self.sub, :: self.sub_t]
 
             elif dim == 2:
-                data = data[:: self.sub, :: self.sub, :: self.sub_t]
-                x = np.array(seed_group["grid"]["x"], dtype="f")
-                y = np.array(seed_group["grid"]["y"], dtype="f")
-                t = np.array(seed_group["grid"]["t"], dtype="f")
+                data = data[:: self.sub,
+                            :: self.sub, :: self.sub_t]
+                x = np.array(
+                    seed_group["grid"]["x"], dtype="f")
+                y = np.array(
+                    seed_group["grid"]["y"], dtype="f")
+                t = np.array(
+                    seed_group["grid"]["t"], dtype="f")
                 x = torch.tensor(x, dtype=torch.float)
                 y = torch.tensor(y, dtype=torch.float)
                 t = torch.tensor(t, dtype=torch.float)
-                X, Y, T = torch.meshgrid((x, y, t), indexing="ij")
+                X, Y, T = torch.meshgrid(
+                    (x, y, t), indexing="ij")
                 grid = torch.stack((X, Y, T), axis=-1)
-                grid = grid[:: self.sub, :: self.sub, :: self.sub_t]
+                grid = grid[:: self.sub,
+                            :: self.sub, :: self.sub_t]
         if self.if_grid_norm:
             grid[..., -1] = grid[..., -1] / self.tmax
-        return (data[..., : self.initial_step, :], data, grid)  # return (a, u , grid)
+        # return (a, u , grid)
+        return (data[..., : self.initial_step, :], data, grid)
 
 
 def timer(func):
@@ -466,7 +548,8 @@ def timer(func):
         start_time = time()
         result = func(*args, **kwargs)
         end_time = time()
-        print(f"{func.__name__} cost time: {end_time-start_time:.4f} s")
+        print(
+            f"{func.__name__} cost time: {end_time-start_time:.4f} s")
         return result, end_time - start_time
 
     return func_wrapper
@@ -500,12 +583,16 @@ def generate_input(a, grid):
     # a : shape of [bs, x1, ..., xd, init_t, v]
     # grid : shape of [bs, x1, ..., xd, t, d+1]
     T_step = grid.shape[-2]
-    a_shape = list(a.shape)[:-2] + [-1]  # (bs, x1, ..., xd, -1)
-    a = a.reshape(a_shape).unsqueeze(-2)  # (bs, x1, ..., xd, 1, init_t*v )
+    # (bs, x1, ..., xd, -1)
+    a_shape = list(a.shape)[:-2] + [-1]
+    # (bs, x1, ..., xd, 1, init_t*v )
+    a = a.reshape(a_shape).unsqueeze(-2)
     temp = [1] * len(a.shape)
     temp[-2] = T_step  # [1,...,t,1]
-    input = a.repeat(temp)  # (bs, x1, ..., xd, t, init_t*v )
-    input = torch.concat([input, grid], dim=-1)  # (bs, x1, ..., xd, t, init_t*v+d+1)
+    # (bs, x1, ..., xd, t, init_t*v )
+    input = a.repeat(temp)
+    # (bs, x1, ..., xd, t, init_t*v+d+1)
+    input = torch.concat([input, grid], dim=-1)
     return input
 
 

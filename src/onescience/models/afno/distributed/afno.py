@@ -66,7 +66,8 @@ class DistributedBlock(nn.Module):
             input_is_matmul_parallel=True,
             output_is_matmul_parallel=True,
         )
-        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(
+            drop_path) if drop_path > 0.0 else nn.Identity()
 
         # norm layer
         self.norm2 = norm_layer((h, w))
@@ -85,9 +86,11 @@ class DistributedBlock(nn.Module):
     def forward(self, x):
         if not self.input_is_matmul_parallel:
             scatter_shapes = compute_split_shapes(
-                x.shape[1], DistributedManager().group_size("model_parallel")
+                x.shape[1], DistributedManager(
+                ).group_size("model_parallel")
             )
-            x = scatter_to_parallel_region(x, dim=1, group="model_parallel")
+            x = scatter_to_parallel_region(
+                x, dim=1, group="model_parallel")
 
         residual = x
         x = self.norm1(x)
@@ -131,7 +134,8 @@ class DistributedAFNONet(nn.Module):
         super().__init__()
 
         # comm sizes
-        matmul_comm_size = DistributedManager().group_size("model_parallel")
+        matmul_comm_size = DistributedManager(
+        ).group_size("model_parallel")
 
         self.inp_shape = inp_shape
         self.patch_size = patch_size
@@ -157,10 +161,12 @@ class DistributedAFNONet(nn.Module):
         # self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, embed_dim))
         # new: x = B, C, H*W
         self.embed_dim_local = self.embed_dim // matmul_comm_size
-        self.pos_embed = nn.Parameter(torch.zeros(1, self.embed_dim_local, num_patches))
+        self.pos_embed = nn.Parameter(torch.zeros(
+            1, self.embed_dim_local, num_patches))
         self.pos_drop = nn.Dropout(p=drop_rate)
 
-        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, depth)]
+        dpr = [x.item() for x in torch.linspace(
+            0, drop_path_rate, depth)]
 
         self.h = inp_shape[0] // self.patch_size[0]
         self.w = inp_shape[1] // self.patch_size[1]
@@ -169,7 +175,8 @@ class DistributedAFNONet(nn.Module):
         blks = []
         for i in range(0, depth):
             input_is_matmul_parallel = True  # if i > 0 else False
-            output_is_matmul_parallel = True if i < (depth - 1) else False
+            output_is_matmul_parallel = True if i < (
+                depth - 1) else False
             blks.append(
                 DistributedBlock(
                     h=self.h,
@@ -197,7 +204,8 @@ class DistributedAFNONet(nn.Module):
             self.out_chans_local = self.out_chans
         self.head = nn.Conv2d(
             self.embed_dim,
-            self.out_chans_local * self.patch_size[0] * self.patch_size[1],
+            self.out_chans_local *
+            self.patch_size[0] * self.patch_size[1],
             1,
             bias=False,
         )
@@ -228,7 +236,8 @@ class DistributedAFNONet(nn.Module):
         x = self.pos_drop(x)
 
         # reshape
-        x = x.reshape(B, self.embed_dim_local, self.h, self.w)
+        x = x.reshape(B, self.embed_dim_local,
+                      self.h, self.w)
 
         for blk in self.blocks:
             x = blk(x)
@@ -241,7 +250,8 @@ class DistributedAFNONet(nn.Module):
 
         # be careful if head is distributed
         if self.output_is_matmul_parallel:
-            x = copy_to_parallel_region(x, group="model_parallel")
+            x = copy_to_parallel_region(
+                x, group="model_parallel")
         else:
             if not self.synchronized_head:
                 # If output is not model parallel, synchronize all GPUs params for head
@@ -255,10 +265,14 @@ class DistributedAFNONet(nn.Module):
 
         # new: B, C, H, W
         b = x.shape[0]
-        xv = x.view(b, self.patch_size[0], self.patch_size[1], -1, self.h, self.w)
-        xvt = torch.permute(xv, (0, 3, 4, 1, 5, 2)).contiguous()
+        xv = x.view(
+            b, self.patch_size[0], self.patch_size[1], -1, self.h, self.w)
+        xvt = torch.permute(
+            xv, (0, 3, 4, 1, 5, 2)).contiguous()
         x = xvt.view(
-            b, -1, (self.h * self.patch_size[0]), (self.w * self.patch_size[1])
+            b, -
+            1, (self.h * self.patch_size[0]
+                ), (self.w * self.patch_size[1])
         )
 
         return x

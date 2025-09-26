@@ -34,7 +34,8 @@ def collate_predictions(predict_fn):
         predict_unit, data: AtomicData, undo_element_references: bool = True
     ):
         # Get the full prediction dictionary from the original predict method
-        preds = predict_fn(predict_unit, data, undo_element_references)
+        preds = predict_fn(
+            predict_unit, data, undo_element_references)
         collated_preds = defaultdict(list)
         for i, dataset in enumerate(data.dataset):
             for task in predict_unit.dataset_to_tasks[dataset]:
@@ -72,7 +73,8 @@ class MLIPPredictUnit(PredictUnit[AtomicData]):
         self.seed(seed)
         # note these are different from the element references used for model training
         self.atom_refs = (
-            {task.replace("_elem_refs", ""): refs for task, refs in atom_refs.items()}
+            {task.replace(
+                "_elem_refs", ""): refs for task, refs in atom_refs.items()}
             if atom_refs is not None
             else {}
         )
@@ -110,13 +112,16 @@ class MLIPPredictUnit(PredictUnit[AtomicData]):
         ]
         self.tasks = {t.name: t for t in tasks}
 
-        self.dataset_to_tasks = get_dataset_to_tasks_map(self.tasks.values())
+        self.dataset_to_tasks = get_dataset_to_tasks_map(
+            self.tasks.values())
         assert set(self.dataset_to_tasks.keys()).issubset(
             set(self.datasets)
         ), "Datasets in tasks is not a strict subset of datasets in backbone."
-        assert device in ["cpu", "cuda"], "device must be either 'cpu' or 'cuda'"
+        assert device in [
+            "cpu", "cuda"], "device must be either 'cpu' or 'cuda'"
 
-        self.device = get_device_for_local_rank() if device == "cuda" else "cpu"
+        self.device = get_device_for_local_rank(
+        ) if device == "cuda" else "cpu"
 
         self.model.eval()
 
@@ -159,7 +164,8 @@ class MLIPPredictUnit(PredictUnit[AtomicData]):
         ).index_add(
             0,
             data.atomic_numbers.to(torch.int),
-            data.atomic_numbers.new_ones(data.atomic_numbers.shape[0], dtype=torch.int),
+            data.atomic_numbers.new_ones(
+                data.atomic_numbers.shape[0], dtype=torch.int),
         )
         comp_charge_spin = (
             composition_sum,
@@ -180,7 +186,8 @@ class MLIPPredictUnit(PredictUnit[AtomicData]):
                     data.natoms.numel() == 1
                 ), f"Cannot merge model with multiple systems in batch. Must be exactly 1 system, found {data.natoms.numel()}"
                 self.model.module.backbone = (
-                    self.model.module.backbone.merge_MOLE_model(data.clone())
+                    self.model.module.backbone.merge_MOLE_model(
+                        data.clone())
                 )
                 self.model.eval()
             # move to device
@@ -189,7 +196,8 @@ class MLIPPredictUnit(PredictUnit[AtomicData]):
                 logging.warning(
                     "Model is being compiled this might take a while for the first time"
                 )
-                self.model = torch.compile(self.model, dynamic=True)
+                self.model = torch.compile(
+                    self.model, dynamic=True)
             self.lazy_model_intialized = True
 
         data_device = data.to(self.device)
@@ -197,14 +205,17 @@ class MLIPPredictUnit(PredictUnit[AtomicData]):
         if self.inference_mode.merge_mole:
             if self.merged_on is None:
                 # only get embeddings after moved to final device to get right types
-                self.merged_on = self.get_composition_charge_spin_dataset(data_device)
+                self.merged_on = self.get_composition_charge_spin_dataset(
+                    data_device)
             else:
-                this_sys = self.get_composition_charge_spin_dataset(data_device)
+                this_sys = self.get_composition_charge_spin_dataset(
+                    data_device)
                 assert (
                     data_device.natoms.numel() == 1
                 ), f"Cannot run merged model on batch with multiple systems. Must be exactly 1 system, found {data_device.natoms.numel()}"
                 assert (
-                    self.merged_on[0][0].isclose(this_sys[0][0], rtol=1e-5).all()
+                    self.merged_on[0][0].isclose(
+                        this_sys[0][0], rtol=1e-5).all()
                 ), "Cannot run on merged model on system. Embeddings seem different..."
                 assert (
                     self.merged_on[0][1] == this_sys[0][1]
@@ -216,7 +227,8 @@ class MLIPPredictUnit(PredictUnit[AtomicData]):
                     self.merged_on[1] == this_sys[1]
                 ), f"Cannot run on merged model on system. Dataset is diferrent {self.merged_on[1]} vs {this_sys[1]}"
 
-        inference_context = torch.no_grad() if self.direct_forces else nullcontext()
+        inference_context = torch.no_grad(
+        ) if self.direct_forces else nullcontext()
         tf32_context = (
             tf32_context_manager() if self.inference_mode.tf32 else nullcontext()
         )

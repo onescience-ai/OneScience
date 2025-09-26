@@ -28,7 +28,8 @@ def get_input_shapes(args: Args) -> Tuple[int, int, int]:
         # vel_in, density, viscosity, height, width, radius, center_x, center_y
         n_case_params = 8
     else:
-        assert any(x in args.data_name for x in ["cavity", "tube", "dam"])
+        assert any(x in args.data_name for x in [
+                   "cavity", "tube", "dam"])
         # vel_in, density, viscosity, height, width
         n_case_params = 5  # physical properties
     return n_rows, n_cols, n_case_params
@@ -114,10 +115,12 @@ def init_model(args: Args) -> AutoCfdModel:
             n_case_params=n_case_params,
             loss_fn=loss_fn,
             num_layers=args.fno_depth,
-            hidden_dim=args.fno_hidden_dim,  # Hid. dim. in the temporal domain
+            # Hid. dim. in the temporal domain
+            hidden_dim=args.fno_hidden_dim,
             modes1=args.fno_modes_x,
             modes2=args.fno_modes_y,
         ).cuda()
         return model
     else:
-        raise ValueError(f"Invalid model name: {args.model}")
+        raise ValueError(
+            f"Invalid model name: {args.model}")

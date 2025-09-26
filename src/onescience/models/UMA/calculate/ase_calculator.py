@@ -188,7 +188,8 @@ class FAIRChemCalculator(Calculator):
 
         # Our calculators won't work if natoms=0
         if len(atoms) == 0:
-            raise ValueError("Atoms object has no atoms inside.")
+            raise ValueError(
+                "Atoms object has no atoms inside.")
 
         # Check if the atoms object has periodic boundary conditions (PBC) set correctly
         self._check_atoms_pbc(atoms)
@@ -197,33 +198,40 @@ class FAIRChemCalculator(Calculator):
         self._validate_charge_and_spin(atoms)
 
         # Standard call to check system_changes etc
-        Calculator.calculate(self, atoms, properties, system_changes)
+        Calculator.calculate(
+            self, atoms, properties, system_changes)
 
         if len(atoms) == 1 and sum(atoms.pbc) == 0:
-            self.results = self._get_single_atom_energies(atoms)
+            self.results = self._get_single_atom_energies(
+                atoms)
         else:
             # Convert using the current a2g object
             data_object = self.a2g(atoms)
 
             # Batch and predict
-            batch = data_list_collater([data_object], otf_graph=True)
+            batch = data_list_collater(
+                [data_object], otf_graph=True)
             pred = self.predictor.predict(batch)
 
             # Collect the results into self.results
             self.results = {}
             for calc_key in self.implemented_properties:
                 if calc_key == "energy":
-                    energy = float(pred[calc_key].detach().cpu().numpy()[0])
+                    energy = float(
+                        pred[calc_key].detach().cpu().numpy()[0])
 
                     self.results["energy"] = self.results["free_energy"] = (
                         energy  # Free energy is a copy of energy
                     )
                 if calc_key == "forces":
-                    forces = pred[calc_key].detach().cpu().numpy()
+                    forces = pred[calc_key].detach(
+                    ).cpu().numpy()
                     self.results["forces"] = forces
                 if calc_key == "stress":
-                    stress = pred[calc_key].detach().cpu().numpy().reshape(3, 3)
-                    stress_voigt = full_3x3_to_voigt_6_stress(stress)
+                    stress = pred[calc_key].detach(
+                    ).cpu().numpy().reshape(3, 3)
+                    stress_voigt = full_3x3_to_voigt_6_stress(
+                        stress)
                     self.results["stress"] = stress_voigt
 
     def _get_single_atom_energies(self, atoms) -> dict:
@@ -246,11 +254,13 @@ class FAIRChemCalculator(Calculator):
 
         atom_refs = self.predictor.atom_refs[self.task_name]
         try:
-            energy = atom_refs.get(int(elt), {}).get(atoms.info["charge"])
+            energy = atom_refs.get(int(elt), {}).get(
+                atoms.info["charge"])
         except AttributeError:
             energy = atom_refs[int(elt)]
         if energy is None:
-            raise ValueError("This model has not stored this element with this charge.")
+            raise ValueError(
+                "This model has not stored this element with this charge.")
         results["energy"] = energy
         results["forces"] = np.array([[0.0] * 3])
         results["stress"] = np.array([0.0] * 6)

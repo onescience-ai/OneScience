@@ -44,7 +44,8 @@ class TransitionBlock(hk.Module):
     def __call__(self, act, broadcast_dim=0):
         num_channels = act.shape[-1]
 
-        num_intermediate = int(num_channels * self.config.num_intermediate_factor)
+        num_intermediate = int(
+            num_channels * self.config.num_intermediate_factor)
 
         act = hm.LayerNorm(name="input_layer_norm")(act)
 
@@ -55,7 +56,8 @@ class TransitionBlock(hk.Module):
                 initializer="relu",
                 name="transition1",
             )
-            weights = jnp.reshape(weights, (len(weights), 2, num_intermediate))
+            weights = jnp.reshape(
+                weights, (len(weights), 2, num_intermediate))
             c = gated_linear_unit.gated_linear_unit(
                 x=act, weight=weights, implementation=None, activation=jax.nn.swish
             )
@@ -146,7 +148,8 @@ class GridSelfAttention(hk.Module):
         num_channels = act.shape[-1]
         assert num_channels % self.config.num_head == 0
         # Triton requires a minimum dimension of 16 for doing matmul.
-        qkv_dim = max(num_channels // self.config.num_head, 16)
+        qkv_dim = max(num_channels //
+                      self.config.num_head, 16)
 
         qkv_shape = (self.config.num_head, qkv_dim)
         q = hm.Linear(
@@ -155,7 +158,8 @@ class GridSelfAttention(hk.Module):
         k = hm.Linear(
             qkv_shape, use_bias=False, name="k_projection", transpose_weights=True
         )(act)
-        v = hm.Linear(qkv_shape, use_bias=False, name="v_projection")(act)
+        v = hm.Linear(qkv_shape, use_bias=False,
+                      name="v_projection")(act)
 
         # Dot product attention requires the bias term to have a batch dimension.
         bias = jnp.expand_dims(bias, 0)
@@ -168,7 +172,8 @@ class GridSelfAttention(hk.Module):
             bias=bias,
             implementation=self.global_config.flash_attention_implementation,
         )
-        weighted_avg = jnp.reshape(weighted_avg, weighted_avg.shape[:-2] + (-1,))
+        weighted_avg = jnp.reshape(
+            weighted_avg, weighted_avg.shape[:-2] + (-1,))
 
         gate_values = hm.Linear(
             self.config.num_head * qkv_dim,
@@ -205,7 +210,8 @@ class GridSelfAttention(hk.Module):
         nonbatched_bias = hm.Linear(
             self.config.num_head, use_bias=False, name="pair_bias_projection"
         )(act)
-        nonbatched_bias = jnp.transpose(nonbatched_bias, [2, 0, 1])
+        nonbatched_bias = jnp.transpose(
+            nonbatched_bias, [2, 0, 1])
 
         num_residues = act.shape[0]
 
@@ -216,7 +222,8 @@ class GridSelfAttention(hk.Module):
         if self.transpose:
             act = jnp.swapaxes(act, -2, -3)
 
-        pair_mask = pair_mask[:, None, None, :].astype(jnp.bool_)
+        pair_mask = pair_mask[:, None,
+                              None, :].astype(jnp.bool_)
 
         act = mapping.inference_subbatch(
             self._attention,
@@ -275,7 +282,8 @@ class TriangleMultiplication(hk.Module):
                 initializer=self.global_config.final_init,
                 name="gate",
             )
-            weights_glu = jnp.stack([weights_gate, weights_projection], axis=1)
+            weights_glu = jnp.stack(
+                [weights_gate, weights_projection], axis=1)
 
             projection = gated_linear_unit.gated_linear_unit(
                 x=act,
@@ -283,11 +291,14 @@ class TriangleMultiplication(hk.Module):
                 activation=jax.nn.sigmoid,
                 implementation=None,
             )
-            projection = jnp.transpose(projection, (2, 0, 1))
+            projection = jnp.transpose(
+                projection, (2, 0, 1))
             projection *= mask
         else:
-            projection = hm.Linear(num_channels * 2, name="projection")(act)
-            projection = jnp.transpose(projection, (2, 0, 1))
+            projection = hm.Linear(
+                num_channels * 2, name="projection")(act)
+            projection = jnp.transpose(
+                projection, (2, 0, 1))
             projection *= mask
 
             gate = hm.Linear(
@@ -299,11 +310,14 @@ class TriangleMultiplication(hk.Module):
             gate = jnp.transpose(gate, (2, 0, 1))
             projection *= jax.nn.sigmoid(gate)
 
-        projection = projection.reshape(num_channels, 2, *projection.shape[1:])
+        projection = projection.reshape(
+            num_channels, 2, *projection.shape[1:])
         a, b = jnp.split(projection, 2, axis=1)
-        a, b = jnp.squeeze(a, axis=1), jnp.squeeze(b, axis=1)
+        a, b = jnp.squeeze(
+            a, axis=1), jnp.squeeze(b, axis=1)
         act = jnp.einsum(equation, a, b)
-        act = hm.LayerNorm(name="center_norm", axis=0, param_axis=0)(act)
+        act = hm.LayerNorm(
+            name="center_norm", axis=0, param_axis=0)(act)
 
         act = jnp.transpose(act, (1, 2, 0))
         act = hm.Linear(
@@ -362,7 +376,8 @@ class OuterProductMean(hk.Module):
         if self.global_config.final_init == "zeros":
             w_init = hk.initializers.Constant(0.0)
         else:
-            w_init = hk.initializers.VarianceScaling(scale=2.0, mode="fan_in")
+            w_init = hk.initializers.VarianceScaling(
+                scale=2.0, mode="fan_in")
 
         output_w = hk.get_parameter(
             "output_w",
@@ -386,8 +401,10 @@ class OuterProductMean(hk.Module):
             # so it will be treated as the real batch by XLA (both during the forward
             # and the backward pass)
             left_act = jnp.transpose(left_act, [0, 2, 1])
-            act = jnp.einsum("acb,ade->dceb", left_act, right_act)
-            act = jnp.einsum("dceb,cef->dbf", act, output_w) + output_b
+            act = jnp.einsum(
+                "acb,ade->dceb", left_act, right_act)
+            act = jnp.einsum(
+                "dceb,cef->dbf", act, output_w) + output_b
             return jnp.transpose(act, [1, 0, 2])
 
         act = mapping.inference_subbatch(
@@ -502,7 +519,8 @@ class PairFormerIteration(hk.Module):
                 name="single_pair_logits_projection",
             )(hm.LayerNorm(name="single_pair_logits_norm")(act))
 
-            pair_logits = jnp.transpose(pair_logits, [2, 0, 1])
+            pair_logits = jnp.transpose(
+                pair_logits, [2, 0, 1])
 
             single_act += diffusion_transformer.self_attention(
                 single_act,

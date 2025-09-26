@@ -12,11 +12,13 @@ from onescience.models.transolver.Transolver3D import Transolver3D
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", default="./dataset/mlcfd_data/training_data")
+    parser.add_argument(
+        "--data_dir", default="./dataset/mlcfd_data/training_data")
     parser.add_argument(
         "--preprocessed_save_dir", default="./dataset/mlcfd_data/preprocessed_data"
     )
-    parser.add_argument("--model_save_dir", default="./metrics")
+    parser.add_argument(
+        "--model_save_dir", default="./metrics")
     parser.add_argument(
         "--fold_id",
         default=0,
@@ -25,7 +27,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--gpu", default=0, type=int)
     parser.add_argument("--val_iter", default=10, type=int)
-    parser.add_argument("--cfd_config_dir", default="cfd/cfd_params.yaml")
+    parser.add_argument(
+        "--cfd_config_dir", default="cfd/cfd_params.yaml")
     parser.add_argument("--cfd_model", default="Transolver")
     parser.add_argument("--cfd_mesh", action="store_true")
     parser.add_argument("--r", default=0.2, type=float)
@@ -37,7 +40,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--lr", default=0.001, type=float)
     parser.add_argument("--batch_size", default=1, type=int)
-    parser.add_argument("--nb_epochs", default=200, type=int)
+    parser.add_argument(
+        "--nb_epochs", default=200, type=int)
     parser.add_argument(
         "--preprocessed", default=1, type=int, help="Whether to use preprocessed data"
     )
@@ -62,12 +66,14 @@ if __name__ == "__main__":
     if dist.world_size > 1:
         # 多卡分布式训练，使用 local_rank 对应的 GPU
         device = torch.device(
-            f"cuda:{dist.local_rank}" if torch.cuda.is_available() else "cpu"
+            f"cuda:{dist.local_rank}" if torch.cuda.is_available(
+            ) else "cpu"
         )
     else:
         # 单卡训练，使用 --gpu 参数指定的 GPU
         device = torch.device(
-            f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu"
+            f"cuda:{args.gpu}" if torch.cuda.is_available(
+            ) else "cpu"
         )
     logging.info(f"Using device: {device}")
     if dist.rank == 0:
@@ -78,11 +84,14 @@ if __name__ == "__main__":
     train_data, val_data, coef_norm = load_train_val_fold(
         args, preprocessed=args.preprocessed, dist=dist
     )
-    train_ds = GraphDataset(train_data, use_cfd_mesh=args.cfd_mesh, r=args.r)
-    val_ds = GraphDataset(val_data, use_cfd_mesh=args.cfd_mesh, r=args.r)
+    train_ds = GraphDataset(
+        train_data, use_cfd_mesh=args.cfd_mesh, r=args.r)
+    val_ds = GraphDataset(
+        val_data, use_cfd_mesh=args.cfd_mesh, r=args.r)
 
     if dist.rank == 0:
-        logging.info(f"Number of training samples: {len(train_ds)}")
+        logging.info(
+            f"Number of training samples: {len(train_ds)}")
 
     if args.cfd_model == "Transolver":
         model = Transolver3D(

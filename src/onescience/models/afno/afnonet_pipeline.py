@@ -14,7 +14,8 @@ from onescience.models.afno.afnonet_ocean import AFNONet
 def split_afnonet_into_stages(
     model: AFNONet, num_devices: int, devices: list, block_partition=None
 ):
-    assert len(devices) == num_devices, "Each device must be uniquely assigned"
+    assert len(
+        devices) == num_devices, "Each device must be uniquely assigned"
     assert (
         block_partition is not None
     ), "block_partition must be provided to control manual stage distribution"
@@ -40,7 +41,8 @@ def split_afnonet_into_stages(
     stages = []
     total_stages = len(block_partition) + 2
     total_stages // 2
-    vstyle_device_order = list(range(num_devices)) + list(reversed(range(num_devices)))
+    vstyle_device_order = list(
+        range(num_devices)) + list(reversed(range(num_devices)))
     vstyle_device_order = vstyle_device_order[:total_stages]
     assert (
         len(vstyle_device_order) == total_stages
@@ -67,7 +69,8 @@ def split_afnonet_into_stages(
     for i, count in enumerate(block_partition):
         end = start + count
         assigned_device = devices[vstyle_device_order[i + 1]]
-        stage = nn.Sequential(*blocks[start:end]).to(assigned_device)
+        stage = nn.Sequential(
+            *blocks[start:end]).to(assigned_device)
         stages.append(stage)
         start = end
 
@@ -109,8 +112,10 @@ def build_pipeline_model(
     existing_model=None,
 ):
     backend = "cuda" if torch.cuda.is_available() else "hip"
-    devices = [torch.device(f"{backend}:{i}") for i in range(num_devices)]
-    block_partition = getattr(params, "block_partition", None)
+    devices = [torch.device(f"{backend}:{i}")
+               for i in range(num_devices)]
+    block_partition = getattr(
+        params, "block_partition", None)
     depth = getattr(params, "depth", None)
     assert (
         depth is not None
@@ -126,7 +131,8 @@ def build_pipeline_model(
             batch_size >= chunks
         ), f"batch_size ({batch_size}) must be ≥ chunks ({chunks})"
 
-    model = existing_model if existing_model is not None else AFNONet(params)
+    model = existing_model if existing_model is not None else AFNONet(
+        params)
 
     staged_model = split_afnonet_into_stages(
         model, num_devices, devices, block_partition
@@ -163,10 +169,14 @@ if __name__ == "__main__":
             block_partition = [1, 1, 1, 1, 1, 1]
 
         params = DummyParams()
-        x = torch.randn(4, 72, 160, 360).to("cuda:0")  # batch_size = 4
-        model = build_pipeline_model(params, num_devices=4, chunks=4, sample_input=x)
+        x = torch.randn(4, 72, 160, 360).to(
+            "cuda:0")  # batch_size = 4
+        model = build_pipeline_model(
+            params, num_devices=4, chunks=4, sample_input=x)
         y = model(x).local_value()
-        assert isinstance(y, torch.Tensor), "Output is not a tensor"
-        print("\u2705 Pipeline stage partition test successful. Output shape:", y.shape)
+        assert isinstance(
+            y, torch.Tensor), "Output is not a tensor"
+        print(
+            "\u2705 Pipeline stage partition test successful. Output shape:", y.shape)
 
     test_pipeline_partition_only()

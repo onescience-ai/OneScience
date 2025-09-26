@@ -13,7 +13,8 @@ from onescience.models.layers.GeoFNO_Projection import IPHI, SpectralConv2d_Irre
 
 from .U_Net import Model as U_Net
 
-BlockList = [None, SpectralConv1d, SpectralConv2d, SpectralConv3d]
+BlockList = [None, SpectralConv1d,
+             SpectralConv2d, SpectralConv3d]
 ConvList = [None, nn.Conv1d, nn.Conv2d, nn.Conv3d]
 
 
@@ -22,13 +23,15 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.__name__ = "U-FNO"
         self.args = args
-        ## embedding
+        # embedding
         if (
             args.unified_pos and args.geotype != "unstructured"
         ):  # only for structured mesh
-            self.pos = unified_pos_embedding(args.shapelist, args.ref, device=device)
+            self.pos = unified_pos_embedding(
+                args.shapelist, args.ref, device=device)
             self.preprocess = MLP(
-                args.fun_dim + args.ref ** len(args.shapelist),
+                args.fun_dim +
+                args.ref ** len(args.shapelist),
                 args.n_hidden * 2,
                 args.n_hidden,
                 n_layers=0,
@@ -59,9 +62,11 @@ class Model(nn.Module):
                 args.n_hidden, args.n_hidden, args.modes, args.modes, s1, s2
             )
             self.iphi = IPHI()
-            self.padding = [(16 - size % 16) % 16 for size in [s1, s2]]
+            self.padding = [(16 - size % 16) %
+                            16 for size in [s1, s2]]
         else:
-            self.padding = [(16 - size % 16) % 16 for size in args.shapelist]
+            self.padding = [(16 - size % 16) %
+                            16 for size in args.shapelist]
         self.conv0 = BlockList[len(self.padding)](
             args.n_hidden,
             args.n_hidden,
@@ -82,10 +87,14 @@ class Model(nn.Module):
             args.n_hidden,
             *[args.modes for _ in range(len(self.padding))]
         )
-        self.w0 = ConvList[len(self.padding)](args.n_hidden, args.n_hidden, 1)
-        self.w1 = ConvList[len(self.padding)](args.n_hidden, args.n_hidden, 1)
-        self.w2 = ConvList[len(self.padding)](args.n_hidden, args.n_hidden, 1)
-        self.w3 = ConvList[len(self.padding)](args.n_hidden, args.n_hidden, 1)
+        self.w0 = ConvList[len(self.padding)](
+            args.n_hidden, args.n_hidden, 1)
+        self.w1 = ConvList[len(self.padding)](
+            args.n_hidden, args.n_hidden, 1)
+        self.w2 = ConvList[len(self.padding)](
+            args.n_hidden, args.n_hidden, 1)
+        self.w3 = ConvList[len(self.padding)](
+            args.n_hidden, args.n_hidden, 1)
         self.u_net2 = U_Net(args, device)
         self.u_net3 = U_Net(args, device)
         # projectors
@@ -108,13 +117,16 @@ class Model(nn.Module):
             )
             Time_emb = self.time_fc(Time_emb)
             fx = fx + Time_emb
-        x = fx.permute(0, 2, 1).reshape(B, self.args.n_hidden, *self.args.shapelist)
+        x = fx.permute(0, 2, 1).reshape(
+            B, self.args.n_hidden, *self.args.shapelist)
         if not all(item == 0 for item in self.padding):
             if len(self.args.shapelist) == 2:
-                x = F.pad(x, [0, self.padding[1], 0, self.padding[0]])
+                x = F.pad(
+                    x, [0, self.padding[1], 0, self.padding[0]])
             elif len(self.args.shapelist) == 3:
                 x = F.pad(
-                    x, [0, self.padding[2], 0, self.padding[1], 0, self.padding[0]]
+                    x, [0, self.padding[2], 0,
+                        self.padding[1], 0, self.padding[0]]
                 )
 
         x1 = self.conv0(x)
@@ -140,10 +152,13 @@ class Model(nn.Module):
 
         if not all(item == 0 for item in self.padding):
             if len(self.args.shapelist) == 2:
-                x = x[..., : -self.padding[0], : -self.padding[1]]
+                x = x[..., : -self.padding[0],
+                      : -self.padding[1]]
             elif len(self.args.shapelist) == 3:
-                x = x[..., : -self.padding[0], : -self.padding[1], : -self.padding[2]]
-        x = x.reshape(B, self.args.n_hidden, -1).permute(0, 2, 1)
+                x = x[..., : -self.padding[0], : -
+                      self.padding[1], : -self.padding[2]]
+        x = x.reshape(
+            B, self.args.n_hidden, -1).permute(0, 2, 1)
         x = self.fc1(x)
         x = F.gelu(x)
         x = self.fc2(x)

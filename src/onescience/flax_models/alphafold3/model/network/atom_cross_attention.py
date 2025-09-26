@@ -16,7 +16,8 @@ class AtomCrossAttEncoderConfig(base_config.BaseConfig):
     per_token_channels: int = 768
     per_atom_channels: int = 128
     atom_transformer: diffusion_transformer.CrossAttTransformer.Config = (
-        base_config.autocreate(num_intermediate_factor=2, num_blocks=3)
+        base_config.autocreate(
+            num_intermediate_factor=2, num_blocks=3)
     )
     per_atom_pair_channels: int = 16
 
@@ -33,7 +34,8 @@ def _per_atom_conditioning(
         c.per_atom_channels, precision="highest", name=f"{name}_embed_ref_pos"
     )(batch.ref_structure.positions)
     act += hm.Linear(c.per_atom_channels, name=f"{name}_embed_ref_mask")(
-        batch.ref_structure.mask.astype(jnp.float32)[:, :, None]
+        batch.ref_structure.mask.astype(jnp.float32)[
+            :, :, None]
     )
     # Element is encoded as atomic number if the periodic table, so
     # 128 should be fine.
@@ -45,12 +47,15 @@ def _per_atom_conditioning(
     )
     # Characters are encoded as ASCII code minus 32, so we need 64 classes,
     # to encode all standard ASCII characters between 32 and 96.
-    atom_name_chars_1hot = jax.nn.one_hot(batch.ref_structure.atom_name_chars, 64)
+    atom_name_chars_1hot = jax.nn.one_hot(
+        batch.ref_structure.atom_name_chars, 64)
     num_token, num_dense, _ = act.shape
     act += hm.Linear(c.per_atom_channels, name=f"{name}_embed_ref_atom_name")(
-        atom_name_chars_1hot.reshape(num_token, num_dense, -1)
+        atom_name_chars_1hot.reshape(
+            num_token, num_dense, -1)
     )
-    act *= batch.ref_structure.mask.astype(jnp.float32)[:, :, None]
+    act *= batch.ref_structure.mask.astype(jnp.float32)[
+        :, :, None]
 
     # Compute pair conditioning
     # shape (num_tokens, num_dense, num_dense, channels)
@@ -61,7 +66,8 @@ def _per_atom_conditioning(
     col_act = hm.Linear(
         c.per_atom_pair_channels, name=f"{name}_single_to_pair_cond_col"
     )(jax.nn.relu(act))
-    pair_act = row_act[:, :, None, :] + col_act[:, None, :, :]
+    pair_act = row_act[:, :, None, :] + \
+        col_act[:, None, :, :]
     # Embed pairwise offsets
     pair_act += hm.Linear(
         c.per_atom_pair_channels,
@@ -89,18 +95,25 @@ def _per_atom_conditioning(
 @chex.dataclass(mappable_dataclass=False, frozen=True)
 class AtomCrossAttEncoderOutput:
     token_act: jnp.ndarray  # (num_tokens, ch)
-    skip_connection: jnp.ndarray  # (num_subsets, num_queries, ch)
+    # (num_subsets, num_queries, ch)
+    skip_connection: jnp.ndarray
     queries_mask: jnp.ndarray  # (num_subsets, num_queries)
-    queries_single_cond: jnp.ndarray  # (num_subsets, num_queries, ch)
+    # (num_subsets, num_queries, ch)
+    queries_single_cond: jnp.ndarray
     keys_mask: jnp.ndarray  # (num_subsets, num_keys)
-    keys_single_cond: jnp.ndarray  # (num_subsets, num_keys, ch)
-    pair_cond: jnp.ndarray  # (num_subsets, num_queries, num_keys, ch)
+    # (num_subsets, num_keys, ch)
+    keys_single_cond: jnp.ndarray
+    # (num_subsets, num_queries, num_keys, ch)
+    pair_cond: jnp.ndarray
 
 
 def atom_cross_att_encoder(
-    token_atoms_act: jnp.ndarray | None,  # (num_tokens, max_atoms_per_token, 3)
-    trunk_single_cond: jnp.ndarray | None,  # (num_tokens, ch)
-    trunk_pair_cond: jnp.ndarray | None,  # (num_tokens, num_tokens, ch)
+    # (num_tokens, max_atoms_per_token, 3)
+    token_atoms_act: jnp.ndarray | None,
+    # (num_tokens, ch)
+    trunk_single_cond: jnp.ndarray | None,
+    # (num_tokens, num_tokens, ch)
+    trunk_pair_cond: jnp.ndarray | None,
     config: AtomCrossAttEncoderConfig,
     global_config: model_config.GlobalConfig,
     batch: feat_batch.Batch,
@@ -112,7 +125,8 @@ def atom_cross_att_encoder(
     # Compute single conditioning from atom meta data and convert to queries
     # layout.
     # (num_subsets, num_queries, channels)
-    token_atoms_single_cond, _ = _per_atom_conditioning(config, batch, name)
+    token_atoms_single_cond, _ = _per_atom_conditioning(
+        config, batch, name)
     token_atoms_mask = batch.predicted_structure_info.atom_mask
     queries_single_cond = atom_layout.convert(
         batch.atom_cross_att.token_atoms_to_queries,
@@ -172,7 +186,8 @@ def atom_cross_att_encoder(
         layout_axes=(-3, -2),
     )
     keys_mask = atom_layout.convert(
-        batch.atom_cross_att.queries_to_keys, queries_mask, layout_axes=(-2, -1)
+        batch.atom_cross_att.queries_to_keys, queries_mask, layout_axes=(
+            -2, -1)
     )
 
     # Embed single features into the pair conditioning.
@@ -188,7 +203,8 @@ def atom_cross_att_encoder(
     col_act = hm.Linear(
         c.per_atom_pair_channels, name=f"{name}_single_to_pair_cond_col"
     )(jax.nn.relu(pair_cond_keys_input))
-    pair_act = row_act[:, :, None, :] + col_act[:, None, :, :]
+    pair_act = row_act[:, :, None, :] + \
+        col_act[:, None, :, :]
 
     if trunk_pair_cond is not None:
         # If provided, broadcast the pair conditioning for the trunk (evoformer
@@ -220,7 +236,8 @@ def atom_cross_att_encoder(
         # (num_subsets, num_queries, num_keys)
         trunk_pair_to_atom_pair = atom_layout.GatherInfo(
             gather_idxs=(
-                num_tokens * tokens_to_queries.gather_idxs[:, :, None]
+                num_tokens *
+                tokens_to_queries.gather_idxs[:, :, None]
                 + tokens_to_keys.gather_idxs[:, None, :]
             ),
             gather_mask=(
@@ -231,7 +248,8 @@ def atom_cross_att_encoder(
         )
         # Gather the conditioning and add it to the atom-pair activations.
         pair_act += atom_layout.convert(
-            trunk_pair_to_atom_pair, trunk_pair_cond, layout_axes=(-3, -2)
+            trunk_pair_to_atom_pair, trunk_pair_cond, layout_axes=(
+                -3, -2)
         )
 
     # Embed pairwise offsets
@@ -256,8 +274,10 @@ def atom_cross_att_encoder(
         layout_axes=(-2, -1),
     )
 
-    offsets_valid = queries_ref_space_uid[:, :, None] == keys_ref_space_uid[:, None, :]
-    offsets = queries_ref_pos[:, :, None, :] - keys_ref_pos[:, None, :, :]
+    offsets_valid = queries_ref_space_uid[:, :,
+                                          None] == keys_ref_space_uid[:, None, :]
+    offsets = queries_ref_pos[:, :, None,
+                              :] - keys_ref_pos[:, None, :, :]
     pair_act += (
         hm.Linear(
             c.per_atom_pair_channels,
@@ -335,7 +355,8 @@ def atom_cross_att_encoder(
 class AtomCrossAttDecoderConfig(base_config.BaseConfig):
     per_atom_channels: int = 128
     atom_transformer: diffusion_transformer.CrossAttTransformer.Config = (
-        base_config.autocreate(num_intermediate_factor=2, num_blocks=3)
+        base_config.autocreate(
+            num_intermediate_factor=2, num_blocks=3)
     )
 
 

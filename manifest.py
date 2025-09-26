@@ -31,8 +31,10 @@ def discover_manifest_rules():
     for root in src_dir.rglob("package_config.py"):
         try:
             # 加载配置模块
-            spec = importlib.util.spec_from_file_location("config", root)
-            config_module = importlib.util.module_from_spec(spec)
+            spec = importlib.util.spec_from_file_location(
+                "config", root)
+            config_module = importlib.util.module_from_spec(
+                spec)
             spec.loader.exec_module(config_module)
 
             # 获取MANIFEST规则
@@ -40,15 +42,19 @@ def discover_manifest_rules():
                 rules = config_module.get_manifest_rules()
 
                 # 添加注释
-                module_path = root.parent.relative_to(src_dir)
-                manifest_rules.append(f"# Rules from {module_path}")
+                module_path = root.parent.relative_to(
+                    src_dir)
+                manifest_rules.append(
+                    f"# Rules from {module_path}")
                 manifest_rules.extend(rules)
                 manifest_rules.append("")
 
-                print(f"✅ Added MANIFEST rules from: {module_path}")
+                print(
+                    f"✅ Added MANIFEST rules from: {module_path}")
 
         except Exception as e:
-            print(f"⚠️  Failed to load MANIFEST rules from {root}: {e}")
+            print(
+                f"⚠️  Failed to load MANIFEST rules from {root}: {e}")
 
     # 通用排除规则
     exclusion_rules = [
@@ -76,7 +82,8 @@ def generate_manifest():
     with open(manifest_path, "w", encoding="utf-8") as f:
         f.write("\n".join(rules))
 
-    print(f"✅ Generated MANIFEST.in with {len(rules)} rules")
+    print(
+        f"✅ Generated MANIFEST.in with {len(rules)} rules")
     print(f"📁 Location: {manifest_path}")
 
 

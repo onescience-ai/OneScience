@@ -10,10 +10,12 @@ def get_dataset_and_sampler(dataset_cfg, times):
     """
     Get a dataset and sampler for generation.
     """
-    (dataset, _) = init_dataset_from_config(dataset_cfg, batch_size=1)
+    (dataset, _) = init_dataset_from_config(
+        dataset_cfg, batch_size=1)
     plot_times = [
         convert_datetime_to_cftime(
-            datetime.datetime.strptime(time, "%Y-%m-%dT%H:%M:%S")
+            datetime.datetime.strptime(
+                time, "%Y-%m-%dT%H:%M:%S")
         )
         for time in times
     ]
@@ -69,7 +71,8 @@ def save_images(
     for idx in range(image_out.shape[0]):
         image_out2 = image_out[idx].unsqueeze(0)
         if image_out2.ndim != 4:
-            raise ValueError("image_out2 must be 4-dimensional")
+            raise ValueError(
+                "image_out2 must be 4-dimensional")
 
         # Denormalize the input and outputs
         image_out2 = image_out2.cpu().numpy()
@@ -82,15 +85,18 @@ def save_images(
             channel_name = info.name + info.level
             truth = image_tar2[0, channel_idx]
 
-            writer.write_truth(channel_name, time_index, truth)
+            writer.write_truth(
+                channel_name, time_index, truth)
             writer.write_prediction(
-                channel_name, time_index, idx, image_out2[0, channel_idx]
+                channel_name, time_index, idx, image_out2[0,
+                                                          channel_idx]
             )
 
         input_channel_info = dataset.input_channels()
         for channel_idx in range(len(input_channel_info)):
             info = input_channel_info[channel_idx]
             channel_name = info.name + info.level
-            writer.write_input(channel_name, time_index, image_lr2[0, channel_idx])
+            writer.write_input(
+                channel_name, time_index, image_lr2[0, channel_idx])
             if channel_idx == image_lr2.shape[1] - 1:
                 break

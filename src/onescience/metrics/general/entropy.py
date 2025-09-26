@@ -54,10 +54,12 @@ def entropy_from_counts(p: Tensor, bin_edges: Tensor, normalized=True) -> Tensor
     bin_mids = 0.5 * (bin_edges[1:] + bin_edges[:-1])
     p = p / torch.trapz(p, bin_mids, dim=0) + 1e-8
 
-    ent = torch.trapz(-1.0 * p * torch.log(p), bin_mids, dim=0)
+    ent = torch.trapz(-1.0 * p *
+                      torch.log(p), bin_mids, dim=0)
     if normalized:
         max_ent = torch.log(bin_edges[-1] - bin_edges[0])
-        min_ent = 0.5 + 0.5 * torch.log(2 * torch.pi * dbins[0] ** 2)
+        min_ent = 0.5 + 0.5 * \
+            torch.log(2 * torch.pi * dbins[0] ** 2)
         return (ent - min_ent) / (max_ent - min_ent)
     else:
         return ent

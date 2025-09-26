@@ -115,7 +115,8 @@ class MaterialsDiscoveryReducer(JsonDFReducer):
         elemental_references_path: str,
     ) -> dict[str, float]:
         elem_ref_entries = (
-            pd.read_json(elemental_references_path, typ="series")
+            pd.read_json(
+                elemental_references_path, typ="series")
             .map(ComputedEntry.from_dict)
             .to_dict()
         )
@@ -148,21 +149,26 @@ class MaterialsDiscoveryReducer(JsonDFReducer):
         ]
         # transfer energies and relaxed structures to ComputedStructureEntries in order to apply corrections.
         # corrections applied below are structure-dependent (for oxides and sulfides)
-        df_result_cse: list[dict[str, str | ComputedStructureEntry]] = []
+        df_result_cse: list[dict[str, str |
+                                 ComputedStructureEntry]] = []
         for mat_id in tqdm(
             results.index,
             desc="Converting predicted structures and energies to computed structure entries",
         ):
-            cse = df_wbm_cse.loc[mat_id, Key.computed_structure_entry].copy()
-            atoms = MSONAtoms.from_dict(results.loc[mat_id, "atoms"])
+            cse = df_wbm_cse.loc[mat_id,
+                                 Key.computed_structure_entry].copy()
+            atoms = MSONAtoms.from_dict(
+                results.loc[mat_id, "atoms"])
             structure = AseAtomsAdaptor.get_structure(atoms)
             energy = results.loc[mat_id, "energy"]
             cse._energy = energy
             cse._structure = structure
             df_result_cse.append(
-                {Key.mat_id: mat_id, Key.computed_structure_entry: cse}
+                {Key.mat_id: mat_id,
+                    Key.computed_structure_entry: cse}
             )
-        df_result_cse = pd.DataFrame(df_result_cse).set_index(Key.mat_id)
+        df_result_cse = pd.DataFrame(
+            df_result_cse).set_index(Key.mat_id)
         return df_result_cse, df_wbm_cse
 
     def _apply_corrections(
@@ -232,7 +238,8 @@ class MaterialsDiscoveryReducer(JsonDFReducer):
             [
                 pd.read_json(f).set_index("sid")
                 for f in tqdm(
-                    sorted(glob(os.path.join(results_dir, glob_pattern))),
+                    sorted(
+                        glob(os.path.join(results_dir, glob_pattern))),
                     desc=f"Loading results from {results_dir}",
                 )
             ]
@@ -242,14 +249,16 @@ class MaterialsDiscoveryReducer(JsonDFReducer):
         df_cse_pred, df_cse_target = self._load_computed_structure_entries(
             self._cse_data_path, results
         )
-        self._apply_corrections(df_cse_pred[Key.computed_structure_entry].tolist())
+        self._apply_corrections(
+            df_cse_pred[Key.computed_structure_entry].tolist())
 
         # compute formation energy per atom
         elemental_ref_energies = self._load_elemental_ref_energies(
             self._elemental_references_path
         )
         results["e_form_per_atom"] = [
-            calc_energy_from_e_refs(cse, ref_energies=elemental_ref_energies)
+            calc_energy_from_e_refs(
+                cse, ref_energies=elemental_ref_energies)
             for cse in tqdm(
                 df_cse_pred[Key.computed_structure_entry],
                 total=len(results),
@@ -286,12 +295,14 @@ class MaterialsDiscoveryReducer(JsonDFReducer):
         """
         # save only numerical results
         results.select_dtypes("number").to_csv(
-            os.path.join(results_dir, f"{self.benchmark_name}_results.csv.gz")
+            os.path.join(
+                results_dir, f"{self.benchmark_name}_results.csv.gz")
         )
 
         # save results including relaxed structures
         results.reset_index().to_json(
-            os.path.join(results_dir, f"{self.benchmark_name}_results.json.gz"),
+            os.path.join(
+                results_dir, f"{self.benchmark_name}_results.json.gz"),
             default_handler=as_dict_handler,
             orient="records",
             lines=True,
@@ -312,7 +323,8 @@ class MaterialsDiscoveryReducer(JsonDFReducer):
 
         # remove bad outlier predictions
         bad_mask = (
-            abs(df_wbm["e_form_per_atom"] - df_wbm[MbdKey.e_form_dft])
+            abs(df_wbm["e_form_per_atom"] -
+                df_wbm[MbdKey.e_form_dft])
             > self._max_error_threshold
         )
         df_wbm.loc[bad_mask, "e_form_per_atom"] = pd.NA
@@ -346,7 +358,8 @@ class MaterialsDiscoveryReducer(JsonDFReducer):
         )
 
         # Get the 10,000 most stable materials based on predicted energy above hull
-        most_stable_10k = e_above_hull_pred_uniq_proto.nsmallest(10_000)
+        most_stable_10k = e_above_hull_pred_uniq_proto.nsmallest(
+            10_000)
         metrics_most_stable_10k = stable_metrics(
             df_wbm[MbdKey.each_true].loc[most_stable_10k.index],
             most_stable_10k,
@@ -356,14 +369,17 @@ class MaterialsDiscoveryReducer(JsonDFReducer):
         if self._analyze_geo_opt:
             metrics.update(calc_geo_opt_metrics(results))
             metrics_uniq_proto.update(
-                calc_geo_opt_metrics(results[df_wbm[MbdKey.uniq_proto]])
+                calc_geo_opt_metrics(
+                    results[df_wbm[MbdKey.uniq_proto]])
             )
             metrics_most_stable_10k.update(
-                calc_geo_opt_metrics(results.loc[most_stable_10k.index])
+                calc_geo_opt_metrics(
+                    results.loc[most_stable_10k.index])
             )
 
         all_metrics = pd.DataFrame(
-            [metrics, metrics_uniq_proto, metrics_most_stable_10k],
+            [metrics, metrics_uniq_proto,
+                metrics_most_stable_10k],
             index=["full", "uniq-proto", "most-stable-10k"],
         )
 
@@ -377,7 +393,8 @@ class MaterialsDiscoveryReducer(JsonDFReducer):
             run_name: Name of the current run
         """
         # drop these columns for cleaner logging
-        metrics = metrics.drop(columns=["TP", "FP", "TN", "FN"])
+        metrics = metrics.drop(
+            columns=["TP", "FP", "TN", "FN"])
         if self.logger is not None:
             for split in metrics.index:  # log each MBD split into a different table
                 split_metrics = pd.DataFrame(

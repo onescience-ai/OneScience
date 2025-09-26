@@ -31,11 +31,13 @@ class MLP(nn.Module):
         self.n_output = n_output
         self.n_layers = n_layers
         self.res = res
-        self.linear_pre = nn.Sequential(nn.Linear(n_input, n_hidden), act())
+        self.linear_pre = nn.Sequential(
+            nn.Linear(n_input, n_hidden), act())
         self.linear_post = nn.Linear(n_hidden, n_output)
         self.linears = nn.ModuleList(
             [
-                nn.Sequential(nn.Linear(n_hidden, n_hidden), act())
+                nn.Sequential(
+                    nn.Linear(n_hidden, n_hidden), act())
                 for _ in range(n_layers)
             ]
         )
@@ -70,21 +72,27 @@ class Attention(nn.Module):
         self.scale = dim_head**-0.5
         self.softmax = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
-        self.to_q = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_k = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_v = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_out = nn.Sequential(nn.Linear(inner_dim, dim), nn.Dropout(dropout))
+        self.to_q = nn.Linear(
+            dim_head, dim_head, bias=False)
+        self.to_k = nn.Linear(
+            dim_head, dim_head, bias=False)
+        self.to_v = nn.Linear(
+            dim_head, dim_head, bias=False)
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, dim), nn.Dropout(dropout))
 
     def forward(self, x):
         # B N C
         B, N, C = x.shape
         x = (
-            x.reshape(B, N, self.heads, self.dim_head).permute(0, 2, 1, 3).contiguous()
+            x.reshape(B, N, self.heads, self.dim_head).permute(
+                0, 2, 1, 3).contiguous()
         )  # B H N C
         q = self.to_q(x)
         k = self.to_k(x)
         v = self.to_v(x)
-        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
+        dots = torch.matmul(
+            q, k.transpose(-1, -2)) * self.scale
         attn = self.softmax(dots)
         attn = self.dropout(attn)
         res = torch.matmul(attn, v)  # B H G D
@@ -105,7 +113,8 @@ class FlashAttention(nn.Module):
         self.to_q = nn.Linear(dim, inner_dim, bias=False)
         self.to_k = nn.Linear(dim, inner_dim, bias=False)
         self.to_v = nn.Linear(dim, inner_dim, bias=False)
-        self.to_out = nn.Sequential(nn.Linear(inner_dim, dim), nn.Dropout(dropout))
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, dim), nn.Dropout(dropout))
 
     def forward(self, x):
         # x shape: [batch_size, seq_len, dim]
@@ -117,9 +126,12 @@ class FlashAttention(nn.Module):
         v = self.to_v(x)
 
         # Reshape for multi-head attention
-        q = rearrange(q, "b n (h d) -> b h n d", h=self.heads)
-        k = rearrange(k, "b n (h d) -> b h n d", h=self.heads)
-        v = rearrange(v, "b n (h d) -> b h n d", h=self.heads)
+        q = rearrange(
+            q, "b n (h d) -> b h n d", h=self.heads)
+        k = rearrange(
+            k, "b n (h d) -> b h n d", h=self.heads)
+        v = rearrange(
+            v, "b n (h d) -> b h n d", h=self.heads)
 
         # Flash attention implementation
         attn_output = F.scaled_dot_product_attention(
@@ -140,21 +152,27 @@ class Vanilla_Linear_Attention(nn.Module):
         self.heads = heads
         self.softmax = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
-        self.to_q = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_k = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_v = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_out = nn.Sequential(nn.Linear(inner_dim, dim), nn.Dropout(dropout))
+        self.to_q = nn.Linear(
+            dim_head, dim_head, bias=False)
+        self.to_k = nn.Linear(
+            dim_head, dim_head, bias=False)
+        self.to_v = nn.Linear(
+            dim_head, dim_head, bias=False)
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, dim), nn.Dropout(dropout))
 
     def forward(self, x):
         # B N C
         B, N, C = x.shape
         x = (
-            x.reshape(B, N, self.heads, self.dim_head).permute(0, 2, 1, 3).contiguous()
+            x.reshape(B, N, self.heads, self.dim_head).permute(
+                0, 2, 1, 3).contiguous()
         )  # B H N C
         q = self.to_q(x)
         k = self.to_k(x)
         v = self.to_v(x)
-        dots = torch.matmul(k.transpose(-1, -2), v) / float(N)
+        dots = torch.matmul(
+            k.transpose(-1, -2), v) / float(N)
         dots = self.dropout(dots)
         res = torch.matmul(q, dots)  # B H G D
         res = rearrange(res, "b h n d -> b n (h d)")
@@ -186,20 +204,25 @@ class LinearAttention(nn.Module):
         B, T1, C = x.size()
         _, T2, _ = y.size()
         q = (
-            self.query(x).view(B, T1, self.n_head, self.dim_head).transpose(1, 2)
+            self.query(x).view(B, T1, self.n_head,
+                               self.dim_head).transpose(1, 2)
         )  # (B, nh, T, hs)
         k = (
-            self.key(y).view(B, T2, self.n_head, self.dim_head).transpose(1, 2)
+            self.key(y).view(B, T2, self.n_head,
+                             self.dim_head).transpose(1, 2)
         )  # (B, nh, T, hs)
         v = (
-            self.value(y).view(B, T2, self.n_head, self.dim_head).transpose(1, 2)
+            self.value(y).view(B, T2, self.n_head,
+                               self.dim_head).transpose(1, 2)
         )  # (B, nh, T, hs)
 
         if self.attn_type == "l1":
             q = q.softmax(dim=-1)
             k = k.softmax(dim=-1)
             k_cumsum = k.sum(dim=-2, keepdim=True)
-            D_inv = 1.0 / (q * k_cumsum).sum(dim=-1, keepdim=True)  # normalized
+            # normalized
+            D_inv = 1.0 / \
+                (q * k_cumsum).sum(dim=-1, keepdim=True)
         elif self.attn_type == "galerkin":
             q = q.softmax(dim=-1)
             k = k.softmax(dim=-1)
@@ -208,7 +231,9 @@ class LinearAttention(nn.Module):
             q = q / q.norm(dim=-1, keepdim=True, p=1)
             k = k / k.norm(dim=-1, keepdim=True, p=1)
             k_cumsum = k.sum(dim=-2, keepdim=True)
-            D_inv = 1.0 / (q * k_cumsum).abs().sum(dim=-1, keepdim=True)  # normalized
+            # normalized
+            D_inv = 1.0 / \
+                (q * k_cumsum).abs().sum(dim=-1, keepdim=True)
         else:
             raise NotImplementedError
 
@@ -274,13 +299,16 @@ class SelfAttention(nn.Module):
         self.global_attn_heads = heads
         self.global_attn_fn = linear_attn
 
-        self.to_q = nn.Linear(dim, d_heads * heads, bias=False)
+        self.to_q = nn.Linear(
+            dim, d_heads * heads, bias=False)
 
         kv_heads = heads
 
         self.kv_heads = kv_heads
-        self.to_k = nn.Linear(dim, d_heads * kv_heads, bias=False)
-        self.to_v = nn.Linear(dim, d_heads * kv_heads, bias=False)
+        self.to_k = nn.Linear(
+            dim, d_heads * kv_heads, bias=False)
+        self.to_v = nn.Linear(
+            dim, d_heads * kv_heads, bias=False)
 
         self.to_out = nn.Linear(d_heads * heads, dim)
         self.dropout = nn.Dropout(dropout)
@@ -290,7 +318,8 @@ class SelfAttention(nn.Module):
 
         b, t, e, h, dh = *q.shape, self.heads, self.d_heads
 
-        merge_heads = lambda x: x.reshape(*x.shape[:2], -1, dh).transpose(1, 2)
+        def merge_heads(x): return x.reshape(
+            *x.shape[:2], -1, dh).transpose(1, 2)
 
         q, k, v = map(merge_heads, (q, k, v))
 
@@ -298,9 +327,11 @@ class SelfAttention(nn.Module):
 
         split_index_fn = partial(split_at_index, 1, 0)
 
-        (lq, q), (lk, k), (lv, v) = map(split_index_fn, (q, k, v))
+        (lq, q), (lk, k), (lv, v) = map(
+            split_index_fn, (q, k, v))
 
-        _, has_global = map(lambda x: x.shape[1] > 0, (lq, q))
+        _, has_global = map(
+            lambda x: x.shape[1] > 0, (lq, q))
 
         if has_global:
             global_out = self.global_attn_fn(q, k, v)

@@ -17,7 +17,8 @@ class CSILoss(nn.Module):
         # False positive (FP)
         falsealarms = torch.sum((obs == 0) & (pre == 1))
         # True negative (TN)
-        correctnegatives = torch.sum((obs == 0) & (pre == 0))
+        correctnegatives = torch.sum(
+            (obs == 0) & (pre == 0))
         return hits, misses, falsealarms, correctnegatives
 
     def forward(self, obs, pre, threshold=0.1):

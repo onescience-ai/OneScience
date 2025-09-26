@@ -112,7 +112,8 @@ class MultiRigidSidechain(nn.Module):
         """
 
         act1 = self.input_projection(act)  # remove relu
-        init_act1 = self.input_projection_1(initial_act)  # remove relu
+        init_act1 = self.input_projection_1(
+            initial_act)  # remove relu
         # Sum the activation list (equivalent to concat then Linear).
         act = act1 + init_act1
         # Mapping with some residual blocks.
@@ -130,8 +131,10 @@ class MultiRigidSidechain(nn.Module):
         # Map activations to torsion angles. Shape: (num_res, 14).
         num_res = act.shape[0]
 
-        unnormalized_angles = self.unnormalized_angles(self.relu(act))
-        unnormalized_angles = jnp.reshape(unnormalized_angles, [num_res, 7, 2])
+        unnormalized_angles = self.unnormalized_angles(
+            self.relu(act))
+        unnormalized_angles = jnp.reshape(
+            unnormalized_angles, [num_res, 7, 2])
         # angles = _l2_normalize(unnormalized_angles.astype(self._safedtype)).astype(self._dtype)
         # angles = self.l2_normalize(x=unnormalized_angles, epsilon=1e-12, axis=-1)
         angles = safe_l2_normalize(
@@ -150,7 +153,8 @@ class MultiRigidSidechain(nn.Module):
                 rotation[7],
                 rotation[8],
             ),
-            (translation[0], translation[1], translation[2]),
+            (translation[0], translation[1],
+             translation[2]),
         )
 
         all_frames_to_global = torsion_angles_to_frames(
@@ -165,7 +169,8 @@ class MultiRigidSidechain(nn.Module):
         )
         atom_pos = pred_positions
         frames = all_frames_to_global
-        res = (angles, unnormalized_angles, atom_pos, frames)
+        res = (angles, unnormalized_angles,
+               atom_pos, frames)
         return res
 
 
@@ -226,7 +231,8 @@ class FoldIteration(nn.Module):
         )
 
         self.drop_out = nn.Dropout(
-            rate=self.dropout_rate, deterministic=(not self.dropout_flag)
+            rate=self.dropout_rate, deterministic=(
+                not self.dropout_flag)
         )
 
         # special fuction setting
@@ -301,7 +307,8 @@ class FoldIteration(nn.Module):
         act = self.transition_layer_norm(act)  # [Nres, 384]
 
         # Affine update
-        affine_update = self.affine_update(act)  # [Nres, 384] -> [Nres, 6]
+        affine_update = self.affine_update(
+            act)  # [Nres, 384] -> [Nres, 6]
         affine_update = (
             1 - jnp.expand_dims(contextual_mask, -1)
         ) * affine_update + jnp.expand_dims(contextual_mask, -1) * self.zeros_like(
@@ -319,14 +326,17 @@ class FoldIteration(nn.Module):
         rotation1 = rotation
 
         angles_sin_cos, unnormalized_angles_sin_cos, atom_pos, frames = (
-            self.mu_side_chain(rotation1, translation1, act, initial_act, aatype)
+            self.mu_side_chain(
+                rotation1, translation1, act, initial_act, aatype)
         )
 
-        affine_output = quaternion_to_tensor(quaternion, translation)  # (NRES, 7)
+        affine_output = quaternion_to_tensor(
+            quaternion, translation)  # (NRES, 7)
 
         if self.if_stop_grad:
             quaternion = jax.lax.stop_gradient(quaternion)
-            rotation = jax.tree_map(jax.lax.stop_gradient, rotation)
+            rotation = jax.tree_map(
+                jax.lax.stop_gradient, rotation)
             # rotation = rots_stop_grad(rotation)
         res = (
             act,
@@ -367,9 +377,11 @@ class StructureModule(nn.Module):
         # single_repr_dim = self.config.single_channel
         # pair_dim = self.config.pair_channel
         self.num_layer = self.config.num_layer
-        self.contextual_mask = jnp.array([0.0] * self.seq_length, self._dtype)
+        self.contextual_mask = jnp.array(
+            [0.0] * self.seq_length, self._dtype)
         self.traj_w = jnp.array(
-            [1.0] * 4 + [self.config.position_scale] * 3, self._dtype
+            [1.0] * 4 + [self.config.position_scale] *
+            3, self._dtype
         )
 
         # fold iteration init
@@ -421,7 +433,8 @@ class StructureModule(nn.Module):
         is_bf16 = self.global_config.bf16_flag
         if is_bf16:
             (single, pair) = jax.tree_map(
-                lambda x: x.astype(jnp.float32), (single, pair)
+                lambda x: x.astype(
+                    jnp.float32), (single, pair)
             )
             decoy_affine_tensor = (
                 decoy_affine_tensor.astype(jnp.float32)
@@ -429,20 +442,24 @@ class StructureModule(nn.Module):
                 else None
             )
 
-        sequence_mask = jnp.expand_dims(seq_mask, -1)  # [Nres, 1]
+        sequence_mask = jnp.expand_dims(
+            seq_mask, -1)  # [Nres, 1]
         # num_batch = seq_mask.shape[0] ## Liyh: need to check shape
         act = self.single_layer_norm(single)  # [Nres, 384]
 
         if self.ret_single_pair:
             ret_single = act
         initial_act = act  # [Nres, 384]
-        act = self.initial_projection(act)  # [Nres, 384] -> [Nres, 384]
-        act_2d = self.pair_layer_norm(pair)  # [Nres, Nres, 192] -> [Nres, Nres, 192]
+        # [Nres, 384] -> [Nres, 384]
+        act = self.initial_projection(act)
+        # [Nres, Nres, 192] -> [Nres, Nres, 192]
+        act_2d = self.pair_layer_norm(pair)
 
         if self.ret_single_pair:
             ret_pair = act_2d
 
-        quaternion, rotation, translation = initial_affine(self.seq_length)
+        quaternion, rotation, translation = initial_affine(
+            self.seq_length)
         if self.decoy_affine_init:
             quaternion, rotation, translation = quaternion_from_tensor(
                 decoy_affine_tensor
@@ -451,7 +468,8 @@ class StructureModule(nn.Module):
                 translation, 0.1
             )  # Angstrom to nanometer conversion for translation_vecs
         quaternion, rotation, translation = jax.tree_map(
-            lambda x: self._dtype(x), (quaternion, rotation, translation)
+            lambda x: self._dtype(
+                x), (quaternion, rotation, translation)
         )
 
         # fold iteration
@@ -524,7 +542,8 @@ class StructureModule(nn.Module):
             res = res + (ret_single, ret_pair)
 
         if is_bf16:
-            res = jax.tree_map(lambda x: x.astype(jnp.bfloat16), res)
+            res = jax.tree_map(
+                lambda x: x.astype(jnp.bfloat16), res)
 
         return res
 
@@ -546,9 +565,11 @@ class StructureModule(nn.Module):
         frames_batch = ()
 
         if self.frozen_IPA:
-            contextual_mask = jnp.squeeze(sequence_mask, -1)  # [Nres,]
+            contextual_mask = jnp.squeeze(
+                sequence_mask, -1)  # [Nres,]
         else:
-            contextual_mask = self.contextual_mask  # [Nres,]
+            # [Nres,]
+            contextual_mask = self.contextual_mask
 
         for iter_ in range(self.num_layer):
             if not (self.share_weights):
@@ -595,26 +616,34 @@ class StructureModule(nn.Module):
                     aatype,
                     contextual_mask,
                 )
-            affine_init = affine_init + (jnp.expand_dims(affine_output, 0),)
-            angles_sin_cos_init = angles_sin_cos_init + (angles_sin_cos[None, ...],)
+            affine_init = affine_init + \
+                (jnp.expand_dims(affine_output, 0),)
+            angles_sin_cos_init = angles_sin_cos_init + \
+                (angles_sin_cos[None, ...],)
             um_angles_sin_cos_init = um_angles_sin_cos_init + (
                 unnormalized_angles_sin_cos[None, ...],
             )
             atom_pos_batch += (
-                jnp.concatenate(vecs_expand_dims(atom_pos, 0), axis=0)[:, None, ...],
+                jnp.concatenate(vecs_expand_dims(atom_pos, 0), axis=0)[
+                    :, None, ...],
             )
             frames_batch += (
                 jnp.concatenate(
-                    rots_expand_dims(frames[0], 0) + vecs_expand_dims(frames[1], 0),
+                    rots_expand_dims(
+                        frames[0], 0) + vecs_expand_dims(frames[1], 0),
                     axis=0,
                 )[:, None, ...],
             )
 
-        affine_output_new = jnp.concatenate(affine_init, axis=0)
-        angles_sin_cos_new = jnp.concatenate(angles_sin_cos_init, axis=0)
-        um_angles_sin_cos_new = jnp.concatenate(um_angles_sin_cos_init, axis=0)
+        affine_output_new = jnp.concatenate(
+            affine_init, axis=0)
+        angles_sin_cos_new = jnp.concatenate(
+            angles_sin_cos_init, axis=0)
+        um_angles_sin_cos_new = jnp.concatenate(
+            um_angles_sin_cos_init, axis=0)
         frames_new = jnp.concatenate(frames_batch, axis=1)
-        atom_pos_new = jnp.concatenate(atom_pos_batch, axis=1)
+        atom_pos_new = jnp.concatenate(
+            atom_pos_batch, axis=1)
         res = (
             atom_pos_new,
             affine_output_new,
@@ -633,7 +662,7 @@ class FrameInitializer(nn.Module):
 
     global_config: ml_collections.ConfigDict
     config: Config  # self.fi_config
-    seq_length: int  #  256
+    seq_length: int  # 256
     stop_grad_ipa: bool = False
     share_weights: bool = True
 
@@ -646,7 +675,8 @@ class FrameInitializer(nn.Module):
         single_repr_dim = self.config.single_channel  # 384
         pair_dim = self.config.pair_channel  # 192
         self.num_layer = self.config.num_layer  # 1
-        self.contextual_mask = jnp.array([0.0] * self.seq_length)  # [Nres,]
+        self.contextual_mask = jnp.array(
+            [0.0] * self.seq_length)  # [Nres,]
 
         # fold iteration init
         self.init_iteration = None
@@ -692,21 +722,27 @@ class FrameInitializer(nn.Module):
         is_bf16 = self.global_config.bf16_flag
         if is_bf16:
             (single, pair) = jax.tree_map(
-                lambda x: x.astype(jnp.float32), (single, pair)
+                lambda x: x.astype(
+                    jnp.float32), (single, pair)
             )
 
-        sequence_mask = jnp.expand_dims(seq_mask, axis=-1)  # [NRES, 1]
+        sequence_mask = jnp.expand_dims(
+            seq_mask, axis=-1)  # [NRES, 1]
 
         act = self.single_layer_norm(single)  # [NRES, 384]
         initial_act = act  # [NRES, 384]
-        act = self.initial_projection(act)  # [NRES, 384] -> [NRES, 384]
-        act_2d = self.pair_layer_norm(pair)  # [NRES, NRES, 192] -> [NRES, NRES, 192]
-        quaternion, rotation, translation = initial_affine(self.seq_length)
+        # [NRES, 384] -> [NRES, 384]
+        act = self.initial_projection(act)
+        # [NRES, NRES, 192] -> [NRES, NRES, 192]
+        act_2d = self.pair_layer_norm(pair)
+        quaternion, rotation, translation = initial_affine(
+            self.seq_length)
         quaternion, rotation, translation = jax.tree_map(
-            lambda x: self._dtype(x), (quaternion, rotation, translation)
+            lambda x: self._dtype(
+                x), (quaternion, rotation, translation)
         )
 
-        ## check quaternion, rotation, translation shape
+        # check quaternion, rotation, translation shape
         # print('quaternion', quaternion.shape)
         # print('rotation', jax.tree_map(jnp.shape, rotation))
         # print('translation', jax.tree_map(jnp.shape, translation))
@@ -761,9 +797,11 @@ class FrameInitializer(nn.Module):
                     self.contextual_mask,
                 )
 
-            affine_init = affine_init + (affine_output[None, ...],)
+            affine_init = affine_init + \
+                (affine_output[None, ...],)
 
-        affine_output_new = jnp.concatenate(affine_init, axis=1)
+        affine_output_new = jnp.concatenate(
+            affine_init, axis=1)
         final_affines = affine_output_new[-1, :, :]
         single_act = act
 

@@ -32,6 +32,7 @@ for i, atoms in enumerate(atoms_list):
     energy = preds["energy"][i].item()
     forces = preds["forces"][batch.batch == i].cpu().numpy()
 
-    print(f"\nStructure #{i + 1}: {atoms.get_chemical_formula()}")
+    print(
+        f"\nStructure #{i + 1}: {atoms.get_chemical_formula()}")
     print("Predicted energy:", energy)
     print("Predicted forces:\n", forces)

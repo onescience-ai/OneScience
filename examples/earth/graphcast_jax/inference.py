@@ -5,7 +5,8 @@ import math
 from typing import Optional
 
 import cartopy.crs as ccrs  # 调用cartopy.crs模块，用于创建投影
-import cartopy.feature as cfeature  # 调用cartopy.feature模块，引入默认地理信息
+# 调用cartopy.feature模块，引入默认地理信息
+import cartopy.feature as cfeature
 import haiku as hk
 import jax
 import matplotlib
@@ -28,9 +29,12 @@ from onescience.flax_models.graphcast import (
 
 def argsparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pretrained", type=str, default="./", help="pretrained model")
-    parser.add_argument("--dataset", type=str, help="input data")
-    parser.add_argument("--mode", type=str, help="the ways of getting model params")
+    parser.add_argument(
+        "--pretrained", type=str, default="./", help="pretrained model")
+    parser.add_argument(
+        "--dataset", type=str, help="input data")
+    parser.add_argument(
+        "--mode", type=str, help="the ways of getting model params")
     parser.add_argument(
         "--var",
         type=str,
@@ -102,18 +106,21 @@ def plot_data(
 
     first_data = next(iter(data.values()))[0]
     max_steps = first_data.sizes.get("time", 1)
-    assert all(max_steps == d.sizes.get("time", 1) for d, _, _ in data.values())
+    assert all(max_steps == d.sizes.get("time", 1)
+               for d, _, _ in data.values())
 
     cols = min(cols, len(data))
     rows = math.ceil(len(data) / cols)
-    figure = plt.figure(figsize=(plot_size * 2 * cols, plot_size * rows))
+    figure = plt.figure(
+        figsize=(plot_size * 2 * cols, plot_size * rows))
     figure.suptitle(fig_title, fontsize=16)
     figure.subplots_adjust(wspace=0, hspace=0)
     figure.tight_layout()
 
     images = []
     for i, (title, (plot_data, norm, cmap)) in enumerate(data.items()):
-        ax = figure.add_subplot(rows, cols, i + 1, projection=ccrs.PlateCarree())
+        ax = figure.add_subplot(
+            rows, cols, i + 1, projection=ccrs.PlateCarree())
         ax.set_xticks([])
         ax.set_yticks([])
         ax.set_title(title)
@@ -122,9 +129,12 @@ def plot_data(
         ax.set_extent([73, 135, 18, 54])
 
         # 绘制中国地图的边界和其他地理特征
-        ax.add_feature(cfeature.LAND, edgecolor="black")  # 陆地
-        ax.add_feature(cfeature.COASTLINE, edgecolor="black")  # 海岸线
-        ax.add_feature(cfeature.BORDERS, edgecolor="gray")  # 国家边界
+        ax.add_feature(
+            cfeature.LAND, edgecolor="black")  # 陆地
+        ax.add_feature(cfeature.COASTLINE,
+                       edgecolor="black")  # 海岸线
+        ax.add_feature(cfeature.BORDERS,
+                       edgecolor="gray")  # 国家边界
         # ax.add_feature(cfeature.LAND, facecolor='lightgray')  # 填充陆地颜色
 
         im = ax.imshow(
@@ -155,11 +165,13 @@ def save_var_diff(
 
     data = {
         "Targets": scale(
-            select(eval_targets, plot_pred_variable, plot_pred_level, plot_max_steps),
+            select(eval_targets, plot_pred_variable,
+                   plot_pred_level, plot_max_steps),
             robust=True,
         ),
         "Predictions": scale(
-            select(predictions, plot_pred_variable, plot_pred_level, plot_max_steps),
+            select(predictions, plot_pred_variable,
+                   plot_pred_level, plot_max_steps),
             robust=True,
         ),
         "Diff": scale(
@@ -187,9 +199,11 @@ def data_valid_for_model(
     model_config: graphcast.ModelConfig,
     task_config: graphcast.TaskConfig,
 ):
-    file_parts = parse_file_parts(file_name.removesuffix(".nc"))
+    file_parts = parse_file_parts(
+        file_name.removesuffix(".nc"))
     return (
-        model_config.resolution in (0, float(file_parts["res"]))
+        model_config.resolution in (
+            0, float(file_parts["res"]))
         and len(task_config.pressure_levels) == int(file_parts["levels"])
         and (
             (
@@ -207,7 +221,8 @@ def data_valid_for_model(
 def load_data():
     # Load normalization data
     with open("./stats/stats_diffs_stddev_by_level.nc", "rb") as f:
-        diffs_stddev_by_level = xarray.load_dataset(f).compute()
+        diffs_stddev_by_level = xarray.load_dataset(
+            f).compute()
     with open("./stats/stats_mean_by_level.nc", "rb") as f:
         mean_by_level = xarray.load_dataset(f).compute()
     with open("./stats/stats_stddev_by_level.nc", "rb") as f:
@@ -221,7 +236,8 @@ def construct_wrapped_graphcast(
 ):
     """Constructs and wraps the GraphCast Predictor."""
     # Deeper one-step predictor.
-    predictor = graphcast.GraphCast(model_config, task_config)
+    predictor = graphcast.GraphCast(
+        model_config, task_config)
 
     # Modify inputs/outputs to `graphcast.GraphCast` to handle conversion to
     # from/to float32 to/from BFloat16.
@@ -239,23 +255,28 @@ def construct_wrapped_graphcast(
     )
 
     # Wraps everything so the one-step model can produce trajectories.
-    predictor = autoregressive.Predictor(predictor, gradient_checkpointing=True)
+    predictor = autoregressive.Predictor(
+        predictor, gradient_checkpointing=True)
     return predictor
 
 
 @hk.transform_with_state
 def run_forward(model_config, task_config, inputs, targets_template, forcings):
-    predictor = construct_wrapped_graphcast(model_config, task_config)
+    predictor = construct_wrapped_graphcast(
+        model_config, task_config)
     return predictor(inputs, targets_template=targets_template, forcings=forcings)
 
 
 @hk.transform_with_state
 def loss_fn(model_config, task_config, inputs, targets, forcings):
 
-    predictor = construct_wrapped_graphcast(model_config, task_config)
-    loss, diagnostics = predictor.loss(inputs, targets, forcings)
+    predictor = construct_wrapped_graphcast(
+        model_config, task_config)
+    loss, diagnostics = predictor.loss(
+        inputs, targets, forcings)
     return xarray_tree.map_structure(
-        lambda x: xarray_jax.unwrap_data(x.mean(), require_jax=True),
+        lambda x: xarray_jax.unwrap_data(
+            x.mean(), require_jax=True),
         (loss, diagnostics),
     )
 
@@ -264,7 +285,8 @@ def grads_fn(params, state, model_config, task_config, inputs, targets, forcings
 
     def _aux(params, state, i, t, f):
         (loss, diagnostics), next_state = loss_fn.apply(
-            params, state, jax.random.PRNGKey(0), model_config, task_config, i, t, f
+            params, state, jax.random.PRNGKey(
+                0), model_config, task_config, i, t, f
         )
         return loss, (diagnostics, next_state)
 
@@ -314,7 +336,8 @@ def main():
 
         model_config = ckpt.model_config
         task_config = ckpt.task_config
-        print("Model description:\n", ckpt.description, "\n")
+        print("Model description:\n",
+              ckpt.description, "\n")
         print("Model license:\n", ckpt.license, "\n")
         print(model_config)
         print(task_config)
@@ -324,7 +347,8 @@ def main():
     with open(dataset_file, "rb") as f:
         example_batch = xarray.load_dataset(f).compute()
         # example_batch = xarray.concat([example_batch,example_batch,example_batch,example_batch], dim="batch")
-    assert example_batch.sizes["time"] >= 3  # 2 for input, >=1 for targets
+    # 2 for input, >=1 for targets
+    assert example_batch.sizes["time"] >= 3
     print(
         ", ".join(
             [
@@ -376,9 +400,11 @@ def main():
             forcings=train_forcings,
         )
 
-    drop_state(with_params(jax.jit(with_configs(loss_fn.apply))))
+    drop_state(with_params(
+        jax.jit(with_configs(loss_fn.apply))))
     with_params(jax.jit(with_configs(grads_fn)))
-    run_forward_jitted = drop_state(with_params(with_configs(run_forward.apply)))
+    run_forward_jitted = drop_state(
+        with_params(with_configs(run_forward.apply)))
 
     # Autoregressive rollout (loop in python)
     assert model_config.resolution in (0, 360.0 / eval_inputs.sizes["lon"]), (
@@ -407,7 +433,8 @@ def main():
         lat=slice(lat_min, lat_max), lon=slice(lon_min, lon_max)
     )
     # 推理结果可视化
-    save_var_diff(china_eval, china_predictions, FLAGS.var, FLAGS.level)
+    save_var_diff(china_eval, china_predictions,
+                  FLAGS.var, FLAGS.level)
     print(
         "----------------------------graphcast inference results----------------------------"
     )

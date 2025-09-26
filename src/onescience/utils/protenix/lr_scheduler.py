@@ -32,7 +32,8 @@ class CosineAnnealingWithWarmup(LRScheduler):
                 self.decay_steps - self.warmup_steps
             )
             assert 0 <= decay_ratio <= 1
-            coff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
+            coff = 0.5 * \
+                (1.0 + math.cos(math.pi * decay_ratio))
             return self.min_lr + coff * (self.lr - self.min_lr)
 
     def get_lr(self):
@@ -128,5 +129,6 @@ def get_lr_scheduler(
             **kwargs,
         )
     else:
-        raise ValueError(f"Invalid lr scheduler: [{configs.lr_scheduler}]")
+        raise ValueError(
+            f"Invalid lr scheduler: [{configs.lr_scheduler}]")
     return lr_scheduler

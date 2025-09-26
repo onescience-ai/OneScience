@@ -53,7 +53,8 @@ def multimer_square_euclidean_distance(v1, v2, epsilon=1e-5):
 
 def multimer_vecs_robust_norm(v, epsilon=1e-5):
     """multime computes norm of vectors 'v'."""
-    v_l2_norm = v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + epsilon
+    v_l2_norm = v[0] * v[0] + v[1] * \
+        v[1] + v[2] * v[2] + epsilon
     # if epsilon:
     # v_l2_norm = jnp.maximum(v_l2_norm, epsilon**2)
     return jnp.sqrt(v_l2_norm)
@@ -73,7 +74,8 @@ def multimer_rots_from_two_vecs(e0_unnormalized, e1_unnormalized):
     e1 = multimer_vecs_robust_normalize(e1)
     e2 = vecs_cross_vecs(e0, e1)
 
-    rots = (e0[0], e1[0], e2[0], e0[1], e1[1], e2[1], e0[2], e1[2], e2[2])
+    rots = (e0[0], e1[0], e2[0], e0[1],
+            e1[1], e2[1], e0[2], e1[2], e2[2])
     return rots
 
 
@@ -89,13 +91,15 @@ def multimer_rigids_from_3_points(vec_a, vec_b, vec_c):
 def multimer_rigids_get_unit_vector(point_a, point_b, point_c):
     """multimer_rigids_get_unit_vector."""
     rigid = multimer_rigids_from_3_points(
-        vecs_from_tensor(point_a), vecs_from_tensor(point_b), vecs_from_tensor(point_c)
+        vecs_from_tensor(point_a), vecs_from_tensor(
+            point_b), vecs_from_tensor(point_c)
     )
     rot, trans = rigid
     rotation = rots_expand_dims(rot, -1)
     translation = vecs_expand_dims(trans, -1)
     inv_rigid = invert_rigids((rotation, translation))
-    rigid_vec = rigids_mul_vecs(inv_rigid, vecs_expand_dims(trans, -2))
+    rigid_vec = rigids_mul_vecs(
+        inv_rigid, vecs_expand_dims(trans, -2))
     unit_vector = multimer_vecs_robust_normalize(rigid_vec)
     return unit_vector
 
@@ -164,11 +168,15 @@ class MultimerInvariantPointAttention(nn.Module):
             shape=(12,),
             dtype=jnp.float32,
         )
-        self.attention_2d = nn.Dense(self.num_head, kernel_init=lecun_normal())
-        self.output_projection = nn.Dense(self.num_channel, kernel_init=zeros_init())
+        self.attention_2d = nn.Dense(
+            self.num_head, kernel_init=lecun_normal())
+        self.output_projection = nn.Dense(
+            self.num_channel, kernel_init=zeros_init())
 
-        self.point_weights = jnp.sqrt(1.0 / (max(self.num_point_qk, 1) * 9.0 / 2))
-        self.scalar_weights = jnp.sqrt(1.0 / (max(self.num_scalar_qk, 1) * 1.0))
+        self.point_weights = jnp.sqrt(
+            1.0 / (max(self.num_point_qk, 1) * 9.0 / 2))
+        self.scalar_weights = jnp.sqrt(
+            1.0 / (max(self.num_scalar_qk, 1) * 1.0))
 
     def __call__(self, inputs_1d, inputs_2d, mask, rotation, translation):
         """Compute geometry-aware attention.
@@ -193,13 +201,15 @@ class MultimerInvariantPointAttention(nn.Module):
         point_weights = self.point_weights
 
         trainable_point_weights = jnp.logaddexp(
-            self.trainable_point_weights, jnp.zeros_like(self.trainable_point_weights)
+            self.trainable_point_weights, jnp.zeros_like(
+                self.trainable_point_weights)
         )
         point_weights = point_weights * trainable_point_weights
 
         q_point_local = self.q_point_local(inputs_1d)
         q_point_local = jnp.reshape(
-            q_point_local, (num_residues, num_head, num_point_qk * 3)
+            q_point_local, (num_residues,
+                            num_head, num_point_qk * 3)
         )
         q_point_local = jnp.split(q_point_local, 3, axis=-1)
         q_point_local = (
@@ -208,7 +218,8 @@ class MultimerInvariantPointAttention(nn.Module):
             jnp.squeeze(q_point_local[2]),
         )
         # Project query points into global frame.
-        q_point_global = apply_to_point(rotation, translation, q_point_local, 2)
+        q_point_global = apply_to_point(
+            rotation, translation, q_point_local, 2)
         q_point = [
             q_point_global[0][:, None, :, :],
             q_point_global[1][:, None, :, :],
@@ -217,7 +228,8 @@ class MultimerInvariantPointAttention(nn.Module):
 
         k_point_local = self.k_point_local(inputs_1d)
         k_point_local = jnp.reshape(
-            k_point_local, (num_residues, num_head, num_point_qk * 3)
+            k_point_local, (num_residues,
+                            num_head, num_point_qk * 3)
         )
         k_point_local = jnp.split(k_point_local, 3, axis=-1)
         k_point_local = (
@@ -227,33 +239,41 @@ class MultimerInvariantPointAttention(nn.Module):
         )
 
         # Project query points into global frame.
-        k_point_global = apply_to_point(rotation, translation, k_point_local, 2)
+        k_point_global = apply_to_point(
+            rotation, translation, k_point_local, 2)
         k_point = [
             k_point_global[0][None, :, :, :],
             k_point_global[1][None, :, :, :],
             k_point_global[2][None, :, :, :],
         ]
 
-        dist2 = multimer_square_euclidean_distance(q_point, k_point, epsilon=0.0)
+        dist2 = multimer_square_euclidean_distance(
+            q_point, k_point, epsilon=0.0)
 
-        attn_qk_point = -0.5 * jnp.sum(point_weights[:, None] * dist2, axis=-1)
+        attn_qk_point = -0.5 * \
+            jnp.sum(point_weights[:, None] * dist2, axis=-1)
         attn_logits += attn_qk_point
 
         num_scalar_qk = self.num_scalar_qk
 
         scalar_weights = self.scalar_weights
         q_scalar = self.q_scalar(inputs_1d)
-        q_scalar = jnp.reshape(q_scalar, [num_residues, num_head, num_scalar_qk])
+        q_scalar = jnp.reshape(
+            q_scalar, [num_residues, num_head, num_scalar_qk])
 
         k_scalar = self.k_scalar(inputs_1d)
-        k_scalar = jnp.reshape(k_scalar, [num_residues, num_head, num_scalar_qk])
+        k_scalar = jnp.reshape(
+            k_scalar, [num_residues, num_head, num_scalar_qk])
 
         q_scalar *= scalar_weights
         q = jnp.swapaxes(q_scalar, -2, -3)
         k = jnp.swapaxes(k_scalar, -2, -3)
-        attn_qk_scalar = jnp.matmul(q, jnp.swapaxes(k, -2, -1))
-        attn_qk_scalar = jnp.swapaxes(attn_qk_scalar, -2, -3)
-        attn_qk_scalar = jnp.swapaxes(attn_qk_scalar, -2, -1)
+        attn_qk_scalar = jnp.matmul(
+            q, jnp.swapaxes(k, -2, -1))
+        attn_qk_scalar = jnp.swapaxes(
+            attn_qk_scalar, -2, -3)
+        attn_qk_scalar = jnp.swapaxes(
+            attn_qk_scalar, -2, -1)
         attn_logits += attn_qk_scalar
 
         attention_2d = self.attention_2d(inputs_2d)
@@ -266,18 +286,21 @@ class MultimerInvariantPointAttention(nn.Module):
 
         num_scalar_v = self.num_scalar_v
         v_scalar = self.v_scalar(inputs_1d)
-        v_scalar = jnp.reshape(v_scalar, [num_residues, num_head, num_scalar_v])
+        v_scalar = jnp.reshape(
+            v_scalar, [num_residues, num_head, num_scalar_v])
 
         attn_tmp = jnp.swapaxes(attn, -1, -2)
         attn_tmp = jnp.swapaxes(attn_tmp, -2, -3)
-        result_scalar = jnp.matmul(attn_tmp, jnp.swapaxes(v_scalar, -2, -3))
+        result_scalar = jnp.matmul(
+            attn_tmp, jnp.swapaxes(v_scalar, -2, -3))
         result_scalar = jnp.swapaxes(result_scalar, -2, -3)
 
         num_point_v = self.num_point_v
 
         v_point_local = self.v_point_local(inputs_1d)
         v_point_local = jnp.reshape(
-            v_point_local, (num_residues, num_head, num_point_v * 3)
+            v_point_local, (num_residues,
+                            num_head, num_point_v * 3)
         )
         v_point_local = jnp.split(v_point_local, 3, axis=-1)
         v_point_local = (
@@ -286,7 +309,8 @@ class MultimerInvariantPointAttention(nn.Module):
             jnp.squeeze(v_point_local[2]),
         )
         # Project query points into global frame.
-        v_point_global = apply_to_point(rotation, translation, v_point_local, 2)
+        v_point_global = apply_to_point(
+            rotation, translation, v_point_local, 2)
         v_point = [
             v_point_global[0][None],
             v_point_global[1][None],
@@ -301,25 +325,33 @@ class MultimerInvariantPointAttention(nn.Module):
 
         num_query_residues, _ = inputs_1d.shape
 
-        result_scalar = jnp.reshape(result_scalar, [num_query_residues, -1])
+        result_scalar = jnp.reshape(
+            result_scalar, [num_query_residues, -1])
 
         output_feature1 = result_scalar
 
         result_point_global = [
-            jnp.reshape(result_point_global[0], [num_query_residues, -1]),
-            jnp.reshape(result_point_global[1], [num_query_residues, -1]),
-            jnp.reshape(result_point_global[2], [num_query_residues, -1]),
+            jnp.reshape(result_point_global[0], [
+                        num_query_residues, -1]),
+            jnp.reshape(result_point_global[1], [
+                        num_query_residues, -1]),
+            jnp.reshape(result_point_global[2], [
+                        num_query_residues, -1]),
         ]
-        result_point_local = invert_point(result_point_global, rotation, translation, 1)
+        result_point_local = invert_point(
+            result_point_global, rotation, translation, 1)
         output_feature20 = result_point_local[0]
         output_feature21 = result_point_local[1]
         output_feature22 = result_point_local[2]
-        point_norms = multimer_vecs_robust_norm(result_point_local, self._dist_epsilon)
+        point_norms = multimer_vecs_robust_norm(
+            result_point_local, self._dist_epsilon)
         output_feature3 = point_norms
 
-        result_attention_over_2d = jnp.matmul(jnp.swapaxes(attn, 1, 2), inputs_2d)
+        result_attention_over_2d = jnp.matmul(
+            jnp.swapaxes(attn, 1, 2), inputs_2d)
         output_feature4 = jnp.reshape(
-            result_attention_over_2d, [num_query_residues, -1]
+            result_attention_over_2d, [
+                num_query_residues, -1]
         )
         final_act = jnp.concatenate(
             [

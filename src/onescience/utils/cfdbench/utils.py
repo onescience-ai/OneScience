@@ -36,9 +36,11 @@ def plot_predictions(
     pred: Tensor,
     out_dir: Path,
     step: int,
-    inp: Optional[Tensor] = None,  # non-autoregressive input func. is not plottable.
+    # non-autoregressive input func. is not plottable.
+    inp: Optional[Tensor] = None,
 ):
-    assert all([isinstance(x, Tensor) for x in [label, pred]])
+    assert all([isinstance(x, Tensor)
+               for x in [label, pred]])
     assert label.shape == pred.shape, f"{label.shape}, {pred.shape}"
 
     if inp is not None:
@@ -75,20 +77,25 @@ def plot_predictions(
         plt.clf()
 
     plt.axis("off")
-    plt.imshow(label_arr, vmin=label_arr.min(), vmax=label_arr.max(), cmap="coolwarm")
+    plt.imshow(label_arr, vmin=label_arr.min(),
+               vmax=label_arr.max(), cmap="coolwarm")
     plt.gca().set_aspect("auto")  # 设置 x 和 y 轴比例不相等
-    plt.savefig(label_dir / f"{step:04}.png", bbox_inches="tight", pad_inches=0)
+    plt.savefig(
+        label_dir / f"{step:04}.png", bbox_inches="tight", pad_inches=0)
     plt.clf()
 
     plt.axis("off")
-    plt.imshow(pred_arr, vmin=pred_arr.min(), vmax=pred_arr.max(), cmap="coolwarm")
+    plt.imshow(pred_arr, vmin=pred_arr.min(),
+               vmax=pred_arr.max(), cmap="coolwarm")
     plt.gca().set_aspect("auto")  # 设置 x 和 y 轴比例不相等
-    plt.savefig(pred_dir / f"{step:04}.png", bbox_inches="tight", pad_inches=0)
+    plt.savefig(pred_dir / f"{step:04}.png",
+                bbox_inches="tight", pad_inches=0)
     plt.clf()
 
 
 def plot(inp: Tensor, label: Tensor, pred: Tensor, out_path: Path):
-    assert all([isinstance(x, Tensor) for x in [inp, label, pred]])
+    assert all([isinstance(x, Tensor)
+               for x in [inp, label, pred]])
     assert (
         inp.shape == label.shape == pred.shape
     ), f"{inp.shape}, {label.shape}, {pred.shape}"
@@ -99,8 +106,10 @@ def plot(inp: Tensor, label: Tensor, pred: Tensor, out_path: Path):
     torch.save((inp, label, pred), tensor_path)
 
     # Create a figure with 6 subplots
-    fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(10, 5))
-    plt.subplots_adjust(left=0.0, right=1, bottom=0.0, top=1, wspace=0, hspace=0)
+    fig, axs = plt.subplots(
+        nrows=1, ncols=3, figsize=(10, 5))
+    plt.subplots_adjust(
+        left=0.0, right=1, bottom=0.0, top=1, wspace=0, hspace=0)
     # [left, bottom, width, height]
     # cbar_ax = fig.add_axes([0.92, 0.15, 0.01, 0.7])
 
@@ -111,14 +120,17 @@ def plot(inp: Tensor, label: Tensor, pred: Tensor, out_path: Path):
     inp_arr = inp.cpu().detach().numpy()
     pred_arr = pred.cpu().detach().numpy()
     label_arr = label.cpu().detach().numpy()
-    u_min = min(inp_arr.min(), pred_arr.min(), label_arr.min())
-    u_max = max(inp_arr.max(), pred_arr.max(), label_arr.max())
+    u_min = min(inp_arr.min(), pred_arr.min(),
+                label_arr.min())
+    u_max = max(inp_arr.max(), pred_arr.max(),
+                label_arr.max())
 
     def sub_plot(idx, data: np.ndarray, title):
         nonlocal last_im
         ax = axs[idx - 1]
         ax.set_axis_off()
-        im = ax.imshow(data, vmin=u_min, vmax=u_max, cmap="coolwarm")
+        im = ax.imshow(data, vmin=u_min,
+                       vmax=u_max, cmap="coolwarm")
         # fig.colorbar(im, ax=ax)
         # ax.set_title(title)
         last_im = im
@@ -129,7 +141,8 @@ def plot(inp: Tensor, label: Tensor, pred: Tensor, out_path: Path):
     sub_plot(3, pred_arr, "Prediction")
 
     fig.subplots_adjust(right=0.88)
-    cbar_ax = fig.add_axes([0.90, 0.25, 0.02, 0.5])  # type: ignore
+    cbar_ax = fig.add_axes(
+        [0.90, 0.25, 0.02, 0.5])  # type: ignore
     fig.colorbar(last_im, cax=cbar_ax)  # type: ignore
     # # Add a common colorbar
     # fig.colorbar(last_im, cax=cbar_ax)
@@ -168,7 +181,8 @@ def get_best_ckpt(output_dir: Path) -> Union[Path, None]:
 
 def load_ckpt(model, ckpt_path: Path) -> None:
     print(f"Loading checkpoint from {ckpt_path}")
-    model.load_state_dict(torch.load(ckpt_path, map_location="cpu", weights_only=True))
+    model.load_state_dict(torch.load(
+        ckpt_path, map_location="cpu", weights_only=True))
 
 
 def get_output_dir(args: Args, is_auto: bool = False) -> Path:

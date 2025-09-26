@@ -38,7 +38,8 @@ ALPHAFOLDSERVER_JSON_VERSION: Final[int] = 1
 def _validate_keys(actual: Collection[str], expected: Collection[str]):
     """Validates that the JSON doesn't contain any extra unwanted keys."""
     if bad_keys := set(actual) - set(expected):
-        raise ValueError(f'Unexpected JSON keys in: {", ".join(sorted(bad_keys))}')
+        raise ValueError(
+            f'Unexpected JSON keys in: {", ".join(sorted(bad_keys))}')
 
 
 def _read_file(path: pathlib.Path, json_path: pathlib.Path | None) -> str:
@@ -54,7 +55,8 @@ def _read_file(path: pathlib.Path, json_path: pathlib.Path | None) -> str:
     """
     if not path.is_absolute():
         if json_path is None:
-            raise ValueError("json_path must be specified if path is not absolute.")
+            raise ValueError(
+                "json_path must be specified if path is not absolute.")
         path = (json_path.parent / path).resolve()
 
     with open(path, "rb") as f:
@@ -91,7 +93,8 @@ class Template:
         """
         self._mmcif = mmcif
         # Needed to make the Template class hashable.
-        self._query_to_template = tuple(query_to_template_map.items())
+        self._query_to_template = tuple(
+            query_to_template_map.items())
 
     @property
     def query_to_template_map(self) -> Mapping[int, int]:
@@ -106,7 +109,8 @@ class Template:
 
     def __eq__(self, other: Self) -> bool:
         mmcifs_equal = self._mmcif == other._mmcif
-        maps_equal = sorted(self._query_to_template) == sorted(other._query_to_template)
+        maps_equal = sorted(self._query_to_template) == sorted(
+            other._query_to_template)
         return mmcifs_equal and maps_equal
 
 
@@ -154,9 +158,11 @@ class ProteinChain:
             featurisation. The list can be empty or contain up to 20 templates.
         """
         if not all(res.isalpha() for res in sequence):
-            raise ValueError(f'Protein must contain only letters, got "{sequence}"')
+            raise ValueError(
+                f'Protein must contain only letters, got "{sequence}"')
         if any(not 0 < mod[1] <= len(sequence) for mod in ptms):
-            raise ValueError(f"Invalid protein modification index: {ptms}")
+            raise ValueError(
+                f"Invalid protein modification index: {ptms}")
         if any(mod[0].startswith("CCD_") for mod in ptms):
             raise ValueError(
                 f'Protein ptms must not contain the "CCD_" prefix, got {ptms}'
@@ -167,7 +173,8 @@ class ProteinChain:
         self._ptms = tuple(ptms)
         self._paired_msa = paired_msa
         self._unpaired_msa = unpaired_msa
-        self._templates = tuple(templates) if templates is not None else None
+        self._templates = tuple(
+            templates) if templates is not None else None
 
     @property
     def id(self) -> str:
@@ -181,7 +188,8 @@ class ProteinChain:
         """
         return "".join(
             [
-                residue_names.letters_three_to_one(r, default="X")
+                residue_names.letters_three_to_one(
+                    r, default="X")
                 for r in self.to_ccd_sequence()
             ]
         )
@@ -269,12 +277,14 @@ class ProteinChain:
                 " format is not supported, use the --max_template_date flag instead."
             )
 
-        templates = None  # Search for templates unless explicitly disabled.
+        # Search for templates unless explicitly disabled.
+        templates = None
         if not json_dict.get("useStructureTemplate", True):
             templates = []  # Do not use any templates.
 
         ptms = [
-            (mod["ptmType"].removeprefix("CCD_"), mod["ptmPosition"])
+            (mod["ptmType"].removeprefix(
+                "CCD_"), mod["ptmPosition"])
             for mod in json_dict.get("modifications", [])
         ]
         return cls(id=seq_id, sequence=sequence, ptms=ptms, templates=templates)
@@ -309,24 +319,31 @@ class ProteinChain:
         ]
 
         unpaired_msa = json_dict.get("unpairedMsa", None)
-        unpaired_msa_path = json_dict.get("unpairedMsaPath", None)
+        unpaired_msa_path = json_dict.get(
+            "unpairedMsaPath", None)
         if unpaired_msa and unpaired_msa_path:
-            raise ValueError("Only one of unpairedMsa/unpairedMsaPath can be set.")
+            raise ValueError(
+                "Only one of unpairedMsa/unpairedMsaPath can be set.")
         if unpaired_msa and len(unpaired_msa) < 256 and os.path.exists(unpaired_msa):
             raise ValueError(
                 'Set the unpaired MSA path using the "unpairedMsaPath" field.'
             )
         elif unpaired_msa_path:
-            unpaired_msa = _read_file(pathlib.Path(unpaired_msa_path), json_path)
+            unpaired_msa = _read_file(
+                pathlib.Path(unpaired_msa_path), json_path)
 
         paired_msa = json_dict.get("pairedMsa", None)
-        paired_msa_path = json_dict.get("pairedMsaPath", None)
+        paired_msa_path = json_dict.get(
+            "pairedMsaPath", None)
         if paired_msa and paired_msa_path:
-            raise ValueError("Only one of pairedMsa/pairedMsaPath can be set.")
+            raise ValueError(
+                "Only one of pairedMsa/pairedMsaPath can be set.")
         if paired_msa and len(paired_msa) < 256 and os.path.exists(paired_msa):
-            raise ValueError('Set the paired MSA path using the "pairedMsaPath" field.')
+            raise ValueError(
+                'Set the paired MSA path using the "pairedMsaPath" field.')
         elif paired_msa_path:
-            paired_msa = _read_file(pathlib.Path(paired_msa_path), json_path)
+            paired_msa = _read_file(
+                pathlib.Path(paired_msa_path), json_path)
 
         raw_templates = json_dict.get("templates", None)
 
@@ -336,20 +353,25 @@ class ProteinChain:
             templates = []
             for raw_template in raw_templates:
                 mmcif = raw_template.get("mmcif", None)
-                mmcif_path = raw_template.get("mmcifPath", None)
+                mmcif_path = raw_template.get(
+                    "mmcifPath", None)
                 if mmcif and mmcif_path:
-                    raise ValueError("Only one of mmcif/mmcifPath can be set.")
+                    raise ValueError(
+                        "Only one of mmcif/mmcifPath can be set.")
                 if mmcif and len(mmcif) < 256 and os.path.exists(mmcif):
                     raise ValueError(
                         'Set the template path using the "mmcifPath" field.'
                     )
                 if mmcif_path:
-                    mmcif = _read_file(pathlib.Path(mmcif_path), json_path)
+                    mmcif = _read_file(
+                        pathlib.Path(mmcif_path), json_path)
                 query_to_template_map = dict(
-                    zip(raw_template["queryIndices"], raw_template["templateIndices"])
+                    zip(raw_template["queryIndices"],
+                        raw_template["templateIndices"])
                 )
                 templates.append(
-                    Template(mmcif=mmcif, query_to_template_map=query_to_template_map)
+                    Template(
+                        mmcif=mmcif, query_to_template_map=query_to_template_map)
                 )
 
         return cls(
@@ -373,7 +395,8 @@ class ProteinChain:
                     "mmcif": template.mmcif,
                     "queryIndices": list(template.query_to_template_map.keys()),
                     "templateIndices": (
-                        list(template.query_to_template_map.values()) or None
+                        list(
+                            template.query_to_template_map.values()) or None
                     ),
                 }
                 for template in self._templates
@@ -393,7 +416,8 @@ class ProteinChain:
     def to_ccd_sequence(self) -> Sequence[str]:
         """Converts to a sequence of CCD codes."""
         ccd_coded_seq = [
-            residue_names.PROTEIN_COMMON_ONE_TO_THREE.get(res, residue_names.UNK)
+            residue_names.PROTEIN_COMMON_ONE_TO_THREE.get(
+                res, residue_names.UNK)
             for res in self._sequence
         ]
         for ptm_code, ptm_index in self._ptms:
@@ -415,7 +439,8 @@ class ProteinChain:
 class RnaChain:
     """RNA chain input."""
 
-    __slots__ = ("_id", "_sequence", "_modifications", "_unpaired_msa")
+    __slots__ = ("_id", "_sequence",
+                 "_modifications", "_unpaired_msa")
 
     def __init__(
         self,
@@ -439,9 +464,11 @@ class RnaChain:
             MSA with no sequences.
         """
         if not all(res.isalpha() for res in sequence):
-            raise ValueError(f'RNA must contain only letters, got "{sequence}"')
+            raise ValueError(
+                f'RNA must contain only letters, got "{sequence}"')
         if any(not 0 < mod[1] <= len(sequence) for mod in modifications):
-            raise ValueError(f"Invalid RNA modification index: {modifications}")
+            raise ValueError(
+                f"Invalid RNA modification index: {modifications}")
         if any(mod[0].startswith("CCD_") for mod in modifications):
             raise ValueError(
                 'RNA modifications must not contain the "CCD_" prefix, got'
@@ -465,7 +492,8 @@ class RnaChain:
         """
         return "".join(
             [
-                residue_names.letters_three_to_one(r, default="N")
+                residue_names.letters_three_to_one(
+                    r, default="N")
                 for r in self.to_ccd_sequence()
             ]
         )
@@ -501,10 +529,12 @@ class RnaChain:
         cls, json_dict: Mapping[str, Any], seq_id: str
     ) -> Self:
         """Constructs RnaChain from the AlphaFoldServer JSON dict."""
-        _validate_keys(json_dict.keys(), {"sequence", "modifications", "count"})
+        _validate_keys(json_dict.keys(), {
+                       "sequence", "modifications", "count"})
         sequence = json_dict["sequence"]
         modifications = [
-            (mod["modificationType"].removeprefix("CCD_"), mod["basePosition"])
+            (mod["modificationType"].removeprefix(
+                "CCD_"), mod["basePosition"])
             for mod in json_dict.get("modifications", [])
         ]
         return cls(id=seq_id, sequence=sequence, modifications=modifications)
@@ -520,7 +550,8 @@ class RnaChain:
         json_dict = json_dict["rna"]
         _validate_keys(
             json_dict.keys(),
-            {"id", "sequence", "unpairedMsa", "unpairedMsaPath", "modifications"},
+            {"id", "sequence", "unpairedMsa",
+                "unpairedMsaPath", "modifications"},
         )
         sequence = json_dict["sequence"]
         modifications = [
@@ -529,15 +560,18 @@ class RnaChain:
         ]
 
         unpaired_msa = json_dict.get("unpairedMsa", None)
-        unpaired_msa_path = json_dict.get("unpairedMsaPath", None)
+        unpaired_msa_path = json_dict.get(
+            "unpairedMsaPath", None)
         if unpaired_msa and unpaired_msa_path:
-            raise ValueError("Only one of unpairedMsa/unpairedMsaPath can be set.")
+            raise ValueError(
+                "Only one of unpairedMsa/unpairedMsaPath can be set.")
         if unpaired_msa and len(unpaired_msa) < 256 and os.path.exists(unpaired_msa):
             raise ValueError(
                 'Set the unpaired MSA path using the "unpairedMsaPath" field.'
             )
         elif unpaired_msa_path:
-            unpaired_msa = _read_file(pathlib.Path(unpaired_msa_path), json_path)
+            unpaired_msa = _read_file(
+                pathlib.Path(unpaired_msa_path), json_path)
 
         return cls(
             id=seq_id or json_dict["id"],
@@ -554,7 +588,8 @@ class RnaChain:
             "id": seq_id or self._id,
             "sequence": self._sequence,
             "modifications": [
-                {"modificationType": mod[0], "basePosition": mod[1]}
+                {"modificationType": mod[0],
+                    "basePosition": mod[1]}
                 for mod in self._modifications
             ],
             "unpairedMsa": self._unpaired_msa,
@@ -563,7 +598,8 @@ class RnaChain:
 
     def to_ccd_sequence(self) -> Sequence[str]:
         """Converts to a sequence of CCD codes."""
-        mapping = {r: r for r in residue_names.RNA_TYPES}  # Same 1-letter and CCD.
+        mapping = {
+            r: r for r in residue_names.RNA_TYPES}  # Same 1-letter and CCD.
         ccd_coded_seq = [
             mapping.get(res, residue_names.UNK_RNA) for res in self._sequence
         ]
@@ -602,9 +638,11 @@ class DnaChain:
             (1-based) residue index where the modification is applied.
         """
         if not all(res.isalpha() for res in sequence):
-            raise ValueError(f'DNA must contain only letters, got "{sequence}"')
+            raise ValueError(
+                f'DNA must contain only letters, got "{sequence}"')
         if any(not 0 < mod[1] <= len(sequence) for mod in modifications):
-            raise ValueError(f"Invalid DNA modification index: {modifications}")
+            raise ValueError(
+                f"Invalid DNA modification index: {modifications}")
         if any(mod[0].startswith("CCD_") for mod in modifications):
             raise ValueError(
                 'DNA modifications must not contain the "CCD_" prefix, got'
@@ -627,7 +665,8 @@ class DnaChain:
         """
         return "".join(
             [
-                residue_names.letters_three_to_one(r, default="N")
+                residue_names.letters_three_to_one(
+                    r, default="N")
                 for r in self.to_ccd_sequence()
             ]
         )
@@ -657,10 +696,12 @@ class DnaChain:
         cls, json_dict: Mapping[str, Any], seq_id: str
     ) -> Self:
         """Constructs DnaChain from the AlphaFoldServer JSON dict."""
-        _validate_keys(json_dict.keys(), {"sequence", "modifications", "count"})
+        _validate_keys(json_dict.keys(), {
+                       "sequence", "modifications", "count"})
         sequence = json_dict["sequence"]
         modifications = [
-            (mod["modificationType"].removeprefix("CCD_"), mod["basePosition"])
+            (mod["modificationType"].removeprefix(
+                "CCD_"), mod["basePosition"])
             for mod in json_dict.get("modifications", [])
         ]
         return cls(id=seq_id, sequence=sequence, modifications=modifications)
@@ -669,7 +710,8 @@ class DnaChain:
     def from_dict(cls, json_dict: Mapping[str, Any], seq_id: str | None = None) -> Self:
         """Constructs DnaChain from the AlphaFold JSON dict."""
         json_dict = json_dict["dna"]
-        _validate_keys(json_dict.keys(), {"id", "sequence", "modifications"})
+        _validate_keys(json_dict.keys(), {
+                       "id", "sequence", "modifications"})
         sequence = json_dict["sequence"]
         modifications = [
             (mod["modificationType"], mod["basePosition"])
@@ -689,7 +731,8 @@ class DnaChain:
             "id": seq_id or self._id,
             "sequence": self._sequence,
             "modifications": [
-                {"modificationType": mod[0], "basePosition": mod[1]}
+                {"modificationType": mod[0],
+                    "basePosition": mod[1]}
                 for mod in self._modifications
             ],
         }
@@ -698,7 +741,8 @@ class DnaChain:
     def to_ccd_sequence(self) -> Sequence[str]:
         """Converts to a sequence of CCD codes."""
         ccd_coded_seq = [
-            residue_names.DNA_COMMON_ONE_TO_TWO.get(res, residue_names.UNK_DNA)
+            residue_names.DNA_COMMON_ONE_TO_TWO.get(
+                res, residue_names.UNK_DNA)
             for res in self._sequence
         ]
         for ccd_code, modification_index in self._modifications:
@@ -726,16 +770,19 @@ class Ligand:
 
     def __post_init__(self):
         if (self.ccd_ids is None) == (self.smiles is None):
-            raise ValueError("Ligand must have one of CCD ID or SMILES set.")
+            raise ValueError(
+                "Ligand must have one of CCD ID or SMILES set.")
 
         if self.smiles is not None:
             mol = rd_chem.MolFromSmiles(self.smiles)
             if not mol:
-                raise ValueError(f"Unable to make RDKit Mol from SMILES: {self.smiles}")
+                raise ValueError(
+                    f"Unable to make RDKit Mol from SMILES: {self.smiles}")
 
         # Use hashable types for ccd_ids.
         if self.ccd_ids is not None:
-            object.__setattr__(self, "ccd_ids", tuple(self.ccd_ids))
+            object.__setattr__(
+                self, "ccd_ids", tuple(self.ccd_ids))
 
     def __len__(self) -> int:
         if self.ccd_ids is not None:
@@ -753,19 +800,22 @@ class Ligand:
     ) -> Self:
         """Constructs Ligand from the AlphaFoldServer JSON dict."""
         # Ligand can be specified either as a ligand, or ion (special-case).
-        _validate_keys(json_dict.keys(), {"ligand", "ion", "count"})
+        _validate_keys(json_dict.keys(), {
+                       "ligand", "ion", "count"})
         if "ligand" in json_dict:
             return cls(id=seq_id, ccd_ids=[json_dict["ligand"].removeprefix("CCD_")])
         elif "ion" in json_dict:
             return cls(id=seq_id, ccd_ids=[json_dict["ion"]])
         else:
-            raise ValueError(f"Unknown ligand type: {json_dict}")
+            raise ValueError(
+                f"Unknown ligand type: {json_dict}")
 
     @classmethod
     def from_dict(cls, json_dict: Mapping[str, Any], seq_id: str | None = None) -> Self:
         """Constructs Ligand from the AlphaFold JSON dict."""
         json_dict = json_dict["ligand"]
-        _validate_keys(json_dict.keys(), {"id", "ccdCodes", "smiles"})
+        _validate_keys(json_dict.keys(), {
+                       "id", "ccdCodes", "smiles"})
         if json_dict.get("ccdCodes") and json_dict.get("smiles"):
             raise ValueError(
                 "Ligand cannot have both CCD code and SMILES set at the same time, "
@@ -777,7 +827,8 @@ class Ligand:
         elif "smiles" in json_dict:
             return cls(id=seq_id or json_dict["id"], smiles=json_dict["smiles"])
         else:
-            raise ValueError(f"Unknown ligand type: {json_dict}")
+            raise ValueError(
+                f"Unknown ligand type: {json_dict}")
 
     def to_dict(
         self, seq_id: str | Sequence[str] | None = None
@@ -851,14 +902,17 @@ class Input:
     """
 
     name: str
-    chains: Sequence[ProteinChain | RnaChain | DnaChain | Ligand]
+    chains: Sequence[ProteinChain |
+                     RnaChain | DnaChain | Ligand]
     rng_seeds: Sequence[int]
-    bonded_atom_pairs: Sequence[tuple[BondAtomId, BondAtomId]] | None = None
+    bonded_atom_pairs: Sequence[tuple[BondAtomId,
+                                      BondAtomId]] | None = None
     user_ccd: str | None = None
 
     def __post_init__(self):
         if not self.rng_seeds:
-            raise ValueError("Input must have at least one RNG seed.")
+            raise ValueError(
+                "Input must have at least one RNG seed.")
 
         if not self.name.strip() or not self.sanitised_name():
             raise ValueError(
@@ -868,21 +922,27 @@ class Input:
 
         chain_ids = [c.id for c in self.chains]
         if any(not c.id.isalpha() or c.id.islower() for c in self.chains):
-            raise ValueError(f"IDs must be upper case letters, got: {chain_ids}")
+            raise ValueError(
+                f"IDs must be upper case letters, got: {chain_ids}")
         if len(set(chain_ids)) != len(chain_ids):
-            raise ValueError("Input JSON contains sequences with duplicate IDs.")
+            raise ValueError(
+                "Input JSON contains sequences with duplicate IDs.")
 
         # Use hashable types for chains, rng_seeds, and bonded_atom_pairs.
-        object.__setattr__(self, "chains", tuple(self.chains))
-        object.__setattr__(self, "rng_seeds", tuple(self.rng_seeds))
+        object.__setattr__(
+            self, "chains", tuple(self.chains))
+        object.__setattr__(
+            self, "rng_seeds", tuple(self.rng_seeds))
         if self.bonded_atom_pairs is not None:
-            object.__setattr__(self, "bonded_atom_pairs", tuple(self.bonded_atom_pairs))
+            object.__setattr__(
+                self, "bonded_atom_pairs", tuple(self.bonded_atom_pairs))
 
         if self.user_ccd is not None:
             for component_name, component_cif in cif_dict.parse_multi_data_cif(
                 self.user_ccd
             ).items():
-                _validate_user_ccd_keys(component_cif.keys(), component_name)
+                _validate_user_ccd_keys(
+                    component_cif.keys(), component_name)
 
     @property
     def protein_chains(self) -> Sequence[ProteinChain]:
@@ -903,7 +963,8 @@ class Input:
     def sanitised_name(self) -> str:
         """Returns sanitised version of the name that can be used as a filename."""
         lower_spaceless_name = self.name.lower().replace(" ", "_")
-        allowed_chars = set(string.ascii_lowercase + string.digits + "_-.")
+        allowed_chars = set(
+            string.ascii_lowercase + string.digits + "_-.")
         return "".join(l for l in lower_spaceless_name if l in allowed_chars)
 
     @classmethod
@@ -913,7 +974,8 @@ class Input:
         # Validate the fold job has the correct format.
         _validate_keys(
             fold_job.keys(),
-            {"name", "modelSeeds", "sequences", "dialect", "version"},
+            {"name", "modelSeeds", "sequences",
+                "dialect", "version"},
         )
         if "dialect" not in fold_job and "version" not in fold_job:
             dialect = ALPHAFOLDSERVER_JSON_DIALECT
@@ -950,7 +1012,8 @@ class Input:
                     chains.append(
                         ProteinChain.from_alphafoldserver_dict(
                             sequence["proteinChain"],
-                            seq_id=mmcif_lib.int_id_to_str_id(len(chains) + 1),
+                            seq_id=mmcif_lib.int_id_to_str_id(
+                                len(chains) + 1),
                         )
                     )
             elif "rnaSequence" in sequence:
@@ -958,7 +1021,8 @@ class Input:
                     chains.append(
                         RnaChain.from_alphafoldserver_dict(
                             sequence["rnaSequence"],
-                            seq_id=mmcif_lib.int_id_to_str_id(len(chains) + 1),
+                            seq_id=mmcif_lib.int_id_to_str_id(
+                                len(chains) + 1),
                         )
                     )
             elif "dnaSequence" in sequence:
@@ -966,7 +1030,8 @@ class Input:
                     chains.append(
                         DnaChain.from_alphafoldserver_dict(
                             sequence["dnaSequence"],
-                            seq_id=mmcif_lib.int_id_to_str_id(len(chains) + 1),
+                            seq_id=mmcif_lib.int_id_to_str_id(
+                                len(chains) + 1),
                         )
                     )
             elif "ion" in sequence:
@@ -974,7 +1039,8 @@ class Input:
                     chains.append(
                         Ligand.from_alphafoldserver_dict(
                             sequence["ion"],
-                            seq_id=mmcif_lib.int_id_to_str_id(len(chains) + 1),
+                            seq_id=mmcif_lib.int_id_to_str_id(
+                                len(chains) + 1),
                         )
                     )
             elif "ligand" in sequence:
@@ -982,14 +1048,17 @@ class Input:
                     chains.append(
                         Ligand.from_alphafoldserver_dict(
                             sequence["ligand"],
-                            seq_id=mmcif_lib.int_id_to_str_id(len(chains) + 1),
+                            seq_id=mmcif_lib.int_id_to_str_id(
+                                len(chains) + 1),
                         )
                     )
             else:
-                raise ValueError(f"Unknown sequence type: {sequence}")
+                raise ValueError(
+                    f"Unknown sequence type: {sequence}")
 
         if "modelSeeds" in fold_job and fold_job["modelSeeds"]:
-            rng_seeds = [int(seed) for seed in fold_job["modelSeeds"]]
+            rng_seeds = [int(seed)
+                         for seed in fold_job["modelSeeds"]]
         else:
             rng_seeds = [_sample_rng_seed()]
 
@@ -1032,7 +1101,8 @@ class Input:
             )
 
         if "sequences" not in raw_json:
-            raise ValueError("AlphaFold 3 input JSON does not contain any sequences.")
+            raise ValueError(
+                "AlphaFold 3 input JSON does not contain any sequences.")
 
         if "modelSeeds" not in raw_json or not raw_json["modelSeeds"]:
             raise ValueError(
@@ -1043,7 +1113,8 @@ class Input:
         sequences = raw_json["sequences"]
 
         # Make sure sequence IDs are all set.
-        raw_sequence_ids = [next(iter(s.values())).get("id") for s in sequences]
+        raw_sequence_ids = [
+            next(iter(s.values())).get("id") for s in sequences]
         if all(raw_sequence_ids):
             sequence_ids = []
             for sequence_id in raw_sequence_ids:
@@ -1063,29 +1134,37 @@ class Input:
         chains = []
         for seq_ids, sequence in zip(sequence_ids, sequences, strict=True):
             if len(sequence) != 1:
-                raise ValueError(f"Chain {seq_ids} has more than 1 sequence.")
+                raise ValueError(
+                    f"Chain {seq_ids} has more than 1 sequence.")
             for seq_id in seq_ids:
                 if "protein" in sequence:
-                    chains.append(ProteinChain.from_dict(sequence, json_path, seq_id))
+                    chains.append(ProteinChain.from_dict(
+                        sequence, json_path, seq_id))
                 elif "rna" in sequence:
-                    chains.append(RnaChain.from_dict(sequence, json_path, seq_id))
+                    chains.append(RnaChain.from_dict(
+                        sequence, json_path, seq_id))
                 elif "dna" in sequence:
-                    chains.append(DnaChain.from_dict(sequence, seq_id=seq_id))
+                    chains.append(DnaChain.from_dict(
+                        sequence, seq_id=seq_id))
                 elif "ligand" in sequence:
-                    chains.append(Ligand.from_dict(sequence, seq_id=seq_id))
+                    chains.append(Ligand.from_dict(
+                        sequence, seq_id=seq_id))
                 else:
-                    raise ValueError(f"Unknown sequence type: {sequence}")
+                    raise ValueError(
+                        f"Unknown sequence type: {sequence}")
 
         smiles_ligand_ids = set(
             c.id for c in chains if isinstance(c, Ligand) and c.smiles is not None
         )
-        chain_lengths = {chain.id: len(chain) for chain in chains}
+        chain_lengths = {chain.id: len(
+            chain) for chain in chains}
         bonded_atom_pairs = None
         if bonds := raw_json.get("bondedAtomPairs"):
             bonded_atom_pairs = []
             for bond in bonds:
                 if len(bond) != 2:
-                    raise ValueError(f"Bond {bond} must have 2 atoms, got {len(bond)}.")
+                    raise ValueError(
+                        f"Bond {bond} must have 2 atoms, got {len(bond)}.")
                 bond_beg, bond_end = bond
                 if (
                     len(bond_beg) != 3
@@ -1108,12 +1187,14 @@ class Input:
                         "(chain_id: str, res_id: int, atom_name: str)."
                     )
                 if bond_beg[0] not in flat_seq_ids or bond_end[0] not in flat_seq_ids:
-                    raise ValueError(f"Invalid chain ID(s) in bond {bond}")
+                    raise ValueError(
+                        f"Invalid chain ID(s) in bond {bond}")
                 if (
                     not 0 < bond_beg[1] <= chain_lengths[bond_beg[0]]
                     or not 0 < bond_end[1] <= chain_lengths[bond_end[0]]
                 ):
-                    raise ValueError(f"Invalid residue ID(s) in bond {bond}")
+                    raise ValueError(
+                        f"Invalid residue ID(s) in bond {bond}")
                 if bond_beg[0] in smiles_ligand_ids:
                     raise ValueError(
                         f"Bond {bond} involves an unsupported SMILES ligand {bond_beg[0]}"
@@ -1122,24 +1203,30 @@ class Input:
                     raise ValueError(
                         f"Bond {bond} involves an unsupported SMILES ligand {bond_end[0]}"
                     )
-                bonded_atom_pairs.append((tuple(bond_beg), tuple(bond_end)))
+                bonded_atom_pairs.append(
+                    (tuple(bond_beg), tuple(bond_end)))
 
             if len(bonded_atom_pairs) != len(set(bonded_atom_pairs)):
-                raise ValueError(f"Bonds are not unique: {bonded_atom_pairs}")
+                raise ValueError(
+                    f"Bonds are not unique: {bonded_atom_pairs}")
 
         user_ccd = raw_json.get("userCCD")
         user_ccd_path = raw_json.get("userCCDPath")
         if user_ccd and user_ccd_path:
-            raise ValueError("Only one of userCCD/userCCDPath can be set.")
+            raise ValueError(
+                "Only one of userCCD/userCCDPath can be set.")
         if user_ccd and len(user_ccd) < 256 and os.path.exists(user_ccd):
-            raise ValueError('Set the user CCD path using the "userCCDPath" field.')
+            raise ValueError(
+                'Set the user CCD path using the "userCCDPath" field.')
         elif user_ccd_path:
-            user_ccd = _read_file(pathlib.Path(user_ccd_path), json_path)
+            user_ccd = _read_file(
+                pathlib.Path(user_ccd_path), json_path)
 
         return cls(
             name=raw_json["name"],
             chains=chains,
-            rng_seeds=[int(seed) for seed in raw_json["modelSeeds"]],
+            rng_seeds=[int(seed)
+                       for seed in raw_json["modelSeeds"]],
             bonded_atom_pairs=bonded_atom_pairs,
             user_ccd=user_ccd,
         )
@@ -1181,7 +1268,8 @@ class Input:
         # Create default bioassembly, expanding structures implied by stoichiometry.
         struc = struc.generate_bioassembly(None)
 
-        sequences = struc.chain_single_letter_sequence(include_missing_residues=True)
+        sequences = struc.chain_single_letter_sequence(
+            include_missing_residues=True)
 
         chains = []
         for chain_id, chain_type in zip(
@@ -1190,9 +1278,11 @@ class Input:
             sequence = sequences[chain_id]
 
             if chain_type in mmcif_names.NON_POLYMER_CHAIN_TYPES:
-                residues = list(struc.chain_res_name_sequence()[chain_id])
+                residues = list(
+                    struc.chain_res_name_sequence()[chain_id])
                 if all(ccd.get(res) is not None for res in residues):
-                    chains.append(Ligand(id=chain_id, ccd_ids=residues))
+                    chains.append(
+                        Ligand(id=chain_id, ccd_ids=residues))
                 elif len(residues) == 1:
                     comp_name = residues[0]
                     comps = struc.chemical_components_data
@@ -1213,7 +1303,8 @@ class Input:
                         f"Got {residues}"
                     )
             else:
-                residues = struc.chain_res_name_sequence()[chain_id]
+                residues = struc.chain_res_name_sequence()[
+                    chain_id]
                 fixed = struc.chain_res_name_sequence(
                     fix_non_standard_polymer_res=True
                 )[chain_id]
@@ -1225,7 +1316,8 @@ class Input:
 
                 if chain_type == mmcif_names.PROTEIN_CHAIN:
                     chains.append(
-                        ProteinChain(id=chain_id, sequence=sequence, ptms=modifications)
+                        ProteinChain(
+                            id=chain_id, sequence=sequence, ptms=modifications)
                     )
                 elif chain_type == mmcif_names.RNA_CHAIN:
                     chains.append(
@@ -1244,8 +1336,10 @@ class Input:
         chain_ids = set(c.id for c in chains)
         for atom_a, atom_b, _ in struc.iter_bonds():
             if atom_a["chain_id"] in chain_ids and atom_b["chain_id"] in chain_ids:
-                beg = (atom_a["chain_id"], int(atom_a["res_id"]), atom_a["atom_name"])
-                end = (atom_b["chain_id"], int(atom_b["res_id"]), atom_b["atom_name"])
+                beg = (atom_a["chain_id"], int(
+                    atom_a["res_id"]), atom_a["atom_name"])
+                end = (atom_b["chain_id"], int(
+                    atom_b["res_id"]), atom_b["atom_name"])
                 bonded_atom_pairs.append((beg, end))
 
         return cls(
@@ -1276,31 +1370,45 @@ class Input:
             ids.append(chain.id)
             match chain:
                 case ProteinChain():
-                    sequences.append("(" + ")(".join(chain.to_ccd_sequence()) + ")")
-                    poly_types.append(mmcif_names.PROTEIN_CHAIN)
-                    formats.append(structure.SequenceFormat.CCD_CODES)
+                    sequences.append(
+                        "(" + ")(".join(chain.to_ccd_sequence()) + ")")
+                    poly_types.append(
+                        mmcif_names.PROTEIN_CHAIN)
+                    formats.append(
+                        structure.SequenceFormat.CCD_CODES)
                 case RnaChain():
-                    sequences.append("(" + ")(".join(chain.to_ccd_sequence()) + ")")
+                    sequences.append(
+                        "(" + ")(".join(chain.to_ccd_sequence()) + ")")
                     poly_types.append(mmcif_names.RNA_CHAIN)
-                    formats.append(structure.SequenceFormat.CCD_CODES)
+                    formats.append(
+                        structure.SequenceFormat.CCD_CODES)
                 case DnaChain():
-                    sequences.append("(" + ")(".join(chain.to_ccd_sequence()) + ")")
+                    sequences.append(
+                        "(" + ")(".join(chain.to_ccd_sequence()) + ")")
                     poly_types.append(mmcif_names.DNA_CHAIN)
-                    formats.append(structure.SequenceFormat.CCD_CODES)
+                    formats.append(
+                        structure.SequenceFormat.CCD_CODES)
                 case Ligand():
                     if chain.ccd_ids is not None:
-                        sequences.append("(" + ")(".join(chain.ccd_ids) + ")")
+                        sequences.append(
+                            "(" + ")(".join(chain.ccd_ids) + ")")
                         if len(chain.ccd_ids) == 1:
-                            poly_types.append(mmcif_names.NON_POLYMER_CHAIN)
+                            poly_types.append(
+                                mmcif_names.NON_POLYMER_CHAIN)
                         else:
-                            poly_types.append(mmcif_names.BRANCHED_CHAIN)
-                        formats.append(structure.SequenceFormat.CCD_CODES)
+                            poly_types.append(
+                                mmcif_names.BRANCHED_CHAIN)
+                        formats.append(
+                            structure.SequenceFormat.CCD_CODES)
                     elif chain.smiles is not None:
                         # Convert to `<unique ligand ID>:<smiles>` format that is expected
                         # by structure.from_sequences_and_bonds.
-                        sequences.append(f"LIG_{chain.id}:{chain.smiles}")
-                        poly_types.append(mmcif_names.NON_POLYMER_CHAIN)
-                        formats.append(structure.SequenceFormat.LIGAND_SMILES)
+                        sequences.append(
+                            f"LIG_{chain.id}:{chain.smiles}")
+                        poly_types.append(
+                            mmcif_names.NON_POLYMER_CHAIN)
+                        formats.append(
+                            structure.SequenceFormat.LIGAND_SMILES)
                     else:
                         raise ValueError(
                             "Ligand must have one of CCD ID or SMILES set."
@@ -1309,13 +1417,16 @@ class Input:
         # Remap bond chain IDs from chain IDs to chain indices and convert to
         # 0-based residue indexing.
         bonded_atom_pairs = []
-        chain_indices = {cid: i for i, cid in enumerate(ids)}
+        chain_indices = {
+            cid: i for i, cid in enumerate(ids)}
         if self.bonded_atom_pairs is not None:
             for bond_beg, bond_end in self.bonded_atom_pairs:
                 bonded_atom_pairs.append(
                     (
-                        (chain_indices[bond_beg[0]], bond_beg[1] - 1, bond_beg[2]),
-                        (chain_indices[bond_end[0]], bond_end[1] - 1, bond_end[2]),
+                        (chain_indices[bond_beg[0]],
+                         bond_beg[1] - 1, bond_beg[2]),
+                        (chain_indices[bond_end[0]],
+                         bond_end[1] - 1, bond_end[2]),
                     )
                 )
 
@@ -1338,12 +1449,14 @@ class Input:
         deduped_chain_ids = {}
         for chain in self.chains:
             deduped_chains[chain.hash_without_id()] = chain
-            deduped_chain_ids.setdefault(chain.hash_without_id(), []).append(chain.id)
+            deduped_chain_ids.setdefault(
+                chain.hash_without_id(), []).append(chain.id)
 
         sequences = []
         for chain_content_hash, ids in deduped_chain_ids.items():
             chain = deduped_chains[chain_content_hash]
-            sequences.append(chain.to_dict(seq_id=ids if len(ids) > 1 else ids[0]))
+            sequences.append(chain.to_dict(
+                seq_id=ids if len(ids) > 1 else ids[0]))
 
         alphafold_json = json.dumps(
             {
@@ -1363,14 +1476,17 @@ class Input:
         # containing only whitespace, number, or a comma.
         return re.sub(
             r'("(?:queryIndices|templateIndices)": \[)([\s\n\d,]+)(\],?)',
-            lambda mtch: mtch[1] + re.sub(r"\n\s+", " ", mtch[2].strip()) + mtch[3],
+            lambda mtch: mtch[1] +
+            re.sub(r"\n\s+", " ",
+                   mtch[2].strip()) + mtch[3],
             alphafold_json,
         )
 
     def fill_missing_fields(self) -> Self:
         """Fill missing MSA and template fields with default values."""
         with_missing_fields = [
-            c.fill_missing_fields() if isinstance(c, (ProteinChain, RnaChain)) else c
+            c.fill_missing_fields() if isinstance(
+                c, (ProteinChain, RnaChain)) else c
             for c in self.chains
         ]
         return dataclasses.replace(self, chains=with_missing_fields)
@@ -1378,13 +1494,16 @@ class Input:
     def with_multiple_seeds(self, num_seeds: int) -> Self:
         """Returns a copy of the input with num_seeds rng seeds."""
         if num_seeds <= 1:
-            raise ValueError("Number of seeds must be greater than 1.")
+            raise ValueError(
+                "Number of seeds must be greater than 1.")
         if len(self.rng_seeds) != 1:
-            raise ValueError("Input must have one rng seed to set multiple seeds.")
+            raise ValueError(
+                "Input must have one rng seed to set multiple seeds.")
 
         return dataclasses.replace(
             self,
-            rng_seeds=list(range(self.rng_seeds[0], self.rng_seeds[0] + num_seeds)),
+            rng_seeds=list(
+                range(self.rng_seeds[0], self.rng_seeds[0] + num_seeds)),
         )
 
 
@@ -1398,7 +1517,8 @@ def load_fold_inputs_from_path(json_path: pathlib.Path) -> Iterator[Input]:
 
     if isinstance(raw_json, list):
         # AlphaFold Server JSON.
-        logging.info("Loading %d fold jobs from %s", len(raw_json), json_path)
+        logging.info("Loading %d fold jobs from %s", len(
+            raw_json), json_path)
         for fold_job_idx, fold_job in enumerate(raw_json):
             try:
                 yield Input.from_alphafoldserver_fold_job(fold_job)

@@ -20,7 +20,8 @@ class Protein:
 
     # Cartesian coordinates of atoms in angstroms. The atom types correspond to
     # residue_constants.atom_types, i.e. the first three are N, CA, CB.
-    atom_positions: np.ndarray  # [num_res, num_atom_type, 3]
+    # [num_res, num_atom_type, 3]
+    atom_positions: np.ndarray
 
     # Amino-acid type for each residue represented as an integer between 0 and
     # 20, where 20 is 'X'.
@@ -87,19 +88,23 @@ def from_pdb_string(pdb_str: str, chain_id: Optional[str] = None) -> Protein:
                 f"PDB contains an insertion code at chain {chain.id} and residue "
                 f"index {res.id[1]}. These are not supported."
             )
-        res_shortname = residue_constants.restype_3to1.get(res.resname, "X")
+        res_shortname = residue_constants.restype_3to1.get(
+            res.resname, "X")
         restype_idx = residue_constants.restype_order.get(
             res_shortname, residue_constants.restype_num
         )
         pos = np.zeros((residue_constants.atom_type_num, 3))
         mask = np.zeros((residue_constants.atom_type_num,))
-        res_b_factors = np.zeros((residue_constants.atom_type_num,))
+        res_b_factors = np.zeros(
+            (residue_constants.atom_type_num,))
         for atom in res:
             if atom.name not in residue_constants.atom_types:
                 continue
-            pos[residue_constants.atom_order[atom.name]] = atom.coord
+            pos[residue_constants.atom_order[atom.name]
+                ] = atom.coord
             mask[residue_constants.atom_order[atom.name]] = 1.0
-            res_b_factors[residue_constants.atom_order[atom.name]] = atom.bfactor
+            res_b_factors[residue_constants.atom_order[atom.name]
+                          ] = atom.bfactor
         if np.sum(mask) < 0.5:
             # If no known atom positions are reported for the residue then skip it.
             continue
@@ -128,7 +133,8 @@ def to_pdb(prot: Protein) -> str:
       PDB string.
     """
     restypes = residue_constants.restypes + ["X"]
-    res_1to3 = lambda r: residue_constants.restype_1to3.get(restypes[r], "UNK")
+    def res_1to3(r): return residue_constants.restype_1to3.get(
+        restypes[r], "UNK")
     atom_types = residue_constants.atom_types
 
     pdb_lines = []
@@ -155,11 +161,13 @@ def to_pdb(prot: Protein) -> str:
                 continue
 
             record_type = "ATOM"
-            name = atom_name if len(atom_name) == 4 else f" {atom_name}"
+            name = atom_name if len(
+                atom_name) == 4 else f" {atom_name}"
             alt_loc = ""
             insertion_code = ""
             occupancy = 1.00
-            element = atom_name[0]  # Protein supports only C, N, O, S, this works.
+            # Protein supports only C, N, O, S, this works.
+            element = atom_name[0]
             charge = ""
             # PDB is a columnar format, every space matters here!
             atom_line = (
@@ -234,7 +242,8 @@ class ProteinV2:
 
     # Cartesian coordinates of atoms in angstroms. The atom types correspond to
     # residue_constants.atom_types, i.e. the first three are N, CA, CB.
-    atom_positions: np.ndarray  # [num_res, num_atom_type, 3]
+    # [num_res, num_atom_type, 3]
+    atom_positions: np.ndarray
 
     # Amino-acid type for each residue represented as an integer between 0 and
     # 20, where 20 is 'X'.
@@ -267,7 +276,8 @@ def to_pdb_v2(prot: ProteinV2) -> str:
       PDB string.
     """
     restypes = residue_constants.restypes + ["X"]
-    res_1to3 = lambda r: residue_constants.restype_1to3.get(restypes[r], "UNK")
+    def res_1to3(r): return residue_constants.restype_1to3.get(
+        restypes[r], "UNK")
     atom_types = residue_constants.atom_types
 
     pdb_lines = []
@@ -283,7 +293,8 @@ def to_pdb_v2(prot: ProteinV2) -> str:
         raise ValueError("Invalid aatypes.")
 
     chain_ids = {}
-    for i in np.unique(chain_index):  # np.unique gives sorted output.
+    # np.unique gives sorted output.
+    for i in np.unique(chain_index):
         if i >= PDB_MAX_CHAINS:
             raise ValueError(
                 f"The PDB format supports at most {PDB_MAX_CHAINS} chains."
@@ -303,7 +314,8 @@ def to_pdb_v2(prot: ProteinV2) -> str:
             )
             pdb_lines.append(chain_termination_line)
             last_chain_index = chain_index[i]
-            atom_index += 1  # Atom index increases at the TER symbol.
+            # Atom index increases at the TER symbol.
+            atom_index += 1
 
         res_name_3 = res_1to3(aatype[i])
         for atom_name, pos, mask, b_factor in zip(
@@ -313,11 +325,13 @@ def to_pdb_v2(prot: ProteinV2) -> str:
                 continue
 
             record_type = "ATOM"
-            name = atom_name if len(atom_name) == 4 else f" {atom_name}"
+            name = atom_name if len(
+                atom_name) == 4 else f" {atom_name}"
             alt_loc = ""
             insertion_code = ""
             occupancy = 1.00
-            element = atom_name[0]  # Protein supports only C, N, O, S, this works.
+            # Protein supports only C, N, O, S, this works.
+            element = atom_name[0]
             charge = ""
             # PDB is a columnar format, every space matters here!
             atom_line = (

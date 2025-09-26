@@ -16,16 +16,23 @@ class Evolution_Network(nn.Module):
         factor = 2 if bilinear else 1
         self.down4 = Down(base_c * 8, base_c * 16 // factor)
 
-        self.up1 = Up(base_c * 16, base_c * 8 // factor, bilinear)
-        self.up2 = Up(base_c * 8, base_c * 4 // factor, bilinear)
-        self.up3 = Up(base_c * 4, base_c * 2 // factor, bilinear)
+        self.up1 = Up(base_c * 16, base_c *
+                      8 // factor, bilinear)
+        self.up2 = Up(base_c * 8, base_c *
+                      4 // factor, bilinear)
+        self.up3 = Up(base_c * 4, base_c *
+                      2 // factor, bilinear)
         self.up4 = Up(base_c * 2, base_c * 1, bilinear)
         self.outc = OutConv(base_c * 1, n_classes)
-        self.gamma = nn.Parameter(torch.zeros(1, n_classes, 1, 1), requires_grad=True)
+        self.gamma = nn.Parameter(torch.zeros(
+            1, n_classes, 1, 1), requires_grad=True)
 
-        self.up1_v = Up(base_c * 16, base_c * 8 // factor, bilinear)
-        self.up2_v = Up(base_c * 8, base_c * 4 // factor, bilinear)
-        self.up3_v = Up(base_c * 4, base_c * 2 // factor, bilinear)
+        self.up1_v = Up(
+            base_c * 16, base_c * 8 // factor, bilinear)
+        self.up2_v = Up(base_c * 8, base_c *
+                        4 // factor, bilinear)
+        self.up3_v = Up(base_c * 4, base_c *
+                        2 // factor, bilinear)
         self.up4_v = Up(base_c * 2, base_c * 1, bilinear)
         self.outc_v = OutConv(base_c * 1, n_classes * 2)
 

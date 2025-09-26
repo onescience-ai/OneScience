@@ -31,13 +31,16 @@ class XarrayTreeTest(absltest.TestCase):
 
         result = xarray_tree.map_structure(fn, TEST_DATASET)
         self.assertIsInstance(result, xarray.Dataset)
-        self.assertSameElements({"foo", "bar"}, result.keys())
+        self.assertSameElements(
+            {"foo", "bar"}, result.keys())
 
     def test_map_structure_on_data_arrays(self):
         data_arrays = dict(TEST_DATASET)
-        result = xarray_tree.map_structure(lambda x: x + 1, data_arrays)
+        result = xarray_tree.map_structure(
+            lambda x: x + 1, data_arrays)
         self.assertIsInstance(result, dict)
-        self.assertSameElements({"foo", "bar"}, result.keys())
+        self.assertSameElements(
+            {"foo", "bar"}, result.keys())
 
     def test_map_structure_on_dataset_plain_dict_when_coords_incompatible(self):
         def fn(leaf):
@@ -54,7 +57,8 @@ class XarrayTreeTest(absltest.TestCase):
 
         result = xarray_tree.map_structure(fn, TEST_DATASET)
         self.assertIsInstance(result, dict)
-        self.assertSameElements({"foo", "bar"}, result.keys())
+        self.assertSameElements(
+            {"foo", "bar"}, result.keys())
 
     def test_map_structure_on_dataset_drops_vars_with_none_return_values(self):
         def fn(leaf):
@@ -70,15 +74,18 @@ class XarrayTreeTest(absltest.TestCase):
             return "not a DataArray"
 
         result = xarray_tree.map_structure(fn, TEST_DATASET)
-        self.assertEqual({"foo": "not a DataArray", "bar": "not a DataArray"}, result)
+        self.assertEqual(
+            {"foo": "not a DataArray", "bar": "not a DataArray"}, result)
 
     def test_map_structure_two_args_different_variable_orders(self):
-        dataset_different_order = TEST_DATASET[["bar", "foo"]]
+        dataset_different_order = TEST_DATASET[[
+            "bar", "foo"]]
 
         def fn(arg1, arg2):
             self.assertEqual(arg1.name, arg2.name)
 
-        xarray_tree.map_structure(fn, TEST_DATASET, dataset_different_order)
+        xarray_tree.map_structure(
+            fn, TEST_DATASET, dataset_different_order)
 
 
 if __name__ == "__main__":

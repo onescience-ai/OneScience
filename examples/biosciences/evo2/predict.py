@@ -39,7 +39,6 @@ from onescience.models.evo2.data.fasta_dataset import SimpleFastaDataset
 from onescience.models.evo2.lightning import LightningPassthroughPredictionMixin
 from onescience.models.evo2.utils.callbacks import PredictionWriter
 
-
 CheckpointFormats = Literal["torch_dist", "zarr"]
 
 
@@ -169,7 +168,8 @@ def _gather_along_cp_dim(input_, seq_dim: int = 1):
         group=parallel_state.get_tensor_model_parallel_group(),
     )
     tensor_list = output.chunk(world_size, dim=0)
-    output = torch.cat(tensor_list, dim=seq_dim).contiguous()
+    output = torch.cat(
+        tensor_list, dim=seq_dim).contiguous()
 
     return output
 
@@ -181,7 +181,8 @@ class HyenaPredictor(LightningPassthroughPredictionMixin, HyenaModel):
         self,
         *args,
         output_log_prob_seqs: bool = False,
-        log_prob_collapse_option: Literal["sum", "mean"] = "mean",
+        log_prob_collapse_option: Literal["sum",
+                                          "mean"] = "mean",
         **kwargs,
     ):
         """Initialize the predictor with our needs around computing log probabilities."""
@@ -203,10 +204,12 @@ class HyenaPredictor(LightningPassthroughPredictionMixin, HyenaModel):
         )
         # else:
         #     forward_out_tp_gathered = _collect_into_dim(forward_out, dim=-1)
-        forward_out_gathered = _gather_along_cp_dim(forward_out_tp_gathered)
+        forward_out_gathered = _gather_along_cp_dim(
+            forward_out_tp_gathered)
         assert self.tokenizer.vocab_size == forward_out_gathered.shape[-1]
         if self.output_log_prob_seqs:
-            softmax_logprobs = torch.log_softmax(forward_out_gathered, dim=-1)
+            softmax_logprobs = torch.log_softmax(
+                forward_out_gathered, dim=-1)
             softmax_logprobs = softmax_logprobs[:, :-1]
             input_ids = batch["tokens"][:, 1:]
             assert softmax_logprobs.shape[1] == input_ids.shape[1]
@@ -214,14 +217,16 @@ class HyenaPredictor(LightningPassthroughPredictionMixin, HyenaModel):
             logprobs = torch.gather(
                 softmax_logprobs,  # Gather likelihoods...
                 2,  # along the vocab dimension...
-                input_ids.unsqueeze(-1),  # using the token ids to index.
+                # using the token ids to index.
+                input_ids.unsqueeze(-1),
             ).squeeze(-1)
             log_prob_seqs = torch.sum(
                 logprobs * batch["loss_mask"][:, 1:].float(), dim=-1
             )
             if self.log_prob_collapse_option == "mean":
                 log_prob_seqs = log_prob_seqs / (
-                    batch["loss_mask"][:, 1:].float().sum(dim=-1) + 1e-8
+                    batch["loss_mask"][:, 1:].float().sum(
+                        dim=-1) + 1e-8
                 )
             return {
                 "log_probs_seqs": log_prob_seqs.cpu(),
@@ -259,7 +264,8 @@ def hyena_predict_forward_step(model, batch) -> torch.Tensor:
 
     forward_args["attention_mask"] = None
     if "cu_seqlens" in batch:
-        forward_args["packed_seq_params"] = get_packed_seq_params(batch)
+        forward_args["packed_seq_params"] = get_packed_seq_params(
+            batch)
     return model(**forward_args)
 
 
@@ -288,14 +294,17 @@ def hyena_predict_data_step(dataloader_iter) -> dict[str, torch.Tensor]:
         required_host_keys.add("max_seqlen")
 
     if parallel_state.is_pipeline_first_stage():
-        required_device_keys.update(("tokens", "position_ids"))
+        required_device_keys.update(
+            ("tokens", "position_ids"))
     if parallel_state.is_pipeline_last_stage():
-        required_device_keys.update(("labels", "loss_mask", "seq_idx"))
+        required_device_keys.update(
+            ("labels", "loss_mask", "seq_idx"))
 
     _batch_required_keys = {}
     for key, val in _batch.items():
         if key in required_device_keys:
-            _batch_required_keys[key] = val.cuda(non_blocking=True)
+            _batch_required_keys[key] = val.cuda(
+                non_blocking=True)
         elif key in required_host_keys:
             _batch_required_keys[key] = val.cpu()
         else:
@@ -346,7 +355,8 @@ def predict(
     work_dir: Path | None = None,
     batch_size: int = 1,
     output_log_prob_seqs: bool = False,
-    log_prob_collapse_option: Literal["sum", "mean"] = "mean",
+    log_prob_collapse_option: Literal["sum",
+                                      "mean"] = "mean",
     prepend_bos: bool = False,
     no_sequence_parallel: bool = False,
     hybrid_override_pattern: str | None = None,
@@ -364,7 +374,8 @@ def predict(
         parents=True, exist_ok=True
     )  # Make sure the output directory exists, files will be written here.
     model_parallel_size = (
-        tensor_parallel_size * pipeline_model_parallel_size * context_parallel_size
+        tensor_parallel_size * pipeline_model_parallel_size *
+        context_parallel_size
     )
     if model_parallel_size > torch.cuda.device_count():
         raise ValueError(
@@ -381,7 +392,8 @@ def predict(
             pipeline_model_parallel_size=pipeline_model_parallel_size,
             context_parallel_size=context_parallel_size,
             pipeline_dtype=torch.bfloat16,
-            ckpt_load_optimizer=False,  # Needs to be false for a normal model checkpoint.
+            # Needs to be false for a normal model checkpoint.
+            ckpt_load_optimizer=False,
             ckpt_save_optimizer=False,
             ckpt_async_save=False,
             sequence_parallel=tensor_parallel_size > 1 and sequence_parallel,
@@ -424,7 +436,8 @@ def predict(
         config_modifiers_init["num_layers"] = num_layers
     config = HYENA_MODEL_OPTIONS[model_size](
         forward_step_fn=hyena_predict_forward_step,
-        data_step_fn=hyena_predict_data_step,  # , attention_backend=AttnBackend.fused,
+        # , attention_backend=AttnBackend.fused,
+        data_step_fn=hyena_predict_data_step,
         distribute_saved_activations=(
             False if sequence_parallel and tensor_parallel_size > 1 else True
         ),
@@ -442,7 +455,8 @@ def predict(
         resume_ignore_no_checkpoint=False,
         resume_past_end=False,
         restore_config=nl.RestoreConfig(
-            path=str(ckpt_dir),  # NeMo expects a string path.
+            # NeMo expects a string path.
+            path=str(ckpt_dir),
             load_model_state=True,
             load_optim_state=False,
             load_artifacts=False,
@@ -455,10 +469,13 @@ def predict(
         output_log_prob_seqs=output_log_prob_seqs,
         log_prob_collapse_option=log_prob_collapse_option,
     )
-    resume.setup(trainer, model)  # this pulls weights from the starting checkpoint.
+    # this pulls weights from the starting checkpoint.
+    resume.setup(trainer, model)
 
-    dataset = SimpleFastaDataset(fasta_path, tokenizer, prepend_bos=prepend_bos)
-    datamodule = PredictDataModule(dataset, batch_size=batch_size)
+    dataset = SimpleFastaDataset(
+        fasta_path, tokenizer, prepend_bos=prepend_bos)
+    datamodule = PredictDataModule(
+        dataset, batch_size=batch_size)
     trainer.predict(model, datamodule=datamodule)
     dataset.write_idx_map(
         output_dir

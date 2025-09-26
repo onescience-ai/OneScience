@@ -16,7 +16,8 @@ class DocProcessor:
                 file_path, remove_images=True, autodetect_encoding=True
             )
         elif file_extension == ".txt":
-            extractor = TextParser(file_path, autodetect_encoding=True)
+            extractor = TextParser(
+                file_path, autodetect_encoding=True)
         else:
             raise ValueError(
                 f"File parsing in {file_extension} format is not supported."

@@ -30,7 +30,8 @@ class TriangleAttention(nn.Module):
 
         self.layer_norm = LayerNorm(self.c_in)
 
-        self.linear = Linear(c_in, self.no_heads, bias=False)
+        self.linear = Linear(
+            c_in, self.no_heads, bias=False)
 
         self.mha = Attention(
             self.c_in, self.c_in, self.c_in, self.c_hidden, self.no_heads
@@ -98,10 +99,12 @@ class TriangleAttention(nn.Module):
         x = self.layer_norm(x)
 
         # [*, I, 1, 1, J]
-        mask_bias = (self.inf * (mask - 1))[..., :, None, None, :]
+        mask_bias = (self.inf * (mask - 1)
+                     )[..., :, None, None, :]
 
         # [*, H, I, J]
-        triangle_bias = permute_final_dims(self.linear(x), (2, 0, 1))
+        triangle_bias = permute_final_dims(
+            self.linear(x), (2, 0, 1))
 
         # [*, 1, H, I, J]
         triangle_bias = triangle_bias.unsqueeze(-4)
@@ -143,4 +146,5 @@ class TriangleAttentionEndingNode(TriangleAttention):
     Implements Algorithm 14.
     """
 
-    __init__ = partialmethod(TriangleAttention.__init__, starting=False)
+    __init__ = partialmethod(
+        TriangleAttention.__init__, starting=False)

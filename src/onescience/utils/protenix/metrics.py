@@ -24,10 +24,12 @@ class SimpleMetricAggregator(object):
         self.need_gather = need_gather
         self._metric_data = {}
 
-        self.aggregators = {name: common_aggregator[name] for name in aggregator_names}
+        self.aggregators = {
+            name: common_aggregator[name] for name in aggregator_names}
 
     def add(self, key, value, namespace="default"):
-        value_dict = self._metric_data.setdefault(namespace, {})
+        value_dict = self._metric_data.setdefault(
+            namespace, {})
         value_dict.setdefault(key, [])
         if isinstance(value, (float, int)):
             value = np.array([value])
@@ -39,14 +41,16 @@ class SimpleMetricAggregator(object):
         elif isinstance(value, np.ndarray):
             pass
         else:
-            raise ValueError(f"Unsupported type for metric data: {type(value)}")
+            raise ValueError(
+                f"Unsupported type for metric data: {type(value)}")
         value_dict[key].append(value)
 
     def calc(self):
         metric_data, self._metric_data = self._metric_data, {}
         if self.need_gather and self.gather_before_calc:
             metric_data = gather_and_merge(
-                metric_data, aggregation_func=lambda l: sum(l, [])
+                metric_data, aggregation_func=lambda l: sum(
+                    l, [])
             )
         results = {}
         for agg_name, agg_func in self.aggregators.items():
@@ -54,7 +58,9 @@ class SimpleMetricAggregator(object):
                 for key, data in value_dict.items():
                     plain_key = f"{namespace}/{key}" if namespace != "default" else key
                     plain_key = f"{plain_key}.{agg_name}"
-                    results[plain_key] = agg_func(np.concatenate(data, axis=0))
+                    results[plain_key] = agg_func(
+                        np.concatenate(data, axis=0))
         if self.need_gather and not self.gather_before_calc:  # need gather after calc
-            results = gather_and_merge(results, aggregation_func=np.mean)
+            results = gather_and_merge(
+                results, aggregation_func=np.mean)
         return results

@@ -76,7 +76,7 @@ class HyperLoRADense(nn.Module):
     @nn.compact
     def __call__(self, x, hyper_var):
 
-        ## debug
+        # debug
         # print("hyper var shape", hyper_var.shape)
 
         x_baseline = nn.Dense(
@@ -103,23 +103,28 @@ class HyperLoRADense(nn.Module):
             kernel_init=zeros_init(),
         )  # zeros_init())
 
-        #### get lora vectors
+        # get lora vectors
         lora_a = jnp.reshape(
             lora_layer_a(hyper_var),
-            hyper_var.shape[:-1] + (self.lora_rank, x.shape[-1]),
+            hyper_var.shape[:-1] +
+            (self.lora_rank, x.shape[-1]),
         )
         lora_b = jnp.reshape(
             lora_layer_b(hyper_var),
-            hyper_var.shape[:-1] + (self.lora_rank, self.features),
+            hyper_var.shape[:-1] +
+            (self.lora_rank, self.features),
         )
 
-        ##### l2 norm, control the Frobenius norm of the matrix
+        # l2 norm, control the Frobenius norm of the matrix
         if self.norm_method == "l2":
-            lora_a = safe_l2_normalize(lora_a, axis=-1, epsilon=self.eps)
-            lora_b = safe_l2_normalize(lora_b, axis=-1, epsilon=self.eps)
+            lora_a = safe_l2_normalize(
+                lora_a, axis=-1, epsilon=self.eps)
+            lora_b = safe_l2_normalize(
+                lora_b, axis=-1, epsilon=self.eps)
         else:
-            ### emperical norm
-            empirical_norm_factor_in = math.sqrt(1.0 / (x.shape[-1] * self.lora_rank))
+            # emperical norm
+            empirical_norm_factor_in = math.sqrt(
+                1.0 / (x.shape[-1] * self.lora_rank))
             empirical_norm_factor_out = math.sqrt(
                 1.0 / (self.features * self.lora_rank)
             )

@@ -60,7 +60,8 @@ class Linear(nn.Linear):
         elif self.initializer == "zeros":
             nn.init.zeros_(self.weight)
         else:
-            raise ValueError(f"Invalid initializer: {self.initializer}.")
+            raise ValueError(
+                f"Invalid initializer: {self.initializer}.")
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.precision is not None:
@@ -95,9 +96,12 @@ class AdaptiveLayerNorm(nn.Module):
             c_s (int, optional):  hidden dim [for single embedding]. Defaults to 384.
         """
         super(AdaptiveLayerNorm, self).__init__()
-        self.layernorm_a = LayerNorm(c_a, create_scale=False, create_offset=False)
-        self.layernorm_s = LayerNorm(c_s, create_offset=False)
-        self.linear_s = Linear(in_features=c_s, out_features=c_a, initializer="zeros")
+        self.layernorm_a = LayerNorm(
+            c_a, create_scale=False, create_offset=False)
+        self.layernorm_s = LayerNorm(
+            c_s, create_offset=False)
+        self.linear_s = Linear(
+            in_features=c_s, out_features=c_a, initializer="zeros")
         self.linear_nobias_s = LinearNoBias(
             in_features=c_s, out_features=c_a, initializer="zeros"
         )
@@ -116,7 +120,8 @@ class AdaptiveLayerNorm(nn.Module):
         """
         a = self.layernorm_a(a)
         s = self.layernorm_s(s)
-        a = torch.sigmoid(self.linear_s(s)) * a + self.linear_nobias_s(s)
+        a = torch.sigmoid(self.linear_s(
+            s)) * a + self.linear_nobias_s(s)
         return a
 
 
@@ -143,7 +148,8 @@ class BiasInitLinear(Linear):
         )
         nn.init.zeros_(tensor=self.weight)
         if bias:
-            nn.init.constant_(tensor=self.bias, val=biasinit)
+            nn.init.constant_(
+                tensor=self.bias, val=biasinit)
 
 
 class Transition(nn.Module):
@@ -195,7 +201,8 @@ class Transition(nn.Module):
             chunk_num = 1 if size < 3200 else 8
             chunks = torch.chunk(x, chunk_num, dim=-2)
             outputs = torch.empty(
-                (x.shape[0], self.c_in), dtype=x.dtype, device=x.device
+                (x.shape[0],
+                 self.c_in), dtype=x.dtype, device=x.device
             )
             start = 0
             for chunk in chunks:
@@ -207,10 +214,11 @@ class Transition(nn.Module):
                 b *= a
                 del a
                 b = self.linear_no_bias(b)
-                outputs[start : start + b.shape[0]] = b
+                outputs[start: start + b.shape[0]] = b
                 start += b.shape[0]
                 del b
-            outputs = outputs.reshape(*other_dims, self.c_in)
+            outputs = outputs.reshape(
+                *other_dims, self.c_in)
             return outputs
 
 
@@ -334,19 +342,23 @@ def rearrange_qk_to_dense_trunk(
     q_pad_length = n_trunks * n_queries - n
 
     q_new = [
-        pad_at_dim(q[i], dim=dim_q[i], pad_length=(0, q_pad_length))
+        pad_at_dim(q[i], dim=dim_q[i],
+                   pad_length=(0, q_pad_length))
         for i in range(num_q)
     ]
     q_trunked = [
-        reshape_at_dim(q_new[i], dim=dim_q[i], target_shape=(n_trunks, n_queries))
+        reshape_at_dim(
+            q_new[i], dim=dim_q[i], target_shape=(n_trunks, n_queries))
         for i in range(num_q)
     ]
 
     pad_left = (n_keys - n_queries) // 2
-    pad_right = int((n_trunks - 1 / 2) * n_queries + n_keys / 2 - n + 1 / 2)
+    pad_right = int((n_trunks - 1 / 2) *
+                    n_queries + n_keys / 2 - n + 1 / 2)
 
     k_new = [
-        pad_at_dim(k[i], dim=dim_k[i], pad_length=(pad_left, pad_right))
+        pad_at_dim(k[i], dim=dim_k[i],
+                   pad_length=(pad_left, pad_right))
         for i in range(num_k)
     ]
     k_trunked = [
@@ -364,10 +376,11 @@ def rearrange_qk_to_dense_trunk(
             requires_grad=False,
         )
         pad_mask[..., :n, 0:pad_left] = 0
-        pad_mask[..., :n, pad_left + n : :] = 0
+        pad_mask[..., :n, pad_left + n::] = 0
         pad_mask[..., n::, :] = 0
 
-        concat_split_data = optimized_concat_split(pad_mask, n_queries)
+        concat_split_data = optimized_concat_split(
+            pad_mask, n_queries)
         pad_mask_trunked = (
             concat_split_data.unfold(
                 -1, n_keys, pad_mask.size(-1) + n_queries
@@ -407,9 +420,12 @@ def optimized_concat_split(attn_bias: torch.Tensor, n_queries: int) -> torch.Ten
     E = attn_bias.size(-1)
     assert D % n_queries == 0
     num_splits = D // n_queries
-    reshaped = attn_bias.reshape(*attn_bias.shape[:-2], num_splits, n_queries, E)
-    permuted = reshaped.permute(*range(reshaped.dim() - 3), -2, -3, -1)
-    output = permuted.reshape(*attn_bias.shape[:-2], n_queries, num_splits * E)
+    reshaped = attn_bias.reshape(
+        *attn_bias.shape[:-2], num_splits, n_queries, E)
+    permuted = reshaped.permute(
+        *range(reshaped.dim() - 3), -2, -3, -1)
+    output = permuted.reshape(
+        *attn_bias.shape[:-2], n_queries, num_splits * E)
     return output
 
 
@@ -471,15 +487,18 @@ def rearrange_to_dense_trunk(
     # Padded_width = n + pad_left + pad_right
     if attn_bias is None:
         attn_bias = q.new_zeros(
-            *(1,) * len(q.shape[:-2]), n + q_pad_length, n + pad_left + pad_right
+            *(1,) * len(q.shape[:-2]), n +
+            q_pad_length, n + pad_left + pad_right
         )
         attn_bias[..., :n, 0:pad_left] = -inf
-        attn_bias[..., :n, pad_left + n : :] = -inf
+        attn_bias[..., :n, pad_left + n::] = -inf
         attn_bias[..., n::, :] = -inf
     else:
-        attn_bias = F.pad(attn_bias, (pad_left, pad_right, 0, q_pad_length), value=-inf)
+        attn_bias = F.pad(
+            attn_bias, (pad_left, pad_right, 0, q_pad_length), value=-inf)
 
-    concat_split_data = optimized_concat_split(attn_bias, n_queries)
+    concat_split_data = optimized_concat_split(
+        attn_bias, n_queries)
     attn_bias_trunked = concat_split_data.unfold(
         -1, n_keys, attn_bias.shape[-1] + n_queries
     ).transpose(-2, -3)
@@ -598,12 +617,15 @@ def create_local_attn_bias(
     """
     n_trunks = int(math.ceil(n / n_queries))
     padded_n = n_trunks * n_queries
-    attn_mask = torch.zeros(padded_n, padded_n, device=device)
+    attn_mask = torch.zeros(
+        padded_n, padded_n, device=device)
     for block_index in range(0, n_trunks):
         i = block_index * n_queries
-        j1 = max(0, n_queries * block_index - (n_keys - n_queries) // 2)
-        j2 = n_queries * block_index + (n_queries + n_keys) // 2
-        attn_mask[i : i + n_queries, j1:j2] = 1.0
+        j1 = max(0, n_queries * block_index -
+                 (n_keys - n_queries) // 2)
+        j2 = n_queries * block_index + \
+            (n_queries + n_keys) // 2
+        attn_mask[i: i + n_queries, j1:j2] = 1.0
     attn_bias = (1 - attn_mask) * -inf
     return attn_bias.to(device=device)[:n, :n]
 
@@ -675,10 +697,14 @@ class Attention(nn.Module):
             )
         else:
             # Vanilla attention
-            self.linear_q = LinearNoBias(self.c_q, self.c_hidden * self.num_heads)
-        self.linear_k = LinearNoBias(self.c_k, self.c_hidden * self.num_heads)
-        self.linear_v = LinearNoBias(self.c_v, self.c_hidden * self.num_heads)
-        self.linear_o = LinearNoBias(self.c_hidden * self.num_heads, self.c_q)
+            self.linear_q = LinearNoBias(
+                self.c_q, self.c_hidden * self.num_heads)
+        self.linear_k = LinearNoBias(
+            self.c_k, self.c_hidden * self.num_heads)
+        self.linear_v = LinearNoBias(
+            self.c_v, self.c_hidden * self.num_heads)
+        self.linear_o = LinearNoBias(
+            self.c_hidden * self.num_heads, self.c_q)
         self.linear_g = None
         if self.gating:
             self.linear_g = LinearNoBias(
@@ -786,13 +812,15 @@ class Attention(nn.Module):
                 [*, Q, C_q]
         """
 
-        q, k, v = self._prep_qkv(q_x=q_x, kv_x=kv_x, apply_scale=True)
+        q, k, v = self._prep_qkv(
+            q_x=q_x, kv_x=kv_x, apply_scale=True)
 
         if attn_bias is not None:
             if len(attn_bias.shape) == len(q.shape):
                 assert attn_bias.shape[:-2] == q.shape[:-2]
             else:
-                assert len(attn_bias.shape) == len(q.shape) - 1
+                assert len(attn_bias.shape) == len(
+                    q.shape) - 1
                 assert attn_bias.shape[:-2] == q.shape[:-3]
                 # Expand at head dim, got shape [..., 1, Q, K]
                 attn_bias = attn_bias.unsqueeze(dim=-3)
@@ -803,11 +831,14 @@ class Attention(nn.Module):
             assert self.local_attention_method == "local_cross_attention"
 
             if len(trunked_attn_bias.shape) == len(q.shape) + 1:
-                assert trunked_attn_bias.shape[:-3] == q.shape[:-2]
+                assert trunked_attn_bias.shape[:-
+                                               3] == q.shape[:-2]
             else:
-                assert len(trunked_attn_bias.shape) == len(q.shape)
+                assert len(trunked_attn_bias.shape) == len(
+                    q.shape)
                 # Expand at head dim, got shape [..., 1, n_trunks, n_queries, n_keys]
-                trunked_attn_bias = trunked_attn_bias.unsqueeze(dim=-4)
+                trunked_attn_bias = trunked_attn_bias.unsqueeze(
+                    dim=-4)
 
         if n_queries and n_keys:
             if self.local_attention_method == "global_attention_with_bias":
@@ -816,7 +847,8 @@ class Attention(nn.Module):
                 )
                 # Expand to same shape as attn_bias
                 local_attn_bias = local_attn_bias.reshape(
-                    (1,) * (len(q.shape[:-2])) + local_attn_bias.shape
+                    (1,) * (len(q.shape[:-2])
+                            ) + local_attn_bias.shape
                 )
                 if attn_bias is not None:
                     if inplace_safe:

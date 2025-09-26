@@ -28,7 +28,8 @@ from onescience.datapipes.se3_transformer.data_loading import QM9DataModule
 from onescience.models.se3_transformer import SE3TransformerPooled
 from onescience.utils.se3_transformer.runtime.utils import str2bool
 
-PARSER = argparse.ArgumentParser(description="SE(3)-Transformer")
+PARSER = argparse.ArgumentParser(
+    description="SE(3)-Transformer")
 
 paths = PARSER.add_argument_group("Paths")
 paths.add_argument(
@@ -63,7 +64,8 @@ paths.add_argument(
 )
 
 optimizer = PARSER.add_argument_group("Optimizer")
-optimizer.add_argument("--optimizer", choices=["adam", "sgd", "lamb"], default="adam")
+optimizer.add_argument(
+    "--optimizer", choices=["adam", "sgd", "lamb"], default="adam")
 optimizer.add_argument(
     "--learning_rate", "--lr", dest="learning_rate", type=float, default=0.002
 )
@@ -74,12 +76,17 @@ optimizer.add_argument(
     type=float,
     default=None,
 )
-optimizer.add_argument("--momentum", type=float, default=0.9)
-optimizer.add_argument("--weight_decay", type=float, default=0.1)
+optimizer.add_argument(
+    "--momentum", type=float, default=0.9)
+optimizer.add_argument(
+    "--weight_decay", type=float, default=0.1)
 
-PARSER.add_argument("--epochs", type=int, default=100, help="Number of training epochs")
-PARSER.add_argument("--batch_size", type=int, default=240, help="Batch size")
-PARSER.add_argument("--seed", type=int, default=None, help="Set a seed globally")
+PARSER.add_argument("--epochs", type=int,
+                    default=100, help="Number of training epochs")
+PARSER.add_argument(
+    "--batch_size", type=int, default=240, help="Batch size")
+PARSER.add_argument("--seed", type=int,
+                    default=None, help="Set a seed globally")
 PARSER.add_argument(
     "--num_workers", type=int, default=8, help="Number of dataloading workers"
 )

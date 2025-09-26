@@ -7,7 +7,8 @@ from torch.optim import LBFGS, Adam
 
 from onescience.models.mlp import FullyConnected
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device(
+    "cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 # 参数设置
@@ -28,19 +29,22 @@ def generate_data():
     n_boundary = 200
 
     # 右边界 (x=1)
-    right = np.hstack([np.ones((n_boundary, 1)), np.random.rand(n_boundary, 1)])
+    right = np.hstack(
+        [np.ones((n_boundary, 1)), np.random.rand(n_boundary, 1)])
 
     # 左边界 (x=0, y >= 0.2)
     left = []
     while len(left) < n_boundary:
-        temp = np.hstack([np.zeros((n_boundary, 1)), np.random.rand(n_boundary, 1)])
+        temp = np.hstack(
+            [np.zeros((n_boundary, 1)), np.random.rand(n_boundary, 1)])
         mask = temp[:, 1] >= 0.2
         left.extend(temp[mask])
     left = np.array(left[:n_boundary])
     # 顶部 (y=1, x >= 0.2)
     top = []
     while len(top) < n_boundary:
-        temp = np.hstack([np.random.rand(n_boundary, 1), np.ones((n_boundary, 1))])
+        temp = np.hstack(
+            [np.random.rand(n_boundary, 1), np.ones((n_boundary, 1))])
         mask = temp[:, 0] >= 0.2
         top.extend(temp[mask])
     top = np.array(top[:n_boundary])
@@ -48,15 +52,18 @@ def generate_data():
     # 底部 (y=0, x >= 0.2)
     bottom = []
     while len(bottom) < n_boundary:
-        temp = np.hstack([np.random.rand(n_boundary, 1), np.zeros((n_boundary, 1))])
+        temp = np.hstack(
+            [np.random.rand(n_boundary, 1), np.zeros((n_boundary, 1))])
         mask = temp[:, 0] >= 0.2
         bottom.extend(temp[mask])
     bottom = np.array(bottom[:n_boundary])
     # 圆孔边界
     theta = np.linspace(0, np.pi / 2, n_boundary)
-    hole = 0.2 * np.column_stack([np.cos(theta), np.sin(theta)])
+    hole = 0.2 * \
+        np.column_stack([np.cos(theta), np.sin(theta)])
 
-    coords = np.concatenate([coords, right, left, top, bottom, hole])
+    coords = np.concatenate(
+        [coords, right, left, top, bottom, hole])
     return torch.tensor(coords, dtype=torch.float32).to(device)
 
 
@@ -135,8 +142,10 @@ def compute_loss(coords):
     mask_right = coords[:, 0] >= 0.999
     loss_sxx_right, loss_sxy_right = 0.0, 0.0
     if mask_right.sum() > 0:
-        target_sxx = torch.sin(torch.pi / 2 * coords[mask_right, 1])
-        loss_sxx_right = torch.mean((sx[mask_right] - target_sxx) ** 2)
+        target_sxx = torch.sin(
+            torch.pi / 2 * coords[mask_right, 1])
+        loss_sxx_right = torch.mean(
+            (sx[mask_right] - target_sxx) ** 2)
         loss_sxy_right = torch.mean(sxy[mask_right] ** 2)
         right_loss = loss_sxx_right + loss_sxy_right
     # 顶部：σ_yy=0，σ_xy=0
@@ -163,7 +172,8 @@ def compute_loss(coords):
     # 圆孔边界：面力为零
     hole_radius = 0.2
     hole_mask = (
-        torch.sqrt(coords[:, 0] ** 2 + coords[:, 1] ** 2) - hole_radius
+        torch.sqrt(coords[:, 0] ** 2 +
+                   coords[:, 1] ** 2) - hole_radius
     ).abs() < 1e-4
     loss_traction_x, loss_traction_y = 0.0, 0.0
     if hole_mask.sum() > 0:
@@ -197,7 +207,8 @@ def train():
 
     # Adam优化阶段
     optimizer = Adam(model.parameters(), lr=0.001)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=0.5)
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, step_size=1000, gamma=0.5)
     start_time = time.time()
     n_epochs = 5000
     for epoch in range(n_epochs):
@@ -231,7 +242,8 @@ def train():
             )
 
     # L-BFGS优化阶段
-    optimizer = LBFGS(model.parameters(), max_iter=25000, line_search_fn="strong_wolfe")
+    optimizer = LBFGS(model.parameters(
+    ), max_iter=25000, line_search_fn="strong_wolfe")
     last_total_loss = [None]
     last_loss_terms = [None]  # 存储各项损失的容器
 
@@ -288,7 +300,8 @@ def train():
     # 训练完成后保存模型参数
     save_dir = "./model"
     os.makedirs(save_dir, exist_ok=True)
-    save_path = os.path.join(save_dir, "model_state_dict.pth")
+    save_path = os.path.join(
+        save_dir, "model_state_dict.pth")
     torch.save(model.state_dict(), save_path)
     print(f"Model parameters saved to {save_path}")
 

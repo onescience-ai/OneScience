@@ -12,8 +12,10 @@ def main(args):
     my_dict = {}
     for json_str in json_list:
         result = json.loads(json_str)
-        all_chain_list = [item[-1:] for item in list(result) if item[:9] == "seq_chain"]
-        path_to_PSSM = args.PSSM_input_path + "/" + result["name"] + ".npz"
+        all_chain_list = [
+            item[-1:] for item in list(result) if item[:9] == "seq_chain"]
+        path_to_PSSM = args.PSSM_input_path + \
+            "/" + result["name"] + ".npz"
         print(path_to_PSSM)
         pssm_input = np.load(path_to_PSSM)
         pssm_dict = {}

@@ -64,9 +64,11 @@ def get_dataset(args):
 
 def get_dataloader(train_data, val_data, args):
     dataloader_args = args["dataloader"]
-    train_loader = DataLoader(train_data, shuffle=True, **dataloader_args)
+    train_loader = DataLoader(
+        train_data, shuffle=True, **dataloader_args)
     if args["if_training"]:
-        val_loader = DataLoader(val_data, shuffle=False, **dataloader_args)
+        val_loader = DataLoader(
+            val_data, shuffle=False, **dataloader_args)
     else:
         val_loader = DataLoader(
             val_data, shuffle=False, drop_last=True, **dataloader_args
@@ -121,38 +123,49 @@ def train_loop(
         x = x.to(device)  # (bs, x1, ..., xd, init_t, v)
         y = y.to(device)  # (bs, x1, ..., xd, t_train, v)
         # initialize the prediction tensor
-        pred = y[..., :initial_step, :]  # (bs, x1, ..., xd, init_t, v)
+        # (bs, x1, ..., xd, init_t, v)
+        pred = y[..., :initial_step, :]
         # reshape input
-        input_shape = list(x.shape)[:-2]  # (bs, x1, ..., xd)
+        # (bs, x1, ..., xd)
+        input_shape = list(x.shape)[:-2]
         input_shape.append(-1)  # (bs, x1, ..., xd, -1)
         # forward
         for t in range(initial_step, t_train):
             if training_type != "autoregressive":
-                x = y[..., t - initial_step : t, :]  # one step training
-            model_input = x.reshape(input_shape)  # (bs, x1, ..., xd, init_t*v)
+                # one step training
+                x = y[..., t - initial_step: t, :]
+            # (bs, x1, ..., xd, init_t*v)
+            model_input = x.reshape(input_shape)
             # permute input
             input_permute = [0, -1]
             input_permute.extend(
-                [i for i in range(1, len(model_input.shape) - 1)]
+                [i for i in range(
+                    1, len(model_input.shape) - 1)]
             )  # input permute: [0, -1, 1, 2, ..., d]
             # model input: (bs, x1, ..., xd, init_t*v) -> (bs, init_t*v, x1, ..., xd)
             model_input = model_input.permute(input_permute)
             # Define output permute
             output_permute = [0]
-            output_permute.extend([i for i in range(2, len(model_input.shape))])
-            output_permute.append(1)  # output permute: [0, 2, 3, ..., d+1, 1]
+            output_permute.extend(
+                [i for i in range(2, len(model_input.shape))])
+            # output permute: [0, 2, 3, ..., d+1, 1]
+            output_permute.append(1)
             # Extract target of current time step
-            target = y[..., t : t + 1, :]  # (bs, x1, ..., xd, 1, v)
+            # (bs, x1, ..., xd, 1, v)
+            target = y[..., t: t + 1, :]
             if t < t_train - unroll_step:
                 with torch.no_grad():
                     # model_output: (bs, init_t*v, x1, ..., xd) -> (bs, v, x1, ..., xd) -> (bs, x1, ..., xd, 1, v)
                     model_output = (
-                        model(model_input).permute(output_permute).unsqueeze(-2)
+                        model(model_input).permute(
+                            output_permute).unsqueeze(-2)
                     )
             else:
-                model_output = model(model_input).permute(output_permute).unsqueeze(-2)
+                model_output = model(model_input).permute(
+                    output_permute).unsqueeze(-2)
                 loss += loss_fn(
-                    model_output.reshape(batch_size, -1), target.reshape(batch_size, -1)
+                    model_output.reshape(
+                        batch_size, -1), target.reshape(batch_size, -1)
                 )
             pred = torch.cat((pred, model_output), dim=-2)
             x = torch.cat(
@@ -184,30 +197,39 @@ def val_loop(dataloader, model, loss_fn, device, t_train, initial_step):
         x = x.to(device)  # (bs, x1, ..., xd, init_t, v)
         y = y.to(device)  # (bs, x1, ..., xd, t_train, v)
         # initialize the prediction tensor
-        pred = y[..., :initial_step, :]  # (bs, x1, ..., xd, init_t, v)
+        # (bs, x1, ..., xd, init_t, v)
+        pred = y[..., :initial_step, :]
         # reshape input
-        input_shape = list(x.shape)[:-2]  # (bs, x1, ..., xd)
+        # (bs, x1, ..., xd)
+        input_shape = list(x.shape)[:-2]
         input_shape.append(-1)  # (bs, x1, ..., xd, -1)
         for t in range(initial_step, t_train):
-            model_input = x.reshape(input_shape)  # (bs, x1, ..., xd, init_t*v)
+            # (bs, x1, ..., xd, init_t*v)
+            model_input = x.reshape(input_shape)
             # permute input
             input_permute = [0, -1]
             input_permute.extend(
-                [i for i in range(1, len(model_input.shape) - 1)]
+                [i for i in range(
+                    1, len(model_input.shape) - 1)]
             )  # input permute: [0, -1, 1, 2, ..., d]
             # model input: (bs, x1, ..., xd, init_t*v) -> (bs, init_t*v, x1, ..., xd)
             model_input = model_input.permute(input_permute)
             # Define output permute
             output_permute = [0]
-            output_permute.extend([i for i in range(2, len(model_input.shape))])
-            output_permute.append(1)  # output permute: [0, 2, 3, ..., d+1, 1]
+            output_permute.extend(
+                [i for i in range(2, len(model_input.shape))])
+            # output permute: [0, 2, 3, ..., d+1, 1]
+            output_permute.append(1)
             # Extract target of current time step
-            target = y[..., t : t + 1, :]  # (bs, x1, ..., xd, 1, v)
+            # (bs, x1, ..., xd, 1, v)
+            target = y[..., t: t + 1, :]
             with torch.no_grad():
                 # model_output: (bs, init_t*v, x1, ..., xd) -> (bs, v, x1, ..., xd) -> (bs, x1, ..., xd, 1, v)
-                model_output = model(model_input).permute(output_permute).unsqueeze(-2)
+                model_output = model(model_input).permute(
+                    output_permute).unsqueeze(-2)
             loss += loss_fn(
-                model_output.reshape(batch_size, -1), target.reshape(batch_size, -1)
+                model_output.reshape(
+                    batch_size, -1), target.reshape(batch_size, -1)
             )
             pred = torch.cat((pred, model_output), dim=-2)
             x = torch.cat(
@@ -247,22 +269,27 @@ def test_loop(
         for _ in range(initial_step, y.shape[-2]):
             model_input = x.reshape(input_shape)
             input_permute = [0, -1]
-            input_permute.extend([i for i in range(1, len(model_input.shape) - 1)])
+            input_permute.extend(
+                [i for i in range(1, len(model_input.shape) - 1)])
             model_input = model_input.permute(input_permute)
             output_permute = [0]
-            output_permute.extend([i for i in range(2, len(model_input.shape))])
+            output_permute.extend(
+                [i for i in range(2, len(model_input.shape))])
             output_permute.append(1)
             with torch.no_grad():
-                model_output = model(model_input).permute(output_permute).unsqueeze(-2)
+                model_output = model(model_input).permute(
+                    output_permute).unsqueeze(-2)
             pred = torch.cat((pred, model_output), dim=-2)
-            x = torch.cat((x[..., 1:, :], model_output), dim=-2)
+            x = torch.cat(
+                (x[..., 1:, :], model_output), dim=-2)
         toc = time.time()
         time_spend.append(toc - tic)
         # compute metric
         for name in metric_names:
             metric_fn = getattr(metrics, name)
             res_dict[name].append(
-                metric_fn(pred[..., initial_step:, :], y[..., initial_step:, :])
+                metric_fn(
+                    pred[..., initial_step:, :], y[..., initial_step:, :])
             )
     # post process
     for name in metric_names:
@@ -280,7 +307,8 @@ def test_loop(
 def main(args):
     # init
     setup_seed(args["seed"])
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cuda:0" if torch.cuda.is_available() else "cpu")
     checkpoint = (
         torch.load(args["model_path"])
         if not args["if_training"] or args["continue_training"]
@@ -294,7 +322,8 @@ def main(args):
         + f"_{args['training_type']}"
     )
     saved_dir = os.path.join(
-        args["output_dir"], os.path.splitext(args["dataset"]["file_name"])[0]
+        args["output_dir"], os.path.splitext(
+            args["dataset"]["file_name"])[0]
     )
 
     # prepare directory
@@ -304,14 +333,16 @@ def main(args):
         if args["tensorboard"]:
             log_path = os.path.join(
                 args["log_dir"],
-                os.path.splitext(args["dataset"]["file_name"])[0],
+                os.path.splitext(
+                    args["dataset"]["file_name"])[0],
                 saved_model_name,
             )
             writer = SummaryWriter(log_path)
 
     # data and dataloader
     train_data, val_data = get_dataset(args)
-    train_loader, val_loader = get_dataloader(train_data, val_data, args)
+    train_loader, val_loader = get_dataloader(
+        train_data, val_data, args)
 
     # set training args
     x, y = next(iter(val_loader))
@@ -326,7 +357,8 @@ def main(args):
     if args["training_type"] == "autoregressive":
         if args["pushforward"]:
             saved_model_name += "_PF" + str(unroll_step)
-            print("Training type: autoregressive + pushforward trick.")
+            print(
+                "Training type: autoregressive + pushforward trick.")
         else:
             unroll_step = t_train - initial_step
             saved_model_name += "_AR"
@@ -342,18 +374,23 @@ def main(args):
 
     # model
     model = get_model(spatial_dim, args)
-    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print("The number of model parameters to train:", total_params)
+    total_params = sum(
+        p.numel() for p in model.parameters() if p.requires_grad)
+    print("The number of model parameters to train:",
+          total_params)
     # if test, load model from checkpoint
     if not args["if_training"]:
-        print(f"Test mode, load checkpoint from {args['model_path']}")
-        model.load_state_dict(checkpoint["model_state_dict"])
+        print(
+            f"Test mode, load checkpoint from {args['model_path']}")
+        model.load_state_dict(
+            checkpoint["model_state_dict"])
         print(f"Best epoch: {checkpoint['epoch']}")
         if torch.cuda.device_count() > 1:
             model = nn.DataParallel(model)
         model.to(device)
         print("Start testing")
-        res, time_spend = test_loop(val_loader, model, device, initial_step)
+        res, time_spend = test_loop(
+            val_loader, model, device, initial_step)
         print(res)
         print(
             f"Total test time: {np.sum(time_spend)}s, average batch time: {np.mean(time_spend)}s, average batch time (drop first): {np.mean(time_spend[1:])}s"
@@ -362,8 +399,10 @@ def main(args):
         return
     # if continue training, resume model from checkpoint
     if args["continue_training"]:
-        print(f"Continue training, load checkpoint from {args['model_path']}")
-        model.load_state_dict(checkpoint["model_state_dict"])
+        print(
+            f"Continue training, load checkpoint from {args['model_path']}")
+        model.load_state_dict(
+            checkpoint["model_state_dict"])
     if torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
     model.to(device)
@@ -373,10 +412,13 @@ def main(args):
     optim_name = optim_args.pop("name")
     # if continue training, resume optimizer and scheduler from checkpoint
     if args["continue_training"]:
-        optimizer = getattr(torch.optim, optim_name)(model.parameters())
-        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        optimizer = getattr(torch.optim, optim_name)(
+            model.parameters())
+        optimizer.load_state_dict(
+            checkpoint["optimizer_state_dict"])
     else:
-        optimizer = getattr(torch.optim, optim_name)(model.parameters(), **optim_args)
+        optimizer = getattr(torch.optim, optim_name)(
+            model.parameters(), **optim_args)
 
     # scheduler
     start_epoch = 0
@@ -412,13 +454,16 @@ def main(args):
         total_time += time_spend
         scheduler.step()
         if args["tensorboard"]:
-            writer.add_scalar("Train Loss/train", train_step_loss, epoch)
-            writer.add_scalar("Full Loss/train", train_full_loss, epoch)
+            writer.add_scalar(
+                "Train Loss/train", train_step_loss, epoch)
+            writer.add_scalar(
+                "Full Loss/train", train_full_loss, epoch)
         print(
             f"[Epoch {epoch}] train_l2_step: {train_step_loss}, train_l2_full: {train_full_loss}, time_spend: {time_spend:.4f}s"
         )
         # always save the latest epoch as checkpoint
-        saved_path = os.path.join(saved_dir, saved_model_name)
+        saved_path = os.path.join(
+            saved_dir, saved_model_name)
         model_state_dict = (
             model.module.state_dict()
             if torch.cuda.device_count() > 1
@@ -435,14 +480,18 @@ def main(args):
         )
         # validate every args["save_period"] epochs
         if (epoch + 1) % args["save_period"] == 0:
-            print("====================validate====================")
+            print(
+                "====================validate====================")
             val_full_loss = val_loop(
                 val_loader, model, loss_fn, device, t_train, initial_step
             )
             if args["tensorboard"]:
-                writer.add_scalar("Full Loss/val", val_full_loss, epoch)
-            print(f"[Epoch {epoch}] val_l2_full: {val_full_loss}")
-            print("================================================")
+                writer.add_scalar(
+                    "Full Loss/val", val_full_loss, epoch)
+            print(
+                f"[Epoch {epoch}] val_l2_full: {val_full_loss}")
+            print(
+                "================================================")
             if val_full_loss < min_val_loss:
                 min_val_loss = val_full_loss
                 # save checkpoint if best
@@ -463,7 +512,8 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("config_file", type=str, help="Path to config file")
+    parser.add_argument(
+        "config_file", type=str, help="Path to config file")
     cmd_args = parser.parse_args()
     # read config file
     with open(cmd_args.config_file, "r") as f:

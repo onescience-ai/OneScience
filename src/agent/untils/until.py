@@ -38,7 +38,8 @@ def gen_job_log_name(job_name, directory):
     max_num = 0
     if not os.path.exists(directory):
         return f"{re.escape(job_name)}_{max_num + 1}.log"
-    pattern = re.compile(rf"^{re.escape(job_name)}_(\d+)\.log$")
+    pattern = re.compile(
+        rf"^{re.escape(job_name)}_(\d+)\.log$")
     for filename in os.listdir(directory):
         match = pattern.match(filename)
         if match:

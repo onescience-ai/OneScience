@@ -103,7 +103,8 @@ def create_error_table(
 
     for name in sorted(all_data_loaders, key=custom_key):
         if any(skip_head in name for skip_head in skip_heads):
-            logging.info(f"Skipping evaluation of {name} (in skip_heads list)")
+            logging.info(
+                f"Skipping evaluation of {name} (in skip_heads list)")
             continue
         data_loader = all_data_loaders[name]
         logging.info(f"Evaluating {name} ...")
@@ -124,7 +125,8 @@ def create_error_table(
                 name
                 + "_final_rmse_e_per_atom": metrics["rmse_e_per_atom"]
                 * 1e3,  # meV / atom
-                name + "_final_rmse_f": metrics["rmse_f"] * 1e3,  # meV / A
+                # meV / A
+                name + "_final_rmse_f": metrics["rmse_f"] * 1e3,
                 name + "_final_rel_rmse_f": metrics["rel_rmse_f"],
             }
             wandb.log(wandb_log_dict)

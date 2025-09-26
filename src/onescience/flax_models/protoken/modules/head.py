@@ -61,7 +61,8 @@ class DistogramHead(nn.Module):
         """
         # half_logits = self.half_logits(pair)
         half_embedding = self.act_fn(self.half_logits(pair))
-        sym_embedding = half_embedding + jnp.swapaxes(half_embedding, -2, -3)
+        sym_embedding = half_embedding + \
+            jnp.swapaxes(half_embedding, -2, -3)
         logits = self.output_logits(sym_embedding)
 
         # logits = half_logits + jnp.swapaxes(half_logits, -2, -3)
@@ -128,14 +129,15 @@ class PredictedLDDTHead(nn.Module):
         res = self.init_fold_iteration(
             act=act,
             static_feat_2d=static_feat_2d,
-            sequence_mask=jnp.expand_dims(sequence_mask, -1),
+            sequence_mask=jnp.expand_dims(
+                sequence_mask, -1),
             quaternion=quaternion,
             rotation=rotation,
             translation=translation,
-            initial_act=act,  #### initial act is only used to predict side chain
+            initial_act=act,  # initial act is only used to predict side chain
             aatype=aatype,
             contextual_mask=jnp.ones_like(sequence_mask),
-        )  #### fix affine tensor
+        )  # fix affine tensor
         act = res[0]
         act = act.astype(self._dtype)
         act = self.input_layer_norm(act)
@@ -158,9 +160,11 @@ def compute_plddt(logits):
 
     num_bins = logits.shape[-1]
     bin_width = 1.0 / num_bins
-    bin_centers = _np.arange(start=0.5 * bin_width, stop=1.0, step=bin_width)
+    bin_centers = _np.arange(
+        start=0.5 * bin_width, stop=1.0, step=bin_width)
     probs = _softmax(logits, axis=-1)
-    predicted_lddt_ca = (probs * bin_centers[None, :]).sum(-1)
+    predicted_lddt_ca = (
+        probs * bin_centers[None, :]).sum(-1)
     return predicted_lddt_ca * 100
 
 
@@ -291,13 +295,18 @@ class ConfidenceHead(nn.Module):
         prev_vq_codes = self.stop_gradient(prev_vq_codes)
         if (
             self.freeze_encoder_activations
-        ):  ### 为了防止梯度对抗，初期可以停掉梯度，后期再打开
-            esm_activations = self.stop_gradient(esm_activations)
+        ):  # 为了防止梯度对抗，初期可以停掉梯度，后期再打开
+            esm_activations = self.stop_gradient(
+                esm_activations)
             vq_codes = self.stop_gradient(vq_codes)
 
-        prev_codes_act = self.prev_codes_project_up(prev_vq_codes)  # zero-initialized
-        codes_act = self.codes_project_up(vq_codes)  # zero-initialized
-        confidence_activations = esm_activations + prev_codes_act + codes_act
-        plddt_logits = self.confidence_head(confidence_activations)  ### MLP
+        prev_codes_act = self.prev_codes_project_up(
+            prev_vq_codes)  # zero-initialized
+        codes_act = self.codes_project_up(
+            vq_codes)  # zero-initialized
+        confidence_activations = esm_activations + \
+            prev_codes_act + codes_act
+        plddt_logits = self.confidence_head(
+            confidence_activations)  # MLP
 
         return plddt_logits

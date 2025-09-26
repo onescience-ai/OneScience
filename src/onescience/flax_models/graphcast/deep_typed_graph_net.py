@@ -33,7 +33,8 @@ import jraph
 from onescience.flax_models.graphcast import mlp as mlp_builder
 from onescience.flax_models.graphcast import typed_graph, typed_graph_net
 
-GraphToGraphNetwork = Callable[[typed_graph.TypedGraph], typed_graph.TypedGraph]
+GraphToGraphNetwork = Callable[[
+    typed_graph.TypedGraph], typed_graph.TypedGraph]
 
 
 class DeepTypedGraphNet(hk.Module):
@@ -177,10 +178,12 @@ class DeepTypedGraphNet(hk.Module):
         )
 
         # Embed input features (if applicable).
-        latent_graph_0 = self._embed(input_graph, embedder_network)
+        latent_graph_0 = self._embed(
+            input_graph, embedder_network)
 
         # Do `m` message passing steps in the latent graphs.
-        latent_graph_m = self._process(latent_graph_0, processor_networks)
+        latent_graph_m = self._process(
+            latent_graph_0, processor_networks)
 
         # Compute outputs from the last latent graph (if applicable).
         return self._output(latent_graph_m, decoder_network)
@@ -193,7 +196,8 @@ class DeepTypedGraphNet(hk.Module):
         # TODO(aelkadi): move to mlp_builder.
         def build_mlp(name, output_size):
             mlp = hk.nets.MLP(
-                output_sizes=[self._mlp_hidden_size] * self._mlp_num_hidden_layers
+                output_sizes=[
+                    self._mlp_hidden_size] * self._mlp_num_hidden_layers
                 + [output_size],
                 name=name + "_mlp",
                 activation=self._activation,
@@ -267,14 +271,16 @@ class DeepTypedGraphNet(hk.Module):
             embed_edge_fn=embed_edge_fn,
             embed_node_fn=embed_node_fn,
         )
-        embedder_network = typed_graph_net.GraphMapFeatures(**embedder_kwargs)
+        embedder_network = typed_graph_net.GraphMapFeatures(
+            **embedder_kwargs)
 
         if self._f32_aggregation:
 
             def aggregate_fn(data, *args, **kwargs):
                 dtype = data.dtype
                 data = data.astype(jnp.float32)
-                output = self._aggregate_edges_for_nodes_fn(data, *args, **kwargs)
+                output = self._aggregate_edges_for_nodes_fn(
+                    data, *args, **kwargs)
                 if self._aggregate_normalization:
                     output = output / self._aggregate_normalization
                 output = output.astype(dtype)
@@ -283,7 +289,8 @@ class DeepTypedGraphNet(hk.Module):
         else:
 
             def aggregate_fn(data, *args, **kwargs):
-                output = self._aggregate_edges_for_nodes_fn(data, *args, **kwargs)
+                output = self._aggregate_edges_for_nodes_fn(
+                    data, *args, **kwargs)
                 if self._aggregate_normalization:
                     output = output / self._aggregate_normalization
                 return output
@@ -332,7 +339,8 @@ class DeepTypedGraphNet(hk.Module):
                 else None
             ),
         )
-        output_network = typed_graph_net.GraphMapFeatures(**output_kwargs)
+        output_network = typed_graph_net.GraphMapFeatures(
+            **output_kwargs)
         return embedder_network, processor_networks, output_network
 
     def _embed(
@@ -347,7 +355,8 @@ class DeepTypedGraphNet(hk.Module):
         if jax.tree_util.tree_leaves(context_features):
             # This code assumes a single input feature array for the context and for
             # each node type.
-            assert len(jax.tree_util.tree_leaves(context_features)) == 1
+            assert len(jax.tree_util.tree_leaves(
+                context_features)) == 1
             new_nodes = {}
             for node_set_name, node_set in input_graph.nodes.items():
                 node_features = node_set.features
@@ -359,11 +368,13 @@ class DeepTypedGraphNet(hk.Module):
                 )
                 new_nodes[node_set_name] = node_set._replace(
                     features=jnp.concatenate(
-                        [node_features, broadcasted_context], axis=-1
+                        [node_features,
+                            broadcasted_context], axis=-1
                     )
                 )
             input_graph = input_graph._replace(
-                nodes=new_nodes, context=input_graph.context._replace(features=())
+                nodes=new_nodes, context=input_graph.context._replace(
+                    features=())
             )
 
         # Embeds the node and edge features.
@@ -383,7 +394,8 @@ class DeepTypedGraphNet(hk.Module):
         latent_graph = latent_graph_0
         for unused_repetition_i in range(self._num_processor_repetitions):
             for processor_network in processor_networks:
-                latent_graph = self._process_step(processor_network, latent_graph)
+                latent_graph = self._process_step(
+                    processor_network, latent_graph)
 
         return latent_graph
 
@@ -393,19 +405,22 @@ class DeepTypedGraphNet(hk.Module):
         """Single step of message passing with node/edge residual connections."""
 
         # One step of message passing.
-        latent_graph_k = processor_network_k(latent_graph_prev_k)
+        latent_graph_k = processor_network_k(
+            latent_graph_prev_k)
 
         # Add residuals.
         nodes_with_residuals = {}
         for k, prev_set in latent_graph_prev_k.nodes.items():
             nodes_with_residuals[k] = prev_set._replace(
-                features=prev_set.features + latent_graph_k.nodes[k].features
+                features=prev_set.features +
+                latent_graph_k.nodes[k].features
             )
 
         edges_with_residuals = {}
         for k, prev_set in latent_graph_prev_k.edges.items():
             edges_with_residuals[k] = prev_set._replace(
-                features=prev_set.features + latent_graph_k.edges[k].features
+                features=prev_set.features +
+                latent_graph_k.edges[k].features
             )
 
         latent_graph_k = latent_graph_k._replace(
@@ -438,7 +453,8 @@ def _build_update_fns_for_node_types(
                 output_size = output_sizes[node_set_name]
             else:
                 continue
-        output_fns[node_set_name] = builder_fn(f"{prefix}{node_set_name}", output_size)
+        output_fns[node_set_name] = builder_fn(
+            f"{prefix}{node_set_name}", output_size)
     return output_fns
 
 
@@ -458,7 +474,8 @@ def _build_update_fns_for_edge_types(
                 output_size = output_sizes[edge_set_name]
             else:
                 continue
-        output_fns[edge_set_name] = builder_fn(f"{prefix}{edge_set_name}", output_size)
+        output_fns[edge_set_name] = builder_fn(
+            f"{prefix}{edge_set_name}", output_size)
     return output_fns
 
 
@@ -470,11 +487,13 @@ def _get_activation_fn(name):
         return getattr(jax.nn, name)
     if hasattr(jnp, name):
         return getattr(jnp, name)
-    raise ValueError(f"Unknown activation function {name} specified.")
+    raise ValueError(
+        f"Unknown activation function {name} specified.")
 
 
 def _get_aggregate_edges_for_nodes_fn(name):
     """Return aggregate_edges_for_nodes_fn corresponding to function_name."""
     if hasattr(jraph, name):
         return getattr(jraph, name)
-    raise ValueError(f"Unknown aggregate_edges_for_nodes_fn function {name} specified.")
+    raise ValueError(
+        f"Unknown aggregate_edges_for_nodes_fn function {name} specified.")

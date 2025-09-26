@@ -45,7 +45,8 @@ class SirenLayer(nn.Module):
         self.layer_type = layer_type
         self.omega_0 = omega_0
 
-        self.linear = nn.Linear(in_features, out_features, bias=True)
+        self.linear = nn.Linear(
+            in_features, out_features, bias=True)
 
         self.apply_activation = layer_type in {
             SirenLayerType.FIRST,
@@ -62,7 +63,8 @@ class SirenLayer(nn.Module):
             SirenLayerType.LAST: math.sqrt(6.0 / self.in_features),
         }
         weight_range = weight_ranges[self.layer_type]
-        nn.init.uniform_(self.linear.weight, -weight_range, weight_range)
+        nn.init.uniform_(
+            self.linear.weight, -weight_range, weight_range)
 
         k_sqrt = math.sqrt(1.0 / self.in_features)
         nn.init.uniform_(self.linear.bias, -k_sqrt, k_sqrt)

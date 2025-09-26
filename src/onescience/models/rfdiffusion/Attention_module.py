@@ -20,7 +20,8 @@ class FeedForwardLayer(nn.Module):
 
     def reset_parameter(self):
         # initialize linear layer right before ReLu: He initializer (kaiming normal)
-        nn.init.kaiming_normal_(self.linear1.weight, nonlinearity="relu")
+        nn.init.kaiming_normal_(
+            self.linear1.weight, nonlinearity="relu")
         nn.init.zeros_(self.linear1.bias)
 
         # initialize linear layer right before residual connection: zero initialize
@@ -29,7 +30,8 @@ class FeedForwardLayer(nn.Module):
 
     def forward(self, src):
         src = self.norm(src)
-        src = self.linear2(self.dropout(F.relu_(self.linear1(src))))
+        src = self.linear2(self.dropout(
+            F.relu_(self.linear1(src))))
         return src
 
 
@@ -40,9 +42,12 @@ class Attention(nn.Module):
         self.h = n_head
         self.dim = d_hidden
         #
-        self.to_q = nn.Linear(d_query, n_head * d_hidden, bias=False)
-        self.to_k = nn.Linear(d_key, n_head * d_hidden, bias=False)
-        self.to_v = nn.Linear(d_key, n_head * d_hidden, bias=False)
+        self.to_q = nn.Linear(
+            d_query, n_head * d_hidden, bias=False)
+        self.to_k = nn.Linear(
+            d_key, n_head * d_hidden, bias=False)
+        self.to_v = nn.Linear(
+            d_key, n_head * d_hidden, bias=False)
         #
         self.to_out = nn.Linear(n_head * d_hidden, d_out)
         self.scaling = 1 / math.sqrt(d_hidden)
@@ -64,9 +69,11 @@ class Attention(nn.Module):
         B, Q = query.shape[:2]
         B, K = key.shape[:2]
         #
-        query = self.to_q(query).reshape(B, Q, self.h, self.dim)
+        query = self.to_q(query).reshape(
+            B, Q, self.h, self.dim)
         key = self.to_k(key).reshape(B, K, self.h, self.dim)
-        value = self.to_v(value).reshape(B, K, self.h, self.dim)
+        value = self.to_v(value).reshape(
+            B, K, self.h, self.dim)
         #
         query = query * self.scaling
         attn = einsum("bqhd,bkhd->bhqk", query, key)
@@ -86,9 +93,12 @@ class AttentionWithBias(nn.Module):
         self.norm_in = nn.LayerNorm(d_in)
         self.norm_bias = nn.LayerNorm(d_bias)
         #
-        self.to_q = nn.Linear(d_in, n_head * d_hidden, bias=False)
-        self.to_k = nn.Linear(d_in, n_head * d_hidden, bias=False)
-        self.to_v = nn.Linear(d_in, n_head * d_hidden, bias=False)
+        self.to_q = nn.Linear(
+            d_in, n_head * d_hidden, bias=False)
+        self.to_k = nn.Linear(
+            d_in, n_head * d_hidden, bias=False)
+        self.to_v = nn.Linear(
+            d_in, n_head * d_hidden, bias=False)
         self.to_b = nn.Linear(d_bias, n_head, bias=False)
         self.to_g = nn.Linear(d_in, n_head * d_hidden)
         self.to_out = nn.Linear(n_head * d_hidden, d_in)
@@ -133,7 +143,8 @@ class AttentionWithBias(nn.Module):
         attn = attn + bias
         attn = F.softmax(attn, dim=-2)
         #
-        out = einsum("bqkh,bkhd->bqhd", attn, value).reshape(B, L, -1)
+        out = einsum("bqkh,bkhd->bqhd", attn,
+                     value).reshape(B, L, -1)
         out = gate * out
         #
         out = self.to_out(out)
@@ -164,7 +175,8 @@ class SequenceWeight(nn.Module):
 
         tar_seq = msa[:, 0]
 
-        q = self.to_query(tar_seq).view(B, 1, L, self.h, self.dim)
+        q = self.to_query(tar_seq).view(
+            B, 1, L, self.h, self.dim)
         k = self.to_key(msa).view(B, N, L, self.h, self.dim)
 
         q = q * self.scale
@@ -179,10 +191,14 @@ class MSARowAttentionWithBias(nn.Module):
         self.norm_msa = nn.LayerNorm(d_msa)
         self.norm_pair = nn.LayerNorm(d_pair)
         #
-        self.seq_weight = SequenceWeight(d_msa, n_head, d_hidden, p_drop=0.1)
-        self.to_q = nn.Linear(d_msa, n_head * d_hidden, bias=False)
-        self.to_k = nn.Linear(d_msa, n_head * d_hidden, bias=False)
-        self.to_v = nn.Linear(d_msa, n_head * d_hidden, bias=False)
+        self.seq_weight = SequenceWeight(
+            d_msa, n_head, d_hidden, p_drop=0.1)
+        self.to_q = nn.Linear(
+            d_msa, n_head * d_hidden, bias=False)
+        self.to_k = nn.Linear(
+            d_msa, n_head * d_hidden, bias=False)
+        self.to_v = nn.Linear(
+            d_msa, n_head * d_hidden, bias=False)
         self.to_b = nn.Linear(d_pair, n_head, bias=False)
         self.to_g = nn.Linear(d_msa, n_head * d_hidden)
         self.to_out = nn.Linear(n_head * d_hidden, d_msa)
@@ -217,19 +233,24 @@ class MSARowAttentionWithBias(nn.Module):
         pair = self.norm_pair(pair)
         #
         seq_weight = self.seq_weight(msa)  # (B, N, L, h, 1)
-        query = self.to_q(msa).reshape(B, N, L, self.h, self.dim)
-        key = self.to_k(msa).reshape(B, N, L, self.h, self.dim)
-        value = self.to_v(msa).reshape(B, N, L, self.h, self.dim)
+        query = self.to_q(msa).reshape(
+            B, N, L, self.h, self.dim)
+        key = self.to_k(msa).reshape(
+            B, N, L, self.h, self.dim)
+        value = self.to_v(msa).reshape(
+            B, N, L, self.h, self.dim)
         bias = self.to_b(pair)  # (B, L, L, h)
         gate = torch.sigmoid(self.to_g(msa))
         #
-        query = query * seq_weight.expand(-1, -1, -1, -1, self.dim)
+        query = query * \
+            seq_weight.expand(-1, -1, -1, -1, self.dim)
         key = key * self.scaling
         attn = einsum("bsqhd,bskhd->bqkh", query, key)
         attn = attn + bias
         attn = F.softmax(attn, dim=-2)
         #
-        out = einsum("bqkh,bskhd->bsqhd", attn, value).reshape(B, N, L, -1)
+        out = einsum("bqkh,bskhd->bsqhd", attn,
+                     value).reshape(B, N, L, -1)
         out = gate * out
         #
         out = self.to_out(out)
@@ -241,9 +262,12 @@ class MSAColAttention(nn.Module):
         super(MSAColAttention, self).__init__()
         self.norm_msa = nn.LayerNorm(d_msa)
         #
-        self.to_q = nn.Linear(d_msa, n_head * d_hidden, bias=False)
-        self.to_k = nn.Linear(d_msa, n_head * d_hidden, bias=False)
-        self.to_v = nn.Linear(d_msa, n_head * d_hidden, bias=False)
+        self.to_q = nn.Linear(
+            d_msa, n_head * d_hidden, bias=False)
+        self.to_k = nn.Linear(
+            d_msa, n_head * d_hidden, bias=False)
+        self.to_v = nn.Linear(
+            d_msa, n_head * d_hidden, bias=False)
         self.to_g = nn.Linear(d_msa, n_head * d_hidden)
         self.to_out = nn.Linear(n_head * d_hidden, d_msa)
 
@@ -272,16 +296,20 @@ class MSAColAttention(nn.Module):
         #
         msa = self.norm_msa(msa)
         #
-        query = self.to_q(msa).reshape(B, N, L, self.h, self.dim)
-        key = self.to_k(msa).reshape(B, N, L, self.h, self.dim)
-        value = self.to_v(msa).reshape(B, N, L, self.h, self.dim)
+        query = self.to_q(msa).reshape(
+            B, N, L, self.h, self.dim)
+        key = self.to_k(msa).reshape(
+            B, N, L, self.h, self.dim)
+        value = self.to_v(msa).reshape(
+            B, N, L, self.h, self.dim)
         gate = torch.sigmoid(self.to_g(msa))
         #
         query = query * self.scaling
         attn = einsum("bqihd,bkihd->bihqk", query, key)
         attn = F.softmax(attn, dim=-1)
         #
-        out = einsum("bihqk,bkihd->bqihd", attn, value).reshape(B, N, L, -1)
+        out = einsum("bihqk,bkihd->bqihd", attn,
+                     value).reshape(B, N, L, -1)
         out = gate * out
         #
         out = self.to_out(out)
@@ -293,7 +321,8 @@ class MSAColGlobalAttention(nn.Module):
         super(MSAColGlobalAttention, self).__init__()
         self.norm_msa = nn.LayerNorm(d_msa)
         #
-        self.to_q = nn.Linear(d_msa, n_head * d_hidden, bias=False)
+        self.to_q = nn.Linear(
+            d_msa, n_head * d_hidden, bias=False)
         self.to_k = nn.Linear(d_msa, d_hidden, bias=False)
         self.to_v = nn.Linear(d_msa, d_hidden, bias=False)
         self.to_g = nn.Linear(d_msa, n_head * d_hidden)
@@ -324,14 +353,17 @@ class MSAColGlobalAttention(nn.Module):
         #
         msa = self.norm_msa(msa)
         #
-        query = self.to_q(msa).reshape(B, N, L, self.h, self.dim)
+        query = self.to_q(msa).reshape(
+            B, N, L, self.h, self.dim)
         query = query.mean(dim=1)  # (B, L, h, dim)
         key = self.to_k(msa)  # (B, N, L, dim)
         value = self.to_v(msa)  # (B, N, L, dim)
-        gate = torch.sigmoid(self.to_g(msa))  # (B, N, L, h*dim)
+        # (B, N, L, h*dim)
+        gate = torch.sigmoid(self.to_g(msa))
         #
         query = query * self.scaling
-        attn = einsum("bihd,bkid->bihk", query, key)  # (B, L, h, N)
+        attn = einsum("bihd,bkid->bihk",
+                      query, key)  # (B, L, h, N)
         attn = F.softmax(attn, dim=-1)
         #
         out = einsum("bihk,bkid->bihd", attn, value).reshape(
@@ -352,9 +384,12 @@ class BiasedAxialAttention(nn.Module):
         self.norm_pair = nn.LayerNorm(d_pair)
         self.norm_bias = nn.LayerNorm(d_bias)
 
-        self.to_q = nn.Linear(d_pair, n_head * d_hidden, bias=False)
-        self.to_k = nn.Linear(d_pair, n_head * d_hidden, bias=False)
-        self.to_v = nn.Linear(d_pair, n_head * d_hidden, bias=False)
+        self.to_q = nn.Linear(
+            d_pair, n_head * d_hidden, bias=False)
+        self.to_k = nn.Linear(
+            d_pair, n_head * d_hidden, bias=False)
+        self.to_v = nn.Linear(
+            d_pair, n_head * d_hidden, bias=False)
         self.to_b = nn.Linear(d_bias, n_head, bias=False)
         self.to_g = nn.Linear(d_pair, n_head * d_hidden)
         self.to_out = nn.Linear(n_head * d_hidden, d_pair)
@@ -394,19 +429,26 @@ class BiasedAxialAttention(nn.Module):
         pair = self.norm_pair(pair)
         bias = self.norm_bias(bias)
 
-        query = self.to_q(pair).reshape(B, L, L, self.h, self.dim)
-        key = self.to_k(pair).reshape(B, L, L, self.h, self.dim)
-        value = self.to_v(pair).reshape(B, L, L, self.h, self.dim)
+        query = self.to_q(pair).reshape(
+            B, L, L, self.h, self.dim)
+        key = self.to_k(pair).reshape(
+            B, L, L, self.h, self.dim)
+        value = self.to_v(pair).reshape(
+            B, L, L, self.h, self.dim)
         bias = self.to_b(bias)  # (B, L, L, h)
-        gate = torch.sigmoid(self.to_g(pair))  # (B, L, L, h*dim)
+        # (B, L, L, h*dim)
+        gate = torch.sigmoid(self.to_g(pair))
 
         query = query * self.scaling
-        key = key / math.sqrt(L)  # normalize for tied attention
-        attn = einsum("bnihk,bnjhk->bijh", query, key)  # tied attention
+        # normalize for tied attention
+        key = key / math.sqrt(L)
+        attn = einsum("bnihk,bnjhk->bijh",
+                      query, key)  # tied attention
         attn = attn + bias  # apply bias
         attn = F.softmax(attn, dim=-2)  # (B, L, L, h)
 
-        out = einsum("bijh,bkjhd->bikhd", attn, value).reshape(B, L, L, -1)
+        out = einsum("bijh,bkjhd->bikhd", attn,
+                     value).reshape(B, L, L, -1)
         out = gate * out
 
         out = self.to_out(out)

@@ -84,8 +84,11 @@ def largest_evec_jvp(primals, tangents):
         large_eigvec,
         precision=jax.lax.Precision.HIGHEST,
     )
-    prefactor = nominator / jnp.maximum(large_eigval[..., None] - other_eigvals, 1e-6)
-    grad = jnp.sum(prefactor[..., None, :] * other_eigvecs, axis=-1)
+    prefactor = nominator / \
+        jnp.maximum(
+            large_eigval[..., None] - other_eigvals, 1e-6)
+    grad = jnp.sum(
+        prefactor[..., None, :] * other_eigvecs, axis=-1)
     return large_eigvec, grad
 
 
@@ -99,7 +102,8 @@ MATRIX_SVD_QUAT_FACTORS = make_matrix_svd_factors()
 class Rot3Array:
     """Rot3Array Matrix in 3 dimensional Space implemented as struct of arrays."""
 
-    xx: jnp.ndarray = dataclasses.field(metadata={"dtype": jnp.float32})
+    xx: jnp.ndarray = dataclasses.field(
+        metadata={"dtype": jnp.float32})
     xy: jnp.ndarray
     xz: jnp.ndarray
     yx: jnp.ndarray
@@ -133,9 +137,12 @@ class Rot3Array:
 
     def __matmul__(self, other: Self) -> Self:
         """Composes two Rot3Arrays."""
-        c0 = self.apply_to_point(vector.Vec3Array(other.xx, other.yx, other.zx))
-        c1 = self.apply_to_point(vector.Vec3Array(other.xy, other.yy, other.zy))
-        c2 = self.apply_to_point(vector.Vec3Array(other.xz, other.yz, other.zz))
+        c0 = self.apply_to_point(
+            vector.Vec3Array(other.xx, other.yx, other.zx))
+        c1 = self.apply_to_point(
+            vector.Vec3Array(other.xy, other.yy, other.zy))
+        c2 = self.apply_to_point(
+            vector.Vec3Array(other.xz, other.yz, other.zz))
         return Rot3Array(c0.x, c1.x, c2.x, c0.y, c1.y, c2.y, c0.z, c1.z, c2.z)
 
     @classmethod
@@ -176,16 +183,20 @@ class Rot3Array:
     def from_array(cls, array: jnp.ndarray) -> Self:
         """Construct Rot3Array Matrix from array of shape. [..., 3, 3]."""
         unstacked = utils.unstack(array, axis=-2)
-        unstacked = sum([utils.unstack(x, axis=-1) for x in unstacked], [])
+        unstacked = sum([utils.unstack(x, axis=-1)
+                        for x in unstacked], [])
         return cls(*unstacked)
 
     def to_array(self) -> jnp.ndarray:
         """Convert Rot3Array to array of shape [..., 3, 3]."""
         return jnp.stack(
             [
-                jnp.stack([self.xx, self.xy, self.xz], axis=-1),
-                jnp.stack([self.yx, self.yy, self.yz], axis=-1),
-                jnp.stack([self.zx, self.zy, self.zz], axis=-1),
+                jnp.stack(
+                    [self.xx, self.xy, self.xz], axis=-1),
+                jnp.stack(
+                    [self.yx, self.yy, self.yz], axis=-1),
+                jnp.stack(
+                    [self.zx, self.zy, self.zz], axis=-1),
             ],
             axis=-2,
         )
@@ -202,7 +213,8 @@ class Rot3Array:
     ) -> Self:
         """Construct Rot3Array from components of quaternion."""
         if normalize:
-            inv_norm = jax.lax.rsqrt(jnp.maximum(epsilon, w**2 + x**2 + y**2 + z**2))
+            inv_norm = jax.lax.rsqrt(jnp.maximum(
+                epsilon, w**2 + x**2 + y**2 + z**2))
             w *= inv_norm
             x *= inv_norm
             y *= inv_norm
@@ -250,7 +262,8 @@ class Rot3Array:
                 mat,
                 precision=jax.lax.Precision.HIGHEST,
             )
-            symmetric_4by4 = jnp.reshape(symmetric_4by4, mat.shape[:-1] + (4, 4))
+            symmetric_4by4 = jnp.reshape(
+                symmetric_4by4, mat.shape[:-1] + (4, 4))
             largest_eigvec = largest_evec(symmetric_4by4)
             return cls.from_quaternion(
                 *utils.unstack(largest_eigvec, axis=-1)
@@ -258,22 +271,27 @@ class Rot3Array:
 
         else:
             mat = jnp.reshape(mat, mat.shape[:-1] + (3, 3))
-            u, _, v_t = jnp.linalg.svd(mat, full_matrices=False)
+            u, _, v_t = jnp.linalg.svd(
+                mat, full_matrices=False)
             det_uv_t = jnp.linalg.det(
-                jnp.matmul(u, v_t, precision=jax.lax.Precision.HIGHEST)
+                jnp.matmul(
+                    u, v_t, precision=jax.lax.Precision.HIGHEST)
             )
             ones = jnp.ones_like(det_uv_t)
-            diag_array = jnp.stack([ones, ones, det_uv_t], axis=-1)
+            diag_array = jnp.stack(
+                [ones, ones, det_uv_t], axis=-1)
             # This is equivalent to making diag_array into a diagonal array and matrix
             # multiplying
             diag_times_v_t = diag_array[..., None] * v_t
-            out = jnp.matmul(u, diag_times_v_t, precision=jax.lax.Precision.HIGHEST)
+            out = jnp.matmul(
+                u, diag_times_v_t, precision=jax.lax.Precision.HIGHEST)
             return cls.from_array(out)
 
     @classmethod
     def random_uniform(cls, key, shape, dtype=jnp.float32) -> Self:
         """Samples uniform random Rot3Array according to Haar Measure."""
-        quat_array = jax.random.normal(key, tuple(shape) + (4,), dtype=dtype)
+        quat_array = jax.random.normal(
+            key, tuple(shape) + (4,), dtype=dtype)
         quats = utils.unstack(quat_array)
         return cls.from_quaternion(*quats)
 

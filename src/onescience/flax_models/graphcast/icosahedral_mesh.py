@@ -36,11 +36,13 @@ def merge_meshes(mesh_list: Sequence[TriangularMesh]) -> TriangularMesh:
     """
     for mesh_i, mesh_ip1 in itertools.pairwise(mesh_list):
         num_nodes_mesh_i = mesh_i.vertices.shape[0]
-        assert np.allclose(mesh_i.vertices, mesh_ip1.vertices[:num_nodes_mesh_i])
+        assert np.allclose(
+            mesh_i.vertices, mesh_ip1.vertices[:num_nodes_mesh_i])
 
     return TriangularMesh(
         vertices=mesh_list[-1].vertices,
-        faces=np.concatenate([mesh.faces for mesh in mesh_list], axis=0),
+        faces=np.concatenate(
+            [mesh.faces for mesh in mesh_list], axis=0),
     )
 
 
@@ -70,7 +72,8 @@ def get_hierarchy_of_triangular_meshes_for_sphere(splits: int) -> List[Triangula
     current_mesh = get_icosahedron()
     output_meshes = [current_mesh]
     for _ in range(splits):
-        current_mesh = _two_split_unit_sphere_triangle_faces(current_mesh)
+        current_mesh = _two_split_unit_sphere_triangle_faces(
+            current_mesh)
         output_meshes.append(current_mesh)
     return output_meshes
 
@@ -150,7 +153,8 @@ def get_icosahedron() -> TriangularMesh:
 
     angle_between_faces = 2 * np.arcsin(phi / np.sqrt(3))
     rotation_angle = (np.pi - angle_between_faces) / 2
-    rotation = transform.Rotation.from_euler(seq="y", angles=rotation_angle)
+    rotation = transform.Rotation.from_euler(
+        seq="y", angles=rotation_angle)
     rotation_matrix = rotation.as_matrix()
     vertices = np.dot(vertices, rotation_matrix)
 
@@ -168,7 +172,8 @@ def _two_split_unit_sphere_triangle_faces(
     # located at the edge centres.
     # This class handles the positioning of the new vertices, and avoids creating
     # duplicates.
-    new_vertices_builder = _ChildVerticesBuilder(triangular_mesh.vertices)
+    new_vertices_builder = _ChildVerticesBuilder(
+        triangular_mesh.vertices)
 
     new_faces = []
     for ind1, ind2, ind3 in triangular_mesh.faces:
@@ -185,9 +190,12 @@ def _two_split_unit_sphere_triangle_faces(
         #     /    #1     \        /    #2    \
         #   /               \    /              \
         # ind1 ------------ ind12 ------------ ind2
-        ind12 = new_vertices_builder.get_new_child_vertex_index((ind1, ind2))
-        ind23 = new_vertices_builder.get_new_child_vertex_index((ind2, ind3))
-        ind31 = new_vertices_builder.get_new_child_vertex_index((ind3, ind1))
+        ind12 = new_vertices_builder.get_new_child_vertex_index(
+            (ind1, ind2))
+        ind23 = new_vertices_builder.get_new_child_vertex_index(
+            (ind2, ind3))
+        ind31 = new_vertices_builder.get_new_child_vertex_index(
+            (ind3, ind1))
         # Note how each of the 4 triangular new faces specifies the order of the
         # vertices to preserve the orientation of the original face. As the input
         # face should always be counter-clockwise as specified in the diagram,
@@ -230,20 +238,24 @@ class _ChildVerticesBuilder(object):
         child_vertex_position = self._parent_vertices[list(parent_vertex_indices)].mean(
             0
         )
-        child_vertex_position /= np.linalg.norm(child_vertex_position)
+        child_vertex_position /= np.linalg.norm(
+            child_vertex_position)
 
         # Add the vertex to the output list. The index for this new vertex will
         # match the length of the list before adding it.
-        child_vertex_key = self._get_child_vertex_key(parent_vertex_indices)
+        child_vertex_key = self._get_child_vertex_key(
+            parent_vertex_indices)
         self._child_vertices_index_mapping[child_vertex_key] = len(
             self._all_vertices_list
         )
-        self._all_vertices_list.append(child_vertex_position)
+        self._all_vertices_list.append(
+            child_vertex_position)
 
     def get_new_child_vertex_index(self, parent_vertex_indices):
         """Returns index for a child vertex, creating it if necessary."""
         # Get the key to see if we already have a new vertex in the middle.
-        child_vertex_key = self._get_child_vertex_key(parent_vertex_indices)
+        child_vertex_key = self._get_child_vertex_key(
+            parent_vertex_indices)
         if child_vertex_key not in self._child_vertices_index_mapping:
             self._create_child_vertex(parent_vertex_indices)
         return self._child_vertices_index_mapping[child_vertex_key]
@@ -273,8 +285,10 @@ def faces_to_edges(faces: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     assert faces.ndim == 2
     assert faces.shape[-1] == 3
-    senders = np.concatenate([faces[:, 0], faces[:, 1], faces[:, 2]])
-    receivers = np.concatenate([faces[:, 1], faces[:, 2], faces[:, 0]])
+    senders = np.concatenate(
+        [faces[:, 0], faces[:, 1], faces[:, 2]])
+    receivers = np.concatenate(
+        [faces[:, 1], faces[:, 2], faces[:, 0]])
     return senders, receivers
 
 

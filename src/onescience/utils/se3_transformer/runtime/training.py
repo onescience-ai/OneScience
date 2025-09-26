@@ -101,10 +101,12 @@ def load_state(
         str(path), map_location={"cuda:0": f"cuda:{get_local_rank()}"}
     )
     if isinstance(model, DistributedDataParallel):
-        model.module.load_state_dict(checkpoint["state_dict"])
+        model.module.load_state_dict(
+            checkpoint["state_dict"])
     else:
         model.load_state_dict(checkpoint["state_dict"])
-    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    optimizer.load_state_dict(
+        checkpoint["optimizer_state_dict"])
 
     for callback in callbacks:
         callback.on_checkpoint_load(checkpoint)
@@ -139,7 +141,8 @@ def train_epoch(
 
         with torch.cuda.amp.autocast(enabled=args.amp):
             pred = model(*inputs)
-            loss = loss_fn(pred, target) / args.accumulate_grad_batches
+            loss = loss_fn(pred, target) / \
+                args.accumulate_grad_batches
 
         grad_scaler.scale(loss).backward()
 
@@ -149,7 +152,8 @@ def train_epoch(
         ):
             if args.gradient_clip:
                 grad_scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(model.parameters(), args.gradient_clip)
+                torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), args.gradient_clip)
 
             grad_scaler.step(optimizer)
             grad_scaler.update()
@@ -172,15 +176,18 @@ def train(
     device = torch.cuda.current_device()
     model.to(device=device)
     local_rank = get_local_rank()
-    world_size = dist.get_world_size() if dist.is_initialized() else 1
+    world_size = dist.get_world_size(
+    ) if dist.is_initialized() else 1
 
     if dist.is_initialized():
         model = DistributedDataParallel(
-            model, device_ids=[local_rank], output_device=local_rank
+            model, device_ids=[
+                local_rank], output_device=local_rank
         )
 
     model.train()
-    grad_scaler = torch.cuda.amp.GradScaler(enabled=args.amp)
+    grad_scaler = torch.cuda.amp.GradScaler(
+        enabled=args.amp)
     if args.optimizer == "adam":
         optimizer = FusedAdam(
             model.parameters(),
@@ -204,7 +211,8 @@ def train(
         )
 
     epoch_start = (
-        load_state(model, optimizer, args.load_ckpt_path, callbacks)
+        load_state(model, optimizer,
+                   args.load_ckpt_path, callbacks)
         if args.load_ckpt_path
         else 0
     )
@@ -228,7 +236,8 @@ def train(
             args,
         )
         if dist.is_initialized():
-            loss = torch.tensor(loss, dtype=torch.float, device=device)
+            loss = torch.tensor(
+                loss, dtype=torch.float, device=device)
             torch.distributed.all_reduce(loss)
             loss = (loss / world_size).item()
 
@@ -244,7 +253,8 @@ def train(
             and args.ckpt_interval > 0
             and (epoch_idx + 1) % args.ckpt_interval == 0
         ):
-            save_state(model, optimizer, epoch_idx, args.save_ckpt_path, callbacks)
+            save_state(model, optimizer, epoch_idx,
+                       args.save_ckpt_path, callbacks)
 
         if (
             not args.benchmark
@@ -258,15 +268,18 @@ def train(
                 callback.on_validation_end(epoch_idx)
 
     if args.save_ckpt_path is not None and not args.benchmark:
-        save_state(model, optimizer, args.epochs, args.save_ckpt_path, callbacks)
+        save_state(model, optimizer, args.epochs,
+                   args.save_ckpt_path, callbacks)
 
     for callback in callbacks:
         callback.on_fit_end()
 
 
 def print_parameters_count(model):
-    num_params_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    logging.info(f"Number of trainable parameters: {num_params_trainable}")
+    num_params_trainable = sum(
+        p.numel() for p in model.parameters() if p.requires_grad)
+    logging.info(
+        f"Number of trainable parameters: {num_params_trainable}")
 
 
 if __name__ == "__main__":
@@ -288,7 +301,8 @@ if __name__ == "__main__":
 
     logger = LoggerCollection(
         [
-            DLLogger(save_dir=args.log_dir, filename=args.dllogger_name),
+            DLLogger(save_dir=args.log_dir,
+                     filename=args.dllogger_name),
             WandbLogger(
                 name=f"QM9({args.task})",
                 save_dir=args.log_dir,
@@ -300,24 +314,29 @@ if __name__ == "__main__":
     datamodule = QM9DataModule(**vars(args))
     model = SE3TransformerPooled(
         fiber_in=Fiber({0: datamodule.NODE_FEATURE_DIM}),
-        fiber_out=Fiber({0: args.num_degrees * args.num_channels}),
+        fiber_out=Fiber(
+            {0: args.num_degrees * args.num_channels}),
         fiber_edge=Fiber({0: datamodule.EDGE_FEATURE_DIM}),
         output_dim=1,
-        tensor_cores=using_tensor_cores(args.amp),  # use Tensor Cores more effectively
+        # use Tensor Cores more effectively
+        tensor_cores=using_tensor_cores(args.amp),
         **vars(args),
     )
     loss_fn = nn.L1Loss()
 
     if args.benchmark:
         logging.info("Running benchmark mode")
-        world_size = dist.get_world_size() if dist.is_initialized() else 1
-        callbacks = [PerformanceCallback(logger, args.batch_size * world_size)]
+        world_size = dist.get_world_size(
+        ) if dist.is_initialized() else 1
+        callbacks = [PerformanceCallback(
+            logger, args.batch_size * world_size)]
     else:
         callbacks = [
             QM9MetricCallback(
                 logger, targets_std=datamodule.targets_std, prefix="validation"
             ),
-            QM9LRSchedulerCallback(logger, epochs=args.epochs),
+            QM9LRSchedulerCallback(
+                logger, epochs=args.epochs),
         ]
 
     if is_distributed:

@@ -63,7 +63,8 @@ def _populate_atoms_in_mol(
       ValueError: If atom type is invalid.
     """
     # Map atom names to the position they will take in the rdkit molecule.
-    atom_name_to_idx = {name: i for i, name in enumerate(atom_names)}
+    atom_name_to_idx = {name: i for i,
+                        name in enumerate(atom_names)}
 
     for atom_name, atom_type, atom_charge, atom_leaving_flag in zip(
         atom_names, atom_types, atom_charges, atom_leaving_flags, strict=True
@@ -73,7 +74,8 @@ def _populate_atoms_in_mol(
                 atom_type = "*"
             atom = rd_chem.Atom(atom_type)
         except RuntimeError as e:
-            raise ValueError(f"Failed to use atom type: {str(e)}") from e
+            raise ValueError(
+                f"Failed to use atom type: {str(e)}") from e
 
         if not implicit_hydrogens:
             atom.SetNoImplicit(True)
@@ -82,7 +84,8 @@ def _populate_atoms_in_mol(
         atom.SetProp("atom_leaving_flag", atom_leaving_flag)
         atom.SetFormalCharge(atom_charge)
         residue_info = rd_chem.AtomPDBResidueInfo()
-        residue_info.SetName(_format_atom_name(atom_name, atom_type))
+        residue_info.SetName(
+            _format_atom_name(atom_name, atom_type))
         residue_info.SetIsHeteroAtom(True)
         residue_info.SetResidueName(ligand_name)
         residue_info.SetResidueNumber(1)
@@ -109,13 +112,16 @@ def _populate_bonds_in_mol(
       bond_orders: What order the bonds are.
       bond_is_aromatics: Whether the bonds are aromatic.
     """
-    atom_name_to_idx = {name: i for i, name in enumerate(atom_names)}
+    atom_name_to_idx = {name: i for i,
+                        name in enumerate(atom_names)}
     for begin, end, bond_type, is_aromatic in zip(
         bond_begins, bond_ends, bond_orders, bond_is_aromatics, strict=True
     ):
         begin_name, end_name = atom_name_to_idx[begin], atom_name_to_idx[end]
-        bond_idx = mol.AddBond(begin_name, end_name, bond_type)
-        mol.GetBondWithIdx(bond_idx - 1).SetIsAromatic(is_aromatic)
+        bond_idx = mol.AddBond(
+            begin_name, end_name, bond_type)
+        mol.GetBondWithIdx(
+            bond_idx - 1).SetIsAromatic(is_aromatic)
 
 
 def sanitize_mol(mol, sort_alphabetically, remove_hydrogens) -> rd_chem.Mol:
@@ -137,7 +143,8 @@ def _add_conformer_to_mol(mol, conformer, force_parse) -> rd_chem.Mol:
             mol.AddConformer(conformer)
             rd_chem.AssignStereochemistryFrom3D(mol)
         except ValueError as e:
-            logging.warning("Failed to parse conformer: %s", e)
+            logging.warning(
+                "Failed to parse conformer: %s", e)
             if not force_parse:
                 raise
 
@@ -212,7 +219,8 @@ def mol_from_ccd_cif(
     try:
         conformer = _parse_ideal_conformer(mol_cif)
     except (KeyError, ValueError) as e:
-        logging.warning("Failed to parse ideal conformer: %s", e)
+        logging.warning(
+            "Failed to parse ideal conformer: %s", e)
         if not force_parse:
             raise MolFromMmcifError from e
         conformer = None
@@ -221,7 +229,8 @@ def mol_from_ccd_cif(
 
     try:
         _add_conformer_to_mol(mol, conformer, force_parse)
-        mol = sanitize_mol(mol, sort_alphabetically, remove_hydrogens)
+        mol = sanitize_mol(
+            mol, sort_alphabetically, remove_hydrogens)
     except (
         ValueError,
         rd_chem.KekulizeException,
@@ -273,7 +282,8 @@ def mol_to_ccd_cif(
 
     if mol.GetNumConformers() > 0:
         ideal_conformer = mol.GetConformer(0).GetPositions()
-        ideal_conformer = np.vectorize(lambda x: f"{x:.3f}")(ideal_conformer)
+        ideal_conformer = np.vectorize(
+            lambda x: f"{x:.3f}")(ideal_conformer)
     else:
         # No data will be populated in the resulting mmcif if the molecule doesn't
         # have any conformers attached to it.
@@ -285,22 +295,30 @@ def mol_to_ccd_cif(
     if pdbx_smiles:
         mol_cif["_chem_comp.pdbx_smiles"] = [pdbx_smiles]
 
-    mol = assign_atom_names_from_graph(mol, keep_existing_names=True)
+    mol = assign_atom_names_from_graph(
+        mol, keep_existing_names=True)
 
     for atom_idx, atom in enumerate(mol.GetAtoms()):
         element = atom.GetSymbol()
         if not include_hydrogens and element in ("H", "D"):
             continue
 
-        mol_cif["_chem_comp_atom.comp_id"].append(component_id)
-        mol_cif["_chem_comp_atom.atom_id"].append(atom.GetProp("atom_name"))
-        mol_cif["_chem_comp_atom.type_symbol"].append(atom.GetSymbol().upper())
-        mol_cif["_chem_comp_atom.charge"].append(str(atom.GetFormalCharge()))
+        mol_cif["_chem_comp_atom.comp_id"].append(
+            component_id)
+        mol_cif["_chem_comp_atom.atom_id"].append(
+            atom.GetProp("atom_name"))
+        mol_cif["_chem_comp_atom.type_symbol"].append(
+            atom.GetSymbol().upper())
+        mol_cif["_chem_comp_atom.charge"].append(
+            str(atom.GetFormalCharge()))
         if ideal_conformer is not None:
             coords = ideal_conformer[atom_idx]
-            mol_cif["_chem_comp_atom.pdbx_model_Cartn_x_ideal"].append(coords[0])
-            mol_cif["_chem_comp_atom.pdbx_model_Cartn_y_ideal"].append(coords[1])
-            mol_cif["_chem_comp_atom.pdbx_model_Cartn_z_ideal"].append(coords[2])
+            mol_cif["_chem_comp_atom.pdbx_model_Cartn_x_ideal"].append(
+                coords[0])
+            mol_cif["_chem_comp_atom.pdbx_model_Cartn_y_ideal"].append(
+                coords[1])
+            mol_cif["_chem_comp_atom.pdbx_model_Cartn_z_ideal"].append(
+                coords[2])
 
     for bond in mol.GetBonds():
         atom1 = bond.GetBeginAtom()
@@ -309,7 +327,8 @@ def mol_to_ccd_cif(
             atom1.GetSymbol() in ("H", "D") or atom2.GetSymbol() in ("H", "D")
         ):
             continue
-        mol_cif["_chem_comp_bond.comp_id"].append(component_id)
+        mol_cif["_chem_comp_bond.comp_id"].append(
+            component_id)
         mol_cif["_chem_comp_bond.atom_id_1"].append(
             bond.GetBeginAtom().GetProp("atom_name")
         )
@@ -326,7 +345,8 @@ def mol_to_ccd_cif(
                 _RDKIT_BOND_TYPE_TO_MMCIF[bond_type]
             )
             mol_cif["_chem_comp_bond.pdbx_stereo_config"].append(
-                _RDKIT_BOND_STEREO_TO_MMCIF[bond.GetStereo()]
+                _RDKIT_BOND_STEREO_TO_MMCIF[bond.GetStereo(
+                )]
             )
         except KeyError as e:
             raise UnsupportedMolBondError from e
@@ -375,7 +395,8 @@ def parse_atom_data(
     mol_cif: cif_dict.CifDict | Mapping[str, Sequence[str]], force_parse: bool
 ) -> tuple[Sequence[str], Sequence[str], Sequence[int], Sequence[str]]:
     """Parses atoms. If force_parse is True, fix deuterium and missing charge."""
-    atom_types = [t.capitalize() for t in mol_cif["_chem_comp_atom.type_symbol"]]
+    atom_types = [t.capitalize()
+                  for t in mol_cif["_chem_comp_atom.type_symbol"]]
     atom_names = mol_cif["_chem_comp_atom.atom_id"]
     atom_charges = mol_cif["_chem_comp_atom.charge"]
     atom_leaving_flags = ["?"] * len(atom_names)
@@ -384,11 +405,14 @@ def parse_atom_data(
 
     if force_parse:
         # Replace missing charges with 0.
-        atom_charges = [charge if charge != "?" else "0" for charge in atom_charges]
+        atom_charges = [charge if charge !=
+                        "?" else "0" for charge in atom_charges]
         # Deuterium for hydrogen.
-        atom_types = [type_ if type_ != "D" else "H" for type_ in atom_types]
+        atom_types = [type_ if type_ !=
+                      "D" else "H" for type_ in atom_types]
 
-    atom_charges = [int(atom_charge) for atom_charge in atom_charges]
+    atom_charges = [int(atom_charge)
+                    for atom_charge in atom_charges]
     return atom_names, atom_types, atom_charges, atom_leaving_flags
 
 
@@ -397,14 +421,18 @@ def parse_bond_data(
 ) -> tuple[Sequence[str], Sequence[str], Sequence[rd_chem.BondType], Sequence[bool]]:
     """Parses bond data. If force_parse is True, ignore missing aromatic flags."""
     # The bond table isn't present if there are no bonds. Use [] in that case.
-    begin_atoms = mol_cif.get("_chem_comp_bond.atom_id_1", [])
+    begin_atoms = mol_cif.get(
+        "_chem_comp_bond.atom_id_1", [])
     end_atoms = mol_cif.get("_chem_comp_bond.atom_id_2", [])
     orders = mol_cif.get("_chem_comp_bond.value_order", [])
-    bond_types = [_RDKIT_MMCIF_TO_BOND_TYPE[order] for order in orders]
+    bond_types = [_RDKIT_MMCIF_TO_BOND_TYPE[order]
+                  for order in orders]
 
     try:
-        aromatic_flags = mol_cif.get("_chem_comp_bond.pdbx_aromatic_flag", [])
-        is_aromatic = [{"Y": True, "N": False}[flag] for flag in aromatic_flags]
+        aromatic_flags = mol_cif.get(
+            "_chem_comp_bond.pdbx_aromatic_flag", [])
+        is_aromatic = [{"Y": True, "N": False}[flag]
+                       for flag in aromatic_flags]
     except KeyError:
         if force_parse:
             # Set them all to not aromatic.
@@ -427,10 +455,14 @@ def _parse_ideal_conformer(mol_cif: cif_dict.CifDict) -> rd_chem.Conformer:
     Raises:
        ValueError: if the positions can't be interpreted.
     """
-    atom_x = [float(x) for x in mol_cif["_chem_comp_atom.pdbx_model_Cartn_x_ideal"]]
-    atom_y = [float(y) for y in mol_cif["_chem_comp_atom.pdbx_model_Cartn_y_ideal"]]
-    atom_z = [float(z) for z in mol_cif["_chem_comp_atom.pdbx_model_Cartn_z_ideal"]]
-    atom_positions = zip(atom_x, atom_y, atom_z, strict=True)
+    atom_x = [float(
+        x) for x in mol_cif["_chem_comp_atom.pdbx_model_Cartn_x_ideal"]]
+    atom_y = [float(
+        y) for y in mol_cif["_chem_comp_atom.pdbx_model_Cartn_y_ideal"]]
+    atom_z = [float(
+        z) for z in mol_cif["_chem_comp_atom.pdbx_model_Cartn_z_ideal"]]
+    atom_positions = zip(
+        atom_x, atom_y, atom_z, strict=True)
 
     conformer = rd_chem.Conformer(len(atom_x))
     for atom_index, atom_position in enumerate(atom_positions):
@@ -441,7 +473,8 @@ def _parse_ideal_conformer(mol_cif: cif_dict.CifDict) -> rd_chem.Conformer:
 
 def sort_atoms_by_name(mol: rd_chem.Mol) -> rd_chem.Mol:
     """Sorts the atoms in the molecule by their names."""
-    atom_names = {atom.GetProp("atom_name"): atom.GetIdx() for atom in mol.GetAtoms()}
+    atom_names = {atom.GetProp(
+        "atom_name"): atom.GetIdx() for atom in mol.GetAtoms()}
 
     # Sort the name, int tuples by the names.
     sorted_atom_names = sorted(atom_names.items())
@@ -515,9 +548,11 @@ def get_random_conformer(
         params.maxIterations = max_iterations
     mol_copy = rd_chem.Mol(mol)
     try:
-        conformer_id = rd_all_chem.EmbedMolecule(mol_copy, params)
+        conformer_id = rd_all_chem.EmbedMolecule(
+            mol_copy, params)
         conformer = mol_copy.GetConformer(conformer_id)
     except ValueError:
-        logging.warning("Failed to generate conformer for: %s", logging_name)
+        logging.warning(
+            "Failed to generate conformer for: %s", logging_name)
         conformer = None
     return conformer

@@ -56,7 +56,8 @@ class NormSE3(nn.Module):
         else:
             # Use multiple layer normalizations
             self.layer_norms = nn.ModuleDict(
-                {str(degree): nn.LayerNorm(channels) for degree, channels in fiber}
+                {str(degree): nn.LayerNorm(channels)
+                 for degree, channels in fiber}
             )
 
     def forward(
@@ -84,12 +85,15 @@ class NormSE3(nn.Module):
 
                 # Scale features to the new norms
                 for norm, new_norm, d in zip(norms, new_norms, self.fiber.degrees):
-                    output[str(d)] = features[str(d)] / norm * new_norm
+                    output[str(d)] = features[str(
+                        d)] / norm * new_norm
             else:
                 for degree, feat in features.items():
-                    norm = feat.norm(dim=-1, keepdim=True).clamp(min=self.NORM_CLAMP)
+                    norm = feat.norm(
+                        dim=-1, keepdim=True).clamp(min=self.NORM_CLAMP)
                     new_norm = self.nonlinearity(
-                        self.layer_norms[degree](norm.squeeze(-1)).unsqueeze(-1)
+                        self.layer_norms[degree](
+                            norm.squeeze(-1)).unsqueeze(-1)
                     )
                     output[degree] = new_norm * feat / norm
 

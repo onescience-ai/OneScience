@@ -1,19 +1,16 @@
+from .encoder import Encoder
+from .decoder import Decoder
+from onescience.flax_models.MolSculptor.src.common.utils import safe_l2_normalize
+from onescience.flax_models.MolSculptor.src.common.layers.mlp import MLP
+from ml_collections.config_dict import ConfigDict
+from flax.linen.initializers import truncated_normal
+import jax.numpy as jnp
+import jax
+import flax.linen as nn
 import os
 import sys
 
 sys.path.append(os.path.dirname(sys.path[0]))
-
-import flax.linen as nn
-import jax
-import jax.numpy as jnp
-from flax.linen.initializers import truncated_normal
-from ml_collections.config_dict import ConfigDict
-
-from onescience.flax_models.MolSculptor.src.common.layers.mlp import MLP
-from onescience.flax_models.MolSculptor.src.common.utils import safe_l2_normalize
-
-from .decoder import Decoder
-from .encoder import Encoder
 
 
 class SeqGenerator(nn.Module):
@@ -28,17 +25,17 @@ class SeqGenerator(nn.Module):
         bond_features = input_features["graph_features"]["bond_features"]
         sequence_features = input_features["sequence_features"]
 
-        #### get conditional embedding: (B, NQ, F)
+        # get conditional embedding: (B, NQ, F)
         graph_feat = Encoder(self.config.encoder, self.global_config)(
             atom_features, bond_features, neighbor_list
         )
 
-        #### get seq info: (B, K, N)
+        # get seq info: (B, K, N)
         seq_tokens = sequence_features["tokens"]
         seq_mask = sequence_features["mask"]
         seq_rope_index = sequence_features["rope_index"]
 
-        #### reshape & broadcast: (B, NQ, F) -> (B*K, NQ, F), (B, K, N) -> (B*K, N)
+        # reshape & broadcast: (B, NQ, F) -> (B*K, NQ, F), (B, K, N) -> (B*K, N)
         batch_size, num_k, _ = seq_tokens.shape
         graph_feat = jnp.expand_dims(graph_feat, axis=1)
         graph_feat = jnp.tile(graph_feat, (1, num_k, 1, 1)).reshape(
@@ -49,7 +46,7 @@ class SeqGenerator(nn.Module):
             (seq_tokens, seq_mask, seq_rope_index),
         )
 
-        #### predict logits: (B*K, N, L)
+        # predict logits: (B*K, N, L)
         # print(jax.tree_util.tree_map(jnp.shape, (seq_tokens, seq_mask, seq_rope_index, graph_feat)))
         seq_logits = Decoder(self.config.decoder, self.global_config)(
             seq_tokens, seq_mask, seq_rope_index, graph_feat
@@ -65,8 +62,8 @@ class Projector(nn.Module):
 
     @nn.compact
     def __call__(self, features):
-        #### input features: (B, NQ*D)
-        #### -> FFN -> dense (optional) -> L2 norm
+        # input features: (B, NQ*D)
+        # -> FFN -> dense (optional) -> L2 norm
         arr_dtype = jnp.bfloat16 if self.global_config.bf16_flag else jnp.float32
         dropout_flag = self.global_config.dropout_flag
         # features = Transition(
@@ -87,7 +84,8 @@ class Projector(nn.Module):
             with_bias=False,
             dropout_flag=dropout_flag,
         )(features)
-        features = safe_l2_normalize(features, axis=-1)  ## (B, O)
+        features = safe_l2_normalize(
+            features, axis=-1)  # (B, O)
         return features
 
 
@@ -103,12 +101,12 @@ class L2SeqGenerator(nn.Module):
         bond_features = input_features["graph_features"]["bond_features"]
         sequence_features = input_features["sequence_features"]
 
-        #### get conditional embedding: (B, NQ, F)
+        # get conditional embedding: (B, NQ, F)
         graph_feat = Encoder(self.config.encoder, self.global_config)(
             atom_features, bond_features, neighbor_list
         )
 
-        #### project to latent space: (B, NQ, F) -> (B, NQ, D)
+        # project to latent space: (B, NQ, F) -> (B, NQ, D)
         arr_dtype = jnp.bfloat16 if self.global_config.bf16_flag else jnp.float32
         graph_feat = nn.Dense(
             self.config.latent_dim,
@@ -119,8 +117,10 @@ class L2SeqGenerator(nn.Module):
         )(graph_feat)
         num_sink_tokens = self.config.num_sink_tokens
         n_ = graph_feat.shape[1]
-        graph_feat = graph_feat[:, : n_ - num_sink_tokens]  ## remove sink tokens
-        graph_feat = safe_l2_normalize(graph_feat, axis=-1)  ## l2 norm for every tokens
+        # remove sink tokens
+        graph_feat = graph_feat[:, : n_ - num_sink_tokens]
+        graph_feat = safe_l2_normalize(
+            graph_feat, axis=-1)  # l2 norm for every tokens
         # graph_feat *= jnp.sqrt(jnp.float32(self.config.latent_dim)) ## scale by sqrt(d)
         sim_feat = jnp.reshape(
             graph_feat, (graph_feat.shape[0], -1)
@@ -128,19 +128,23 @@ class L2SeqGenerator(nn.Module):
         sim_feat = Projector(self.config.projector, self.global_config)(
             sim_feat
         )  # (B, NQ*D) -> (B, NQ*D)
-        aux = {"graph_feat": graph_feat, "sim_feat": sim_feat}  # (B, NQ, D)
+        aux = {"graph_feat": graph_feat,
+               "sim_feat": sim_feat}  # (B, NQ, D)
         # aux = {'graph_feat': graph_feat} # (B, NQ, D) ### debug
 
-        #### get seq info: (B, K, N)
+        # get seq info: (B, K, N)
         seq_tokens = sequence_features["tokens"]
         seq_mask = sequence_features["mask"]
         # seq_rope_index = sequence_features['rope_index']
         # breakpoint() ## check here
 
-        #### reshape & broadcast: (B, ...) -> (B*K, ...)
-        batch_size, num_k, num_tokens = seq_tokens.shape  # (B, K, N)
-        seq_rope_index = jnp.arange(num_tokens, dtype=jnp.int32)[None, None, :]
-        seq_rope_index = jnp.broadcast_to(seq_rope_index, seq_tokens.shape)
+        # reshape & broadcast: (B, ...) -> (B*K, ...)
+        # (B, K, N)
+        batch_size, num_k, num_tokens = seq_tokens.shape
+        seq_rope_index = jnp.arange(num_tokens, dtype=jnp.int32)[
+            None, None, :]
+        seq_rope_index = jnp.broadcast_to(
+            seq_rope_index, seq_tokens.shape)
         graph_feat = jnp.expand_dims(graph_feat, axis=1)
         graph_feat = jnp.tile(graph_feat, (1, num_k, 1, 1)).reshape(
             -1, *graph_feat.shape[-2:]
@@ -150,7 +154,7 @@ class L2SeqGenerator(nn.Module):
             (seq_tokens, seq_mask, seq_rope_index),
         )
 
-        #### predict logits: (B*K, N, L)
+        # predict logits: (B*K, N, L)
         # print(jax.tree_util.tree_map(jnp.shape, (seq_tokens, seq_mask, seq_rope_index, graph_feat)))
         seq_logits = Decoder(self.config.decoder, self.global_config)(
             seq_tokens, seq_mask, seq_rope_index, graph_feat
@@ -171,12 +175,12 @@ class MMDSeqGenerator(nn.Module):
         bond_features = input_features["graph_features"]["bond_features"]
         sequence_features = input_features["sequence_features"]
 
-        #### get conditional embedding: (B, NQ, F)
+        # get conditional embedding: (B, NQ, F)
         graph_feat = Encoder(self.config.encoder, self.global_config)(
             atom_features, bond_features, neighbor_list
         )
 
-        #### project to latent space: (B, NQ, F) -> (B, NQ, D)
+        # project to latent space: (B, NQ, F) -> (B, NQ, D)
         arr_dtype = jnp.bfloat16 if self.global_config.bf16_flag else jnp.float32
         graph_feat = nn.Dense(
             self.config.latent_dim,
@@ -186,17 +190,21 @@ class MMDSeqGenerator(nn.Module):
             param_dtype=jnp.float32,
         )(graph_feat)
         num_sink_tokens = self.config.num_sink_tokens
-        graph_feat = graph_feat[:, :-num_sink_tokens]  ## remove sink tokens
+        # remove sink tokens
+        graph_feat = graph_feat[:, :-num_sink_tokens]
         aux = {"graph_feat": graph_feat}  # (B, NQ, D)
 
-        #### get seq info: (B, K, N)
+        # get seq info: (B, K, N)
         seq_tokens = sequence_features["tokens"]
         seq_mask = sequence_features["mask"]
 
-        #### reshape & broadcast: (B, ...) -> (B*K, ...)
-        batch_size, num_k, num_tokens = seq_tokens.shape  # (B, K, N)
-        seq_rope_index = jnp.arange(num_tokens, dtype=jnp.int32)[None, None, :]
-        seq_rope_index = jnp.broadcast_to(seq_rope_index, seq_tokens.shape)
+        # reshape & broadcast: (B, ...) -> (B*K, ...)
+        # (B, K, N)
+        batch_size, num_k, num_tokens = seq_tokens.shape
+        seq_rope_index = jnp.arange(num_tokens, dtype=jnp.int32)[
+            None, None, :]
+        seq_rope_index = jnp.broadcast_to(
+            seq_rope_index, seq_tokens.shape)
         graph_feat = jnp.expand_dims(graph_feat, axis=1)
         graph_feat = jnp.tile(graph_feat, (1, num_k, 1, 1)).reshape(
             -1, *graph_feat.shape[-2:]
@@ -206,8 +214,8 @@ class MMDSeqGenerator(nn.Module):
             (seq_tokens, seq_mask, seq_rope_index),
         )
 
-        #### predict logits: (B*K, N, L)
-        #### print(jax.tree_util.tree_map(jnp.shape, (seq_tokens, seq_mask, seq_rope_index, graph_feat)))
+        # predict logits: (B*K, N, L)
+        # print(jax.tree_util.tree_map(jnp.shape, (seq_tokens, seq_mask, seq_rope_index, graph_feat)))
         seq_logits = Decoder(self.config.decoder, self.global_config)(
             seq_tokens, seq_mask, seq_rope_index, graph_feat
         )
@@ -223,14 +231,17 @@ class TrainDecoder(nn.Module):
     @nn.compact
     def __call__(self, graph_feat, sequence_features):
 
-        #### get seq info: (B, K, N)
+        # get seq info: (B, K, N)
         seq_tokens = sequence_features["tokens"]
         seq_mask = sequence_features["mask"]
 
-        #### reshape & broadcast: (B, ...) -> (B*K, ...)
-        batch_size, num_k, num_tokens = seq_tokens.shape  # (B, K, N)
-        seq_rope_index = jnp.arange(num_tokens, dtype=jnp.int32)[None, None, :]
-        seq_rope_index = jnp.broadcast_to(seq_rope_index, seq_tokens.shape)
+        # reshape & broadcast: (B, ...) -> (B*K, ...)
+        # (B, K, N)
+        batch_size, num_k, num_tokens = seq_tokens.shape
+        seq_rope_index = jnp.arange(num_tokens, dtype=jnp.int32)[
+            None, None, :]
+        seq_rope_index = jnp.broadcast_to(
+            seq_rope_index, seq_tokens.shape)
         graph_feat = jnp.expand_dims(graph_feat, axis=1)
         graph_feat = jnp.tile(graph_feat, (1, num_k, 1, 1)).reshape(
             -1, *graph_feat.shape[-2:]
@@ -240,7 +251,7 @@ class TrainDecoder(nn.Module):
             (seq_tokens, seq_mask, seq_rope_index),
         )
 
-        #### predict logits: (B*K, N, L)
+        # predict logits: (B*K, N, L)
         seq_logits = Decoder(self.config.decoder, self.global_config)(
             seq_tokens, seq_mask, seq_rope_index, graph_feat
         )

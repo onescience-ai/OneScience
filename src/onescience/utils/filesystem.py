@@ -55,7 +55,8 @@ def _download_ngc_model_file(path: str, out_path: str, timeout: int = 300) -> st
     # Strip ngc model url prefix
     suffix = "ngc://models/"
     # The regex check
-    pattern = re.compile(f"{suffix}[\w-]+(/[\w-]+)?/[\w-]+@[A-Za-z0-9.]+/[\w/](.*)")
+    pattern = re.compile(
+        f"{suffix}[\w-]+(/[\w-]+)?/[\w-]+@[A-Za-z0-9.]+/[\w/](.*)")
     if not pattern.match(path):
         raise ValueError(
             "Invalid URL, should be of form ngc://models/<org_id/team_id/model_id>@<version>/<path/in/repo>"
@@ -76,15 +77,18 @@ def _download_ngc_model_file(path: str, out_path: str, timeout: int = 300) -> st
         try:
             # SSA tokens
             if os.environ["NGC_API_KEY"].startswith("nvapi-"):
-                raise NotImplementedError("New personal keys not supported yet")
+                raise NotImplementedError(
+                    "New personal keys not supported yet")
             # Legacy tokens
             # https://docs.nvidia.com/ngc/gpu-cloud/ngc-catalog-user-guide/index.html#download-models-via-wget-authenticated-access
             else:
                 session = requests.Session()
-                session.auth = ("$oauthtoken", os.environ["NGC_API_KEY"])
+                session.auth = (
+                    "$oauthtoken", os.environ["NGC_API_KEY"])
                 headers = {"Accept": "application/json"}
                 authn_url = f"https://authn.nvidia.com/token?service=ngc&scope=group/ngc:{org}&group/ngc:{org}/{team}"
-                r = session.get(authn_url, headers=headers, timeout=5)
+                r = session.get(
+                    authn_url, headers=headers, timeout=5)
                 r.raise_for_status()
                 token = json.loads(r.content)["token"]
         except requests.exceptions.RequestException:
@@ -106,13 +110,16 @@ def _download_ngc_model_file(path: str, out_path: str, timeout: int = 300) -> st
         else:
             file_url = f"https://api.ngc.nvidia.com/v2/models/{org}/{model}/versions/{version}/files/{filename}"
 
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    headers = {"Authorization": f"Bearer {token}",
+               "Content-Type": "application/json"}
     # Streaming here for larger files
     with requests.get(file_url, headers=headers, stream=True, timeout=timeout) as r:
         r.raise_for_status()
-        total_size_in_bytes = int(r.headers.get("content-length", 0))
+        total_size_in_bytes = int(
+            r.headers.get("content-length", 0))
         chunk_size = 1024  # 1 kb
-        progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+        progress_bar = tqdm(
+            total=total_size_in_bytes, unit="iB", unit_scale=True)
         progress_bar.set_description(f"Fetching {filename}")
         with open(out_path, "wb") as f:
             for chunk in r.iter_content(chunk_size=chunk_size):
@@ -158,17 +165,20 @@ def _download_cached(
 
     # TODO watch for race condition here
     if not os.path.exists(cache_path):
-        logger.debug("Downloading %s to cache: %s", path, cache_path)
+        logger.debug(
+            "Downloading %s to cache: %s", path, cache_path)
         if path.startswith("s3://"):
             fs = _get_fs(path)
             fs.get(path, cache_path, recursive=recursive)
         elif path.startswith("ngc://models/"):
-            path = _download_ngc_model_file(path, cache_path)
+            path = _download_ngc_model_file(
+                path, cache_path)
             return path
         elif url.scheme == "http":
             # urllib.request.urlretrieve(path, cache_path)
             # TODO: Check if this supports directory fetches
-            response = requests.get(path, stream=True, timeout=5)
+            response = requests.get(
+                path, stream=True, timeout=5)
             with open(cache_path, "wb") as output:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:

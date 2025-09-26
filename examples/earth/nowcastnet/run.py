@@ -21,18 +21,24 @@ parser = argparse.ArgumentParser(description="NowcastNet")
 parser.add_argument("--device", type=str, default="cpu:0")
 parser.add_argument("--worker", type=int, default=1)
 parser.add_argument("--cpu_worker", type=int, default=1)
-parser.add_argument("--dataset_name", type=str, default="radar")
+parser.add_argument(
+    "--dataset_name", type=str, default="radar")
 parser.add_argument("--input_length", type=int, default=9)
 parser.add_argument("--total_length", type=int, default=29)
 parser.add_argument("--img_height", type=int, default=512)
 parser.add_argument("--img_width", type=int, default=512)
 parser.add_argument("--img_ch", type=int, default=2)
-parser.add_argument("--case_type", type=str, default="normal")
-parser.add_argument("--model_name", type=str, default="nowcasting")
-parser.add_argument("--gen_frm_dir", type=str, default="results/nowcasting")
-parser.add_argument("--pretrained_model", type=str, default="")
+parser.add_argument(
+    "--case_type", type=str, default="normal")
+parser.add_argument(
+    "--model_name", type=str, default="nowcasting")
+parser.add_argument(
+    "--gen_frm_dir", type=str, default="results/nowcasting")
+parser.add_argument("--pretrained_model",
+                    type=str, default="")
 parser.add_argument("--batch_size", type=int, default=64)
-parser.add_argument("--num_save_samples", type=int, default=10)
+parser.add_argument("--num_save_samples",
+                    type=int, default=10)
 parser.add_argument("--ngf", type=int, default=32)
 parser.add_argument("--dataset_path", type=str)
 
@@ -47,7 +53,8 @@ parser.add_argument("--dis_lr", type=float, default=0.00003)
 parser.add_argument("--beta1", type=float, default=0.5)
 parser.add_argument("--beta2", type=float, default=0.999)
 parser.add_argument("--epoch", type=int, default=100)
-parser.add_argument("--checkpoints_dir", type=str, default="./data/checkpoints/")
+parser.add_argument("--checkpoints_dir",
+                    type=str, default="./data/checkpoints/")
 parser.add_argument("--slurm_id", type=str)
 
 args = parser.parse_args()
@@ -66,7 +73,8 @@ def DDP_Init(batch_size):
         local_rank = int(os.environ["LOCAL_RANK"])
 
         if world_size > 1:
-            dist.init_process_group(backend="nccl", init_method="env://")
+            dist.init_process_group(
+                backend="nccl", init_method="env://")
 
     torch.cuda.set_device(local_rank)
     args.batch_size = int(batch_size / world_size)
@@ -76,12 +84,14 @@ def test_wrapper_pytorch_loader(model):
     batch_size_test = args.batch_size
     test_input_handle = datasets_factory.data_provider(args)
     args.batch_size = batch_size_test
-    evaluator.test_pytorch_loader(model, test_input_handle, args, "test_result")
+    evaluator.test_pytorch_loader(
+        model, test_input_handle, args, "test_result")
 
 
 def train_wrapper_pytorch_loader(EvoNet, GenNet, DisNet):
     batch_size_test = args.batch_size
-    train_input_handle, val_input_handle = datasets_factory.train_data_provider(args)
+    train_input_handle, val_input_handle = datasets_factory.train_data_provider(
+        args)
     args.batch_size = batch_size_test
     evaluator.train_pytorch_loader(
         EvoNet, GenNet, DisNet, train_input_handle, val_input_handle, args
@@ -98,14 +108,17 @@ print(
 )
 
 if args.do_train:
-    args.device = torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
+    args.device = torch.cuda.current_device(
+    ) if torch.cuda.is_available() else "cpu"
 
     EvolutionNet = Model(args, mode="EvolutionNet")
     Generator = Model(args, mode="NowcastNet")
     Discriminator = Model(args, mode="Discriminator")
-    train_wrapper_pytorch_loader(EvolutionNet, Generator, Discriminator)
+    train_wrapper_pytorch_loader(
+        EvolutionNet, Generator, Discriminator)
 
 else:
-    args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    args.device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu")
     model = Model(args, mode="Generator")
     test_wrapper_pytorch_loader(model)

@@ -173,7 +173,8 @@ class Dataset(torch.utils.data.Dataset):
         makedirs(self.processed_dir)
         self.process()
 
-        path = osp.join(self.processed_dir, "pre_transform.pt")
+        path = osp.join(self.processed_dir,
+                        "pre_transform.pt")
         torch.save(_repr(self.pre_transform), path)
         path = osp.join(self.processed_dir, "pre_filter.pt")
         torch.save(_repr(self.pre_filter), path)
@@ -201,7 +202,8 @@ class Dataset(torch.utils.data.Dataset):
             or (isinstance(idx, np.ndarray) and np.isscalar(idx))
         ):
             data = self.get(self.indices()[idx])
-            data = data if self.transform is None else self.transform(data)
+            data = data if self.transform is None else self.transform(
+                data)
             return data
 
         else:

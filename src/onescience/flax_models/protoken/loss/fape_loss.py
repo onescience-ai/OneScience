@@ -1,5 +1,9 @@
-### Implement of backbone fape, copy from AF2 code (multimer)
+# Implement of backbone fape, copy from AF2 code (multimer)
 
+from onescience.flax_models.protoken.model.geometry import utils as geometry_utils
+from onescience.flax_models.protoken.model import geometry
+from onescience.flax_models.protoken.common.config_load import Config
+import functools
 from typing import Tuple, Union
 
 import jax
@@ -9,12 +13,6 @@ Float = Union[float, jnp.ndarray]
 
 # Python-version-specific alias (Python 2: unicode; Python 3: str)
 Text = str
-
-import functools
-
-from onescience.flax_models.protoken.common.config_load import Config
-from onescience.flax_models.protoken.model import geometry
-from onescience.flax_models.protoken.model.geometry import utils as geometry_utils
 
 
 def backbone_loss_affine(
@@ -26,11 +24,13 @@ def backbone_loss_affine(
     no_clamp_mask: jnp.ndarray,
     pair_mask: jnp.ndarray,
 ) -> Tuple[Float, jnp.ndarray]:
-    gt_rigid_transaltion = geometry.Vec3Array.from_array(gt_rigid_affine[..., 4:])
+    gt_rigid_transaltion = geometry.Vec3Array.from_array(
+        gt_rigid_affine[..., 4:])
     gt_rigid_rotation = geometry.Rot3Array.from_quaternion(
         *geometry_utils.unstack(gt_rigid_affine[..., :4], axis=-1)
     )
-    gt_rigid = geometry.Rigid3Array(gt_rigid_rotation, gt_rigid_transaltion)
+    gt_rigid = geometry.Rigid3Array(
+        gt_rigid_rotation, gt_rigid_transaltion)
 
     target_rigid_transaltion = geometry.Vec3Array.from_array(
         target_rigid_affine[..., 4:]
@@ -38,7 +38,8 @@ def backbone_loss_affine(
     target_rigid_rotation = geometry.Rot3Array.from_quaternion(
         *geometry_utils.unstack(target_rigid_affine[..., :4], axis=-1)
     )
-    target_rigid = geometry.Rigid3Array(target_rigid_rotation, target_rigid_transaltion)
+    target_rigid = geometry.Rigid3Array(
+        target_rigid_rotation, target_rigid_transaltion)
 
     return backbone_loss(
         gt_rigid,
@@ -61,11 +62,13 @@ def backbone_loss_affine_with_weights(
     pair_mask: jnp.ndarray,
     IPA_weights: jnp.ndarray,
 ) -> Tuple[Float, jnp.ndarray]:
-    gt_rigid_transaltion = geometry.Vec3Array.from_array(gt_rigid_affine[..., 4:])
+    gt_rigid_transaltion = geometry.Vec3Array.from_array(
+        gt_rigid_affine[..., 4:])
     gt_rigid_rotation = geometry.Rot3Array.from_quaternion(
         *geometry_utils.unstack(gt_rigid_affine[..., :4], axis=-1)
     )
-    gt_rigid = geometry.Rigid3Array(gt_rigid_rotation, gt_rigid_transaltion)
+    gt_rigid = geometry.Rigid3Array(
+        gt_rigid_rotation, gt_rigid_transaltion)
 
     target_rigid_transaltion = geometry.Vec3Array.from_array(
         target_rigid_affine[..., 4:]
@@ -73,7 +76,8 @@ def backbone_loss_affine_with_weights(
     target_rigid_rotation = geometry.Rot3Array.from_quaternion(
         *geometry_utils.unstack(target_rigid_affine[..., :4], axis=-1)
     )
-    target_rigid = geometry.Rigid3Array(target_rigid_rotation, target_rigid_transaltion)
+    target_rigid = geometry.Rigid3Array(
+        target_rigid_rotation, target_rigid_transaltion)
 
     return backbone_loss_with_weights(
         gt_rigid,
@@ -97,8 +101,10 @@ def backbone_loss_array(
     pair_mask: jnp.ndarray,
 ) -> Tuple[Float, jnp.ndarray]:
 
-    gt_rigid = geometry.Rigid3Array.from_array(gt_rigid_array)
-    target_rigid = geometry.Rigid3Array.from_array(target_rigid_array)
+    gt_rigid = geometry.Rigid3Array.from_array(
+        gt_rigid_array)
+    target_rigid = geometry.Rigid3Array.from_array(
+        target_rigid_array)
     return backbone_loss(
         gt_rigid,
         gt_frames_mask,
@@ -126,7 +132,8 @@ def backbone_loss(
         length_scale=config.fape.loss_unit_distance,
     )
 
-    loss_fn = jax.vmap(loss_fn, (0, None, None, 0, None, None, 0, None))
+    loss_fn = jax.vmap(
+        loss_fn, (0, None, None, 0, None, None, 0, None))
     fape, fape_no_clamp = loss_fn(
         target_rigid,
         gt_rigid,
@@ -158,7 +165,8 @@ def backbone_loss_with_weights(
         length_scale=config["fape"]["loss_unit_distance"],
     )
 
-    loss_fn = jax.vmap(loss_fn, (0, None, None, 0, None, None, 0, None))
+    loss_fn = jax.vmap(
+        loss_fn, (0, None, None, 0, None, None, 0, None))
     fape, fape_no_clamp = loss_fn(
         target_rigid,
         gt_rigid,
@@ -175,13 +183,17 @@ def backbone_loss_with_weights(
 
 def frame_aligned_point_error(
     pred_frames: geometry.Rigid3Array,  # shape (num_frames)
-    target_frames: geometry.Rigid3Array,  # shape (num_frames)
+    # shape (num_frames)
+    target_frames: geometry.Rigid3Array,
     frames_mask: jnp.ndarray,  # shape (num_frames)
-    pred_positions: geometry.Vec3Array,  # shape (num_positions)
-    target_positions: geometry.Vec3Array,  # shape (num_positions)
+    # shape (num_positions)
+    pred_positions: geometry.Vec3Array,
+    # shape (num_positions)
+    target_positions: geometry.Vec3Array,
     positions_mask: jnp.ndarray,  # shape (num_positions)
     no_clamp_mask: jnp.ndarray,  # shape (num_frames)
-    pair_mask: jnp.ndarray,  # shape (num_frames, num_posiitons)
+    # shape (num_frames, num_posiitons)
+    pair_mask: jnp.ndarray,
     l1_clamp_distance: float,
     length_scale=20.0,
     epsilon=1e-4,
@@ -217,20 +229,24 @@ def frame_aligned_point_error(
     # Compute array of predicted positions in the predicted frames.
     # geometry.Vec3Array (num_frames, num_positions)
     local_pred_pos = (
-        pred_frames[:, None].inverse().apply_to_point(pred_positions[None, :])
+        pred_frames[:, None].inverse().apply_to_point(
+            pred_positions[None, :])
     )
 
     # Compute array of target positions in the target frames.
     # geometry.Vec3Array (num_frames, num_positions)
     local_target_pos = (
-        target_frames[:, None].inverse().apply_to_point(target_positions[None, :])
+        target_frames[:, None].inverse().apply_to_point(
+            target_positions[None, :])
     )
 
     # Compute errors between the structures.
     # jnp.ndarray (num_frames, num_positions)
-    error_dist = geometry.euclidean_distance(local_pred_pos, local_target_pos, epsilon)
+    error_dist = geometry.euclidean_distance(
+        local_pred_pos, local_target_pos, epsilon)
 
-    clipped_error_dist = jnp.clip(error_dist, 0, l1_clamp_distance)
+    clipped_error_dist = jnp.clip(
+        error_dist, 0, l1_clamp_distance)
     clipped_error_dist = clipped_error_dist * no_clamp_mask[:, None] + error_dist * (
         1 - no_clamp_mask[:, None]
     )
@@ -241,8 +257,10 @@ def frame_aligned_point_error(
 
     # no clamped loss
     normed_error_no_clamp = error_dist / length_scale
-    normed_error_no_clamp *= jnp.expand_dims(frames_mask, axis=-1)
-    normed_error_no_clamp *= jnp.expand_dims(positions_mask, axis=-2)
+    normed_error_no_clamp *= jnp.expand_dims(
+        frames_mask, axis=-1)
+    normed_error_no_clamp *= jnp.expand_dims(
+        positions_mask, axis=-2)
 
     if pair_mask is not None:
         normed_error *= pair_mask
@@ -255,5 +273,6 @@ def frame_aligned_point_error(
         mask *= pair_mask
     normalization_factor = jnp.sum(mask, axis=(-1, -2))
     return (jnp.sum(normed_error, axis=(-2, -1)) / (epsilon + normalization_factor)), (
-        jnp.sum(normed_error_no_clamp, axis=(-2, -1)) / (epsilon + normalization_factor)
+        jnp.sum(normed_error_no_clamp, axis=(-2, -1)
+                ) / (epsilon + normalization_factor)
     )

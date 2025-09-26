@@ -71,13 +71,16 @@ class Metric(ABC):
 class MeanAbsoluteError(Metric):
     def __init__(self):
         super().__init__()
-        self.add_state("error", torch.tensor(0, dtype=torch.float32, device="cuda"))
-        self.add_state("total", torch.tensor(0, dtype=torch.int32, device="cuda"))
+        self.add_state("error", torch.tensor(
+            0, dtype=torch.float32, device="cuda"))
+        self.add_state("total", torch.tensor(
+            0, dtype=torch.int32, device="cuda"))
 
     def update(self, preds: Tensor, targets: Tensor):
         preds = preds.detach()
         n = preds.shape[0]
-        error = torch.abs(preds.view(n, -1) - targets.view(n, -1)).sum()
+        error = torch.abs(preds.view(
+            n, -1) - targets.view(n, -1)).sum()
         self.total += n
         self.error += error
 

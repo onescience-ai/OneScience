@@ -19,7 +19,8 @@ def conj_pad_helper_2d(tensor, pad_dim, other_dim, new_size):
 
     # pad with conj
     orig_size = tensor.shape[pad_dim]
-    tensor_pad = pad_helper(tensor, pad_dim, new_size, mode="conj")
+    tensor_pad = pad_helper(
+        tensor, pad_dim, new_size, mode="conj")
 
     # gather
     tensor_pad_gather = gather_from_parallel_region(
@@ -64,7 +65,8 @@ class DistributedRFFT2(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, s, dim, norm="ortho"):
         # NVTX marker
-        torch.cuda.nvtx.range_push("DistributedRFFT2.forward")
+        torch.cuda.nvtx.range_push(
+            "DistributedRFFT2.forward")
 
         # save:
         ctx.s = s
@@ -87,13 +89,15 @@ class DistributedRFFT2(torch.autograd.Function):
         torch.cuda.nvtx.range_pop()
 
         # another fft:
-        x2 = torch.fft.fft(x1_tran, n=s[1], dim=dim[1], norm=norm)
+        x2 = torch.fft.fft(
+            x1_tran, n=s[1], dim=dim[1], norm=norm)
         torch.cuda.nvtx.range_pop()
 
         # truncate in last dim:
         ctx.last_dim_size = x2.shape[dim[1]]
         last_dim_size_trunc = ctx.last_dim_size // 2 + 1
-        output = truncate_helper(x2, dim[1], last_dim_size_trunc)
+        output = truncate_helper(
+            x2, dim[1], last_dim_size_trunc)
 
         # pop range
         torch.cuda.nvtx.range_pop()
@@ -109,10 +113,12 @@ class DistributedRFFT2(torch.autograd.Function):
         last_dim_size = ctx.last_dim_size
 
         # pad the input to perform the backward fft
-        g_pad = pad_helper(grad_output, dim[1], last_dim_size)
+        g_pad = pad_helper(
+            grad_output, dim[1], last_dim_size)
 
         # do fft
-        g1 = torch.fft.ifft(g_pad, n=s[1], dim=dim[1], norm=norm)
+        g1 = torch.fft.ifft(
+            g_pad, n=s[1], dim=dim[1], norm=norm)
 
         # transpose
         g1_recv, _ = distributed_transpose(
@@ -125,7 +131,8 @@ class DistributedRFFT2(torch.autograd.Function):
         g1_tran = torch.cat(g1_recv, dim=dim[0])
 
         # now do the BW fft:
-        grad_input = torch.real(torch.fft.ifft(g1_tran, n=s[0], dim=dim[0], norm=norm))
+        grad_input = torch.real(torch.fft.ifft(
+            g1_tran, n=s[0], dim=dim[0], norm=norm))
 
         return grad_input, None, None, None
 
@@ -147,7 +154,8 @@ class DistributedIRFFT2(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, s, dim, norm="ortho"):
         # NVTX marker
-        torch.cuda.nvtx.range_push("DistributedIRFFT2.forward")
+        torch.cuda.nvtx.range_push(
+            "DistributedIRFFT2.forward")
 
         # save:
         ctx.s = s
@@ -163,8 +171,10 @@ class DistributedIRFFT2(torch.autograd.Function):
             ctx.last_dim_size = 2 * (ctx.orig_dim_size - 1)
 
         # fft in contig contig dim
-        x_pad = conj_pad_helper_2d(x, dim[1], dim[0], ctx.last_dim_size)
-        x1 = torch.fft.ifft(x_pad, n=ctx.last_dim_size, dim=dim[1], norm=norm)
+        x_pad = conj_pad_helper_2d(
+            x, dim[1], dim[0], ctx.last_dim_size)
+        x1 = torch.fft.ifft(
+            x_pad, n=ctx.last_dim_size, dim=dim[1], norm=norm)
 
         # transpose
         x1_recv, _ = distributed_transpose(
@@ -177,7 +187,8 @@ class DistributedIRFFT2(torch.autograd.Function):
         x1_tran = torch.cat(x1_recv, dim=dim[0])
 
         # ifft in contig dim
-        x2 = torch.fft.ifft(x1_tran, n=first_dim_size, dim=dim[0], norm=norm)
+        x2 = torch.fft.ifft(
+            x1_tran, n=first_dim_size, dim=dim[0], norm=norm)
 
         # take real part
         output = torch.real(x2).contiguous()
@@ -195,7 +206,8 @@ class DistributedIRFFT2(torch.autograd.Function):
         orig_dim_size = ctx.orig_dim_size
 
         # do fft
-        g1 = torch.fft.fft(grad_output, dim=dim[0], norm=norm)
+        g1 = torch.fft.fft(
+            grad_output, dim=dim[0], norm=norm)
 
         # transpose
         g1_recv, _ = distributed_transpose(
@@ -211,6 +223,7 @@ class DistributedIRFFT2(torch.autograd.Function):
         x2 = torch.fft.fft(g1_tran, dim=dim[1], norm=norm)
 
         # truncate
-        grad_input = truncate_helper(x2, dim[1], orig_dim_size)
+        grad_input = truncate_helper(
+            x2, dim[1], orig_dim_size)
 
         return grad_input, None, None, None

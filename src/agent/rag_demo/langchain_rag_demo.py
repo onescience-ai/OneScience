@@ -51,7 +51,8 @@ loader = PyPDFLoader(
 )
 docs = loader.load()
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=200)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500, chunk_overlap=200)
 all_splits = text_splitter.split_documents(docs)
 
 # Index chunks
@@ -87,8 +88,10 @@ def retrieve(state: State):
 
 def generate(state: State):
     # print("State:",state)
-    docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": docs_content})
+    docs_content = "\n\n".join(
+        doc.page_content for doc in state["context"])
+    messages = prompt.invoke(
+        {"question": state["question"], "context": docs_content})
     # input_m = [{"role": "user", "content": }]
     # print("messages:",messages)
     response = qwen_model.invoke(messages)
@@ -98,7 +101,8 @@ def generate(state: State):
 
 
 # Compile application and test
-graph_builder = StateGraph(State).add_sequence([retrieve, generate])
+graph_builder = StateGraph(
+    State).add_sequence([retrieve, generate])
 graph_builder.add_edge(START, "retrieve")
 graph = graph_builder.compile()
 

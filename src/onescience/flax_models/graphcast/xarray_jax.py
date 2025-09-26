@@ -159,7 +159,8 @@ def DataArray(  # pylint:disable=invalid-name
       coords, they will be wrapped with JaxArrayWrapper and can be unwrapped via
       `unwrap` and `unwrap_data`.
     """
-    result = xarray.DataArray(wrap(data), dims=dims, name=name, attrs=attrs or {})
+    result = xarray.DataArray(
+        wrap(data), dims=dims, name=name, attrs=attrs or {})
     return assign_coords(result, coords=coords, jax_coords=jax_coords)
 
 
@@ -210,19 +211,22 @@ def Dataset(  # pylint:disable=invalid-name
             wrapped_data_vars[name] = wrap(var_like)
         elif isinstance(var_like, tuple):
             # Layout is (dims, data, ...). We wrap data.
-            wrapped_data_vars[name] = (var_like[0], wrap(var_like[1])) + var_like[2:]
+            wrapped_data_vars[name] = (
+                var_like[0], wrap(var_like[1])) + var_like[2:]
         else:
             # Could be a plain numpy array or scalar (we don't wrap), or an
             # xarray.Variable, DataArray etc, which we must assume is already wrapped
             # if necessary (e.g. if creating using xarray_jax.{Variable,DataArray}).
             wrapped_data_vars[name] = var_like
 
-    result = xarray.Dataset(data_vars=wrapped_data_vars, attrs=attrs)
+    result = xarray.Dataset(
+        data_vars=wrapped_data_vars, attrs=attrs)
 
     return assign_coords(result, coords=coords, jax_coords=jax_coords)
 
 
-DatasetOrDataArray = TypeVar("DatasetOrDataArray", xarray.Dataset, xarray.DataArray)
+DatasetOrDataArray = TypeVar(
+    "DatasetOrDataArray", xarray.Dataset, xarray.DataArray)
 
 
 def assign_coords(
@@ -260,8 +264,10 @@ def assign_coords(
       The Dataset or DataArray with coordinates assigned, similarly to
       Dataset.assign_coords / DataArray.assign_coords.
     """
-    coords = {} if coords is None else dict(coords)  # Copy before mutating.
-    jax_coords = {} if jax_coords is None else dict(jax_coords)
+    coords = {} if coords is None else dict(
+        coords)  # Copy before mutating.
+    jax_coords = {} if jax_coords is None else dict(
+        jax_coords)
 
     # Any existing JAX coords must be dropped and re-added via the workaround
     # below, since otherwise .assign_coords will trigger an xarray bug where
@@ -281,7 +287,8 @@ def assign_coords(
         if isinstance(coord, xarray.DataArray):
             coord = coord.variable
         if isinstance(coord, xarray.Variable):
-            coord = coord.copy(deep=False)  # Copy before mutating attrs.
+            # Copy before mutating attrs.
+            coord = coord.copy(deep=False)
         else:
             # Must wrap as Variable with the correct dims first if this has not
             # already been done, otherwise xarray.Dataset will assume the dimension
@@ -300,7 +307,8 @@ def assign_coords(
 
     x = x.assign_coords(coords=coords | renamed_jax_coords)
 
-    rename_back_mapping = {f"__NONINDEX_{name}": name for name in jax_coords}
+    rename_back_mapping = {
+        f"__NONINDEX_{name}": name for name in jax_coords}
     if isinstance(x, xarray.Dataset):
         # Using 'rename' doesn't work if renaming to the same name as a dimension.
         return x.rename_vars(rename_back_mapping)
@@ -340,7 +348,8 @@ def unwrap(value, require_jax=False):
     elif isinstance(value, jax.Array):
         return value
     elif require_jax:
-        raise TypeError(f"Expected JAX array, found {type(value)}.")
+        raise TypeError(
+            f"Expected JAX array, found {type(value)}.")
     else:
         return value
 
@@ -349,7 +358,8 @@ def _wrapped(func):
     """Surrounds a function with JAX array unwrapping/wrapping."""
 
     def wrapped_func(*args, **kwargs):
-        args, kwargs = tree.map_structure(unwrap, (args, kwargs))
+        args, kwargs = tree.map_structure(
+            unwrap, (args, kwargs))
         result = func(*args, **kwargs)
         return tree.map_structure(wrap, result)
 
@@ -479,10 +489,12 @@ class JaxArrayWrapper(np.lib.mixins.NDArrayOperatorsMixin):
     def __array__(self, dtype=None, context=None):
         return np.asarray(self.jax_array, dtype=dtype)
 
-    __getitem__ = _wrapped(lambda array, *args: array.__getitem__(*args))
+    __getitem__ = _wrapped(
+        lambda array, *args: array.__getitem__(*args))
     # We drop the kwargs on this as they are not supported by JAX, but xarray
     # uses at least one of them (the copy arg).
-    astype = _wrapped(lambda array, *args, **kwargs: array.astype(*args))
+    astype = _wrapped(lambda array, *args,
+                      **kwargs: array.astype(*args))
 
     # There are many more methods which are more canonically available via (j)np
     # functions, e.g. .sum() available via jnp.sum, and also mean, max, min,
@@ -523,7 +535,8 @@ def apply_ufunc(func, *args, require_jax=False, **apply_ufunc_kwargs):
     """
 
     def wrapped_func(*maybe_wrapped_args):
-        unwrapped_args = [unwrap(a, require_jax) for a in maybe_wrapped_args]
+        unwrapped_args = [unwrap(a, require_jax)
+                          for a in maybe_wrapped_args]
         result = func(*unwrapped_args)
         # Result can be an array or a tuple of arrays, this handles both:
         return jax.tree_util.tree_map(wrap, result)
@@ -577,14 +590,17 @@ def pmap(
             except ValueError:
                 index = None
             if index != 0:
-                raise ValueError(f"Expected dim {dim} at index 0, found at {index}.")
+                raise ValueError(
+                    f"Expected dim {dim} at index 0, found at {index}.")
             return dims[1:]
 
         with dims_change_on_unflatten(check_and_remove_leading_dim):
-            args = jax.tree_util.tree_unflatten(input_treedef, flat_args)
+            args = jax.tree_util.tree_unflatten(
+                input_treedef, flat_args)
         result = fn(*args)
         nonlocal output_treedef
-        flat_result, output_treedef = jax.tree_util.tree_flatten(result)
+        flat_result, output_treedef = jax.tree_util.tree_flatten(
+            result)
         return flat_result
 
     pmapped_fn = jax.pmap(
@@ -598,7 +614,8 @@ def pmap(
 
     def result_fn(*args):
         nonlocal input_treedef
-        flat_args, input_treedef = jax.tree_util.tree_flatten(args)
+        flat_args, input_treedef = jax.tree_util.tree_flatten(
+            args)
         flat_result = pmapped_fn(*flat_args)
         assert output_treedef is not None
         # After the pmap an extra leading axis will be present, we need to add an
@@ -612,7 +629,8 @@ def pmap(
 # Register xarray datatypes with jax.tree_util.
 
 
-DimsChangeFn = Callable[[Tuple[Hashable, ...]], Tuple[Hashable, ...]]
+DimsChangeFn = Callable[[
+    Tuple[Hashable, ...]], Tuple[Hashable, ...]]
 _DIMS_CHANGE_ON_UNFLATTEN_FN: contextvars.ContextVar[DimsChangeFn] = (
     contextvars.ContextVar("dims_change_on_unflatten_fn")
 )
@@ -684,7 +702,8 @@ def _split_static_and_jax_coords(
         if coord.attrs.get(_JAX_COORD_ATTR_NAME, False):
             jax_coord_vars[name] = coord.variable
         else:
-            assert not isinstance(coord, (jax.Array, JaxArrayWrapper))
+            assert not isinstance(
+                coord, (jax.Array, JaxArrayWrapper))
             static_coord_vars[name] = coord.variable
     return static_coord_vars, jax_coord_vars
 
@@ -754,7 +773,8 @@ def _flatten_data_array(
     Tuple[Optional[Hashable], _HashableCoords],
 ]:
     """Flattens a DataArray for jax.tree_util."""
-    static_coord_vars, jax_coord_vars = _split_static_and_jax_coords(v.coords)
+    static_coord_vars, jax_coord_vars = _split_static_and_jax_coords(
+        v.coords)
     children = (v.variable, jax_coord_vars)
     aux = (v.name, _HashableCoords(static_coord_vars))
     return children, aux
@@ -773,7 +793,8 @@ def _unflatten_data_array(
     # just drop them where this causes a problem.
     # Since jax_coords go through the dims_change_fn on unflatten we don't need
     # to do this for jax_coords.
-    static_coord_vars = _drop_with_none_of_dims(static_coord_vars, variable.dims)
+    static_coord_vars = _drop_with_none_of_dims(
+        static_coord_vars, variable.dims)
     return DataArray(
         variable, name=name, coords=static_coord_vars, jax_coords=jax_coord_vars
     )
@@ -783,7 +804,8 @@ def _flatten_dataset(
     dataset: xarray.Dataset,
 ) -> Tuple[
     # Children (data variables, jax_coord_vars):
-    Tuple[Mapping[Hashable, xarray.Variable], Mapping[Hashable, xarray.Variable]],
+    Tuple[Mapping[Hashable, xarray.Variable],
+          Mapping[Hashable, xarray.Variable]],
     # Static auxiliary data (static_coord_vars):
     _HashableCoords,
 ]:
@@ -791,7 +813,8 @@ def _flatten_dataset(
     variables = {
         name: data_array.variable for name, data_array in dataset.data_vars.items()
     }
-    static_coord_vars, jax_coord_vars = _split_static_and_jax_coords(dataset.coords)
+    static_coord_vars, jax_coord_vars = _split_static_and_jax_coords(
+        dataset.coords)
     children = (variables, jax_coord_vars)
     aux = _HashableCoords(static_coord_vars)
     return children, aux
@@ -800,7 +823,8 @@ def _flatten_dataset(
 def _unflatten_dataset(
     aux: _HashableCoords,
     children: Tuple[
-        Mapping[Hashable, xarray.Variable], Mapping[Hashable, xarray.Variable]
+        Mapping[Hashable, xarray.Variable], Mapping[Hashable,
+                                                    xarray.Variable]
     ],
 ) -> xarray.Dataset:
     """Unflattens a Dataset for jax.tree_util."""
@@ -827,4 +851,5 @@ jax.tree_util.register_pytree_node(
 jax.tree_util.register_pytree_node(
     xarray.DataArray, _flatten_data_array, _unflatten_data_array
 )
-jax.tree_util.register_pytree_node(xarray.Dataset, _flatten_dataset, _unflatten_dataset)
+jax.tree_util.register_pytree_node(
+    xarray.Dataset, _flatten_dataset, _unflatten_dataset)

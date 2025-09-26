@@ -41,7 +41,8 @@ class Kappa103Reducer(JsonDFReducer):
             max_error_threshold: Maximum allowed mean absolute formation energy per atom error threshold
         """
         index_name = index_name or str(Key.mat_id)
-        super().__init__(benchmark_name, target_data_path, target_data_keys, index_name)
+        super().__init__(benchmark_name, target_data_path,
+                         target_data_keys, index_name)
 
     @property
     def runner_type(self) -> type[KappaRunner]:
@@ -58,8 +59,10 @@ class Kappa103Reducer(JsonDFReducer):
         Returns:
             DataFrame containing computed metrics for different material subsets
         """
-        target_data = self.target_data.rename(columns={"mp_id": Key.mat_id})
-        kappa_metrics = phonons.calc_kappa_metrics_from_dfs(results, target_data)
+        target_data = self.target_data.rename(
+            columns={"mp_id": Key.mat_id})
+        kappa_metrics = phonons.calc_kappa_metrics_from_dfs(
+            results, target_data)
         metrics = {
             "kappa_sre": kappa_metrics[Key.sre].mean(),
             "kappa_srme": kappa_metrics[Key.srme].mean(),

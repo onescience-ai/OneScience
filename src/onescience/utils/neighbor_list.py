@@ -78,8 +78,10 @@ def radius_search_query(
         # compute distance to neighbor point
         dist = wp.length(qp - neighbor)
         if dist <= radius:
-            result_point_idx[offset_tid + result_count] = index
-            result_point_dist[offset_tid + result_count] = dist
+            result_point_idx[offset_tid +
+                             result_count] = index
+            result_point_dist[offset_tid +
+                              result_count] = dist
             result_count += 1
 
 
@@ -108,7 +110,8 @@ def radius_search(
     if isinstance(grid_dim, int):
         grid_dim = (grid_dim, grid_dim, grid_dim)
 
-    result_count = wp.zeros(shape=queries.shape, dtype=wp.int32)
+    result_count = wp.zeros(
+        shape=queries.shape, dtype=wp.int32)
     grid = wp.HashGrid(
         dim_x=grid_dim[0],
         dim_y=grid_dim[1],
@@ -120,13 +123,16 @@ def radius_search(
     wp.launch(
         kernel=radius_search_count,
         dim=len(queries),
-        inputs=[grid.id, points, queries, result_count, radius],
+        inputs=[grid.id, points, queries,
+                result_count, radius],
         device=device,
     )
 
-    torch_offset = torch.zeros(len(result_count) + 1, device=device, dtype=torch.int32)
+    torch_offset = torch.zeros(
+        len(result_count) + 1, device=device, dtype=torch.int32)
     result_count_torch = wp.to_torch(result_count)
-    torch.cumsum(result_count_torch, dim=0, out=torch_offset[1:])
+    torch.cumsum(result_count_torch, dim=0,
+                 out=torch_offset[1:])
     total_count = torch_offset[-1].item()
     if not total_count < 2**31 - 1:
         raise RuntimeError(
@@ -134,8 +140,10 @@ def radius_search(
         )
     offset = wp.from_torch(torch_offset)
 
-    result_point_idx = wp.zeros(shape=(total_count,), dtype=wp.int32)
-    result_point_dist = wp.zeros(shape=(total_count,), dtype=wp.float32)
+    result_point_idx = wp.zeros(
+        shape=(total_count,), dtype=wp.int32)
+    result_point_dist = wp.zeros(
+        shape=(total_count,), dtype=wp.float32)
 
     wp.launch(
         kernel=radius_search_query,

@@ -43,7 +43,8 @@ class PythonLogger:
 
     def warning(self, message: str):
         """Log warning"""
-        self.logger.warning(colored(message, "light_yellow"))
+        self.logger.warning(
+            colored(message, "light_yellow"))
 
     def error(self, message: str):
         """Log error"""

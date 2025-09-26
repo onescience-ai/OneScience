@@ -17,7 +17,8 @@ ckpt = "../checkpoint/uma-s-1p1.pt"
 
 # === 加载预测器与计算器 ===
 predictor = load_predict_unit(ckpt, device="cuda")  # GPU加速
-calc = FAIRChemCalculator(predictor, task_name="omol")  # 分子任务
+calc = FAIRChemCalculator(
+    predictor, task_name="omol")  # 分子任务
 
 # === 构建体系 ===
 atoms = molecule("H2O")  # 可替换为其它分子
@@ -32,12 +33,14 @@ ZeroRotation(atoms)  # 去整体转动
 # === 动力学设置：Langevin ===
 dt = 0.1 * units.fs
 gamma = 0.001 / units.fs
-dyn = Langevin(atoms, timestep=dt, temperature_K=T0, friction=gamma)
+dyn = Langevin(atoms, timestep=dt,
+               temperature_K=T0, friction=gamma)
 
 # === 轨迹与日志 ===
 traj = Trajectory("my_md.traj", "w", atoms)  # ASE 原生轨迹
 dyn.attach(traj.write, interval=1)  # 每步写一帧
-logger = MDLogger(dyn, atoms, "md.log", header=True, stress=False, peratom=False)
+logger = MDLogger(dyn, atoms, "md.log",
+                  header=True, stress=False, peratom=False)
 dyn.attach(logger, interval=10)  # 每10步记录一次
 
 
@@ -62,7 +65,8 @@ Epot = atoms.get_potential_energy()
 Ekin = atoms.get_kinetic_energy()
 Tfinal = 2.0 * Ekin / (3 * len(atoms) * units.kB)
 print("\n== MD Finished ==")
-print(f"Final Epot = {Epot:.6f} eV,  Ekin = {Ekin:.6f} eV,  T = {Tfinal:.2f} K")
+print(
+    f"Final Epot = {Epot:.6f} eV,  Ekin = {Ekin:.6f} eV,  T = {Tfinal:.2f} K")
 print("COM =", atoms.get_center_of_mass())
 
 # 保存最终结构（xyz 与 cif）

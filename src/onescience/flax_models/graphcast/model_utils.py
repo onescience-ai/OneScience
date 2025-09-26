@@ -61,13 +61,15 @@ def get_graph_spatial_features(
     num_nodes = node_lat.shape[0]
     num_edges = senders.shape[0]
     dtype = node_lat.dtype
-    node_phi, node_theta = lat_lon_deg_to_spherical(node_lat, node_lon)
+    node_phi, node_theta = lat_lon_deg_to_spherical(
+        node_lat, node_lon)
 
     # Computing some node features.
     node_features = []
     if add_node_positions:
         # Already in [-1, 1.] range.
-        node_features.extend(spherical_to_cartesian(node_phi, node_theta))
+        node_features.extend(
+            spherical_to_cartesian(node_phi, node_theta))
 
     if add_node_latitude:
         # Using the cos of theta.
@@ -80,7 +82,8 @@ def get_graph_spatial_features(
         node_features.append(np.sin(node_phi))
 
     if not node_features:
-        node_features = np.zeros([num_nodes, 0], dtype=dtype)
+        node_features = np.zeros(
+            [num_nodes, 0], dtype=dtype)
     else:
         node_features = np.stack(node_features, axis=-1)
 
@@ -110,18 +113,23 @@ def get_graph_spatial_features(
         # positions to fall in the [-1., 1.] interval, and all relative distances
         # to fall in the [0., 1.] interval.
         max_edge_distance = relative_edge_distances.max()
-        edge_features.append(relative_edge_distances / max_edge_distance)
-        edge_features.append(relative_position / max_edge_distance)
+        edge_features.append(
+            relative_edge_distances / max_edge_distance)
+        edge_features.append(
+            relative_position / max_edge_distance)
 
     if not edge_features:
-        edge_features = np.zeros([num_edges, 0], dtype=dtype)
+        edge_features = np.zeros(
+            [num_edges, 0], dtype=dtype)
     else:
-        edge_features = np.concatenate(edge_features, axis=-1)
+        edge_features = np.concatenate(
+            edge_features, axis=-1)
 
     if sine_cosine_encoding:
 
         def sine_cosine_transform(x: np.ndarray) -> np.ndarray:
-            freqs = encoding_multiplicative_factor ** np.arange(encoding_num_freqs)
+            freqs = encoding_multiplicative_factor ** np.arange(
+                encoding_num_freqs)
             phases = freqs * x[..., None]
             x_sin = np.sin(phases)
             x_cos = np.cos(phases)
@@ -151,7 +159,8 @@ def restore_leading_axes(grid_xarray: xarray.DataArray) -> xarray.DataArray:
 
     input_dims = list(grid_xarray.dims)
     output_dims = list(input_dims)
-    for leading_key in ["level", "time", "batch"]:  # reverse order for insert
+    # reverse order for insert
+    for leading_key in ["level", "time", "batch"]:
         if leading_key in input_dims:
             output_dims.remove(leading_key)
             output_dims.insert(0, leading_key)
@@ -223,7 +232,8 @@ def get_relative_position_in_receiver_local_coordinates(
       Array of relative positions in R3 [num_edges, 3]
     """
 
-    node_pos = np.stack(spherical_to_cartesian(node_phi, node_theta), axis=-1)
+    node_pos = np.stack(spherical_to_cartesian(
+        node_phi, node_theta), axis=-1)
 
     # No rotation in this case.
     if not (latitude_local_coordinates or longitude_local_coordinates):
@@ -330,7 +340,8 @@ def get_rotation_matrices_to_local_coordinates(
         polar_rotation = -reference_theta + np.pi / 2
 
         return transform.Rotation.from_euler(
-            "zy", np.stack([azimuthal_rotation, polar_rotation], axis=1)
+            "zy", np.stack(
+                [azimuthal_rotation, polar_rotation], axis=1)
         ).as_matrix()
     elif rotate_longitude:
         # Just like the previous case, but applying only the azimuthal rotation.
@@ -344,10 +355,12 @@ def get_rotation_matrices_to_local_coordinates(
 
         return transform.Rotation.from_euler(
             "zyz",
-            np.stack([azimuthal_rotation, polar_rotation, -azimuthal_rotation], axis=1),
+            np.stack(
+                [azimuthal_rotation, polar_rotation, -azimuthal_rotation], axis=1),
         ).as_matrix()
     else:
-        raise ValueError("At least one of longitude and latitude should be rotated.")
+        raise ValueError(
+            "At least one of longitude and latitude should be rotated.")
 
 
 def rotate_with_matrices(
@@ -435,32 +448,44 @@ def get_bipartite_graph_spatial_features(
     if add_node_positions:
         # Already in [-1, 1.] range.
         senders_node_features.extend(
-            spherical_to_cartesian(senders_node_phi, senders_node_theta)
+            spherical_to_cartesian(
+                senders_node_phi, senders_node_theta)
         )
         receivers_node_features.extend(
-            spherical_to_cartesian(receivers_node_phi, receivers_node_theta)
+            spherical_to_cartesian(
+                receivers_node_phi, receivers_node_theta)
         )
 
     if add_node_latitude:
         # Using the cos of theta.
         # From 1. (north pole) to -1 (south pole).
-        senders_node_features.append(np.cos(senders_node_theta))
-        receivers_node_features.append(np.cos(receivers_node_theta))
+        senders_node_features.append(
+            np.cos(senders_node_theta))
+        receivers_node_features.append(
+            np.cos(receivers_node_theta))
 
     if add_node_longitude:
         # Using the cos and sin, which is already normalized.
-        senders_node_features.append(np.cos(senders_node_phi))
-        senders_node_features.append(np.sin(senders_node_phi))
+        senders_node_features.append(
+            np.cos(senders_node_phi))
+        senders_node_features.append(
+            np.sin(senders_node_phi))
 
-        receivers_node_features.append(np.cos(receivers_node_phi))
-        receivers_node_features.append(np.sin(receivers_node_phi))
+        receivers_node_features.append(
+            np.cos(receivers_node_phi))
+        receivers_node_features.append(
+            np.sin(receivers_node_phi))
 
     if not senders_node_features:
-        senders_node_features = np.zeros([num_senders, 0], dtype=dtype)
-        receivers_node_features = np.zeros([num_receivers, 0], dtype=dtype)
+        senders_node_features = np.zeros(
+            [num_senders, 0], dtype=dtype)
+        receivers_node_features = np.zeros(
+            [num_receivers, 0], dtype=dtype)
     else:
-        senders_node_features = np.stack(senders_node_features, axis=-1)
-        receivers_node_features = np.stack(receivers_node_features, axis=-1)
+        senders_node_features = np.stack(
+            senders_node_features, axis=-1)
+        receivers_node_features = np.stack(
+            receivers_node_features, axis=-1)
 
     # Computing some edge features.
     edge_features = []
@@ -492,13 +517,17 @@ def get_bipartite_graph_spatial_features(
             # to fall in the [0., 1.] interval.
             edge_normalization_factor = relative_edge_distances.max()
 
-        edge_features.append(relative_edge_distances / edge_normalization_factor)
-        edge_features.append(relative_position / edge_normalization_factor)
+        edge_features.append(
+            relative_edge_distances / edge_normalization_factor)
+        edge_features.append(
+            relative_position / edge_normalization_factor)
 
     if not edge_features:
-        edge_features = np.zeros([num_edges, 0], dtype=dtype)
+        edge_features = np.zeros(
+            [num_edges, 0], dtype=dtype)
     else:
-        edge_features = np.concatenate(edge_features, axis=-1)
+        edge_features = np.concatenate(
+            edge_features, axis=-1)
 
     return senders_node_features, receivers_node_features, edge_features
 
@@ -601,7 +630,8 @@ def get_bipartite_relative_position_in_receiver_local_coordinates(
 def variable_to_stacked(
     variable: xarray.Variable,
     sizes: Mapping[str, int],
-    preserved_dims: Tuple[str, ...] = ("batch", "lat", "lon"),
+    preserved_dims: Tuple[str, ...] = (
+        "batch", "lat", "lon"),
 ) -> xarray.Variable:
     """Converts an xarray.Variable to preserved_dims + ("channels",).
 
@@ -621,10 +651,13 @@ def variable_to_stacked(
     Returns:
       An xarray.Variable with dimensions preserved_dims + ("channels",).
     """
-    stack_to_channels_dims = [d for d in variable.dims if d not in preserved_dims]
+    stack_to_channels_dims = [
+        d for d in variable.dims if d not in preserved_dims]
     if stack_to_channels_dims:
-        variable = variable.stack(channels=stack_to_channels_dims)
-    dims = {dim: variable.sizes.get(dim) or sizes[dim] for dim in preserved_dims}
+        variable = variable.stack(
+            channels=stack_to_channels_dims)
+    dims = {dim: variable.sizes.get(
+        dim) or sizes[dim] for dim in preserved_dims}
     dims["channels"] = variable.sizes.get("channels", 1)
     return variable.set_dims(dims)
 
@@ -632,7 +665,8 @@ def variable_to_stacked(
 def dataset_to_stacked(
     dataset: xarray.Dataset,
     sizes: Optional[Mapping[str, int]] = None,
-    preserved_dims: Tuple[str, ...] = ("batch", "lat", "lon"),
+    preserved_dims: Tuple[str, ...] = (
+        "batch", "lat", "lon"),
 ) -> xarray.DataArray:
     """Converts an xarray.Dataset to a single stacked array.
 
@@ -668,7 +702,8 @@ def dataset_to_stacked(
 def stacked_to_dataset(
     stacked_array: xarray.Variable,
     template_dataset: xarray.Dataset,
-    preserved_dims: Tuple[str, ...] = ("batch", "lat", "lon"),
+    preserved_dims: Tuple[str, ...] = (
+        "batch", "lat", "lon"),
 ) -> xarray.Dataset:
     """The inverse of dataset_to_stacked.
 
@@ -706,7 +741,8 @@ def stacked_to_dataset(
         }
 
     channels = {
-        name: np.prod(list(unstack_sizes.values()), dtype=np.int64)
+        name: np.prod(
+            list(unstack_sizes.values()), dtype=np.int64)
         for name, unstack_sizes in unstack_from_channels_sizes.items()
     }
     total_expected_channels = sum(channels.values())
@@ -722,9 +758,11 @@ def stacked_to_dataset(
     index = 0
     for name in var_names:
         template_var = template_dataset[name]
-        var = stacked_array.isel({"channels": slice(index, index + channels[name])})
+        var = stacked_array.isel(
+            {"channels": slice(index, index + channels[name])})
         index += channels[name]
-        var = var.unstack({"channels": unstack_from_channels_sizes[name]})
+        var = var.unstack(
+            {"channels": unstack_from_channels_sizes[name]})
         var = var.transpose(*template_var.dims)
         data_vars[name] = xarray.DataArray(
             data=var,
@@ -762,10 +800,14 @@ def fourier_features(
       of size 2*num_frequencies, which contains a sin and a cos feature for each
       frequency.
     """
-    frequencies = np.arange(1, num_frequencies + 1) / base_period
-    angular_frequencies = jnp.array(2 * np.pi * frequencies, dtype=values.dtype)
-    values_times_angular_freqs = values[..., None] * angular_frequencies
+    frequencies = np.arange(
+        1, num_frequencies + 1) / base_period
+    angular_frequencies = jnp.array(
+        2 * np.pi * frequencies, dtype=values.dtype)
+    values_times_angular_freqs = values[...,
+                                        None] * angular_frequencies
     return jnp.concatenate(
-        [jnp.cos(values_times_angular_freqs), jnp.sin(values_times_angular_freqs)],
+        [jnp.cos(values_times_angular_freqs),
+         jnp.sin(values_times_angular_freqs)],
         axis=-1,
     )

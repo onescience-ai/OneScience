@@ -1320,7 +1320,8 @@ PROTEIN_TYPES: tuple[str, ...] = (
 )  # pyformat: disable
 
 # 20 standard protein amino acids plus the unknown (UNK) amino acid.
-PROTEIN_TYPES_WITH_UNKNOWN: tuple[str, ...] = PROTEIN_TYPES + (UNK,)
+PROTEIN_TYPES_WITH_UNKNOWN: tuple[str, ...] = PROTEIN_TYPES + (
+    UNK,)
 
 # This is the standard residue order when coding AA type as a number.
 # Reproduce it by taking 3-letter AA codes and sorting them alphabetically.
@@ -1406,27 +1407,32 @@ DG = sys.intern("DG")
 DC = sys.intern("DC")
 DT = sys.intern("DT")
 
-UNK_NUCLEIC_ONE_LETTER = sys.intern("N")  # Unknown nucleic acid single letter.
+# Unknown nucleic acid single letter.
+UNK_NUCLEIC_ONE_LETTER = sys.intern("N")
 UNK_RNA = sys.intern("N")  # Unknown RNA.
-UNK_DNA = sys.intern("DN")  # Unknown DNA residue (differs from N).
+# Unknown DNA residue (differs from N).
+UNK_DNA = sys.intern("DN")
 
 RNA_TYPES: tuple[str, ...] = (A, G, C, U)
 DNA_TYPES: tuple[str, ...] = (DA, DG, DC, DT)
 
 NUCLEIC_TYPES: tuple[str, ...] = RNA_TYPES + DNA_TYPES
 # Without UNK DNA.
-NUCLEIC_TYPES_WITH_UNKNOWN: tuple[str, ...] = NUCLEIC_TYPES + (UNK_NUCLEIC_ONE_LETTER,)
+NUCLEIC_TYPES_WITH_UNKNOWN: tuple[str, ...] = NUCLEIC_TYPES + (
+    UNK_NUCLEIC_ONE_LETTER,)
 NUCLEIC_TYPES_WITH_2_UNKS: tuple[str, ...] = NUCLEIC_TYPES + (
     UNK_RNA,
     UNK_DNA,
 )
 
-RNA_TYPES_ONE_LETTER_WITH_UNKNOWN: tuple[str, ...] = RNA_TYPES + (UNK_RNA,)
+RNA_TYPES_ONE_LETTER_WITH_UNKNOWN: tuple[str, ...] = RNA_TYPES + (
+    UNK_RNA,)
 RNA_TYPES_ONE_LETTER_WITH_UNKNOWN_TO_INT: Mapping[str, int] = {
     r: i for i, r in enumerate(RNA_TYPES_ONE_LETTER_WITH_UNKNOWN)
 }
 
-DNA_TYPES_WITH_UNKNOWN: tuple[str, ...] = DNA_TYPES + (UNK_DNA,)
+DNA_TYPES_WITH_UNKNOWN: tuple[str,
+                              ...] = DNA_TYPES + (UNK_DNA,)
 DNA_TYPES_ONE_LETTER: tuple[str, ...] = (A, G, C, T)
 DNA_TYPES_ONE_LETTER_WITH_UNKNOWN: tuple[str, ...] = DNA_TYPES_ONE_LETTER + (
     UNK_NUCLEIC_ONE_LETTER,
@@ -1441,20 +1447,25 @@ DNA_COMMON_ONE_TO_TWO: Mapping[str, str] = {
     "T": "DT",
 }
 
-STANDARD_POLYMER_TYPES: tuple[str, ...] = PROTEIN_TYPES + NUCLEIC_TYPES
+STANDARD_POLYMER_TYPES: tuple[str,
+                              ...] = PROTEIN_TYPES + NUCLEIC_TYPES
 POLYMER_TYPES: tuple[str, ...] = PROTEIN_TYPES_WITH_UNKNOWN + NUCLEIC_TYPES
 POLYMER_TYPES_WITH_UNKNOWN: tuple[str, ...] = (
     PROTEIN_TYPES_WITH_UNKNOWN + NUCLEIC_TYPES_WITH_UNKNOWN
 )
-POLYMER_TYPES_WITH_GAP: tuple[str, ...] = PROTEIN_TYPES + (GAP,) + NUCLEIC_TYPES
+POLYMER_TYPES_WITH_GAP: tuple[str, ...] = PROTEIN_TYPES + (
+    GAP,) + NUCLEIC_TYPES
 POLYMER_TYPES_WITH_UNKNOWN_AND_GAP: tuple[str, ...] = (
-    PROTEIN_TYPES_WITH_UNKNOWN + (GAP,) + NUCLEIC_TYPES_WITH_UNKNOWN
+    PROTEIN_TYPES_WITH_UNKNOWN +
+    (GAP,) + NUCLEIC_TYPES_WITH_UNKNOWN
 )
 POLYMER_TYPES_WITH_ALL_UNKS_AND_GAP: tuple[str, ...] = (
-    PROTEIN_TYPES_WITH_UNKNOWN + (GAP,) + NUCLEIC_TYPES_WITH_2_UNKS
+    PROTEIN_TYPES_WITH_UNKNOWN +
+    (GAP,) + NUCLEIC_TYPES_WITH_2_UNKS
 )
 
-POLYMER_TYPES_ORDER = {restype: i for i, restype in enumerate(POLYMER_TYPES)}
+POLYMER_TYPES_ORDER = {restype: i for i,
+                       restype in enumerate(POLYMER_TYPES)}
 
 POLYMER_TYPES_ORDER_WITH_UNKNOWN = {
     restype: i for i, restype in enumerate(POLYMER_TYPES_WITH_UNKNOWN)
@@ -1469,8 +1480,11 @@ POLYMER_TYPES_ORDER_WITH_ALL_UNKS_AND_GAP = {
 }
 
 POLYMER_TYPES_NUM = len(POLYMER_TYPES)  # := 29.
-POLYMER_TYPES_NUM_WITH_UNKNOWN = len(POLYMER_TYPES_WITH_UNKNOWN)  # := 30.
-POLYMER_TYPES_NUM_WITH_GAP = len(POLYMER_TYPES_WITH_GAP)  # := 29.
+# := 30.
+POLYMER_TYPES_NUM_WITH_UNKNOWN = len(
+    POLYMER_TYPES_WITH_UNKNOWN)
+# := 29.
+POLYMER_TYPES_NUM_WITH_GAP = len(POLYMER_TYPES_WITH_GAP)
 POLYMER_TYPES_NUM_WITH_UNKNOWN_AND_GAP = len(
     POLYMER_TYPES_WITH_UNKNOWN_AND_GAP
 )  # := 31.
@@ -1480,4 +1494,5 @@ POLYMER_TYPES_NUM_ORDER_WITH_ALL_UNKS_AND_GAP = len(
 
 WATER_TYPES: tuple[str, ...] = ("HOH", "DOD")
 
-UNKNOWN_TYPES: tuple[str, ...] = (UNK, UNK_RNA, UNK_DNA, UNL)
+UNKNOWN_TYPES: tuple[str, ...] = (
+    UNK, UNK_RNA, UNK_DNA, UNL)

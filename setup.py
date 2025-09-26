@@ -17,7 +17,8 @@ def discover_package_data():
     """
     package_data = {}
     # 扫描src/onescience下的所有子模块
-    src_dir = os.path.join(os.path.dirname(__file__), "src", "onescience")
+    src_dir = os.path.join(os.path.dirname(
+        __file__), "src", "onescience")
 
     for root, dirs, files in os.walk(src_dir):
         if "package_config.py" in files:
@@ -32,21 +33,25 @@ def discover_package_data():
                 module_name = ".".join(module_parts)
 
                 # 加载package_config.py
-                config_path = os.path.join(root, "package_config.py")
+                config_path = os.path.join(
+                    root, "package_config.py")
                 spec = importlib.util.spec_from_file_location(
                     f"{module_name}.package_config", config_path
                 )
-                config_module = importlib.util.module_from_spec(spec)
+                config_module = importlib.util.module_from_spec(
+                    spec)
                 spec.loader.exec_module(config_module)
 
                 # 获取package_data配置
                 if hasattr(config_module, "get_package_data"):
                     submodule_data = config_module.get_package_data()
                     package_data.update(submodule_data)
-                    print(f"✅ Discovered package config from: {module_name}")
+                    print(
+                        f"✅ Discovered package config from: {module_name}")
 
             except Exception as e:
-                print(f"⚠️  Failed to load package config from {root}: {e}")
+                print(
+                    f"⚠️  Failed to load package config from {root}: {e}")
 
     return package_data
 

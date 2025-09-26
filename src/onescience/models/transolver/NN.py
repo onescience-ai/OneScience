@@ -19,7 +19,8 @@ class NN(nn.Module):
 
         self.nn = MLP(
             [self.dim_enc]
-            + [self.size_hidden_layers] * self.nb_hidden_layers
+            + [self.size_hidden_layers] *
+            self.nb_hidden_layers
             + [self.dim_enc],
             batch_norm=self.bn_bool,
         )

@@ -19,4 +19,5 @@ from bionemo.evo2.models.mamba import (
     MambaModel,
 )
 
-__all__ = ["MAMBA_MODEL_OPTIONS", "HybridMambaConfig8BEvo2Loss", "MambaModel"]
+__all__ = ["MAMBA_MODEL_OPTIONS",
+           "HybridMambaConfig8BEvo2Loss", "MambaModel"]

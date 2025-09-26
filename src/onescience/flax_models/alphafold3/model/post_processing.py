@@ -43,13 +43,15 @@ def post_process_inference_result(
     """Returns cif, confidence_1d_json, confidence_2d_json, mean_confidence_1d, and ranking confidence."""
 
     # Add mmCIF metadata fields.
-    timestamp = datetime.datetime.now().isoformat(sep=" ", timespec="seconds")
+    timestamp = datetime.datetime.now().isoformat(
+        sep=" ", timespec="seconds")
     cif_with_metadata = mmcif_metadata.add_metadata_to_mmcif(
         old_cif=inference_result.predicted_structure.to_mmcif_dict(),
         version=f"{version.__version__} @ {timestamp}",
         model_id=inference_result.model_id,
     )
-    cif = mmcif_metadata.add_legal_comment(cif_with_metadata.to_string())
+    cif = mmcif_metadata.add_legal_comment(
+        cif_with_metadata.to_string())
     cif = cif.encode("utf-8")
     confidence_1d = confidence_types.AtomConfidence.from_inference_result(
         inference_result
@@ -63,14 +65,16 @@ def post_process_inference_result(
         .encode("utf-8")
     )
     structure_full_data_json = (
-        confidence_types.StructureConfidenceFull.from_inference_result(inference_result)
+        confidence_types.StructureConfidenceFull.from_inference_result(
+            inference_result)
         .to_json()
         .encode("utf-8")
     )
     return ProcessedInferenceResult(
         cif=cif,
         mean_confidence_1d=mean_confidence_1d,
-        ranking_score=float(inference_result.metadata["ranking_score"]),
+        ranking_score=float(
+            inference_result.metadata["ranking_score"]),
         structure_confidence_summary_json=structure_confidence_summary_json,
         structure_full_data_json=structure_full_data_json,
         model_id=inference_result.model_id,
@@ -84,7 +88,8 @@ def write_output(
     name: str | None = None,
 ) -> None:
     """Writes processed inference result to a directory."""
-    processed_result = post_process_inference_result(inference_result)
+    processed_result = post_process_inference_result(
+        inference_result)
 
     prefix = f"{name}_" if name is not None else ""
 
@@ -92,7 +97,8 @@ def write_output(
         f.write(processed_result.cif)
 
     with open(os.path.join(output_dir, f"{prefix}summary_confidences.json"), "wb") as f:
-        f.write(processed_result.structure_confidence_summary_json)
+        f.write(
+            processed_result.structure_confidence_summary_json)
 
     with open(os.path.join(output_dir, f"{prefix}confidences.json"), "wb") as f:
         f.write(processed_result.structure_full_data_json)

@@ -104,25 +104,30 @@ class EagleDataset(Dataset):
         self.w_len = window_length
         assert self.w_len <= 990, "window length must be smaller than 990"
 
-        self.data_path = data_path if isinstance(data_path, Path) else Path(data_path)
+        self.data_path = data_path if isinstance(
+            data_path, Path) else Path(data_path)
         assert self.data_path.exists()
         if cluster_path is not None:
             self.cluster_path = (
-                cluster_path if isinstance(cluster_path, Path) else Path(cluster_path)
+                cluster_path if isinstance(
+                    cluster_path, Path) else Path(cluster_path)
             )
             assert self.data_path.exists()
 
         self.splits_path = (
-            splits_path if isinstance(splits_path, Path) else Path(splits_path)
+            splits_path if isinstance(
+                splits_path, Path) else Path(splits_path)
         )
         assert (
             self.splits_path.exists()
         ), f"Splits path {self.splits_path} does not exist"
         split_file = self.splits_path / f"{split}.txt"
-        assert split_file.exists(), f"Split file {split_file} does not exist"
+        assert split_file.exists(
+        ), f"Split file {split_file} does not exist"
 
         with open(split_file, "r") as f:
-            self.ep_paths = [self.data_path / l.strip() for l in f.readlines()]
+            self.ep_paths = [
+                self.data_path / l.strip() for l in f.readlines()]
 
         self.n_cluster = n_cluster
         self._type_as_onehot = type_as_onehot
@@ -130,12 +135,17 @@ class EagleDataset(Dataset):
         self.split = split
         self._use_normalized = normalized
 
-        assert self.n_cluster in [-1, 1, 10, 20, 40, 30], "Unknown number of clusters"
+        assert self.n_cluster in [-1, 1, 10, 20,
+                                  40, 30], "Unknown number of clusters"
 
-        self.pressure_mean = torch.tensor([-0.8322, 4.6050]).view(-1, 2)
-        self.pressure_std = torch.tensor([7.4013, 9.7232]).view(-1, 2)
-        self.velocity_mean = torch.tensor([-0.0015, 0.2211]).view(-1, 2)
-        self.velocity_std = torch.tensor([1.7970, 2.0258]).view(-1, 2)
+        self.pressure_mean = torch.tensor(
+            [-0.8322, 4.6050]).view(-1, 2)
+        self.pressure_std = torch.tensor(
+            [7.4013, 9.7232]).view(-1, 2)
+        self.velocity_mean = torch.tensor(
+            [-0.0015, 0.2211]).view(-1, 2)
+        self.velocity_std = torch.tensor(
+            [1.7970, 2.0258]).view(-1, 2)
 
     def __len__(self):
         return len(self.ep_paths)
@@ -148,14 +158,17 @@ class EagleDataset(Dataset):
         mesh_pos = torch.from_numpy(mesh_pos).float()
         velocity = torch.from_numpy(velocity).float()
         pressure = torch.from_numpy(pressure).float()
-        edges = _faces_to_edges(faces)  # Convert triangles to edges (pairs of indices)
+        # Convert triangles to edges (pairs of indices)
+        edges = _faces_to_edges(faces)
         node_type = torch.from_numpy(node_type).long()
 
         if self._type_as_onehot:
-            node_type = one_hot(node_type, num_classes=9).squeeze(-2)
+            node_type = one_hot(
+                node_type, num_classes=9).squeeze(-2)
 
         if self._use_normalized:
-            velocity, pressure = self.normalize(velocity, pressure)
+            velocity, pressure = self.normalize(
+                velocity, pressure)
 
         output = {
             "mesh_pos": mesh_pos,
@@ -181,9 +194,10 @@ class EagleDataset(Dataset):
                 )
             else:
                 clusters = np.load(
-                    cluster_path / f"constrained_kmeans_{self.n_cluster}.npy",
+                    cluster_path /
+                    f"constrained_kmeans_{self.n_cluster}.npy",
                     mmap_mode="r",
-                )[t : t + self.w_len].copy()
+                )[t: t + self.w_len].copy()
                 clusters = torch.from_numpy(clusters).long()
             output["cluster"] = clusters
         return output
@@ -203,7 +217,8 @@ class EagleDataset(Dataset):
         )
 
         p_shape, v_shape = pressure.shape, velocity.shape
-        pressure, velocity = pressure.reshape(-1, 2), velocity.reshape(-1, 2)
+        pressure, velocity = pressure.reshape(
+            -1, 2), velocity.reshape(-1, 2)
         pressure = (pressure - p_mean) / p_std
         velocity = (velocity - v_mean) / v_std
         return velocity.reshape(v_shape), pressure.reshape(p_shape)
@@ -223,7 +238,8 @@ class EagleDataset(Dataset):
         )
 
         p_shape, v_shape = pressure.shape, velocity.shape
-        pressure, velocity = pressure.reshape(-1, 2), velocity.reshape(-1, 2)
+        pressure, velocity = pressure.reshape(
+            -1, 2), velocity.reshape(-1, 2)
         pressure = (pressure * p_std) + p_mean
         velocity = (velocity * v_std) + v_mean
         return velocity.reshape(v_shape), pressure.reshape(p_shape)
@@ -271,24 +287,26 @@ def _load_from_npz(
         velocity (NDArray): Velocity field. Shape is (T, N, 2).
         pressure (NDArray): Pressure field. Shape is (T, N, 2).
     """
-    t = 0 if window_length == 990 else random.randint(0, 990 - window_length)
+    t = 0 if window_length == 990 else random.randint(
+        0, 990 - window_length)
     t = 100 if split != "train" and window_length != 990 else t
     data = np.load(path / "sim.npz", mmap_mode="r")
 
-    mesh_pos = data["pointcloud"][t : t + window_length].copy()
+    mesh_pos = data["pointcloud"][t: t +
+                                  window_length].copy()
 
     cells = np.load(path / "triangles.npy")
-    cells = cells[t : t + window_length]
+    cells = cells[t: t + window_length]
 
-    Vx = data["VX"][t : t + window_length].copy()
-    Vy = data["VY"][t : t + window_length].copy()
+    Vx = data["VX"][t: t + window_length].copy()
+    Vy = data["VY"][t: t + window_length].copy()
 
-    Ps = data["PS"][t : t + window_length].copy()
-    Pg = data["PG"][t : t + window_length].copy()
+    Ps = data["PS"][t: t + window_length].copy()
+    Pg = data["PG"][t: t + window_length].copy()
 
     velocity = np.stack([Vx, Vy], axis=-1)
     pressure = np.stack([Ps, Pg], axis=-1)
-    node_type = data["mask"][t : t + window_length].copy()
+    node_type = data["mask"][t: t + window_length].copy()
 
     return mesh_pos, cells, node_type, t, velocity, pressure
 
@@ -307,14 +325,17 @@ def _faces_to_edges(faces: Tensor) -> Tensor:
         Tensor: Edges of the mesh. Shape is (E, 2). Each edge is defined by the indices
             of the nodes.
     """
-    edges = torch.cat([faces[:, :, :2], faces[:, :, 1:], faces[:, :, ::2]], dim=1)
+    edges = torch.cat(
+        [faces[:, :, :2], faces[:, :, 1:], faces[:, :, ::2]], dim=1)
 
     receivers, _ = torch.min(edges, dim=-1)
     senders, _ = torch.max(edges, dim=-1)
 
-    packed_edges = torch.stack([senders, receivers], dim=-1).int()
+    packed_edges = torch.stack(
+        [senders, receivers], dim=-1).int()
     unique_edges = torch.unique(packed_edges, dim=1)
-    unique_edges = torch.cat([unique_edges, torch.flip(unique_edges, dims=[-1])], dim=1)
+    unique_edges = torch.cat(
+        [unique_edges, torch.flip(unique_edges, dims=[-1])], dim=1)
 
     return unique_edges
 
@@ -343,11 +364,13 @@ def collate(x_list: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
         for key in ["mesh_pos", "velocity", "pressure"]:
             tensor = x[key]
             T, N, S = tensor.shape
-            x[key] = torch.cat([tensor, torch.zeros(T, N_max - N + 1, S)], dim=1)
+            x[key] = torch.cat(
+                [tensor, torch.zeros(T, N_max - N + 1, S)], dim=1)
 
         tensor = x["node_type"]
         T, N, S = tensor.shape
-        x["node_type"] = torch.cat([tensor, 2 * torch.ones(T, N_max - N + 1, S)], dim=1)
+        x["node_type"] = torch.cat(
+            [tensor, 2 * torch.ones(T, N_max - N + 1, S)], dim=1)
 
         x["cluster_mask"] = torch.ones_like(x["cluster"])
         x["cluster_mask"][x["cluster"] == -1] = 0
@@ -361,7 +384,8 @@ def collate(x_list: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
                     x["cluster"],
                     N_max
                     * torch.ones(
-                        x["cluster"].shape[0], C_max - c, x["cluster"].shape[-1]
+                        x["cluster"].shape[0], C_max -
+                        c, x["cluster"].shape[-1]
                     ),
                 ],
                 dim=1,
@@ -370,7 +394,8 @@ def collate(x_list: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
                 [
                     x["cluster_mask"],
                     torch.zeros(
-                        x["cluster_mask"].shape[0], C_max - c, x["cluster"].shape[-1]
+                        x["cluster_mask"].shape[0], C_max -
+                        c, x["cluster"].shape[-1]
                     ),
                 ],
                 dim=1,
@@ -378,12 +403,16 @@ def collate(x_list: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
 
         edges = x["edges"]
         T, E, S = edges.shape
-        x["edges"] = torch.cat([edges, N_max * torch.ones(T, E_max - E + 1, S)], dim=1)
-        x["mask"] = torch.cat([torch.ones(T, N), torch.zeros(T, N_max - N + 1)], dim=1)
+        x["edges"] = torch.cat(
+            [edges, N_max * torch.ones(T, E_max - E + 1, S)], dim=1)
+        x["mask"] = torch.cat(
+            [torch.ones(T, N), torch.zeros(T, N_max - N + 1)], dim=1)
 
-    output = {key: torch.empty(1) for key in x_list[0].keys()}
+    output = {key: torch.empty(1)
+              for key in x_list[0].keys()}
     for key in output.keys():
-        output[key] = torch.stack([x[key] for x in x_list], dim=0)
+        output[key] = torch.stack(
+            [x[key] for x in x_list], dim=0)
     return output
 
 

@@ -22,9 +22,11 @@ class Model(object):
 
         if mode in networks_map:
             Network = networks_map[mode]
-            self.network = Network(configs).to(configs.device)
+            self.network = Network(
+                configs).to(configs.device)
         else:
-            raise ValueError("Name of network unknown %s" % mode)
+            raise ValueError(
+                "Name of network unknown %s" % mode)
 
     def test_load(self):
 
@@ -40,7 +42,8 @@ class Model(object):
             print(name, param.requires_grad)
 
     def test(self, frames):
-        frames_tensor = torch.FloatTensor(frames).to(self.configs.device)
+        frames_tensor = torch.FloatTensor(
+            frames).to(self.configs.device)
         self.network.eval()
         with torch.no_grad():
             next_frames = self.network(frames_tensor)
@@ -48,7 +51,8 @@ class Model(object):
 
     def train(self, frames):
         if not isinstance(frames, torch.Tensor):
-            frames_tensor = torch.FloatTensor(frames).to(self.configs.device)
+            frames_tensor = torch.FloatTensor(
+                frames).to(self.configs.device)
         else:
             frames_tensor = frames.to(self.configs.device)
         self.network.train()
@@ -57,7 +61,8 @@ class Model(object):
 
     def valid(self, frames):
         if not isinstance(frames, torch.Tensor):
-            frames_tensor = torch.FloatTensor(frames).to(self.configs.device)
+            frames_tensor = torch.FloatTensor(
+                frames).to(self.configs.device)
         else:
             frames_tensor = frames.to(self.configs.device)
         self.network.eval()

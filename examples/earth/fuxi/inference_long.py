@@ -11,7 +11,8 @@ from onescience.utils.fcn.YParams import YParams
 
 
 def inference(data_loader, data_dir, step, model):
-    file_list = sorted([f for f in os.listdir(data_dir) if f.endswith(".h5")])
+    file_list = sorted(
+        [f for f in os.listdir(data_dir) if f.endswith(".h5")])
     save_path = os.path.join(data_dir, "final")
     os.makedirs(save_path, exist_ok=True)
     print(
@@ -21,9 +22,12 @@ def inference(data_loader, data_dir, step, model):
     k = 0
     with torch.no_grad():
         for j, data in enumerate(tqdm(data_loader, desc="Progress")):
-            invar = data[0].to("cuda:0", dtype=torch.float32)  # B, T, C, H, W
-            invar = invar.permute(0, 2, 1, 3, 4)  # B, C, T, H, W
-            outvar = data[1].to("cuda:0", dtype=torch.float32)
+            invar = data[0].to(
+                "cuda:0", dtype=torch.float32)  # B, T, C, H, W
+            invar = invar.permute(
+                0, 2, 1, 3, 4)  # B, C, T, H, W
+            outvar = data[1].to(
+                "cuda:0", dtype=torch.float32)
             for t in range(step):
                 if t > 1:
                     break
@@ -31,11 +35,14 @@ def inference(data_loader, data_dir, step, model):
                 # B, T, C, H, W — 如果输出为多步，取最后一步
                 invar[:, :, 0] = invar[:, :, -1]
                 invar[:, :, -1] = outvar_pred
-            preds.append(outvar_pred.cpu().numpy())  # shape: [1, C, H, W]
+            # shape: [1, C, H, W]
+            preds.append(outvar_pred.cpu().numpy())
             if (j + 1) % (len(data_loader) // len(file_list)) == 0:
-                preds = np.concatenate(preds, axis=0)  # [N, C, H, W]
+                preds = np.concatenate(
+                    preds, axis=0)  # [N, C, H, W]
                 with h5py.File(os.path.join(save_path, file_list[k]), "w") as f_out:
-                    f_out.create_dataset("fields", data=preds)
+                    f_out.create_dataset(
+                        "fields", data=preds)
                 preds = []
 
 
@@ -49,19 +56,23 @@ if __name__ == "__main__":
         params=cfg, distributed=False, mode="long", num_steps=num_steps, input_steps=2
     )
     train_dataloader, _ = train_dataset.train_dataloader()
-    print(f"Loaded train_dataloader of size {len(train_dataloader)}")
+    print(
+        f"Loaded train_dataloader of size {len(train_dataloader)}")
     val_dataset = FuXiHDF5Datapipe(
         params=cfg, distributed=False, mode="long", num_steps=num_steps, input_steps=2
     )
     val_dataloader, _ = val_dataset.val_dataloader()
-    print(f"Loaded val_dataloader of size {len(val_dataloader)}")
+    print(
+        f"Loaded val_dataloader of size {len(val_dataloader)}")
     test_dataset = FuXiHDF5Datapipe(
         params=cfg, distributed=False, mode="long", num_steps=num_steps, input_steps=2
     )
     test_dataloader = test_dataset.test_dataloader()
-    print(f"Loaded test_dataloader of size {len(test_dataloader)}")
+    print(
+        f"Loaded test_dataloader of size {len(test_dataloader)}")
     # === 加载模型 ===
-    ckpt = torch.load(f"{cfg.checkpoint_dir}/fuxi_long.pth", map_location="cuda:0")
+    ckpt = torch.load(
+        f"{cfg.checkpoint_dir}/fuxi_long.pth", map_location="cuda:0")
     fuxi_model = Fuxi(
         img_size=cfg.img_size,
         patch_size=cfg.patch_size,

@@ -32,13 +32,17 @@ def get_phi_psi(k, base):
     phi_2x_coeff = np.zeros((k, k))
     if base == "legendre":
         for ki in range(k):
-            coeff_ = Poly(legendre(ki, 2 * x - 1), x).all_coeffs()
+            coeff_ = Poly(
+                legendre(ki, 2 * x - 1), x).all_coeffs()
             phi_coeff[ki, : ki + 1] = np.flip(
-                np.sqrt(2 * ki + 1) * np.array(coeff_).astype(np.float64)
+                np.sqrt(2 * ki + 1) *
+                np.array(coeff_).astype(np.float64)
             )
-            coeff_ = Poly(legendre(ki, 4 * x - 1), x).all_coeffs()
+            coeff_ = Poly(
+                legendre(ki, 4 * x - 1), x).all_coeffs()
             phi_2x_coeff[ki, : ki + 1] = np.flip(
-                np.sqrt(2) * np.sqrt(2 * ki + 1) * np.array(coeff_).astype(np.float64)
+                np.sqrt(2) * np.sqrt(2 * ki + 1) *
+                np.array(coeff_).astype(np.float64)
             )
 
         psi1_coeff = np.zeros((k, k))
@@ -69,8 +73,10 @@ def get_phi_psi(k, base):
                     / (np.arange(len(prod_)) + 1)
                     * np.power(0.5, 1 + np.arange(len(prod_)))
                 ).sum()
-                psi1_coeff[ki, :] -= proj_ * psi1_coeff[j, :]
-                psi2_coeff[ki, :] -= proj_ * psi2_coeff[j, :]
+                psi1_coeff[ki, :] -= proj_ * \
+                    psi1_coeff[j, :]
+                psi2_coeff[ki, :] -= proj_ * \
+                    psi2_coeff[j, :]
 
             a = psi1_coeff[ki, :]
             prod_ = np.convolve(a, a)
@@ -97,21 +103,29 @@ def get_phi_psi(k, base):
             psi1_coeff[np.abs(psi1_coeff) < 1e-8] = 0
             psi2_coeff[np.abs(psi2_coeff) < 1e-8] = 0
 
-        phi = [np.poly1d(np.flip(phi_coeff[i, :])) for i in range(k)]
-        psi1 = [np.poly1d(np.flip(psi1_coeff[i, :])) for i in range(k)]
-        psi2 = [np.poly1d(np.flip(psi2_coeff[i, :])) for i in range(k)]
+        phi = [np.poly1d(np.flip(phi_coeff[i, :]))
+               for i in range(k)]
+        psi1 = [np.poly1d(np.flip(psi1_coeff[i, :]))
+                for i in range(k)]
+        psi2 = [np.poly1d(np.flip(psi2_coeff[i, :]))
+                for i in range(k)]
 
     elif base == "chebyshev":
         for ki in range(k):
             if ki == 0:
                 phi_coeff[ki, : ki + 1] = np.sqrt(2 / np.pi)
-                phi_2x_coeff[ki, : ki + 1] = np.sqrt(2 / np.pi) * np.sqrt(2)
+                phi_2x_coeff[ki, : ki +
+                             1] = np.sqrt(2 / np.pi) * np.sqrt(2)
             else:
-                coeff_ = Poly(chebyshevt(ki, 2 * x - 1), x).all_coeffs()
+                coeff_ = Poly(chebyshevt(
+                    ki, 2 * x - 1), x).all_coeffs()
                 phi_coeff[ki, : ki + 1] = np.flip(
-                    2 / np.sqrt(np.pi) * np.array(coeff_).astype(np.float64)
+                    2 /
+                    np.sqrt(np.pi) *
+                    np.array(coeff_).astype(np.float64)
                 )
-                coeff_ = Poly(chebyshevt(ki, 4 * x - 1), x).all_coeffs()
+                coeff_ = Poly(chebyshevt(
+                    ki, 4 * x - 1), x).all_coeffs()
                 phi_2x_coeff[ki, : ki + 1] = np.flip(
                     np.sqrt(2)
                     * 2
@@ -119,12 +133,15 @@ def get_phi_psi(k, base):
                     * np.array(coeff_).astype(np.float64)
                 )
 
-        phi = [partial(phi_, phi_coeff[i, :]) for i in range(k)]
+        phi = [partial(phi_, phi_coeff[i, :])
+               for i in range(k)]
 
         x = Symbol("x")
         kUse = 2 * k
-        roots = Poly(chebyshevt(kUse, 2 * x - 1)).all_roots()
-        x_m = np.array([rt.evalf(20) for rt in roots]).astype(np.float64)
+        roots = Poly(chebyshevt(
+            kUse, 2 * x - 1)).all_roots()
+        x_m = np.array([rt.evalf(20)
+                       for rt in roots]).astype(np.float64)
         # x_m[x_m==0.5] = 0.5 + 1e-8 # add small noise to avoid the case of 0.5 belonging to both phi(2x) and phi(2x-1)
         # not needed for our purpose here, we use even k always to avoid
         wm = np.pi / kUse / 2
@@ -138,20 +155,28 @@ def get_phi_psi(k, base):
         for ki in range(k):
             psi1_coeff[ki, :] = phi_2x_coeff[ki, :]
             for i in range(k):
-                proj_ = (wm * phi[i](x_m) * np.sqrt(2) * phi[ki](2 * x_m)).sum()
+                proj_ = (
+                    wm * phi[i](x_m) * np.sqrt(2) * phi[ki](2 * x_m)).sum()
                 psi1_coeff[ki, :] -= proj_ * phi_coeff[i, :]
                 psi2_coeff[ki, :] -= proj_ * phi_coeff[i, :]
 
             for j in range(ki):
-                proj_ = (wm * psi1[j](x_m) * np.sqrt(2) * phi[ki](2 * x_m)).sum()
-                psi1_coeff[ki, :] -= proj_ * psi1_coeff[j, :]
-                psi2_coeff[ki, :] -= proj_ * psi2_coeff[j, :]
+                proj_ = (
+                    wm * psi1[j](x_m) * np.sqrt(2) * phi[ki](2 * x_m)).sum()
+                psi1_coeff[ki, :] -= proj_ * \
+                    psi1_coeff[j, :]
+                psi2_coeff[ki, :] -= proj_ * \
+                    psi2_coeff[j, :]
 
-            psi1[ki] = partial(phi_, psi1_coeff[ki, :], lb=0, ub=0.5)
-            psi2[ki] = partial(phi_, psi2_coeff[ki, :], lb=0.5, ub=1)
+            psi1[ki] = partial(
+                phi_, psi1_coeff[ki, :], lb=0, ub=0.5)
+            psi2[ki] = partial(
+                phi_, psi2_coeff[ki, :], lb=0.5, ub=1)
 
-            norm1 = (wm * psi1[ki](x_m) * psi1[ki](x_m)).sum()
-            norm2 = (wm * psi2[ki](x_m) * psi2[ki](x_m)).sum()
+            norm1 = (wm * psi1[ki](x_m)
+                     * psi1[ki](x_m)).sum()
+            norm2 = (wm * psi2[ki](x_m)
+                     * psi2[ki](x_m)).sum()
 
             norm_ = np.sqrt(norm1 + norm2)
             psi1_coeff[ki, :] /= norm_
@@ -159,8 +184,10 @@ def get_phi_psi(k, base):
             psi1_coeff[np.abs(psi1_coeff) < 1e-8] = 0
             psi2_coeff[np.abs(psi2_coeff) < 1e-8] = 0
 
-            psi1[ki] = partial(phi_, psi1_coeff[ki, :], lb=0, ub=0.5 + 1e-16)
-            psi2[ki] = partial(phi_, psi2_coeff[ki, :], lb=0.5 + 1e-16, ub=1)
+            psi1[ki] = partial(
+                phi_, psi1_coeff[ki, :], lb=0, ub=0.5 + 1e-16)
+            psi2[ki] = partial(
+                phi_, psi2_coeff[ki, :], lb=0.5 + 1e-16, ub=1)
 
     return phi, psi1, psi2
 
@@ -183,13 +210,18 @@ def get_filter(base, k):
     phi, psi1, psi2 = get_phi_psi(k, base)
     if base == "legendre":
         roots = Poly(legendre(k, 2 * x - 1)).all_roots()
-        x_m = np.array([rt.evalf(20) for rt in roots]).astype(np.float64)
-        wm = 1 / k / legendreDer(k, 2 * x_m - 1) / eval_legendre(k - 1, 2 * x_m - 1)
+        x_m = np.array([rt.evalf(20)
+                       for rt in roots]).astype(np.float64)
+        wm = 1 / k / \
+            legendreDer(k, 2 * x_m - 1) / \
+            eval_legendre(k - 1, 2 * x_m - 1)
 
         for ki in range(k):
             for kpi in range(k):
                 H0[ki, kpi] = (
-                    1 / np.sqrt(2) * (wm * phi[ki](x_m / 2) * phi[kpi](x_m)).sum()
+                    1 /
+                    np.sqrt(
+                        2) * (wm * phi[ki](x_m / 2) * phi[kpi](x_m)).sum()
                 )
                 G0[ki, kpi] = (
                     1
@@ -197,7 +229,9 @@ def get_filter(base, k):
                     * (wm * psi(psi1, psi2, ki, x_m / 2) * phi[kpi](x_m)).sum()
                 )
                 H1[ki, kpi] = (
-                    1 / np.sqrt(2) * (wm * phi[ki]((x_m + 1) / 2) * phi[kpi](x_m)).sum()
+                    1 /
+                    np.sqrt(
+                        2) * (wm * phi[ki]((x_m + 1) / 2) * phi[kpi](x_m)).sum()
                 )
                 G1[ki, kpi] = (
                     1
@@ -211,8 +245,10 @@ def get_filter(base, k):
     elif base == "chebyshev":
         x = Symbol("x")
         kUse = 2 * k
-        roots = Poly(chebyshevt(kUse, 2 * x - 1)).all_roots()
-        x_m = np.array([rt.evalf(20) for rt in roots]).astype(np.float64)
+        roots = Poly(chebyshevt(
+            kUse, 2 * x - 1)).all_roots()
+        x_m = np.array([rt.evalf(20)
+                       for rt in roots]).astype(np.float64)
         # x_m[x_m==0.5] = 0.5 + 1e-8 # add small noise to avoid the case of 0.5 belonging to both phi(2x) and phi(2x-1)
         # not needed for our purpose here, we use even k always to avoid
         wm = np.pi / kUse / 2
@@ -220,7 +256,9 @@ def get_filter(base, k):
         for ki in range(k):
             for kpi in range(k):
                 H0[ki, kpi] = (
-                    1 / np.sqrt(2) * (wm * phi[ki](x_m / 2) * phi[kpi](x_m)).sum()
+                    1 /
+                    np.sqrt(
+                        2) * (wm * phi[ki](x_m / 2) * phi[kpi](x_m)).sum()
                 )
                 G0[ki, kpi] = (
                     1
@@ -228,7 +266,9 @@ def get_filter(base, k):
                     * (wm * psi(psi1, psi2, ki, x_m / 2) * phi[kpi](x_m)).sum()
                 )
                 H1[ki, kpi] = (
-                    1 / np.sqrt(2) * (wm * phi[ki]((x_m + 1) / 2) * phi[kpi](x_m)).sum()
+                    1 /
+                    np.sqrt(
+                        2) * (wm * phi[ki]((x_m + 1) / 2) * phi[kpi](x_m)).sum()
                 )
                 G1[ki, kpi] = (
                     1
@@ -236,9 +276,11 @@ def get_filter(base, k):
                     * (wm * psi(psi1, psi2, ki, (x_m + 1) / 2) * phi[kpi](x_m)).sum()
                 )
 
-                PHI0[ki, kpi] = (wm * phi[ki](2 * x_m) * phi[kpi](2 * x_m)).sum() * 2
+                PHI0[ki, kpi] = (
+                    wm * phi[ki](2 * x_m) * phi[kpi](2 * x_m)).sum() * 2
                 PHI1[ki, kpi] = (
-                    wm * phi[ki](2 * x_m - 1) * phi[kpi](2 * x_m - 1)
+                    wm * phi[ki](2 * x_m - 1) *
+                    phi[kpi](2 * x_m - 1)
                 ).sum() * 2
 
         PHI0[np.abs(PHI0) < 1e-8] = 0
@@ -264,7 +306,9 @@ class sparseKernelFT1d(nn.Module):
         self.modes1 = alpha
         self.scale = 1 / (c * k * c * k)
         self.weights1 = nn.Parameter(
-            self.scale * torch.rand(c * k, c * k, self.modes1, dtype=torch.cfloat)
+            self.scale *
+            torch.rand(c * k, c * k, self.modes1,
+                       dtype=torch.cfloat)
         )
         self.weights1.requires_grad = True
         self.k = k
@@ -277,8 +321,10 @@ class sparseKernelFT1d(nn.Module):
         x_fft = torch.fft.rfft(x)
         # Multiply relevant Fourier modes
         l = min(self.modes1, N // 2 + 1)
-        out_ft = torch.zeros(B, c * k, N // 2 + 1, device=x.device, dtype=torch.cfloat)
-        out_ft[:, :, :l] = compl_mul1d(x_fft[:, :, :l], self.weights1[:, :, :l])
+        out_ft = torch.zeros(
+            B, c * k, N // 2 + 1, device=x.device, dtype=torch.cfloat)
+        out_ft[:, :, :l] = compl_mul1d(
+            x_fft[:, :, :l], self.weights1[:, :, :l])
 
         # Return to physical space
         x = torch.fft.irfft(out_ft, n=N)
@@ -311,11 +357,15 @@ class MWT_CZ1d(nn.Module):
 
         self.T0 = nn.Linear(k, k)
 
-        self.register_buffer("ec_s", torch.Tensor(np.concatenate((H0.T, H1.T), axis=0)))
-        self.register_buffer("ec_d", torch.Tensor(np.concatenate((G0.T, G1.T), axis=0)))
+        self.register_buffer("ec_s", torch.Tensor(
+            np.concatenate((H0.T, H1.T), axis=0)))
+        self.register_buffer("ec_d", torch.Tensor(
+            np.concatenate((G0.T, G1.T), axis=0)))
 
-        self.register_buffer("rc_e", torch.Tensor(np.concatenate((H0r, G0r), axis=0)))
-        self.register_buffer("rc_o", torch.Tensor(np.concatenate((H1r, G1r), axis=0)))
+        self.register_buffer("rc_e", torch.Tensor(
+            np.concatenate((H0r, G0r), axis=0)))
+        self.register_buffer("rc_o", torch.Tensor(
+            np.concatenate((H1r, G1r), axis=0)))
 
     def forward(self, x):
 
@@ -357,7 +407,8 @@ class MWT_CZ1d(nn.Module):
         x_e = torch.matmul(x, self.rc_e)
         x_o = torch.matmul(x, self.rc_o)
 
-        x = torch.zeros(B, N * 2, c, self.k, device=x.device)
+        x = torch.zeros(B, N * 2, c, self.k,
+                        device=x.device)
         x[..., ::2, :, :] = x_e
         x[..., 1::2, :, :] = x_o
         return x
@@ -403,10 +454,12 @@ class sparseKernelFT2d(nn.Module):
         self.modes = alpha
 
         self.weights1 = nn.Parameter(
-            torch.zeros(c * k**2, c * k**2, self.modes, self.modes, dtype=torch.cfloat)
+            torch.zeros(c * k**2, c * k**2, self.modes,
+                        self.modes, dtype=torch.cfloat)
         )
         self.weights2 = nn.Parameter(
-            torch.zeros(c * k**2, c * k**2, self.modes, self.modes, dtype=torch.cfloat)
+            torch.zeros(c * k**2, c * k**2, self.modes,
+                        self.modes, dtype=torch.cfloat)
         )
         nn.init.xavier_normal_(self.weights1)
         nn.init.xavier_normal_(self.weights2)
@@ -433,7 +486,8 @@ class sparseKernelFT2d(nn.Module):
             x_fft[:, :, :l1, :l2], self.weights1[:, :, :l1, :l2]
         )
         out_ft[:, :, -l1:, :l2] = compl_mul2d(
-            x_fft[:, :, -l1:, :l2], self.weights2[:, :, :l1, :l2]
+            x_fft[:, :, -l1:,
+                  :l2], self.weights2[:, :, :l1, :l2]
         )
 
         # Return to physical space
@@ -599,7 +653,8 @@ class MWT_CZ2d(nn.Module):
         x_oe = torch.matmul(x, self.rc_oe)
         x_oo = torch.matmul(x, self.rc_oo)
 
-        x = torch.zeros(B, Nx * 2, Ny * 2, c, self.k**2, device=x.device)
+        x = torch.zeros(B, Nx * 2, Ny * 2, c,
+                        self.k**2, device=x.device)
         x[:, ::2, ::2, :, :] = x_ee
         x[:, ::2, 1::2, :, :] = x_eo
         x[:, 1::2, ::2, :, :] = x_oe
@@ -643,11 +698,13 @@ class sparseKernel3d(nn.Module):
         super(sparseKernel3d, self).__init__()
 
         self.k = k
-        self.conv = self.convBlock(alpha * k**2, alpha * k**2)
+        self.conv = self.convBlock(
+            alpha * k**2, alpha * k**2)
         self.Lo = nn.Linear(alpha * k**2, c * k**2)
 
     def forward(self, x):
-        B, Nx, Ny, T, c, ich = x.shape  # (B, Nx, Ny, T, c, k**2)
+        # (B, Nx, Ny, T, c, k**2)
+        B, Nx, Ny, T, c, ich = x.shape
         x = x.view(B, Nx, Ny, T, -1)
         x = x.permute(0, 4, 1, 2, 3)
         x = self.conv(x)
@@ -725,7 +782,8 @@ class sparseKernelFT3d(nn.Module):
         self.k = k
 
     def forward(self, x):
-        B, Nx, Ny, T, c, ich = x.shape  # (B, N, N, T, c, k^2)
+        # (B, N, N, T, c, k^2)
+        B, Nx, Ny, T, c, ich = x.shape
 
         x = x.view(B, Nx, Ny, T, -1)
         x = x.permute(0, 4, 1, 2, 3)
@@ -739,16 +797,20 @@ class sparseKernelFT3d(nn.Module):
         )
 
         out_ft[:, :, :l1, :l2, : self.modes] = compl_mul3d(
-            x_fft[:, :, :l1, :l2, : self.modes], self.weights1[:, :, :l1, :l2, :]
+            x_fft[:, :, :l1, :l2,
+                  : self.modes], self.weights1[:, :, :l1, :l2, :]
         )
         out_ft[:, :, -l1:, :l2, : self.modes] = compl_mul3d(
-            x_fft[:, :, -l1:, :l2, : self.modes], self.weights2[:, :, :l1, :l2, :]
+            x_fft[:, :, -l1:, :l2,
+                  : self.modes], self.weights2[:, :, :l1, :l2, :]
         )
         out_ft[:, :, :l1, -l2:, : self.modes] = compl_mul3d(
-            x_fft[:, :, :l1, -l2:, : self.modes], self.weights3[:, :, :l1, :l2, :]
+            x_fft[:, :, :l1, -l2:,
+                  : self.modes], self.weights3[:, :, :l1, :l2, :]
         )
         out_ft[:, :, -l1:, -l2:, : self.modes] = compl_mul3d(
-            x_fft[:, :, -l1:, -l2:, : self.modes], self.weights4[:, :, :l1, :l2, :]
+            x_fft[:, :, -l1:, -l2:,
+                  : self.modes], self.weights4[:, :, :l1, :l2, :]
         )
 
         # Return to physical space
@@ -869,7 +931,8 @@ class MWT_CZ3d(nn.Module):
 
     def forward(self, x):
 
-        B, Nx, Ny, T, c, ich = x.shape  # (B, Nx, Ny, T, c, k**2)
+        # (B, Nx, Ny, T, c, k**2)
+        B, Nx, Ny, T, c, ich = x.shape
         ns = math.floor(np.log2(Nx))
 
         Ud = torch.jit.annotate(List[Tensor], [])
@@ -908,14 +971,16 @@ class MWT_CZ3d(nn.Module):
 
     def evenOdd(self, x):
 
-        B, Nx, Ny, T, c, ich = x.shape  # (B, Nx, Ny, c, k**2)
+        # (B, Nx, Ny, c, k**2)
+        B, Nx, Ny, T, c, ich = x.shape
         assert ich == 2 * self.k**2
         x_ee = torch.matmul(x, self.rc_ee)
         x_eo = torch.matmul(x, self.rc_eo)
         x_oe = torch.matmul(x, self.rc_oe)
         x_oo = torch.matmul(x, self.rc_oo)
 
-        x = torch.zeros(B, Nx * 2, Ny * 2, T, c, self.k**2, device=x.device)
+        x = torch.zeros(B, Nx * 2, Ny * 2, T,
+                        c, self.k**2, device=x.device)
         x[:, ::2, ::2, :, :, :] = x_ee
         x[:, ::2, 1::2, :, :, :] = x_eo
         x[:, 1::2, ::2, :, :, :] = x_oe

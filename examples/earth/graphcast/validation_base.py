@@ -20,7 +20,8 @@ class Validation:
         self.dist = dist
         self.static_data = static_data
         self.interpolation_type = (
-            "nearest" if cfg.latlon_res != (721, 1440) else None
+            "nearest" if cfg.latlon_res != (
+                721, 1440) else None
         )  # interpolate if not in native resolution
         self.cos_zenith_args = {
             "dt": 6.0,
@@ -28,8 +29,10 @@ class Validation:
         }
         dataset = ERA5HDF5Datapipe(
             data_dir=os.path.join(cfg.dataset_path, "test"),
-            stats_dir=os.path.join(cfg.dataset_path, "stats"),
-            channels=[i for i in range(cfg.num_channels_climate)],
+            stats_dir=os.path.join(
+                cfg.dataset_path, "stats"),
+            channels=[i for i in range(
+                cfg.num_channels_climate)],
             latlon_resolution=cfg.latlon_res,
             interpolation_type=self.interpolation_type,
             num_steps=cfg.num_val_steps,
@@ -46,7 +49,8 @@ class Validation:
             num_workers=cfg.num_workers,
         )
         self.val_datapipe = dataset.val_dataloader()
-        print(f"Loaded validation datapipe of size {len(self.val_datapipe)}")
+        print(
+            f"Loaded validation datapipe of size {len(self.val_datapipe)}")
         self.num_history = cfg.num_history
         self.stride = cfg.stride
         self.dt = cfg.dt
@@ -66,14 +70,18 @@ class Validation:
             "device": self.dist.device,
         }
         for i, data in enumerate(self.val_datapipe):
-            invar = data[0]["invar"].to(device=self.dist.device)
-            outvar = data[0]["outvar"][0].to(device=self.dist.device)
+            invar = data[0]["invar"].to(
+                device=self.dist.device)
+            outvar = data[0]["outvar"][0].to(
+                device=self.dist.device)
             try:
-                cos_zenith = data[0]["cos_zenith"].to(device=self.dist.device)
+                cos_zenith = data[0]["cos_zenith"].to(
+                    device=self.dist.device)
             except KeyError:
                 cos_zenith = None
             try:
-                time_idx = data[0]["time_of_year_idx"].item()
+                time_idx = data[0]["time_of_year_idx"].item(
+                )
             except KeyError:
                 time_idx = None
             invar_cat = prepare_input(
@@ -95,7 +103,8 @@ class Validation:
                 pred[t] = outpred
                 if self.num_history > 0:
                     # drop the first time step, and append the prediction as the last time step in invar
-                    invar = torch.cat((invar[:, 1:, :, :], outpred), dim=1)
+                    invar = torch.cat(
+                        (invar[:, 1:, :, :], outpred), dim=1)
                 else:
                     invar = outpred
                 invar_cat = prepare_input(
@@ -107,7 +116,8 @@ class Validation:
                 )
                 invar_cat = invar_cat.to(dtype=self.dtype)
 
-            loss_epoch += torch.mean(torch.pow(pred - outvar, 2))
+            loss_epoch += torch.mean(
+                torch.pow(pred - outvar, 2))
             torch.cuda.nvtx.range_pop()
 
             pred = pred.to(torch.float32).cpu().numpy()
@@ -119,12 +129,16 @@ class Validation:
             if i == 0:
                 for chan in channels:
                     plt.close("all")
-                    fig, ax = plt.subplots(3, pred.shape[0], figsize=(15, 5))
-                    fig.subplots_adjust(hspace=0.5, wspace=0.3)
+                    fig, ax = plt.subplots(
+                        3, pred.shape[0], figsize=(15, 5))
+                    fig.subplots_adjust(
+                        hspace=0.5, wspace=0.3)
 
                     for t in range(outvar.shape[0]):
-                        im_pred = ax[0, t].imshow(pred[t, chan], vmin=-1.5, vmax=1.5)
-                        ax[0, t].set_title(f"Prediction (t={t+1})", fontsize=10)
+                        im_pred = ax[0, t].imshow(
+                            pred[t, chan], vmin=-1.5, vmax=1.5)
+                        ax[0, t].set_title(
+                            f"Prediction (t={t+1})", fontsize=10)
                         fig.colorbar(
                             im_pred, ax=ax[0, t], orientation="horizontal", pad=0.4
                         )
@@ -132,7 +146,8 @@ class Validation:
                         im_outvar = ax[1, t].imshow(
                             outvar[t, chan], vmin=-1.5, vmax=1.5
                         )
-                        ax[1, t].set_title(f"Ground Truth (t={t+1})", fontsize=10)
+                        ax[1, t].set_title(
+                            f"Ground Truth (t={t+1})", fontsize=10)
                         fig.colorbar(
                             im_outvar, ax=ax[1, t], orientation="horizontal", pad=0.4
                         )
@@ -140,7 +155,8 @@ class Validation:
                         im_diff = ax[2, t].imshow(
                             abs(pred[t, chan] - outvar[t, chan]), vmin=0.0, vmax=0.5
                         )
-                        ax[2, t].set_title(f"Abs. Diff. (t={t+1})", fontsize=10)
+                        ax[2, t].set_title(
+                            f"Abs. Diff. (t={t+1})", fontsize=10)
                         fig.colorbar(
                             im_diff, ax=ax[2, t], orientation="horizontal", pad=0.4
                         )
@@ -151,6 +167,7 @@ class Validation:
                             f"era5_validation_channel{chan}_iter{iter}.png",
                         )
                     )
-                    wandb.log({f"val_chan{chan}_iter{iter}": fig}, step=iter)
+                    wandb.log(
+                        {f"val_chan{chan}_iter{iter}": fig}, step=iter)
 
         return loss_epoch / len(self.val_datapipe)

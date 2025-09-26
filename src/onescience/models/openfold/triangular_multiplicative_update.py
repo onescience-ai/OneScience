@@ -24,13 +24,16 @@ class BaseTriangleMultiplicativeUpdate(nn.Module, ABC):
             c:
                 Hidden channel dimension
         """
-        super(BaseTriangleMultiplicativeUpdate, self).__init__()
+        super(BaseTriangleMultiplicativeUpdate,
+              self).__init__()
         self.c_z = c_z
         self.c_hidden = c_hidden
         self._outgoing = _outgoing
 
-        self.linear_g = Linear(self.c_z, self.c_z, bias=False, init="gating")
-        self.linear_z = Linear(self.c_hidden, self.c_z, bias=False, init="final")
+        self.linear_g = Linear(
+            self.c_z, self.c_z, bias=False, init="gating")
+        self.linear_z = Linear(
+            self.c_hidden, self.c_z, bias=False, init="final")
 
         self.layer_norm_in = LayerNorm(self.c_z)
         self.layer_norm_out = LayerNorm(self.c_hidden)
@@ -53,9 +56,11 @@ class BaseTriangleMultiplicativeUpdate(nn.Module, ABC):
         if _inplace_chunk_size is not None:
             # To be replaced by torch vmap
             for i in range(0, a.shape[-3], _inplace_chunk_size):
-                a_chunk = a[..., i : i + _inplace_chunk_size, :, :]
-                b_chunk = b[..., i : i + _inplace_chunk_size, :, :]
-                a[..., i : i + _inplace_chunk_size, :, :] = torch.matmul(
+                a_chunk = a[..., i: i +
+                            _inplace_chunk_size, :, :]
+                b_chunk = b[..., i: i +
+                            _inplace_chunk_size, :, :]
+                a[..., i: i + _inplace_chunk_size, :, :] = torch.matmul(
                     a_chunk,
                     b_chunk,
                 )
@@ -107,13 +112,15 @@ class TriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
             self.c_hidden,
             bias=False,
         )
-        self.linear_a_g = Linear(self.c_z, self.c_hidden, bias=False, init="gating")
+        self.linear_a_g = Linear(
+            self.c_z, self.c_hidden, bias=False, init="gating")
         self.linear_b_p = Linear(
             self.c_z,
             self.c_hidden,
             bias=False,
         )
-        self.linear_b_g = Linear(self.c_z, self.c_hidden, bias=False, init="gating")
+        self.linear_b_g = Linear(
+            self.c_z, self.c_hidden, bias=False, init="gating")
 
     def _inference_forward(
         self,
@@ -213,21 +220,29 @@ class TriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
                 # budget with a large intermediate tensor
                 linear_g = self.linear_a_g if a else self.linear_b_g
                 c = linear_g.weight.shape[0]
-                out_shape = pair.shape[:-3] + (c,) + pair.shape[-3:-1]
+                out_shape = pair.shape[:-3] + \
+                    (c,) + pair.shape[-3:-1]
                 p = pair.new_zeros(out_shape)
                 for i in range(0, pair.shape[-3], inplace_chunk_size):
-                    pair_chunk = pair[..., i : i + inplace_chunk_size, :, :]
-                    mask_chunk = mask[..., i : i + inplace_chunk_size, :, :]
+                    pair_chunk = pair[..., i: i +
+                                      inplace_chunk_size, :, :]
+                    mask_chunk = mask[..., i: i +
+                                      inplace_chunk_size, :, :]
                     pair_chunk = compute_projection_helper(
-                        pair[..., i : i + inplace_chunk_size, :, :],
-                        mask[..., i : i + inplace_chunk_size, :, :],
+                        pair[..., i: i +
+                             inplace_chunk_size, :, :],
+                        mask[..., i: i +
+                             inplace_chunk_size, :, :],
                         a,
                     )
                     if need_transpose:
-                        pair_chunk = pair_chunk.transpose(-1, -2)
-                        p[..., i : i + inplace_chunk_size] = pair_chunk
+                        pair_chunk = pair_chunk.transpose(
+                            -1, -2)
+                        p[..., i: i +
+                            inplace_chunk_size] = pair_chunk
                     else:
-                        p[..., i : i + inplace_chunk_size, :] = pair_chunk
+                        p[..., i: i + inplace_chunk_size,
+                            :] = pair_chunk
 
                     del pair_chunk
 
@@ -258,24 +273,30 @@ class TriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
                 # "Reorient" the z_cache (see below), filling it with quadrants
                 # 3---recovered from the z_cache---and 4---recovered from z---
                 # of the input tensor z.
-                quadrant_3 = slice_tensor(z_cache, half_n, None, row_dim)
-                z_cache = z_cache.transpose(row_dim, col_dim)
+                quadrant_3 = slice_tensor(
+                    z_cache, half_n, None, row_dim)
+                z_cache = z_cache.transpose(
+                    row_dim, col_dim)
 
                 # If n is odd, we need to shrink the z_cache by one row
                 z_cache = z_cache[..., : (n // 2), :, :]
 
                 # Move the 3rd quadrant of z into the
                 first_half_slicer = empty_slicer(z_cache)
-                first_half_slicer[col_dim] = slice(0, half_n)
+                first_half_slicer[col_dim] = slice(
+                    0, half_n)
                 z_cache[first_half_slicer] = quadrant_3
 
                 # Get the fourth quadrant of z
-                quadrant_4 = slice_tensor(z, half_n, None, row_dim)
-                quadrant_4 = slice_tensor(quadrant_4, half_n, None, col_dim)
+                quadrant_4 = slice_tensor(
+                    z, half_n, None, row_dim)
+                quadrant_4 = slice_tensor(
+                    quadrant_4, half_n, None, col_dim)
 
                 # Insert said quadrant into the rotated z-cache
                 quadrant_3_slicer = empty_slicer(z_cache)
-                quadrant_3_slicer[col_dim] = slice(half_n, None)
+                quadrant_3_slicer[col_dim] = slice(
+                    half_n, None)
 
                 z_cache[quadrant_3_slicer] = quadrant_4
 
@@ -293,12 +314,15 @@ class TriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
             # We need to reorient the z-cache at the halfway point, and we
             # don't want a single chunk to straddle that point. We contract one
             # of the chunks in the middle to address that problem.
-            i_range = list(range(0, half_n, inplace_chunk_size))
+            i_range = list(
+                range(0, half_n, inplace_chunk_size))
             initial_offsets = [
                 i_2 - i_1 for i_1, i_2 in zip(i_range, i_range[1:] + [half_n])
             ]
-            after_half = list(range(half_n, n, inplace_chunk_size))
-            after_half_offsets = [inplace_chunk_size for _ in after_half]
+            after_half = list(
+                range(half_n, n, inplace_chunk_size))
+            after_half_offsets = [
+                inplace_chunk_size for _ in after_half]
             combined_range_with_offsets = zip(
                 i_range + after_half, initial_offsets + after_half_offsets
             )
@@ -322,14 +346,17 @@ class TriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
 
                 z_chunk_b = z_chunk_b.clone()
                 if b_chunk_dim == col_dim:
-                    z_chunk_b = slice_tensor(z, i, i + offset, col_dim)
+                    z_chunk_b = slice_tensor(
+                        z, i, i + offset, col_dim)
                 else:  # b_chunk_dim == row_dim
                     # In this case, the b-dimension (b_chunk_dim) is partially
                     # overwritten at the end of each iteration. We need to
                     # restore the missing component from the z-cache.
                     if not z_cache_rotated:
-                        z_chunk_slicer = empty_slicer(z_chunk_b)
-                        z_chunk_slicer[col_dim] = slice(0, half_n)
+                        z_chunk_slicer = empty_slicer(
+                            z_chunk_b)
+                        z_chunk_slicer[col_dim] = slice(
+                            0, half_n)
                         z_chunk_b[z_chunk_slicer] = slice_tensor(
                             z_cache,
                             i,
@@ -351,14 +378,17 @@ class TriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
                     a,
                     b_chunk,
                 )
-                x_chunk = permute_final_dims(x_chunk, (1, 2, 0))
+                x_chunk = permute_final_dims(
+                    x_chunk, (1, 2, 0))
                 x_chunk = self.layer_norm_out(x_chunk)
                 x_chunk = self.linear_z(x_chunk)
 
                 # The g dimension (col_dim) is parallel to and ahead of the
                 # overwrites in z. We can extract the g chunk normally.
-                z_chunk_g = slice_tensor(z, i, i + offset, col_dim)
-                g_chunk = self.linear_g(self.layer_norm_in(z_chunk_g))
+                z_chunk_g = slice_tensor(
+                    z, i, i + offset, col_dim)
+                g_chunk = self.linear_g(
+                    self.layer_norm_in(z_chunk_g))
                 g_chunk.sigmoid_()
                 del z_chunk_g
 
@@ -435,7 +465,8 @@ class TriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
 
         if is_fp16_enabled():
             with torch.cuda.amp.autocast(enabled=False):
-                x = self._combine_projections(a.float(), b.float())
+                x = self._combine_projections(
+                    a.float(), b.float())
         else:
             x = self._combine_projections(a, b)
 
@@ -453,7 +484,8 @@ class TriangleMultiplicationOutgoing(TriangleMultiplicativeUpdate):
     Implements Algorithm 11.
     """
 
-    __init__ = partialmethod(TriangleMultiplicativeUpdate.__init__, _outgoing=True)
+    __init__ = partialmethod(
+        TriangleMultiplicativeUpdate.__init__, _outgoing=True)
 
 
 class TriangleMultiplicationIncoming(TriangleMultiplicativeUpdate):
@@ -461,7 +493,8 @@ class TriangleMultiplicationIncoming(TriangleMultiplicativeUpdate):
     Implements Algorithm 12.
     """
 
-    __init__ = partialmethod(TriangleMultiplicativeUpdate.__init__, _outgoing=False)
+    __init__ = partialmethod(
+        TriangleMultiplicativeUpdate.__init__, _outgoing=False)
 
 
 class FusedTriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
@@ -481,8 +514,10 @@ class FusedTriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
             c_z=c_z, c_hidden=c_hidden, _outgoing=_outgoing
         )
 
-        self.linear_ab_p = Linear(self.c_z, self.c_hidden * 2)
-        self.linear_ab_g = Linear(self.c_z, self.c_hidden * 2, init="gating")
+        self.linear_ab_p = Linear(
+            self.c_z, self.c_hidden * 2)
+        self.linear_ab_g = Linear(
+            self.c_z, self.c_hidden * 2, init="gating")
 
     def _inference_forward(
         self,
@@ -519,13 +554,14 @@ class FusedTriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
         def compute_projection(pair, mask):
             p = compute_projection_helper(pair, mask)
             left = p[..., : self.c_hidden]
-            right = p[..., self.c_hidden :]
+            right = p[..., self.c_hidden:]
 
             return left, right
 
         z_norm_in = self.layer_norm_in(z)
         a, b = compute_projection(z_norm_in, mask)
-        x = self._combine_projections(a, b, _inplace_chunk_size=_inplace_chunk_size)
+        x = self._combine_projections(
+            a, b, _inplace_chunk_size=_inplace_chunk_size)
         x = self.layer_norm_out(x)
         x = self.linear_z(x)
         g = self.linear_g(z_norm_in)
@@ -575,7 +611,7 @@ class FusedTriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
         ab = ab * self.linear_ab_p(z)
 
         a = ab[..., : self.c_hidden]
-        b = ab[..., self.c_hidden :]
+        b = ab[..., self.c_hidden:]
 
         # Prevents overflow of torch.matmul in combine projections in
         # reduced-precision modes
@@ -587,7 +623,8 @@ class FusedTriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
 
         if is_fp16_enabled():
             with torch.cuda.amp.autocast(enabled=False):
-                x = self._combine_projections(a.float(), b.float())
+                x = self._combine_projections(
+                    a.float(), b.float())
         else:
             x = self._combine_projections(a, b)
 
@@ -605,7 +642,8 @@ class FusedTriangleMultiplicationOutgoing(FusedTriangleMultiplicativeUpdate):
     Implements Algorithm 11.
     """
 
-    __init__ = partialmethod(FusedTriangleMultiplicativeUpdate.__init__, _outgoing=True)
+    __init__ = partialmethod(
+        FusedTriangleMultiplicativeUpdate.__init__, _outgoing=True)
 
 
 class FusedTriangleMultiplicationIncoming(FusedTriangleMultiplicativeUpdate):

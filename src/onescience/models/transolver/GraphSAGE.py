@@ -35,7 +35,8 @@ class GraphSAGE(nn.Module):
             self.bn = nn.ModuleList()
             for n in range(self.nb_hidden_layers):
                 self.bn.append(
-                    nn.BatchNorm1d(self.size_hidden_layers, track_running_stats=False)
+                    nn.BatchNorm1d(
+                        self.size_hidden_layers, track_running_stats=False)
                 )
 
     def forward(self, data):

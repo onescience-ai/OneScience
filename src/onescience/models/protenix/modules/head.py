@@ -26,7 +26,8 @@ class DistogramHead(nn.Module):
             in_features=self.c_z, out_features=self.no_bins, initializer="zeros"
         )
 
-    def forward(self, z: torch.Tensor) -> torch.Tensor:  # [*, N, N, C_z]
+    # [*, N, N, C_z]
+    def forward(self, z: torch.Tensor) -> torch.Tensor:
         """
         Args:
             z (torch.Tensor): pair embedding

@@ -32,23 +32,26 @@ def camber_line(params, x):
 
         mask1 = x < p
         mask2 = x >= p
-        y_c[mask1] = (m / p**2) * (2 * p * x[mask1] - x[mask1] ** 2)
+        y_c[mask1] = (m / p**2) * \
+            (2 * p * x[mask1] - x[mask1] ** 2)
         dy_c[mask1] = (2 * m / p**2) * (p - x[mask1])
         y_c[mask2] = (m / (1 - p) ** 2) * (
             (1 - 2 * p) + 2 * p * x[mask2] - x[mask2] ** 2
         )
-        dy_c[mask2] = (2 * m / (1 - p) ** 2) * (p - x[mask2])
+        dy_c[mask2] = (2 * m / (1 - p) **
+                       2) * (p - x[mask2])
 
     elif len(params) == 3:
         l, p, q = params
         c_l, x_f = 3 / 20 * l, p / 20
 
-        f = lambda x: x * (1 - np.sqrt(x / 3)) - x_f
-        df = lambda x: 1 - 3 * np.sqrt(x / 3) / 2
+        def f(x): return x * (1 - np.sqrt(x / 3)) - x_f
+        def df(x): return 1 - 3 * np.sqrt(x / 3) / 2
         old_m = 0.5
         cond = True
         while cond:
-            new_m = np.max([old_m - f(old_m) / df(old_m), 0])
+            new_m = np.max(
+                [old_m - f(old_m) / df(old_m), 0])
             cond = np.abs(old_m - new_m) > 1e-15
             old_m = new_m
         m = old_m
@@ -61,11 +64,14 @@ def camber_line(params, x):
         mask2 = x > m
         if q == 0:
             y_c[mask1] = k_1 * (
-                (x[mask1] ** 3 - 3 * m * x[mask1] ** 2 + m**2 * (3 - m) * x[mask1])
+                (x[mask1] ** 3 - 3 * m * x[mask1]
+                 ** 2 + m**2 * (3 - m) * x[mask1])
             )
-            dy_c[mask1] = k_1 * (3 * x[mask1] ** 2 - 6 * m * x[mask1] + m**2 * (3 - m))
+            dy_c[mask1] = k_1 * (3 * x[mask1] **
+                                 2 - 6 * m * x[mask1] + m**2 * (3 - m))
             y_c[mask2] = k_1 * m**3 * (1 - x[mask2])
-            dy_c[mask2] = -k_1 * m**3 * np.ones_like(dy_c[mask2])
+            dy_c[mask2] = -k_1 * m**3 * \
+                np.ones_like(dy_c[mask2])
 
         elif q == 1:
             k = (3 * (m - x_f) ** 2 - m**3) / (1 - m) ** 3
@@ -75,17 +81,22 @@ def camber_line(params, x):
                 - m**3 * x[mask1]
                 + m**3
             )
-            dy_c[mask1] = k_1 * (3 * (x[mask1] - m) ** 2 - k * (1 - m) ** 3 - m**3)
+            dy_c[mask1] = k_1 * \
+                (3 * (x[mask1] - m) ** 2 -
+                 k * (1 - m) ** 3 - m**3)
             y_c[mask2] = k_1 * (
                 k * (x[mask2] - m) ** 3
                 - k * (1 - m) ** 3 * x[mask2]
                 - m**3 * x[mask2]
                 + m**3
             )
-            dy_c[mask2] = k_1 * (3 * k * (x[mask2] - m) ** 2 - k * (1 - m) ** 3 - m**3)
+            dy_c[mask2] = k_1 * \
+                (3 * k * (x[mask2] - m) **
+                 2 - k * (1 - m) ** 3 - m**3)
 
         else:
-            raise ValueError("Q must be 0 for normal camber or 1 for reflex camber.")
+            raise ValueError(
+                "Q must be 0 for normal camber or 1 for reflex camber.")
 
     else:
         raise ValueError(
@@ -124,7 +135,8 @@ def naca_generator(
         )
 
     if cosine_spacing:
-        beta = np.pi * np.linspace(1, 0, nb_samples + 1, endpoint=True)
+        beta = np.pi * \
+            np.linspace(1, 0, nb_samples + 1, endpoint=True)
         x = (1 - np.cos(beta)) / 2
     else:
         x = np.linspace(1, 0, nb_samples + 1, endpoint=True)
@@ -138,6 +150,7 @@ def naca_generator(
     y_l = y_c - y_t * np.cos(theta)
     x = np.concatenate([x_u, x_l[:-1][::-1]], axis=0)
     y = np.concatenate([y_u, y_l[:-1][::-1]], axis=0)
-    pos = np.stack([x * scale + origin[0], y * scale + origin[1]], axis=-1)
+    pos = np.stack(
+        [x * scale + origin[0], y * scale + origin[1]], axis=-1)
     pos[0], pos[-1] = np.array([1, 0]), np.array([1, 0])
     return pos

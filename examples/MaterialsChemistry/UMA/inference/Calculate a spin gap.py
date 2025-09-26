@@ -24,7 +24,8 @@ def make_state(mol_name: str, mult: int, charge: int = 0):
     atoms.info["spin"] = mult
     atoms.info["spin_multiplicity"] = mult
     atoms.info["charge"] = charge
-    atoms.calc = FAIRChemCalculator(predictor, task_name="omol")
+    atoms.calc = FAIRChemCalculator(
+        predictor, task_name="omol")
     return atoms
 
 
@@ -48,7 +49,8 @@ gap_kcal = gap_ev * 23.060543
 
 print(f"Singlet energy (CH2 1A1):  {E_s:.6f} eV")
 print(f"Triplet energy (CH2 3B1):  {E_t:.6f} eV")
-print(f"Gap (T - S):               {gap_ev:.6f} eV  ({gap_kcal:.2f} kcal/mol)")
+print(
+    f"Gap (T - S):               {gap_ev:.6f} eV  ({gap_kcal:.2f} kcal/mol)")
 
 # 保存结构，便于复查
 write("CH2_singlet.xyz", singlet)
@@ -57,9 +59,11 @@ write("CH2_triplet.xyz", triplet)
 # 打印自旋/电荷确认，确保不会再触发“未设置自旋”的警告
 print(
     "Singlet info:",
-    {k: singlet.info[k] for k in ("spin", "spin_multiplicity", "charge")},
+    {k: singlet.info[k] for k in (
+        "spin", "spin_multiplicity", "charge")},
 )
 print(
     "Triplet info:",
-    {k: triplet.info[k] for k in ("spin", "spin_multiplicity", "charge")},
+    {k: triplet.info[k] for k in (
+        "spin", "spin_multiplicity", "charge")},
 )

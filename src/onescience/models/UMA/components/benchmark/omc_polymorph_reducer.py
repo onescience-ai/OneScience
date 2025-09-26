@@ -94,22 +94,29 @@ class OMCPolymorphReducer(JsonDFReducer):
         metrics = {}
         energy_key = self.target_data_keys[0]
         for molecule_id in results[self._molecule_id_key].unique():
-            logging.info(f"Computing metrics for {molecule_id=}")
-            polymorph_results = results[results[self._molecule_id_key] == molecule_id]
+            logging.info(
+                f"Computing metrics for {molecule_id=}")
+            polymorph_results = results[results[self._molecule_id_key]
+                                        == molecule_id]
 
-            ref_structure_id = polymorph_results[f"{energy_key}_target"].argmin()
+            ref_structure_id = polymorph_results[f"{energy_key}_target"].argmin(
+            )
             ref_energy = polymorph_results[energy_key].iloc[ref_structure_id]
             ref_energy_target = polymorph_results[f"{energy_key}_target"].iloc[
                 ref_structure_id
             ]
 
-            energy_latt = polymorph_results[energy_key] - ref_energy
+            energy_latt = polymorph_results[energy_key] - \
+                ref_energy
             energy_latt_target = (
-                polymorph_results[f"{energy_key}_target"] - ref_energy_target
+                polymorph_results[f"{energy_key}_target"] -
+                ref_energy_target
             )
 
-            rankings = pd.Series(energy_latt).rank(method="min")
-            rankings_target = pd.Series(energy_latt_target).rank(method="min")
+            rankings = pd.Series(
+                energy_latt).rank(method="min")
+            rankings_target = pd.Series(
+                energy_latt_target).rank(method="min")
 
             metrics.update(
                 {
@@ -138,7 +145,8 @@ class OMCPolymorphReducer(JsonDFReducer):
                         MSONAtoms.from_dict(entry["atoms"])
                     )
                     reference_structure = AseAtomsAdaptor.get_structure(
-                        MSONAtoms.from_dict(entry["atoms_relaxed_target"])
+                        MSONAtoms.from_dict(
+                            entry["atoms_relaxed_target"])
                     )
 
                     # not clean but call this directly to avoid rematching (rms, max_dist, mask, cost, mapping)

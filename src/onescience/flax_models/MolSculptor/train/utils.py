@@ -7,9 +7,11 @@ def parameter_weight_decay(params):
     """Apply weight decay to parameters."""
 
     loss = jax.tree_util.tree_map(
-        lambda p: jnp.mean(jnp.square(p.reshape(-1))) if p.ndim == 2 else 0, params
+        lambda p: jnp.mean(jnp.square(
+            p.reshape(-1))) if p.ndim == 2 else 0, params
     )
-    loss = jnp.sum(jnp.array(jax.tree_util.tree_leaves(loss)))
+    loss = jnp.sum(
+        jnp.array(jax.tree_util.tree_leaves(loss)))
 
     return loss
 
@@ -52,7 +54,8 @@ def print_net_params(params: dict):
 
 def print_net_params_count(params: dict, exclude_paths=[]):
     count = 0
-    param_arrays = jax.tree_util.tree_leaves_with_path(params)
+    param_arrays = jax.tree_util.tree_leaves_with_path(
+        params)
     for p in param_arrays:
         path, arr = p
         _size = arr.size
@@ -76,16 +79,18 @@ def pmean_tree(values):
 
 def gamma_schdule(init_value, peak_value, warmup_steps, total_steps):
 
-    ### cosine raise schedule
+    # cosine raise schedule
     warmup_steps = min(warmup_steps, total_steps)
     warmup_gamma = init_value + (peak_value - init_value) * np.cos(
-        (np.arange(warmup_steps) / warmup_steps - 1) * np.pi * 0.5
+        (np.arange(warmup_steps) /
+         warmup_steps - 1) * np.pi * 0.5
     )
 
     res_steps = total_steps - warmup_steps
     res_gamma = np.ones(res_steps) * peak_value
 
-    gamma = np.concatenate([warmup_gamma, res_gamma])  ## (T,)
+    gamma = np.concatenate(
+        [warmup_gamma, res_gamma])  # (T,)
 
     return gamma
 
@@ -97,10 +102,12 @@ def weight_schedule():
 
 def cosine_warmup_schedule(step_it, min_val, max_val, warmup_steps, decay_steps):
 
-    #### linear
-    linear_val = min_val + (max_val - min_val) * step_it / warmup_steps
+    # linear
+    linear_val = min_val + \
+        (max_val - min_val) * step_it / warmup_steps
     cosine_val = min_val + 0.5 * (max_val - min_val) * (
-        1 + jnp.cos(jnp.pi * (step_it - warmup_steps) / decay_steps)
+        1 + jnp.cos(jnp.pi * (step_it -
+                    warmup_steps) / decay_steps)
     )
     cosine_val = jnp.maximum(cosine_val, min_val)
 
@@ -109,9 +116,10 @@ def cosine_warmup_schedule(step_it, min_val, max_val, warmup_steps, decay_steps)
 
 def cosine_const_schedule(step_it, min_val, max_val, const_steps, decay_steps):
 
-    #### linear
+    # linear
     cosine_val = min_val + 0.5 * (max_val - min_val) * (
-        1 + jnp.cos(jnp.pi * (step_it - const_steps) / decay_steps)
+        1 + jnp.cos(jnp.pi * (step_it -
+                    const_steps) / decay_steps)
     )
     cosine_val = jnp.maximum(cosine_val, min_val)
 

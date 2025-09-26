@@ -49,8 +49,10 @@ def size_repr(key: str, item: torch.Tensor, indent=0) -> str:
     elif isinstance(item, (List, tuple)):
         out = str([len(item)])
     elif isinstance(item, dict):
-        lines = [indent_str + size_repr(k, v, 2) for k, v in item.items()]
-        out = "{\n" + ",\n".join(lines) + "\n" + indent_str + "}"
+        lines = [indent_str +
+                 size_repr(k, v, 2) for k, v in item.items()]
+        out = "{\n" + \
+            ",\n".join(lines) + "\n" + indent_str + "}"
     elif isinstance(item, str):
         out = f'"{item}"'
     else:
@@ -77,7 +79,8 @@ def get_neighbors_pymatgen(atoms: ase.Atoms, cutoff, max_neigh):
     for i in range(len(atoms)):
         idx_i = (_c_index == i).nonzero()[0]
         # sort neighbors by distance, remove edges larger than max_neighbors
-        idx_sorted = np.argsort(n_distance[idx_i])[:max_neigh]
+        idx_sorted = np.argsort(n_distance[idx_i])[
+            :max_neigh]
         _nonmax_idx.append(idx_i[idx_sorted])
     _nonmax_idx = np.concatenate(_nonmax_idx)
 
@@ -97,7 +100,8 @@ def reshape_features(
 ):
     """Stack center and neighbor index and reshapes distances,
     takes in np.arrays and returns torch tensors"""
-    edge_index = torch.LongTensor(np.vstack((n_index, c_index)))
+    edge_index = torch.LongTensor(
+        np.vstack((n_index, c_index)))
     edge_distances = torch.FloatTensor(n_distance)
     cell_offsets = torch.FloatTensor(offsets)
 
@@ -128,7 +132,8 @@ class AtomicData:
         tags: torch.Tensor,  # (num_node,)
         energy: torch.Tensor | None = None,  # (num_graph,)
         forces: torch.Tensor | None = None,  # (num_node, 3)
-        stress: torch.Tensor | None = None,  # (num_graph, 3, 3)
+        # (num_graph, 3, 3)
+        stress: torch.Tensor | None = None,
         batch: torch.Tensor | None = None,  # (num_node,)
         sid: list[str] | None = None,
         dataset: list[str] | str | None = None,
@@ -166,7 +171,8 @@ class AtomicData:
         if batch is not None:
             self.batch = batch
         else:
-            self.batch = torch.zeros_like(self.atomic_numbers)
+            self.batch = torch.zeros_like(
+                self.atomic_numbers)
 
         # id
         if isinstance(sid, str):
@@ -220,7 +226,8 @@ class AtomicData:
         assert self.pbc.shape[1] == 3
         assert self.edge_index.shape[0] == 2
         assert self.cell_offsets.shape[0] == self.edge_index.shape[1]
-        assert self.nedges.sum().item() == self.edge_index.shape[1]
+        assert self.nedges.sum().item(
+        ) == self.edge_index.shape[1]
         assert self.fixed.shape[0] == self.pos.shape[0]
         assert self.tags.shape[0] == self.pos.shape[0]
         assert self.batch.shape == self.atomic_numbers.shape
@@ -286,7 +293,8 @@ class AtomicData:
         r_energy: bool = True,  # deprecated
         r_forces: bool = True,
         r_stress: bool = True,
-        r_data_keys: list[str] | None = None,  # NOT USED, compat for now
+        # NOT USED, compat for now
+        r_data_keys: list[str] | None = None,
         task_name: str | None = None,
     ) -> AtomicData:
         atoms = input_atoms.copy()
@@ -306,20 +314,24 @@ class AtomicData:
                 "atoms must either have a cell or have a cell created by setting <molecule_cell_size>."
             )
 
-        atomic_numbers = np.array(atoms.get_atomic_numbers(), copy=True)
+        atomic_numbers = np.array(
+            atoms.get_atomic_numbers(), copy=True)
         pos = np.array(atoms.get_positions(), copy=True)
         pbc = np.array(atoms.pbc, copy=True)
-        cell = np.array(atoms.get_cell(complete=True), copy=True)
+        cell = np.array(atoms.get_cell(
+            complete=True), copy=True)
         pos = wrap_positions(pos, cell, pbc=pbc, eps=0)
 
         # wrap positions for CPU graph Generation
         atoms.set_positions(pos)
 
-        atomic_numbers = torch.from_numpy(atomic_numbers).long()
+        atomic_numbers = torch.from_numpy(
+            atomic_numbers).long()
         pos = torch.from_numpy(pos).float()
         pbc = torch.from_numpy(pbc).bool().view(1, 3)
         cell = torch.from_numpy(cell).float().view(1, 3, 3)
-        natoms = torch.tensor([pos.shape[0]], dtype=torch.long)
+        natoms = torch.tensor(
+            [pos.shape[0]], dtype=torch.long)
 
         # graph construction
         if r_edges:
@@ -329,13 +341,18 @@ class AtomicData:
             assert (
                 max_neigh is not None
             ), "max_neigh must be specified for cpu graph construction."
-            split_idx_dist = get_neighbors_pymatgen(atoms, radius, max_neigh)
-            edge_index, cell_offsets = reshape_features(*split_idx_dist)
-            nedges = torch.tensor([edge_index.shape[1]], dtype=torch.long)
+            split_idx_dist = get_neighbors_pymatgen(
+                atoms, radius, max_neigh)
+            edge_index, cell_offsets = reshape_features(
+                *split_idx_dist)
+            nedges = torch.tensor(
+                [edge_index.shape[1]], dtype=torch.long)
         else:
             # empty graph
-            edge_index = torch.empty((2, 0), dtype=torch.long)
-            cell_offsets = torch.empty((0, 3), dtype=torch.float)
+            edge_index = torch.empty(
+                (2, 0), dtype=torch.long)
+            cell_offsets = torch.empty(
+                (0, 3), dtype=torch.float)
             nedges = torch.tensor([0], dtype=torch.long)
 
         # initialized to torch.zeros(natoms) if tags missing.
@@ -350,12 +367,14 @@ class AtomicData:
         if isinstance(calc, (SinglePointCalculator, SinglePointDFTCalculator)):
             results = calc.results
             energy = (
-                torch.FloatTensor([results["energy"]]).view(1)
+                torch.FloatTensor(
+                    [results["energy"]]).view(1)
                 if "energy" in results
                 else None
             )
             forces = (
-                torch.FloatTensor(results["forces"]).view(-1, 3)
+                torch.FloatTensor(
+                    results["forces"]).view(-1, 3)
                 if "forces" in results
                 else None
             )
@@ -366,9 +385,11 @@ class AtomicData:
                         1, 3, 3
                     )
                 elif stress.shape in ((3, 3), (9,)):
-                    stress = torch.FloatTensor(stress).view(1, 3, 3)
+                    stress = torch.FloatTensor(
+                        stress).view(1, 3, 3)
                 else:
-                    raise ValueError(f"Unknown stress shape, {stress.shape}")
+                    raise ValueError(
+                        f"Unknown stress shape, {stress.shape}")
             else:
                 stress = None
         else:
@@ -387,7 +408,8 @@ class AtomicData:
             else forces
         )
         stress = (
-            torch.FloatTensor(atoms.info["stress"]).view(1, 3, 3)
+            torch.FloatTensor(
+                atoms.info["stress"]).view(1, 3, 3)
             if "stress" in atoms.info
             else stress
         )
@@ -424,7 +446,8 @@ class AtomicData:
             edge_index=edge_index,
             cell_offsets=cell_offsets,
             nedges=nedges,
-            charge=tensor_or_int_to_tensor(charge, torch.long),
+            charge=tensor_or_int_to_tensor(
+                charge, torch.long),
             spin=tensor_or_int_to_tensor(spin, torch.long),
             fixed=fixed,
             tags=tags,
@@ -461,8 +484,10 @@ class AtomicData:
                         self.stress.squeeze().numpy()
                     )
                 elif self.stress.shape == (6,):
-                    fields["stress"] = self.stress.squeeze().numpy()
-            atoms.calc = SinglePointCalculator(atoms=atoms, **fields)
+                    fields["stress"] = self.stress.squeeze(
+                    ).numpy()
+            atoms.calc = SinglePointCalculator(
+                atoms=atoms, **fields)
 
         atoms.info = {
             "charge": self.charge.item(),
@@ -688,13 +713,16 @@ class AtomicData:
 
     def __repr__(self):
         cls = str(self.__class__.__name__)
-        has_dict = any(isinstance(item, dict) for _, item in self)
+        has_dict = any(isinstance(item, dict)
+                       for _, item in self)
 
         if not has_dict:
-            info = [size_repr(key, item) for key, item in self]
+            info = [size_repr(key, item)
+                    for key, item in self]
             return "{}({})".format(cls, ", ".join(info))
         else:
-            info = [size_repr(key, item, indent=2) for key, item in self]
+            info = [size_repr(key, item, indent=2)
+                    for key, item in self]
             return "{}(\n{}\n)".format(cls, ",\n".join(info))
 
     ###############################
@@ -723,12 +751,14 @@ class AtomicData:
                     dim = self.__cat_dims__[key]
                     start = self.__slices__[key][idx]
                     end = self.__slices__[key][idx + 1]
-                    item = item.narrow(dim, start, end - start)
+                    item = item.narrow(
+                        dim, start, end - start)
                 else:
                     start = self.__slices__[key][idx]
                     end = self.__slices__[key][idx + 1]
                     item = item[start:end]
-                    item = item[0] if len(item) == 1 else item
+                    item = item[0] if len(
+                        item) == 1 else item
 
             # Decrease its value by `cumsum` value:
             cum = self.__cumsum__[key][idx]
@@ -740,7 +770,8 @@ class AtomicData:
 
             data_dict[key] = item
 
-        data_dict["batch"] = torch.zeros_like(data_dict["atomic_numbers"])
+        data_dict["batch"] = torch.zeros_like(
+            data_dict["atomic_numbers"])
         data_dict["sid"] = [self.sid[idx]]
 
         if hasattr(self, "dataset"):
@@ -827,14 +858,16 @@ def atomicdata_list_to_batch(
 
             # Add a batch dimension to items whose `cat_dim` is `None`:
             if isinstance(item, torch.Tensor) and cat_dim is None:
-                cat_dim = 0  # Concatenate along this new batch dimension.
+                # Concatenate along this new batch dimension.
+                cat_dim = 0
                 item = item.unsqueeze(0)
                 device = item.device
             elif isinstance(item, torch.Tensor):
                 size = item.size(cat_dim)
                 device = item.device
 
-            batched_data_dict[key].append(item)  # Append item to the attribute list.
+            # Append item to the attribute list.
+            batched_data_dict[key].append(item)
 
             slices[key].append(size + slices[key][-1])
             inc = data.__inc__(key, item)
@@ -844,7 +877,8 @@ def atomicdata_list_to_batch(
 
         natoms_list.append(data.natoms.item())
         sid_list.extend(data.sid)
-        item = torch.full((data.natoms,), i, dtype=torch.long, device=device)
+        item = torch.full(
+            (data.natoms,), i, dtype=torch.long, device=device)
         batch.append(item)
 
     ref_data = data_list[0]
@@ -854,7 +888,8 @@ def atomicdata_list_to_batch(
         cat_dim = ref_data.__cat_dim__(key, item)
         cat_dim = 0 if cat_dim is None else cat_dim
         if torch.is_tensor(item):
-            batched_data_dict[key] = torch.cat(items, cat_dim)
+            batched_data_dict[key] = torch.cat(
+                items, cat_dim)
 
         # TODO: this allows non-tensor fields to be batched.
         # we might want to remove support for that.
@@ -863,8 +898,10 @@ def atomicdata_list_to_batch(
 
     batched_data_dict["batch"] = torch.cat(batch, dim=-1)
     batched_data_dict["sid"] = sid_list
-    atomic_data_batch = AtomicData.from_dict(batched_data_dict)
-    atomic_data_batch.assign_batch_stats(slices, cumsum, cat_dims, natoms_list)
+    atomic_data_batch = AtomicData.from_dict(
+        batched_data_dict)
+    atomic_data_batch.assign_batch_stats(
+        slices, cumsum, cat_dims, natoms_list)
 
     return atomic_data_batch.contiguous()
 

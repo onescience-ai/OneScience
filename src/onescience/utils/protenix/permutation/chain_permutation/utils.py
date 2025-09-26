@@ -22,11 +22,13 @@ def get_optimal_transform(
                              that will best align src_atoms to tgt_atoms.
                              A tanslation matrix records how the atoms should be shifted after applying r.
     """
-    assert src_atoms.shape == tgt_atoms.shape, (src_atoms.shape, tgt_atoms.shape)
+    assert src_atoms.shape == tgt_atoms.shape, (
+        src_atoms.shape, tgt_atoms.shape)
     assert src_atoms.shape[-1] == 3
     if mask is not None:
         mask = mask.bool()
-        assert mask.dim() == 1, "mask should have the shape of [N]"
+        assert mask.dim(
+        ) == 1, "mask should have the shape of [N]"
         assert mask.shape[-1] == src_atoms.shape[-2]
         src_atoms = src_atoms[mask, :]
         tgt_atoms = tgt_atoms[mask, :]

@@ -52,7 +52,8 @@ class LinearWarmupCosineAnnealingLR(_LRScheduler):
         if self.last_epoch < self.warmup_epochs:
             return [
                 group["lr"]
-                + (base_lr - self.warmup_start_lr) / (self.warmup_epochs - 1)
+                + (base_lr - self.warmup_start_lr) /
+                (self.warmup_epochs - 1)
                 for base_lr, group in zip(self.base_lrs, self.optimizer.param_groups)
             ]
         if (self.last_epoch - 1 - self.max_epochs) % (

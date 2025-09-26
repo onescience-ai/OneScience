@@ -36,13 +36,15 @@ class Rigid3Array:
 
     def __matmul__(self, other: Rigid3Array) -> Rigid3Array:
         new_rotation = self.rotation @ other.rotation
-        new_translation = self.apply_to_point(other.translation)
+        new_translation = self.apply_to_point(
+            other.translation)
         return Rigid3Array(new_rotation, new_translation)
 
     def inverse(self) -> Rigid3Array:
         """Return Rigid3Array corresponding to inverse transform."""
         inv_rotation = self.rotation.inverse()
-        inv_translation = inv_rotation.apply_to_point(-self.translation)
+        inv_translation = inv_rotation.apply_to_point(
+            -self.translation)
         return Rigid3Array(inv_rotation, inv_translation)
 
     def apply_to_point(self, point: vector.Vec3Array) -> vector.Vec3Array:
@@ -56,14 +58,16 @@ class Rigid3Array:
 
     def compose_rotation(self, other_rotation):
         rot = self.rotation @ other_rotation
-        trans = jax.tree_map(lambda x: jnp.broadcast_to(x, rot.shape), self.translation)
+        trans = jax.tree_map(lambda x: jnp.broadcast_to(
+            x, rot.shape), self.translation)
         return Rigid3Array(rot, trans)
 
     @classmethod
     def identity(cls, shape, dtype=jnp.float32) -> Rigid3Array:
         """Return identity Rigid3Array of given shape."""
         return cls(
-            rotation_matrix.Rot3Array.identity(shape, dtype=dtype),
+            rotation_matrix.Rot3Array.identity(
+                shape, dtype=dtype),
             vector.Vec3Array.zeros(shape, dtype=dtype),
         )  # pytype: disable=wrong-arg-count  # trace-all-classes
 
@@ -78,9 +82,11 @@ class Rigid3Array:
 
     @classmethod
     def from_array(cls, array):
-        rot = rotation_matrix.Rot3Array.from_array(array[..., :3])
+        rot = rotation_matrix.Rot3Array.from_array(
+            array[..., :3])
         vec = vector.Vec3Array.from_array(array[..., -1])
-        return cls(rot, vec)  # pytype: disable=wrong-arg-count  # trace-all-classes
+        # pytype: disable=wrong-arg-count  # trace-all-classes
+        return cls(rot, vec)
 
     @classmethod
     def from_array4x4(cls, array: jnp.ndarray) -> Rigid3Array:
@@ -99,7 +105,8 @@ class Rigid3Array:
             array[..., 2, 2],
         )
         translation = vector.Vec3Array(
-            array[..., 0, 3], array[..., 1, 3], array[..., 2, 3]
+            array[..., 0, 3], array[...,
+                                    1, 3], array[..., 2, 3]
         )
         return cls(
             rotation, translation

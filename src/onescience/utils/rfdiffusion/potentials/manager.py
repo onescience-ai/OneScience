@@ -109,13 +109,15 @@ class PotentialManager:
         # This is a mechanism to still allow this info to be used in potentials - NRB
         if binderlen > 0:
             binderlen_update = {"binderlen": binderlen}
-            hotspot_res_update = {"hotspot_res": hotspot_0idx}
+            hotspot_res_update = {
+                "hotspot_res": hotspot_0idx}
 
             for setting in setting_list:
                 if setting["type"] in potentials.require_binderlen:
                     setting.update(binderlen_update)
 
-        self.potentials_to_apply = self.initialize_all_potentials(setting_list)
+        self.potentials_to_apply = self.initialize_all_potentials(
+            setting_list)
         self.T = diffuser_config.T
 
     def is_empty(self):
@@ -156,7 +158,8 @@ class PotentialManager:
                 potential_dict["type"] in potentials.implemented_potentials
             ), f'potential with name: {potential_dict["type"]} is not one of the implemented potentials: {potentials.implemented_potentials.keys()}'
 
-            kwargs = {k: potential_dict[k] for k in potential_dict.keys() - {"type"}}
+            kwargs = {
+                k: potential_dict[k] for k in potential_dict.keys() - {"type"}}
 
             # symmetric oligomer contact potential args
             if self.inference_config.symmetry:
@@ -170,11 +173,14 @@ class PotentialManager:
                     "inter_all": self.potentials_config.olig_inter_all,
                     "contact_string": self.potentials_config.olig_custom_contact,
                 }
-                contact_matrix = make_contact_matrix(**contact_kwargs)
-                kwargs.update({"contact_matrix": contact_matrix})
+                contact_matrix = make_contact_matrix(
+                    **contact_kwargs)
+                kwargs.update(
+                    {"contact_matrix": contact_matrix})
 
             to_apply.append(
-                potentials.implemented_potentials[potential_dict["type"]](**kwargs)
+                potentials.implemented_potentials[potential_dict["type"]](
+                    **kwargs)
             )
 
         return to_apply

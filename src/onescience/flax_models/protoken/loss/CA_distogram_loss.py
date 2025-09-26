@@ -1,4 +1,4 @@
-### Implement of CA distogram loss, from mindspore ProToken code
+# Implement of CA distogram loss, from mindspore ProToken code
 
 import jax
 import jax.numpy as jnp
@@ -8,13 +8,17 @@ import numpy as np
 def softmax_cross_entropy(logits, labels, smooth_factor=0.0):
     # labels: one hot
     num_class = labels.shape[-1]
-    loss_xe = -jnp.sum(labels * jax.nn.log_softmax(logits, axis=-1), axis=-1)
+    loss_xe = - \
+        jnp.sum(
+            labels * jax.nn.log_softmax(logits, axis=-1), axis=-1)
     loss_smooth = -jnp.sum(
-        (jnp.ones_like(labels) / num_class) * jax.nn.log_softmax(logits, axis=-1),
+        (jnp.ones_like(labels) / num_class) *
+        jax.nn.log_softmax(logits, axis=-1),
         axis=-1,
     )
 
-    loss = (1.0 - smooth_factor) * loss_xe + smooth_factor * loss_smooth
+    loss = (1.0 - smooth_factor) * loss_xe + \
+        smooth_factor * loss_smooth
     return jnp.asarray(loss)
 
 
@@ -34,17 +38,20 @@ class OrdinalXCE:
 
         self.neighbors = neighbors
 
-        ### self.neighbors -> self.label_smoothing
-        neighbor_mask = np.ones((self.num_class, self.num_class))
+        # self.neighbors -> self.label_smoothing
+        neighbor_mask = np.ones(
+            (self.num_class, self.num_class))
         neighbor_mask = (
             neighbor_mask
             - np.triu(neighbor_mask, neighbors)
             - np.tril(neighbor_mask, -neighbors)
         )
         neighbor_mask = neighbor_mask / (
-            np.sum(neighbor_mask, axis=-1, keepdims=True) + 1e-6
+            np.sum(neighbor_mask, axis=-
+                   1, keepdims=True) + 1e-6
         )
-        self.neighbor_mask = jnp.array(neighbor_mask, jnp.float32)
+        self.neighbor_mask = jnp.array(
+            neighbor_mask, jnp.float32)
 
     def __call__(self, prediction_logits, target_tensor):
         """
@@ -58,20 +65,24 @@ class OrdinalXCE:
             logits=prediction_logits, labels=target_tensor
         )
 
-        ### add other op to prevent overfit
+        # add other op to prevent overfit
         # reference : https://spaces.ac.cn/archives/4493
         # (None,bins):
-        target_tensor_ = jnp.reshape(target_tensor, (-1, input_shape[-1]))
-        smoothed_labels_ = jnp.matmul(target_tensor_, self.neighbor_mask)
+        target_tensor_ = jnp.reshape(
+            target_tensor, (-1, input_shape[-1]))
+        smoothed_labels_ = jnp.matmul(
+            target_tensor_, self.neighbor_mask)
         # (...,bins):
-        smoothed_labels = jnp.reshape(smoothed_labels_, input_shape)
+        smoothed_labels = jnp.reshape(
+            smoothed_labels_, input_shape)
 
         # (...):
         smoothed_xent = softmax_cross_entropy(
             logits=prediction_logits, labels=smoothed_labels
         )
 
-        final_loss = (1 - self.e) * xent_loss + self.e * smoothed_xent
+        final_loss = (1 - self.e) * xent_loss + \
+            self.e * smoothed_xent
         return final_loss
 
 
@@ -80,7 +91,7 @@ class BinaryFocalLoss:
 
     def __init__(
         self, alpha=0.25, gamma=2.0, epsilon=1e-8, feed_in_logit=False, not_focal=False
-    ):  ### Pass config.model.heads.X here
+    ):  # Pass config.model.heads.X here
         self.alpha = alpha
         self.gamma = gamma
         self.feed_in_logit = feed_in_logit
@@ -90,7 +101,8 @@ class BinaryFocalLoss:
     def _convert_logit(self, probs):
         # probs = mnp.clip(probs,1e-5,1.-1e-5)
         # probs = mnp.clip(probs, MS_SMALL, 1.-MS_SMALL)
-        probs = jnp.clip(probs, self.epsilon, 1.0 - self.epsilon)
+        probs = jnp.clip(
+            probs, self.epsilon, 1.0 - self.epsilon)
         logits = jnp.log(probs / (1 - probs))
         return logits
 
@@ -110,14 +122,17 @@ class BinaryFocalLoss:
             logits = self._convert_logit(logits)
 
         if self.not_focal:
-            focal_loss = sigmoid_cross_entropy(logits, labels)
+            focal_loss = sigmoid_cross_entropy(
+                logits, labels)
         else:
             # (None):
             _ones = jnp.ones_like(labels)
             # positive_pt = mnp.where(labels>1e-5, probs, _ones)
             # negative_pt = mnp.where(labels<1e-5, 1-probs, _ones)
-            positive_pt = jnp.where(labels > 0.5, probs, _ones)
-            negative_pt = jnp.where(labels < 0.5, 1 - probs, _ones)
+            positive_pt = jnp.where(
+                labels > 0.5, probs, _ones)
+            negative_pt = jnp.where(
+                labels < 0.5, 1 - probs, _ones)
 
             # (None,):
             focal_loss = -self.alpha * jnp.power(1 - positive_pt, self.gamma) * jnp.log(
@@ -137,13 +152,14 @@ class EstogramHead:
         self.num_bins = num_bins
 
         # for distogram only:
-        self.breaks = jnp.linspace(self.first_break, self.last_break, self.num_bins)
+        self.breaks = jnp.linspace(
+            self.first_break, self.last_break, self.num_bins)
         self.width = self.breaks[1] - self.breaks[0]
 
         # ->(Nbins):
         self.centers = (
             self.breaks - 0.5 * self.width
-        )  ### Note there may be bugs in previous versions
+        )  # Note there may be bugs in previous versions
 
     def compute_dmat(self, positions):
         """Builds DistogramHead module.
@@ -155,8 +171,9 @@ class EstogramHead:
             * probs: distance matrix, shape [N_res, N_res, N_bins].
             * dmat: array containing bin centers, shape [N_res, N_res].
         """
-        ### positions: (Nres,3)
-        dmat = jnp.square(jnp.expand_dims(positions, 1) - jnp.expand_dims(positions, 0))
+        # positions: (Nres,3)
+        dmat = jnp.square(jnp.expand_dims(
+            positions, 1) - jnp.expand_dims(positions, 0))
         # (nres,nres):
         dmat = jnp.sqrt(jnp.sum(dmat, -1) + 1e-10)
         return dmat
@@ -168,35 +185,42 @@ class EstogramHead:
         output_shape = distogram_logits.shape
 
         # (N*N,Nbins):
-        distogram_logits_ = jnp.reshape(distogram_logits, (-1, self.num_bins))
+        distogram_logits_ = jnp.reshape(
+            distogram_logits, (-1, self.num_bins))
         # (N*N,):
-        decoy_distance_mat_ = jnp.reshape(decoy_distance_mat, (-1,))
+        decoy_distance_mat_ = jnp.reshape(
+            decoy_distance_mat, (-1,))
 
         # (1,Nbins):
         square_centers = jnp.reshape(self.centers, (1, -1))
         # (N*N,bins):
-        square_centers_pad_ = jnp.broadcast_to(square_centers, distogram_logits_.shape)
+        square_centers_pad_ = jnp.broadcast_to(
+            square_centers, distogram_logits_.shape)
         # (N*N,Nbins):
         estogram_ = jax.nn.softmax(distogram_logits_)
         # (1,Nbins)-(N*N,1) -> (N*N,Nbins)
-        esto_centers_ = square_centers - jnp.expand_dims(decoy_distance_mat_, -1)
+        esto_centers_ = square_centers - \
+            jnp.expand_dims(decoy_distance_mat_, -1)
 
         # (N,N,bins):
         estogram = jnp.reshape(estogram_, output_shape)
-        esto_centers = jnp.reshape(esto_centers_, output_shape)
-        square_centers_pad = jnp.reshape(square_centers_pad_, output_shape)
+        esto_centers = jnp.reshape(
+            esto_centers_, output_shape)
+        square_centers_pad = jnp.reshape(
+            square_centers_pad_, output_shape)
         return estogram, esto_centers, square_centers_pad
 
     def _integrate(self, distogram_logits, integrate_masks):
         # distogram_logits:(Nres,Nres,Nbins); masks:(Nres,Nres,Nbins)
         probs = jax.nn.softmax(distogram_logits)
-        integrate_masks = jnp.asarray(integrate_masks, jnp.float32)
+        integrate_masks = jnp.asarray(
+            integrate_masks, jnp.float32)
         # (Nres,Nres):
         v = jnp.sum(probs * integrate_masks, -1)
         return v
 
     def __call__(self, distogram_logits, dist_gt, dist_mask, cutoff):
-        ### distogram_logits: (Nres,Nres,bins); dist_gt:(Nres,Nres); dist_mask:(Nres,Nres); cutoff:float
+        # distogram_logits: (Nres,Nres,bins); dist_gt:(Nres,Nres); dist_mask:(Nres,Nres); cutoff:float
 
         # # (Nres,Nres):
         # mask_2d = dist_mask
@@ -208,7 +232,7 @@ class EstogramHead:
         pad_mask_2d = dist_mask
         dmat_ref = dist_gt
 
-        ### Compute Decoy Distance Matrix:
+        # Compute Decoy Distance Matrix:
         # dmat_ref = self.compute_dmat(positions_gt)
         # dmat_ref = dmat_ref.astype(jnp.float32)
         # dmat_ref = dist_gt.astype(jnp.float32)
@@ -258,12 +282,12 @@ class EstogramHead:
             plddt,
             pred_mask2d,
             pair_errors,
-        )  ### the first two terms will enter loss calculations.
+        )  # the first two terms will enter loss calculations.
 
 
 class CA_DistogramLoss:
     def __init__(self, config):
-        ### Initialize
+        # Initialize
         self.config = config
         self.dtype = jnp.float32
         self.num_bins = self.config["num_bins"]
@@ -271,10 +295,13 @@ class CA_DistogramLoss:
             self.config["first_break"], self.config["last_break"], self.num_bins
         )
 
-        self.contact_cutoff_min = self.config["contact_cutoff_min"]  ### 8A
-        self.contact_cutoff_max = self.config["contact_cutoff_max"]  ### 15A
+        # 8A
+        self.contact_cutoff_min = self.config["contact_cutoff_min"]
+        # 15A
+        self.contact_cutoff_max = self.config["contact_cutoff_max"]
 
-        self.label_smoothing = self.config["label_smoothing"]  ### 0.1
+        # 0.1
+        self.label_smoothing = self.config["label_smoothing"]
         self.dgram_neighbors = self.config[
             "dgram_neighbors"
         ]  # train_config.exclude_neighbors disto_mask zero intra-chain [i,i+3]
@@ -312,16 +339,17 @@ class CA_DistogramLoss:
         perms_padding_mask,
         rng_key,
     ):
-        #### Calculate
-        ### distogram_logits:(Nres,Nres,bins);
-        ### dist_gt_perms:(P,Nres,Nres);
-        ### dist_mask_perms:(P,Nres,Nres).
-        ### perms_padding_mask:(P,)
-        ### rng_key: ()
+        # Calculate
+        # distogram_logits:(Nres,Nres,bins);
+        # dist_gt_perms:(P,Nres,Nres);
+        # dist_mask_perms:(P,Nres,Nres).
+        # perms_padding_mask:(P,)
+        # rng_key: ()
 
         # (P,Nres,Nres,bins):
         distogram_logits_flat = jnp.tile(
-            jnp.expand_dims(distogram_logits, 0), (self.label_permutations, 1, 1, 1)
+            jnp.expand_dims(
+                distogram_logits, 0), (self.label_permutations, 1, 1, 1)
         )
 
         # ():
@@ -333,7 +361,8 @@ class CA_DistogramLoss:
         )
         # (P,1,1):
         random_cutoff_mask_flat = jnp.tile(
-            jnp.reshape(random_cutoff_mask, (1, 1, 1)), (self.label_permutations, 1, 1)
+            jnp.reshape(random_cutoff_mask, (1, 1, 1)
+                        ), (self.label_permutations, 1, 1)
         )
         random_cutoff_mask_flat = jnp.asarray(
             dist_gt_perms < random_cutoff_mask_flat, jnp.float32
@@ -351,11 +380,15 @@ class CA_DistogramLoss:
         # (Nres,Nres):
         # (P,Nres,Nres) * (P,1,1) -> (Nres,Nres)
         dist_gt_opt = jnp.sum(
-            dist_gt_perms * jnp.reshape(opt_perm_mask, opt_perm_mask.shape + (1, 1)), 0
+            dist_gt_perms *
+            jnp.reshape(opt_perm_mask,
+                        opt_perm_mask.shape + (1, 1)), 0
         )
         # (Nres,Nres):
         dist_mask_opt = jnp.sum(
-            dist_mask_perms * jnp.reshape(opt_perm_mask, opt_perm_mask.shape + (1, 1)),
+            dist_mask_perms *
+            jnp.reshape(opt_perm_mask,
+                        opt_perm_mask.shape + (1, 1)),
             0,
         )
         # (), ():
@@ -398,16 +431,19 @@ class CA_DistogramLoss:
 
         # (P,Nres,Nres):
         true_bins = jnp.sum(aa, -1)
-        true_bins = true_bins.astype(jnp.int32)  # (B*P,Nres,Nres)
-        true_bins = jnp.clip(true_bins, 0, self.num_bins - 1)
+        true_bins = true_bins.astype(
+            jnp.int32)  # (B*P,Nres,Nres)
+        true_bins = jnp.clip(
+            true_bins, 0, self.num_bins - 1)
 
         # (P,Nres,Nres,bins):
         labels = jax.nn.one_hot(true_bins, self.num_bins)
 
         # (P,Nres,Nres):
-        errors = self.dgram_regularizer(prediction_logits=logits, target_tensor=labels)
+        errors = self.dgram_regularizer(
+            prediction_logits=logits, target_tensor=labels)
 
-        ### Compose relevant masks:
+        # Compose relevant masks:
         # (P,Nres,Nres):
         square_mask = dist_mask_perms * cutoff_mask
 
@@ -417,16 +453,19 @@ class CA_DistogramLoss:
 
         # (P,):
         avg_error = jnp.sum(errors * loss_mask, (-2, -1)) / (
-            1e-8 + jnp.sum(loss_mask.astype(jnp.float32), (-2, -1))
+            1e-8 +
+            jnp.sum(loss_mask.astype(jnp.float32), (-2, -1))
         )
-        avg_error += (1.0 - jnp.asarray(perms_padding_mask, jnp.float32)) * 1e5
+        avg_error += (1.0 - jnp.asarray(perms_padding_mask,
+                      jnp.float32)) * 1e5
 
         # ():
         loss = jnp.mean(avg_error)
         optimal_index = jnp.argmin(avg_error)
 
         # (P,):
-        optimal_mask = jax.nn.one_hot(optimal_index, self.label_permutations)
+        optimal_mask = jax.nn.one_hot(
+            optimal_index, self.label_permutations)
 
         return loss, optimal_mask
 
@@ -438,7 +477,8 @@ class CA_DistogramLoss:
         )
 
         # (Nres):
-        lddt_loss_mask = jnp.clip(jnp.sum(dist_mask, -1), 0.0, 1.0)
+        lddt_loss_mask = jnp.clip(
+            jnp.sum(dist_mask, -1), 0.0, 1.0)
         lddt_error = -jnp.log(jnp.clip(plddt, 1e-8, 1.0))
         # ():
         lddt_loss = jnp.sum(lddt_error * lddt_loss_mask) / (
@@ -448,19 +488,23 @@ class CA_DistogramLoss:
         # (Nres,Nres):
         contact_loss_mask = dist_mask
         # (Nres*Nres):
-        contact_probs = jnp.reshape(jnp.asarray(pred_contact, jnp.float32), (-1))
+        contact_probs = jnp.reshape(
+            jnp.asarray(pred_contact, jnp.float32), (-1))
 
         # (Nres,Nres):
         contact_labels = (
-            jnp.asarray(dist_gt < cutoff_mask, jnp.float32) * contact_loss_mask
+            jnp.asarray(dist_gt < cutoff_mask,
+                        jnp.float32) * contact_loss_mask
         )
         # (Nres*Nres):
         contact_labels = jnp.reshape(contact_labels, (-1))
 
         # (Nres*Nres):
-        contact_error = self.contact_loss(logits=contact_probs, labels=contact_labels)
+        contact_error = self.contact_loss(
+            logits=contact_probs, labels=contact_labels)
         # (Nres,Nres):
-        contact_error = jnp.reshape(contact_error, contact_loss_mask.shape)
+        contact_error = jnp.reshape(
+            contact_error, contact_loss_mask.shape)
         # ():
         contact_loss = jnp.sum(contact_error * contact_loss_mask) / (
             jnp.sum(contact_loss_mask) + 1e-8

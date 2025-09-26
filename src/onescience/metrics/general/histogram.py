@@ -32,7 +32,8 @@ def linspace(start: Tensor, stop: Tensor, num: int) -> Tensor:  # pragma: no cov
         Tensor of evenly spaced numbers over defined interval [num, *start.shape]
     """
     # create a tensor of 'num' steps from 0 to 1
-    steps = torch.arange(num + 1, dtype=torch.float32, device=start.device) / (num)
+    steps = torch.arange(
+        num + 1, dtype=torch.float32, device=start.device) / (num)
 
     # reshape the 'steps' tensor to [-1, *([1]*start.ndim)] to allow for broadcastings
     # - using 'steps.reshape([-1, *([1]*start.ndim)])' would be nice here but
@@ -85,7 +86,8 @@ def _low_memory_bin_reduction_counts(
 
     for j in range(inputs.shape[0]):
         counts[number_of_bins - 1] += (
-            1 - (inputs[j] < bin_edges[number_of_bins - 1]).int()
+            1 - (inputs[j] <
+                 bin_edges[number_of_bins - 1]).int()
         )
 
     return counts
@@ -118,7 +120,8 @@ def _high_memory_bin_reduction_counts(
     Tensor
         PDF bin count tensor [N, ...]
     """
-    counts[0] += torch.count_nonzero(inputs < bin_edges[1], dim=0)
+    counts[0] += torch.count_nonzero(
+        inputs < bin_edges[1], dim=0)
     for i in range(1, number_of_bins - 1):
         counts[i] += torch.count_nonzero(
             inputs < bin_edges[i + 1], dim=0
@@ -158,7 +161,8 @@ def _low_memory_bin_reduction_cdf(
     """
     for i in range(number_of_bins - 1):
         for j in range(inputs.shape[0]):
-            counts[i] += (inputs[j] < bin_edges[i + 1]).int()
+            counts[i] += (inputs[j] <
+                          bin_edges[i + 1]).int()
     counts[number_of_bins - 1] += inputs.shape[0]
     return counts
 
@@ -195,7 +199,8 @@ def _high_memory_bin_reduction_cdf(
         CDF bin count tensor [N, ...]
     """
     for i in range(number_of_bins - 1):
-        counts[i] += torch.count_nonzero(inputs < bin_edges[i + 1], dim=0)
+        counts[i] += torch.count_nonzero(
+            inputs < bin_edges[i + 1], dim=0)
     counts[number_of_bins - 1] = inputs.shape[0]
     return counts
 
@@ -239,7 +244,8 @@ def _count_bins(
 
     if counts is None:
         counts = torch.zeros(
-            (number_of_bins, *bins_shape[1:]), dtype=torch.int64, device=input.device
+            (number_of_bins, *
+             bins_shape[1:]), dtype=torch.int64, device=input.device
         )
     else:
         if bins_shape[1:] != counts.shape[1:]:
@@ -285,7 +291,8 @@ def _get_mins_maxs(*inputs: Tensor, axis: int = 0) -> Tuple[Tensor, Tensor]:
         (Minimum, Maximum) values of inputs
     """
     if len(inputs) <= 0:
-        raise ValueError("At least one tensor much be provided")
+        raise ValueError(
+            "At least one tensor much be provided")
 
     input = inputs[0]
     inputs = list(inputs)[1:]
@@ -350,13 +357,14 @@ def _update_bins_counts(
         dist.all_reduce(high, op=dist.ReduceOp.MAX)
 
     low = torch.where(low < bin_edges[0], low, bin_edges[0])
-    high = torch.where(high > bin_edges[-1], high, bin_edges[-1])
+    high = torch.where(
+        high > bin_edges[-1], high, bin_edges[-1])
 
     # Test if bin_edges is a superset and do not recompute bin_edges.
     if ~(torch.all(low == bin_edges[0]) & torch.all(high == bin_edges[-1])):
         # There are extrema in inputs/args that are outside of bin_edges and we must recompute bin_edges and counts.
 
-        ## Need to make sure that the new bin_edges are consistent with the old bin_edges.
+        # Need to make sure that the new bin_edges are consistent with the old bin_edges.
         # Need to compute   dbin_edges = bin_edges[1] - bin_edges[0]
         #         find minimum k s.t. bin_edges[0] - k*dbin_edges < low
         #           set start = bin_edges[0] - k*dbin_edges
@@ -366,11 +374,13 @@ def _update_bins_counts(
         old_number_of_bins = bin_edges.shape[0] - 1
         number_of_bins = old_number_of_bins
 
-        lk = torch.max(torch.ceil((bin_edges[0] - low) / dbin_edges)).int().item()
+        lk = torch.max(torch.ceil(
+            (bin_edges[0] - low) / dbin_edges)).int().item()
         start = bin_edges[0] - lk * dbin_edges
         number_of_bins += lk
 
-        uk = torch.max(torch.ceil((high - bin_edges[-1]) / dbin_edges)).int().item()
+        uk = torch.max(torch.ceil(
+            (high - bin_edges[-1]) / dbin_edges)).int().item()
         end = bin_edges[-1] + uk * dbin_edges
         number_of_bins += uk
 
@@ -381,14 +391,16 @@ def _update_bins_counts(
             device=bin_edges.device,
         )
 
-        new_counts[lk : lk + old_number_of_bins] += counts
+        new_counts[lk: lk + old_number_of_bins] += counts
         counts = new_counts
 
     # Count inputs to bins
-    partial_counts = _count_bins(input, bin_edges, counts=None, cdf=cdf)
+    partial_counts = _count_bins(
+        input, bin_edges, counts=None, cdf=cdf)
     # If in distributed environment, reduce to get extrema min and max
     if DistributedManager.is_initialized() and dist.is_initialized():
-        dist.all_reduce(partial_counts, op=dist.ReduceOp.SUM)
+        dist.all_reduce(
+            partial_counts, op=dist.ReduceOp.SUM)
     counts += partial_counts
     # Finally, combine the new partial counts with the existing counts
     return bin_edges, counts
@@ -447,7 +459,8 @@ def _compute_counts_cdf(
         # Bin inputs
         counts = None
         for input in inputs:
-            counts = _count_bins(input, bin_edges, counts=counts, cdf=cdf)
+            counts = _count_bins(
+                input, bin_edges, counts=counts, cdf=cdf)
         return bin_edges, counts
 
     elif isinstance(bins, torch.Tensor):
@@ -462,17 +475,21 @@ def _compute_counts_cdf(
             # Get largest bin edges needed from input/args
             low, high = _get_mins_maxs(*inputs)
             # Compare against existing bin_edges
-            low = torch.where(low < bin_edges[0], low, bin_edges[0])
-            high = torch.where(high > bin_edges[-1], high, bin_edges[-1])
+            low = torch.where(
+                low < bin_edges[0], low, bin_edges[0])
+            high = torch.where(
+                high > bin_edges[-1], high, bin_edges[-1])
 
             # Update, if necessary
             if torch.any(low != bin_edges[0]) | torch.any(high != bin_edges[-1]):
-                bin_edges = linspace(low, high, number_of_bins)
+                bin_edges = linspace(
+                    low, high, number_of_bins)
 
             # Bin inputs
             counts = None
             for input in inputs:
-                counts = _count_bins(input, bin_edges, counts=counts, cdf=cdf)
+                counts = _count_bins(
+                    input, bin_edges, counts=counts, cdf=cdf)
             return bin_edges, counts
         else:  # Counts do need to be update
             if verbose:
@@ -603,8 +620,10 @@ class Histogram(EnsembleMetrics):
         start = -1.0 * torch.ones(
             self.input_shape[1:], device=self.device, dtype=self.dtype
         )
-        end = torch.ones(self.input_shape[1:], device=self.device, dtype=self.dtype)
-        self.bin_edges = linspace(start, end, self.number_of_bins)
+        end = torch.ones(
+            self.input_shape[1:], device=self.device, dtype=self.dtype)
+        self.bin_edges = linspace(
+            start, end, self.number_of_bins)
         self.counts = torch.zeros(
             self.counts_shape, device=self.device, dtype=torch.int64
         )
@@ -630,14 +649,17 @@ class Histogram(EnsembleMetrics):
             # need to be combined.
             dist.all_reduce(start, op=dist.ReduceOp.MIN)
             dist.all_reduce(end, op=dist.ReduceOp.MAX)
-            self.bin_edges = linspace(start, end, self.number_of_bins)
+            self.bin_edges = linspace(
+                start, end, self.number_of_bins)
 
             self.counts = _count_bins(input, self.bin_edges)
-            dist.all_reduce(self.counts, op=dist.ReduceOp.SUM)
+            dist.all_reduce(
+                self.counts, op=dist.ReduceOp.SUM)
             return self.bin_edges, self.counts
 
         else:
-            self.bin_edges, self.counts = histogram(input, bins=self.number_of_bins)
+            self.bin_edges, self.counts = histogram(
+                input, bins=self.number_of_bins)
             return self.bin_edges, self.counts
 
     def update(self, input: Tensor) -> Tuple[Tensor, Tensor]:
@@ -727,7 +749,8 @@ def normal_pdf(
             "This type of grid is not defined. Choose one of {'mids', 'right', 'left'}."
         )
     return (
-        torch.exp(-0.5 * ((bin_mids - mean[None, ...]) / std[None, ...]) ** 2)
+        torch.exp(-0.5 * ((bin_mids -
+                  mean[None, ...]) / std[None, ...]) ** 2)
         / std[None, ...]
         / torch.sqrt(torch.as_tensor(2.0 * torch.pi))
     )

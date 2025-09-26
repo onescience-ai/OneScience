@@ -30,7 +30,8 @@ class MseLoss(nn.Module):
             mae=mae,
         )
         if self.normalize:
-            result["nmse"] = mse / torch.square(labels).mean()
+            result["nmse"] = mse / \
+                torch.square(labels).mean()
             # result['mre'] = mae / torch.abs(labels).mean()
         return result
 

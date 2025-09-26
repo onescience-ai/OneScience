@@ -7,13 +7,15 @@ from torch.utils.data import TensorDataset
 from onescience.utils.deepcfd.functions import *
 
 # 根据训练代码的保存逻辑修改推理代码
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu")
 model_input = "./dataX.pkl"
 model_output = "./dataY.pkl"
 model_path = "./models/mymodel.pt"
 
 # 先加载模型配置
-checkpoint = torch.load(model_path, map_location=device, weights_only=True)
+checkpoint = torch.load(
+    model_path, map_location=device, weights_only=True)
 
 # 从checkpoint中获取训练时的配置参数
 config = checkpoint["config"]
@@ -72,7 +74,8 @@ ny = x.shape[3]
 
 channels_weights = (
     torch.sqrt(
-        torch.mean(y.permute(0, 2, 3, 1).reshape((batch * nx * ny, 3)) ** 2, dim=0)
+        torch.mean(y.permute(0, 2, 3, 1).reshape(
+            (batch * nx * ny, 3)) ** 2, dim=0)
     )
     .view(1, -1, 1, 1)
     .to(device)
@@ -80,7 +83,8 @@ channels_weights = (
 
 # 划分数据集
 train_data, test_data = split_tensors(x, y, ratio=0.7)
-train_dataset, test_dataset = TensorDataset(*train_data), TensorDataset(*test_data)
+train_dataset, test_dataset = TensorDataset(
+    *train_data), TensorDataset(*test_data)
 test_x, test_y = test_dataset[:]
 
 # 推理

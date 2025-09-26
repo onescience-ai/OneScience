@@ -1,25 +1,24 @@
 #!/user/bin/env
+from agent.untils.until import pretty_print
+from agent.agent.unit.tool_runner import ToolRunner
+from agent.agent.unit.generate_runner import GenerateRunner, ParseRunner
+from yaml import safe_load
+from langgraph.typing import StateLike
+from langgraph.graph import END, StateGraph
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.runnables.utils import Input, Output
+from langchain_core.runnables import Runnable, RunnableConfig
+from langchain_core.messages import AIMessage
+from typing import Any, Dict, Iterator, Optional
+import re
+import argparse
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-sys.path.append(os.path.join(os.path.dirname(__file__), "unit"))
-
-import argparse
-import re
-from typing import Any, Dict, Iterator, Optional
-
-from langchain_core.messages import AIMessage
-from langchain_core.runnables import Runnable, RunnableConfig
-from langchain_core.runnables.utils import Input, Output
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.graph import END, StateGraph
-from langgraph.typing import StateLike
-from yaml import safe_load
-
-from agent.agent.unit.generate_runner import GenerateRunner, ParseRunner
-from agent.agent.unit.tool_runner import ToolRunner
-from agent.untils.until import pretty_print
+sys.path.append(os.path.dirname(
+    os.path.dirname(os.path.dirname(__file__))))
+sys.path.append(os.path.join(
+    os.path.dirname(__file__), "unit"))
 
 
 class ReactAgent(Runnable):
@@ -59,7 +58,8 @@ class ReactAgent(Runnable):
             workflow.add_conditional_edges(
                 "reflect",
                 self.routing_function_reflect,
-                path_map={"generate": "generate", "end": END},
+                path_map={
+                    "generate": "generate", "end": END},
             )
         else:
             workflow.add_conditional_edges(
@@ -74,7 +74,8 @@ class ReactAgent(Runnable):
         workflow.add_edge("tool", "generate")
 
         # Compile the graph
-        self.workflow = workflow.compile(checkpointer=mem or InMemorySaver())
+        self.workflow = workflow.compile(
+            checkpointer=mem or InMemorySaver())
         if reflect_times > 0:
             self.cur_reflect_times = 0
             self.reflect_times = reflect_times
@@ -93,7 +94,8 @@ class ReactAgent(Runnable):
         print(f"last_msg：：：{msg}")
         if msg.content == "由于重复出现解析错误，执行已终止。请检查您的输入并重试。":
             # If we've already tried to correct the model twice, just end the conversation
-            print("Detected repeated parsing errors, ending conversation")
+            print(
+                "Detected repeated parsing errors, ending conversation")
             return "end"
         elif (
             msg.content
@@ -107,7 +109,8 @@ class ReactAgent(Runnable):
             if "<solution>" in msg and "</solution>" not in msg:
                 msg += "</solution>"
 
-            answer_match = re.search(r"<solution>(.*?)</solution>", msg, re.DOTALL)
+            answer_match = re.search(
+                r"<solution>(.*?)</solution>", msg, re.DOTALL)
             if answer_match:
                 return "end"
             else:
@@ -116,7 +119,8 @@ class ReactAgent(Runnable):
     def routing_function_reflect(self, state: type(StateLike)) -> str:
         if self.cur_reflect_times < self.reflect_times:
             self.cur_reflect_times += 1
-            print(f"reflect times: {self.cur_reflect_times}")
+            print(
+                f"reflect times: {self.cur_reflect_times}")
             return "generate"
         else:
             return "end"
@@ -143,7 +147,8 @@ if __name__ == "__main__":
     from agent.untils.until import gen_job_log_name, setup_global_logger
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--job_name", type=str, required=True, description="任务名称")
+    parser.add_argument(
+        "--job_name", type=str, required=True, description="任务名称")
     parser.add_argument(
         "--human_message", type=str, required=True, description="用户任务输入"
     )

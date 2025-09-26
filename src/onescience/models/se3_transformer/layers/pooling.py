@@ -43,7 +43,8 @@ class GPooling(nn.Module):
         :param pool: Type of pooling: max or avg
         """
         super().__init__()
-        assert pool in ["max", "avg"], f"Unknown pooling: {pool}"
+        assert pool in [
+            "max", "avg"], f"Unknown pooling: {pool}"
         assert (
             feat_type == 0 or pool == "avg"
         ), "Max pooling on type > 0 features will break equivariance"
@@ -51,5 +52,6 @@ class GPooling(nn.Module):
         self.pool = MaxPooling() if pool == "max" else AvgPooling()
 
     def forward(self, features: Dict[str, Tensor], graph: DGLGraph, **kwargs) -> Tensor:
-        pooled = self.pool(graph, features[str(self.feat_type)])
+        pooled = self.pool(
+            graph, features[str(self.feat_type)])
         return pooled.squeeze(dim=-1)

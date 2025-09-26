@@ -4,7 +4,8 @@ import importlib
 from typing import Any, Callable, ClassVar, TypeVar, Union
 
 R = TypeVar("R")
-NestedDict = dict[str, Union[str, Callable[..., Any], "NestedDict"]]
+NestedDict = dict[str, Union[str,
+                             Callable[..., Any], "NestedDict"]]
 
 
 def _get_absolute_mapping(name: str):
@@ -158,7 +159,8 @@ class Registry:
         def wrap(func: Callable[..., R]) -> Callable[..., R]:
             from onescience.models.UMA.common.logger import Logger
 
-            assert issubclass(func, Logger), "All loggers must inherit Logger class"
+            assert issubclass(
+                func, Logger), "All loggers must inherit Logger class"
             cls.mapping["logger_name_mapping"][name] = func
             return func
 
@@ -221,7 +223,8 @@ class Registry:
             )
 
         existing_cls_path = (
-            mapping.get(existing_keys[-1], None) if existing_keys else None
+            mapping.get(
+                existing_keys[-1], None) if existing_keys else None
         )
         if existing_cls_path is not None:
             existing_cls_path = (
@@ -230,8 +233,10 @@ class Registry:
         else:
             existing_cls_path = "fairchem.core.trainers.ForcesTrainer"
 
-        existing_keys = [f"'{name}'" for name in existing_keys]
-        existing_keys = ", ".join(existing_keys[:-1]) + " or " + existing_keys[-1]
+        existing_keys = [
+            f"'{name}'" for name in existing_keys]
+        existing_keys = ", ".join(
+            existing_keys[:-1]) + " or " + existing_keys[-1]
         existing_keys_str = f" (one of {existing_keys})" if existing_keys else ""
         return RuntimeError(
             f"Failed to find the {kind} '{name}'. "
@@ -241,7 +246,8 @@ class Registry:
 
     @classmethod
     def get_class(cls, name: str, mapping_name: str):
-        existing_mapping = cls.mapping[mapping_name].get(name, None)
+        existing_mapping = cls.mapping[mapping_name].get(
+            name, None)
         if existing_mapping is not None:
             return existing_mapping
 
@@ -252,7 +258,8 @@ class Registry:
         try:
             return _get_absolute_mapping(name)
         except RuntimeError as e:
-            raise cls.__import_error(name, mapping_name) from e
+            raise cls.__import_error(
+                name, mapping_name) from e
 
     @classmethod
     def get_task_class(cls, name: str):

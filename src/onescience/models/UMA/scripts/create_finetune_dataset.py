@@ -27,18 +27,21 @@ def compute_normalizer_and_linear_reference(train_path, num_workers):
     global dataset
     dataset = AseDBDataset({"src": str(train_path)})
 
-    sample_indices = random.sample(range(len(dataset)), min(100000, len(dataset)))
+    sample_indices = random.sample(
+        range(len(dataset)), min(100000, len(dataset)))
     with mp.Pool(num_workers) as pool:
         outputs = list(
             tqdm(
-                pool.imap(extract_energy_and_forces, sample_indices),
+                pool.imap(
+                    extract_energy_and_forces, sample_indices),
                 total=len(sample_indices),
                 desc="Computing normalizer values.",
             )
         )
         atomic_numbers = [x[0] for x in outputs]
         energies = [x[1] for x in outputs]
-        forces = np.array([force for x in outputs for force in x[2]])
+        forces = np.array(
+            [force for x in outputs for force in x[2]])
         force_rms = np.sqrt(np.mean(np.square(forces)))
         assert np.isfinite(
             force_rms
@@ -77,7 +80,8 @@ def compute_lin_ref(atomic_numbers, energies):
     """
     Compute linear reference coefficients given atomic numbers and energies.
     """
-    features = [np.bincount(x, minlength=100).astype(int) for x in atomic_numbers]
+    features = [np.bincount(x, minlength=100).astype(
+        int) for x in atomic_numbers]
 
     X = np.vstack(features)
     y = energies
@@ -129,8 +133,10 @@ def launch_processing(data_dir, output_dir, num_workers):
         if os.path.isfile(f)
     ]
     chunked_files = np.array_split(input_files, num_workers)
-    db_files = [output_dir / f"data.{i:04d}.aselmdb" for i in range(num_workers)]
-    mp_args = [(db_files[i], chunked_files[i], i) for i in range(num_workers)]
+    db_files = [
+        output_dir / f"data.{i:04d}.aselmdb" for i in range(num_workers)]
+    mp_args = [(db_files[i], chunked_files[i], i)
+               for i in range(num_workers)]
     with mp.Pool(num_workers) as pool:
         outputs = pool.map(write_ase_db, mp_args)
 
@@ -146,7 +152,8 @@ def launch_processing(data_dir, output_dir, num_workers):
             log.write("\n".join(successful))
         with open(failed_file, "w") as failed_log:
             failed_log.write("\n".join(failed))
-    np.savez_compressed(output_dir / "metadata.npz", natoms=natoms)
+    np.savez_compressed(
+        output_dir / "metadata.npz", natoms=natoms)
 
 
 if __name__ == "__main__":
@@ -179,11 +186,13 @@ if __name__ == "__main__":
 
     # Launch processing for training data
     train_path = args.output_dir / "train"
-    launch_processing(args.train_dir, train_path, args.num_workers)
+    launch_processing(
+        args.train_dir, train_path, args.num_workers)
     force_rms, linref_coeff = compute_normalizer_and_linear_reference(
         train_path, args.num_workers
     )
     val_path = args.output_dir / "val"
-    launch_processing(args.val_dir, val_path, args.num_workers)
+    launch_processing(
+        args.val_dir, val_path, args.num_workers)
 
     logging.info(f"Generated dataset at {args.output_dir}")

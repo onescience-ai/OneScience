@@ -38,7 +38,8 @@ def parse_gtf_attributes(attributes: str):
         dict: A dictionary of attribute key-value pairs.
     """
     # Split on all semicolons that are not inside quotes
-    attributes = re.split(r';(?=(?:[^"]*"[^"]*")*[^"]*$)', attributes)
+    attributes = re.split(
+        r';(?=(?:[^"]*"[^"]*")*[^"]*$)', attributes)
     out = {}
     for a in attributes:
         if len(a) == 0:
@@ -90,7 +91,8 @@ def extract_transcript_exons(gtf_path: str, only_longest_transcript: bool):
 
             # parse the attributes into a dictionary
             line = dict(zip(gtf_fields, line))
-            attribs = parse_gtf_attributes(line["attribute"])
+            attribs = parse_gtf_attributes(
+                line["attribute"])
 
             if line["feature"] == "gene":
                 contig, start, end, strand = (
@@ -99,11 +101,13 @@ def extract_transcript_exons(gtf_path: str, only_longest_transcript: bool):
                     line["end"],
                     line["strand"],
                 )
-                start, end = int(line["start"]) - 1, int(line["end"])
+                start, end = int(
+                    line["start"]) - 1, int(line["end"])
                 gene_id = attribs.get("gene_id", None)
                 if not gene_id:
                     continue
-                genes[gene_id].add((contig, start, end, strand))
+                genes[gene_id].add(
+                    (contig, start, end, strand))
 
             elif line["feature"] == "exon":
                 contig, start, end, strand = (
@@ -112,7 +116,8 @@ def extract_transcript_exons(gtf_path: str, only_longest_transcript: bool):
                     line["end"],
                     line["strand"],
                 )
-                start, end = int(line["start"]) - 1, int(line["end"])
+                start, end = int(
+                    line["start"]) - 1, int(line["end"])
                 gene_id = attribs.get("gene_id", None)
                 if not gene_id:
                     continue
@@ -124,7 +129,8 @@ def extract_transcript_exons(gtf_path: str, only_longest_transcript: bool):
                     continue
                 exon_number = int(attribs["exon_number"])
 
-                exon_id = (gene_id, transcript_id, exon_number)
+                exon_id = (
+                    gene_id, transcript_id, exon_number)
                 if exon_id in exons:
                     del exons[exon_id]
                     if transcript_id in transcripts:
@@ -141,7 +147,8 @@ def extract_transcript_exons(gtf_path: str, only_longest_transcript: bool):
                     "strand": strand,
                 }
                 if exon_id in exon2transcript:
-                    raise Exception("Exon Already Exists in exon2transcript")
+                    raise Exception(
+                        "Exon Already Exists in exon2transcript")
                 exon2transcript[exon_id] = transcript_id
                 transcript2exon[transcript_id].add(exon_id)
 
@@ -152,7 +159,8 @@ def extract_transcript_exons(gtf_path: str, only_longest_transcript: bool):
                     line["end"],
                     line["strand"],
                 )
-                start, end = int(line["start"]) - 1, int(line["end"])
+                start, end = int(
+                    line["start"]) - 1, int(line["end"])
                 gene_id = attribs.get("gene_id", None)
                 if not gene_id:
                     continue
@@ -176,7 +184,8 @@ def extract_transcript_exons(gtf_path: str, only_longest_transcript: bool):
     if only_longest_transcript:
         transcript_lengths = defaultdict(int)
         for exon in exons:
-            transcript_lengths[exon[1]] += exons[exon]["end"] - exons[exon]["start"]
+            transcript_lengths[exon[1]
+                               ] += exons[exon]["end"] - exons[exon]["start"]
 
         keep_transcripts = {}
         keep_exons = {}
@@ -191,12 +200,15 @@ def extract_transcript_exons(gtf_path: str, only_longest_transcript: bool):
                 (transcript, transcript_lengths[transcript])
                 for transcript in this_transcripts
             ]
-            longest_transcript = max(this_transcript_lengths, key=lambda x: x[1])[0]
-            keep_transcripts[longest_transcript] = dict(transcripts[longest_transcript])
+            longest_transcript = max(
+                this_transcript_lengths, key=lambda x: x[1])[0]
+            keep_transcripts[longest_transcript] = dict(
+                transcripts[longest_transcript])
             for exon in transcript2exon[longest_transcript]:
                 keep_exons[exon] = dict(exons[exon])
                 keep_exon2transcript[exon] = longest_transcript
-                keep_transcript2exon[longest_transcript].add(exon)
+                keep_transcript2exon[longest_transcript].add(
+                    exon)
                 keep_transcript2gene[longest_transcript] = gene
 
         transcripts = keep_transcripts
@@ -261,10 +273,12 @@ def extract_default_transcript_sequences(transcript_info, fasta_records, output_
             if seqname is None:
                 seqname = coords["seqname"]
             exon_seq = str(
-                fasta_records[coords["seqname"]][coords["start"] : coords["end"]]
+                fasta_records[coords["seqname"]
+                              ][coords["start"]: coords["end"]]
             )
             if coords["strand"] == "-":
-                exon_seq = reverse_sequence(complement_sequence(exon_seq))
+                exon_seq = reverse_sequence(
+                    complement_sequence(exon_seq))
             transcript_seq += exon_seq
 
         print(
@@ -338,21 +352,26 @@ def extract_stitched_transcript_sequences(
         for i in range(len(this_exons)):
             # Previous Exon
             prev_exon = this_exons[i - 1] if i > 0 else None
-            prev_coords = transcript_info["exons"].get(prev_exon, None)
+            prev_coords = transcript_info["exons"].get(
+                prev_exon, None)
             # Current Exon
             cur_exon = this_exons[i]
-            cur_coords = transcript_info["exons"].get(cur_exon, None)
+            cur_coords = transcript_info["exons"].get(
+                cur_exon, None)
             exon_number = cur_exon[-1]
             if seqname is None:
                 seqname = cur_coords["seqname"]
             # Next Exon
-            next_exon = this_exons[i + 1] if i < len(this_exons) - 1 else None
-            next_coords = transcript_info["exons"].get(next_exon, None)
+            next_exon = this_exons[i +
+                                   1] if i < len(this_exons) - 1 else None
+            next_coords = transcript_info["exons"].get(
+                next_exon, None)
             # Extract the stitched spliced sequence without overlapping intron windows.
             intron_window_left = (
                 min(
                     intron_window,
-                    math.floor(abs(cur_coords["start"] - prev_coords["end"]) / 2),
+                    math.floor(
+                        abs(cur_coords["start"] - prev_coords["end"]) / 2),
                 )
                 if not overlap and prev_coords is not None
                 else intron_window
@@ -360,21 +379,28 @@ def extract_stitched_transcript_sequences(
             intron_window_right = (
                 min(
                     intron_window,
-                    math.ceil(abs(next_coords["start"] - cur_coords["end"]) / 2),
+                    math.ceil(
+                        abs(next_coords["start"] - cur_coords["end"]) / 2),
                 )
                 if not overlap and next_coords is not None
                 else intron_window
             )
             if cur_coords["strand"] == "+" and exon_number == 1:
-                exon_start = cur_coords["start"] - promoter_size
-                exon_end = cur_coords["end"] + intron_window_right
+                exon_start = cur_coords["start"] - \
+                    promoter_size
+                exon_end = cur_coords["end"] + \
+                    intron_window_right
             elif cur_coords["strand"] == "-" and exon_number == 1:
-                exon_start = cur_coords["start"] - intron_window_left
+                exon_start = cur_coords["start"] - \
+                    intron_window_left
                 exon_end = cur_coords["end"] + promoter_size
             else:
-                exon_start = cur_coords["start"] - intron_window_left
-                exon_end = cur_coords["end"] + intron_window_right
-            exon_seq = str(fasta_records[cur_coords["seqname"]][exon_start:exon_end])
+                exon_start = cur_coords["start"] - \
+                    intron_window_left
+                exon_end = cur_coords["end"] + \
+                    intron_window_right
+            exon_seq = str(
+                fasta_records[cur_coords["seqname"]][exon_start:exon_end])
             if cur_coords["strand"] == "-":
                 exon_seq = stitch_token + reverse_sequence(
                     complement_sequence(exon_seq)
@@ -382,7 +408,8 @@ def extract_stitched_transcript_sequences(
             transcript_seq += exon_seq
 
         if stitch_token and len(stitch_token) > 0:
-            transcript_seq = transcript_seq[len(stitch_token) :]
+            transcript_seq = transcript_seq[len(
+                stitch_token):]
 
         print(
             f">{seqname}|{gene_id}|{transcript_id}\n{transcript_seq}", file=output_file
@@ -396,7 +423,8 @@ def run(args):
         args (argparse.Namespace): Parsed command line arguments.
     """
     with (
-        open(args.output_path, "w") if args.output_path is not None else sys.stdout
+        open(args.output_path,
+             "w") if args.output_path is not None else sys.stdout
     ) as output_file:
         if args.verbose:
             logging.info("Indexing FASTA file...")
@@ -405,19 +433,25 @@ def run(args):
 
         if args.transcript_type == "default":
             if args.verbose:
-                logging.info("Extracting default transcripts...")
+                logging.info(
+                    "Extracting default transcripts...")
                 if args.only_longest_transcript:
-                    logging.info("Only extracting the longest transcript per gene.")
+                    logging.info(
+                        "Only extracting the longest transcript per gene.")
                 else:
-                    logging.info("Extracting all transcripts regardless of length.")
+                    logging.info(
+                        "Extracting all transcripts regardless of length.")
 
         elif args.transcript_type == "stitched":
             if args.verbose:
-                logging.info("Extracting stitched transcripts...")
+                logging.info(
+                    "Extracting stitched transcripts...")
                 if args.only_longest_transcript:
-                    logging.info("Only extracting the longest transcript per gene.")
+                    logging.info(
+                        "Only extracting the longest transcript per gene.")
                 else:
-                    logging.info("Extracting all transcripts regardless of length.")
+                    logging.info(
+                        "Extracting all transcripts regardless of length.")
 
         transcript_info = extract_transcript_exons(
             args.gtf_path, args.only_longest_transcript

@@ -56,7 +56,8 @@ class EarthAttention3D(nn.Module):
         earth_position_index = get_earth_position_index(
             window_size
         )  # Wpl*Wlat*Wlon, Wpl*Wlat*Wlon
-        self.register_buffer("earth_position_index", earth_position_index)
+        self.register_buffer(
+            "earth_position_index", earth_position_index)
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
@@ -88,8 +89,10 @@ class EarthAttention3D(nn.Module):
         earth_position_bias = self.earth_position_bias_table[
             self.earth_position_index.view(-1)
         ].view(
-            self.window_size[0] * self.window_size[1] * self.window_size[2],
-            self.window_size[0] * self.window_size[1] * self.window_size[2],
+            self.window_size[0] *
+            self.window_size[1] * self.window_size[2],
+            self.window_size[0] *
+            self.window_size[1] * self.window_size[2],
             self.type_of_windows,
             -1,
         )  # Wpl*Wlat*Wlon, Wpl*Wlat*Wlon, num_pl*num_lat, nH
@@ -110,7 +113,8 @@ class EarthAttention3D(nn.Module):
 
         attn = self.attn_drop(attn)
 
-        x = (attn @ v).permute(0, 2, 3, 1, 4).reshape(B_, nW_, N, C)
+        x = (attn @ v).permute(0, 2, 3,
+                               1, 4).reshape(B_, nW_, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x
@@ -155,7 +159,8 @@ class EarthAttention2D(nn.Module):
 
         self.earth_position_bias_table = nn.Parameter(
             torch.zeros(
-                (window_size[0] ** 2) * (window_size[1] * 2 - 1),
+                (window_size[0] ** 2) *
+                (window_size[1] * 2 - 1),
                 self.type_of_windows,
                 num_heads,
             )
@@ -164,7 +169,8 @@ class EarthAttention2D(nn.Module):
         earth_position_index = get_earth_position_index(
             window_size, ndim=2
         )  # Wlat*Wlon, Wlat*Wlon
-        self.register_buffer("earth_position_index", earth_position_index)
+        self.register_buffer(
+            "earth_position_index", earth_position_index)
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
@@ -218,7 +224,8 @@ class EarthAttention2D(nn.Module):
 
         attn = self.attn_drop(attn)
 
-        x = (attn @ v).permute(0, 2, 3, 1, 4).reshape(B_, nW_, N, C)
+        x = (attn @ v).permute(0, 2, 3,
+                               1, 4).reshape(B_, nW_, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x

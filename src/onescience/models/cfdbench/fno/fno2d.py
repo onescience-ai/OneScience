@@ -71,14 +71,17 @@ class SpectralConv2d_fast(nn.Module):
             device=x.device,
         )
         out_ft[:, :, : self.modes1, : self.modes2] = self.compl_mul2d(
-            x_ft[:, :, : self.modes1, : self.modes2], self.weights1
+            x_ft[:, :, : self.modes1,
+                 : self.modes2], self.weights1
         )
-        out_ft[:, :, -self.modes1 :, : self.modes2] = self.compl_mul2d(
-            x_ft[:, :, -self.modes1 :, : self.modes2], self.weights2
+        out_ft[:, :, -self.modes1:, : self.modes2] = self.compl_mul2d(
+            x_ft[:, :, -self.modes1:,
+                 : self.modes2], self.weights2
         )
 
         # Return to physical space
-        x = torch.fft.irfft2(out_ft, s=(x.size(-2), x.size(-1)))
+        x = torch.fft.irfft2(
+            out_ft, s=(x.size(-2), x.size(-1)))
         return x
 
 
@@ -142,7 +145,8 @@ class Fno2d(AutoCfdModel):
         self.modes1 = modes1
         self.modes2 = modes2
         self.hidden_dim = hidden_dim
-        self.padding = padding  # pad the domain if input is non-periodic
+        # pad the domain if input is non-periodic
+        self.padding = padding
 
         self.act_fn = nn.GELU()
         # Channel projection into `hidden_dim` channels
@@ -196,32 +200,41 @@ class Fno2d(AutoCfdModel):
 
         if mask is None:
             # When there is no mask, we assume that there is no obstacles.
-            mask = torch.ones((batch_size, 1, height, width)).to(inputs.device)
+            mask = torch.ones(
+                (batch_size, 1, height, width)).to(inputs.device)
         else:
             if mask.dim() == 3:  # (B, h, w)
                 mask = mask.unsqueeze(1)  # (B, 1, h, w)
-        inputs = torch.cat([inputs, mask], dim=1)  # (B, c + 1, h, w)
+        # (B, c + 1, h, w)
+        inputs = torch.cat([inputs, mask], dim=1)
 
         # Physical properties
         props = case_params  # (B, p)
-        props = props.unsqueeze(-1).unsqueeze(-1)  # (B, p, 1, 1)
-        props = props.repeat(1, 1, height, width)  # (B, p, H, W)
+        # (B, p, 1, 1)
+        props = props.unsqueeze(-1).unsqueeze(-1)
+        props = props.repeat(
+            1, 1, height, width)  # (B, p, H, W)
 
         # Append (x, y) coordinates to every location
-        grid = self.get_coords(inputs.shape, inputs.device)  # (b, 2, h, w)
-        inputs = torch.cat((inputs, grid, props), dim=1)  # (b, c + 2 + 2, h, w)
+        grid = self.get_coords(
+            inputs.shape, inputs.device)  # (b, 2, h, w)
+        # (b, c + 2 + 2, h, w)
+        inputs = torch.cat((inputs, grid, props), dim=1)
 
         # Project channels
         inputs = self.fc0(inputs)  # (b, hidden_dim, h, w)
         # x = x.permute(0, 3, 1, 2)  # (b, c, h, w)?
         if self.padding is not None:
             # pad the domain if input is non-periodic
-            inputs = F.pad(inputs, [0, self.padding, 0, self.padding])
+            inputs = F.pad(
+                inputs, [0, self.padding, 0, self.padding])
 
-        inputs = self.blocks(inputs)  # (b, hidden_dim, h, w)
+        # (b, hidden_dim, h, w)
+        inputs = self.blocks(inputs)
         if self.padding is not None:
             # pad the domain if inputis non-periodic
-            inputs = inputs[..., : -self.padding, : -self.padding]
+            inputs = inputs[..., : -
+                            self.padding, : -self.padding]
 
         inputs = self.fc1(inputs)  # (b, 128, h, w)
         inputs = self.act_fn(inputs)
@@ -245,11 +258,16 @@ class Fno2d(AutoCfdModel):
         [:, :, i, j] is the (x, y) coordinates at the grid location (i, j).
         """
         bsz, c, size_x, size_y = shape
-        grid_x = torch.tensor(np.linspace(0, 1, size_x), dtype=torch.float)
-        grid_x = grid_x.reshape(1, 1, size_x, 1).repeat([bsz, 1, 1, size_y])
-        grid_y = torch.tensor(np.linspace(0, 1, size_y), dtype=torch.float)
-        grid_y = grid_y.reshape(1, 1, 1, size_y).repeat([bsz, 1, size_x, 1])
-        coords = torch.cat([grid_x, grid_y], dim=1).to(device)  # (b, 2, h, w)
+        grid_x = torch.tensor(np.linspace(
+            0, 1, size_x), dtype=torch.float)
+        grid_x = grid_x.reshape(
+            1, 1, size_x, 1).repeat([bsz, 1, 1, size_y])
+        grid_y = torch.tensor(np.linspace(
+            0, 1, size_y), dtype=torch.float)
+        grid_y = grid_y.reshape(
+            1, 1, 1, size_y).repeat([bsz, 1, size_x, 1])
+        coords = torch.cat([grid_x, grid_y], dim=1).to(
+            device)  # (b, 2, h, w)
         return coords
 
     def generate(
@@ -275,7 +293,8 @@ class Fno2d(AutoCfdModel):
         Returns:
             output: (steps, c, h, w)
         """
-        assert len(inputs.shape) == len(case_params.shape) + 2
+        assert len(inputs.shape) == len(
+            case_params.shape) + 2
         if inputs.dim() == 3:
             # Add a dimension for batch size of 1
             inputs = inputs.unsqueeze(0)
@@ -311,7 +330,8 @@ if __name__ == "__main__":
     scheduler_step = 100
     scheduler_gamma = 0.5
 
-    print(epochs, learning_rate, scheduler_step, scheduler_gamma)
+    print(epochs, learning_rate,
+          scheduler_step, scheduler_gamma)
 
     path = (
         "ns_fourier_2d_rnn_V10000_T20_N"
@@ -340,19 +360,21 @@ if __name__ == "__main__":
 
     reader = MatReader(TRAIN_PATH)
     train_a = reader.read_field("u")[:ntrain, ::sub, ::sub, :T_in]  # type: ignore  # noqa
-    train_u = reader.read_field("u")[:ntrain, ::sub, ::sub, T_in : T + T_in]  # type: ignore # noqa
+    train_u = reader.read_field("u")[:ntrain, ::sub, ::sub, T_in: T + T_in]  # type: ignore # noqa
 
     reader = MatReader(TEST_PATH)
     test_a = reader.read_field("u")[-ntest:, ::sub, ::sub, :T_in]  # type: ignore  # noqa
-    test_u = reader.read_field("u")[-ntest:, ::sub, ::sub, T_in : T + T_in]  # type: ignore  # noqa
+    test_u = reader.read_field("u")[-ntest:, ::sub, ::sub, T_in: T + T_in]  # type: ignore  # noqa
 
     print(train_u.shape)  # type: ignore
     print(test_u.shape)  # type: ignore
     assert S == train_u.shape[-2]  # type: ignore
     assert T == train_u.shape[-1]  # type: ignore
 
-    train_a = train_a.reshape(ntrain, S, S, T_in)  # type: ignore
-    test_a = test_a.reshape(ntest, S, S, T_in)  # type: ignore
+    train_a = train_a.reshape(
+        ntrain, S, S, T_in)  # type: ignore
+    test_a = test_a.reshape(
+        ntest, S, S, T_in)  # type: ignore
 
     train_loader = torch.utils.data.DataLoader(
         torch.utils.data.TensorDataset(train_a, train_u),
@@ -369,7 +391,8 @@ if __name__ == "__main__":
     # training and evaluation
     ################################################################
 
-    model = Fno2d(modes, modes, width).cuda()  # type: ignore
+    # type: ignore
+    model = Fno2d(modes, modes, width).cuda()
     # model = torch.load('model/ns_fourier_V100_N1000_ep100_m8_w20')
 
     print(count_params(model))

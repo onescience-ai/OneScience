@@ -61,13 +61,16 @@ class Nhmmer(msa_tool.MsaTool):
         self._hmmbuild_binary_path = hmmbuild_binary_path
         self._db_path = database_path
 
-        subprocess_utils.check_binary_exists(path=self._binary_path, name="Nhmmer")
+        subprocess_utils.check_binary_exists(
+            path=self._binary_path, name="Nhmmer")
 
         if strand and strand not in {"watson", "crick"}:
-            raise ValueError(f'Invalid {strand=}. only "watson" or "crick" supported')
+            raise ValueError(
+                f'Invalid {strand=}. only "watson" or "crick" supported')
 
         if alphabet and alphabet not in {"rna", "dna"}:
-            raise ValueError(f'Invalid {alphabet=}, only "rna" or "dna" supported')
+            raise ValueError(
+                f'Invalid {alphabet=}, only "rna" or "dna" supported')
 
         self._e_value = e_value
         self._n_cpu = n_cpu
@@ -81,16 +84,20 @@ class Nhmmer(msa_tool.MsaTool):
         logging.info("Query sequence: %s", target_sequence)
 
         with tempfile.TemporaryDirectory() as query_tmp_dir:
-            input_a3m_path = os.path.join(query_tmp_dir, "query.a3m")
-            output_sto_path = os.path.join(query_tmp_dir, "output.sto")
+            input_a3m_path = os.path.join(
+                query_tmp_dir, "query.a3m")
+            output_sto_path = os.path.join(
+                query_tmp_dir, "output.sto")
             pathlib.Path(output_sto_path).touch()
             subprocess_utils.create_query_fasta_file(
                 sequence=target_sequence, path=input_a3m_path
             )
 
             cmd_flags = [
-                *("-o", "/dev/null"),  # Don't pollute stdout with nhmmer output.
-                "--noali",  # Don't include the alignment in stdout.
+                # Don't pollute stdout with nhmmer output.
+                *("-o", "/dev/null"),
+                # Don't include the alignment in stdout.
+                "--noali",
                 *("--cpu", str(self._n_cpu)),
             ]
 
@@ -110,10 +117,12 @@ class Nhmmer(msa_tool.MsaTool):
             ):
                 cmd_flags.extend(["--F3", str(0.02)])
             else:
-                cmd_flags.extend(["--F3", str(self._filter_f3)])
+                cmd_flags.extend(
+                    ["--F3", str(self._filter_f3)])
 
             # The input A3M and the db are the last two arguments.
-            cmd_flags.extend((input_a3m_path, self._db_path))
+            cmd_flags.extend(
+                (input_a3m_path, self._db_path))
 
             cmd = [self._binary_path, *cmd_flags]
 
@@ -128,26 +137,32 @@ class Nhmmer(msa_tool.MsaTool):
             if os.path.getsize(output_sto_path) > 0:
                 with open(output_sto_path) as f:
                     a3m_out = parsers.convert_stockholm_to_a3m(
-                        f, max_sequences=self._max_sequences - 1  # Query not included.
+                        # Query not included.
+                        f, max_sequences=self._max_sequences - 1
                     )
                 # Nhmmer hits are generally shorter than the query sequence. To get MSA
                 # of width equal to the query sequence, align hits to the query profile.
-                logging.info("Aligning output a3m of size %d bytes", len(a3m_out))
+                logging.info(
+                    "Aligning output a3m of size %d bytes", len(a3m_out))
 
-                aligner = hmmalign.Hmmalign(self._hmmalign_binary_path)
+                aligner = hmmalign.Hmmalign(
+                    self._hmmalign_binary_path)
                 target_sequence_fasta = f">query\n{target_sequence}\n"
                 profile_builder = hmmbuild.Hmmbuild(
                     binary_path=self._hmmbuild_binary_path, alphabet=self._alphabet
                 )
-                profile = profile_builder.build_profile_from_a3m(target_sequence_fasta)
+                profile = profile_builder.build_profile_from_a3m(
+                    target_sequence_fasta)
                 a3m_out = aligner.align_sequences_to_profile(
                     profile=profile, sequences_a3m=a3m_out
                 )
-                a3m_out = "".join([target_sequence_fasta, a3m_out])
+                a3m_out = "".join(
+                    [target_sequence_fasta, a3m_out])
 
                 # Parse the output a3m to remove line breaks.
                 a3m = "\n".join(
-                    [f">{n}\n{s}" for s, n in parsers.lazy_parse_fasta_string(a3m_out)]
+                    [f">{n}\n{s}" for s, n in parsers.lazy_parse_fasta_string(
+                        a3m_out)]
                 )
             else:
                 # Nhmmer returns an empty file if there are no hits.

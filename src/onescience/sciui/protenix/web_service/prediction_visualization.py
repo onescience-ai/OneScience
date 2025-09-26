@@ -29,7 +29,8 @@ class PredictionLoader:
         except FileNotFoundError:
             print(f"Error: File '{fpath}' not found.")
         except json.JSONDecodeError:
-            print(f"Error: Failed to decode JSON from file '{fpath}'.")
+            print(
+                f"Error: Failed to decode JSON from file '{fpath}'.")
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
 
@@ -41,17 +42,22 @@ class PredictionLoader:
         return data
 
     def _load_cif(self):
-        assert os.path.exists(self.pred_fpath), "prediction file path does not exist."
-        fpath_all_preds = glob.glob(os.path.join(self.pred_fpath, "*.cif"))
+        assert os.path.exists(
+            self.pred_fpath), "prediction file path does not exist."
+        fpath_all_preds = glob.glob(
+            os.path.join(self.pred_fpath, "*.cif"))
         self.cif_paths = fpath_all_preds
-        self.fnames = [s.split("/")[-1].replace(".cif", "") for s in fpath_all_preds]
+        self.fnames = [s.split(
+            "/")[-1].replace(".cif", "") for s in fpath_all_preds]
         self.preds = [
-            get_structure(pdbx_file=CIFFile.read(fpath), model=1, altloc="all")
+            get_structure(pdbx_file=CIFFile.read(
+                fpath), model=1, altloc="all")
             for fpath in fpath_all_preds
         ]
 
     def _load_confidence_pred(self):
-        fpath_all_confidences = glob.glob(os.path.join(self.pred_fpath, "*.json"))
+        fpath_all_confidences = glob.glob(
+            os.path.join(self.pred_fpath, "*.json"))
         fpath_full_confidences = [
             fpath for fpath in fpath_all_confidences if "full_data_sample" in fpath
         ]
@@ -66,7 +72,8 @@ class PredictionLoader:
 
         if fpath_full_confidences:
             self.full_confidence_data = [
-                self._convert_to_numpy(self._load_json(fpath))
+                self._convert_to_numpy(
+                    self._load_json(fpath))
                 for fpath in fpath_full_confidences
             ]
         else:
@@ -92,14 +99,19 @@ def plot_contact_maps_from_pred(
     adjacency_matrices = []
     for pred in preds:
         rep_atom_coord = pred[pred.atom_name == rep_atom]
-        cell_list = struc.CellList(rep_atom_coord, cell_size=threshold)
-        adjacency_matrices.append(cell_list.create_adjacency_matrix(threshold))
+        cell_list = struc.CellList(
+            rep_atom_coord, cell_size=threshold)
+        adjacency_matrices.append(
+            cell_list.create_adjacency_matrix(threshold))
 
-    cmap = ListedColormap(["white", biotite.colors["dimgreen"]])
-    fig, axes = plt.subplots(nrows=1, ncols=len(fnames), figsize=(len(fnames) * 3, 6))
+    cmap = ListedColormap(
+        ["white", biotite.colors["dimgreen"]])
+    fig, axes = plt.subplots(nrows=1, ncols=len(
+        fnames), figsize=(len(fnames) * 3, 6))
 
     for i in range(len(fnames)):
-        axes[i].matshow(adjacency_matrices[i], cmap=cmap, origin="lower")
+        axes[i].matshow(adjacency_matrices[i],
+                        cmap=cmap, origin="lower")
         axes[i].xaxis.tick_bottom()
         axes[i].set_aspect("equal")
         axes[i].set_xlabel("Residue Number")
@@ -128,8 +140,10 @@ def plot_confidence_measures_from_pred(
     """
 
     atom_plddts = [d["atom_plddt"] for d in full_confidence]
-    token_pdes = [d["token_pair_pde"] for d in full_confidence]
-    token_paes = [d["token_pair_pae"] for d in full_confidence]
+    token_pdes = [d["token_pair_pde"]
+                  for d in full_confidence]
+    token_paes = [d["token_pair_pae"]
+                  for d in full_confidence]
     summary_keys = ["plddt", "gpde", "ptm", "iptm"]
 
     fig, axes = plt.subplots(
@@ -149,7 +163,8 @@ def plot_confidence_measures_from_pred(
             )
             if i == 0:
                 axes[i, j].plot(atom_plddts[j], color="k")
-                axes[i, j].set_title(fnames[j], fontsize=15, pad=20)
+                axes[i, j].set_title(
+                    fnames[j], fontsize=15, pad=20)
                 if show_global_confidence:
                     axes[i, j].text(
                         0.5,
@@ -160,18 +175,23 @@ def plot_confidence_measures_from_pred(
                         transform=axes[i, j].transAxes,
                         fontsize=10,
                     )
-                axes[i, j].set_xlabel("Atom ID", fontsize=12)
+                axes[i, j].set_xlabel(
+                    "Atom ID", fontsize=12)
                 axes[i, j].set_ylabel("pLDDT", fontsize=12)
                 axes[i, j].set_ylim([0, 100])
-                axes[i, j].spines[["right", "top"]].set_visible(False)
+                axes[i, j].spines[["right", "top"]
+                                  ].set_visible(False)
 
             else:
                 data_to_plot = token_pdes[j] if i == 1 else token_paes[j]
-                cax = axes[i, j].matshow(data_to_plot, origin="lower")
+                cax = axes[i, j].matshow(
+                    data_to_plot, origin="lower")
                 axes[i, j].xaxis.tick_bottom()
                 axes[i, j].set_aspect("equal")
-                axes[i, j].set_xlabel("Scored Residue", fontsize=12)
-                axes[i, j].set_ylabel("Aligned Residue", fontsize=12)
+                axes[i, j].set_xlabel(
+                    "Scored Residue", fontsize=12)
+                axes[i, j].set_ylabel(
+                    "Aligned Residue", fontsize=12)
                 axes[i, j].xaxis.set_major_locator(
                     MaxNLocator(3)
                 )  # Max 5 ticks on the x-axis
@@ -209,13 +229,16 @@ def plot_3d(
         plddt = pred_loader.full_confidence_data[0]["atom_plddt"]
         for i, score in enumerate(plddt):
             normalized_color = int(
-                255 * (score - min(plddt)) / (max(plddt) - min(plddt))
+                255 * (score - min(plddt)) /
+                (max(plddt) - min(plddt))
             )
-            color = f"rgb({normalized_color}, 0, {255 - normalized_color})"  # Gradient from blue to red
+            # Gradient from blue to red
+            color = f"rgb({normalized_color}, 0, {255 - normalized_color})"
 
             # Apply color to each atom individually based on pLDDT score
             view.setStyle(
-                {"serial": i + 1}, {"cartoon": {"color": color, "min": 50, "max": 90}}
+                {"serial": i + 1}, {"cartoon": {"color": color,
+                                                "min": 50, "max": 90}}
             )
 
     elif color == "rainbow":
@@ -226,7 +249,8 @@ def plot_3d(
         view.addStyle(
             {
                 "and": [
-                    {"resn": ["GLY", "PRO"], "invert": True},
+                    {"resn": ["GLY", "PRO"],
+                        "invert": True},
                     {"atom": BB, "invert": True},
                 ]
             },
@@ -237,13 +261,15 @@ def plot_3d(
             {"sphere": {"colorscheme": f"WhiteCarbon", "radius": 0.3}},
         )
         view.addStyle(
-            {"and": [{"resn": "PRO"}, {"atom": ["C", "O"], "invert": True}]},
+            {"and": [{"resn": "PRO"}, {
+                "atom": ["C", "O"], "invert": True}]},
             {"stick": {"colorscheme": f"WhiteCarbon", "radius": 0.3}},
         )
     if show_mainchains:
         BB = ["C", "O", "N", "CA"]
         view.addStyle(
-            {"atom": BB}, {"stick": {"colorscheme": f"WhiteCarbon", "radius": 0.3}}
+            {"atom": BB}, {
+                "stick": {"colorscheme": f"WhiteCarbon", "radius": 0.3}}
         )
 
     view.zoomTo()
@@ -270,13 +296,16 @@ def plot_best_confidence_measure(prediction_fpath: str, output_dir: str = None):
         return
     data_len = len(pred_loader.full_confidence_data)
     for data_idx in range(data_len):
-        full_confidence = pred_loader.full_confidence_data[data_idx : data_idx + 1]
+        full_confidence = pred_loader.full_confidence_data[data_idx: data_idx + 1]
         summary_confidence = pred_loader.summary_confidence_data[
-            data_idx : data_idx + 1
+            data_idx: data_idx + 1
         ]
-        atom_plddts = [d["atom_plddt"] for d in full_confidence]
-        token_pdes = [d["token_pair_pde"] for d in full_confidence]
-        token_paes = [d["token_pair_pae"] for d in full_confidence]
+        atom_plddts = [d["atom_plddt"]
+                       for d in full_confidence]
+        token_pdes = [d["token_pair_pde"]
+                      for d in full_confidence]
+        token_paes = [d["token_pair_pae"]
+                      for d in full_confidence]
         summary_keys = ["plddt", "gpde", "ptm", "iptm"]
 
         fig, axes = plt.subplots(
@@ -307,15 +336,19 @@ def plot_best_confidence_measure(prediction_fpath: str, output_dir: str = None):
                 axes[i].set_xlabel("Atom ID", fontsize=12)
                 axes[i].set_ylabel("pLDDT", fontsize=12)
                 axes[i].set_ylim([0, 1])
-                axes[i].spines[["right", "top"]].set_visible(False)
+                axes[i].spines[["right", "top"]
+                               ].set_visible(False)
 
             else:
                 data_to_plot = token_pdes[0] if i == 1 else token_paes[0]
-                cax = axes[i].matshow(data_to_plot, origin="lower")
+                cax = axes[i].matshow(
+                    data_to_plot, origin="lower")
                 axes[i].xaxis.tick_bottom()
                 axes[i].set_aspect("equal")
-                axes[i].set_xlabel("Scored Residue", fontsize=12)
-                axes[i].set_ylabel("Aligned Residue", fontsize=12)
+                axes[i].set_xlabel(
+                    "Scored Residue", fontsize=12)
+                axes[i].set_ylabel(
+                    "Aligned Residue", fontsize=12)
                 axes[i].xaxis.set_major_locator(
                     MaxNLocator(3)
                 )  # Max 5 ticks on the x-axis
@@ -334,7 +367,8 @@ def plot_best_confidence_measure(prediction_fpath: str, output_dir: str = None):
             output_dir, f"best_sample_confidence_{data_idx}.png"
         )
         plt.savefig(out_png_fpath)
-    print(f"save {data_len} best sample confidence plot successfully to {output_dir}")
+    print(
+        f"save {data_len} best sample confidence plot successfully to {output_dir}")
 
 
 if __name__ == "__main__":
@@ -353,4 +387,5 @@ if __name__ == "__main__":
         help="ouput dir to save plot",
     )
     args = parser.parse_args()
-    plot_best_confidence_measure(args.prediction_fpath, args.output_dir)
+    plot_best_confidence_measure(
+        args.prediction_fpath, args.output_dir)

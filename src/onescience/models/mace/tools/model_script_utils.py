@@ -21,7 +21,8 @@ def configure_model(
 ):
     # Selecting outputs
     compute_virials = args.loss == "virials"
-    compute_stress = args.loss in ("stress", "huber", "universal")
+    compute_stress = args.loss in (
+        "stress", "huber", "universal")
 
     if compute_virials:
         args.compute_virials = True
@@ -60,7 +61,8 @@ def configure_model(
                 atomic_inter_scale.append(head_config.std)
             elif args.std is not None:
                 atomic_inter_scale.append(
-                    args.std if isinstance(args.std, float) else 1.0
+                    args.std if isinstance(
+                        args.std, float) else 1.0
                 )
         args.std = atomic_inter_scale
 
@@ -72,40 +74,50 @@ def configure_model(
     # Build model
     if model_foundation is not None and args.model in ["MACE", "ScaleShiftMACE"]:
         logging.info("Loading FOUNDATION model")
-        model_config_foundation = extract_config_mace_model(model_foundation)
+        model_config_foundation = extract_config_mace_model(
+            model_foundation)
         model_config_foundation["atomic_energies"] = atomic_energies
 
         if args.foundation_model_elements:
             foundation_z_table = AtomicNumberTable(
-                [int(z) for z in model_foundation.atomic_numbers]
+                [int(z)
+                 for z in model_foundation.atomic_numbers]
             )
             model_config_foundation["atomic_numbers"] = foundation_z_table.zs
-            model_config_foundation["num_elements"] = len(foundation_z_table)
+            model_config_foundation["num_elements"] = len(
+                foundation_z_table)
             z_table = foundation_z_table
             logging.info(
                 f"Using all elements from foundation model: {foundation_z_table.zs}"
             )
         else:
             model_config_foundation["atomic_numbers"] = z_table.zs
-            model_config_foundation["num_elements"] = len(z_table)
-            logging.info(f"Using filtered elements: {z_table.zs}")
+            model_config_foundation["num_elements"] = len(
+                z_table)
+            logging.info(
+                f"Using filtered elements: {z_table.zs}")
 
         args.max_L = model_config_foundation["hidden_irreps"].lmax
 
         if args.model == "MACE" and model_foundation.__class__.__name__ == "MACE":
-            model_config_foundation["atomic_inter_shift"] = [0.0] * len(heads)
+            model_config_foundation["atomic_inter_shift"] = [
+                0.0] * len(heads)
         else:
             model_config_foundation["atomic_inter_shift"] = (
-                _determine_atomic_inter_shift(args.mean, heads)
+                _determine_atomic_inter_shift(
+                    args.mean, heads)
             )
-        model_config_foundation["atomic_inter_scale"] = [1.0] * len(heads)
+        model_config_foundation["atomic_inter_scale"] = [
+            1.0] * len(heads)
         args.avg_num_neighbors = model_config_foundation["avg_num_neighbors"]
         args.model = "FoundationMACE"
         model_config_foundation["heads"] = heads
         model_config = model_config_foundation
 
-        logging.info("Model configuration extracted from foundation model")
-        logging.info("Using universal loss function for fine-tuning")
+        logging.info(
+            "Model configuration extracted from foundation model")
+        logging.info(
+            "Using universal loss function for fine-tuning")
         logging.info(
             f"Message passing with hidden irreps {model_config_foundation['hidden_irreps']})"
         )
@@ -137,7 +149,8 @@ def configure_model(
         )
 
         assert (
-            len({irrep.mul for irrep in o3.Irreps(args.hidden_irreps)}) == 1
+            len({irrep.mul for irrep in o3.Irreps(
+                args.hidden_irreps)}) == 1
         ), "All channels must have the same dimension, use the num_channels and max_L keywords to specify the number of channels and the maximum L"
 
         logging.info(f"Hidden irreps: {args.hidden_irreps}")
@@ -157,7 +170,8 @@ def configure_model(
         )
         model_config_foundation = None
 
-    model = _build_model(args, model_config, model_config_foundation, heads)
+    model = _build_model(
+        args, model_config, model_config_foundation, heads)
 
     if model_foundation is not None:
         model = load_foundations_elements(
@@ -177,13 +191,15 @@ def _determine_atomic_inter_shift(mean, heads):
             return mean.item()
         if mean.size == len(heads):
             return mean.tolist()
-        logging.info("Mean not in correct format, using default value of 0.0")
+        logging.info(
+            "Mean not in correct format, using default value of 0.0")
         return [0.0] * len(heads)
     if isinstance(mean, list) and len(mean) == len(heads):
         return mean
     if isinstance(mean, float):
         return [mean] * len(heads)
-    logging.info("Mean not in correct format, using default value of 0.0")
+    logging.info(
+        "Mean not in correct format, using default value of 0.0")
     return [0.0] * len(heads)
 
 
@@ -229,9 +245,11 @@ def _build_model(
         return modules.ScaleShiftMACE(**model_config_foundation)
     if args.model == "ScaleShiftBOTNet":
         # say it is deprecated
-        raise RuntimeError("ScaleShiftBOTNet is deprecated, use MACE instead")
+        raise RuntimeError(
+            "ScaleShiftBOTNet is deprecated, use MACE instead")
     if args.model == "BOTNet":
-        raise RuntimeError("BOTNet is deprecated, use MACE instead")
+        raise RuntimeError(
+            "BOTNet is deprecated, use MACE instead")
     if args.model == "AtomicDipolesMACE":
         assert args.loss == "dipole", "Use dipole loss with AtomicDipolesMACE model"
         assert (

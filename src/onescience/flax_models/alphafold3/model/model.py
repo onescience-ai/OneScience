@@ -34,7 +34,8 @@ from onescience.flax_models.alphafold3.model.network import (
 from onescience.flax_models.alphafold3.model.network import featurization
 
 ModelResult: TypeAlias = Mapping[str, Any]
-_ScalarNumberOrArray: TypeAlias = Mapping[str, float | int | np.ndarray]
+_ScalarNumberOrArray: TypeAlias = Mapping[str,
+                                          float | int | np.ndarray]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -53,9 +54,12 @@ class InferenceResult:
     """
 
     predicted_structure: structure.Structure = dataclasses.field()
-    numerical_data: _ScalarNumberOrArray = dataclasses.field(default_factory=dict)
-    metadata: _ScalarNumberOrArray = dataclasses.field(default_factory=dict)
-    debug_outputs: Mapping[str, Any] = dataclasses.field(default_factory=dict)
+    numerical_data: _ScalarNumberOrArray = dataclasses.field(
+        default_factory=dict)
+    metadata: _ScalarNumberOrArray = dataclasses.field(
+        default_factory=dict)
+    debug_outputs: Mapping[str, Any] = dataclasses.field(
+        default_factory=dict)
     model_id: bytes = b""
 
 
@@ -94,9 +98,11 @@ def get_predicted_structure(
         )
     else:
         # Handle models which don't have predicted_lddt outputs.
-        pred_flat_b_factors = np.zeros(pred_flat_atom_coords.shape[:-1])
+        pred_flat_b_factors = np.zeros(
+            pred_flat_atom_coords.shape[:-1])
 
-    (missing_atoms_indices,) = np.nonzero(model_output_to_flat.gather_mask == 0)
+    (missing_atoms_indices,) = np.nonzero(
+        model_output_to_flat.gather_mask == 0)
     if missing_atoms_indices.shape[0] > 0:
         missing_atoms_flat_layout = batch.convert_model_output.flat_output_layout[
             missing_atoms_indices
@@ -125,10 +131,13 @@ def get_predicted_structure(
         atom_y=pred_flat_atom_coords[..., 1],
         atom_z=pred_flat_atom_coords[..., 2],
         atom_b_factor=pred_flat_b_factors,
-        atom_occupancy=np.ones(pred_flat_atom_coords.shape[:-1]),  # Always 1.0.
+        # Always 1.0.
+        atom_occupancy=np.ones(
+            pred_flat_atom_coords.shape[:-1]),
     )
     # Set manually/differently when adding metadata.
-    pred_struc = pred_struc.copy_and_update_globals(release_date=None)
+    pred_struc = pred_struc.copy_and_update_globals(
+        release_date=None)
     return pred_struc
 
 
@@ -174,9 +183,11 @@ def _compute_ptm(
     return np.stack(
         [
             confidences.predicted_tm_score(
-                tm_adjusted_pae=tm_adjusted_pae[:num_tokens, :num_tokens],
+                tm_adjusted_pae=tm_adjusted_pae[:num_tokens,
+                                                :num_tokens],
                 asym_id=asym_id,
-                pair_mask=pae_single_mask[:num_tokens, :num_tokens],
+                pair_mask=pae_single_mask[:num_tokens,
+                                          :num_tokens],
                 interface=interface,
             )
             for tm_adjusted_pae in result["tmscore_adjusted_pae_global"]
@@ -277,15 +288,18 @@ class Model(hk.Module):
                 target_feat=target_feat,
                 key=subkey,
             )
-            embeddings["pair"] = embeddings["pair"].astype(jnp.float32)
-            embeddings["single"] = embeddings["single"].astype(jnp.float32)
+            embeddings["pair"] = embeddings["pair"].astype(
+                jnp.float32)
+            embeddings["single"] = embeddings["single"].astype(
+                jnp.float32)
             return embeddings, key
 
         num_res = batch.num_res
 
         embeddings = {
             "pair": jnp.zeros(
-                [num_res, num_res, self.config.evoformer.pair_channel],
+                [num_res, num_res,
+                    self.config.evoformer.pair_channel],
                 dtype=jnp.float32,
             ),
             "single": jnp.zeros(
@@ -294,11 +308,13 @@ class Model(hk.Module):
             "target_feat": target_feat,
         }
         if hk.running_init():
-            embeddings, _ = recycle_body(None, (embeddings, key))
+            embeddings, _ = recycle_body(
+                None, (embeddings, key))
         else:
             # Number of recycles is number of additional forward trunk passes.
             num_iter = self.config.num_recycles + 1
-            embeddings, _ = hk.fori_loop(0, num_iter, recycle_body, (embeddings, key))
+            embeddings, _ = hk.fori_loop(
+                0, num_iter, recycle_body, (embeddings, key))
 
         samples = self._sample_diffusion(
             batch,
@@ -361,7 +377,8 @@ class Model(hk.Module):
         batch = feat_batch.Batch.from_data_dict(batch)
 
         # Retrieve structure and construct a predicted structure.
-        pred_structure = get_predicted_structure(result=result, batch=batch)
+        pred_structure = get_predicted_structure(
+            result=result, batch=batch)
 
         num_tokens = batch.token_features.seq_length.item()
 
@@ -390,7 +407,8 @@ class Model(hk.Module):
         # iterating over the chain IDs, and for each unique chain ID incrementing
         # the asym ID by 1 and mapping it to the particular chain ID. Asym IDs are
         # 1-indexed, so subtract 1 to get back to the chain ID.
-        chain_ids = [pred_structure.chains[asym_id - 1] for asym_id in asym_ids]
+        chain_ids = [pred_structure.chains[asym_id - 1]
+                     for asym_id in asym_ids]
         res_ids = batch.token_features.residue_index[:num_tokens]
 
         if len(np.unique(asym_ids[:num_tokens])) > 1:
@@ -430,7 +448,8 @@ class Model(hk.Module):
         )
         ranking_confidence_pae = confidences.rank_metric(
             result["full_pae"],
-            contact_probs * batch.frames.mask[:, None].astype(float),
+            contact_probs *
+            batch.frames.mask[:, None].astype(float),
         )
         chain_pair_iptm = _compute_chain_pair_iptm(
             num_tokens=num_tokens,
@@ -444,14 +463,16 @@ class Model(hk.Module):
         # [[x, , ],
         #  [ , , ],
         #  [ , , ]]]
-        iptm_ichain = chain_pair_iptm.diagonal(axis1=-2, axis2=-1)
+        iptm_ichain = chain_pair_iptm.diagonal(
+            axis1=-2, axis2=-1)
         # iptm_xchain is a vector of cross-chain interactions for each chain.
         # iptm_xchain[0], for example, is an average of chain 0's interactions with
         # other chains:
         # [[ ,x,x],
         #  [x, , ],
         #  [x, , ]]]
-        iptm_xchain = confidences.get_iptm_xchain(chain_pair_iptm)
+        iptm_xchain = confidences.get_iptm_xchain(
+            chain_pair_iptm)
 
         predicted_distance_errors = result["average_pde"]
 
@@ -460,9 +481,11 @@ class Model(hk.Module):
         pred_structures = pred_structure.unstack()
         num_workers = len(pred_structures)
         with concurrent.futures.ThreadPoolExecutor(max_workers=num_workers) as executor:
-            has_clash = list(executor.map(confidences.has_clash, pred_structures))
+            has_clash = list(executor.map(
+                confidences.has_clash, pred_structures))
             fraction_disordered = list(
-                executor.map(confidences.fraction_disordered, pred_structures)
+                executor.map(
+                    confidences.fraction_disordered, pred_structures)
             )
 
         for idx, pred_structure in enumerate(pred_structures):

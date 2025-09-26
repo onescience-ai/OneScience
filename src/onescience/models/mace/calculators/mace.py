@@ -1,6 +1,17 @@
 # The ASE Calculator for MACE
 
 
+from onescience.models.mace.tools.scripts_utils import extract_model
+from onescience.models.mace.tools.compile import prepare
+from onescience.models.mace.tools import torch_geometric, torch_tools, utils
+from onescience.models.mace.modules.utils import extract_invariant
+from onescience.models.mace.cli.convert_e3nn_cueq import run as run_e3nn_to_cueq
+from onescience.models.mace import data
+from e3nn import o3
+from ase.stress import full_3x3_to_voigt_6_stress
+from ase.calculators.calculator import Calculator, all_changes
+import torch
+import numpy as np
 import logging
 
 # pylint: disable=wrong-import-position
@@ -10,19 +21,6 @@ from pathlib import Path
 from typing import List, Union
 
 os.environ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD"] = "1"
-
-import numpy as np
-import torch
-from ase.calculators.calculator import Calculator, all_changes
-from ase.stress import full_3x3_to_voigt_6_stress
-from e3nn import o3
-
-from onescience.models.mace import data
-from onescience.models.mace.cli.convert_e3nn_cueq import run as run_e3nn_to_cueq
-from onescience.models.mace.modules.utils import extract_invariant
-from onescience.models.mace.tools import torch_geometric, torch_tools, utils
-from onescience.models.mace.tools.compile import prepare
-from onescience.models.mace.tools.scripts_utils import extract_model
 
 
 def get_model_dtype(model: torch.nn.Module) -> torch.dtype:
@@ -54,7 +52,8 @@ class MACECalculator(Calculator):
     def __init__(
         self,
         model_paths: Union[list, str, None] = None,
-        models: Union[List[torch.nn.Module], torch.nn.Module, None] = None,
+        models: Union[List[torch.nn.Module],
+                      torch.nn.Module, None] = None,
         device: str = "cpu",
         energy_units_to_eV: float = 1.0,
         length_units_to_A: float = 1.0,
@@ -75,7 +74,8 @@ class MACECalculator(Calculator):
                 "'model_path' argument is deprecated, please use 'model_paths'"
             )
             if model_paths is None:
-                logging.warning(f"{deprecation_message} in the future.")
+                logging.warning(
+                    f"{deprecation_message} in the future.")
                 model_paths = kwargs["model_path"]
             else:
                 raise ValueError(
@@ -101,7 +101,8 @@ class MACECalculator(Calculator):
                 "stress",
             ]
             if kwargs.get("compute_atomic_stresses", False):
-                self.implemented_properties.extend(["stresses", "virials"])
+                self.implemented_properties.extend(
+                    ["stresses", "virials"])
                 self.compute_atomic_stresses = True
         elif model_type == "DipoleMACE":
             self.implemented_properties = ["dipole"]
@@ -125,19 +126,22 @@ class MACECalculator(Calculator):
                 model_paths_glob = glob(model_paths)
 
                 if len(model_paths_glob) == 0:
-                    raise ValueError(f"Couldn't find MACE model files: {model_paths}")
+                    raise ValueError(
+                        f"Couldn't find MACE model files: {model_paths}")
 
                 model_paths = model_paths_glob
             elif isinstance(model_paths, Path):
                 model_paths = [model_paths]
 
             if len(model_paths) == 0:
-                raise ValueError("No mace file names supplied")
+                raise ValueError(
+                    "No mace file names supplied")
             self.num_models = len(model_paths)
 
             # Load models from files
             self.models = [
-                torch.load(f=model_path, map_location=device)
+                torch.load(
+                    f=model_path, map_location=device)
                 for model_path in model_paths
             ]
 
@@ -152,20 +156,25 @@ class MACECalculator(Calculator):
             self.num_models = len(models)
 
         if self.num_models > 1:
-            print(f"Running committee mace with {self.num_models} models")
+            print(
+                f"Running committee mace with {self.num_models} models")
 
             if model_type in ["MACE", "EnergyDipoleMACE"]:
                 self.implemented_properties.extend(
-                    ["energies", "energy_var", "forces_comm", "stress_var"]
+                    ["energies", "energy_var",
+                        "forces_comm", "stress_var"]
                 )
             elif model_type == "DipoleMACE":
-                self.implemented_properties.extend(["dipole_var"])
+                self.implemented_properties.extend(
+                    ["dipole_var"])
 
         if compile_mode is not None:
-            print(f"Torch compile is enabled with mode: {compile_mode}")
+            print(
+                f"Torch compile is enabled with mode: {compile_mode}")
             self.models = [
                 torch.compile(
-                    prepare(extract_model)(model=model, map_location=device),
+                    prepare(extract_model)(
+                        model=model, map_location=device),
                     mode=compile_mode,
                     fullgraph=fullgraph,
                 )
@@ -179,10 +188,12 @@ class MACECalculator(Calculator):
         for model in self.models:
             model.to(device)
 
-        r_maxs = [model.r_max.cpu() for model in self.models]
+        r_maxs = [model.r_max.cpu()
+                  for model in self.models]
         r_maxs = np.array(r_maxs)
         if not np.all(r_maxs == r_maxs[0]):
-            raise ValueError(f"committee r_max are not all the same {' '.join(r_maxs)}")
+            raise ValueError(
+                f"committee r_max are not all the same {' '.join(r_maxs)}")
         self.r_max = float(r_maxs[0])
 
         self.device = torch_tools.init_device(device)
@@ -194,7 +205,8 @@ class MACECalculator(Calculator):
         self.charges_key = charges_key
 
         try:
-            self.available_heads: List[str] = self.models[0].heads  # type: ignore
+            # type: ignore
+            self.available_heads: List[str] = self.models[0].heads
         except AttributeError:
             self.available_heads = ["Default"]
         kwarg_head = kwargs.get("head", None)
@@ -212,7 +224,8 @@ class MACECalculator(Calculator):
                 )
             self.head = self.head[0]
 
-        print("Using head", self.head, "out of", self.available_heads)
+        print("Using head", self.head,
+              "out of", self.available_heads)
 
         model_dtype = get_model_dtype(self.models[0])
         if default_dtype == "":
@@ -225,14 +238,17 @@ class MACECalculator(Calculator):
                 f"Default dtype {default_dtype} does not match model dtype {model_dtype}, converting models to {default_dtype}."
             )
             if default_dtype == "float64":
-                self.models = [model.double() for model in self.models]
+                self.models = [model.double()
+                               for model in self.models]
             elif default_dtype == "float32":
-                self.models = [model.float() for model in self.models]
+                self.models = [model.float()
+                               for model in self.models]
         torch_tools.set_default_dtype(default_dtype)
         if enable_cueq:
             print("Converting models to CuEq for acceleration")
             self.models = [
-                run_e3nn_to_cueq(model, device=device).to(device)
+                run_e3nn_to_cueq(
+                    model, device=device).to(device)
                 for model in self.models
             ]
         for model in self.models:
@@ -251,10 +267,14 @@ class MACECalculator(Calculator):
         """
         dict_of_tensors = {}
         if model_type in ["MACE", "EnergyDipoleMACE"]:
-            energies = torch.zeros(num_models, device=self.device)
-            node_energy = torch.zeros(num_models, num_atoms, device=self.device)
-            forces = torch.zeros(num_models, num_atoms, 3, device=self.device)
-            stress = torch.zeros(num_models, 3, 3, device=self.device)
+            energies = torch.zeros(
+                num_models, device=self.device)
+            node_energy = torch.zeros(
+                num_models, num_atoms, device=self.device)
+            forces = torch.zeros(
+                num_models, num_atoms, 3, device=self.device)
+            stress = torch.zeros(
+                num_models, 3, 3, device=self.device)
             dict_of_tensors.update(
                 {
                     "energies": energies,
@@ -264,7 +284,8 @@ class MACECalculator(Calculator):
                 }
             )
         if model_type in ["EnergyDipoleMACE", "DipoleMACE"]:
-            dipole = torch.zeros(num_models, 3, device=self.device)
+            dipole = torch.zeros(
+                num_models, 3, device=self.device)
             dict_of_tensors.update({"dipole": dipole})
         return dict_of_tensors
 
@@ -315,7 +336,8 @@ class MACECalculator(Calculator):
         if self.model_type in ["MACE", "EnergyDipoleMACE"]:
             batch = self._clone_batch(batch_base)
             node_heads = batch["head"][batch["batch"]]
-            num_atoms_arange = torch.arange(batch["positions"].shape[0])
+            num_atoms_arange = torch.arange(
+                batch["positions"].shape[0])
             node_e0 = self.models[0].atomic_energies_fn(batch["node_attrs"])[
                 num_atoms_arange, node_heads
             ]
@@ -336,13 +358,18 @@ class MACECalculator(Calculator):
                 compute_atomic_stresses=self.compute_atomic_stresses,
             )
             if self.model_type in ["MACE", "EnergyDipoleMACE"]:
-                ret_tensors["energies"][i] = out["energy"].detach()
-                ret_tensors["node_energy"][i] = (out["node_energy"] - node_e0).detach()
-                ret_tensors["forces"][i] = out["forces"].detach()
+                ret_tensors["energies"][i] = out["energy"].detach(
+                )
+                ret_tensors["node_energy"][i] = (
+                    out["node_energy"] - node_e0).detach()
+                ret_tensors["forces"][i] = out["forces"].detach(
+                )
                 if out["stress"] is not None:
-                    ret_tensors["stress"][i] = out["stress"].detach()
+                    ret_tensors["stress"][i] = out["stress"].detach(
+                    )
             if self.model_type in ["DipoleMACE", "EnergyDipoleMACE"]:
-                ret_tensors["dipole"][i] = out["dipole"].detach()
+                ret_tensors["dipole"][i] = out["dipole"].detach(
+                )
             if self.model_type in ["MACE"]:
                 if out["atomic_stresses"] is not None:
                     ret_tensors.setdefault("atomic_stresses", []).append(
@@ -356,24 +383,29 @@ class MACECalculator(Calculator):
         self.results = {}
         if self.model_type in ["MACE", "EnergyDipoleMACE"]:
             self.results["energy"] = (
-                torch.mean(ret_tensors["energies"], dim=0).cpu().item()
+                torch.mean(
+                    ret_tensors["energies"], dim=0).cpu().item()
                 * self.energy_units_to_eV
             )
             self.results["free_energy"] = self.results["energy"]
             self.results["node_energy"] = (
-                torch.mean(ret_tensors["node_energy"], dim=0).cpu().numpy()
+                torch.mean(
+                    ret_tensors["node_energy"], dim=0).cpu().numpy()
             )
             self.results["forces"] = (
-                torch.mean(ret_tensors["forces"], dim=0).cpu().numpy()
+                torch.mean(
+                    ret_tensors["forces"], dim=0).cpu().numpy()
                 * self.energy_units_to_eV
                 / self.length_units_to_A
             )
             if self.num_models > 1:
                 self.results["energies"] = (
-                    ret_tensors["energies"].cpu().numpy() * self.energy_units_to_eV
+                    ret_tensors["energies"].cpu(
+                    ).numpy() * self.energy_units_to_eV
                 )
                 self.results["energy_var"] = (
-                    torch.var(ret_tensors["energies"], dim=0, unbiased=False)
+                    torch.var(
+                        ret_tensors["energies"], dim=0, unbiased=False)
                     .cpu()
                     .item()
                     * self.energy_units_to_eV
@@ -385,13 +417,15 @@ class MACECalculator(Calculator):
                 )
             if out["stress"] is not None:
                 self.results["stress"] = full_3x3_to_voigt_6_stress(
-                    torch.mean(ret_tensors["stress"], dim=0).cpu().numpy()
+                    torch.mean(
+                        ret_tensors["stress"], dim=0).cpu().numpy()
                     * self.energy_units_to_eV
                     / self.length_units_to_A**3
                 )
                 if self.num_models > 1:
                     self.results["stress_var"] = full_3x3_to_voigt_6_stress(
-                        torch.var(ret_tensors["stress"], dim=0, unbiased=False)
+                        torch.var(
+                            ret_tensors["stress"], dim=0, unbiased=False)
                         .cpu()
                         .numpy()
                         * self.energy_units_to_eV
@@ -399,7 +433,8 @@ class MACECalculator(Calculator):
                     )
             if "atomic_stresses" in ret_tensors:
                 self.results["stresses"] = (
-                    torch.mean(torch.stack(ret_tensors["atomic_stresses"]), dim=0)
+                    torch.mean(torch.stack(
+                        ret_tensors["atomic_stresses"]), dim=0)
                     .cpu()
                     .numpy()
                     * self.energy_units_to_eV
@@ -407,18 +442,21 @@ class MACECalculator(Calculator):
                 )
             if "atomic_virials" in ret_tensors:
                 self.results["virials"] = (
-                    torch.mean(torch.stack(ret_tensors["atomic_virials"]), dim=0)
+                    torch.mean(torch.stack(
+                        ret_tensors["atomic_virials"]), dim=0)
                     .cpu()
                     .numpy()
                     * self.energy_units_to_eV
                 )
         if self.model_type in ["DipoleMACE", "EnergyDipoleMACE"]:
             self.results["dipole"] = (
-                torch.mean(ret_tensors["dipole"], dim=0).cpu().numpy()
+                torch.mean(
+                    ret_tensors["dipole"], dim=0).cpu().numpy()
             )
             if self.num_models > 1:
                 self.results["dipole_var"] = (
-                    torch.var(ret_tensors["dipole"], dim=0, unbiased=False)
+                    torch.var(
+                        ret_tensors["dipole"], dim=0, unbiased=False)
                     .cpu()
                     .numpy()
                 )
@@ -429,7 +467,8 @@ class MACECalculator(Calculator):
         if atoms is None:
             atoms = self.atoms
         if self.model_type != "MACE":
-            raise NotImplementedError("Only implemented for MACE models")
+            raise NotImplementedError(
+                "Only implemented for MACE models")
         batch = self._atoms_to_batch(atoms)
         hessians = [
             model(
@@ -440,7 +479,8 @@ class MACECalculator(Calculator):
             )["hessian"]
             for model in self.models
         ]
-        hessians = [hessian.detach().cpu().numpy() for hessian in hessians]
+        hessians = [hessian.detach().cpu().numpy()
+                    for hessian in hessians]
         if self.num_models == 1:
             return hessians[0]
         return hessians
@@ -457,19 +497,26 @@ class MACECalculator(Calculator):
         if atoms is None:
             atoms = self.atoms
         if self.model_type != "MACE":
-            raise NotImplementedError("Only implemented for MACE models")
-        num_interactions = int(self.models[0].num_interactions)
+            raise NotImplementedError(
+                "Only implemented for MACE models")
+        num_interactions = int(
+            self.models[0].num_interactions)
         if num_layers == -1:
             num_layers = num_interactions
         batch = self._atoms_to_batch(atoms)
-        descriptors = [model(batch.to_dict())["node_feats"] for model in self.models]
+        descriptors = [model(batch.to_dict())[
+            "node_feats"] for model in self.models]
 
-        irreps_out = o3.Irreps(str(self.models[0].products[0].linear.irreps_out))
+        irreps_out = o3.Irreps(
+            str(self.models[0].products[0].linear.irreps_out))
         l_max = irreps_out.lmax
-        num_invariant_features = irreps_out.dim // (l_max + 1) ** 2
-        per_layer_features = [irreps_out.dim for _ in range(num_interactions)]
+        num_invariant_features = irreps_out.dim // (
+            l_max + 1) ** 2
+        per_layer_features = [
+            irreps_out.dim for _ in range(num_interactions)]
         per_layer_features[-1] = (
-            num_invariant_features  # Equivariant features not created for the last layer
+            # Equivariant features not created for the last layer
+            num_invariant_features
         )
 
         if invariants_only:

@@ -37,14 +37,16 @@ class Model(nn.Module):
             normtype = (
                 "in"  # when conducting dynamic tasks, use instance norm for stability
             )
-        ## embedding
+        # embedding
 
         if (
             args.unified_pos and args.geotype != "unstructured"
         ):  # only for structured mesh
-            self.pos = unified_pos_embedding(args.shapelist, args.ref, device=device)
+            self.pos = unified_pos_embedding(
+                args.shapelist, args.ref, device=device)
             self.preprocess = MLP(
-                args.fun_dim + args.ref ** len(args.shapelist),
+                args.fun_dim +
+                args.ref ** len(args.shapelist),
                 args.n_hidden * 2,
                 args.n_hidden,
                 n_layers=0,
@@ -75,13 +77,16 @@ class Model(nn.Module):
                 args.n_hidden, args.n_hidden, args.modes, args.modes, s1, s2
             )
             self.iphi = IPHI()
-            patch_size = [(size + (16 - size % 16) % 16) // 16 for size in [s1, s2]]
-            self.padding = [(16 - size % 16) % 16 for size in [s1, s2]]
+            patch_size = [
+                (size + (16 - size % 16) % 16) // 16 for size in [s1, s2]]
+            self.padding = [(16 - size % 16) %
+                            16 for size in [s1, s2]]
         else:
             patch_size = [
                 (size + (16 - size % 16) % 16) // 16 for size in args.shapelist
             ]
-            self.padding = [(16 - size % 16) % 16 for size in args.shapelist]
+            self.padding = [(16 - size % 16) %
+                            16 for size in args.shapelist]
         # multiscale modules
         self.inc = ConvList[len(patch_size)](
             args.n_hidden, args.n_hidden, normtype=normtype
@@ -111,7 +116,8 @@ class Model(nn.Module):
         self.up4 = UpList[len(patch_size)](
             args.n_hidden * 2, args.n_hidden, bilinear, normtype=normtype
         )
-        self.outc = OutList[len(patch_size)](args.n_hidden, args.n_hidden)
+        self.outc = OutList[len(patch_size)](
+            args.n_hidden, args.n_hidden)
         # projectors
         self.fc1 = nn.Linear(args.n_hidden, args.n_hidden)
         self.fc2 = nn.Linear(args.n_hidden, args.out_dim)
@@ -145,21 +151,27 @@ class Model(nn.Module):
             )
             Time_emb = self.time_fc(Time_emb)
             fx = fx + Time_emb
-        x = fx.permute(0, 2, 1).reshape(B, self.args.n_hidden, *self.args.shapelist)
+        x = fx.permute(0, 2, 1).reshape(
+            B, self.args.n_hidden, *self.args.shapelist)
         if not all(item == 0 for item in self.padding):
             if len(self.args.shapelist) == 2:
-                x = F.pad(x, [0, self.padding[1], 0, self.padding[0]])
+                x = F.pad(
+                    x, [0, self.padding[1], 0, self.padding[0]])
             elif len(self.args.shapelist) == 3:
                 x = F.pad(
-                    x, [0, self.padding[2], 0, self.padding[1], 0, self.padding[0]]
+                    x, [0, self.padding[2], 0,
+                        self.padding[1], 0, self.padding[0]]
                 )
-        x = self.multiscale(x)  ## U-Net
+        x = self.multiscale(x)  # U-Net
         if not all(item == 0 for item in self.padding):
             if len(self.args.shapelist) == 2:
-                x = x[..., : -self.padding[0], : -self.padding[1]]
+                x = x[..., : -self.padding[0],
+                      : -self.padding[1]]
             elif len(self.args.shapelist) == 3:
-                x = x[..., : -self.padding[0], : -self.padding[1], : -self.padding[2]]
-        x = x.reshape(B, self.args.n_hidden, -1).permute(0, 2, 1)
+                x = x[..., : -self.padding[0], : -
+                      self.padding[1], : -self.padding[2]]
+        x = x.reshape(
+            B, self.args.n_hidden, -1).permute(0, 2, 1)
         x = self.fc1(x)
         x = F.gelu(x)
         x = self.fc2(x)
@@ -183,7 +195,7 @@ class Model(nn.Module):
         x = self.fftproject_in(
             fx.permute(0, 2, 1), x_in=original_pos, iphi=self.iphi, code=None
         )
-        x = self.multiscale(x)  ## U-Net
+        x = self.multiscale(x)  # U-Net
         x = self.fftproject_out(
             x, x_out=original_pos, iphi=self.iphi, code=None
         ).permute(0, 2, 1)

@@ -113,7 +113,8 @@ REQUIRED_FEATURES = frozenset(
     }
 )
 
-PROT_TYPE_NAME = "proteinChain"  # inference protein name in json
+# inference protein name in json
+PROT_TYPE_NAME = "proteinChain"
 
 
 def make_dummy_msa_obj(input_sequence) -> parsers.Msa:
@@ -137,10 +138,12 @@ def convert_monomer_features(monomer_features: FeatureDict) -> FeatureDict:
     for feature_name, feature in monomer_features.items():
         if feature_name in unnecessary_leading_dim_feats:
             # asarray ensures it's a np.ndarray.
-            feature = np.asarray(feature[0], dtype=feature.dtype)
+            feature = np.asarray(
+                feature[0], dtype=feature.dtype)
         elif feature_name == "aatype":
             # The multimer model performs the one-hot operation itself.
-            feature = np.argmax(feature, axis=-1).astype(np.int32)
+            feature = np.argmax(
+                feature, axis=-1).astype(np.int32)
         converted[feature_name] = feature
     return converted
 
@@ -168,10 +171,14 @@ def make_sequence_features(
         map_unknown_to_x=True,
         x_token=x_token,
     )
-    features["between_segment_residues"] = np.zeros((num_res,), dtype=np.int32)
-    features["residue_index"] = np.array(range(num_res), dtype=np.int32) + 1
-    features["seq_length"] = np.array([num_res] * num_res, dtype=np.int32)
-    features["sequence"] = np.array([sequence.encode("utf-8")], dtype=object)
+    features["between_segment_residues"] = np.zeros(
+        (num_res,), dtype=np.int32)
+    features["residue_index"] = np.array(
+        range(num_res), dtype=np.int32) + 1
+    features["seq_length"] = np.array(
+        [num_res] * num_res, dtype=np.int32)
+    features["sequence"] = np.array(
+        [sequence.encode("utf-8")], dtype=object)
     return features
 
 
@@ -194,7 +201,8 @@ def make_msa_features(
         FeatureDict: raw MSA features
     """
     if not msas:
-        raise ValueError("At least one MSA must be provided.")
+        raise ValueError(
+            "At least one MSA must be provided.")
 
     int_msa = []
     deletion_matrix = []
@@ -202,28 +210,35 @@ def make_msa_features(
     seen_sequences = set()
     for msa_index, msa in enumerate(msas):
         if not msa:
-            raise ValueError(f"MSA {msa_index} must contain at least one sequence.")
+            raise ValueError(
+                f"MSA {msa_index} must contain at least one sequence.")
         for sequence_index, sequence in enumerate(msa.sequences):
             if sequence in seen_sequences:
                 continue
             seen_sequences.add(sequence)
-            int_msa.append([mapping[0][res] for res in sequence])
-            deletion_matrix.append(msa.deletion_matrix[sequence_index])
+            int_msa.append([mapping[0][res]
+                           for res in sequence])
+            deletion_matrix.append(
+                msa.deletion_matrix[sequence_index])
 
             identifiers = identifier_func(
                 msa.descriptions[sequence_index],
             )
 
-            species_ids.append(identifiers.species_id.encode("utf-8"))
+            species_ids.append(
+                identifiers.species_id.encode("utf-8"))
 
     # residue type from HHBLITS_AA_TO_ID
     num_res = len(msas[0].sequences[0])
     num_alignments = len(int_msa)
     features = {}
-    features["deletion_matrix_int"] = np.array(deletion_matrix, dtype=np.int32)
+    features["deletion_matrix_int"] = np.array(
+        deletion_matrix, dtype=np.int32)
     features["msa"] = np.array(int_msa, dtype=np.int32)
-    features["num_alignments"] = np.array([num_alignments] * num_res, dtype=np.int32)
-    features["msa_species_identifiers"] = np.array(species_ids, dtype=np.object_)
+    features["num_alignments"] = np.array(
+        [num_alignments] * num_res, dtype=np.int32)
+    features["msa_species_identifiers"] = np.array(
+        species_ids, dtype=np.object_)
     features["profile"] = _make_msa_profile(
         msa=features["msa"], dict_size=len(mapping[1])
     )  # [num_res, 27]
@@ -243,7 +258,8 @@ def _make_msa_profile(msa: np.ndarray, dict_size: int) -> np.ndarray:
     """
     num_seqs = msa.shape[0]
     all_res_types = np.arange(dict_size)
-    res_type_hits = msa[..., None] == all_res_types[None, ...]
+    res_type_hits = msa[...,
+                        None] == all_res_types[None, ...]
     res_type_counts = res_type_hits.sum(axis=0)
     profile = res_type_counts / num_seqs
     return profile
@@ -275,7 +291,8 @@ def parse_a3m(path: str, seq_limit: int) -> tuple[list[str], list[str]]:
                 if seq_limit > 0 and len(sequences) > seq_limit:
                     break
                 index += 1
-                descriptions.append(line[1:])  # Remove the '>' at the beginning.
+                # Remove the '>' at the beginning.
+                descriptions.append(line[1:])
                 sequences.append("")
                 continue
             elif line.startswith("#"):
@@ -316,8 +333,10 @@ def calc_stockholm_RNA_msa(
             # name_to_sequence = OrderedDict({"query": query})
             return OrderedDict()
         else:
-            query = align_query_to_sto(query, list(name_to_sequence.values())[0])
-            new_name_to_sequence = OrderedDict({"query": query})
+            query = align_query_to_sto(
+                query, list(name_to_sequence.values())[0])
+            new_name_to_sequence = OrderedDict(
+                {"query": query})
             new_name_to_sequence.update(name_to_sequence)
             name_to_sequence = new_name_to_sequence
 
@@ -326,13 +345,16 @@ def calc_stockholm_RNA_msa(
         if seq_index == 0:
             # Gather the columns with gaps from the query
             query = sequence
-            keep_columns = [i for i, res in enumerate(query) if res != "-"]
+            keep_columns = [
+                i for i, res in enumerate(query) if res != "-"]
 
         if len(sequence) < len(query):
-            sequence = sequence + "-" * (len(query) - len(sequence))
+            sequence = sequence + "-" * \
+                (len(query) - len(sequence))
 
         # Remove the columns with gaps in the query from all sequences.
-        aligned_sequence = "".join([sequence[c] for c in keep_columns])
+        aligned_sequence = "".join(
+            [sequence[c] for c in keep_columns])
         # Convert lower case letter to upper case
         aligned_sequence = aligned_sequence.upper()
         msa.append(aligned_sequence)
@@ -383,7 +405,7 @@ def align_query_to_sto(query: str, sto_sequence: str):
     aligned_query = "".join(query_chars)
 
     if j < len(query):
-        aligned_query += query[-(len(query) - j) :]
+        aligned_query += query[-(len(query) - j):]
 
     return aligned_query
 
@@ -499,10 +521,14 @@ def parse_prot_msa_data(
             deletion_matrix.append(deletion_vec)
 
         # Make the MSA matrix out of aligned (deletion-free) sequences.
-        deletion_table = str.maketrans("", "", string.ascii_lowercase)
-        aligned_sequences = [s.translate(deletion_table) for s in sequences]
-        assert all([len(seq) == len(aligned_sequences[0]) for seq in aligned_sequences])
-        assert all([len(vec) == len(deletion_matrix[0]) for vec in deletion_matrix])
+        deletion_table = str.maketrans(
+            "", "", string.ascii_lowercase)
+        aligned_sequences = [s.translate(
+            deletion_table) for s in sequences]
+        assert all([len(seq) == len(aligned_sequences[0])
+                   for seq in aligned_sequences])
+        assert all([len(vec) == len(deletion_matrix[0])
+                   for vec in deletion_matrix])
 
         if len(aligned_sequences) > 0:
             # skip empty file
@@ -521,7 +547,8 @@ def load_and_process_msa(
     msa_type: str,
     raw_msa_paths: Sequence[str],
     seq_limits: Sequence[int],
-    identifier_func: Optional[Callable] = lambda x: Identifiers(),
+    identifier_func: Optional[Callable] = lambda x: Identifiers(
+    ),
     input_sequence: Optional[str] = None,
     handle_empty: str = "return_self",
     msa_entity_type: str = "prot",
@@ -546,9 +573,11 @@ def load_and_process_msa(
     )
     if len(msa_data) == 0:
         if handle_empty == "return_self":
-            msa_data["dummy"] = make_dummy_msa_obj(input_sequence)
+            msa_data["dummy"] = make_dummy_msa_obj(
+                input_sequence)
         elif handle_empty == "raise_error":
-            ValueError(f"No valid {msa_type} MSA for {pdb_name}")
+            ValueError(
+                f"No valid {msa_type} MSA for {pdb_name}")
         else:
             raise NotImplementedError(
                 f"Unimplemented empty-handling method: {handle_empty}"
@@ -560,7 +589,8 @@ def load_and_process_msa(
             msas=msas,
             identifier_func=identifier_func,
             mapping=(
-                (residue_constants.HHBLITS_AA_TO_ID, residue_constants.ID_TO_HHBLITS_AA)
+                (residue_constants.HHBLITS_AA_TO_ID,
+                 residue_constants.ID_TO_HHBLITS_AA)
                 if msa_entity_type == "prot"
                 else (RNA_NT_TO_ID, RNA_ID_TO_NT)
             ),
@@ -570,12 +600,14 @@ def load_and_process_msa(
             msas=msas,
             identifier_func=identifier_func,
             mapping=(
-                (residue_constants.HHBLITS_AA_TO_ID, residue_constants.ID_TO_HHBLITS_AA)
+                (residue_constants.HHBLITS_AA_TO_ID,
+                 residue_constants.ID_TO_HHBLITS_AA)
                 if msa_entity_type == "prot"
                 else (RNA_NT_TO_ID, RNA_ID_TO_NT)
             ),
         )
-        valid_feats = MSA_FEATURES + ("msa_species_identifiers",)
+        valid_feats = MSA_FEATURES + \
+            ("msa_species_identifiers",)
         return {
             f"{k}_all_seq": v for k, v in all_seq_features.items() if k in valid_feats
         }
@@ -610,9 +642,11 @@ def add_assembly_features(
             new_all_chain_features[f"{entity_id}_{sym_id}"] = chain_features
             seq_length = chain_features["seq_length"]
             chain_features["asym_id"] = (
-                chain_features["asym_id"] * np.ones(seq_length)
+                chain_features["asym_id"] *
+                np.ones(seq_length)
             ).astype(np.int64)
-            chain_features["sym_id"] = (sym_id * np.ones(seq_length)).astype(np.int64)
+            chain_features["sym_id"] = (
+                sym_id * np.ones(seq_length)).astype(np.int64)
             chain_features["entity_id"] = (int(entity_id) * np.ones(seq_length)).astype(
                 np.int64
             )
@@ -673,8 +707,10 @@ def pair_and_merge(
     pair_msa_sequences = not is_homomer_or_monomer
 
     if pair_msa_sequences:
-        np_chains_list = create_paired_features(chains=np_chains_list)
-        np_chains_list = deduplicate_unpaired_sequences(np_chains_list)
+        np_chains_list = create_paired_features(
+            chains=np_chains_list)
+        np_chains_list = deduplicate_unpaired_sequences(
+            np_chains_list)
 
     np_chains_list = crop_chains(
         np_chains_list,
@@ -760,7 +796,8 @@ def merge_chain_features(
     )
 
     if pair_msa_sequences:
-        np_example = _concatenate_paired_and_unpaired_features(np_example)
+        np_example = _concatenate_paired_and_unpaired_features(
+            np_example)
 
     np_example = _correct_post_merged_feats(
         np_example=np_example,
@@ -829,11 +866,13 @@ def _merge_msa_features(
     elif msa_entity_type == "rna":
         mapping = RNA_MSA_PAD_VALUES
     if merge_method == "sparse":
-        merged_feature = block_diag(*feats, pad_value=mapping[feature_name])
+        merged_feature = block_diag(
+            *feats, pad_value=mapping[feature_name])
     elif merge_method in ["dense_min"]:
         merged_feature = truncate_at_min(*feats)
     elif merge_method in ["dense_max"]:
-        merged_feature = pad_to_max(*feats, pad_value=mapping[feature_name])
+        merged_feature = pad_to_max(
+            *feats, pad_value=mapping[feature_name])
     else:
         raise NotImplementedError(
             f"Unknown merge method {merge_method}! Allowed merged methods are: "
@@ -863,10 +902,12 @@ def _merge_features_from_multiple_chains(
     merged_example = {}
     for feature_name in chains[0]:
         feats = [x[feature_name] for x in chains]
-        feature_name_split = feature_name.split("_all_seq")[0]
+        feature_name_split = feature_name.split("_all_seq")[
+            0]
         if feature_name_split in MSA_FEATURES:
             if pair_msa_sequences or "_all_seq" in feature_name:
-                merged_example[feature_name] = np.concatenate(feats, axis=1)
+                merged_example[feature_name] = np.concatenate(
+                    feats, axis=1)
             else:
                 merged_example[feature_name] = _merge_msa_features(
                     *feats,
@@ -875,9 +916,11 @@ def _merge_features_from_multiple_chains(
                     msa_entity_type=msa_entity_type,
                 )
         elif feature_name_split in SEQ_FEATURES:
-            merged_example[feature_name] = np.concatenate(feats, axis=0)
+            merged_example[feature_name] = np.concatenate(
+                feats, axis=0)
         elif feature_name_split in CHAIN_FEATURES:
-            merged_example[feature_name] = np.sum([x for x in feats]).astype(np.int32)
+            merged_example[feature_name] = np.sum(
+                [x for x in feats]).astype(np.int32)
         else:
             merged_example[feature_name] = feats[0]
     return merged_example
@@ -905,11 +948,13 @@ def merge_features_from_prot_rna(
         "deletion_value": 0,
     }
     for feature_name in set(chains[0].keys()).union(chains[1].keys()):
-        feats = [x[feature_name] for x in chains if feature_name in x]
+        feats = [x[feature_name]
+                 for x in chains if feature_name in x]
         if (
             feature_name in SEQ_FEATURES
         ):  # ["residue_index", "profile", "asym_id", "sym_id", "entity_id", "deletion_mean"]
-            merged_example[feature_name] = np.concatenate(feats, axis=0)
+            merged_example[feature_name] = np.concatenate(
+                feats, axis=0)
         elif feature_name in ["msa", "has_deletion", "deletion_value"]:
             merged_example[feature_name] = pad_to_max(
                 *feats, pad_value=final_msa_pad_values[feature_name]
@@ -946,9 +991,11 @@ def _concatenate_paired_and_unpaired_features(
         if feature_name in np_example:
             feat = np_example[feature_name]
             feat_all_seq = np_example[feature_name + "_all_seq"]
-            merged_feat = np.concatenate([feat_all_seq, feat], axis=0)
+            merged_feat = np.concatenate(
+                [feat_all_seq, feat], axis=0)
             np_example[feature_name] = merged_feat
-    np_example["num_alignments"] = np.array(np_example["msa"].shape[0], dtype=np.int32)
+    np_example["num_alignments"] = np.array(
+        np_example["msa"].shape[0], dtype=np.int32)
     return np_example
 
 
@@ -965,7 +1012,8 @@ def _correct_post_merged_feats(
         Dict[str, np.ndarray]: processed features
     """
 
-    np_example["seq_length"] = np.asarray(np_example["aatype"].shape[0], dtype=np.int32)
+    np_example["seq_length"] = np.asarray(
+        np_example["aatype"].shape[0], dtype=np.int32)
     np_example["num_alignments"] = np.asarray(
         np_example["msa"].shape[0], dtype=np.int32
     )
@@ -1010,7 +1058,8 @@ def process_prot_final(np_example: Mapping[str, np.ndarray]) -> dict[str, np.nda
     """
     np_example = correct_msa_restypes(np_example)
     np_example = final_transform(np_example)
-    np_example = _add_msa_num_alignment(np_example, msa_entity_type="prot")
+    np_example = _add_msa_num_alignment(
+        np_example, msa_entity_type="prot")
     np_example = filter_features(np_example)
 
     return np_example
@@ -1027,13 +1076,15 @@ def correct_msa_restypes(np_example: Mapping[str, np.ndarray]) -> dict[str, np.n
         Dict[str, np.ndarray]: processed features
     """
     # remap msa
-    np_example["msa"] = np.take(NEW_ORDER_LIST, np_example["msa"], axis=0)
+    np_example["msa"] = np.take(
+        NEW_ORDER_LIST, np_example["msa"], axis=0)
     np_example["msa"] = np_example["msa"].astype(np.int32)
 
     seq_len, profile_dim = np_example["profile"].shape
     assert profile_dim == len(NEW_ORDER_LIST)
     profile = np.zeros((seq_len, 32))
-    profile[:, np.array(NEW_ORDER_LIST)] = np_example["profile"]
+    profile[:, np.array(NEW_ORDER_LIST)
+            ] = np_example["profile"]
 
     np_example["profile"] = profile
     return np_example
@@ -1051,7 +1102,8 @@ def process_rna_final(np_example: Mapping[str, np.ndarray]) -> dict[str, np.ndar
     """
     np_example = correct_rna_msa_restypes(np_example)
     np_example = final_transform(np_example)
-    np_example = _add_msa_num_alignment(np_example, msa_entity_type="rna")
+    np_example = _add_msa_num_alignment(
+        np_example, msa_entity_type="rna")
     np_example = filter_features(np_example)
 
     return np_example
@@ -1070,13 +1122,15 @@ def correct_rna_msa_restypes(
         Dict[str, np.ndarray]: processed features
     """
     # remap msa
-    np_example["msa"] = np.take(RNA_NEW_ORDER_LIST, np_example["msa"], axis=0)
+    np_example["msa"] = np.take(
+        RNA_NEW_ORDER_LIST, np_example["msa"], axis=0)
     np_example["msa"] = np_example["msa"].astype(np.int32)
 
     seq_len, profile_dim = np_example["profile"].shape
     assert profile_dim == len(RNA_NEW_ORDER_LIST)
     profile = np.zeros((seq_len, 32))
-    profile[:, np.array(RNA_NEW_ORDER_LIST)] = np_example["profile"]
+    profile[:, np.array(RNA_NEW_ORDER_LIST)
+            ] = np_example["profile"]
 
     np_example["profile"] = profile
     return np_example
@@ -1097,7 +1151,8 @@ def final_transform(np_example: Mapping[str, np.ndarray]) -> dict[str, np.ndarra
         np.bool_
     )
 
-    np_example["deletion_value"] = (2 / np.pi) * np.arctan(deletion_mat / 3)
+    np_example["deletion_value"] = (
+        2 / np.pi) * np.arctan(deletion_mat / 3)
     assert np.all(-1e-5 < np_example["deletion_value"]) and np.all(
         np_example["deletion_value"] < (1 + 1e-5)
     )
@@ -1167,19 +1222,24 @@ def _crop_single_chain(
 
     if pair_msa_sequences:
         msa_size_all_seq = chain["num_alignments_all_seq"]
-        msa_crop_size_all_seq = np.minimum(msa_size_all_seq, msa_crop_size // 2)
+        msa_crop_size_all_seq = np.minimum(
+            msa_size_all_seq, msa_crop_size // 2)
 
         # We reduce the number of un-paired sequences, by the number of times a
         # sequence from this chain's MSA is included in the paired MSA.  This keeps
         # the MSA size for each chain roughly constant.
         msa_all_seq = chain["msa_all_seq"][:msa_crop_size_all_seq, :]
-        num_non_gapped_pairs = np.sum(np.any(msa_all_seq != MSA_GAP_IDX, axis=1))
-        num_non_gapped_pairs = np.minimum(num_non_gapped_pairs, msa_crop_size_all_seq)
+        num_non_gapped_pairs = np.sum(
+            np.any(msa_all_seq != MSA_GAP_IDX, axis=1))
+        num_non_gapped_pairs = np.minimum(
+            num_non_gapped_pairs, msa_crop_size_all_seq)
 
         # Restrict the unpaired crop size so that paired+unpaired sequences do not
         # exceed msa_seqs_per_chain for each chain.
-        max_msa_crop_size = np.maximum(msa_crop_size - num_non_gapped_pairs, 0)
-        msa_crop_size = np.minimum(msa_size, max_msa_crop_size)
+        max_msa_crop_size = np.maximum(
+            msa_crop_size - num_non_gapped_pairs, 0)
+        msa_crop_size = np.minimum(
+            msa_size, max_msa_crop_size)
     else:
         msa_crop_size = np.minimum(msa_size, msa_crop_size)
 
@@ -1191,7 +1251,8 @@ def _crop_single_chain(
             else:
                 chain[k] = chain[k][:msa_crop_size, :]
 
-    chain["num_alignments"] = np.asarray(msa_crop_size, dtype=np.int32)
+    chain["num_alignments"] = np.asarray(
+        msa_crop_size, dtype=np.int32)
     if pair_msa_sequences:
         chain["num_alignments_all_seq"] = np.asarray(
             msa_crop_size_all_seq, dtype=np.int32
@@ -1273,7 +1334,8 @@ def get_identifier_func(pairing_db: str) -> Callable:
     if pairing_db.startswith("uniprot"):
 
         def func(description: str) -> Identifiers:
-            sequence_identifier = _extract_sequence_identifier(description)
+            sequence_identifier = _extract_sequence_identifier(
+                description)
             if sequence_identifier is None:
                 return Identifiers()
             else:
@@ -1289,7 +1351,8 @@ def get_identifier_func(pairing_db: str) -> Callable:
                 and "/" in description
                 and (first_comp := description.split("/")[0]).count("_") == 2
             ):
-                identifier = Identifiers(species_id=first_comp.split("_")[-1])
+                identifier = Identifiers(
+                    species_id=first_comp.split("_")[-1])
             else:
                 identifier = Identifiers()
             return identifier
@@ -1310,7 +1373,8 @@ def run_msa_tool(
 ) -> Mapping[str, Any]:
     """Runs an MSA tool, checking if output already exists first."""
     if msa_format == "sto" and max_sto_sequences is not None:
-        result = msa_runner.query(fasta_path, max_sto_sequences)[0]
+        result = msa_runner.query(
+            fasta_path, max_sto_sequences)[0]
     else:
         result = msa_runner.query(fasta_path)[0]
 
@@ -1339,26 +1403,34 @@ def search_msa(sequence: str, db_fpath: str, res_fpath: str = ""):
     else:
         tmp_dir = os.path.dirname(res_fpath)
         os.makedirs(tmp_dir, exist_ok=True)
-    output_sto_path = os.path.join(tmp_dir, f"{seq_name}.sto")
+    output_sto_path = os.path.join(
+        tmp_dir, f"{seq_name}.sto")
     with open((tmp_fasta_path := f"{tmp_dir}/{seq_name}_{db_name}.fasta"), "w") as f:
         f.write(f">query\n")
         f.write(sequence)
 
-    logger.info(f"Searching MSA for {seq_name}\n. Will be saved to {output_sto_path}")
-    _ = run_msa_tool(msa_runner, tmp_fasta_path, output_sto_path, "sto")
+    logger.info(
+        f"Searching MSA for {seq_name}\n. Will be saved to {output_sto_path}")
+    _ = run_msa_tool(
+        msa_runner, tmp_fasta_path, output_sto_path, "sto")
     if not opexists(output_sto_path):
-        logger.info(f"Failed to search MSA for {sequence} from the database {db_fpath}")
+        logger.info(
+            f"Failed to search MSA for {sequence} from the database {db_fpath}")
         return
 
-    logger.info(f"Reformatting the MSA file. Will be saved to {res_fpath}")
+    logger.info(
+        f"Reformatting the MSA file. Will be saved to {res_fpath}")
 
     cmd = f"/opt/hhsuite/scripts/reformat.pl {output_sto_path} {res_fpath}"
     try:
-        subprocess.check_call(cmd, shell=True, executable="/bin/bash")
+        subprocess.check_call(
+            cmd, shell=True, executable="/bin/bash")
     except Exception as e:
-        logger.info(f"Reformatting failed:\n {e}\nRetry {cmd}...")
+        logger.info(
+            f"Reformatting failed:\n {e}\nRetry {cmd}...")
         time.sleep(1)
-        subprocess.check_call(cmd, shell=True, executable="/bin/bash")
+        subprocess.check_call(
+            cmd, shell=True, executable="/bin/bash")
     if not os.path.exists(res_fpath):
         logger.info(
             f"Failed to reformat the MSA file. Please check the validity of the .sto file{output_sto_path}"
@@ -1375,8 +1447,10 @@ def search_msa_paired(
     search_msa(sequence, pairing_db_fpath, pairing_file)
     if not os.path.exists(pairing_file):
         return None, idx
-    non_pairing_file = os.path.join(tmp_dir, "non_pairing.a3m")
-    search_msa(sequence, non_pairing_db_fpath, non_pairing_file)
+    non_pairing_file = os.path.join(
+        tmp_dir, "non_pairing.a3m")
+    search_msa(sequence, non_pairing_db_fpath,
+               non_pairing_file)
     if not os.path.exists(non_pairing_file):
         return None, idx
     else:
@@ -1390,7 +1464,8 @@ def msa_parallel(sequences: dict[int, tuple[str, str, str]]) -> dict[int, str]:
     results = []
     with ThreadPoolExecutor(max_workers=num_threads) as executor:
         futures = [
-            executor.submit(search_msa_paired, seq[0], seq[1], seq[2], idx)
+            executor.submit(
+                search_msa_paired, seq[0], seq[1], seq[2], idx)
             for idx, seq in sequences.items()
         ]
         # Wait for all threads to complete

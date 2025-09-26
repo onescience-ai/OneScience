@@ -12,7 +12,8 @@ def main(args):
     fixed_list = [
         [int(item) for item in one.split()] for one in args.position_list.split(",")
     ]
-    global_designed_chain_list = [str(item) for item in args.chain_list.split()]
+    global_designed_chain_list = [
+        str(item) for item in args.chain_list.split()]
     my_dict = {}
 
     if not args.specify_non_fixed:
@@ -36,8 +37,10 @@ def main(args):
             ]
             fixed_position_dict = {}
             for chain in all_chain_list:
-                seq_length = len(result[f"seq_chain_{chain}"])
-                all_residue_list = (np.arange(seq_length) + 1).tolist()
+                seq_length = len(
+                    result[f"seq_chain_{chain}"])
+                all_residue_list = (
+                    np.arange(seq_length) + 1).tolist()
                 if chain not in global_designed_chain_list:
                     fixed_position_dict[chain] = all_residue_list
                 else:
@@ -45,7 +48,8 @@ def main(args):
                         0
                     ]
                     fixed_position_dict[chain] = list(
-                        set(all_residue_list) - set(fixed_list[idx])
+                        set(all_residue_list) -
+                        set(fixed_list[idx])
                     )
             my_dict[result["name"]] = fixed_position_dict
 
@@ -60,7 +64,8 @@ if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    argparser.add_argument("--input_path", type=str, help="Path to the parsed PDBs")
+    argparser.add_argument(
+        "--input_path", type=str, help="Path to the parsed PDBs")
     argparser.add_argument(
         "--output_path", type=str, help="Path to the output dictionary"
     )

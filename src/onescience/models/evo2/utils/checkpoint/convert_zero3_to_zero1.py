@@ -55,13 +55,16 @@ def convert_zero_checkpoint_to_fp32_state_dict(
         FileNotFoundError: If the checkpoint directory does not exist.
     """
     ds_checkpoint_dir = (
-        os.path.join(checkpoint_dir, tag) if tag is not None else checkpoint_dir
+        os.path.join(
+            checkpoint_dir, tag) if tag is not None else checkpoint_dir
     )
 
     if not os.path.isdir(ds_checkpoint_dir):
-        raise FileNotFoundError(f"Directory '{ds_checkpoint_dir}' doesn't exist")
+        raise FileNotFoundError(
+            f"Directory '{ds_checkpoint_dir}' doesn't exist")
 
-    output_dir = os.path.join(output_dir, tag) if tag is not None else output_dir
+    output_dir = os.path.join(
+        output_dir, tag) if tag is not None else output_dir
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
@@ -78,7 +81,8 @@ def convert_zero_checkpoint_to_fp32_state_dict(
     else:
         ranks_to_process = list(range(mp_size))
 
-    print(f"Processing ranks: {ranks_to_process}", flush=True)
+    print(
+        f"Processing ranks: {ranks_to_process}", flush=True)
 
     start = time.time()
     if num_workers > 1:
@@ -135,7 +139,8 @@ if __name__ == "__main__":
         action="store_true",
         help="exclude frozen parameters",
     )
-    parser.add_argument("-d", "--debug", action="store_true", help="enable debug")
+    parser.add_argument(
+        "-d", "--debug", action="store_true", help="enable debug")
     parser.add_argument(
         "--mp_size",
         required=True,
@@ -168,7 +173,8 @@ if __name__ == "__main__":
             args.rank_start < args.rank_end
         ), "Expected start rank to be less than end rank"
         assert args.rank_start >= 0, "Expected start rank to be greater than 0"
-        args.ranks_to_process = list(range(args.rank_start, args.rank_end + 1))
+        args.ranks_to_process = list(
+            range(args.rank_start, args.rank_end + 1))
     else:
         args.ranks_to_process = list(range(args.mp_size))
 

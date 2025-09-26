@@ -10,11 +10,16 @@ def distributed_available() -> bool:
 class DistWrapper:
     def __init__(self) -> None:
         self.rank = int(os.environ.get("RANK", 0))
-        self.local_rank = int(os.environ.get("LOCAL_RANK", 0))
-        self.local_world_size = int(os.environ.get("LOCAL_WORLD_SIZE", 1))
-        self.world_size = int(os.environ.get("WORLD_SIZE", 1))
-        self.num_nodes = int(self.world_size // self.local_world_size)
-        self.node_rank = int(self.rank // self.local_world_size)
+        self.local_rank = int(
+            os.environ.get("LOCAL_RANK", 0))
+        self.local_world_size = int(
+            os.environ.get("LOCAL_WORLD_SIZE", 1))
+        self.world_size = int(
+            os.environ.get("WORLD_SIZE", 1))
+        self.num_nodes = int(
+            self.world_size // self.local_world_size)
+        self.node_rank = int(
+            self.rank // self.local_world_size)
 
     def all_gather_object(self, obj, group=None):
         """Function to gather objects from several distributed processes.
@@ -22,8 +27,10 @@ class DistWrapper:
         """
         if self.world_size > 1 and distributed_available():
             with torch.no_grad():
-                obj_list = [None for _ in range(self.world_size)]
-                torch.distributed.all_gather_object(obj_list, obj, group=group)
+                obj_list = [
+                    None for _ in range(self.world_size)]
+                torch.distributed.all_gather_object(
+                    obj_list, obj, group=group)
                 return obj_list
         else:
             return [obj]
@@ -53,6 +60,8 @@ def traverse_and_aggregate(dict_list, aggregation_func=None):
 
 def gather_and_merge(metrics, aggregation_func=None):
     """Gather metrics from ddp workers and aggregate leaf metrics."""
-    gathered_metrics = DIST_WRAPPER.all_gather_object(metrics)  # list of metrics
-    merged_metrics = traverse_and_aggregate(gathered_metrics, aggregation_func)
+    gathered_metrics = DIST_WRAPPER.all_gather_object(
+        metrics)  # list of metrics
+    merged_metrics = traverse_and_aggregate(
+        gathered_metrics, aggregation_func)
     return merged_metrics

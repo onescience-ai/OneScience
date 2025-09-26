@@ -48,7 +48,8 @@ class DistogramHead(hk.Module):
         )(pair_act)
 
         right_half_logits = left_half_logits
-        logits = left_half_logits + jnp.swapaxes(right_half_logits, -2, -3)
+        logits = left_half_logits + \
+            jnp.swapaxes(right_half_logits, -2, -3)
         probs = jax.nn.softmax(logits, axis=-1)
         breaks = jnp.linspace(
             self.config.first_break,
@@ -56,7 +57,8 @@ class DistogramHead(hk.Module):
             self.config.num_bins - 1,
         )
 
-        bin_tops = jnp.append(breaks, breaks[-1] + (breaks[-1] - breaks[-2]))
+        bin_tops = jnp.append(
+            breaks, breaks[-1] + (breaks[-1] - breaks[-2]))
         threshold = _CONTACT_THRESHOLD + _CONTACT_EPSILON
         is_contact_bin = 1.0 * (bin_tops <= threshold)
         contact_probs = jnp.einsum(

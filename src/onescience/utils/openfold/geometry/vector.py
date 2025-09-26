@@ -12,7 +12,8 @@ Float = Union[float, torch.Tensor]
 
 @dataclasses.dataclass(frozen=True)
 class Vec3Array:
-    x: torch.Tensor = dataclasses.field(metadata={"dtype": torch.float32})
+    x: torch.Tensor = dataclasses.field(
+        metadata={"dtype": torch.float32})
     y: torch.Tensor
     z: torch.Tensor
 
@@ -20,8 +21,10 @@ class Vec3Array:
         if hasattr(self.x, "dtype"):
             assert self.x.dtype == self.y.dtype
             assert self.x.dtype == self.z.dtype
-            assert all([x == y for x, y in zip(self.x.shape, self.y.shape)])
-            assert all([x == z for x, z in zip(self.x.shape, self.z.shape)])
+            assert all([x == y for x, y in zip(
+                self.x.shape, self.y.shape)])
+            assert all([x == z for x, z in zip(
+                self.x.shape, self.z.shape)])
 
     def __add__(self, other: Vec3Array) -> Vec3Array:
         return Vec3Array(
@@ -139,9 +142,12 @@ class Vec3Array:
     def zeros(cls, shape, device="cpu"):
         """Return Vec3Array corresponding to zeros of given shape."""
         return cls(
-            torch.zeros(shape, dtype=torch.float32, device=device),
-            torch.zeros(shape, dtype=torch.float32, device=device),
-            torch.zeros(shape, dtype=torch.float32, device=device),
+            torch.zeros(
+                shape, dtype=torch.float32, device=device),
+            torch.zeros(
+                shape, dtype=torch.float32, device=device),
+            torch.zeros(
+                shape, dtype=torch.float32, device=device),
         )
 
     def to_tensor(self) -> torch.Tensor:
@@ -213,7 +219,8 @@ def euclidean_distance(
         Array of euclidean distances;
         shape will be result of broadcasting 'vec1' and 'vec2'
     """
-    distance_sq = square_euclidean_distance(vec1, vec2, epsilon**2)
+    distance_sq = square_euclidean_distance(
+        vec1, vec2, epsilon**2)
     distance = torch.sqrt(distance_sq)
     return distance
 

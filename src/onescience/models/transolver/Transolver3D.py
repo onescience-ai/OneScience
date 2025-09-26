@@ -25,23 +25,30 @@ class Physics_Attention_Irregular_Mesh(nn.Module):
         self.scale = dim_head**-0.5
         self.softmax = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
-        self.temperature = nn.Parameter(torch.ones([1, heads, 1, 1]) * 0.5)
+        self.temperature = nn.Parameter(
+            torch.ones([1, heads, 1, 1]) * 0.5)
 
         self.in_project_x = nn.Linear(dim, inner_dim)
         self.in_project_fx = nn.Linear(dim, inner_dim)
-        self.in_project_slice = nn.Linear(dim_head, slice_num)
+        self.in_project_slice = nn.Linear(
+            dim_head, slice_num)
         for l in [self.in_project_slice]:
-            torch.nn.init.orthogonal_(l.weight)  # use a principled initialization
-        self.to_q = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_k = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_v = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_out = nn.Sequential(nn.Linear(inner_dim, dim), nn.Dropout(dropout))
+            # use a principled initialization
+            torch.nn.init.orthogonal_(l.weight)
+        self.to_q = nn.Linear(
+            dim_head, dim_head, bias=False)
+        self.to_k = nn.Linear(
+            dim_head, dim_head, bias=False)
+        self.to_v = nn.Linear(
+            dim_head, dim_head, bias=False)
+        self.to_out = nn.Sequential(
+            nn.Linear(inner_dim, dim), nn.Dropout(dropout))
 
     def forward(self, x):
         # B N C
         B, N, C = x.shape
 
-        ### (1) Slice
+        # (1) Slice
         fx_mid = (
             self.in_project_fx(x)
             .reshape(B, N, self.heads, self.dim_head)
@@ -58,22 +65,27 @@ class Physics_Attention_Irregular_Mesh(nn.Module):
             self.in_project_slice(x_mid) / self.temperature
         )  # B H N G
         slice_norm = slice_weights.sum(2)  # B H G
-        slice_token = torch.einsum("bhnc,bhng->bhgc", fx_mid, slice_weights)
+        slice_token = torch.einsum(
+            "bhnc,bhng->bhgc", fx_mid, slice_weights)
         slice_token = slice_token / (
-            (slice_norm + 1e-5)[:, :, :, None].repeat(1, 1, 1, self.dim_head)
+            (slice_norm + 1e-5)[:, :, :,
+                                None].repeat(1, 1, 1, self.dim_head)
         )
 
-        ### (2) Attention among slice tokens
+        # (2) Attention among slice tokens
         q_slice_token = self.to_q(slice_token)
         k_slice_token = self.to_k(slice_token)
         v_slice_token = self.to_v(slice_token)
-        dots = torch.matmul(q_slice_token, k_slice_token.transpose(-1, -2)) * self.scale
+        dots = torch.matmul(
+            q_slice_token, k_slice_token.transpose(-1, -2)) * self.scale
         attn = self.softmax(dots)
         attn = self.dropout(attn)
-        out_slice_token = torch.matmul(attn, v_slice_token)  # B H G D
+        out_slice_token = torch.matmul(
+            attn, v_slice_token)  # B H G D
 
-        ### (3) Deslice
-        out_x = torch.einsum("bhgc,bhng->bhnc", out_slice_token, slice_weights)
+        # (3) Deslice
+        out_x = torch.einsum(
+            "bhgc,bhng->bhnc", out_slice_token, slice_weights)
         out_x = rearrange(out_x, "b h n d -> b n (h d)")
         return self.to_out(out_x)
 
@@ -91,11 +103,13 @@ class MLP(nn.Module):
         self.n_output = n_output
         self.n_layers = n_layers
         self.res = res
-        self.linear_pre = nn.Sequential(nn.Linear(n_input, n_hidden), act())
+        self.linear_pre = nn.Sequential(
+            nn.Linear(n_input, n_hidden), act())
         self.linear_post = nn.Linear(n_hidden, n_output)
         self.linears = nn.ModuleList(
             [
-                nn.Sequential(nn.Linear(n_hidden, n_hidden), act())
+                nn.Sequential(
+                    nn.Linear(n_hidden, n_hidden), act())
                 for _ in range(n_layers)
             ]
         )
@@ -216,7 +230,8 @@ class Transolver3D(nn.Module):
         )
         self.initialize_weights()
         self.placeholder = nn.Parameter(
-            (1 / (n_hidden)) * torch.rand(n_hidden, dtype=torch.float)
+            (1 / (n_hidden)) *
+            torch.rand(n_hidden, dtype=torch.float)
         )
 
     def initialize_weights(self):
@@ -235,15 +250,18 @@ class Transolver3D(nn.Module):
         # my_pos 1 N 3
         batchsize = my_pos.shape[0]
 
-        gridx = torch.tensor(np.linspace(-1.5, 1.5, self.ref), dtype=torch.float)
+        gridx = torch.tensor(
+            np.linspace(-1.5, 1.5, self.ref), dtype=torch.float)
         gridx = gridx.reshape(1, self.ref, 1, 1, 1).repeat(
             [batchsize, 1, self.ref, self.ref, 1]
         )
-        gridy = torch.tensor(np.linspace(0, 2, self.ref), dtype=torch.float)
+        gridy = torch.tensor(np.linspace(
+            0, 2, self.ref), dtype=torch.float)
         gridy = gridy.reshape(1, 1, self.ref, 1, 1).repeat(
             [batchsize, self.ref, 1, self.ref, 1]
         )
-        gridz = torch.tensor(np.linspace(-4, 4, self.ref), dtype=torch.float)
+        gridz = torch.tensor(
+            np.linspace(-4, 4, self.ref), dtype=torch.float)
         gridz = gridz.reshape(1, 1, 1, self.ref, 1).repeat(
             [batchsize, self.ref, self.ref, 1, 1]
         )
@@ -269,7 +287,8 @@ class Transolver3D(nn.Module):
         x, fx, T = cfd_data.x, None, None
         x = x[None, :, :]
         if self.unified_pos:
-            new_pos = self.get_grid(cfd_data.pos[None, :, :])
+            new_pos = self.get_grid(
+                cfd_data.pos[None, :, :])
             x = torch.cat((x, new_pos), dim=-1)
 
         if fx is not None:

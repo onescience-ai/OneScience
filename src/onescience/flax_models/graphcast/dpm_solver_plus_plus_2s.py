@@ -91,8 +91,10 @@ class Sampler(base.Sampler):
         dtype = casting.infer_floating_dtype(
             targets_template
         )  # pytype: disable=wrong-arg-types
-        noise_levels = jnp.array(self._noise_levels).astype(dtype)
-        per_step_churn_rates = jnp.array(self._per_step_churn_rates).astype(dtype)
+        noise_levels = jnp.array(
+            self._noise_levels).astype(dtype)
+        per_step_churn_rates = jnp.array(
+            self._per_step_churn_rates).astype(dtype)
 
         def denoiser(noise_level: jnp.ndarray, x: xarray.Dataset) -> xarray.Dataset:
             """Computes D(x, sigma, y)."""
@@ -129,7 +131,8 @@ class Sampler(base.Sampler):
             # cost the memory savings can be significant.
             # TODO(dominicmasters): Figure out if we can merge the two noise sampler
             # calls into one to avoid this hack.
-            maybe_init_noise = (i == 0).astype(noise_levels[0].dtype)
+            maybe_init_noise = (i == 0).astype(
+                noise_levels[0].dtype)
             x = x + init_noise(x) * maybe_init_noise
 
             noise_level = noise_levels[i]
@@ -158,19 +161,22 @@ class Sampler(base.Sampler):
             # This is s_{i+1} from the paper. They don't explain how the s_i are
             # chosen, but the default choice seems to be a geometric mean, which is
             # equivalent to setting all the r_i = 1/2.
-            mid_noise_level = jnp.sqrt(noise_level * next_noise_level)
+            mid_noise_level = jnp.sqrt(
+                noise_level * next_noise_level)
 
             mid_over_current = mid_noise_level / noise_level
             x_denoised = denoiser(noise_level, x)
             # This turns out to be a convex combination of current and denoised x,
             # which isn't entirely apparent from the paper formulae:
-            x_mid = mid_over_current * x + (1 - mid_over_current) * x_denoised
+            x_mid = mid_over_current * x + \
+                (1 - mid_over_current) * x_denoised
 
             next_over_current = next_noise_level / noise_level
             x_mid_denoised = denoiser(
                 mid_noise_level, x_mid
             )  # pytype: disable=wrong-arg-types
-            x_next = next_over_current * x + (1 - next_over_current) * x_mid_denoised
+            x_next = next_over_current * x + \
+                (1 - next_over_current) * x_mid_denoised
 
             # For the final step to noise level 0, we do an Euler update which
             # corresponds to just returning the denoiser's prediction directly.

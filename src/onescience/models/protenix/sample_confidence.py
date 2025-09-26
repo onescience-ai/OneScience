@@ -20,7 +20,8 @@ def merge_per_sample_confidence_scores(summary_confidence_list: list[dict]) -> d
 
     def stack_score(tensor_list: list):
         if tensor_list[0].dim() == 0:
-            tensor_list = [x.unsqueeze(0) for x in tensor_list]
+            tensor_list = [x.unsqueeze(
+                0) for x in tensor_list]
         score = torch.stack(tensor_list, dim=0)
         return score
 
@@ -85,7 +86,8 @@ def _compute_full_data_and_summary(
         pde_logits, **get_bin_params(configs.loss.pde)
     )  # [N_s, N_token, N_token]
     del pde_logits
-    full_data["contact_probs"] = contact_probs.clone()  # [N_token, N_token]
+    # [N_token, N_token]
+    full_data["contact_probs"] = contact_probs.clone()
     pae_logits = pae_logits.to(plddt_logits.device)
     full_data["token_pair_pae"], pae_prob = logits_to_score(
         pae_logits, **get_bin_params(configs.loss.pae), return_prob=True
@@ -93,9 +95,11 @@ def _compute_full_data_and_summary(
     del pae_logits
 
     summary_confidence = {}
-    summary_confidence["plddt"] = full_data["atom_plddt"].mean(dim=-1) * 100  # [N_s, ]
+    summary_confidence["plddt"] = full_data["atom_plddt"].mean(
+        dim=-1) * 100  # [N_s, ]
     summary_confidence["gpde"] = (
-        full_data["token_pair_pde"] * full_data["contact_probs"]
+        full_data["token_pair_pde"] *
+        full_data["contact_probs"]
     ).sum(dim=[-1, -2]) / full_data["contact_probs"].sum(dim=[-1, -2])
 
     summary_confidence["ptm"] = calculate_ptm(
@@ -144,7 +148,8 @@ def _compute_full_data_and_summary(
         N_recycle, device=atom_coordinate.device
     )
     # TODO: disorder
-    summary_confidence["disorder"] = torch.zeros_like(summary_confidence["ptm"])
+    summary_confidence["disorder"] = torch.zeros_like(
+        summary_confidence["ptm"])
     summary_confidence["ranking_score"] = (
         0.8 * summary_confidence["iptm"]
         + 0.2 * summary_confidence["ptm"]
@@ -152,7 +157,8 @@ def _compute_full_data_and_summary(
         - 100 * summary_confidence["has_clash"]
     )
     if interested_atom_mask is not None:
-        token_idx = atom_to_token_idx[interested_atom_mask[0].bool()].long()
+        token_idx = atom_to_token_idx[interested_atom_mask[0].bool(
+        )].long()
         asym_ids = token_asym_id[token_idx]
         assert len(torch.unique(asym_ids)) == 1
         interested_asym_id = asym_ids[0].item()
@@ -173,11 +179,13 @@ def _compute_full_data_and_summary(
             )
             N_sample = atom_coordinate.shape[0]
             vdw_clash_per_sample_flag = (
-                vdw_clash[:, interested_asym_id, :].reshape(N_sample, -1).max(dim=-1)[0]
+                vdw_clash[:, interested_asym_id, :].reshape(
+                    N_sample, -1).max(dim=-1)[0]
             )
             summary_confidence["has_vdw_pl_clash"] = vdw_clash_per_sample_flag
             summary_confidence["pb_ranking_score_vdw_penalized"] = (
-                summary_confidence["pb_ranking_score"] - 100 * vdw_clash_per_sample_flag
+                summary_confidence["pb_ranking_score"] -
+                100 * vdw_clash_per_sample_flag
             )
 
     summary_confidence = break_down_to_per_sample_dict(
@@ -239,7 +247,8 @@ def compute_contact_prob(
     distogram_prob = torch.nn.functional.softmax(
         distogram_logits, dim=-1
     )  # [N_token, N_token, N_bins]
-    distogram_bins = get_bin_centers(min_bin, max_bin, no_bins)
+    distogram_bins = get_bin_centers(
+        min_bin, max_bin, no_bins)
     thres_idx = (distogram_bins < thres).sum()
     contact_prob = distogram_prob[..., :thres_idx].sum(-1)
     return contact_prob
@@ -297,7 +306,8 @@ def logits_to_score(
             Shape: [..., no_bins]
     """
     prob = logits_to_prob(logits, dim=-1)
-    bin_centers = get_bin_centers(min_bin, max_bin, no_bins).to(logits.device)
+    bin_centers = get_bin_centers(
+        min_bin, max_bin, no_bins).to(logits.device)
     score = prob @ bin_centers
     if return_prob:
         return score, prob
@@ -341,7 +351,8 @@ def calculate_vdw_clash(
         torch.Tensor: VDW clash summary.
             Shape: [N_sample]
     """
-    clash_calculator = Clash(vdw_clash_threshold=threshold, compute_af3_clash=False)
+    clash_calculator = Clash(
+        vdw_clash_threshold=threshold, compute_af3_clash=False)
     # Check ligand-polymer VDW clash
     pred_coordinate.shape[0]
     dummy_is_dna = torch.zeros_like(is_polymer)
@@ -382,7 +393,8 @@ def calculate_clash(
     N_sample = pred_coordinate.shape[0]
     dummy_is_dna = torch.zeros_like(is_polymer)
     dummy_is_rna = torch.zeros_like(is_polymer)
-    clash_calculator = Clash(vdw_clash_threshold=threshold, compute_vdw_clash=False)
+    clash_calculator = Clash(
+        vdw_clash_threshold=threshold, compute_vdw_clash=False)
     clash_dict = clash_calculator(
         pred_coordinate,
         asym_id,
@@ -440,9 +452,12 @@ def calculate_ptm(
         pae_prob.device
     )  # [N_bins]
 
-    token_token_ptm = (pae_prob * per_bin_weight).sum(dim=-1)  # [..., N_d, N_d]
+    # [..., N_d, N_d]
+    token_token_ptm = (
+        pae_prob * per_bin_weight).sum(dim=-1)
 
-    ptm = token_token_ptm.mean(dim=-1)[..., has_frame].max(dim=-1).values
+    ptm = token_token_ptm.mean(
+        dim=-1)[..., has_frame].max(dim=-1).values
     return ptm
 
 
@@ -481,7 +496,8 @@ def calculate_chain_based_ptm(
 
     has_frame = has_frame.bool()
     asym_id = asym_id.long()
-    asym_id_to_asym_mask = {aid.item(): asym_id == aid for aid in torch.unique(asym_id)}
+    asym_id_to_asym_mask = {
+        aid.item(): asym_id == aid for aid in torch.unique(asym_id)}
     chain_is_ligand = {
         aid.item(): token_is_ligand[asym_id == aid].sum() >= (asym_id == aid).sum() // 2
         for aid in torch.unique(asym_id)
@@ -500,9 +516,11 @@ def calculate_chain_based_ptm(
             if aid_1 == aid_2:
                 continue
             if aid_1 > aid_2:
-                chain_pair_iptm[:, aid_1, aid_2] = chain_pair_iptm[:, aid_2, aid_1]
+                chain_pair_iptm[:, aid_1,
+                                aid_2] = chain_pair_iptm[:, aid_2, aid_1]
                 continue
-            pair_mask = asym_id_to_asym_mask[aid_1] + asym_id_to_asym_mask[aid_2]
+            pair_mask = asym_id_to_asym_mask[aid_1] + \
+                asym_id_to_asym_mask[aid_2]
             chain_pair_iptm[:, aid_1, aid_2] = calculate_iptm(
                 pae_prob,
                 has_frame,
@@ -514,7 +532,8 @@ def calculate_chain_based_ptm(
             )
 
     # chain_ptm
-    chain_ptm = torch.zeros(size=batch_shape + (N_chain,)).to(pae_prob.device)
+    chain_ptm = torch.zeros(
+        size=batch_shape + (N_chain,)).to(pae_prob.device)
     for aid, asym_mask in asym_id_to_asym_mask.items():
         chain_ptm[:, aid] = calculate_ptm(
             pae_prob,
@@ -530,7 +549,8 @@ def calculate_chain_based_ptm(
         (asym_id_to_asym_mask[i] * has_frame).any() for i in range(N_chain)
     ]
 
-    chain_iptm = torch.zeros(size=batch_shape + (N_chain,)).to(pae_prob.device)
+    chain_iptm = torch.zeros(
+        size=batch_shape + (N_chain,)).to(pae_prob.device)
     for aid, asym_mask in asym_id_to_asym_mask.items():
         pairs = [
             (i, j)
@@ -538,9 +558,11 @@ def calculate_chain_based_ptm(
             for j in range(N_chain)
             if (i == aid or j == aid) and (i != j) and chain_has_frame[i]
         ]
-        vals = [chain_pair_iptm[:, i, j] for (i, j) in pairs]
+        vals = [chain_pair_iptm[:, i, j]
+                for (i, j) in pairs]
         if len(vals) > 0:
-            chain_iptm[:, aid] = torch.stack(vals, dim=-1).mean(dim=-1)
+            chain_iptm[:, aid] = torch.stack(
+                vals, dim=-1).mean(dim=-1)
 
     # Chain_pair_iptm_global
     chain_pair_iptm_global = torch.zeros(size=batch_shape + (N_chain, N_chain)).to(
@@ -551,12 +573,15 @@ def calculate_chain_based_ptm(
             if aid_1 == aid_2:
                 continue
             if chain_is_ligand[aid_1]:
-                chain_pair_iptm_global[:, aid_1, aid_2] = chain_iptm[:, aid_1]
+                chain_pair_iptm_global[:, aid_1,
+                                       aid_2] = chain_iptm[:, aid_1]
             elif chain_is_ligand[aid_2]:
-                chain_pair_iptm_global[:, aid_1, aid_2] = chain_iptm[:, aid_2]
+                chain_pair_iptm_global[:, aid_1,
+                                       aid_2] = chain_iptm[:, aid_2]
             else:
                 chain_pair_iptm_global[:, aid_1, aid_2] = (
-                    chain_iptm[:, aid_1] + chain_iptm[:, aid_2]
+                    chain_iptm[:, aid_1] +
+                    chain_iptm[:, aid_2]
                 ) * 0.5
 
     return {
@@ -591,20 +616,24 @@ def calculate_chain_based_gpde(
     asym_id = asym_id.long()
     unique_asym_ids = torch.unique(asym_id)
     N_chain = len(unique_asym_ids)
-    assert N_chain == asym_id.max() + 1  # make sure it is from 0 to N_chain-1
+    # make sure it is from 0 to N_chain-1
+    assert N_chain == asym_id.max() + 1
 
     batch_shape = token_pair_pde.shape[:-2]
     device = token_pair_pde.device
 
     def _cal_gpde(token_mask_1, token_mask_2):
-        masked_contact_probs = contact_probs[..., token_mask_1, :][..., token_mask_2]
-        masked_pde = token_pair_pde[..., token_mask_1, :][..., token_mask_2]
+        masked_contact_probs = contact_probs[...,
+                                             token_mask_1, :][..., token_mask_2]
+        masked_pde = token_pair_pde[...,
+                                    token_mask_1, :][..., token_mask_2]
         return (masked_pde * masked_contact_probs).sum(dim=(-1, -2)) / (
             masked_contact_probs.sum(dim=(-1, -2)) + eps
         )
 
     # Chain_gpde
-    chain_gpde = torch.zeros(size=batch_shape + (N_chain,), device=device)
+    chain_gpde = torch.zeros(
+        size=batch_shape + (N_chain,), device=device)
     for aid in range(N_chain):
         chain_gpde[..., aid] = _cal_gpde(
             token_mask_1=asym_id == aid,
@@ -612,13 +641,15 @@ def calculate_chain_based_gpde(
         )
 
     # Chain_pair_pde
-    chain_pair_gpde = torch.zeros(size=batch_shape + (N_chain, N_chain), device=device)
+    chain_pair_gpde = torch.zeros(
+        size=batch_shape + (N_chain, N_chain), device=device)
     for aid_1 in range(N_chain):
         for aid_2 in range(N_chain):
             if aid_1 == aid_2:
                 continue
             if aid_2 < aid_1:
-                chain_pair_gpde[..., aid_1, aid_2] = chain_pair_gpde[..., aid_2, aid_1]
+                chain_pair_gpde[..., aid_1,
+                                aid_2] = chain_pair_gpde[..., aid_2, aid_1]
                 continue
             chain_pair_gpde[..., aid_1, aid_2] = _cal_gpde(
                 token_mask_1=asym_id == aid_1,
@@ -651,9 +682,11 @@ def calculate_chain_based_plddt(
     """
 
     asym_id = asym_id.long()
-    asym_id_to_asym_mask = {aid.item(): asym_id == aid for aid in torch.unique(asym_id)}
+    asym_id_to_asym_mask = {
+        aid.item(): asym_id == aid for aid in torch.unique(asym_id)}
     N_chain = len(asym_id_to_asym_mask)
-    assert N_chain == asym_id.max() + 1  # make sure it is from 0 to N_chain-1
+    # make sure it is from 0 to N_chain-1
+    assert N_chain == asym_id.max() + 1
 
     def _calculate_lddt_with_token_mask(token_mask):
         atom_mask = token_mask[atom_to_token_idx]
@@ -662,9 +695,11 @@ def calculate_chain_based_plddt(
 
     batch_shape = atom_plddt.shape[:-1]
     # Chain_plddt
-    chain_plddt = torch.zeros(size=batch_shape + (N_chain,)).to(atom_plddt.device)
+    chain_plddt = torch.zeros(
+        size=batch_shape + (N_chain,)).to(atom_plddt.device)
     for aid, asym_mask in asym_id_to_asym_mask.items():
-        chain_plddt[:, aid] = _calculate_lddt_with_token_mask(token_mask=asym_mask)
+        chain_plddt[:, aid] = _calculate_lddt_with_token_mask(
+            token_mask=asym_mask)
 
     # Chain_pair_plddt
     chain_pair_plddt = torch.zeros(size=batch_shape + (N_chain, N_chain)).to(
@@ -674,7 +709,8 @@ def calculate_chain_based_plddt(
         for aid_2 in asym_id_to_asym_mask:
             if aid_1 == aid_2:
                 continue
-            pair_mask = asym_id_to_asym_mask[aid_1] + asym_id_to_asym_mask[aid_2]
+            pair_mask = asym_id_to_asym_mask[aid_1] + \
+                asym_id_to_asym_mask[aid_2]
             chain_pair_plddt[:, aid_1, aid_2] = _calculate_lddt_with_token_mask(
                 token_mask=pair_mask
             )
@@ -733,9 +769,12 @@ def calculate_iptm(
         pae_prob.device
     )  # [N_bins]
 
-    token_token_ptm = (pae_prob * per_bin_weight).sum(dim=-1)  # [..., N_d, N_d]
+    # [..., N_d, N_d]
+    token_token_ptm = (
+        pae_prob * per_bin_weight).sum(dim=-1)
 
-    is_diff_chain = asym_id[None, :] != asym_id[:, None]  # [N_d, N_d]
+    # [N_d, N_d]
+    is_diff_chain = asym_id[None, :] != asym_id[:, None]
 
     iptm = (token_token_ptm * is_diff_chain).sum(dim=-1) / (
         eps + is_diff_chain.sum(dim=-1)
@@ -756,7 +795,8 @@ def break_down_to_per_sample_dict(input_dict: dict, shared_keys=[]) -> list[dict
     Returns:
         list[dict]: List of dictionaries, each containing data for a single sample.
     """
-    per_sample_keys = [key for key in input_dict if key not in shared_keys]
+    per_sample_keys = [
+        key for key in input_dict if key not in shared_keys]
     assert len(per_sample_keys) > 0
     N_sample = input_dict[per_sample_keys[0]].size(0)
     for key in per_sample_keys:
@@ -764,8 +804,10 @@ def break_down_to_per_sample_dict(input_dict: dict, shared_keys=[]) -> list[dict
 
     per_sample_dict_list = []
     for i in range(N_sample):
-        sample_dict = {key: input_dict[key][i] for key in per_sample_keys}
-        sample_dict.update({key: input_dict[key] for key in shared_keys})
+        sample_dict = {
+            key: input_dict[key][i] for key in per_sample_keys}
+        sample_dict.update(
+            {key: input_dict[key] for key in shared_keys})
         per_sample_dict_list.append(sample_dict)
 
     return per_sample_dict_list
@@ -794,11 +836,13 @@ def compute_full_data_and_summary(
     N_sample = pae_logits.size(0)
     if contact_probs.dim() == 2:
         # Convert to [N_sample, N_token, N_token]
-        contact_probs = contact_probs.unsqueeze(dim=0).expand(N_sample, -1, -1)
+        contact_probs = contact_probs.unsqueeze(
+            dim=0).expand(N_sample, -1, -1)
     else:
         assert contact_probs.dim() == 3
     assert (
-        contact_probs.size(0) == plddt_logits.size(0) == pde_logits.size(0) == N_sample
+        contact_probs.size(0) == plddt_logits.size(
+            0) == pde_logits.size(0) == N_sample
     )
 
     summary_confidence = []
@@ -806,13 +850,13 @@ def compute_full_data_and_summary(
     for i in range(N_sample):
         summary_confidence_i, full_data_i = _compute_full_data_and_summary(
             configs=configs,
-            pae_logits=pae_logits[i : i + 1],
-            plddt_logits=plddt_logits[i : i + 1],
-            pde_logits=pde_logits[i : i + 1],
+            pae_logits=pae_logits[i: i + 1],
+            plddt_logits=plddt_logits[i: i + 1],
+            pde_logits=pde_logits[i: i + 1],
             contact_probs=contact_probs[i],
             token_asym_id=token_asym_id,
             token_has_frame=token_has_frame,
-            atom_coordinate=atom_coordinate[i : i + 1],
+            atom_coordinate=atom_coordinate[i: i + 1],
             atom_to_token_idx=atom_to_token_idx,
             atom_is_polymer=atom_is_polymer,
             N_recycle=N_recycle,

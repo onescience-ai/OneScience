@@ -23,7 +23,8 @@ def transform_ls(
       Matrix A transforming x into b, i.e. s.t. Ax^T = b^T.
     """
     assert x.shape[1] >= b.shape[1]
-    assert b.shape[0] == x.shape[0], "%d, %d" % (b.shape[0], x.shape[0])
+    assert b.shape[0] == x.shape[0], "%d, %d" % (
+        b.shape[0], x.shape[0])
     # First postmultiply by x.;
     # Axx^t = b x^t
     bxt = np.dot(b.transpose(), x) / b.shape[0]
@@ -77,8 +78,10 @@ def align(
     centered_x = x - x_mean
     centered_y = y - y_mean
 
-    t = transform_ls(centered_x[x_indices, :], centered_y[y_indices, :])
-    transformed_x = np.dot(centered_x, t.transpose()) + y_mean
+    t = transform_ls(
+        centered_x[x_indices, :], centered_y[y_indices, :])
+    transformed_x = np.dot(
+        centered_x, t.transpose()) + y_mean
 
     return transformed_x
 

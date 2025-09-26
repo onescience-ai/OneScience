@@ -113,21 +113,26 @@ def clean_structure(
     # Drop chains without specified sequences.
     if drop_missing_sequence:
         chains_with_unk_sequence = struc.find_chains_with_unknown_sequence()
-        num_with_unk_sequence = len(chains_with_unk_sequence)
+        num_with_unk_sequence = len(
+            chains_with_unk_sequence)
         if chains_with_unk_sequence:
-            struc = struc.filter_out(chain_id=chains_with_unk_sequence)
+            struc = struc.filter_out(
+                chain_id=chains_with_unk_sequence)
     else:
         num_with_unk_sequence = 0
     metadata["num_with_unk_sequence"] = num_with_unk_sequence
 
     # Remove intersecting chains.
     if filter_clashes and struc.num_chains > 1:
-        clashing_chains = sterics.find_clashing_chains(struc)
+        clashing_chains = sterics.find_clashing_chains(
+            struc)
         if clashing_chains:
-            struc = struc.filter_out(chain_id=clashing_chains)
+            struc = struc.filter_out(
+                chain_id=clashing_chains)
     else:
         clashing_chains = []
-    metadata["num_clashing_chains_removed"] = len(clashing_chains)
+    metadata["num_clashing_chains_removed"] = len(
+        clashing_chains)
     metadata["chains_removed"] = clashing_chains
 
     # Drop non-standard atoms
@@ -143,7 +148,8 @@ def clean_structure(
         struc = struc.without_hydrogen()
 
     if filter_waters:
-        struc = struc.filter_out(chain_type=mmcif_names.WATER)
+        struc = struc.filter_out(
+            chain_type=mmcif_names.WATER)
 
     if filter_leaving_atoms:
         drop_leaving_atoms_all = struc.chain_id != struc.chain_id
@@ -171,7 +177,8 @@ def clean_structure(
             )
         else:
             substruct = struc.group_by_residue
-            glycan_mask = np.isin(substruct.res_name, list(all_glycans))
+            glycan_mask = np.isin(
+                substruct.res_name, list(all_glycans))
             substruct = substruct.filter(glycan_mask)
             # We need to iterate over all glycan residues for this.
             for res in substruct.iter_residues():
@@ -230,12 +237,15 @@ def clean_structure(
                     continue
             if remove_bad_bonds:
                 dest_coords = np.array(
-                    [dest_atom["atom_x"], dest_atom["atom_y"], dest_atom["atom_z"]]
+                    [dest_atom["atom_x"], dest_atom["atom_y"],
+                        dest_atom["atom_z"]]
                 )
                 from_coords = np.array(
-                    [from_atom["atom_x"], from_atom["atom_y"], from_atom["atom_z"]]
+                    [from_atom["atom_x"], from_atom["atom_y"],
+                        from_atom["atom_z"]]
                 )
-                squared_dist = np.sum(np.square(dest_coords - from_coords))
+                squared_dist = np.sum(
+                    np.square(dest_coords - from_coords))
                 squared_threshold = 2.4 * 2.4
                 if squared_dist > squared_threshold:
                     num_bad_bonds += 1
@@ -256,7 +266,8 @@ def clean_structure(
                 # Need to index bonds with bond keys or arrays of bools with same length
                 # as num bonds. In this case, we use array of bools (as elsewhere in the
                 # cleaning code).
-                new_bonds = struc.bonds[np.array(include_bond, dtype=bool)]
+                new_bonds = struc.bonds[np.array(
+                    include_bond, dtype=bool)]
             else:
                 new_bonds = structure.Bonds.make_empty()
             struc = struc.copy_and_update(bonds=new_bonds)
@@ -274,12 +285,16 @@ def clean_structure(
                 from_atom_idxs, dest_atom_idxs = struc.bonds.get_atom_indices(
                     struc.atom_key
                 )
-                poly_chain_types = list(mmcif_names.POLYMER_CHAIN_TYPES)
+                poly_chain_types = list(
+                    mmcif_names.POLYMER_CHAIN_TYPES)
                 is_polymer_bond = np.logical_or(
-                    np.isin(struc.chain_type[from_atom_idxs], poly_chain_types),
-                    np.isin(struc.chain_type[dest_atom_idxs], poly_chain_types),
+                    np.isin(
+                        struc.chain_type[from_atom_idxs], poly_chain_types),
+                    np.isin(
+                        struc.chain_type[dest_atom_idxs], poly_chain_types),
                 )
-                struc = struc.copy_and_update(bonds=struc.bonds[~is_polymer_bond])
+                struc = struc.copy_and_update(
+                    bonds=struc.bonds[~is_polymer_bond])
 
     return struc, metadata
 
@@ -319,8 +334,10 @@ def create_empty_output_struc_and_layout(
         ):
             bonded_atom_pairs.append(
                 (
-                    (chain_ids[0], res_ids[0], atom_names[0]),
-                    (chain_ids[1], res_ids[1], atom_names[1]),
+                    (chain_ids[0], res_ids[0],
+                     atom_names[0]),
+                    (chain_ids[1], res_ids[1],
+                     atom_names[1]),
                 )
             )
     if ligand_ligand_bonds:
@@ -332,11 +349,14 @@ def create_empty_output_struc_and_layout(
         ):
             bonded_atom_pairs.append(
                 (
-                    (chain_ids[0], res_ids[0], atom_names[0]),
-                    (chain_ids[1], res_ids[1], atom_names[1]),
+                    (chain_ids[0], res_ids[0],
+                     atom_names[0]),
+                    (chain_ids[1], res_ids[1],
+                     atom_names[1]),
                 )
             )
-    residues = atom_layout.residues_from_structure(struc, include_missing_residues=True)
+    residues = atom_layout.residues_from_structure(
+        struc, include_missing_residues=True)
 
     flat_output_layout = atom_layout.make_flat_atom_layout(
         residues,
@@ -350,7 +370,8 @@ def create_empty_output_struc_and_layout(
 
     empty_output_struc = atom_layout.make_structure(
         flat_layout=flat_output_layout,
-        atom_coords=np.zeros((flat_output_layout.shape[0], 3)),
+        atom_coords=np.zeros(
+            (flat_output_layout.shape[0], 3)),
         name=struc.name,
         atom_b_factors=None,
         all_physical_residues=residues,

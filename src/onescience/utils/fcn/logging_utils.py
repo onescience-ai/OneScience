@@ -33,7 +33,9 @@ def log_versions():
 
     logging.info("--------------- Versions ---------------")
     logging.info(
-        "git branch: " + str(subprocess.check_output(["git", "branch"]).strip())
+        "git branch: " +
+        str(subprocess.check_output(
+            ["git", "branch"]).strip())
     )
     logging.info(
         "git hash: "

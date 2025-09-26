@@ -83,7 +83,8 @@ class eSCNMDMoeBackbone(eSCNMDBackbone, MOLEInterface):
             csd_mixed_emb=csd_mixed_emb,
         )
         if self.mole_type != "so2":
-            raise ValueError("Only mole_type=so2 supported for merging")
+            raise ValueError(
+                "Only mole_type=so2 supported for merging")
 
         model_search_and_replace(
             self, recursive_replace_so2_MOLE, replace_MOLE_with_linear
@@ -106,7 +107,8 @@ class eSCNMDMoeBackbone(eSCNMDBackbone, MOLEInterface):
         with torch.autocast(device_type=atomic_numbers_full.device.type, enabled=False):
             embeddings = []
             if self.use_composition_embedding:
-                composition_by_atom = self.composition_embedding(atomic_numbers_full)
+                composition_by_atom = self.composition_embedding(
+                    atomic_numbers_full)
                 composition = composition_by_atom.new_zeros(
                     csd_mixed_emb.shape[0],
                     self.sphere_channels,
@@ -115,7 +117,8 @@ class eSCNMDMoeBackbone(eSCNMDBackbone, MOLEInterface):
                     batch_full,
                     composition_by_atom,
                     reduce="mean",
-                    include_self=np.isclose(self.model_version, 1.0).item(),
+                    include_self=np.isclose(
+                        self.model_version, 1.0).item(),
                 )
                 embeddings.append(composition.unsqueeze(0))
             embeddings.append(csd_mixed_emb[None])
@@ -127,7 +130,8 @@ class eSCNMDMoeBackbone(eSCNMDBackbone, MOLEInterface):
             )
             self.global_mole_tensors.expert_mixing_coefficients = (
                 self.mole_expert_coefficient_norm(
-                    self.mole_dropout(expert_mixing_coefficients_before_norm)
+                    self.mole_dropout(
+                        expert_mixing_coefficients_before_norm)
                 )
             )
 
@@ -205,7 +209,8 @@ class DatasetSpecificMoEWrapper(nn.Module, HeadInterface):
         self.dataset_name_to_exp = {
             value: idx for idx, value in enumerate(self.dataset_names)
         }
-        self.head = registry.get_model_class(head_cls)(backbone, **head_kwargs)
+        self.head = registry.get_model_class(
+            head_cls)(backbone, **head_kwargs)
         # replace all linear layers in the head with MOLE
         self.global_mole_tensors = MOLEGlobals(
             expert_mixing_coefficients=None, mole_sizes=None
@@ -217,7 +222,8 @@ class DatasetSpecificMoEWrapper(nn.Module, HeadInterface):
             mole_layer_type="pytorch",
             cache=None,
         )
-        recursive_replace_all_linear(self.head, replacement_factory)
+        recursive_replace_all_linear(
+            self.head, replacement_factory)
 
     @conditional_grad(torch.enable_grad())
     def forward(self, data, emb: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
@@ -268,7 +274,8 @@ class DatasetSpecificMoEWrapper(nn.Module, HeadInterface):
                     else:  # assume atoms are the first dimension
                         atoms_mask = torch.isin(
                             data_batch_full,
-                            torch.where(torch.from_numpy(dataset_mask))[0],
+                            torch.where(
+                                torch.from_numpy(dataset_mask))[0],
                         )
                         output_tensor[atoms_mask] = mole_output_tensor[atoms_mask]
                 full_output[f"{dataset_name}_{key}"] = (
@@ -291,7 +298,8 @@ class DatasetSpecificSingleHeadWrapper(nn.Module, HeadInterface):
         self.wrap_property = wrap_property
 
         self.dataset_names = sorted(dataset_names)
-        self.head = registry.get_model_class(head_cls)(backbone, **head_kwargs)
+        self.head = registry.get_model_class(
+            head_cls)(backbone, **head_kwargs)
 
     @conditional_grad(torch.enable_grad())
     def forward(self, data, emb: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
@@ -320,7 +328,8 @@ class DatasetSpecificSingleHeadWrapper(nn.Module, HeadInterface):
                     else:  # assume atoms are the first dimension
                         atoms_mask = torch.isin(
                             data_batch_full,
-                            torch.where(torch.from_numpy(dataset_mask))[0],
+                            torch.where(
+                                torch.from_numpy(dataset_mask))[0],
                         )
                         output_tensor[atoms_mask] = head_output_tensor[atoms_mask]
                 full_output[f"{dataset_name}_{key}"] = (

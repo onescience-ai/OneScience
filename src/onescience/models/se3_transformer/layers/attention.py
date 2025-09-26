@@ -61,8 +61,10 @@ class AttentionSE3(nn.Module):
 
     def forward(
         self,
-        value: Union[Tensor, Dict[str, Tensor]],  # edge features (may be fused)
-        key: Union[Tensor, Dict[str, Tensor]],  # edge features (may be fused)
+        # edge features (may be fused)
+        value: Union[Tensor, Dict[str, Tensor]],
+        # edge features (may be fused)
+        key: Union[Tensor, Dict[str, Tensor]],
         query: Dict[str, Tensor],  # node features
         graph: DGLGraph,
     ):
@@ -70,36 +72,47 @@ class AttentionSE3(nn.Module):
             with nvtx_range("reshape keys and queries"):
                 if isinstance(key, Tensor):
                     # case where features of all types are fused
-                    key = key.reshape(key.shape[0], self.num_heads, -1)
+                    key = key.reshape(
+                        key.shape[0], self.num_heads, -1)
                     # need to reshape queries that way to keep the same layout as keys
                     out = torch.cat(
                         [query[str(d)] for d in self.key_fiber.degrees], dim=-1
                     )
                     query = out.reshape(
-                        list(query.values())[0].shape[0], self.num_heads, -1
+                        list(query.values())[
+                            0].shape[0], self.num_heads, -1
                     )
                 else:
                     # features are not fused, need to fuse and reshape them
-                    key = self.key_fiber.to_attention_heads(key, self.num_heads)
-                    query = self.key_fiber.to_attention_heads(query, self.num_heads)
+                    key = self.key_fiber.to_attention_heads(
+                        key, self.num_heads)
+                    query = self.key_fiber.to_attention_heads(
+                        query, self.num_heads)
 
             with nvtx_range("attention dot product + softmax"):
                 # Compute attention weights (softmax of inner product between key and query)
-                edge_weights = dgl.ops.e_dot_v(graph, key, query).squeeze(-1)
-                edge_weights /= np.sqrt(self.key_fiber.num_features)
-                edge_weights = edge_softmax(graph, edge_weights)
+                edge_weights = dgl.ops.e_dot_v(
+                    graph, key, query).squeeze(-1)
+                edge_weights /= np.sqrt(
+                    self.key_fiber.num_features)
+                edge_weights = edge_softmax(
+                    graph, edge_weights)
                 edge_weights = edge_weights[..., None, None]
 
             with nvtx_range("weighted sum"):
                 if isinstance(value, Tensor):
                     # features of all types are fused
-                    v = value.view(value.shape[0], self.num_heads, -1, value.shape[-1])
+                    v = value.view(
+                        value.shape[0], self.num_heads, -1, value.shape[-1])
                     weights = edge_weights * v
-                    feat_out = dgl.ops.copy_e_sum(graph, weights)
+                    feat_out = dgl.ops.copy_e_sum(
+                        graph, weights)
                     feat_out = feat_out.view(
-                        feat_out.shape[0], -1, feat_out.shape[-1]
+                        feat_out.shape[0], -
+                        1, feat_out.shape[-1]
                     )  # merge heads
-                    out = unfuse_features(feat_out, self.value_fiber.degrees)
+                    out = unfuse_features(
+                        feat_out, self.value_fiber.degrees)
                 else:
                     out = {}
                     for degree, channels in self.value_fiber:
@@ -110,7 +123,8 @@ class AttentionSE3(nn.Module):
                             degree_to_dim(degree),
                         )
                         weights = edge_weights * v
-                        res = dgl.ops.copy_e_sum(graph, weights)
+                        res = dgl.ops.copy_e_sum(
+                            graph, weights)
                         out[str(degree)] = res.view(
                             -1, channels, degree_to_dim(degree)
                         )  # merge heads
@@ -149,7 +163,8 @@ class AttentionBlockSE3(nn.Module):
         self.fiber_in = fiber_in
         # value_fiber has same structure as fiber_out but #channels divided by 'channels_div'
         value_fiber = Fiber(
-            [(degree, channels // channels_div) for degree, channels in fiber_out]
+            [(degree, channels // channels_div)
+             for degree, channels in fiber_out]
         )
         # key_query_fiber has the same structure as fiber_out, but only degrees which are in in_fiber
         # (queries are merely projected, hence degrees have to match input)
@@ -172,8 +187,10 @@ class AttentionBlockSE3(nn.Module):
             allow_fused_output=True,
         )
         self.to_query = LinearSE3(fiber_in, key_query_fiber)
-        self.attention = AttentionSE3(num_heads, key_query_fiber, value_fiber)
-        self.project = LinearSE3(value_fiber + fiber_in, fiber_out)
+        self.attention = AttentionSE3(
+            num_heads, key_query_fiber, value_fiber)
+        self.project = LinearSE3(
+            value_fiber + fiber_in, fiber_out)
 
     def forward(
         self,
@@ -187,25 +204,29 @@ class AttentionBlockSE3(nn.Module):
                 fused_key_value = self.to_key_value(
                     node_features, edge_features, graph, basis
                 )
-                key, value = self._get_key_value_from_fused(fused_key_value)
+                key, value = self._get_key_value_from_fused(
+                    fused_key_value)
 
             with nvtx_range("queries"):
                 query = self.to_query(node_features)
 
             z = self.attention(value, key, query, graph)
-            z_concat = aggregate_residual(node_features, z, "cat")
+            z_concat = aggregate_residual(
+                node_features, z, "cat")
             return self.project(z_concat)
 
     def _get_key_value_from_fused(self, fused_key_value):
         # Extract keys and queries features from fused features
         if isinstance(fused_key_value, Tensor):
             # Previous layer was a fully fused convolution
-            value, key = torch.chunk(fused_key_value, chunks=2, dim=-2)
+            value, key = torch.chunk(
+                fused_key_value, chunks=2, dim=-2)
         else:
             key, value = {}, {}
             for degree, feat in fused_key_value.items():
                 if int(degree) in self.fiber_in.degrees:
-                    value[degree], key[degree] = torch.chunk(feat, chunks=2, dim=-2)
+                    value[degree], key[degree] = torch.chunk(
+                        feat, chunks=2, dim=-2)
                 else:
                     value[degree] = feat
 

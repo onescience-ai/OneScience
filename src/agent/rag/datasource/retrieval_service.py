@@ -27,7 +27,8 @@ class RetrievalService:
         exceptions: list[str] = []
 
         # Optimize multithreading with thread pools
-        with ThreadPoolExecutor(max_workers=1) as executor:  # type: ignore
+        # type: ignore
+        with ThreadPoolExecutor(max_workers=1) as executor:
             futures = []
             if RetrievalMethod.is_support_semantic_search(retrieval_method):
                 futures.append(
@@ -106,7 +107,8 @@ class RetrievalService:
         exceptions: list,
     ):
         try:
-            vector_processor = Vector(vector_config, embedding_config)
+            vector_processor = Vector(
+                vector_config, embedding_config)
 
             documents = vector_processor.search_by_full_text(
                 cls.escape_query_for_search(query),
@@ -122,7 +124,8 @@ class RetrievalService:
     ):
         try:
             if retrieval_config["reranking_enable"]:
-                reranker = create_reranker(retrieval_config["reranking"])
+                reranker = create_reranker(
+                    retrieval_config["reranking"])
                 return reranker.run(user=user, query=query, documents=documents)
             else:
                 return documents

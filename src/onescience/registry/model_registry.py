@@ -18,13 +18,15 @@ class ModelRegistry:
         obj = super(ModelRegistry, cls).__new__(cls)
         obj.__dict__ = cls._shared_state
         if cls._shared_state["_model_registry"] is None:
-            cls._shared_state["_model_registry"] = cls._construct_registry()
+            cls._shared_state["_model_registry"] = cls._construct_registry(
+            )
         return obj
 
     @staticmethod
     def _construct_registry() -> dict:
         registry = {}
-        entrypoints = entry_points(group="onescience.models")
+        entrypoints = entry_points(
+            group="onescience.models")
         for entry_point in entrypoints:
             registry[entry_point.name] = entry_point
         return registry
@@ -94,7 +96,8 @@ class ModelRegistry:
                 model = model.load()
             return model
 
-        raise KeyError(f"No model is registered under the name {name}")
+        raise KeyError(
+            f"No model is registered under the name {name}")
 
     def list_models(self) -> List[str]:
         """

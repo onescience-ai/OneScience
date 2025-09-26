@@ -91,12 +91,15 @@ class TimeSeriesDataset(Dataset, Datapipe):
             meta=meta,
         )
         self.ds = dataset
-        self.scaling = OmegaConf.to_object(scaling) if scaling else None
+        self.scaling = OmegaConf.to_object(
+            scaling) if scaling else None
         self.input_time_dim = input_time_dim
         self.output_time_dim = output_time_dim
-        self.data_time_step = self._convert_time_step(data_time_step)
+        self.data_time_step = self._convert_time_step(
+            data_time_step)
         self.time_step = self._convert_time_step(time_step)
-        self.gap = self._convert_time_step(gap if gap is not None else time_step)
+        self.gap = self._convert_time_step(
+            gap if gap is not None else time_step)
         self.batch_size = batch_size
         self.drop_last = drop_last
         self.add_insolation = add_insolation
@@ -136,22 +139,26 @@ class TimeSeriesDataset(Dataset, Datapipe):
 
         # Length of the data window needed for one sample.
         if self.forecast_mode:
-            self._window_length = self.interval * (self.input_time_dim - 1) + 1
+            self._window_length = self.interval * \
+                (self.input_time_dim - 1) + 1
         else:
             self._window_length = (
                 self.interval * (self.input_time_dim - 1)
                 + 1
                 + (self.gap // self.data_time_step)
                 + self.interval
-                * (self.output_time_dim - 1)  # first point is counted by gap
+                # first point is counted by gap
+                * (self.output_time_dim - 1)
             )
-        self._batch_window_length = self.batch_size + self._window_length - 1
+        self._batch_window_length = self.batch_size + \
+            self._window_length - 1
         self._output_delay = self.interval * (self.input_time_dim - 1) + (
             self.gap // self.data_time_step
         )
         # Indices within a batch
         self._input_indices = [
-            list(range(n, n + self.interval * self.input_time_dim, self.interval))
+            list(range(n, n + self.interval *
+                 self.input_time_dim, self.interval))
             for n in range(self.batch_size)
         ]
         self._output_indices = [
@@ -221,10 +228,12 @@ class TimeSeriesDataset(Dataset, Datapipe):
             )
             self.input_scaling = {
                 "mean": np.expand_dims(
-                    self.input_scaling["mean"].to_numpy(), (0, 2, 3, 4)
+                    self.input_scaling["mean"].to_numpy(
+                    ), (0, 2, 3, 4)
                 ),
                 "std": np.expand_dims(
-                    self.input_scaling["std"].to_numpy(), (0, 2, 3, 4)
+                    self.input_scaling["std"].to_numpy(
+                    ), (0, 2, 3, 4)
                 ),
             }
         except (ValueError, KeyError):
@@ -238,10 +247,12 @@ class TimeSeriesDataset(Dataset, Datapipe):
             ).rename({"index": "channel_out"})
             self.target_scaling = {
                 "mean": np.expand_dims(
-                    self.target_scaling["mean"].to_numpy(), (0, 2, 3, 4)
+                    self.target_scaling["mean"].to_numpy(
+                    ), (0, 2, 3, 4)
                 ),
                 "std": np.expand_dims(
-                    self.target_scaling["std"].to_numpy(), (0, 2, 3, 4)
+                    self.target_scaling["std"].to_numpy(
+                    ), (0, 2, 3, 4)
                 ),
             }
         except (ValueError, KeyError):
@@ -259,7 +270,8 @@ class TimeSeriesDataset(Dataset, Datapipe):
         """
         if self.forecast_mode:
             return len(self._forecast_init_indices)
-        length = (self.ds.sizes["time"] - self._window_length + 1) / self.batch_size
+        length = (
+            self.ds.sizes["time"] - self._window_length + 1) / self.batch_size
         if self.drop_last:
             return int(np.floor(length))
         return int(np.ceil(length))
@@ -288,7 +300,8 @@ class TimeSeriesDataset(Dataset, Datapipe):
             else (item + 1) * self.batch_size + self._window_length
         )
         if not self.drop_last and max_index > self.ds.dims["time"]:
-            batch_size = self.batch_size - (max_index - self.ds.dims["time"])
+            batch_size = self.batch_size - \
+                (max_index - self.ds.dims["time"])
         else:
             batch_size = self.batch_size
         return (start_index, max_index), batch_size
@@ -310,7 +323,8 @@ class TimeSeriesDataset(Dataset, Datapipe):
         time_index, _ = self._get_time_index(item)
         if self.forecast_mode:
             timedeltas = (
-                np.array(self._input_indices[0] + self._output_indices[0])
+                np.array(
+                    self._input_indices[0] + self._output_indices[0])
                 * self.data_time_step
             )
             return self.ds.time[time_index[0]].values + timedeltas
@@ -333,7 +347,8 @@ class TimeSeriesDataset(Dataset, Datapipe):
 
         """
         # start range
-        torch.cuda.nvtx.range_push("TimeSeriesDataset:__getitem__")
+        torch.cuda.nvtx.range_push(
+            "TimeSeriesDataset:__getitem__")
 
         if item < 0:
             item = len(self) + item
@@ -343,26 +358,31 @@ class TimeSeriesDataset(Dataset, Datapipe):
             )
 
         # remark: load first then normalize
-        torch.cuda.nvtx.range_push("TimeSeriesDataset:__getitem__:load_batch")
+        torch.cuda.nvtx.range_push(
+            "TimeSeriesDataset:__getitem__:load_batch")
         time_index, this_batch = self._get_time_index(item)
         batch = {"time": slice(*time_index)}
         load_time = time.time()
 
-        input_array = self.ds["inputs"].isel(**batch).to_numpy()
+        input_array = self.ds["inputs"].isel(
+            **batch).to_numpy()
         input_array = (input_array - self.input_scaling["mean"]) / self.input_scaling[
             "std"
         ]
 
         if not self.forecast_mode:
-            target_array = self.ds["targets"].isel(**batch).to_numpy()
+            target_array = self.ds["targets"].isel(
+                **batch).to_numpy()
             target_array = (
                 target_array - self.target_scaling["mean"]
             ) / self.target_scaling["std"]
 
-        logger.log(5, "loaded batch data in %0.2f s", time.time() - load_time)
+        logger.log(5, "loaded batch data in %0.2f s",
+                   time.time() - load_time)
         torch.cuda.nvtx.range_pop()
 
-        torch.cuda.nvtx.range_push("TimeSeriesDataset:__getitem__:process_batch")
+        torch.cuda.nvtx.range_push(
+            "TimeSeriesDataset:__getitem__:process_batch")
         compute_time = time.time()
         # Insolation
         if self.add_insolation:
@@ -372,20 +392,23 @@ class TimeSeriesDataset(Dataset, Datapipe):
                 self.ds.lon.values,
             )[:, None]
             decoder_inputs = np.empty(
-                (this_batch, self.input_time_dim + self.output_time_dim, 1)
+                (this_batch, self.input_time_dim +
+                 self.output_time_dim, 1)
                 + self.spatial_dims,
                 dtype="float32",
             )
 
         # Get buffers for the batches, which we'll fill in iteratively.
         inputs = np.empty(
-            (this_batch, self.input_time_dim, self.ds.sizes["channel_in"])
+            (this_batch, self.input_time_dim,
+             self.ds.sizes["channel_in"])
             + self.spatial_dims,
             dtype="float32",
         )
         if not self.forecast_mode:
             targets = np.empty(
-                (this_batch, self.output_time_dim, self.ds.sizes["channel_out"])
+                (this_batch, self.output_time_dim,
+                 self.ds.sizes["channel_out"])
                 + self.spatial_dims,
                 dtype="float32",
             )
@@ -414,9 +437,11 @@ class TimeSeriesDataset(Dataset, Datapipe):
 
         if "constants" in self.ds.data_vars:
             # Add the constants as [F, C, H, W]
-            inputs_result.append(np.swapaxes(self.ds.constants.values, 0, 1))
+            inputs_result.append(np.swapaxes(
+                self.ds.constants.values, 0, 1))
 
-        logger.log(5, "computed batch in %0.2f s", time.time() - compute_time)
+        logger.log(5, "computed batch in %0.2f s",
+                   time.time() - compute_time)
         torch.cuda.nvtx.range_pop()
 
         # finish range
@@ -426,6 +451,7 @@ class TimeSeriesDataset(Dataset, Datapipe):
             return inputs_result
 
         # we also need to transpose targets
-        targets = np.transpose(targets, axes=(0, 3, 1, 2, 4, 5))
+        targets = np.transpose(
+            targets, axes=(0, 3, 1, 2, 4, 5))
 
         return inputs_result, targets

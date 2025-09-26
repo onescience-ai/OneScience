@@ -81,7 +81,8 @@ class SRResNet(Module):
         # Scaling factor must be 2, 4, or 8
         scaling_factor = int(scaling_factor)
         if scaling_factor not in {2, 4, 8}:
-            raise ValueError("The scaling factor must be 2, 4, or 8!")
+            raise ValueError(
+                "The scaling factor must be 2, 4, or 8!")
 
         # The first convolutional block
         self.conv_block1 = ConvolutionalBlock3d(
@@ -116,7 +117,8 @@ class SRResNet(Module):
 
         # Upscaling is done by sub-pixel convolution,
         # with each such block upscaling by a factor of 2
-        n_subpixel_convolution_blocks = int(math.log2(scaling_factor))
+        n_subpixel_convolution_blocks = int(
+            math.log2(scaling_factor))
         self.subpixel_convolutional_blocks = nn.Sequential(
             *[
                 SubPixel_ConvolutionalBlock3d(
@@ -139,8 +141,10 @@ class SRResNet(Module):
     def forward(self, in_vars: Tensor) -> Tensor:
         output = self.conv_block1(in_vars)  # (N, 3, w, h)
         residual = output  # (N, n_channels, w, h)
-        output = self.residual_blocks(output)  # (N, n_channels, w, h)
-        output = self.conv_block2(output)  # (N, n_channels, w, h)
+        output = self.residual_blocks(
+            output)  # (N, n_channels, w, h)
+        # (N, n_channels, w, h)
+        output = self.conv_block2(output)
         output = output + residual  # (N, n_channels, w, h)
         output = self.subpixel_convolutional_blocks(
             output
@@ -175,7 +179,8 @@ class ConvolutionalBlock3d(nn.Module):
         out_channels: int,
         kernel_size: int,
         stride: int = 1,
-        batch_norm: bool = False,  # TODO set the train/eval model context
+        # TODO set the train/eval model context
+        batch_norm: bool = False,
         activation_fn: nn.Module = nn.Identity(),
     ):
         super().__init__()
@@ -196,7 +201,8 @@ class ConvolutionalBlock3d(nn.Module):
 
         # A batch normalization (BN) layer, if wanted
         if batch_norm is True:
-            layers.append(nn.BatchNorm3d(num_features=out_channels))
+            layers.append(nn.BatchNorm3d(
+                num_features=out_channels))
 
         self.activation_fn = activation_fn
 
@@ -244,7 +250,8 @@ class PixelShuffle3d(nn.Module):
             in_width,
         )
 
-        output = input_view.permute(0, 1, 5, 2, 6, 3, 7, 4).contiguous()
+        output = input_view.permute(
+            0, 1, 5, 2, 6, 3, 7, 4).contiguous()
 
         return output.view(batch_size, nOut, out_depth, out_height, out_width)
 
@@ -271,7 +278,8 @@ class SubPixel_ConvolutionalBlock3d(nn.Module):
         # by scaling factor^2, followed by pixel shuffle and PReLU
         self.conv = nn.Conv3d(
             in_channels=conv_layer_size,
-            out_channels=conv_layer_size * (scaling_factor**3),
+            out_channels=conv_layer_size *
+            (scaling_factor**3),
             kernel_size=kernel_size,
             padding=kernel_size // 2,
         )
@@ -281,7 +289,8 @@ class SubPixel_ConvolutionalBlock3d(nn.Module):
         self.prelu = nn.PReLU()
 
     def forward(self, input: Tensor) -> Tensor:
-        output = self.conv(input)  # (N, n_channels * scaling factor^2, w, h)
+        # (N, n_channels * scaling factor^2, w, h)
+        output = self.conv(input)
         output = self.pixel_shuffle(
             output
         )  # (N, n_channels, w * scaling factor, h * scaling factor)
@@ -340,7 +349,8 @@ class ResidualConvBlock3d(nn.Module):
 
     def forward(self, input: Tensor) -> Tensor:
         residual = input  # (N, n_channels, w, h)
-        output = self.conv_layers(input)  # (N, n_channels, w, h)
+        # (N, n_channels, w, h)
+        output = self.conv_layers(input)
         output = output + residual  # (N, n_channels, w, h)
 
         return output

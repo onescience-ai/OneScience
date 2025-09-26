@@ -38,7 +38,8 @@ class DGMLayer(nn.Module):
         in_features_1: int,
         in_features_2: int,
         out_features: int,
-        activation_fn: Union[nn.Module, Callable[[Tensor], Tensor], None] = None,
+        activation_fn: Union[nn.Module, Callable[[
+            Tensor], Tensor], None] = None,
         weight_norm: bool = False,
         activation_par: Optional[nn.Parameter] = None,
     ) -> None:
@@ -52,11 +53,15 @@ class DGMLayer(nn.Module):
         self.activation_par = activation_par
 
         if weight_norm:
-            self.linear_1 = WeightNormLinear(in_features_1, out_features, bias=False)
-            self.linear_2 = WeightNormLinear(in_features_2, out_features, bias=False)
+            self.linear_1 = WeightNormLinear(
+                in_features_1, out_features, bias=False)
+            self.linear_2 = WeightNormLinear(
+                in_features_2, out_features, bias=False)
         else:
-            self.linear_1 = nn.Linear(in_features_1, out_features, bias=False)
-            self.linear_2 = nn.Linear(in_features_2, out_features, bias=False)
+            self.linear_1 = nn.Linear(
+                in_features_1, out_features, bias=False)
+            self.linear_2 = nn.Linear(
+                in_features_2, out_features, bias=False)
         self.bias = nn.Parameter(torch.empty(out_features))
         self.reset_parameters()
 
@@ -69,11 +74,13 @@ class DGMLayer(nn.Module):
             nn.init.constant_(self.linear_2.weight_g, 1.0)
 
     def forward(self, input_1: Tensor, input_2: Tensor) -> Tensor:
-        x = self.linear_1(input_1) + self.linear_2(input_2) + self.bias
+        x = self.linear_1(input_1) + \
+            self.linear_2(input_2) + self.bias
 
         if self.activation_fn is not None:
             if self.activation_par is None:
                 x = self.activation_fn(x)
             else:
-                x = self.activation_fn(self.activation_par * x)
+                x = self.activation_fn(
+                    self.activation_par * x)
         return x

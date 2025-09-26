@@ -129,7 +129,8 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
         )
         # calculate static indices for coupling
         for c in self.couplings:
-            c.compute_coupled_indices(self.interval, self.data_time_step)
+            c.compute_coupled_indices(
+                self.interval, self.data_time_step)
         # keep track of integration steps
         self.integration_step = (
             1  # starts at 1 because first step is done by __getitem__
@@ -150,10 +151,12 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
             )
             self.input_scaling = {
                 "mean": np.expand_dims(
-                    self.input_scaling["mean"].to_numpy(), (0, 2, 3, 4)
+                    self.input_scaling["mean"].to_numpy(
+                    ), (0, 2, 3, 4)
                 ),
                 "std": np.expand_dims(
-                    self.input_scaling["std"].to_numpy(), (0, 2, 3, 4)
+                    self.input_scaling["std"].to_numpy(
+                    ), (0, 2, 3, 4)
                 ),
             }
         except (ValueError, KeyError):
@@ -167,10 +170,12 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
             )
             self.target_scaling = {
                 "mean": np.expand_dims(
-                    self.target_scaling["mean"].to_numpy(), (0, 2, 3, 4)
+                    self.target_scaling["mean"].to_numpy(
+                    ), (0, 2, 3, 4)
                 ),
                 "std": np.expand_dims(
-                    self.target_scaling["std"].to_numpy(), (0, 2, 3, 4)
+                    self.target_scaling["std"].to_numpy(
+                    ), (0, 2, 3, 4)
                 ),
             }
         except (ValueError, KeyError):
@@ -181,7 +186,8 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
 
     def __getitem__(self, item):
         # start range
-        torch.cuda.nvtx.range_push("CoupledTimeSeriesDataset:__getitem__")
+        torch.cuda.nvtx.range_push(
+            "CoupledTimeSeriesDataset:__getitem__")
 
         if item < 0:
             item = len(self) + item
@@ -191,7 +197,8 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
             )
 
         # remark: load first then normalize
-        torch.cuda.nvtx.range_push("CoupledTimeSeriesDataset:__getitem__:load_batch")
+        torch.cuda.nvtx.range_push(
+            "CoupledTimeSeriesDataset:__getitem__:load_batch")
         time_index, this_batch = self._get_time_index(item)
         batch = {"time": slice(*time_index)}
         load_time = time.time()
@@ -206,7 +213,8 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
         if len(self.couplings) > 0:
             integrated_couplings = np.concatenate(
                 [
-                    c.construct_integrated_couplings(batch, this_batch)
+                    c.construct_integrated_couplings(
+                        batch, this_batch)
                     for c in self.couplings
                 ],
                 axis=2,
@@ -231,10 +239,12 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
             # target_array = ((self.ds['targets'].isel(**batch) - self.target_scaling['mean']) /
             #                self.target_scaling['std']).compute()
 
-        logger.log(5, "loaded batch data in %0.2f s", time.time() - load_time)
+        logger.log(5, "loaded batch data in %0.2f s",
+                   time.time() - load_time)
         torch.cuda.nvtx.range_pop()
 
-        torch.cuda.nvtx.range_push("CoupledTimeSeriesDataset:__getitem__:process_batch")
+        torch.cuda.nvtx.range_push(
+            "CoupledTimeSeriesDataset:__getitem__:process_batch")
         compute_time = time.time()
         # Insolation
         if self.add_insolation:
@@ -244,7 +254,8 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
                 self.ds.lon.values,
             )[:, None]
             decoder_inputs = np.empty(
-                (this_batch, self.input_time_dim + self.output_time_dim, 1)
+                (this_batch, self.input_time_dim +
+                 self.output_time_dim, 1)
                 + self.spatial_dims,
                 dtype="float32",
             )
@@ -255,13 +266,15 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
 
         # Get buffers for the batches, which we'll fill in iteratively.
         inputs = np.empty(
-            (this_batch, self.input_time_dim, len(self.input_variables))
+            (this_batch, self.input_time_dim,
+             len(self.input_variables))
             + self.spatial_dims,
             dtype="float32",
         )
         if not self.forecast_mode:
             targets = np.empty(
-                (this_batch, self.output_time_dim, len(self.output_variables))
+                (this_batch, self.output_time_dim,
+                 len(self.output_variables))
                 + self.spatial_dims,
                 dtype="float32",
             )
@@ -291,9 +304,11 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
 
         if "constants" in self.ds.data_vars:
             # Add the constants as [F, C, H, W]
-            inputs_result.append(np.swapaxes(self.ds.constants.values, 0, 1))
+            inputs_result.append(np.swapaxes(
+                self.ds.constants.values, 0, 1))
             # inputs_result.append(self.ds.constants.values)
-        logger.log(5, "computed batch in %0.2f s", time.time() - compute_time)
+        logger.log(5, "computed batch in %0.2f s",
+                   time.time() - compute_time)
 
         # append integrated couplings
         inputs_result.append(integrated_couplings)
@@ -307,7 +322,8 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
             return inputs_result
 
         # we also need to transpose targets
-        targets = np.transpose(targets, axes=(0, 3, 1, 2, 4, 5))
+        targets = np.transpose(
+            targets, axes=(0, 3, 1, 2, 4, 5))
 
         return inputs_result, targets
 
@@ -317,24 +333,29 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
 
         # grab last few model outputs for re-initialization
         init_time_dim = len(self._input_indices[0])
-        prognostic_inputs = model_outputs[:, :, 0 - init_time_dim :]
+        prognostic_inputs = model_outputs[:,
+                                          :, 0 - init_time_dim:]
         inputs_result.append(prognostic_inputs)
 
         # gather insolation inputs
-        time_offset = self.time_step * (self.output_time_dim) * self.integration_step
+        time_offset = self.time_step * \
+            (self.output_time_dim) * self.integration_step
         sol = torch.tensor(
             insolation(
-                self._get_forecast_sol_times(self.curr_item) + time_offset,
+                self._get_forecast_sol_times(
+                    self.curr_item) + time_offset,
                 self.ds.lat.values,
                 self.ds.lon.values,
             )[:, None]
         )
         decoder_inputs = np.empty(
-            (1, self.input_time_dim + self.output_time_dim, 1) + self.spatial_dims,
+            (1, self.input_time_dim +
+             self.output_time_dim, 1) + self.spatial_dims,
             dtype="float32",
         )
         decoder_inputs[0] = sol
-        inputs_result.append(torch.tensor(decoder_inputs.transpose(0, 3, 1, 2, 4, 5)))
+        inputs_result.append(torch.tensor(
+            decoder_inputs.transpose(0, 3, 1, 2, 4, 5)))
 
         # append constant fields
         inputs_result.append(constants)
@@ -346,7 +367,8 @@ class CoupledTimeSeriesDataset(TimeSeriesDataset):
             integrated_couplings = np.concatenate(
                 [c.construct_integrated_couplings() for c in self.couplings], axis=2
             )
-            inputs_result.append(torch.tensor(integrated_couplings))
+            inputs_result.append(
+                torch.tensor(integrated_couplings))
 
         # gather coupled_inputs
         return inputs_result

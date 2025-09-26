@@ -59,11 +59,14 @@ class SeqBlock(nn.Module):
             norm_method=self.norm_method,
             gating=self.gating,
             sink_attention=self.sink_attention,
-            pre_attention_operation_list=self.pre_attention_operation_list,  # ["PairEmbedding", "PreLN", "AttDropout"],
-            post_attention_operation_list=self.post_attention_operation_list,  # ["Dropout", "PostLN"],
-            post_ffn_operation_list=self.post_ffn_operation_list,  # ["Dropout", "PostLN", "ResidualLN"],
+            # ["PairEmbedding", "PreLN", "AttDropout"],
+            pre_attention_operation_list=self.pre_attention_operation_list,
+            # ["Dropout", "PostLN"],
+            post_attention_operation_list=self.post_attention_operation_list,
+            # ["Dropout", "PostLN", "ResidualLN"],
+            post_ffn_operation_list=self.post_ffn_operation_list,
             init_method=self.init_method,
-            init_sigma=self.init_sigma,  ###
+            init_sigma=self.init_sigma,
             swish_beta=self.swish_beta,
         )
 
@@ -71,8 +74,8 @@ class SeqBlock(nn.Module):
         self, act, accumulated_act, attention_masks, pair_act=0.0, pos_index=None
     ):
         """construct"""
-        ### Shapes:
-        ### act&accumulated_act:(B,Q,c); attention_masks:[(B,Q),(B,K),(B,Q,K)]; pair_act:(B,Q,K,cz); pos_index:(B,Q)
+        # Shapes:
+        # act&accumulated_act:(B,Q,c); attention_masks:[(B,Q),(B,K),(B,Q,K)]; pair_act:(B,Q,K,cz); pos_index:(B,Q)
 
         seq_act = act
         accumulated_seq_act = accumulated_act
@@ -93,7 +96,8 @@ class PairBlock(nn.Module):
     intermediate_dim: int
     outerproduct_scale: float = 0.0
     ffn_scale: float = 0.0
-    pre_outerproduct_operation_list: tuple = ("LN",)  # = ["LN"] # ["PreLN"; "Dropout"]
+    pre_outerproduct_operation_list: tuple = (
+        "LN",)  # = ["LN"] # ["PreLN"; "Dropout"]
     post_outerproduct_operation_list: tuple = (
         "LN",
     )  # = ["LN"] # ["PostLN", "Dropout", "ResiDual"]
@@ -141,12 +145,13 @@ class PairBlock(nn.Module):
         )
 
         ffn_ = (
-            nn.checkpoint(Transition) if self.global_config.remat_flag else Transition
+            nn.checkpoint(
+                Transition) if self.global_config.remat_flag else Transition
         )
         self.ffn = ffn_(
             global_config=self.global_config,
             input_dim=self.pair_act_dim,
-            intermediate_dim=self.intermediate_dim,  ### 8//3*pair_act_dim,
+            intermediate_dim=self.intermediate_dim,  # 8//3*pair_act_dim,
             output_dim=self.pair_act_dim,
             init_method=self.init_method,
             init_sigma=self.init_sigma,
@@ -167,27 +172,32 @@ class PairBlock(nn.Module):
         #     self.ffn.recompute()
 
     def __call__(self, seq_act, pair_act, accumulated_pair_act, attention_masks):
-        ### Shapes:
-        ### seq_act:(B,Q,c);
-        ### pair_act&accumulated_pair_act:(B,Q,K,c); attention_masks:[(B,Q),(B,K),(B,Q,K)].
+        # Shapes:
+        # seq_act:(B,Q,c);
+        # pair_act&accumulated_pair_act:(B,Q,K,c); attention_masks:[(B,Q),(B,K),(B,Q,K)].
         act_shape = pair_act.shape
         flatten_shape = (act_shape[0], -1, act_shape[-1])
 
         seq_mask = attention_masks[0]
         pair_mask = attention_masks[-1]
 
-        residual_act = jnp.reshape(pair_act, flatten_shape)  # (B,Q*K,c)
-        accumulated_act = jnp.reshape(accumulated_pair_act, flatten_shape)  # (B,Q*K,c)
-        pair_mask = jnp.reshape(pair_mask, (act_shape[0], -1))  # (B,Q*K)
+        residual_act = jnp.reshape(
+            pair_act, flatten_shape)  # (B,Q*K,c)
+        accumulated_act = jnp.reshape(
+            accumulated_pair_act, flatten_shape)  # (B,Q*K,c)
+        pair_mask = jnp.reshape(
+            pair_mask, (act_shape[0], -1))  # (B,Q*K)
 
         q_act = seq_act
         k_act = q_act
         v_act = q_act
 
-        results_tuple = self.pre_process(q_act, k_act, v_act, attention_masks)
+        results_tuple = self.pre_process(
+            q_act, k_act, v_act, attention_masks)
         seq_act = results_tuple[0]
 
-        outerproduct_output = self.outerproduct(seq_act, seq_mask)
+        outerproduct_output = self.outerproduct(
+            seq_act, seq_mask)
         outerproduct_output = jnp.reshape(
             outerproduct_output, flatten_shape
         )  # (B,Q*K,c)
@@ -201,8 +211,10 @@ class PairBlock(nn.Module):
             residual_act, ffn_output, pair_mask, accumulated_act
         )
 
-        residual_act = jnp.reshape(residual_act, act_shape)  # (B,Q,K,c)
-        accumulated_act = jnp.reshape(accumulated_act, act_shape)  # (B,Q,K,c)
+        residual_act = jnp.reshape(
+            residual_act, act_shape)  # (B,Q,K,c)
+        accumulated_act = jnp.reshape(
+            accumulated_act, act_shape)  # (B,Q,K,c)
 
         return residual_act, accumulated_act
 
@@ -241,7 +253,7 @@ class FlashEvoformerStack(nn.Module):
             operation_list=("LN",),
             dropout_rate=0.0,  # 参考AF2, 写死
             accumulated_scale=0.0,
-            execute_residual=False,  ### 仅做LN，不执行skip connection update
+            execute_residual=False,  # 仅做LN，不执行skip connection update
             norm_method="layernorm",
         )
 
@@ -251,7 +263,7 @@ class FlashEvoformerStack(nn.Module):
             operation_list=("LN",),
             dropout_rate=0.0,  # 参考AF2, 写死
             accumulated_scale=0.0,
-            execute_residual=False,  ### 仅做LN，不执行skip connection update
+            execute_residual=False,  # 仅做LN，不执行skip connection update
             norm_method="layernorm",
         )
 
@@ -285,7 +297,8 @@ class FlashEvoformerStack(nn.Module):
             # outerproduct_scale=outerproduct_scale,
             # ffn_scale=ffn_scale,
             dropout_rate=self.dropout_rate,
-            norm_method=self.norm_method,  # ["layernorm", "rmsnorm"]
+            # ["layernorm", "rmsnorm"]
+            norm_method=self.norm_method,
             # pre_outerproduct_operation_list=pre_outerproduct_operation_list,
             # post_outerproduct_operation_list=post_outerproduct_operation_list,
             post_ffn_operation_list=self.post_ffn_operation_list,
@@ -304,14 +317,16 @@ class FlashEvoformerStack(nn.Module):
         pos_index=None,
     ):
 
-        ### 0. Prepare Cross-talking features:
+        # 0. Prepare Cross-talking features:
         accumulated_seq_act = 0.0 * seq_act
         accumulated_pair_act = 0.0 * pair_act
 
         pair_act_shape = pair_act.shape
-        flatten_shape = (pair_act_shape[0], -1, pair_act_shape[-1])
+        flatten_shape = (
+            pair_act_shape[0], -1, pair_act_shape[-1])
 
-        pair_act_flatten = jnp.reshape(pair_act, flatten_shape)  # (B,Q*K,c) # [Q,K,c]
+        pair_act_flatten = jnp.reshape(
+            pair_act, flatten_shape)  # (B,Q*K,c) # [Q,K,c]
         pair_act_residual = jnp.reshape(
             accumulated_pair_act, flatten_shape
         )  # (B,Q*K,c) # [Q,K,c]
@@ -338,7 +353,7 @@ class FlashEvoformerStack(nn.Module):
         )  # [Q,c]
         # seq_act_combined = self.postln_scale*seq_act_postln + seq_act_residual # 模仿ResidualTransformer的final layer
 
-        ### 1. Update Sequence Rep.:
+        # 1. Update Sequence Rep.:
         seq_act, accumulated_seq_act = self.seq_block(
             seq_act_prepared,
             accumulated_seq_act,
@@ -347,7 +362,7 @@ class FlashEvoformerStack(nn.Module):
             pos_index=pos_index,
         )
 
-        ### 2. Update Pair Rep.:
+        # 2. Update Pair Rep.:
         pair_act, accumulated_pair_act = self.pair_block(
             seq_act_prepared, pair_act_prepared, accumulated_pair_act, attention_masks
         )

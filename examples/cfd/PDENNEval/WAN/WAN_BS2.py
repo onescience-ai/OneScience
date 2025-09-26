@@ -17,16 +17,20 @@ def get_arguments(arg_list=None):
         description="Train High Dimension Poisson Equation using WAN",
         fromfile_prefix_chars="+",
     )
-    parser.add_argument("--s", type=int, default=12160, help="The random seed")
-    parser.add_argument("--d", type=int, default=2, help="The dimension of space")
+    parser.add_argument(
+        "--s", type=int, default=12160, help="The random seed")
+    parser.add_argument(
+        "--d", type=int, default=2, help="The dimension of space")
     parser.add_argument(
         "--co",
         type=str,
         default="0",
         help="The number of gpu used",
     )
-    parser.add_argument("--i", type=int, default=2000, help="The iteration number")
-    parser.add_argument("--b", type=int, default=1000, help="The beta number")
+    parser.add_argument(
+        "--i", type=int, default=2000, help="The iteration number")
+    parser.add_argument(
+        "--b", type=int, default=1000, help="The beta number")
     return parser.parse_args(arg_list)
 
 
@@ -46,7 +50,8 @@ def sampleCubeMC(dim, l_bounds, u_bounds, N=100):
     """
     sample = []
     for i in range(dim):
-        sample.append(np.random.uniform(l_bounds[i], u_bounds[i], [N, 1]))
+        sample.append(np.random.uniform(
+            l_bounds[i], u_bounds[i], [N, 1]))
     data = np.concatenate(sample, axis=1)
     return data
 
@@ -95,7 +100,8 @@ class BlackScholesEquation(object):
 
     def u_exact(self, X):
         u = torch.exp((0.05 + 0.4**2) * (b[2] - X[:, 2:3])) * (
-            torch.pow(X[:, 0:1], 2) + torch.pow(X[:, 1:2], 2)
+            torch.pow(X[:, 0:1], 2) +
+            torch.pow(X[:, 1:2], 2)
         )
         return u.reshape(-1, 1).detach().to(self.device)
 
@@ -103,14 +109,16 @@ class BlackScholesEquation(object):
         eps = np.spacing(1)
         l_bounds = [a[0] + eps, a[1] + eps, a[2] + eps]
         u_bounds = [b[0] - eps, b[1] + eps, b[2]]
-        X = torch.FloatTensor(sampleCubeMC(self.D + 1, l_bounds, u_bounds, N))
+        X = torch.FloatTensor(sampleCubeMC(
+            self.D + 1, l_bounds, u_bounds, N))
         return X.requires_grad_(True).to(self.device)
 
     def init_boundary(self, n=100):
         eps = np.spacing(1)
         l_bound = [a[0] + eps, a[1] + eps]
         b_bound = [b[0] - eps, b[1] - eps]
-        X = torch.FloatTensor(sampleCubeMC(self.D, l_bound, b_bound, n))
+        X = torch.FloatTensor(sampleCubeMC(
+            self.D, l_bound, b_bound, n))
         t_points = torch.ones([n, 1]) * a[2]
         xt_init = torch.cat([X, t_points], dim=1)
         return xt_init.requires_grad_(True).to(self.device)
@@ -121,13 +129,17 @@ class BlackScholesEquation(object):
             y = f["y-coordinate"][:]
             x_mesh, y_mesh = np.meshgrid(x, y)
             xy = np.concatenate(
-                [x_mesh.flatten()[:, None], y_mesh.flatten()[:, None]], axis=1
+                [x_mesh.flatten()[:, None], y_mesh.flatten()[
+                    :, None]], axis=1
             )
             u = f["tensor"][0, -1, :].flatten()[:, None]
-            idx = np.random.choice(xy.shape[0] - 1, n, replace=False)
+            idx = np.random.choice(
+                xy.shape[0] - 1, n, replace=False)
             idx = np.sort(idx)
-            xy_end, t_end, ue_end = xy[idx, :], np.ones([n, 1]) * b[2], u[idx, :]
-            xt_end = torch.Tensor(np.concatenate([xy_end, t_end], axis=1))
+            xy_end, t_end, ue_end = xy[idx, :], np.ones(
+                [n, 1]) * b[2], u[idx, :]
+            xt_end = torch.Tensor(
+                np.concatenate([xy_end, t_end], axis=1))
             ue_end = torch.Tensor(ue_end)
         return xt_end.requires_grad_(True).to(self.device), ue_end.to(self.device)
 
@@ -139,17 +151,22 @@ class BlackScholesEquation(object):
             x_mesh, y_mesh = np.meshgrid(x, y)
             xy_int = np.repeat(
                 np.concatenate(
-                    [x_mesh.flatten()[:, None], y_mesh.flatten()[:, None]], axis=1
+                    [x_mesh.flatten()[:, None], y_mesh.flatten()[
+                        :, None]], axis=1
                 ),
                 len(t),
                 axis=0,
             )
-            t_int = np.repeat(t, len(x) * len(y)).reshape(-1, 1)
-            xyt_int = np.concatenate([xy_int, t_int], axis=1)
+            t_int = np.repeat(
+                t, len(x) * len(y)).reshape(-1, 1)
+            xyt_int = np.concatenate(
+                [xy_int, t_int], axis=1)
             u = f["tensor"][0, :, :].flatten()[:, None]
-            idx = np.random.choice(xyt_int.shape[0] - 1, N, replace=False)
+            idx = np.random.choice(
+                xyt_int.shape[0] - 1, N, replace=False)
             idx = np.sort(idx)
-            xt_test = torch.Tensor(xyt_int[idx, :]).to(self.device)
+            xt_test = torch.Tensor(
+                xyt_int[idx, :]).to(self.device)
             u_test = torch.Tensor(u[idx, :]).to(self.device)
         return xt_test, u_test
 
@@ -168,10 +185,12 @@ def fun_w(x, eq):
     # ************************************************
     z_x_list = []
     for i in range(eq.D):
-        supp_x = torch.greater(1 - torch.abs(x_scale_list[i]), 0)
+        supp_x = torch.greater(
+            1 - torch.abs(x_scale_list[i]), 0)
         z_x = torch.where(
             supp_x,
-            torch.exp(1 / (torch.pow(x_scale_list[i], 2) - 1)) / I1,
+            torch.exp(
+                1 / (torch.pow(x_scale_list[i], 2) - 1)) / I1,
             torch.zeros_like(x_scale_list[i]),
         )
         z_x_list.append(z_x)
@@ -186,7 +205,8 @@ def fun_w(x, eq):
         create_graph=True,
         retain_graph=True,
     )[0]
-    dw = torch.where(torch.isnan(dw), torch.zeros_like(dw), dw)
+    dw = torch.where(torch.isnan(
+        dw), torch.zeros_like(dw), dw)
     return (w_val, dw)
 
 
@@ -225,7 +245,8 @@ def loss(eq, model_u, model_v, xt_int, xt_init, xt_end, ue_end, beta):
     # u(x,t) * \phi(x,t)_t = u(x,t) * w(x) * v(x,t)_t
     int_r2 = st_s * torch.mean(u * (w * dvt))
 
-    int_r3 = 0.11 * st_s * torch.mean(torch.sum(dux * xy_int, 1) * (w * v))
+    int_r3 = 0.11 * st_s * \
+        torch.mean(torch.sum(dux * xy_int, 1) * (w * v))
     int_r4 = 0.05 * st_s * torch.mean(u * (w * v))
     int_r5 = (
         -0.08
@@ -235,12 +256,13 @@ def loss(eq, model_u, model_v, xt_int, xt_init, xt_end, ue_end, beta):
 
     norm = st_s * torch.mean((w * v) ** 2)
 
-    loss_int = torch.pow(int_l1 - int_r2 - int_r3 - int_r4 - int_r5, 2) / norm
+    loss_int = torch.pow(
+        int_l1 - int_r2 - int_r3 - int_r4 - int_r5, 2) / norm
 
     u_end = model_u(xt_end)
     loss_init = LOSS_FN(u_end, ue_end)
 
-    ###loss_u , loss_v
+    # loss_u , loss_v
     loss_u = loss_int + 100 * beta * loss_init
     loss_v = -torch.log(loss_int)
     return loss_u, loss_v
@@ -251,14 +273,16 @@ def TEST(model, x_test, u_real):
     with torch.no_grad():
         u_pred = model(x_test)
         Error = u_real - u_pred
-        L2error = torch.sqrt(torch.sum(Error * Error) / torch.sum(u_real * u_real))
+        L2error = torch.sqrt(
+            torch.sum(Error * Error) / torch.sum(u_real * u_real))
         Maxerror = torch.max(torch.abs(Error))
     return L2error.cpu().detach().numpy(), Maxerror.cpu().detach().numpy()
 
 
 def train_pipeline():
     # define device
-    DEVICE = torch.device(f"cuda:{CUDA_ORDER}" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device(
+        f"cuda:{CUDA_ORDER}" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {DEVICE}")
     equation = "BS2"
     dataset = "../data/2D_Black-Scholes-Barenblatt_r0.05_sigma0.4.hdf5"
@@ -330,7 +354,8 @@ def train_pipeline():
         if step % TEST_FREQUENCY == 0:
             loss_u = loss_u.cpu().detach().numpy()
             loss_v = loss_v.cpu().detach().numpy()
-            L2error, Maxerror = TEST(model_u, x_test, u_real)
+            L2error, Maxerror = TEST(
+                model_u, x_test, u_real)
 
             tqdm.write(
                 f"Step: {step:>5} | "
@@ -341,7 +366,8 @@ def train_pipeline():
                 f"Time: {elapsed_time:>7.2f} |"
             )
             training_history.append(
-                [step, loss_u, loss_v, L2error, Maxerror, elapsed_time]
+                [step, loss_u, loss_v, L2error,
+                    Maxerror, elapsed_time]
             )
             if L2error < min_l2:
                 min_l2 = L2error
@@ -350,20 +376,24 @@ def train_pipeline():
                         "model_u_state_dict": model_u.state_dict(),
                         "model_v_state_dict": model_v.state_dict(),
                     },
-                    os.path.join(dir_path, equation + "_check_point_me.pt"),
+                    os.path.join(
+                        dir_path, equation + "_check_point_me.pt"),
                 )
                 print("Save model min L2error!")
     training_history = np.array(training_history)
     print("l2r_min:", np.min(training_history[:, 3]))
     history = pd.DataFrame(training_history[:, 3])
-    history.to_csv(os.path.join(dir_path, f"WAN-{equation}.csv"))
+    history.to_csv(os.path.join(
+        dir_path, f"WAN-{equation}.csv"))
     loss_history = pd.DataFrame(training_history[:, 1])
-    loss_history.to_csv(os.path.join(dir_path, f"WAN-{equation}-loss_history.csv"))
+    loss_history.to_csv(os.path.join(
+        dir_path, f"WAN-{equation}-loss_history.csv"))
 
     epoch_list = np.array(epoch_list)
 
     np.savetxt(
-        os.path.join(dir_path, f"epoch_time-{equation}.csv"),
+        os.path.join(
+            dir_path, f"epoch_time-{equation}.csv"),
         epoch_list,
         delimiter=",",
         header="epoch_time",
@@ -371,7 +401,8 @@ def train_pipeline():
     )
 
     if IS_SAVE_MODEL:
-        torch.save(model_u.state_dict(), os.path.join(dir_path, "WAN-U_net"))
+        torch.save(model_u.state_dict(),
+                   os.path.join(dir_path, "WAN-U_net"))
         print("Weak Adversarial Network Saved!")
 
     metric = []
@@ -379,7 +410,8 @@ def train_pipeline():
         model_me = torch.load(
             os.path.join(dir_path, equation + "_check_point_me.pt"), weights_only=True
         )
-        model_u.load_state_dict(model_me["model_u_state_dict"])
+        model_u.load_state_dict(
+            model_me["model_u_state_dict"])
         x_infer = Eq.interior(N=10000)
         start_time = time.time()
         _ = model_u(x_infer)
@@ -392,13 +424,15 @@ def train_pipeline():
         metric_list = np.array(metric)
 
         np.savetxt(
-            os.path.join(dir_path, f"metric-{equation}.csv"),
+            os.path.join(
+                dir_path, f"metric-{equation}.csv"),
             metric_list,
             delimiter=",",
             header="infer_time, L2error, Maxerror",
             comments="",
         )
-        print(f"L2 error: {L2error}" f"Max error: {Maxerror}")
+        print(
+            f"L2 error: {L2error}" f"Max error: {Maxerror}")
     return model_u
 
 

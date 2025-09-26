@@ -52,7 +52,8 @@ def final_init(config):
 
 def batched_gather(params, indices, axis=0, batch_dims=0):
     """Implements a JAX equivalent of `tf.gather` with `axis` and `batch_dims`."""
-    take_fn = lambda p, i: jnp.take(p, i, axis=axis, mode="clip")
+    def take_fn(p, i): return jnp.take(
+        p, i, axis=axis, mode="clip")
     for _ in range(batch_dims):
         take_fn = jax.vmap(take_fn)
     return take_fn(params, indices)
@@ -114,9 +115,12 @@ def flat_params_to_haiku(params, fuse=None):
                         R = P.pop(f"{k}/right_{c}")
                         P[f"{k}/{c}"] = {}
                         for d in ["bias", "weights"]:
-                            P[f"{k}/{c}"][d] = jnp.concatenate([L[d], R[d]], -1)
-                    P[f"{k}/center_norm"] = P.pop(f"{k}/center_layer_norm")
-                    P[f"{k}/left_norm_input"] = P.pop(f"{k}/layer_norm_input")
+                            P[f"{k}/{c}"][d] = jnp.concatenate(
+                                [L[d], R[d]], -1)
+                    P[f"{k}/center_norm"] = P.pop(
+                        f"{k}/center_layer_norm")
+                    P[f"{k}/left_norm_input"] = P.pop(
+                        f"{k}/layer_norm_input")
 
                 if not fuse and f"{k}/center_norm" in P:
                     for c in ["gate", "projection"]:
@@ -127,6 +131,8 @@ def flat_params_to_haiku(params, fuse=None):
                             half = LR[d].shape[-1] // 2
                             P[f"{k}/left_{c}"][d] = LR[d][..., :half]
                             P[f"{k}/right_{c}"][d] = LR[d][..., half:]
-                    P[f"{k}/center_layer_norm"] = P.pop(f"{k}/center_norm")
-                    P[f"{k}/layer_norm_input"] = P.pop(f"{k}/left_norm_input")
+                    P[f"{k}/center_layer_norm"] = P.pop(
+                        f"{k}/center_norm")
+                    P[f"{k}/layer_norm_input"] = P.pop(
+                        f"{k}/left_norm_input")
     return P

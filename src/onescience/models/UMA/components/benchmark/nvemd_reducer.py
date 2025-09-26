@@ -18,7 +18,7 @@ from onescience.models.UMA.components.calculate.nve_md_runner import (
 def moving_avg(x, window=20):
     all_x = []
     for i in range(window):
-        all_x.append(x[i : len(x) - (window - i)])  # noqa: PERF401
+        all_x.append(x[i: len(x) - (window - i)])  # noqa: PERF401
     return np.stack(all_x).mean(axis=0)
 
 
@@ -30,7 +30,8 @@ def get_te_drift(filename):
     Et = Et[equil_time:]
     total_time = time[-1] - time[equil_time]
     Et = moving_avg(Et, window=20)
-    drift = 1000 * np.abs(Et[-1] - Et[equil_time]) / total_time
+    drift = 1000 * \
+        np.abs(Et[-1] - Et[equil_time]) / total_time
     return float(drift)
 
 
@@ -77,7 +78,8 @@ class NVEMDReducer(BenchmarkReducer):
             results_dir: Directory containing result files
         """
         with open(
-            os.path.join(results_dir, f"{self.benchmark_name}_results.txt"), "w"
+            os.path.join(
+                results_dir, f"{self.benchmark_name}_results.txt"), "w"
         ) as f:
             f.write("\n".join([str(x) for x in results]))
 
@@ -104,7 +106,8 @@ class NVEMDReducer(BenchmarkReducer):
             results_dir: Directory where metrics will be saved
         """
         metrics.to_json(
-            os.path.join(results_dir, f"{self.benchmark_name}_metrics.json")
+            os.path.join(
+                results_dir, f"{self.benchmark_name}_metrics.json")
         )
 
     def log_metrics(self, metrics: pd.DataFrame, run_name: str) -> None:

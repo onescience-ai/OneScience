@@ -39,9 +39,11 @@ def _bvh_query_distance(
     p1 = mesh_.points[mesh_.indices[3 * res.face + 1]]
     p2 = mesh_.points[mesh_.indices[3 * res.face + 2]]
 
-    p_closest = res.u * p0 + res.v * p1 + (1.0 - res.u - res.v) * p2
+    p_closest = res.u * p0 + res.v * \
+        p1 + (1.0 - res.u - res.v) * p2
 
-    sdf[tid] = res.sign * wp.abs(wp.length(points[tid] - p_closest))
+    sdf[tid] = res.sign * \
+        wp.abs(wp.length(points[tid] - p_closest))
     sdf_hit_point[tid] = p_closest
     sdf_hit_point_id[tid] = res.face
 
@@ -85,18 +87,22 @@ def signed_distance_field(
 
     wp.init()
     mesh = wp.Mesh(
-        wp.array(mesh_vertices, dtype=wp.vec3), wp.array(mesh_indices, dtype=wp.int32)
+        wp.array(mesh_vertices, dtype=wp.vec3), wp.array(
+            mesh_indices, dtype=wp.int32)
     )
 
     sdf_points = wp.array(input_points, dtype=wp.vec3)
     sdf = wp.zeros(shape=sdf_points.shape, dtype=wp.float32)
-    sdf_hit_point = wp.zeros(shape=sdf_points.shape, dtype=wp.vec3f)
-    sdf_hit_point_id = wp.zeros(shape=sdf_points.shape, dtype=wp.int32)
+    sdf_hit_point = wp.zeros(
+        shape=sdf_points.shape, dtype=wp.vec3f)
+    sdf_hit_point_id = wp.zeros(
+        shape=sdf_points.shape, dtype=wp.int32)
 
     wp.launch(
         kernel=_bvh_query_distance,
         dim=len(sdf_points),
-        inputs=[mesh.id, sdf_points, max_dist, sdf, sdf_hit_point, sdf_hit_point_id],
+        inputs=[mesh.id, sdf_points, max_dist,
+                sdf, sdf_hit_point, sdf_hit_point_id],
     )
 
     if include_hit_points and include_hit_points_id:

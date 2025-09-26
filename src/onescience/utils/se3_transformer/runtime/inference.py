@@ -58,7 +58,8 @@ def evaluate(
             pred = model(*input)
 
             for callback in callbacks:
-                callback.on_validation_step(input, target, pred)
+                callback.on_validation_step(
+                    input, target, pred)
 
 
 if __name__ == "__main__":
@@ -90,18 +91,21 @@ if __name__ == "__main__":
         sys.exit(1)
 
     if args.benchmark:
-        logging.info("Running benchmark mode with one warmup pass")
+        logging.info(
+            "Running benchmark mode with one warmup pass")
 
     if args.seed is not None:
         seed_everything(args.seed)
 
     major_cc, minor_cc = torch.cuda.get_device_capability()
 
-    logger = DLLogger(args.log_dir, filename=args.dllogger_name)
+    logger = DLLogger(
+        args.log_dir, filename=args.dllogger_name)
     datamodule = QM9DataModule(**vars(args))
     model = SE3TransformerPooled(
         fiber_in=Fiber({0: datamodule.NODE_FEATURE_DIM}),
-        fiber_out=Fiber({0: args.num_degrees * args.num_channels}),
+        fiber_out=Fiber(
+            {0: args.num_degrees * args.num_channels}),
         fiber_edge=Fiber({0: datamodule.EDGE_FEATURE_DIM}),
         output_dim=1,
         tensor_cores=(args.amp and major_cc >= 7)
@@ -109,7 +113,8 @@ if __name__ == "__main__":
         **vars(args),
     )
     callbacks = [
-        QM9MetricCallback(logger, targets_std=datamodule.targets_std, prefix="test")
+        QM9MetricCallback(
+            logger, targets_std=datamodule.targets_std, prefix="test")
     ]
 
     model.to(device=torch.cuda.current_device())
@@ -121,9 +126,11 @@ if __name__ == "__main__":
 
     if is_distributed:
         nproc_per_node = torch.cuda.device_count()
-        affinity = gpu_affinity.set_affinity(local_rank, nproc_per_node)
+        affinity = gpu_affinity.set_affinity(
+            local_rank, nproc_per_node)
         model = DistributedDataParallel(
-            model, device_ids=[local_rank], output_device=local_rank
+            model, device_ids=[
+                local_rank], output_device=local_rank
         )
 
     test_dataloader = (
@@ -137,14 +144,16 @@ if __name__ == "__main__":
         callback.on_validation_end()
 
     if args.benchmark:
-        world_size = dist.get_world_size() if dist.is_initialized() else 1
+        world_size = dist.get_world_size(
+        ) if dist.is_initialized() else 1
         callbacks = [
             PerformanceCallback(
                 logger, args.batch_size * world_size, warmup_epochs=1, mode="inference"
             )
         ]
         for _ in range(6):
-            evaluate(model, test_dataloader, callbacks, args)
+            evaluate(model, test_dataloader,
+                     callbacks, args)
             callbacks[0].on_epoch_end()
 
         callbacks[0].on_fit_end()

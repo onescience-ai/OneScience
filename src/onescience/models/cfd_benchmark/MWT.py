@@ -29,13 +29,15 @@ class Model(nn.Module):
         self.c = c
         self.s1 = s1
         self.s2 = s2
-        ## embedding
+        # embedding
         if (
             args.unified_pos and args.geotype != "unstructured"
         ):  # only for structured mesh
-            self.pos = unified_pos_embedding(args.shapelist, args.ref, device=device)
+            self.pos = unified_pos_embedding(
+                args.shapelist, args.ref, device=device)
             self.preprocess = MLP(
-                args.fun_dim + args.ref ** len(args.shapelist),
+                args.fun_dim +
+                args.ref ** len(args.shapelist),
                 args.n_hidden * 2,
                 self.WMT_dim,
                 n_layers=0,
@@ -67,14 +69,18 @@ class Model(nn.Module):
             )
             self.iphi = IPHI()
             self.augmented_resolution = [s1, s2]
-            self.padding = [(16 - size % 16) % 16 for size in [s1, s2]]
+            self.padding = [(16 - size % 16) %
+                            16 for size in [s1, s2]]
         else:
             target = 2 ** (math.ceil(np.log2(max(args.shapelist))))
-            self.padding = [(target - size) for size in args.shapelist]
-            self.augmented_resolution = [target for _ in range(len(self.padding))]
+            self.padding = [(target - size)
+                            for size in args.shapelist]
+            self.augmented_resolution = [
+                target for _ in range(len(self.padding))]
         self.spectral_layers = nn.ModuleList(
             [
-                BlockList[len(self.padding)](k=self.k, alpha=alpha, L=L, c=c, base=base)
+                BlockList[len(self.padding)](
+                    k=self.k, alpha=alpha, L=L, c=c, base=base)
                 for _ in range(args.n_layers)
             ]
         )
@@ -93,16 +99,20 @@ class Model(nn.Module):
             fx = self.preprocess(x)
 
         if T is not None:
-            Time_emb = timestep_embedding(T, self.WMT_dim).repeat(1, x.shape[1], 1)
+            Time_emb = timestep_embedding(
+                T, self.WMT_dim).repeat(1, x.shape[1], 1)
             Time_emb = self.time_fc(Time_emb)
             fx = fx + Time_emb
-        x = fx.permute(0, 2, 1).reshape(B, self.WMT_dim, *self.args.shapelist)
+        x = fx.permute(0, 2, 1).reshape(
+            B, self.WMT_dim, *self.args.shapelist)
         if not all(item == 0 for item in self.padding):
             if len(self.args.shapelist) == 2:
-                x = F.pad(x, [0, self.padding[1], 0, self.padding[0]])
+                x = F.pad(
+                    x, [0, self.padding[1], 0, self.padding[0]])
             elif len(self.args.shapelist) == 3:
                 x = F.pad(
-                    x, [0, self.padding[2], 0, self.padding[1], 0, self.padding[0]]
+                    x, [0, self.padding[2], 0,
+                        self.padding[1], 0, self.padding[0]]
                 )
         x = (
             x.reshape(B, self.WMT_dim, -1)
@@ -127,9 +137,11 @@ class Model(nn.Module):
         )
         if not all(item == 0 for item in self.padding):
             if len(self.args.shapelist) == 2:
-                x = x[..., : -self.padding[0], : -self.padding[1]]
+                x = x[..., : -self.padding[0],
+                      : -self.padding[1]]
             elif len(self.args.shapelist) == 3:
-                x = x[..., : -self.padding[0], : -self.padding[1], : -self.padding[2]]
+                x = x[..., : -self.padding[0], : -
+                      self.padding[1], : -self.padding[2]]
         x = x.reshape(B, self.WMT_dim, -1).permute(0, 2, 1)
         x = self.fc1(x)
         x = F.gelu(x)
@@ -146,7 +158,8 @@ class Model(nn.Module):
             fx = self.preprocess(x)
 
         if T is not None:
-            Time_emb = timestep_embedding(T, self.WMT_dim).repeat(1, x.shape[1], 1)
+            Time_emb = timestep_embedding(
+                T, self.WMT_dim).repeat(1, x.shape[1], 1)
             Time_emb = self.time_fc(Time_emb)
             fx = fx + Time_emb
 

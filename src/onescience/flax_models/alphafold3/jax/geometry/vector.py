@@ -28,7 +28,8 @@ class Vec3Array:
     use of vector instructions.
     """
 
-    x: jnp.ndarray = dataclasses.field(metadata={"dtype": jnp.float32})
+    x: jnp.ndarray = dataclasses.field(
+        metadata={"dtype": jnp.float32})
     y: jnp.ndarray
     z: jnp.ndarray
 
@@ -109,7 +110,8 @@ class Vec3Array:
     def __getstate__(self):
         return (
             VERSION,
-            [np.asarray(self.x), np.asarray(self.y), np.asarray(self.z)],
+            [np.asarray(self.x), np.asarray(
+                self.y), np.asarray(self.z)],
         )
 
     def __setstate__(self, state):
@@ -172,7 +174,8 @@ def euclidean_distance(
       Array of euclidean distances;
       shape will be result of broadcasting 'vec1' and 'vec2'
     """
-    distance_sq = square_euclidean_distance(vec1, vec2, epsilon**2)
+    distance_sq = square_euclidean_distance(
+        vec1, vec2, epsilon**2)
     distance = jnp.sqrt(distance_sq)
     return distance
 

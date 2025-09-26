@@ -12,9 +12,11 @@ def DownSample(id, x, edge_index, pos_x, pool, pool_ratio, r, max_neighbors):
     if pool is not None:
         y, _, _, _, id_sampled, _ = pool(y, edge_index)
     else:
-        k = int((pool_ratio * torch.tensor(n, dtype=torch.float)).ceil())
+        k = int(
+            (pool_ratio * torch.tensor(n, dtype=torch.float)).ceil())
         id_sampled = random.sample(range(n), k)
-        id_sampled = torch.tensor(id_sampled, dtype=torch.long)
+        id_sampled = torch.tensor(
+            id_sampled, dtype=torch.long)
         y = y[id_sampled]
 
     pos_x = pos_x[id_sampled]
@@ -88,7 +90,8 @@ class GUNet(nn.Module):
 
         if self.bn_bool == True:
             self.bn = nn.ModuleList()
-            self.bn.append(nng.BatchNorm(in_channels=bn_in, track_running_stats=False))
+            self.bn.append(nng.BatchNorm(
+                in_channels=bn_in, track_running_stats=False))
         else:
             self.bn = None
 
@@ -125,7 +128,8 @@ class GUNet(nn.Module):
 
             if self.bn_bool == True:
                 self.bn.append(
-                    nng.BatchNorm(in_channels=bn_in, track_running_stats=False)
+                    nng.BatchNorm(
+                        in_channels=bn_in, track_running_stats=False)
                 )
 
         self.up_layers = nn.ModuleList()
@@ -137,7 +141,8 @@ class GUNet(nn.Module):
                     out_channels=self.dim_enc,
                 )
             )
-            self.size_hidden_layers_init = 2 * self.size_hidden_layers_init
+            self.size_hidden_layers_init = 2 * \
+                self.size_hidden_layers_init
 
         elif self.layer == "GAT":
             self.up_layers.append(
@@ -152,7 +157,8 @@ class GUNet(nn.Module):
 
         if self.bn_bool == True:
             self.bn.append(
-                nng.BatchNorm(in_channels=self.dim_enc, track_running_stats=False)
+                nng.BatchNorm(
+                    in_channels=self.dim_enc, track_running_stats=False)
             )
 
         for n in range(1, self.L - 1):
@@ -164,7 +170,8 @@ class GUNet(nn.Module):
                     )
                 )
                 bn_in = self.size_hidden_layers_init
-                self.size_hidden_layers_init = 2 * self.size_hidden_layers_init
+                self.size_hidden_layers_init = 2 * \
+                    self.size_hidden_layers_init
 
             elif self.layer == "GAT":
                 self.up_layers.append(
@@ -179,7 +186,8 @@ class GUNet(nn.Module):
 
             if self.bn_bool == True:
                 self.bn.append(
-                    nng.BatchNorm(in_channels=bn_in, track_running_stats=False)
+                    nng.BatchNorm(
+                        in_channels=bn_in, track_running_stats=False)
                 )
 
     def forward(self, data):
@@ -236,9 +244,11 @@ class GUNet(nn.Module):
         pos_x_list.append(pos_x[id[-1]].clone())
 
         for n in range(self.L - 1, 0, -1):
-            z = UpSample(z, pos_x_list[n - 1], pos_x_list[n])
+            z = UpSample(
+                z, pos_x_list[n - 1], pos_x_list[n])
             z = torch.cat([z, z_list[n - 1]], dim=1)
-            z = self.up_layers[n - 1](z, edge_index_list[n - 1])
+            z = self.up_layers[n -
+                               1](z, edge_index_list[n - 1])
 
             if self.bn_bool == True:
                 z = self.bn[self.L + n - 1](z)

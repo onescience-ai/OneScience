@@ -142,7 +142,8 @@ class Fengwu(Module):
 
         self.fuser = FuserLayer(
             dim=embed_dim * 2,
-            input_resolution=(6, resolution[1][0], resolution[1][1]),
+            input_resolution=(
+                6, resolution[1][0], resolution[1][1]),
             depth=6,
             num_heads=num_heads[1],
             window_size=window_size,
@@ -256,7 +257,8 @@ class Fengwu(Module):
         u = x[:, 78:115, :, :]
         v = x[:, 115:152, :, :]
         t = x[:, 152:189, :, :]
-        surface, skip_surface = self.encoder_surface(surface)
+        surface, skip_surface = self.encoder_surface(
+            surface)
         z, skip_z = self.encoder_z(z)
         r, skip_r = self.encoder_r(r)
         u, skip_u = self.encoder_u(u)
@@ -288,7 +290,8 @@ class Fengwu(Module):
             x[:, 5, :, :],
         )
 
-        surface = self.decoder_surface(surface, skip_surface)
+        surface = self.decoder_surface(
+            surface, skip_surface)
         z = self.decoder_z(z, skip_z)
         r = self.decoder_r(r, skip_r)
         u = self.decoder_u(u, skip_u)

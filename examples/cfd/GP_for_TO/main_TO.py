@@ -13,7 +13,8 @@ def main(args):
     tkwargs = {
         "dtype": torch.float,
         "device": torch.device(
-            f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu"
+            f"cuda:{args.gpu}" if torch.cuda.is_available(
+            ) else "cpu"
         ),
     }
 
@@ -69,19 +70,23 @@ def main(args):
     )
     end_time = time.time()
 
-    print(f"The total time in seconds is {end_time - start_time}")
+    print(
+        f"The total time in seconds is {end_time - start_time}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run TO model training")
+    parser = argparse.ArgumentParser(
+        description="Run TO model training")
     parser.add_argument(
         "--problem",
         type=str,
         default="doublepipe",
-        choices=["doublepipe", "diffuser", "rugby", "pipebend"],
+        choices=["doublepipe", "diffuser",
+                 "rugby", "pipebend"],
         help="Problem name to select the dataset and configuration",
     )
-    parser.add_argument("--gpu", type=int, default=0, help="GPU id to use, default=0")
+    parser.add_argument(
+        "--gpu", type=int, default=0, help="GPU id to use, default=0")
     args = parser.parse_args()
 
     main(args)

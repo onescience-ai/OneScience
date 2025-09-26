@@ -25,7 +25,8 @@ def _get_protein_templates(
     """Searches for templates for a single protein chain."""
     if run_template_search:
         templates_start_time = time.time()
-        logging.info("Getting protein templates for sequence %s", sequence)
+        logging.info(
+            "Getting protein templates for sequence %s", sequence)
         protein_templates = templates_lib.Templates.from_seq_and_a3m(
             query_sequence=sequence,
             msa_a3m=input_msa_a3m,
@@ -34,7 +35,8 @@ def _get_protein_templates(
             hmmsearch_config=templates_config.template_tool_config.hmmsearch_config,
             max_a3m_query_sequences=None,
             chain_poly_type=mmcif_names.PROTEIN_CHAIN,
-            structure_store=structure_stores.StructureStore(pdb_database_path),
+            structure_store=structure_stores.StructureStore(
+                pdb_database_path),
             filter_config=templates_config.filter_config,
         )
         logging.info(
@@ -44,12 +46,14 @@ def _get_protein_templates(
             sequence,
         )
     else:
-        logging.info("Skipping template search for sequence %s", sequence)
+        logging.info(
+            "Skipping template search for sequence %s", sequence)
         protein_templates = templates_lib.Templates(
             query_sequence=sequence,
             hits=[],
             max_template_date=templates_config.filter_config.max_template_date,
-            structure_store=structure_stores.StructureStore(pdb_database_path),
+            structure_store=structure_stores.StructureStore(
+                pdb_database_path),
         )
     return protein_templates
 
@@ -68,7 +72,8 @@ def _get_protein_msa_and_templates(
     model_loader_callback=None,
 ) -> tuple[msa.Msa, msa.Msa, templates_lib.Templates]:
     """Processes a single protein chain."""
-    logging.info("Getting protein MSAs for sequence %s", sequence)
+    logging.info(
+        "Getting protein MSAs for sequence %s", sequence)
     msa_start_time = time.time()
     # Run various MSA tools in parallel. Use a ThreadPoolExecutor because
     # they're not blocked by the GIL, as they're sub-shelled out.
@@ -109,10 +114,12 @@ def _get_protein_msa_and_templates(
 
     # Load model after protein MSAs are completed
     if model_loader_callback is not None:
-        logging.info("Protein MSAs completed. Loading model parameters...")
+        logging.info(
+            "Protein MSAs completed. Loading model parameters...")
         model_loader_callback()
 
-    logging.info("Deduplicating MSAs for sequence %s", sequence)
+    logging.info(
+        "Deduplicating MSAs for sequence %s", sequence)
     msa_dedupe_start_time = time.time()
     with futures.ThreadPoolExecutor() as executor:
         unpaired_protein_msa_future = executor.submit(
@@ -121,7 +128,8 @@ def _get_protein_msa_and_templates(
             deduplicate=True,
         )
         paired_protein_msa_future = executor.submit(
-            msa.Msa.from_multiple_msas, msas=[uniprot_msa], deduplicate=False
+            msa.Msa.from_multiple_msas, msas=[
+                uniprot_msa], deduplicate=False
         )
     unpaired_protein_msa = unpaired_protein_msa_future.result()
     paired_protein_msa = paired_protein_msa_future.result()
@@ -154,7 +162,8 @@ def _get_rna_msa(
     rnacentral_msa_config: msa_config.NhmmerConfig,
 ) -> msa.Msa:
     """Processes a single RNA chain."""
-    logging.info("Getting RNA MSAs for sequence %s", sequence)
+    logging.info(
+        "Getting RNA MSAs for sequence %s", sequence)
     rna_msa_start_time = time.time()
     # Run various MSA tools in parallel. Use a ThreadPoolExecutor because
     # they're not blocked by the GIL, as they're sub-shelled out.
@@ -493,7 +502,8 @@ class DataPipeline:
             # MSA None - search. Templates either [] - don't search, or None - search.
             unpaired_msa, paired_msa, template_hits = _get_protein_msa_and_templates(
                 sequence=chain.sequence,
-                run_template_search=not has_templates,  # Skip template search if [].
+                # Skip template search if [].
+                run_template_search=not has_templates,
                 uniref90_msa_config=self._uniref90_msa_config,
                 mgnify_msa_config=self._mgnify_msa_config,
                 small_bfd_msa_config=self._small_bfd_msa_config,
@@ -549,11 +559,14 @@ class DataPipeline:
                 chain.id,
             )
             if not chain.unpaired_msa:
-                logging.info("Using empty unpaired MSA for protein chain %s", chain.id)
+                logging.info(
+                    "Using empty unpaired MSA for protein chain %s", chain.id)
             if not chain.paired_msa:
-                logging.info("Using empty paired MSA for protein chain %s", chain.id)
+                logging.info(
+                    "Using empty paired MSA for protein chain %s", chain.id)
             if not chain.templates:
-                logging.info("Using no templates for protein chain %s", chain.id)
+                logging.info(
+                    "Using no templates for protein chain %s", chain.id)
             empty_msa = msa.Msa.from_empty(
                 query_sequence=chain.sequence,
                 chain_poly_type=mmcif_names.PROTEIN_CHAIN,
@@ -582,7 +595,8 @@ class DataPipeline:
                 chain.id,
             )
             if not chain.unpaired_msa:
-                logging.info("Using empty unpaired MSA for RNA chain %s", chain.id)
+                logging.info(
+                    "Using empty unpaired MSA for RNA chain %s", chain.id)
             empty_msa = msa.Msa.from_empty(
                 query_sequence=chain.sequence, chain_poly_type=mmcif_names.RNA_CHAIN
             ).to_a3m()
@@ -605,13 +619,16 @@ class DataPipeline:
         """Runs MSA and template tools and returns a new Input with the results."""
         processed_chains = []
         for chain in fold_input.chains:
-            print(f"Running data pipeline for chain {chain.id}...")
+            print(
+                f"Running data pipeline for chain {chain.id}...")
             process_chain_start_time = time.time()
             match chain:
                 case folding_input.ProteinChain():
-                    processed_chains.append(self.process_protein_chain(chain))
+                    processed_chains.append(
+                        self.process_protein_chain(chain))
                 case folding_input.RnaChain():
-                    processed_chains.append(self.process_rna_chain(chain))
+                    processed_chains.append(
+                        self.process_rna_chain(chain))
                 case _:
                     processed_chains.append(chain)
             print(

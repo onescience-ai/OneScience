@@ -21,7 +21,8 @@ def create_encoder_block(
         if i == 0:
             _in = in_channels
         encoder.append(
-            create_layer(_in, _out, kernel_size, wn, bn, activation, nn.Conv2d)
+            create_layer(_in, _out, kernel_size,
+                         wn, bn, activation, nn.Conv2d)
         )
     return nn.Sequential(*encoder)
 
@@ -148,7 +149,8 @@ class UNet(nn.Module):
             x = encoder(x)
             sizes.append(x.size())
             tensors.append(x)
-            x, ind = F.max_pool2d(x, 2, 2, return_indices=True)
+            x, ind = F.max_pool2d(
+                x, 2, 2, return_indices=True)
             indices.append(ind)
         return x, tensors, indices, sizes
 
@@ -157,7 +159,8 @@ class UNet(nn.Module):
             tensor = tensors.pop()
             size = sizes.pop()
             ind = indices.pop()
-            x = F.max_unpool2d(x, ind, 2, 2, output_size=size)
+            x = F.max_unpool2d(
+                x, ind, 2, 2, output_size=size)
             x = torch.cat([tensor, x], dim=1)
             x = decoder(x)
         return x

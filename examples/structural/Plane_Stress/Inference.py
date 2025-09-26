@@ -7,7 +7,8 @@ import torch
 from onescience.models.mlp import FullyConnected
 
 # 设备配置
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu")
 
 # 初始化模型结构，参数须与训练时保持一致
 model = FullyConnected(
@@ -16,7 +17,8 @@ model = FullyConnected(
 
 # 从model目录加载模型参数
 model_path = "./model/model_state_dict.pth"
-model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
+model.load_state_dict(torch.load(
+    model_path, map_location=device, weights_only=True))
 model.eval()  # 设置为评估模式
 
 # 生成网格点
@@ -26,7 +28,8 @@ X, Y = np.meshgrid(x, y)
 grid_points = np.stack([X.ravel(), Y.ravel()], axis=1)
 
 # 转换为Tensor并预测
-grid_tensor = torch.tensor(grid_points, dtype=torch.float32).to(device)
+grid_tensor = torch.tensor(
+    grid_points, dtype=torch.float32).to(device)
 with torch.no_grad():
     pred = model(grid_tensor)
 pred_np = pred.cpu().numpy()
@@ -59,7 +62,8 @@ plt.figure(figsize=(15, 6))
 
 # u_x 云图
 plt.subplot(231)
-plt.imshow(ux_masked, origin="lower", extent=[0, 1, 0, 1], cmap="jet")
+plt.imshow(ux_masked, origin="lower",
+           extent=[0, 1, 0, 1], cmap="jet")
 plt.colorbar(label="Displacement (m)")
 plt.plot(hole_x, hole_y, "w-", lw=1)
 plt.xlim(0, 1)
@@ -68,7 +72,8 @@ plt.title("$u_x$")
 
 # u_y 云图
 plt.subplot(232)
-plt.imshow(uy_masked, origin="lower", extent=[0, 1, 0, 1], cmap="jet")
+plt.imshow(uy_masked, origin="lower",
+           extent=[0, 1, 0, 1], cmap="jet")
 plt.colorbar(label="Displacement (m)")
 plt.plot(hole_x, hole_y, "w-", lw=1)
 plt.xlim(0, 1)

@@ -34,12 +34,16 @@ class Exp_Basic(object):
             self.device = torch.device("cpu")
             print("Use CPU")
 
-        self.model = get_model(args, self.device).to(self.device)
-        assert sum(p.numel() for p in self.model.parameters()) > 0, "模型参数为空！"
+        self.model = get_model(
+            args, self.device).to(self.device)
+        assert sum(p.numel()
+                   for p in self.model.parameters()) > 0, "模型参数为空！"
         if hasattr(self.dataset, "x_normalizer"):
-            self.dataset.x_normalizer = self.dataset.x_normalizer.to(self.device)
+            self.dataset.x_normalizer = self.dataset.x_normalizer.to(
+                self.device)
         if hasattr(self.dataset, "y_normalizer"):
-            self.dataset.y_normalizer = self.dataset.y_normalizer.to(self.device)
+            self.dataset.y_normalizer = self.dataset.y_normalizer.to(
+                self.device)
 
         if self.dist.world_size > 1:
             self.dist.find_unused_parameters = args.find_unused_parameters

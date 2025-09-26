@@ -8,7 +8,8 @@ import jax
 def get_item(instance, key):
     sliced = {}
     for field in get_array_fields(instance):
-        num_trailing_dims = field.metadata.get("num_trailing_dims", 0)
+        num_trailing_dims = field.metadata.get(
+            "num_trailing_dims", 0)
         this_key = key
         if isinstance(key, tuple) and Ellipsis in this_key:
             this_key += (slice(None),) * num_trailing_dims
@@ -23,7 +24,8 @@ def get_item(instance, key):
 def get_shape(instance):
     """Returns Shape for given instance of dataclass."""
     first_field = dataclasses.fields(instance)[0]
-    num_trailing_dims = first_field.metadata.get("num_trailing_dims", None)
+    num_trailing_dims = first_field.metadata.get(
+        "num_trailing_dims", None)
     value = getattr(instance, first_field.name)
     if num_trailing_dims:
         return value.shape[:-num_trailing_dims]
@@ -37,7 +39,8 @@ def get_len(instance):
     if shape:
         return shape[0]
     else:
-        raise TypeError("len() of unsized object")  # Match jax.numpy behavior.
+        # Match jax.numpy behavior.
+        raise TypeError("len() of unsized object")
 
 
 @property
@@ -48,7 +51,8 @@ def get_dtype(instance):
         field.name for field in fields if field.metadata.get("sets_dtype", False)
     ]
     if sets_dtype:
-        assert len(sets_dtype) == 1, "at most field can set dtype"
+        assert len(
+            sets_dtype) == 1, "at most field can set dtype"
         field_value = getattr(instance, sets_dtype[0])
     elif instance.same_dtype:
         field_value = getattr(instance, fields[0].name)
@@ -63,7 +67,8 @@ def get_dtype(instance):
         return field_value.dtype
     else:
         # Should this be Value Error?
-        raise AttributeError(f"field_value {field_value} does not have dtype")
+        raise AttributeError(
+            f"field_value {field_value} does not have dtype")
 
 
 def replace(instance, **kwargs):
@@ -73,7 +78,8 @@ def replace(instance, **kwargs):
 def post_init(instance):
     """Validate instance has same shapes & dtypes."""
     array_fields = get_array_fields(instance)
-    arrays = list(get_array_fields(instance, return_values=True).values())
+    arrays = list(get_array_fields(
+        instance, return_values=True).values())
     first_field = array_fields[0]
     # These slightly weird constructions about checking whether the leaves are
     # actual arrays is since e.g. vmap internally relies on being able to
@@ -87,15 +93,18 @@ def post_init(instance):
     if dtype is not None:
         first_shape = instance.shape
         for array, field in zip(arrays, array_fields, strict=True):
-            num_trailing_dims = field.metadata.get("num_trailing_dims", None)
+            num_trailing_dims = field.metadata.get(
+                "num_trailing_dims", None)
             if num_trailing_dims:
                 array_shape = array.shape
-                field_shape = array_shape[:-num_trailing_dims]
+                field_shape = array_shape[:-
+                                          num_trailing_dims]
                 msg = (
                     f"field {field} should have number of trailing dims"
                     " {num_trailing_dims}"
                 )
-                assert len(array_shape) == len(first_shape) + num_trailing_dims, msg
+                assert len(array_shape) == len(
+                    first_shape) + num_trailing_dims, msg
             else:
                 field_shape = array.shape
 
@@ -107,7 +116,8 @@ def post_init(instance):
 
             field_dtype = array.dtype
 
-            allowed_metadata_dtypes = field.metadata.get("allowed_dtypes", [])
+            allowed_metadata_dtypes = field.metadata.get(
+                "allowed_dtypes", [])
             if allowed_metadata_dtypes:
                 msg = f"Dtype is {field_dtype} but must be in {allowed_metadata_dtypes}"
                 assert field_dtype in allowed_metadata_dtypes, msg
@@ -123,25 +133,30 @@ def post_init(instance):
 
 def flatten(instance):
     """Flatten Struct of Array instance."""
-    array_likes = get_array_fields(instance, return_values=True).values()
+    array_likes = get_array_fields(
+        instance, return_values=True).values()
     flat_array_likes = []
     inner_treedefs = []
     num_arrays = []
     for array_like in array_likes:
-        flat_array_like, inner_treedef = jax.tree_util.tree_flatten(array_like)
+        flat_array_like, inner_treedef = jax.tree_util.tree_flatten(
+            array_like)
         inner_treedefs.append(inner_treedef)
         flat_array_likes += flat_array_like
         num_arrays.append(len(flat_array_like))
-    metadata = get_metadata_fields(instance, return_values=True)
+    metadata = get_metadata_fields(
+        instance, return_values=True)
     metadata = type(instance).metadata_cls(**metadata)
     return flat_array_likes, (inner_treedefs, metadata, num_arrays)
 
 
 def make_metadata_class(cls):
-    metadata_fields = get_fields(cls, lambda x: x.metadata.get("is_metadata", False))
+    metadata_fields = get_fields(
+        cls, lambda x: x.metadata.get("is_metadata", False))
     metadata_cls = dataclasses.make_dataclass(
         cls_name="Meta" + cls.__name__,
-        fields=[(field.name, field.type, field) for field in metadata_fields],
+        fields=[(field.name, field.type, field)
+                for field in metadata_fields],
         frozen=True,
         eq=True,
     )
@@ -197,19 +212,21 @@ class StructOfArray:
 
         def unflatten(aux, data):
             inner_treedefs, metadata, num_arrays = aux
-            array_fields = [field.name for field in get_array_fields(new_cls)]
+            array_fields = [
+                field.name for field in get_array_fields(new_cls)]
             value_dict = {}
             array_start = 0
             for num_array, inner_treedef, array_field in zip(
                 num_arrays, inner_treedefs, array_fields, strict=True
             ):
                 value_dict[array_field] = jax.tree_util.tree_unflatten(
-                    inner_treedef, data[array_start : array_start + num_array]
+                    inner_treedef, data[array_start: array_start + num_array]
                 )
                 array_start += num_array
             metadata_fields = get_metadata_fields(new_cls)
             for field in metadata_fields:
-                value_dict[field.name] = getattr(metadata, field.name)
+                value_dict[field.name] = getattr(
+                    metadata, field.name)
 
             return new_cls(**value_dict)
 

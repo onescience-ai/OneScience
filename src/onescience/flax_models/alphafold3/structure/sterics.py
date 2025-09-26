@@ -23,7 +23,8 @@ def _make_atom_has_clash_mask(
       ignore_chains: Collection of chains that should not be considered clashing.
         A boolean NumPy array of length N atoms.
     """
-    atom_is_clashing = np.zeros((struc.num_atoms,), dtype=bool)
+    atom_is_clashing = np.zeros(
+        (struc.num_atoms,), dtype=bool)
     for atom_index, clashes in enumerate(kd_query_result):
         chain_i = struc.chain_id[atom_index]
         if chain_i in ignore_chains:
@@ -73,7 +74,8 @@ def find_clashing_chains(
       ValueError: If `clash_thresh_fraction` is not in range (0,1].
     """
     if not 0 < clash_thresh_fraction <= 1:
-        raise ValueError("clash_thresh_fraction must be in range (0,1]")
+        raise ValueError(
+            "clash_thresh_fraction must be in range (0,1]")
 
     struc_backbone = struc.filter_polymers_to_single_atom_per_res()
     if struc_backbone.num_chains == 0:
@@ -83,7 +85,8 @@ def find_clashing_chains(
     if not np.any(struc_backbone.coords):
         return []
 
-    coord_kdtree = scipy.spatial.cKDTree(struc_backbone.coords)
+    coord_kdtree = scipy.spatial.cKDTree(
+        struc_backbone.coords)
 
     # For each atom coordinate, find all atoms within the clash thresh radius.
     clashing_per_atom = coord_kdtree.query_ball_point(
@@ -93,7 +96,8 @@ def find_clashing_chains(
     if struc_backbone.atom_occupancy is not None:
         chain_occupancy = np.array(
             [
-                np.mean(struc_backbone.atom_occupancy[start:end])
+                np.mean(
+                    struc_backbone.atom_occupancy[start:end])
                 for start, end in struc_backbone.iter_chain_ranges()
             ]
         )
@@ -120,11 +124,13 @@ def find_clashing_chains(
             break
 
         # Greedily remove worst with the lowest occupancy.
-        most_clashes = np.nonzero(clashes_per_chain == max_clash)[0]
+        most_clashes = np.nonzero(
+            clashes_per_chain == max_clash)[0]
         if chain_occupancy is not None:
             occupancy_clashing = chain_occupancy[most_clashes]
             last_lowest_occupancy = (
-                len(occupancy_clashing) - np.argmin(occupancy_clashing[::-1]) - 1
+                len(occupancy_clashing) -
+                np.argmin(occupancy_clashing[::-1]) - 1
             )
             worst_and_last = most_clashes[last_lowest_occupancy]
         else:

@@ -38,15 +38,18 @@ def main(cfg: DictConfig) -> None:
     if dist.rank == 0:
         writer = SummaryWriter(log_dir="tensorboard")
     logger = PythonLogger("main")  # General python logger
-    logger0 = RankZeroLoggingWrapper(logger, dist)  # Rank 0 logger
+    logger0 = RankZeroLoggingWrapper(
+        logger, dist)  # Rank 0 logger
 
     # Resolve and parse configs
     OmegaConf.resolve(cfg)
-    dataset_cfg = OmegaConf.to_container(cfg.dataset)  # TODO needs better handling
+    dataset_cfg = OmegaConf.to_container(
+        cfg.dataset)  # TODO needs better handling
 
     if hasattr(cfg, "validation"):
         train_test_split = True
-        validation_dataset_cfg = OmegaConf.to_container(cfg.validation)
+        validation_dataset_cfg = OmegaConf.to_container(
+            cfg.validation)
     else:
         train_test_split = False
         validation_dataset_cfg = None
@@ -54,11 +57,13 @@ def main(cfg: DictConfig) -> None:
     fp_optimizations = cfg.training.perf.fp_optimizations
     fp16 = fp_optimizations == "fp16"
     enable_amp = fp_optimizations.startswith("amp")
-    amp_dtype = torch.float16 if (fp_optimizations == "amp-fp16") else torch.bfloat16
+    amp_dtype = torch.float16 if (
+        fp_optimizations == "amp-fp16") else torch.bfloat16
 
     logger.info(f"Saving the outputs in {os.getcwd()}")
     checkpoint_dir = os.path.join(
-        cfg.training.io.get("checkpoint_dir", "."), f"checkpoints_{cfg.model.name}"
+        cfg.training.io.get(
+            "checkpoint_dir", "."), f"checkpoints_{cfg.model.name}"
     )
 
     if cfg.training.hp.batch_size_per_gpu == "auto":
@@ -106,7 +111,8 @@ def main(cfg: DictConfig) -> None:
         patch_shape_x = None
         patch_shape_y = None
     patch_shape = (patch_shape_y, patch_shape_x)
-    img_shape, patch_shape = set_patch_shape(img_shape, patch_shape)
+    img_shape, patch_shape = set_patch_shape(
+        img_shape, patch_shape)
     if patch_shape != img_shape:
         logger0.info("Patch-based training enabled")
     else:
@@ -143,16 +149,20 @@ def main(cfg: DictConfig) -> None:
     model_args.update(standard_model_cfgs[cfg.model.name])
     if cfg.model.name in ("diffusion", "patched_diffusion"):
         model_args["scale_cond_input"] = cfg.model.scale_cond_input
-    if hasattr(cfg.model, "model_args"):  # override defaults from config file
-        model_args.update(OmegaConf.to_container(cfg.model.model_args))
+    # override defaults from config file
+    if hasattr(cfg.model, "model_args"):
+        model_args.update(
+            OmegaConf.to_container(cfg.model.model_args))
     if cfg.model.name == "regression":
         model = UNet(
-            img_in_channels=img_in_channels + model_args["N_grid_channels"],
+            img_in_channels=img_in_channels +
+            model_args["N_grid_channels"],
             **model_args,
         )
     else:  # diffusion or patched diffusion
         model = EDMPrecondSR(
-            img_in_channels=img_in_channels + model_args["N_grid_channels"],  # 20 + 4
+            img_in_channels=img_in_channels +
+            model_args["N_grid_channels"],  # 20 + 4
             **model_args,
         )
     model.train().requires_grad_(True).to(dist.device)
@@ -175,9 +185,11 @@ def main(cfg: DictConfig) -> None:
             raise FileNotFoundError(
                 f"Expected this regression checkpoint but not found: {regression_checkpoint_path}"
             )
-        regression_net = Module.from_checkpoint(regression_checkpoint_path)
+        regression_net = Module.from_checkpoint(
+            regression_checkpoint_path)
         regression_net.eval().requires_grad_(False).to(dist.device)
-        logger0.success("Loaded the pre-trained regression model")
+        logger0.success(
+            "Loaded the pre-trained regression model")
 
     # Instantiate the loss function
     patch_num = getattr(cfg.training.hp, "patch_num", 1)
@@ -208,7 +220,8 @@ def main(cfg: DictConfig) -> None:
         dist.world_size,
     )
     batch_size_per_gpu = cfg.training.hp.batch_size_per_gpu
-    logger0.info(f"Using {num_accumulation_rounds} gradient accumulation rounds")
+    logger0.info(
+        f"Using {num_accumulation_rounds} gradient accumulation rounds")
 
     if dist.world_size > 1:
         torch.distributed.barrier()
@@ -226,7 +239,8 @@ def main(cfg: DictConfig) -> None:
     #                            MAIN TRAINING LOOP                            #
     ############################################################################
 
-    logger0.info(f"Training for {cfg.training.hp.training_duration} images...")
+    logger0.info(
+        f"Training for {cfg.training.hp.training_duration} images...")
     done = False
 
     # init variables to monitor running mean of average loss since last periodic
@@ -240,9 +254,12 @@ def main(cfg: DictConfig) -> None:
         optimizer.zero_grad(set_to_none=True)
         loss_accum = 0
         for _ in range(num_accumulation_rounds):
-            img_clean, img_lr, labels = next(dataset_iterator)
-            img_clean = img_clean.to(dist.device).to(torch.float32).contiguous()
-            img_lr = img_lr.to(dist.device).to(torch.float32).contiguous()
+            img_clean, img_lr, labels = next(
+                dataset_iterator)
+            img_clean = img_clean.to(dist.device).to(
+                torch.float32).contiguous()
+            img_lr = img_lr.to(dist.device).to(
+                torch.float32).contiguous()
             labels = labels.to(dist.device).contiguous()
             with torch.autocast("cuda", dtype=amp_dtype, enabled=enable_amp):
                 loss = loss_fn(
@@ -256,12 +273,15 @@ def main(cfg: DictConfig) -> None:
             loss_accum += loss / num_accumulation_rounds
             loss.backward()
 
-        loss_sum = torch.tensor([loss_accum], device=dist.device)
+        loss_sum = torch.tensor(
+            [loss_accum], device=dist.device)
 
         if dist.world_size > 1:
             torch.distributed.barrier()
-            torch.distributed.all_reduce(loss_sum, op=torch.distributed.ReduceOp.SUM)
-        average_loss = (loss_sum / dist.world_size).cpu().item()
+            torch.distributed.all_reduce(
+                loss_sum, op=torch.distributed.ReduceOp.SUM)
+        average_loss = (
+            loss_sum / dist.world_size).cpu().item()
 
         average_loss_running_mean += (
             average_loss - average_loss_running_mean
@@ -269,7 +289,8 @@ def main(cfg: DictConfig) -> None:
         n_average_loss_running_mean += 1
 
         if dist.rank == 0:
-            writer.add_scalar("training_loss", average_loss, cur_nimg)
+            writer.add_scalar(
+                "training_loss", average_loss, cur_nimg)
             writer.add_scalar(
                 "training_loss_running_mean", average_loss_running_mean, cur_nimg
             )
@@ -288,15 +309,19 @@ def main(cfg: DictConfig) -> None:
             n_average_loss_running_mean = 1
 
         # Update weights.
-        lr_rampup = cfg.training.hp.lr_rampup  # ramp up the learning rate
+        # ramp up the learning rate
+        lr_rampup = cfg.training.hp.lr_rampup
         for g in optimizer.param_groups:
             if lr_rampup > 0:
-                g["lr"] = cfg.training.hp.lr * min(cur_nimg / lr_rampup, 1)
+                g["lr"] = cfg.training.hp.lr * \
+                    min(cur_nimg / lr_rampup, 1)
             if cur_nimg >= lr_rampup:
-                g["lr"] *= cfg.training.hp.lr_decay ** ((cur_nimg - lr_rampup) // 5e6)
+                g["lr"] *= cfg.training.hp.lr_decay ** (
+                    (cur_nimg - lr_rampup) // 5e6)
             current_lr = g["lr"]
             if dist.rank == 0:
-                writer.add_scalar("learning_rate", current_lr, cur_nimg)
+                writer.add_scalar(
+                    "learning_rate", current_lr, cur_nimg)
         handle_and_clip_gradients(
             model, grad_clip_threshold=cfg.training.hp.grad_clip_threshold
         )
@@ -327,9 +352,11 @@ def main(cfg: DictConfig) -> None:
                             .contiguous()
                         )
                         img_lr_valid = (
-                            img_lr_valid.to(dist.device).to(torch.float32).contiguous()
+                            img_lr_valid.to(dist.device).to(
+                                torch.float32).contiguous()
                         )
-                        labels_valid = labels_valid.to(dist.device).contiguous()
+                        labels_valid = labels_valid.to(
+                            dist.device).contiguous()
                         loss_valid = loss_fn(
                             net=model,
                             img_clean=img_clean_valid,
@@ -338,7 +365,8 @@ def main(cfg: DictConfig) -> None:
                             augment_pipe=None,
                         )
                         loss_valid = (
-                            (loss_valid.sum() / batch_size_per_gpu).cpu().item()
+                            (loss_valid.sum() /
+                             batch_size_per_gpu).cpu().item()
                         )
                         valid_loss_accum += (
                             loss_valid / cfg.training.io.validation_steps
@@ -370,10 +398,13 @@ def main(cfg: DictConfig) -> None:
             fields = []
             fields += [f"samples {cur_nimg:<9.1f}"]
             fields += [f"training_loss {average_loss:<7.2f}"]
-            fields += [f"training_loss_running_mean {average_loss_running_mean:<7.2f}"]
+            fields += [
+                f"training_loss_running_mean {average_loss_running_mean:<7.2f}"]
             fields += [f"learning_rate {current_lr:<7.8f}"]
-            fields += [f"total_sec {(tick_end_time - start_time):<7.1f}"]
-            fields += [f"sec_per_tick {(tick_end_time - tick_start_time):<7.1f}"]
+            fields += [
+                f"total_sec {(tick_end_time - start_time):<7.1f}"]
+            fields += [
+                f"sec_per_tick {(tick_end_time - tick_start_time):<7.1f}"]
             fields += [
                 f"sec_per_sample {((tick_end_time - tick_start_time) / (cur_nimg - tick_start_nimg)):<7.2f}"
             ]

@@ -83,11 +83,14 @@ class MambaModel(GPTModel):
         while mcore_model:
             if isinstance(mcore_model, (MCoreMambaModel, Evo2StyleMCoreMambaModel)):
                 break
-            mcore_model = getattr(mcore_model, "module", None)
+            mcore_model = getattr(
+                mcore_model, "module", None)
         if mcore_model is None or not isinstance(
-            mcore_model, (MCoreMambaModel, Evo2StyleMCoreMambaModel)
+            mcore_model, (MCoreMambaModel,
+                          Evo2StyleMCoreMambaModel)
         ):
-            raise ValueError("Mamba model instance not found in the model structure.")
+            raise ValueError(
+                "Mamba model instance not found in the model structure.")
 
         vocab_size = None
         if self.tokenizer is not None:
@@ -221,7 +224,8 @@ class Evo2StyleMCoreMambaModel(megatron.core.models.mamba.mamba_model.MambaModel
             rotary_seq_len = self.rotary_pos_emb.get_rotary_seq_len(
                 inference_context, self.decoder, decoder_input, self.config
             )
-            rotary_pos_emb = self.rotary_pos_emb(rotary_seq_len)
+            rotary_pos_emb = self.rotary_pos_emb(
+                rotary_seq_len)
 
         # Wrap decoder_input to allow the decoder (MambaBlock) to delete the
         # reference held by this caller function, enabling early garbage collection
@@ -260,7 +264,8 @@ class Evo2StyleMCoreMambaModel(megatron.core.models.mamba.mamba_model.MambaModel
             and inference_context is not None
             and inference_context.materialize_only_last_token_logits
         ):
-            hidden_states = hidden_states[-1, :, :].unsqueeze(0)
+            hidden_states = hidden_states[-1,
+                                          :, :].unsqueeze(0)
 
         logits, _ = self.output_layer(
             hidden_states,
@@ -274,7 +279,8 @@ class Evo2StyleMCoreMambaModel(megatron.core.models.mamba.mamba_model.MambaModel
 
         # Apply reweighted loss calculation for uppercase/lowercase handling
         labels, lowercase_mask = make_upper_case(labels)
-        loss = self.compute_language_model_loss(labels, logits)
+        loss = self.compute_language_model_loss(
+            labels, logits)
         normalize_per_batch = (
             True if self.config.to_upper == "normalized_weighted" else False
         )
@@ -312,7 +318,8 @@ def mamba_no_weight_decay_cond(name, param, exclude_embeddings: bool = False):
     # (See megatron.core.optimizer._get_pram_groups)
     # TODO exclude embeddings
     else:
-        no_wd = name.endswith(".bias") or len(param.shape) == 1
+        no_wd = name.endswith(
+            ".bias") or len(param.shape) == 1
     return no_wd
 
 
@@ -363,7 +370,8 @@ class HybridMambaConfig8BEvo2Loss(NemotronHConfigBase):
     # The trainer is responsible for using this when initializing the optimizer state:
     #  opt = MegatronOptimizerModule(opt_config, sched, no_weight_decay_cond=model_config.hyena_no_weight_decay_cond_fn)
     hyena_no_weight_decay_cond_fn: Callable = mamba_no_weight_decay_cond
-    spike_no_more_embedding_init: bool = False  # TODO: remove this.
+    # TODO: remove this.
+    spike_no_more_embedding_init: bool = False
     layernorm_embeddings: bool = False
     # If set to true, use targeted variance loss which encourages the word embedding weight variances
     # to be close to a target value (1.0).
@@ -401,7 +409,8 @@ class HybridMambaConfig8BEvo2Loss(NemotronHConfigBase):
             mamba_stack_spec = mamba_stack_spec()
 
         assert (
-            getattr(self, "virtual_pipeline_model_parallel_size", None) is None
+            getattr(
+                self, "virtual_pipeline_model_parallel_size", None) is None
             and vp_stage is None
         ), (
             "Virtual pipeline model parallelism is temporarily unsupported in SSM/Mamaba "

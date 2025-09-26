@@ -94,7 +94,8 @@ def test_mace():
     model = modules.MACE(**model_config)
     model_compiled = jit.compile(model)
 
-    atomic_data = data.AtomicData.from_config(config, z_table=table, cutoff=3.0)
+    atomic_data = data.AtomicData.from_config(
+        config, z_table=table, cutoff=3.0)
     atomic_data2 = data.AtomicData.from_config(
         config_rotated, z_table=table, cutoff=3.0
     )
@@ -108,8 +109,10 @@ def test_mace():
     batch = next(iter(data_loader))
     output1 = model(batch.to_dict(), training=True)
     output2 = model_compiled(batch.to_dict(), training=True)
-    assert torch.allclose(output1["energy"][0], output2["energy"][0])
-    assert torch.allclose(output2["energy"][0], output2["energy"][1])
+    assert torch.allclose(
+        output1["energy"][0], output2["energy"][0])
+    assert torch.allclose(
+        output2["energy"][0], output2["energy"][1])
 
 
 def test_dipole_mace():
@@ -138,7 +141,8 @@ def test_dipole_mace():
     )
     model = modules.AtomicDipolesMACE(**model_config)
 
-    atomic_data = data.AtomicData.from_config(config, z_table=table, cutoff=3.0)
+    atomic_data = data.AtomicData.from_config(
+        config, z_table=table, cutoff=3.0)
     atomic_data2 = data.AtomicData.from_config(
         config_rotated, z_table=table, cutoff=3.0
     )
@@ -155,10 +159,12 @@ def test_dipole_mace():
         training=True,
     )
     # sanity check of dipoles being the right shape
-    assert output["dipole"][0].unsqueeze(0).shape == atomic_data.dipole.shape
+    assert output["dipole"][0].unsqueeze(
+        0).shape == atomic_data.dipole.shape
     # test equivariance of output dipoles
     assert np.allclose(
-        np.array(rot @ output["dipole"][0].detach().numpy()),
+        np.array(rot @ output["dipole"]
+                 [0].detach().numpy()),
         output["dipole"][1].detach().numpy(),
     )
 
@@ -188,7 +194,8 @@ def test_energy_dipole_mace():
     )
     model = modules.EnergyDipolesMACE(**model_config)
 
-    atomic_data = data.AtomicData.from_config(config, z_table=table, cutoff=3.0)
+    atomic_data = data.AtomicData.from_config(
+        config, z_table=table, cutoff=3.0)
     atomic_data2 = data.AtomicData.from_config(
         config_rotated, z_table=table, cutoff=3.0
     )
@@ -205,18 +212,22 @@ def test_energy_dipole_mace():
         training=True,
     )
     # sanity check of dipoles being the right shape
-    assert output["dipole"][0].unsqueeze(0).shape == atomic_data.dipole.shape
+    assert output["dipole"][0].unsqueeze(
+        0).shape == atomic_data.dipole.shape
     # test energy is invariant
-    assert torch.allclose(output["energy"][0], output["energy"][1])
+    assert torch.allclose(
+        output["energy"][0], output["energy"][1])
     # test equivariance of output dipoles
     assert np.allclose(
-        np.array(rot @ output["dipole"][0].detach().numpy()),
+        np.array(rot @ output["dipole"]
+                 [0].detach().numpy()),
         output["dipole"][1].detach().numpy(),
     )
 
 
 def test_mace_multi_reference():
-    atomic_energies_multi = np.array([[1.0, 3.0], [0.0, 0.0]], dtype=float)
+    atomic_energies_multi = np.array(
+        [[1.0, 3.0], [0.0, 0.0]], dtype=float)
     model_config = dict(
         r_max=5,
         num_bessel=8,
@@ -264,7 +275,8 @@ def test_mace_multi_reference():
     batch = next(iter(data_loader))
     output1 = model(batch.to_dict(), training=True)
     output2 = model_compiled(batch.to_dict(), training=True)
-    assert torch.allclose(output1["energy"][0], output2["energy"][0])
+    assert torch.allclose(
+        output1["energy"][0], output2["energy"][0])
     assert output2["energy"].shape[0] == 2
 
 
@@ -279,15 +291,19 @@ def test_atomic_virials_stresses():
     atoms = build.bulk("Si", "diamond", a=5.43)
     # Apply strain to ensure non-zero stress
     strain_tensor = np.eye(3) * 1.02  # 2% strain
-    atoms.set_cell(np.dot(atoms.get_cell(), strain_tensor), scale_atoms=True)
+    atoms.set_cell(
+        np.dot(atoms.get_cell(), strain_tensor), scale_atoms=True)
 
     # Add forces and energy for completeness
-    atoms.arrays["REF_forces"] = np.random.normal(0, 0.1, size=atoms.positions.shape)
+    atoms.arrays["REF_forces"] = np.random.normal(
+        0, 0.1, size=atoms.positions.shape)
     atoms.info["REF_energy"] = np.random.normal(0, 1)
-    atoms.info["REF_stress"] = np.random.normal(0, 0.1, size=6)
+    atoms.info["REF_stress"] = np.random.normal(
+        0, 0.1, size=6)
 
     # Setup MACE model configuration
-    stress_z_table = tools.AtomicNumberTable([14])  # Silicon
+    stress_z_table = tools.AtomicNumberTable(
+        [14])  # Silicon
     stress_atomic_energies = np.array([0.0])
 
     model_config = dict(
@@ -355,14 +371,19 @@ def test_atomic_virials_stresses():
     assert atomic_stresses is not None, "Atomic stresses were not computed"
 
     # Test shape of atomic values
-    assert atomic_virials.shape[0] == len(atoms), "Wrong shape for atomic virials"
-    assert atomic_virials.shape[1:] == (3, 3), "Atomic virials should be 3x3 matrices"
-    assert atomic_stresses.shape[0] == len(atoms), "Wrong shape for atomic stresses"
-    assert atomic_stresses.shape[1:] == (3, 3), "Atomic stresses should be 3x3 matrices"
+    assert atomic_virials.shape[0] == len(
+        atoms), "Wrong shape for atomic virials"
+    assert atomic_virials.shape[1:] == (
+        3, 3), "Atomic virials should be 3x3 matrices"
+    assert atomic_stresses.shape[0] == len(
+        atoms), "Wrong shape for atomic stresses"
+    assert atomic_stresses.shape[1:] == (
+        3, 3), "Atomic stresses should be 3x3 matrices"
 
     # Compute sum of atomic values
     summed_atomic_virials = torch.sum(atomic_virials, dim=0)
-    summed_atomic_stresses = torch.sum(atomic_stresses, dim=0)
+    summed_atomic_stresses = torch.sum(
+        atomic_stresses, dim=0)
 
     # Test that sums match total values
     assert torch.allclose(

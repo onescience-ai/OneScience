@@ -16,7 +16,8 @@ def adaptive_layernorm(x, single_cond, name):
     # Adopted from Scalable Diffusion Models with Transformers
     # https://arxiv.org/abs/2212.09748
     if single_cond is None:
-        x = hm.LayerNorm(name=f"{name}layer_norm", use_fast_variance=False)(x)
+        x = hm.LayerNorm(
+            name=f"{name}layer_norm", use_fast_variance=False)(x)
     else:
         x = hm.LayerNorm(
             name=f"{name}layer_norm",
@@ -53,7 +54,8 @@ def adaptive_zero_init(
             name=f"{name}transition2",
         )(x)
     else:
-        output = hm.Linear(num_channels, name=f"{name}transition2")(x)
+        output = hm.Linear(
+            num_channels, name=f"{name}transition2")(x)
         # Init to a small gain, sigmoid(-2) ~ 0.1
         cond = hm.Linear(
             output.shape[-1],
@@ -78,7 +80,8 @@ def transition_block(
     num_channels = x.shape[-1]
     num_intermediates = num_intermediate_factor * num_channels
 
-    x = adaptive_layernorm(x, single_cond, name=f"{name}ffw_")
+    x = adaptive_layernorm(
+        x, single_cond, name=f"{name}ffw_")
 
     if use_glu_kernel:
         weights, _ = hm.haiku_linear_get_params(
@@ -87,7 +90,8 @@ def transition_block(
             initializer="relu",
             name=f"{name}ffw_transition1",
         )
-        weights = jnp.reshape(weights, (len(weights), 2, num_intermediates))
+        weights = jnp.reshape(
+            weights, (len(weights), 2, num_intermediates))
         c = gated_linear_unit.gated_linear_unit(
             x=x, weight=weights, implementation=None, activation=jax.nn.swish
         )
@@ -113,14 +117,17 @@ class SelfAttentionConfig(base_config.BaseConfig):
 def self_attention(
     x: jnp.ndarray,  # (num_tokens, ch)
     mask: jnp.ndarray,  # (num_tokens,)
-    pair_logits: jnp.ndarray | None,  # (num_heads, num_tokens, num_tokens)
+    # (num_heads, num_tokens, num_tokens)
+    pair_logits: jnp.ndarray | None,
     config: SelfAttentionConfig,
     global_config: model_config.GlobalConfig,
-    single_cond: jnp.ndarray | None = None,  # (num_tokens, ch)
+    # (num_tokens, ch)
+    single_cond: jnp.ndarray | None = None,
     name: str = "",
 ) -> jnp.ndarray:
     """Multihead self-attention."""
-    assert len(mask.shape) == len(x.shape) - 1, f"{mask.shape}, {x.shape}"
+    assert len(mask.shape) == len(x.shape) - \
+        1, f"{mask.shape}, {x.shape}"
     # bias: ... x heads (1) x query (1) x key
     bias = (1e9 * (mask - 1.0))[..., None, None, :]
 
@@ -137,24 +144,31 @@ def self_attention(
     value_dim = value_dim // num_head
 
     qk_shape = (num_head, key_dim)
-    q = hm.Linear(qk_shape, use_bias=True, name=f"{name}q_projection")(x)
-    k = hm.Linear(qk_shape, use_bias=False, name=f"{name}k_projection")(x)
+    q = hm.Linear(qk_shape, use_bias=True,
+                  name=f"{name}q_projection")(x)
+    k = hm.Linear(qk_shape, use_bias=False,
+                  name=f"{name}k_projection")(x)
 
     # In some situations the gradient norms can blow up without running this
     # einsum in float32.
     q = q.astype(jnp.float32)
     k = k.astype(jnp.float32)
     bias = bias.astype(jnp.float32)
-    logits = jnp.einsum("...qhc,...khc->...hqk", q * key_dim ** (-0.5), k) + bias
+    logits = jnp.einsum(
+        "...qhc,...khc->...hqk", q * key_dim ** (-0.5), k) + bias
     if pair_logits is not None:
-        logits += pair_logits  # (num_heads, seq_len, seq_len)
+        # (num_heads, seq_len, seq_len)
+        logits += pair_logits
     weights = jax.nn.softmax(logits, axis=-1)
     weights = jnp.asarray(weights, dtype=x.dtype)
 
     v_shape = (num_head, value_dim)
-    v = hm.Linear(v_shape, use_bias=False, name=f"{name}v_projection")(x)
-    weighted_avg = jnp.einsum("...hqk,...khc->...qhc", weights, v)
-    weighted_avg = jnp.reshape(weighted_avg, weighted_avg.shape[:-2] + (-1,))
+    v = hm.Linear(v_shape, use_bias=False,
+                  name=f"{name}v_projection")(x)
+    weighted_avg = jnp.einsum(
+        "...hqk,...khc->...qhc", weights, v)
+    weighted_avg = jnp.reshape(
+        weighted_avg, weighted_avg.shape[:-2] + (-1,))
 
     gate_logits = hm.Linear(
         num_head * value_dim,
@@ -234,10 +248,12 @@ class Transformer(hk.Module):
                 pair_logits = None
             else:
                 pair_logits = hm.Linear(
-                    (self.config.super_block_size, self.config.attention.num_head),
+                    (self.config.super_block_size,
+                     self.config.attention.num_head),
                     name="pair_logits_projection",
                 )(pair_act)
-                pair_logits = jnp.transpose(pair_logits, [2, 3, 0, 1])
+                pair_logits = jnp.transpose(
+                    pair_logits, [2, 3, 0, 1])
             return hk.experimental.layer_stack(
                 self.config.super_block_size, with_per_layer_inputs=True
             )(block)(act, pair_logits)
@@ -266,13 +282,18 @@ def cross_attention(
     name: str = "",
 ) -> jnp.ndarray:
     """Multihead self-attention."""
-    assert len(mask_q.shape) == len(x_q.shape) - 1, f"{mask_q.shape}, {x_q.shape}"
-    assert len(mask_k.shape) == len(x_k.shape) - 1, f"{mask_k.shape}, {x_k.shape}"
+    assert len(mask_q.shape) == len(x_q.shape) - \
+        1, f"{mask_q.shape}, {x_q.shape}"
+    assert len(mask_k.shape) == len(x_k.shape) - \
+        1, f"{mask_k.shape}, {x_k.shape}"
     # bias: ... x heads (1) x query x key
-    bias = 1e9 * (mask_q - 1.0)[..., None, :, None] * (mask_k - 1.0)[..., None, None, :]
+    bias = 1e9 * (mask_q - 1.0)[..., None, :,
+                                None] * (mask_k - 1.0)[..., None, None, :]
 
-    x_q = adaptive_layernorm(x_q, single_cond_q, name=f"{name}q")
-    x_k = adaptive_layernorm(x_k, single_cond_k, name=f"{name}k")
+    x_q = adaptive_layernorm(
+        x_q, single_cond_q, name=f"{name}q")
+    x_k = adaptive_layernorm(
+        x_k, single_cond_k, name=f"{name}k")
 
     assert config.key_dim % config.num_head == 0
     assert config.value_dim % config.num_head == 0
@@ -291,7 +312,8 @@ def cross_attention(
     q = q.astype(jnp.float32)
     k = k.astype(jnp.float32)
     bias = bias.astype(jnp.float32)
-    logits = jnp.einsum("...qhc,...khc->...hqk", q * key_dim ** (-0.5), k) + bias
+    logits = jnp.einsum(
+        "...qhc,...khc->...hqk", q * key_dim ** (-0.5), k) + bias
     if pair_logits is not None:
         logits += pair_logits
     weights = jax.nn.softmax(logits, axis=-1)
@@ -300,8 +322,10 @@ def cross_attention(
     v = hm.Linear(
         (config.num_head, value_dim), use_bias=False, name=f"{name}v_projection"
     )(x_k)
-    weighted_avg = jnp.einsum("...hqk,...khc->...qhc", weights, v)
-    weighted_avg = jnp.reshape(weighted_avg, weighted_avg.shape[:-2] + (-1,))
+    weighted_avg = jnp.einsum(
+        "...hqk,...khc->...qhc", weights, v)
+    weighted_avg = jnp.reshape(
+        weighted_avg, weighted_avg.shape[:-2] + (-1,))
 
     gate_logits = hm.Linear(
         config.num_head * value_dim,
@@ -337,18 +361,25 @@ class CrossAttTransformer(hk.Module):
 
     def __call__(
         self,
-        queries_act: jnp.ndarray,  # (num_subsets, num_queries, ch)
-        queries_mask: jnp.ndarray,  # (num_subsets, num_queries)
-        queries_to_keys: atom_layout.GatherInfo,  # (num_subsets, num_keys)
+        # (num_subsets, num_queries, ch)
+        queries_act: jnp.ndarray,
+        # (num_subsets, num_queries)
+        queries_mask: jnp.ndarray,
+        # (num_subsets, num_keys)
+        queries_to_keys: atom_layout.GatherInfo,
         keys_mask: jnp.ndarray,  # (num_subsets, num_keys)
-        queries_single_cond: jnp.ndarray,  # (num_subsets, num_queries, ch)
-        keys_single_cond: jnp.ndarray,  # (num_subsets, num_keys, ch)
-        pair_cond: jnp.ndarray,  # (num_subsets, num_queries, num_keys, ch)
+        # (num_subsets, num_queries, ch)
+        queries_single_cond: jnp.ndarray,
+        # (num_subsets, num_keys, ch)
+        keys_single_cond: jnp.ndarray,
+        # (num_subsets, num_queries, num_keys, ch)
+        pair_cond: jnp.ndarray,
     ) -> jnp.ndarray:
         def block(queries_act, pair_logits):
             # copy the queries activations to the keys layout
             keys_act = atom_layout.convert(
-                queries_to_keys, queries_act, layout_axes=(-3, -2)
+                queries_to_keys, queries_act, layout_axes=(
+                    -3, -2)
             )
             # cross attention
             queries_act += cross_attention(
@@ -380,11 +411,13 @@ class CrossAttTransformer(hk.Module):
         )(pair_cond)
         # (num_subsets, num_queries, num_keys, num_blocks, num_heads)
         pair_logits = hm.Linear(
-            (self.config.num_blocks, self.config.attention.num_head),
+            (self.config.num_blocks,
+             self.config.attention.num_head),
             name="pair_logits_projection",
         )(pair_act)
         # (num_block, num_subsets, num_heads, num_queries, num_keys)
-        pair_logits = jnp.transpose(pair_logits, [3, 0, 4, 1, 2])
+        pair_logits = jnp.transpose(
+            pair_logits, [3, 0, 4, 1, 2])
 
         return hk.experimental.layer_stack(
             self.config.num_blocks, with_per_layer_inputs=True

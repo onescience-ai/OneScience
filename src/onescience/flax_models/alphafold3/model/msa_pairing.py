@@ -56,7 +56,8 @@ def _align_species(
                 # If a given chain has no hits for a species then we pad it with -1's,
                 # later on these values are used to make sure each feature is padded
                 # with its appropriate pad value.
-                row_indices = np.full(min_msa_size, fill_value=-1, dtype=np.int32)
+                row_indices = np.full(
+                    min_msa_size, fill_value=-1, dtype=np.int32)
             else:
                 # We crop down to the smallest MSA for a given species across chains.
                 row_indices = species_to_rows[species][:min_msa_size]
@@ -121,17 +122,22 @@ def create_paired_features(
         species_ids = species_ids[sort_idxs]
         row_indices = row_indices[sort_idxs]
 
-        species, unique_row_indices = np.unique(species_ids, return_index=True)
-        grouped_row_indices = np.split(row_indices, unique_row_indices[1:])
-        species_to_rows = dict(zip(species, grouped_row_indices, strict=True))
+        species, unique_row_indices = np.unique(
+            species_ids, return_index=True)
+        grouped_row_indices = np.split(
+            row_indices, unique_row_indices[1:])
+        species_to_rows = dict(
+            zip(species, grouped_row_indices, strict=True))
         chains_species_to_rows.append(species_to_rows)
 
         for s in species:
-            species_num_chains[s] = species_num_chains.get(s, 0) + 1
+            species_num_chains[s] = species_num_chains.get(
+                s, 0) + 1
 
         for species, row_indices in species_to_rows.items():
             min_hits_per_species[species] = min(
-                min_hits_per_species.get(species, max_hits_per_species),
+                min_hits_per_species.get(
+                    species, max_hits_per_species),
                 len(row_indices),
             )
 
@@ -147,7 +153,8 @@ def create_paired_features(
 
     num_rows_seen = 0
     # We always keep the first row as it is the query sequence.
-    all_rows = [np.array([[0] * len(chains)], dtype=np.int32)]
+    all_rows = [
+        np.array([[0] * len(chains)], dtype=np.int32)]
 
     # We prioritize species that have hits across more chains.
     for num_chains in sorted(num_chains_to_species, reverse=True):
@@ -155,10 +162,12 @@ def create_paired_features(
 
         # Align all the per-chain row indices by species, so every paired row is
         # for a single species.
-        rows = _align_species(all_species, chains_species_to_rows, min_hits_per_species)
+        rows = _align_species(
+            all_species, chains_species_to_rows, min_hits_per_species)
         # Sort rows by the product of the original indices in the respective chain
         # MSAS, so as to rank hits that appear higher in the original MSAs higher.
-        rank_metric = np.abs(np.prod(rows.astype(np.float32), axis=1))
+        rank_metric = np.abs(
+            np.prod(rows.astype(np.float32), axis=1))
         sorted_rows = rows[np.argsort(rank_metric), :]
         all_rows.append(sorted_rows)
         num_rows_seen += rows.shape[0]
@@ -172,7 +181,8 @@ def create_paired_features(
     # deletion matrix features
     paired_chains = []
     for chain_idx, chain in enumerate(chains):
-        out_chain = {k: v for k, v in chain.items() if "all_seq" not in k}
+        out_chain = {
+            k: v for k, v in chain.items() if "all_seq" not in k}
         selected_row_indices = all_rows[:, chain_idx]
         for feat_name in {"msa", "deletion_matrix"}:
             all_seq_name = f"{feat_name}_all_seq"
@@ -186,7 +196,8 @@ def create_paired_features(
             feat_value = np.concatenate(
                 [
                     feat_value,
-                    np.full((1, feat_value.shape[1]), pad_value, feat_value.dtype),
+                    np.full(
+                        (1, feat_value.shape[1]), pad_value, feat_value.dtype),
                 ]
             )
 
@@ -223,7 +234,8 @@ def deduplicate_unpaired_sequences(
         for feature_name in feature_names:
             if feature_name in msa_features:
                 chain[feature_name] = chain[feature_name][keep_rows]
-        chain["num_alignments"] = np.array(chain["msa"].shape[0], dtype=np.int32)
+        chain["num_alignments"] = np.array(
+            chain["msa"].shape[0], dtype=np.int32)
     return np_chains
 
 
@@ -253,7 +265,8 @@ def choose_paired_unpaired_msa_crop_sizes(
           paired_msa is None.
     """
     if paired_msa is not None:
-        paired_crop_size = np.minimum(paired_msa.shape[0], max_paired_sequences)
+        paired_crop_size = np.minimum(
+            paired_msa.shape[0], max_paired_sequences)
 
         # We reduce the number of un-paired sequences, by the number of times a
         # sequence from this chains MSA is included in the paired MSA.  This keeps
@@ -263,11 +276,13 @@ def choose_paired_unpaired_msa_crop_sizes(
 
         assert num_non_gapped_pairs <= max_paired_sequences
         unpaired_crop_size = np.minimum(
-            unpaired_msa.shape[0], total_msa_crop_size - num_non_gapped_pairs
+            unpaired_msa.shape[0], total_msa_crop_size -
+            num_non_gapped_pairs
         )
         assert unpaired_crop_size >= 0
     else:
-        unpaired_crop_size = np.minimum(unpaired_msa.shape[0], total_msa_crop_size)
+        unpaired_crop_size = np.minimum(
+            unpaired_msa.shape[0], total_msa_crop_size)
         paired_crop_size = None
     return unpaired_crop_size, paired_crop_size
 
@@ -292,7 +307,8 @@ def remove_all_gapped_rows_from_all_seqs(
     for chain in chains_list:
         for feat_name in list(chains_list)[0]:
             if "_all_seq" in feat_name:
-                feat_name_split = feat_name.split("_all_seq")[0]
+                feat_name_split = feat_name.split("_all_seq")[
+                    0]
                 if feat_name_split in (
                     data_constants.NUM_SEQ_NUM_RES_MSA_FEATURES
                     + data_constants.NUM_SEQ_MSA_FEATURES
@@ -300,5 +316,6 @@ def remove_all_gapped_rows_from_all_seqs(
                     # For consistency we do this for all chains even though the
                     # gapped rows are based on a selected set asym_ids.
                     chain[feat_name] = chain[feat_name][non_gapped_keep_rows]
-        chain["num_alignments_all_seq"] = np.sum(non_gapped_keep_rows)
+        chain["num_alignments_all_seq"] = np.sum(
+            non_gapped_keep_rows)
     return chains_list

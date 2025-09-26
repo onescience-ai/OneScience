@@ -41,18 +41,25 @@ class GaussianBasis(nn.Module):
                 '[utils/rbf/GaussianBasis] "num_basis" must be larger than 0.'
             )
         if self.delta is not None and self.delta <= 0:
-            raise ValueError('[utils/rbf/GaussianBasis] "delta" must be larger than 0.')
+            raise ValueError(
+                '[utils/rbf/GaussianBasis] "delta" must be larger than 0.')
 
-        self.coefficient = -0.5 * jnp.reciprocal(jnp.square(self.sigma))
+        self.coefficient = -0.5 * \
+            jnp.reciprocal(jnp.square(self.sigma))
 
         if self.delta is None and self.num_basis is not None:
-            self.offsets = jnp.linspace(self.r_min, self.r_max, self.num_basis)
+            self.offsets = jnp.linspace(
+                self.r_min, self.r_max, self.num_basis)
         else:
             if self.num_basis is None:
-                _num_basis = math.ceil(self.r_range / self.delta) + 1
-                self.offsets = self.r_min + jnp.arange(0, _num_basis) * self.delta
+                _num_basis = math.ceil(
+                    self.r_range / self.delta) + 1
+                self.offsets = self.r_min + \
+                    jnp.arange(0, _num_basis) * self.delta
             else:
-                self.offsets = self.r_min + jnp.arange(0, self.num_basis) * self.delta
+                self.offsets = self.r_min + \
+                    jnp.arange(
+                        0, self.num_basis) * self.delta
 
     def __call__(self, distance: jnp.ndarray) -> jnp.ndarray:
         r"""Compute gaussian type RBF.
@@ -66,11 +73,13 @@ class GaussianBasis(nn.Module):
 
         # cast
         distance, offsets, coeffient = jax.tree_map(
-            self.dtype, (distance, self.offsets, self.coefficient)
+            self.dtype, (distance, self.offsets,
+                         self.coefficient)
         )
 
         if self.clip_distance:
-            distance = jnp.clip(distance, self.r_min, self.r_max)
+            distance = jnp.clip(
+                distance, self.r_min, self.r_max)
 
         # (..., ) -> (..., 1)
         distance = jnp.expand_dims(distance, axis=-1)

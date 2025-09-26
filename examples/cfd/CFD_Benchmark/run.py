@@ -2,17 +2,23 @@ import argparse
 
 from onescience.distributed.manager import DistributedManager
 
-parser = argparse.ArgumentParser("Training Neural PDE Solvers")
+parser = argparse.ArgumentParser(
+    "Training Neural PDE Solvers")
 
-## training
-parser.add_argument("--lr", type=float, default=1e-3, help="learning rate")
-parser.add_argument("--epochs", type=int, default=500, help="maximum epochs")
+# training
+parser.add_argument("--lr", type=float,
+                    default=1e-3, help="learning rate")
+parser.add_argument("--epochs", type=int,
+                    default=500, help="maximum epochs")
 parser.add_argument(
     "--weight_decay", type=float, default=1e-5, help="optimizer weight decay"
 )
-parser.add_argument("--pct_start", type=float, default=0.3, help="oncycle lr schedule")
-parser.add_argument("--batch_size", type=int, default=8, help="batch size")
-parser.add_argument("--gpu", type=int, default="0", help="GPU index to use")
+parser.add_argument("--pct_start", type=float,
+                    default=0.3, help="oncycle lr schedule")
+parser.add_argument(
+    "--batch_size", type=int, default=8, help="batch size")
+parser.add_argument("--gpu", type=int,
+                    default="0", help="GPU index to use")
 parser.add_argument(
     "--max_grad_norm", type=float, default=None, help="make the training stable"
 )
@@ -69,9 +75,11 @@ parser.add_argument(
 )
 
 
-## data
-parser.add_argument("--data_path", type=str, default="/data/fno/", help="data folder")
-parser.add_argument("--loader", type=str, default="airfoil", help="type of data loader")
+# data
+parser.add_argument("--data_path", type=str,
+                    default="/data/fno/", help="data folder")
+parser.add_argument("--loader", type=str,
+                    default="airfoil", help="type of data loader")
 parser.add_argument(
     "--config_name",
     type=str,
@@ -82,8 +90,10 @@ parser.add_argument(
 parser.add_argument(
     "--train_ratio", type=float, default=0.8, help="training data ratio"
 )
-parser.add_argument("--ntrain", type=int, default=1000, help="training data numbers")
-parser.add_argument("--ntest", type=int, default=200, help="test data numbers")
+parser.add_argument("--ntrain", type=int,
+                    default=1000, help="training data numbers")
+parser.add_argument("--ntest", type=int,
+                    default=200, help="test data numbers")
 parser.add_argument(
     "--normalize", type=bool, default=False, help="make normalization to output"
 )
@@ -123,28 +133,36 @@ parser.add_argument(
 parser.add_argument(
     "--downsamplez", type=int, default=1, help="downsample rate in z-axis"
 )
-parser.add_argument("--radius", type=float, default=0.2, help="for construct geometry")
+parser.add_argument("--radius", type=float,
+                    default=0.2, help="for construct geometry")
 
-## task
+# task
 parser.add_argument(
     "--task",
     type=str,
     default="steady",
     help="select from [steady, dynamic_autoregressive, dynamic_conditional]",
 )
-parser.add_argument("--T_in", type=int, default=10, help="for input sequence")
-parser.add_argument("--T_out", type=int, default=10, help="for output sequence")
+parser.add_argument("--T_in", type=int,
+                    default=10, help="for input sequence")
+parser.add_argument("--T_out", type=int,
+                    default=10, help="for output sequence")
 
-## models
-parser.add_argument("--model", type=str, default="Transolver")
-parser.add_argument("--n_hidden", type=int, default=64, help="hidden dim")
-parser.add_argument("--n_layers", type=int, default=3, help="layers")
-parser.add_argument("--n_heads", type=int, default=4, help="number of heads")
+# models
+parser.add_argument("--model", type=str,
+                    default="Transolver")
+parser.add_argument(
+    "--n_hidden", type=int, default=64, help="hidden dim")
+parser.add_argument(
+    "--n_layers", type=int, default=3, help="layers")
+parser.add_argument("--n_heads", type=int,
+                    default=4, help="number of heads")
 parser.add_argument("--act", type=str, default="gelu")
 parser.add_argument(
     "--mlp_ratio", type=int, default=1, help="mlp ratio for feedforward layers"
 )
-parser.add_argument("--dropout", type=float, default=0.0, help="dropout")
+parser.add_argument(
+    "--dropout", type=float, default=0.0, help="dropout")
 parser.add_argument(
     "--unified_pos", type=int, default=0, help="for unified position embedding"
 )
@@ -155,14 +173,15 @@ parser.add_argument(
     help="number of reference points for unified pos embedding",
 )
 
-## model specific configuration
+# model specific configuration
 parser.add_argument(
     "--slice_num", type=int, default=32, help="number of physical states for Transolver"
 )
 parser.add_argument(
     "--modes", type=int, default=12, help="number of basis functions for LSM and FNO"
 )
-parser.add_argument("--psi_dim", type=int, default=8, help="number of psi_dim for ONO")
+parser.add_argument("--psi_dim", type=int,
+                    default=8, help="number of psi_dim for ONO")
 parser.add_argument(
     "--attn_type",
     type=str,
@@ -194,8 +213,9 @@ parser.add_argument(
     default=128,
     help="Dimension of the embedding feature vector after graph convolutions for RegDGCNN",
 )
-## eval
-parser.add_argument("--eval", type=int, default=0, help="evaluation or not")
+# eval
+parser.add_argument("--eval", type=int,
+                    default=0, help="evaluation or not")
 parser.add_argument(
     "--save_name", type=str, default="Transolver_check", help="name of folders"
 )

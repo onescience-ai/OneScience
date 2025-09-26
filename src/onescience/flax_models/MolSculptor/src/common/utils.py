@@ -18,7 +18,7 @@ from .rbf.gaussian import GaussianBasis
 from .rbf.loggaussian import LogGaussianBasis
 
 
-## Shifted Softplus
+# Shifted Softplus
 class ShiftedSoftplus(nn.Module):
 
     epsilon: float = 1e-6
@@ -54,11 +54,13 @@ def get_activation(name):
         if name.lower() in _activation_dict.keys():
             return _activation_dict[name.lower()]
         raise ValueError(
-            "The activation corresponding to '{}' was not found.".format(name)
+            "The activation corresponding to '{}' was not found.".format(
+                name)
         )
     if isinstance(name, Callable):
         return name
-    raise TypeError("Unsupported activation type '{}'.".format(type(name)))
+    raise TypeError(
+        "Unsupported activation type '{}'.".format(type(name)))
 
 
 _init_dict = {
@@ -88,11 +90,13 @@ def get_initializer(name):
         if name.lower() in _init_dict.keys():
             return _init_dict[name.lower()]
         raise ValueError(
-            "The initializer corresponding to '{}' was not found.".format(name)
+            "The initializer corresponding to '{}' was not found.".format(
+                name)
         )
     if isinstance(name, Callable):
         return name
-    raise TypeError("Unsupported initializer type '{}'.".format(type(name)))
+    raise TypeError(
+        "Unsupported initializer type '{}'.".format(type(name)))
 
 
 _rbf_dict = {
@@ -110,10 +114,12 @@ def get_rbf(name):
     if isinstance(name, str):
         if name.lower() in _rbf_dict.keys():
             return _rbf_dict[name.lower()]
-        raise ValueError("The RBF corresponding to '{}' was not found.".format(name))
+        raise ValueError(
+            "The RBF corresponding to '{}' was not found.".format(name))
     if isinstance(name, Callable):
         return name
-    raise TypeError("Unsupported RBF type '{}'.".format(type(name)))
+    raise TypeError(
+        "Unsupported RBF type '{}'.".format(type(name)))
 
 
 def gather_neighbor(
@@ -135,8 +141,10 @@ def gather_neighbor(
     # (R, N, N, F) -> (R, N, n, F)
     batch_size, n_res, n_res, c = input.shape
     input = jnp.reshape(input, (-1, n_res, c))
-    neighbor_index = jnp.reshape(neighbor_index, (batch_size * n_res, -1))
-    out = jax.vmap(jnp.take, in_axes=(0, 0, None))(input, neighbor_index, 0)
+    neighbor_index = jnp.reshape(
+        neighbor_index, (batch_size * n_res, -1))
+    out = jax.vmap(jnp.take, in_axes=(0, 0, None))(
+        input, neighbor_index, 0)
     out = jnp.reshape(out, (batch_size, n_res, -1, c))
     return out
 
@@ -155,5 +163,6 @@ def safe_l2_normalize(x, axis=-1, epsilon=1e-8, safe_dtype=jnp.float32):
     """
     dtype = x.dtype
     x = x.astype(safe_dtype)
-    l2_norm = jnp.sqrt(jnp.sum(jnp.square(x), axis=axis, keepdims=True) + epsilon)
+    l2_norm = jnp.sqrt(
+        jnp.sum(jnp.square(x), axis=axis, keepdims=True) + epsilon)
     return (x / l2_norm).astype(dtype)

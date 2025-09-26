@@ -101,7 +101,8 @@ class InvariantPointAttention(nn.Module):
             param_dtype=jnp.float32,
         )
         self.kv_scalar = nn.Dense(
-            features=self.num_head * (self.num_scalar_qk + self.num_scalar_v),
+            features=self.num_head *
+            (self.num_scalar_qk + self.num_scalar_v),
             kernel_init=lecun_normal(),
             dtype=self._dtype,
             param_dtype=jnp.float32,
@@ -113,7 +114,8 @@ class InvariantPointAttention(nn.Module):
             param_dtype=jnp.float32,
         )
         self.kv_point_local = nn.Dense(
-            features=self.num_head * 3 * (self.num_point_qk + self.num_point_v),
+            features=self.num_head * 3 *
+            (self.num_point_qk + self.num_point_v),
             kernel_init=lecun_normal(),
             dtype=self._dtype,
             param_dtype=jnp.float32,
@@ -143,9 +145,12 @@ class InvariantPointAttention(nn.Module):
             param_dtype=jnp.float32,
         )
 
-        self.scalar_weights = jnp.sqrt(1.0 / (3 * 16)).astype(self._dtype)
-        self.point_weights = jnp.sqrt(1.0 / (3 * 18)).astype(self._dtype)
-        self.attention_2d_weights = jnp.sqrt(1.0 / 3).astype(self._dtype)
+        self.scalar_weights = jnp.sqrt(
+            1.0 / (3 * 16)).astype(self._dtype)
+        self.point_weights = jnp.sqrt(
+            1.0 / (3 * 18)).astype(self._dtype)
+        self.attention_2d_weights = jnp.sqrt(
+            1.0 / 3).astype(self._dtype)
 
     def __call__(self, inputs_1d, inputs_2d, mask, rotation, translation):
         """construct"""
@@ -160,14 +165,17 @@ class InvariantPointAttention(nn.Module):
 
         # Construct scalar queries of shape:
         q_scalar = self.q_scalar(inputs_1d)
-        q_scalar = jnp.reshape(q_scalar, [num_residues, num_head, num_scalar_qk])
+        q_scalar = jnp.reshape(
+            q_scalar, [num_residues, num_head, num_scalar_qk])
 
         # Construct scalar keys/values of shape:
         kv_scalar = self.kv_scalar(inputs_1d)
         kv_scalar = jnp.reshape(
-            kv_scalar, [num_residues, num_head, num_scalar_v + num_scalar_qk]
+            kv_scalar, [num_residues, num_head,
+                        num_scalar_v + num_scalar_qk]
         )
-        k_scalar, v_scalar = jnp.split(kv_scalar, [num_scalar_qk], axis=-1)
+        k_scalar, v_scalar = jnp.split(
+            kv_scalar, [num_scalar_qk], axis=-1)
 
         # Construct query points of shape:
         # First construct query points in local frame.
@@ -180,17 +188,21 @@ class InvariantPointAttention(nn.Module):
             jnp.squeeze(q_point_local[2]),
         )
         # Project query points into global frame.
-        q_point_global = apply_to_point(rotation, translation, q_point_local, 1)
+        q_point_global = apply_to_point(
+            rotation, translation, q_point_local, 1)
 
         # Reshape query point for later use.
         q_point0 = jnp.reshape(
-            q_point_global[0], (num_residues, num_head, num_point_qk)
+            q_point_global[0], (num_residues,
+                                num_head, num_point_qk)
         )
         q_point1 = jnp.reshape(
-            q_point_global[1], (num_residues, num_head, num_point_qk)
+            q_point_global[1], (num_residues,
+                                num_head, num_point_qk)
         )
         q_point2 = jnp.reshape(
-            q_point_global[2], (num_residues, num_head, num_point_qk)
+            q_point_global[2], (num_residues,
+                                num_head, num_point_qk)
         )
 
         # Construct key and value points.
@@ -200,29 +212,37 @@ class InvariantPointAttention(nn.Module):
         # Construct key and value points in local frame.
         kv_point_local = self.kv_point_local(inputs_1d)
 
-        kv_point_local = jnp.split(kv_point_local, 3, axis=-1)
+        kv_point_local = jnp.split(
+            kv_point_local, 3, axis=-1)
         kv_point_local = (
             jnp.squeeze(kv_point_local[0]),
             jnp.squeeze(kv_point_local[1]),
             jnp.squeeze(kv_point_local[2]),
         )
         # Project key and value points into global frame.
-        kv_point_global = apply_to_point(rotation, translation, kv_point_local, 1)
+        kv_point_global = apply_to_point(
+            rotation, translation, kv_point_local, 1)
 
         kv_point_global0 = jnp.reshape(
-            kv_point_global[0], (num_residues, num_head, (num_point_qk + num_point_v))
+            kv_point_global[0], (num_residues,
+                                 num_head, (num_point_qk + num_point_v))
         )
         kv_point_global1 = jnp.reshape(
-            kv_point_global[1], (num_residues, num_head, (num_point_qk + num_point_v))
+            kv_point_global[1], (num_residues,
+                                 num_head, (num_point_qk + num_point_v))
         )
         kv_point_global2 = jnp.reshape(
-            kv_point_global[2], (num_residues, num_head, (num_point_qk + num_point_v))
+            kv_point_global[2], (num_residues,
+                                 num_head, (num_point_qk + num_point_v))
         )
 
         # Split key and value points.
-        k_point0, v_point0 = jnp.split(kv_point_global0, [num_point_qk], axis=-1)
-        k_point1, v_point1 = jnp.split(kv_point_global1, [num_point_qk], axis=-1)
-        k_point2, v_point2 = jnp.split(kv_point_global2, [num_point_qk], axis=-1)
+        k_point0, v_point0 = jnp.split(
+            kv_point_global0, [num_point_qk], axis=-1)
+        k_point1, v_point1 = jnp.split(
+            kv_point_global1, [num_point_qk], axis=-1)
+        k_point2, v_point2 = jnp.split(
+            kv_point_global2, [num_point_qk], axis=-1)
 
         trainable_point_weights = self.soft_plus(
             self.trainable_point_weights.astype(self._dtype)
@@ -248,12 +268,15 @@ class InvariantPointAttention(nn.Module):
         ]
 
         dist2 = (
-            jnp.square(jnp.expand_dims(q_point[0], 2) - jnp.expand_dims(k_point[0], 1))
+            jnp.square(jnp.expand_dims(
+                q_point[0], 2) - jnp.expand_dims(k_point[0], 1))
             + jnp.square(
-                jnp.expand_dims(q_point[1], 2) - jnp.expand_dims(k_point[1], 1)
+                jnp.expand_dims(
+                    q_point[1], 2) - jnp.expand_dims(k_point[1], 1)
             )
             + jnp.square(
-                jnp.expand_dims(q_point[2], 2) - jnp.expand_dims(k_point[2], 1)
+                jnp.expand_dims(
+                    q_point[2], 2) - jnp.expand_dims(k_point[2], 1)
             )
         )
 
@@ -262,13 +285,16 @@ class InvariantPointAttention(nn.Module):
         )
 
         v = jnp.swapaxes(v_scalar, -2, -3)
-        q = jnp.swapaxes(self.scalar_weights * q_scalar, -2, -3)
+        q = jnp.swapaxes(
+            self.scalar_weights * q_scalar, -2, -3)
         k = jnp.swapaxes(k_scalar, -2, -3)
-        attn_qk_scalar = jnp.matmul(q, jnp.swapaxes(k, -2, -1))
+        attn_qk_scalar = jnp.matmul(
+            q, jnp.swapaxes(k, -2, -1))
         attn_logits = attn_qk_scalar + attn_qk_point
 
         attention_2d = self.attention_2d(inputs_2d)
-        attention_2d = jnp.transpose(attention_2d, [2, 0, 1])
+        attention_2d = jnp.transpose(
+            attention_2d, [2, 0, 1])
         attention_2d = self.attention_2d_weights * attention_2d
 
         attn_logits += attention_2d
@@ -282,34 +308,42 @@ class InvariantPointAttention(nn.Module):
 
         result_point_global = [
             jnp.swapaxes(
-                jnp.sum(attn[:, :, :, None] * v_point[0][:, None, :, :], axis=-2),
+                jnp.sum(
+                    attn[:, :, :, None] * v_point[0][:, None, :, :], axis=-2),
                 -2,
                 -3,
             ),
             jnp.swapaxes(
-                jnp.sum(attn[:, :, :, None] * v_point[1][:, None, :, :], axis=-2),
+                jnp.sum(
+                    attn[:, :, :, None] * v_point[1][:, None, :, :], axis=-2),
                 -2,
                 -3,
             ),
             jnp.swapaxes(
-                jnp.sum(attn[:, :, :, None] * v_point[2][:, None, :, :], axis=-2),
+                jnp.sum(
+                    attn[:, :, :, None] * v_point[2][:, None, :, :], axis=-2),
                 -2,
                 -3,
             ),
         ]
 
         result_point_global = [
-            jnp.reshape(result_point_global[0], [num_residues, num_head * num_point_v]),
-            jnp.reshape(result_point_global[1], [num_residues, num_head * num_point_v]),
-            jnp.reshape(result_point_global[2], [num_residues, num_head * num_point_v]),
+            jnp.reshape(result_point_global[0], [
+                        num_residues, num_head * num_point_v]),
+            jnp.reshape(result_point_global[1], [
+                        num_residues, num_head * num_point_v]),
+            jnp.reshape(result_point_global[2], [
+                        num_residues, num_head * num_point_v]),
         ]
         result_scalar = jnp.swapaxes(result_scalar, -2, -3)
 
         result_scalar = jnp.reshape(
-            result_scalar, [num_residues, num_head * num_scalar_v]
+            result_scalar, [num_residues,
+                            num_head * num_scalar_v]
         )
 
-        result_point_local = invert_point(result_point_global, rotation, translation, 1)
+        result_point_local = invert_point(
+            result_point_global, rotation, translation, 1)
 
         output_feature1 = result_scalar
         output_feature20 = result_point_local[0]
@@ -323,9 +357,12 @@ class InvariantPointAttention(nn.Module):
             + jnp.square(result_point_local[2])
         )
 
-        result_attention_over_2d = jnp.matmul(jnp.swapaxes(attn, 0, 1), inputs_2d)
-        num_out = num_head * result_attention_over_2d.shape[-1]
-        output_feature4 = jnp.reshape(result_attention_over_2d, [num_residues, num_out])
+        result_attention_over_2d = jnp.matmul(
+            jnp.swapaxes(attn, 0, 1), inputs_2d)
+        num_out = num_head * \
+            result_attention_over_2d.shape[-1]
+        output_feature4 = jnp.reshape(
+            result_attention_over_2d, [num_residues, num_out])
 
         final_act = jnp.concatenate(
             [

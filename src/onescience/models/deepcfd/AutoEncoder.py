@@ -13,7 +13,8 @@ def create_layer(
 ):
     assert kernel_size % 2 == 1
     layer = []
-    conv = convolution(in_channels, out_channels, kernel_size, padding=kernel_size // 2)
+    conv = convolution(in_channels, out_channels,
+                       kernel_size, padding=kernel_size // 2)
     if wn:
         conv = weight_norm(conv)
     layer.append(conv)

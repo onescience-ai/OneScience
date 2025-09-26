@@ -81,7 +81,8 @@ class SpectralConv1d(nn.Module):
         )
 
         # Return to physical space
-        x = torch.fft.irfftn(out_ft, s=[x.size(-1)], dim=[2])
+        x = torch.fft.irfftn(
+            out_ft, s=[x.size(-1)], dim=[2])
         return x
 
 
@@ -130,14 +131,17 @@ class SpectralConv2d(nn.Module):
             dtype=torch.cfloat,
         )
         out_ft[:, :, : self.modes1, : self.modes2] = compl_mul2d(
-            x_ft[:, :, : self.modes1, : self.modes2], self.weights1
+            x_ft[:, :, : self.modes1,
+                 : self.modes2], self.weights1
         )
-        out_ft[:, :, -self.modes1 :, : self.modes2] = compl_mul2d(
-            x_ft[:, :, -self.modes1 :, : self.modes2], self.weights2
+        out_ft[:, :, -self.modes1:, : self.modes2] = compl_mul2d(
+            x_ft[:, :, -self.modes1:,
+                 : self.modes2], self.weights2
         )
 
         # Return to physical space
-        x = torch.fft.irfftn(out_ft, s=(x.size(-2), x.size(-1)), dim=[2, 3])
+        x = torch.fft.irfftn(out_ft, s=(
+            x.size(-2), x.size(-1)), dim=[2, 3])
         return x
 
 
@@ -147,7 +151,8 @@ class SpectralConv3d(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.modes1 = (
-            modes1  # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            modes1
         )
         self.modes2 = modes2
         self.modes3 = modes3
@@ -226,7 +231,8 @@ class SpectralConv3d(nn.Module):
             device=x.device,
             dtype=torch.cfloat,
         )
-        coeff[..., :z_dim] = x_ft[:, :, : self.modes1, : self.modes2, :z_dim]
+        coeff[..., :z_dim] = x_ft[:, :,
+                                  : self.modes1, : self.modes2, :z_dim]
         out_ft[:, :, : self.modes1, : self.modes2, :] = compl_mul3d(
             coeff, self.weights1
         )
@@ -240,8 +246,9 @@ class SpectralConv3d(nn.Module):
             device=x.device,
             dtype=torch.cfloat,
         )
-        coeff[..., :z_dim] = x_ft[:, :, -self.modes1 :, : self.modes2, :z_dim]
-        out_ft[:, :, -self.modes1 :, : self.modes2, :] = compl_mul3d(
+        coeff[..., :z_dim] = x_ft[:, :, -
+                                  self.modes1:, : self.modes2, :z_dim]
+        out_ft[:, :, -self.modes1:, : self.modes2, :] = compl_mul3d(
             coeff, self.weights2
         )
 
@@ -254,8 +261,9 @@ class SpectralConv3d(nn.Module):
             device=x.device,
             dtype=torch.cfloat,
         )
-        coeff[..., :z_dim] = x_ft[:, :, : self.modes1, -self.modes2 :, :z_dim]
-        out_ft[:, :, : self.modes1, -self.modes2 :, :] = compl_mul3d(
+        coeff[..., :z_dim] = x_ft[:, :,
+                                  : self.modes1, -self.modes2:, :z_dim]
+        out_ft[:, :, : self.modes1, -self.modes2:, :] = compl_mul3d(
             coeff, self.weights3
         )
 
@@ -268,13 +276,15 @@ class SpectralConv3d(nn.Module):
             device=x.device,
             dtype=torch.cfloat,
         )
-        coeff[..., :z_dim] = x_ft[:, :, -self.modes1 :, -self.modes2 :, :z_dim]
-        out_ft[:, :, -self.modes1 :, -self.modes2 :, :] = compl_mul3d(
+        coeff[..., :z_dim] = x_ft[:, :, -
+                                  self.modes1:, -self.modes2:, :z_dim]
+        out_ft[:, :, -self.modes1:, -self.modes2:, :] = compl_mul3d(
             coeff, self.weights4
         )
 
         # Return to physical space
-        x = torch.fft.irfftn(out_ft, s=(x.size(2), x.size(3), x.size(4)), dim=[2, 3, 4])
+        x = torch.fft.irfftn(out_ft, s=(
+            x.size(2), x.size(3), x.size(4)), dim=[2, 3, 4])
         return x
 
 
@@ -283,8 +293,10 @@ class FourierBlock(nn.Module):
         super(FourierBlock, self).__init__()
         self.in_channel = in_channels
         self.out_channel = out_channels
-        self.speconv = SpectralConv3d(in_channels, out_channels, modes1, modes2, modes3)
-        self.linear = nn.Conv1d(in_channels, out_channels, 1)
+        self.speconv = SpectralConv3d(
+            in_channels, out_channels, modes1, modes2, modes3)
+        self.linear = nn.Conv1d(
+            in_channels, out_channels, 1)
         if act in ["tanh", "gelu", "none"]:
             self.act = _get_act(act)
         else:
@@ -295,7 +307,8 @@ class FourierBlock(nn.Module):
         input x: (batchsize, channel width, x_grid, y_grid, t_grid)
         """
         x1 = self.speconv(x)
-        x2 = self.linear(x.view(x.shape[0], self.in_channel, -1))
+        x2 = self.linear(
+            x.view(x.shape[0], self.in_channel, -1))
         out = x1 + x2.view(
             x.shape[0], self.out_channel, x.shape[2], x.shape[3], x.shape[4]
         )
@@ -337,7 +350,8 @@ class FNO1d(nn.Module):
         if layers is None:
             layers = [width] * 4
 
-        self.fc0 = nn.Linear(in_dim, layers[0])  # input channel is 2: (a(x), x)
+        # input channel is 2: (a(x), x)
+        self.fc0 = nn.Linear(in_dim, layers[0])
 
         self.sp_convs = nn.ModuleList(
             [
@@ -361,7 +375,8 @@ class FNO1d(nn.Module):
         length = len(self.ws)
         size_1 = x.shape[1]
         if max(self.pad_ratio) > 0:
-            num_pad = [round(size_1 * i) for i in self.pad_ratio]
+            num_pad = [round(size_1 * i)
+                       for i in self.pad_ratio]
         else:
             num_pad = [0.0, 0.0]
         x = self.fc0(x)
@@ -411,7 +426,8 @@ class FNO2d(nn.Module):
         if isinstance(pad_ratio, float):
             pad_ratio = [pad_ratio, pad_ratio]
         else:
-            assert len(pad_ratio) == 2, "Cannot add padding in more than 2 directions"
+            assert len(
+                pad_ratio) == 2, "Cannot add padding in more than 2 directions"
         self.modes1 = modes1
         self.modes2 = modes2
 
@@ -426,7 +442,8 @@ class FNO2d(nn.Module):
 
         self.sp_convs = nn.ModuleList(
             [
-                SpectralConv2d(in_size, out_size, mode1_num, mode2_num)
+                SpectralConv2d(
+                    in_size, out_size, mode1_num, mode2_num)
                 for in_size, out_size, mode1_num, mode2_num in zip(
                     self.layers, self.layers[1:], self.modes1, self.modes2
                 )
@@ -454,8 +471,10 @@ class FNO2d(nn.Module):
         """
         size_1, size_2 = x.shape[1], x.shape[2]
         if max(self.pad_ratio) > 0:
-            num_pad1 = [round(i * size_1) for i in self.pad_ratio]
-            num_pad2 = [round(i * size_2) for i in self.pad_ratio]
+            num_pad1 = [round(i * size_1)
+                        for i in self.pad_ratio]
+            num_pad2 = [round(i * size_2)
+                        for i in self.pad_ratio]
         else:
             num_pad1 = num_pad2 = [0.0, 0.0]
 
@@ -469,7 +488,8 @@ class FNO2d(nn.Module):
         for i, (speconv, w) in enumerate(zip(self.sp_convs, self.ws)):
             x1 = speconv(x)
             x2 = w(x.view(batchsize, self.layers[i], -1)).view(
-                batchsize, self.layers[i + 1], size_x, size_y
+                batchsize, self.layers[i +
+                                       1], size_x, size_y
             )
             x = x1 + x2
             if i != length - 1:
@@ -515,7 +535,8 @@ class FNO3d(nn.Module):
         if isinstance(pad_ratio, float):
             pad_ratio = [pad_ratio, pad_ratio]
         else:
-            assert len(pad_ratio) == 2, "Cannot add padding in more than 2 directions."
+            assert len(
+                pad_ratio) == 2, "Cannot add padding in more than 2 directions."
 
         self.pad_ratio = pad_ratio
         self.modes1 = modes1
@@ -531,7 +552,8 @@ class FNO3d(nn.Module):
 
         self.sp_convs = nn.ModuleList(
             [
-                SpectralConv3d(in_size, out_size, mode1_num, mode2_num, mode3_num)
+                SpectralConv3d(
+                    in_size, out_size, mode1_num, mode2_num, mode3_num)
                 for in_size, out_size, mode1_num, mode2_num, mode3_num in zip(
                     self.layers, self.layers[1:], self.modes1, self.modes2, self.modes3
                 )
@@ -560,9 +582,12 @@ class FNO3d(nn.Module):
         """
         size_x, size_y, size_z = x.shape[1], x.shape[2], x.shape[3]
         if max(self.pad_ratio) > 0:
-            num_pad1 = [round(size_x * i) for i in self.pad_ratio]
-            num_pad2 = [round(size_y * i) for i in self.pad_ratio]
-            num_pad3 = [round(size_z * i) for i in self.pad_ratio]
+            num_pad1 = [round(size_x * i)
+                        for i in self.pad_ratio]
+            num_pad2 = [round(size_y * i)
+                        for i in self.pad_ratio]
+            num_pad3 = [round(size_z * i)
+                        for i in self.pad_ratio]
         else:
             num_pad1 = num_pad2 = num_pad3 = [0.0, 0.0]
         length = len(self.ws)
@@ -576,7 +601,8 @@ class FNO3d(nn.Module):
         for i, (speconv, w) in enumerate(zip(self.sp_convs, self.ws)):
             x1 = speconv(x)
             x2 = w(x.view(batchsize, self.layers[i], -1)).view(
-                batchsize, self.layers[i + 1], size_x, size_y, size_z
+                batchsize, self.layers[i +
+                                       1], size_x, size_y, size_z
             )
             x = x1 + x2
             if i != length - 1:

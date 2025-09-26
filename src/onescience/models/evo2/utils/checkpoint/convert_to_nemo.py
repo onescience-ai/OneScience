@@ -116,7 +116,8 @@ class HyenaOptimizerRemover(io.ModelConnector["HyenaModel", HyenaModel]):
         self.convert_state(source, target)
         self.nemo_save(output_path, trainer)
 
-        logging.info(f"Converted Hyena model to Nemo, model saved to {output_path}")
+        logging.info(
+            f"Converted Hyena model to Nemo, model saved to {output_path}")
 
         teardown(trainer, target)
         del trainer, target
@@ -133,7 +134,8 @@ class HyenaOptimizerRemover(io.ModelConnector["HyenaModel", HyenaModel]):
         Returns:
             Result of applying state transforms
         """
-        mapping = {k: k for k in source.module.state_dict().keys()}
+        mapping = {
+            k: k for k in source.module.state_dict().keys()}
         return io.apply_transforms(
             source,
             target,
@@ -174,7 +176,8 @@ def main():
     evo2_config = HYENA_MODEL_OPTIONS[args.model_size]()
 
     if args.strip_optimizer:
-        importer = HyenaOptimizerRemover(args.model_path, model_config=evo2_config)
+        importer = HyenaOptimizerRemover(
+            args.model_path, model_config=evo2_config)
         assert not args.model_path.startswith(
             "hf://"
         ), "Strip optimizer only works on local nemo2 format checkpoints."
@@ -183,7 +186,8 @@ def main():
             args.model_path.lstrip("hf://"), model_config=evo2_config
         )
     else:
-        importer = PyTorchHyenaImporter(args.model_path, model_config=evo2_config)
+        importer = PyTorchHyenaImporter(
+            args.model_path, model_config=evo2_config)
     importer.apply(args.output_dir)
 
 

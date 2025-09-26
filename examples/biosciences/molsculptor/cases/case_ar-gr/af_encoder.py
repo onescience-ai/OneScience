@@ -11,15 +11,7 @@
     2. Save results
 """
 
-import os
-
-os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".90"
-
-import datetime
-import pickle as pkl
-
-import jax.tree_util as jtu
-import numpy as np
+from onescience.flax_models.MolSculptor.utils import NSGA_II, sim_function
 from unit_sup import (
     DEVICE_BATCH_SIZE,
     SAVE_PATH,
@@ -32,11 +24,16 @@ from unit_sup import (
     search_config,
     update_unique,
 )
+import numpy as np
+import jax.tree_util as jtu
+import pickle as pkl
+import datetime
+import os
 
-from onescience.flax_models.MolSculptor.utils import NSGA_II, sim_function
+os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".90"
 
 
-### decode & evaluate
+# decode & evaluate
 def af_encoder_funciton(x, cached):
     """
     Executes the molecule decoding and selection process for evolutionary optimization.
@@ -56,23 +53,28 @@ def af_encoder_funciton(x, cached):
         6. Updates the cache with the selected population and associated metrics.
     """
 
-    decode_molecules = decoder_f(x, replicate_func(cached["molecules"][-1]["smiles"]))
-    scores, cached = reward_function(decode_molecules, cached)
+    decode_molecules = decoder_f(
+        x, replicate_func(cached["molecules"][-1]["smiles"]))
+    scores, cached = reward_function(
+        decode_molecules, cached)
     sim_scores = np.asarray(
         sim_function(
-            decode_molecules["smiles"], replicate_func(cached["molecules"][0]["smiles"])
+            decode_molecules["smiles"], replicate_func(
+                cached["molecules"][0]["smiles"])
         ),
         np.float32,
     )
-    constraints = constraint_function(decode_molecules, cached, search_config)
+    constraints = constraint_function(
+        decode_molecules, cached, search_config)
     cached = update_unique(
         cached,
     )
-    ### concat father populations
+    # concat father populations
     scores = np.concatenate(
         [cached["scores"][-1], scores], axis=0
     )  # (dbs * r + dbs, m)
-    sim_scores = np.concatenate([cached["sim"][-1], sim_scores], axis=0)
+    sim_scores = np.concatenate(
+        [cached["sim"][-1], sim_scores], axis=0)
     constraints = np.concatenate(
         [cached["constraints"][-1], constraints], axis=0
     )  # (dbs * r + dbs, c)
@@ -82,18 +84,19 @@ def af_encoder_funciton(x, cached):
         decode_molecules,
     )
 
-    ### final population
+    # final population
     choiced_idx = NSGA_II(
         scores, constraints, search_config.constraint_weights, n_pops=DEVICE_BATCH_SIZE
     )
     choiced_molecules = jtu.tree_map(
         lambda x: x[choiced_idx], decode_molecules
-    )  ## (dbs, ...)
-    choiced_scores = scores[choiced_idx]  ## (dbs,)
+    )  # (dbs, ...)
+    choiced_scores = scores[choiced_idx]  # (dbs,)
     choiced_constraints = constraints[choiced_idx]
     choiced_sim_scores = sim_scores[choiced_idx]
-    ### save
-    cached["molecules"].append(choiced_molecules)  ## (dbs, ...)
+    # save
+    cached["molecules"].append(
+        choiced_molecules)  # (dbs, ...)
     cached["scores"].append(choiced_scores)
     cached["sim"].append(choiced_sim_scores)
     cached["constraints"].append(choiced_constraints)
@@ -119,11 +122,14 @@ def save_results(cached):
         "sim": cached["sim"],
         "constraints": cached["constraints"],
     }
-    save_path = os.path.join(SAVE_PATH, f"diffusion_es_opt.pkl")
+    save_path = os.path.join(
+        SAVE_PATH, f"diffusion_es_opt.pkl")
     with open(save_path, "wb") as f:
         pkl.dump(save_file, f)
 
-    ## inference done
-    recoder.info(f"=====================END INFERENCE=====================")
+    # inference done
+    recoder.info(
+        f"=====================END INFERENCE=====================")
     tot_time = datetime.datetime.now() - infer_start_time
-    recoder.info(f"Inference done, time {tot_time}, results saved to {SAVE_PATH}")
+    recoder.info(
+        f"Inference done, time {tot_time}, results saved to {SAVE_PATH}")

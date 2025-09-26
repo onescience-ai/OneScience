@@ -28,7 +28,8 @@ class ERA5HDF5Datapipe(Datapipe):
             num_steps=self.num_steps,
             input_steps=self.input_steps,
         )
-        sampler = DistributedSampler(data, shuffle=True) if self.distributed else None
+        sampler = DistributedSampler(
+            data, shuffle=True) if self.distributed else None
         data_loader = DataLoader(
             data,
             batch_size=self.params.batch_size,
@@ -47,7 +48,8 @@ class ERA5HDF5Datapipe(Datapipe):
             num_steps=self.num_steps,
             input_steps=self.input_steps,
         )
-        sampler = DistributedSampler(data, shuffle=False) if self.distributed else None
+        sampler = DistributedSampler(
+            data, shuffle=False) if self.distributed else None
         data_loader = DataLoader(
             data,
             batch_size=self.params.batch_size,
@@ -85,8 +87,10 @@ class ERA5Dataset(Dataset):
         self.data_files = None
         self.data_dir = data_paths
 
-        self.mu = np.load(f"{self.params.stats_dir}/global_means.npy")
-        self.sd = np.load(f"{self.params.stats_dir}/global_stds.npy")
+        self.mu = np.load(
+            f"{self.params.stats_dir}/global_means.npy")
+        self.sd = np.load(
+            f"{self.params.stats_dir}/global_stds.npy")
         self.patch_size = patch_size
         self.num_steps = num_steps
         self.input_steps = input_steps
@@ -99,7 +103,8 @@ class ERA5Dataset(Dataset):
         with h5py.File(self.data_paths[0], "r") as f:
             data_samples_per_year = f["fields"].shape[0]
             self.img_shape = f["fields"].shape[2:]
-            self.channels = [i for i in range(f["fields"].shape[1])]
+            self.channels = [
+                i for i in range(f["fields"].shape[1])]
             self.img_shape = [
                 s - s % self.patch_size[i] for i, s in enumerate(self.img_shape)
             ]
@@ -108,29 +113,34 @@ class ERA5Dataset(Dataset):
                 if data_samples_per_year > f["fields"].shape[0]:
                     data_samples_per_year = f["fields"].shape[0]
         self.num_samples_per_year = (
-            data_samples_per_year - self.num_steps - (self.input_steps - 1)
+            data_samples_per_year - self.num_steps -
+            (self.input_steps - 1)
         )
         self.total_length = self.n_years * self.num_samples_per_year
         self.start_year = int(self.data_paths[0][-7:-3])
         self.dt = self.params.time_res
         self.latlon_bounds = ((90, -90), (0, 360))
-        latlon = latlon_grid(bounds=self.latlon_bounds, shape=self.params.img_size[-2:])
-        self.latlon_torch = torch.tensor(np.stack(latlon, axis=0), dtype=torch.float32)
+        latlon = latlon_grid(
+            bounds=self.latlon_bounds, shape=self.params.img_size[-2:])
+        self.latlon_torch = torch.tensor(
+            np.stack(latlon, axis=0), dtype=torch.float32)
 
     def __getitem__(self, idx):
         if self.data_files is None:
-            self.data_files = [h5py.File(path, "r") for path in self.data_paths]
+            self.data_files = [
+                h5py.File(path, "r") for path in self.data_paths]
 
         file_idx = idx // self.num_samples_per_year
         step_idx = idx % self.num_samples_per_year
 
         invar_data = self.data_files[file_idx]["fields"]
-        invar = invar_data[step_idx : step_idx + self.input_steps]
+        invar = invar_data[step_idx: step_idx +
+                           self.input_steps]
         # shape is [1, N, H, W]
 
         outvar_data = self.data_files[file_idx]["fields"]
         outvar = outvar_data[
-            step_idx + self.input_steps : step_idx + self.input_steps + self.num_steps
+            step_idx + self.input_steps: step_idx + self.input_steps + self.num_steps
         ]
         # shape is [self.num_steps, N, H, W]
 
@@ -143,15 +153,18 @@ class ERA5Dataset(Dataset):
         invar = (invar - self.mu) / self.sd
         outvar = (outvar - self.mu) / self.sd
 
-        start_time = datetime(self.start_year + file_idx, 1, 1, tzinfo=pytz.utc)
+        start_time = datetime(
+            self.start_year + file_idx, 1, 1, tzinfo=pytz.utc)
         timestamps = np.array(
             [
-                (start_time + timedelta(hours=(step_idx + 1 + t) * self.dt)).timestamp()
+                (start_time + timedelta(hours=(step_idx +
+                 1 + t) * self.dt)).timestamp()
                 for t in range(self.num_steps)
             ]
         )
         timestamps = torch.from_numpy(timestamps)
-        cos_zenith = cos_zenith_angle(timestamps, latlon=self.latlon_torch).float()
+        cos_zenith = cos_zenith_angle(
+            timestamps, latlon=self.latlon_torch).float()
 
         return invar.squeeze(0), outvar.squeeze(0), cos_zenith, step_idx
 

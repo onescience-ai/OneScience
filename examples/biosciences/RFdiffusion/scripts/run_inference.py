@@ -47,14 +47,18 @@ def main(conf: HydraConfig) -> None:
 
     # Check for available GPU and print result of check
     if torch.cuda.is_available():
-        device_name = torch.cuda.get_device_name(torch.cuda.current_device())
+        device_name = torch.cuda.get_device_name(
+            torch.cuda.current_device())
         log.info(
             f"Found GPU with device_name {device_name}. Will run RFdiffusion on {device_name}"
         )
     else:
-        log.info("////////////////////////////////////////////////")
-        log.info("///// NO GPU DETECTED! Falling back to CPU /////")
-        log.info("////////////////////////////////////////////////")
+        log.info(
+            "////////////////////////////////////////////////")
+        log.info(
+            "///// NO GPU DETECTED! Falling back to CPU /////")
+        log.info(
+            "////////////////////////////////////////////////")
 
     # Initialize sampler and target/contig.
     sampler = iu.sampler_selector(conf)
@@ -62,7 +66,8 @@ def main(conf: HydraConfig) -> None:
     # Loop over number of designs to sample.
     design_startnum = sampler.inf_conf.design_startnum
     if sampler.inf_conf.design_startnum == -1:
-        existing = glob.glob(sampler.inf_conf.output_prefix + "*.pdb")
+        existing = glob.glob(
+            sampler.inf_conf.output_prefix + "*.pdb")
         indices = [-1]
         for e in existing:
             print(e)
@@ -103,7 +108,8 @@ def main(conf: HydraConfig) -> None:
             px0_xyz_stack.append(px0)
             denoised_xyz_stack.append(x_t)
             seq_stack.append(seq_t)
-            plddt_stack.append(plddt[0])  # remove singleton leading dimension
+            # remove singleton leading dimension
+            plddt_stack.append(plddt[0])
 
         # Flip order for better visualization in pymol
         denoised_xyz_stack = torch.stack(denoised_xyz_stack)
@@ -125,17 +131,20 @@ def main(conf: HydraConfig) -> None:
         plddt_stack = torch.stack(plddt_stack)
 
         # Save outputs
-        os.makedirs(os.path.dirname(out_prefix), exist_ok=True)
+        os.makedirs(os.path.dirname(
+            out_prefix), exist_ok=True)
         final_seq = seq_stack[-1]
 
         # Output glycines, except for motif region
         final_seq = torch.where(
-            torch.argmax(seq_init, dim=-1) == 21, 7, torch.argmax(seq_init, dim=-1)
+            torch.argmax(
+                seq_init, dim=-1) == 21, 7, torch.argmax(seq_init, dim=-1)
         )  # 7 is glycine
 
         bfacts = torch.ones_like(final_seq.squeeze())
         # make bfact=0 for diffused coordinates
-        bfacts[torch.where(torch.argmax(seq_init, dim=-1) == 21, True, False)] = 0
+        bfacts[torch.where(torch.argmax(
+            seq_init, dim=-1) == 21, True, False)] = 0
         # pX0 last step
         out = f"{out_prefix}.pdb"
 
@@ -151,10 +160,12 @@ def main(conf: HydraConfig) -> None:
 
         # run metadata
         trb = dict(
-            config=OmegaConf.to_container(sampler._conf, resolve=True),
+            config=OmegaConf.to_container(
+                sampler._conf, resolve=True),
             plddt=plddt_stack.cpu().numpy(),
             device=(
-                torch.cuda.get_device_name(torch.cuda.current_device())
+                torch.cuda.get_device_name(
+                    torch.cuda.current_device())
                 if torch.cuda.is_available()
                 else "CPU"
             ),
@@ -169,9 +180,11 @@ def main(conf: HydraConfig) -> None:
         if sampler.inf_conf.write_trajectory:
             # trajectory pdbs
             traj_prefix = (
-                os.path.dirname(out_prefix) + "/traj/" + os.path.basename(out_prefix)
+                os.path.dirname(
+                    out_prefix) + "/traj/" + os.path.basename(out_prefix)
             )
-            os.makedirs(os.path.dirname(traj_prefix), exist_ok=True)
+            os.makedirs(os.path.dirname(
+                traj_prefix), exist_ok=True)
 
             out = f"{traj_prefix}_Xt-1_traj.pdb"
             writepdb_multi(
@@ -195,7 +208,8 @@ def main(conf: HydraConfig) -> None:
                 chain_ids=sampler.chain_idx,
             )
 
-        log.info(f"Finished design in {(time.time()-start_time)/60:.2f} minutes")
+        log.info(
+            f"Finished design in {(time.time()-start_time)/60:.2f} minutes")
 
 
 if __name__ == "__main__":

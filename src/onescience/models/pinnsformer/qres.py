@@ -12,8 +12,10 @@ from onescience.utils.pinnsformer_util import get_clones
 class QRes_block(nn.Module):
     def __init__(self, in_dim, out_dim):
         super(QRes_block, self).__init__()
-        self.H1 = nn.Linear(in_features=in_dim, out_features=out_dim)
-        self.H2 = nn.Linear(in_features=in_dim, out_features=out_dim)
+        self.H1 = nn.Linear(
+            in_features=in_dim, out_features=out_dim)
+        self.H2 = nn.Linear(
+            in_features=in_dim, out_features=out_dim)
         self.act = nn.Sigmoid()
 
     def forward(self, x):
@@ -27,8 +29,10 @@ class QRes1D(nn.Module):
         super(QRes1D, self).__init__()
         self.N = num_layer - 1
         self.inlayer = QRes_block(in_dim, hidden_dim)
-        self.layers = get_clones(QRes_block(hidden_dim, hidden_dim), num_layer - 1)
-        self.outlayer = nn.Linear(in_features=hidden_dim, out_features=out_dim)
+        self.layers = get_clones(QRes_block(
+            hidden_dim, hidden_dim), num_layer - 1)
+        self.outlayer = nn.Linear(
+            in_features=hidden_dim, out_features=out_dim)
 
     def forward(self, x, t):
         src = torch.cat((x, t), dim=-1)
@@ -44,8 +48,10 @@ class QRes2D(nn.Module):
         super(QRes2D, self).__init__()
         self.N = num_layer - 1
         self.inlayer = QRes_block(in_dim, hidden_dim)
-        self.layers = get_clones(QRes_block(hidden_dim, hidden_dim), num_layer - 1)
-        self.outlayer = nn.Linear(in_features=hidden_dim, out_features=out_dim)
+        self.layers = get_clones(QRes_block(
+            hidden_dim, hidden_dim), num_layer - 1)
+        self.outlayer = nn.Linear(
+            in_features=hidden_dim, out_features=out_dim)
 
     def forward(self, x, y, t):
         src = torch.cat((x, y, t), dim=-1)

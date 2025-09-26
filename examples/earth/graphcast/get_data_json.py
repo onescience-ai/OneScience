@@ -6,7 +6,8 @@ from onescience.utils.fcn.YParams import YParams
 
 
 def main():
-    config_file_path = os.path.join(current_path, "conf/config.yaml")
+    config_file_path = os.path.join(
+        current_path, "conf/config.yaml")
     cfg = YParams(config_file_path, "graphcast")
     metadata = {
         "coords": {"channel": {str(i): name for i, name in enumerate(cfg.channels)}}

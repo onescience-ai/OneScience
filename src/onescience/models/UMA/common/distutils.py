@@ -20,7 +20,8 @@ CURRENT_DEVICE_TYPE_STR = "CURRRENT_DEVICE_TYPE"
 
 def os_environ_get_or_throw(x: str) -> str:
     if x not in os.environ:
-        raise RuntimeError(f"Could not find {x} in ENV variables")
+        raise RuntimeError(
+            f"Could not find {x} in ENV variables")
     return none_throws(os.environ.get(x))
 
 
@@ -60,7 +61,8 @@ def get_init_method(
     elif init_method == "file":
         return get_file_init_method(world_size=world_size, rank=rank, filename=filename)
     else:
-        raise ValueError(f"Invalid init_method: {init_method}")
+        raise ValueError(
+            f"Invalid init_method: {init_method}")
 
 
 def setup(config) -> None:
@@ -71,25 +73,32 @@ def setup(config) -> None:
             node_list = os.environ.get("SLURM_JOB_NODELIST")
         if node_list is not None:
             try:
-                nnodes = int(os_environ_get_or_throw("SLURM_NNODES"))
-                ntasks_per_node = os.environ.get("SLURM_NTASKS_PER_NODE")
+                nnodes = int(
+                    os_environ_get_or_throw("SLURM_NNODES"))
+                ntasks_per_node = os.environ.get(
+                    "SLURM_NTASKS_PER_NODE")
                 if ntasks_per_node is not None:
                     ntasks_per_node = int(ntasks_per_node)
                 else:
-                    ntasks = int(os_environ_get_or_throw("SLURM_NTASKS"))
-                    nnodes = int(os_environ_get_or_throw("SLURM_NNODES"))
+                    ntasks = int(
+                        os_environ_get_or_throw("SLURM_NTASKS"))
+                    nnodes = int(
+                        os_environ_get_or_throw("SLURM_NNODES"))
                     assert ntasks % nnodes == 0
                     ntasks_per_node = int(ntasks / nnodes)
                 if ntasks_per_node == 1:
                     assert config["world_size"] % nnodes == 0
                     gpus_per_node = config["world_size"] // nnodes
-                    node_id = int(os_environ_get_or_throw("SLURM_NODEID"))
+                    node_id = int(
+                        os_environ_get_or_throw("SLURM_NODEID"))
                     rank = node_id * gpus_per_node
                     local_rank = 0
                 else:
                     assert ntasks_per_node == config["world_size"] // nnodes
-                    rank = int(os_environ_get_or_throw("SLURM_PROCID"))
-                    local_rank = int(os_environ_get_or_throw("SLURM_LOCALID"))
+                    rank = int(
+                        os_environ_get_or_throw("SLURM_PROCID"))
+                    local_rank = int(
+                        os_environ_get_or_throw("SLURM_LOCALID"))
 
                 init_method = get_init_method(
                     config["init_method"],
@@ -101,14 +110,16 @@ def setup(config) -> None:
                         f".distributed-shared-file-{config['array_job_num']}",
                     ),
                 )
-                logging.info(f"Torch distributed initialized with: {init_method}")
+                logging.info(
+                    f"Torch distributed initialized with: {init_method}")
 
                 # ensures GPU0 does not have extra context/higher peak memory
                 logging.info(
                     f"local rank: {local_rank}, visible devices: {os.environ.get('CUDA_VISIBLE_DEVICES', 'None')}"
                 )
 
-                assign_device_for_local_rank(config["cpu"], local_rank)
+                assign_device_for_local_rank(
+                    config["cpu"], local_rank)
 
                 dist.init_process_group(
                     backend="nccl",
@@ -126,7 +137,8 @@ def setup(config) -> None:
             ), "Can only setup master address and port at this point for a single rank, otherwise we assume the processes and the comm addr/port have already been setup"
             setup_env_local()
         local_rank = int(os.environ["LOCAL_RANK"])
-        assign_device_for_local_rank(config["cpu"], local_rank)
+        assign_device_for_local_rank(
+            config["cpu"], local_rank)
 
         dist.init_process_group(
             backend=config["distributed_backend"],
@@ -178,7 +190,8 @@ def broadcast_object_list(
 ) -> None:
     if get_world_size() == 1:
         return
-    dist.broadcast_object_list(object_list, src, group, device)
+    dist.broadcast_object_list(
+        object_list, src, group, device)
 
 
 def all_reduce(
@@ -195,7 +208,8 @@ def all_reduce(
     if average:
         tensor /= get_world_size()
     if not isinstance(data, torch.Tensor):
-        result = tensor.cpu().numpy() if tensor.numel() > 1 else tensor.item()
+        result = tensor.cpu().numpy(
+        ) if tensor.numel() > 1 else tensor.item()
     else:
         result = tensor
     return result
@@ -209,10 +223,12 @@ def all_gather(data, group=dist.group.WORLD, device=None) -> list[torch.Tensor]:
         tensor = torch.tensor(data)
     if device is not None:
         tensor = tensor.to(device)
-    tensor_list = [tensor.new_zeros(tensor.shape) for _ in range(get_world_size())]
+    tensor_list = [tensor.new_zeros(
+        tensor.shape) for _ in range(get_world_size())]
     dist.all_gather(tensor_list, tensor, group=group)
     if not isinstance(data, torch.Tensor):
-        result = [tensor.cpu().numpy() for tensor in tensor_list]
+        result = [tensor.cpu().numpy()
+                  for tensor in tensor_list]
     else:
         result = tensor_list
     return result
@@ -223,7 +239,8 @@ def gather_objects(data: T, group: dist.ProcessGroup = dist.group.WORLD) -> list
     if get_world_size() == 1:
         return [data]
 
-    output = [None for _ in range(get_world_size())] if is_master() else None
+    output = [None for _ in range(
+        get_world_size())] if is_master() else None
     dist.gather_object(data, output, group=group, dst=0)
     return output
 
@@ -232,7 +249,8 @@ def assign_device_for_local_rank(cpu: bool, local_rank: int) -> None:
     if cpu:
         os.environ[CURRENT_DEVICE_TYPE_STR] = "cpu"
     else:
-        assert torch.cuda.is_available(), "cannot set cpu=false and no cuda available!"
+        assert torch.cuda.is_available(
+        ), "cannot set cpu=false and no cuda available!"
         os.environ[CURRENT_DEVICE_TYPE_STR] = "cuda"
         torch.cuda.set_device(local_rank)
 
@@ -250,12 +268,14 @@ def get_device_for_local_rank() -> str:
         return os.environ[CURRENT_DEVICE_TYPE_STR]
 
     if "cuda" in os.environ[CURRENT_DEVICE_TYPE_STR]:
-        assert torch.cuda.is_available(), "cannot set cpu=false and no cuda available!"
+        assert torch.cuda.is_available(
+        ), "cannot set cpu=false and no cuda available!"
         return f"cuda:{torch.cuda.current_device()}"
     elif os.environ[CURRENT_DEVICE_TYPE_STR] == "cpu":
         return "cpu"
     else:
-        raise ValueError(f"unsupported device type: {CURRENT_DEVICE_TYPE_STR}")
+        raise ValueError(
+            f"unsupported device type: {CURRENT_DEVICE_TYPE_STR}")
 
 
 def setup_env_local():

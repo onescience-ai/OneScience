@@ -75,7 +75,8 @@ def silu_backward_for(
     # y = sigmoid(x)
     y = fd.ops.sigmoid(x)
     # z = sigmoid(x)
-    grad_input = fd.ops.mul(y, fd.ops.add(one, fd.ops.mul(x, fd.ops.sub(one, y))))
+    grad_input = fd.ops.mul(y, fd.ops.add(
+        one, fd.ops.mul(x, fd.ops.sub(one, y))))
 
     grad_input = fd.ops.cast(grad_input, dtype)
 
@@ -129,7 +130,8 @@ def silu_double_backward_for(
     term1 = fd.ops.mul(dy, z)
 
     # term2 = y * ((1 - y) - x * dy)
-    term2 = fd.ops.mul(y, fd.ops.sub(fd.ops.sub(one, y), fd.ops.mul(x, dy)))
+    term2 = fd.ops.mul(y, fd.ops.sub(
+        fd.ops.sub(one, y), fd.ops.mul(x, dy)))
 
     grad_input = fd.ops.add(term1, term2)
 
@@ -181,15 +183,18 @@ def silu_triple_backward_for(
     # dy = y * (1 - y)
     dy = fd.ops.mul(y, fd.ops.sub(one, y))
     # ddy = (1 - 2y) * dy
-    ddy = fd.ops.mul(fd.ops.sub(one, fd.ops.mul(two, y)), dy)
+    ddy = fd.ops.mul(fd.ops.sub(
+        one, fd.ops.mul(two, y)), dy)
     # term1 = ddy * (2 + x - 2xy)
     term1 = fd.ops.mul(
-        ddy, fd.ops.sub(fd.ops.add(two, x), fd.ops.mul(two, fd.ops.mul(x, y)))
+        ddy, fd.ops.sub(fd.ops.add(two, x),
+                        fd.ops.mul(two, fd.ops.mul(x, y)))
     )
 
     # term2 = dy * (1 - 2 (y + x * dy))
     term2 = fd.ops.mul(
-        dy, fd.ops.sub(one, fd.ops.mul(two, fd.ops.add(y, fd.ops.mul(x, dy))))
+        dy, fd.ops.sub(one, fd.ops.mul(
+            two, fd.ops.add(y, fd.ops.mul(x, dy))))
     )
 
     grad_input = fd.ops.add(term1, term2)
@@ -254,7 +259,8 @@ class FusedSiLU_deriv_1(Function):
     def forward(ctx, x):
         ctx.save_for_backward(x)
         with FusionDefinition() as fd:
-            silu_backward_for(fd, x.dtype, x.dim(), x.size(), x.stride())
+            silu_backward_for(
+                fd, x.dtype, x.dim(), x.size(), x.stride())
         out = fd.execute([x])[0]
         return out
 
@@ -274,7 +280,8 @@ class FusedSiLU_deriv_2(Function):
     def forward(ctx, x):
         ctx.save_for_backward(x)
         with FusionDefinition() as fd:
-            silu_double_backward_for(fd, x.dtype, x.dim(), x.size(), x.stride())
+            silu_double_backward_for(
+                fd, x.dtype, x.dim(), x.size(), x.stride())
         out = fd.execute([x])[0]
         return out
 
@@ -294,7 +301,8 @@ class FusedSiLU_deriv_3(Function):
     def forward(ctx, x):
         ctx.save_for_backward(x)
         with FusionDefinition() as fd:
-            silu_triple_backward_for(fd, x.dtype, x.dim(), x.size(), x.stride())
+            silu_triple_backward_for(
+                fd, x.dtype, x.dim(), x.size(), x.stride())
         out = fd.execute([x])[0]
         return out
 

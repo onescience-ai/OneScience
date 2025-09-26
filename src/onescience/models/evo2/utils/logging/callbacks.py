@@ -70,7 +70,8 @@ class TEVCallback(Callback):
         named_params = dict(pl_module.named_parameters())
 
         # Find all parameter keys containing 'embed'
-        embed_keys = [key for key in named_params.keys() if "embed" in key]
+        embed_keys = [
+            key for key in named_params.keys() if "embed" in key]
 
         # Validate we have exactly one embedding layer
         if len(embed_keys) == 0:
@@ -107,7 +108,8 @@ class TEVCallback(Callback):
         # First center the embeddings by subtracting the mean
         # Then calculate the mean squared deviation (variance)
         # Finally take the square root to get standard deviation
-        tev = torch.sqrt(torch.mean(torch.pow(embed - embed.mean(dim=0), 2), dim=0))
+        tev = torch.sqrt(torch.mean(
+            torch.pow(embed - embed.mean(dim=0), 2), dim=0))
 
         # Calculate statistics of the TEV values
         tev_mean = torch.mean(tev).item()

@@ -20,14 +20,20 @@ torch.cuda.manual_seed(seed)
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 epochs = 1000
 
-res, b_left, b_right, b_upper, b_lower = get_data([0, 1], [0, 1], 101, 101)
+res, b_left, b_right, b_upper, b_lower = get_data(
+    [0, 1], [0, 1], 101, 101)
 res_test, _, _, _, _ = get_data([0, 1], [0, 1], 101, 101)
 
-res = torch.tensor(res, dtype=torch.float32, requires_grad=True).to(device)
-b_left = torch.tensor(b_left, dtype=torch.float32, requires_grad=True).to(device)
-b_right = torch.tensor(b_right, dtype=torch.float32, requires_grad=True).to(device)
-b_upper = torch.tensor(b_upper, dtype=torch.float32, requires_grad=True).to(device)
-b_lower = torch.tensor(b_lower, dtype=torch.float32, requires_grad=True).to(device)
+res = torch.tensor(res, dtype=torch.float32,
+                   requires_grad=True).to(device)
+b_left = torch.tensor(
+    b_left, dtype=torch.float32, requires_grad=True).to(device)
+b_right = torch.tensor(
+    b_right, dtype=torch.float32, requires_grad=True).to(device)
+b_upper = torch.tensor(
+    b_upper, dtype=torch.float32, requires_grad=True).to(device)
+b_lower = torch.tensor(
+    b_lower, dtype=torch.float32, requires_grad=True).to(device)
 
 x_res, t_res = res[:, 0:1], res[:, 1:2]
 x_left, t_left = b_left[:, 0:1], b_left[:, 1:2]
@@ -44,10 +50,12 @@ def init_weights(m):
 
 # Train PINNs
 
-model = PINNs1D(in_dim=2, hidden_dim=128, out_dim=1, num_layer=4).to(device)
+model = PINNs1D(in_dim=2, hidden_dim=128,
+                out_dim=1, num_layer=4).to(device)
 
 model.apply(init_weights)
-optim = LBFGS(model.parameters(), line_search_fn="strong_wolfe")
+optim = LBFGS(model.parameters(),
+              line_search_fn="strong_wolfe")
 # optim = Adam(model.parameters(), lr=1e-4)
 
 n_params = get_n_params(model)
@@ -69,7 +77,8 @@ def compute_ntk(J1, J2):
 
 w1, w2, w3 = 1, 1, 1
 
-pi = torch.tensor(np.pi, dtype=torch.float32, requires_grad=False).to(device)
+pi = torch.tensor(np.pi, dtype=torch.float32,
+                  requires_grad=False).to(device)
 
 loss_track = []
 pbar = tqdm(range(epochs))
@@ -79,7 +88,8 @@ for i in pbar:
         J2 = torch.zeros((D2, n_params))
         J3 = torch.zeros((D3, n_params))
 
-        batch_ind = np.random.choice(len(x_res), kernel_size, replace=False)
+        batch_ind = np.random.choice(
+            len(x_res), kernel_size, replace=False)
         x_train, t_train = x_res[batch_ind], t_res[batch_ind]
 
         pred_res = model(x_train, t_train)
@@ -90,18 +100,21 @@ for i in pbar:
         for j in range(len(x_train)):
             model.zero_grad()
             pred_res[j].backward(retain_graph=True)
-            J1[j, :] = torch.cat([p.grad.view(-1) for p in model.parameters()])
+            J1[j, :] = torch.cat(
+                [p.grad.view(-1) for p in model.parameters()])
 
         for j in range(len(x_left)):
             model.zero_grad()
             pred_left[j].backward(retain_graph=True)
-            J2[j, :] = torch.cat([p.grad.view(-1) for p in model.parameters()])
+            J2[j, :] = torch.cat(
+                [p.grad.view(-1) for p in model.parameters()])
 
         for j in range(len(x_lower)):
             model.zero_grad()
             pred_lower[j].backward(retain_graph=True)
             pred_upper[j].backward(retain_graph=True)
-            J3[j, :] = torch.cat([p.grad.view(-1) for p in model.parameters()])
+            J3[j, :] = torch.cat(
+                [p.grad.view(-1) for p in model.parameters()])
 
         K1 = torch.trace(compute_ntk(J1, J1))
         K2 = torch.trace(compute_ntk(J2, J2))
@@ -150,7 +163,8 @@ for i in pbar:
         )[0]
 
         loss_res = torch.mean((u_tt - 4 * u_xx) ** 2)
-        loss_bc = torch.mean((pred_upper) ** 2) + torch.mean((pred_lower) ** 2)
+        loss_bc = torch.mean(
+            (pred_upper) ** 2) + torch.mean((pred_lower) ** 2)
 
         ui_t = torch.autograd.grad(
             pred_left,
@@ -172,7 +186,8 @@ for i in pbar:
 
         loss_ic = loss_ic_1 + loss_ic_2
 
-        loss_track.append([loss_res.item(), loss_ic.item(), loss_bc.item()])
+        loss_track.append(
+            [loss_res.item(), loss_ic.item(), loss_bc.item()])
 
         loss = w1 * loss_res + w2 * loss_ic + w3 * loss_bc
         optim.zero_grad()
@@ -187,15 +202,18 @@ print(
         loss_track[-1][0], loss_track[-1][1], loss_track[-1][2]
     )
 )
-print("NTK weight: w_res: {:4f} w_ic: {:4f}, w_bc: {:4f}".format(w1, w2, w3))
+print("NTK weight: w_res: {:4f} w_ic: {:4f}, w_bc: {:4f}".format(
+    w1, w2, w3))
 print("Train Loss: {:4f}".format(np.sum(loss_track[-1])))
 
 if not os.path.exists("./model"):
     os.makedirs("./model")
-torch.save(model.state_dict(), "./model/1dwave_pinns_ntk.pt")
+torch.save(model.state_dict(),
+           "./model/1dwave_pinns_ntk.pt")
 
 # Visualize PINNs
-res_test = torch.tensor(res_test, dtype=torch.float32, requires_grad=True).to(device)
+res_test = torch.tensor(
+    res_test, dtype=torch.float32, requires_grad=True).to(device)
 x_test, t_test = res_test[:, 0:1], res_test[:, 1:2]
 
 with torch.no_grad():
@@ -224,21 +242,24 @@ if not os.path.exists("./result"):
     os.makedirs("./result")
 fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 # Predicted u(x,t)
-im0 = axes[0].imshow(pred, extent=[0, np.pi * 2, 1, 0], aspect="auto")
+im0 = axes[0].imshow(
+    pred, extent=[0, np.pi * 2, 1, 0], aspect="auto")
 axes[0].set_xlabel("x")
 axes[0].set_ylabel("t")
 axes[0].set_title("Predicted u(x,t)")
 fig.colorbar(im0, ax=axes[0])
 
 # Exact u(x,t)
-im1 = axes[1].imshow(u, extent=[0, np.pi * 2, 1, 0], aspect="auto")
+im1 = axes[1].imshow(
+    u, extent=[0, np.pi * 2, 1, 0], aspect="auto")
 axes[1].set_xlabel("x")
 axes[1].set_ylabel("t")
 axes[1].set_title("Exact u(x,t)")
 fig.colorbar(im1, ax=axes[1])
 
 # Absolute Error
-im2 = axes[2].imshow(np.abs(pred - u), extent=[0, np.pi * 2, 1, 0], aspect="auto")
+im2 = axes[2].imshow(
+    np.abs(pred - u), extent=[0, np.pi * 2, 1, 0], aspect="auto")
 axes[2].set_xlabel("x")
 axes[2].set_ylabel("t")
 axes[2].set_title("Absolute Error")

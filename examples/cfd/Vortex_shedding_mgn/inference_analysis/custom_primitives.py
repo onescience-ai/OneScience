@@ -24,19 +24,22 @@ class Point2D(Geometry):
         y = Symbol("y")
 
         # curves for each side
-        curve_parameterization = Parameterization({Symbol(csg_curve_naming(0)): (0, 1)})
+        curve_parameterization = Parameterization(
+            {Symbol(csg_curve_naming(0)): (0, 1)})
         curve_parameterization = Parameterization.combine(
             curve_parameterization, parameterization
         )
         pt_1 = SympyCurve(
-            functions={"x": point[0], "y": point[1], "normal_x": 1.0, "normal_y": 0},
+            functions={
+                "x": point[0], "y": point[1], "normal_x": 1.0, "normal_y": 0},
             area=1.0,
             parameterization=curve_parameterization,
         )
         curves = [pt_1]
 
         # calculate SDF
-        sdf = ((x - point[0]) ** 2 + (y - point[1]) ** 2) ** 0.5 * sign(x - point[0])
+        sdf = ((x - point[0]) ** 2 + (y - point[1])
+               ** 2) ** 0.5 * sign(x - point[0])
 
         # calculate bounds
         bounds = Bounds(

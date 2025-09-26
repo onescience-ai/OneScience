@@ -52,7 +52,8 @@ def haversine(lat1, lon1, lat2, lon2):
     lon2_rad = np.radians(lon2)
 
     # Earth radius in meters
-    earth_radius = 6371000  # Approximate value for the average Earth radius
+    # Approximate value for the average Earth radius
+    earth_radius = 6371000
 
     # Calculate differences in latitude and longitude
     dlat_rad = lat2_rad - lat1_rad
@@ -61,7 +62,8 @@ def haversine(lat1, lon1, lat2, lon2):
     # Haversine formula
     a = (
         np.sin(dlat_rad / 2) ** 2
-        + np.cos(lat1_rad) * np.cos(lat2_rad) * np.sin(dlon_rad / 2) ** 2
+        + np.cos(lat1_rad) * np.cos(lat2_rad) *
+        np.sin(dlon_rad / 2) ** 2
     )
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
     distance_meters = earth_radius * c
@@ -137,7 +139,8 @@ def average_power_spectrum(data, d):
         - power_spectra (numpy.ndarray): Average power spectrum of the input data.
     """
     # Compute the power spectrum along the second dimension for each row
-    freqs, power_spectra = periodogram(data, fs=1 / d, axis=-1)
+    freqs, power_spectra = periodogram(
+        data, fs=1 / d, axis=-1)
 
     # Average along the first dimension
     while power_spectra.ndim > 1:
@@ -164,8 +167,10 @@ def main(file, output):
         plt.savefig(path)
 
     samples = {}
-    samples["prediction"] = open_data(file, group="prediction")
-    samples["prediction_mean"] = samples["prediction"].mean("ensemble")
+    samples["prediction"] = open_data(
+        file, group="prediction")
+    samples["prediction_mean"] = samples["prediction"].mean(
+        "ensemble")
     samples["truth"] = open_data(file, group="truth")
     samples["ERA5"] = open_data(file, group="input")
 
@@ -173,8 +178,10 @@ def main(file, output):
     lat = prediction.lat
     lon = prediction.lon
 
-    dx = haversine(lat[0, 0], lon[0, 0], lat[1, 0], lon[1, 0])
-    dy = haversine(lat[0, 0], lon[0, 0], lat[0, 1], lon[0, 1])
+    dx = haversine(lat[0, 0], lon[0, 0],
+                   lat[1, 0], lon[1, 0])
+    dy = haversine(lat[0, 0], lon[0, 0],
+                   lat[0, 1], lon[0, 1])
     print(dx, dy)
     # the approximate resolution is dx=dy=2000m
 
@@ -183,8 +190,10 @@ def main(file, output):
 
     # Plot the power spectrum
     for name, data in samples.items():
-        freqs, spec_x = average_power_spectrum(data.eastward_wind_10m, d=d)
-        _, spec_y = average_power_spectrum(data.northward_wind_10m, d=d)
+        freqs, spec_x = average_power_spectrum(
+            data.eastward_wind_10m, d=d)
+        _, spec_y = average_power_spectrum(
+            data.northward_wind_10m, d=d)
         spec = spec_x + spec_y
         plt.loglog(freqs, spec, label=name)
         plt.xlabel("Frequency (1/km)")
@@ -197,7 +206,8 @@ def main(file, output):
 
     plt.figure()
     for name, data in samples.items():
-        freqs, spec = average_power_spectrum(data.temperature_2m, d=d)
+        freqs, spec = average_power_spectrum(
+            data.temperature_2m, d=d)
         plt.loglog(freqs, spec, label=name)
         plt.xlabel("Frequency (1/km)")
         plt.ylabel("Power Spectrum")
@@ -210,7 +220,8 @@ def main(file, output):
     plt.figure()
     for name, data in samples.items():
         try:
-            freqs, spec = average_power_spectrum(data.maximum_radar_reflectivity, d=d)
+            freqs, spec = average_power_spectrum(
+                data.maximum_radar_reflectivity, d=d)
         except AttributeError:
             continue
         plt.loglog(freqs, spec, label=name)

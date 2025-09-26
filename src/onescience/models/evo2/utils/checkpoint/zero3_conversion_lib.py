@@ -86,7 +86,8 @@ def profile_memory_decorator(func: Iterable):
         pid = os.getpid()
         process = psutil.Process(pid)
         memory_info = process.memory_info()
-        print_pid(f"{pid}: RSS = {memory_info.rss / 1024**2:.2f} MB")
+        print_pid(
+            f"{pid}: RSS = {memory_info.rss / 1024**2:.2f} MB")
 
     def wrapper(*args, **kwargs):
         profile_memory()
@@ -240,18 +241,23 @@ def get_model_state_file(checkpoint_dir: str, zero_stage: int):
         ValueError: If the ZeRO stage is not supported.
     """
     if not os.path.isdir(checkpoint_dir):
-        raise FileNotFoundError(f"Directory '{checkpoint_dir}' doesn't exist")
+        raise FileNotFoundError(
+            f"Directory '{checkpoint_dir}' doesn't exist")
 
     # there should be only one file
     if zero_stage <= 2:
-        file = os.path.join(checkpoint_dir, "mp_rank_00_model_states.pt")
+        file = os.path.join(
+            checkpoint_dir, "mp_rank_00_model_states.pt")
     elif zero_stage == 3:
-        file = os.path.join(checkpoint_dir, "zero_pp_rank_0_mp_rank_00_model_states.pt")
+        file = os.path.join(
+            checkpoint_dir, "zero_pp_rank_0_mp_rank_00_model_states.pt")
     else:
-        raise ValueError(f"Unsupported zero stage {zero_stage}. Expected 1, 2, or 3")
+        raise ValueError(
+            f"Unsupported zero stage {zero_stage}. Expected 1, 2, or 3")
 
     if not os.path.exists(file):
-        raise FileNotFoundError(f"can't find model states file at '{file}'")
+        raise FileNotFoundError(
+            f"can't find model states file at '{file}'")
 
     return file
 
@@ -273,7 +279,8 @@ def parse_model_states(files: Set[str]):
         state_dict = torch.load(file, map_location=device)
 
         if BUFFER_NAMES not in state_dict:
-            raise ValueError(f"{file} is not a model state checkpoint")
+            raise ValueError(
+                f"{file} is not a model state checkpoint")
         buffer_names = state_dict[BUFFER_NAMES]
         if debug:
             print_pid("Found buffers:", buffer_names)
@@ -295,18 +302,22 @@ def parse_model_states(files: Set[str]):
                 param_names.append(name)
 
         # update with frozen parameters
-        frozen_param_shapes = state_dict.get(FROZEN_PARAM_SHAPES, None)
+        frozen_param_shapes = state_dict.get(
+            FROZEN_PARAM_SHAPES, None)
         if frozen_param_shapes is not None:
             if debug:
-                print_pid(f"Found frozen_param_shapes: {frozen_param_shapes}")
+                print_pid(
+                    f"Found frozen_param_shapes: {frozen_param_shapes}")
             param_names += list(frozen_param_shapes.keys())
 
         # handle shared params
-        shared_params = [[k, v] for k, v in state_dict["shared_params"].items()]
+        shared_params = [
+            [k, v] for k, v in state_dict["shared_params"].items()]
 
         ds_version = state_dict.get(DS_VERSION, None)
 
-        frozen_param_fragments = state_dict.get(FROZEN_PARAM_FRAGMENTS, None)
+        frozen_param_fragments = state_dict.get(
+            FROZEN_PARAM_FRAGMENTS, None)
 
         z_model_state = ZeroModelState(
             buffers=buffers,
@@ -341,7 +352,8 @@ def parse_optim_states(files: Set[str], ds_checkpoint_dir: str):
         state_dict = torch.load(f, map_location=device)
         # immediately discard the potentially huge 2 optimizer states as we only care for fp32 master weights
         # and also handle the case where it was already removed by another helper script
-        state_dict["optimizer_state_dict"].pop("optimizer_state_dict", None)
+        state_dict["optimizer_state_dict"].pop(
+            "optimizer_state_dict", None)
         state_dict[OPTIMIZER_STATE_DICT] = {
             FP32_FLAT_GROUPS: state_dict[OPTIMIZER_STATE_DICT][FP32_FLAT_GROUPS],
             ZERO_STAGE: state_dict[OPTIMIZER_STATE_DICT][ZERO_STAGE],
@@ -350,7 +362,8 @@ def parse_optim_states(files: Set[str], ds_checkpoint_dir: str):
         state_dicts.append(state_dict)
 
     if ZERO_STAGE not in state_dicts[0][OPTIMIZER_STATE_DICT]:
-        raise ValueError(f"{files[0]} is not a zero checkpoint")
+        raise ValueError(
+            f"{files[0]} is not a zero checkpoint")
     zero_stage = state_dicts[0][OPTIMIZER_STATE_DICT][ZERO_STAGE]
     world_size = state_dicts[0][OPTIMIZER_STATE_DICT][PARTITION_COUNT]
 
@@ -388,7 +401,8 @@ def parse_optim_states(files: Set[str], ds_checkpoint_dir: str):
         # will require matching the sub-lists of param_shapes for each param group flattened tensor
 
         fp32_flat_groups = [
-            torch.cat(state_dicts[i][OPTIMIZER_STATE_DICT][fp32_groups_key], 0)
+            torch.cat(
+                state_dicts[i][OPTIMIZER_STATE_DICT][fp32_groups_key], 0)
             for i in range(len(state_dicts))
         ]
 
@@ -408,12 +422,14 @@ def _get_fp32_state_dict_from_zero_checkpoint(
     Returns:
         OrderedDict: The reconstructed fp32 state dictionary.
     """
-    print_pid(f"Processing zero checkpoint '{ds_checkpoint_dir}'")
+    print_pid(
+        f"Processing zero checkpoint '{ds_checkpoint_dir}'")
 
     # optim_files = get_optim_files(ds_checkpoint_dir)
     # zero_stage, world_size, fp32_flat_groups = parse_optim_states(optim_files, ds_checkpoint_dir)
 
-    optim_files = get_optim_files_by_rank(ds_checkpoint_dir, rank=rank)
+    optim_files = get_optim_files_by_rank(
+        ds_checkpoint_dir, rank=rank)
     optim_files_check = get_checkpoint_files(
         ds_checkpoint_dir, f"bf16*_{rank:02d}_optim_states.pt"
     )
@@ -425,7 +441,8 @@ def _get_fp32_state_dict_from_zero_checkpoint(
         assert os.path.basename(f1) == os.path.basename(
             f2
         ), f"Found mismatching optim files for rank {rank}: {os.path.basename(f1)} != {os.path.basename(f2)}"
-    print_pid(f" -> Optim files for rank {rank}: {len(optim_files)}")
+    print_pid(
+        f" -> Optim files for rank {rank}: {len(optim_files)}")
 
     if debug:
         print_pid(f"{optim_files=}")
@@ -444,7 +461,8 @@ def _get_fp32_state_dict_from_zero_checkpoint(
             f" -> rank{rank} stage: {zero_stage} {world_size=} {len(fp32_flat_groups)=} {fp32_flat_groups.shape=}"
         )
 
-    model_files = get_model_files_by_rank(ds_checkpoint_dir, rank=rank)
+    model_files = get_model_files_by_rank(
+        ds_checkpoint_dir, rank=rank)
     model_files_check = get_checkpoint_files(
         ds_checkpoint_dir, f"zero_*_mp_rank_{rank:02d}_model_states.pt"
     )
@@ -456,7 +474,8 @@ def _get_fp32_state_dict_from_zero_checkpoint(
         assert os.path.basename(f1) == os.path.basename(
             f2
         ), f"Found mismatching optim files for rank {rank}: {os.path.basename(f1)} != {os.path.basename(f2)}"
-    print_pid(f" -> Model files for rank {rank}: {len(model_files)}")
+    print_pid(
+        f" -> Model files for rank {rank}: {len(model_files)}")
 
     assert len(optim_files) == len(
         model_files
@@ -486,8 +505,10 @@ def zero3_partitioned_param_info(unpartitioned_numel: int, world_size: int):
         tuple: A tuple containing the partitioned number of elements and the padding number of elements.
     """
     remainder = unpartitioned_numel % world_size
-    padding_numel = (world_size - remainder) if remainder else 0
-    partitioned_numel = math.ceil(unpartitioned_numel / world_size)
+    padding_numel = (
+        world_size - remainder) if remainder else 0
+    partitioned_numel = math.ceil(
+        unpartitioned_numel / world_size)
     return partitioned_numel, padding_numel
 
 
@@ -515,11 +536,13 @@ def _zero3_merge_frozen_params(
             num_elem = sum(
                 s.numel() for s in zero_model_states[i].frozen_param_fragments.values()
             )
-            print_pid(f"rank {i}: {FROZEN_PARAM_SHAPES}.numel = {num_elem}")
+            print_pid(
+                f"rank {i}: {FROZEN_PARAM_SHAPES}.numel = {num_elem}")
 
         frozen_param_shapes = zero_model_states[0].frozen_param_shapes
         wanted_params = len(frozen_param_shapes)
-        wanted_numel = sum(s.numel() for s in frozen_param_shapes.values())
+        wanted_numel = sum(s.numel()
+                           for s in frozen_param_shapes.values())
         avail_numel = (
             sum(
                 [
@@ -529,7 +552,8 @@ def _zero3_merge_frozen_params(
             )
             * world_size
         )
-        print_pid(f"Frozen params: Have {avail_numel} numels to process.")
+        print_pid(
+            f"Frozen params: Have {avail_numel} numels to process.")
         print_pid(
             f"Frozen params: Need {wanted_numel} numels in {wanted_params} params"
         )
@@ -546,7 +570,8 @@ def _zero3_merge_frozen_params(
             for model_state in zero_model_states
         )
         state_dict[name] = (
-            torch.cat(param_frags, 0).narrow(0, 0, unpartitioned_numel).view(shape)
+            torch.cat(param_frags, 0).narrow(
+                0, 0, unpartitioned_numel).view(shape)
         )
 
         partitioned_numel, partitioned_padding_numel = zero3_partitioned_param_info(
@@ -590,17 +615,22 @@ def _zero3_merge_trainable_params(
     # param, re-consolidating each param, while dealing with padding if any
 
     # merge list of dicts, preserving order
-    param_shapes = {k: v for d in param_shapes for k, v in d.items()}
+    param_shapes = {
+        k: v for d in param_shapes for k, v in d.items()}
 
     if debug:
         for i in range(world_size):
-            print_pid(f"{FP32_FLAT_GROUPS}[{i}].shape={fp32_flat_groups[i].shape}")
+            print_pid(
+                f"{FP32_FLAT_GROUPS}[{i}].shape={fp32_flat_groups[i].shape}")
 
         wanted_params = len(param_shapes)
-        wanted_numel = sum(shape.numel() for shape in param_shapes.values())
+        wanted_numel = sum(shape.numel()
+                           for shape in param_shapes.values())
         # not asserting if there is a mismatch due to possible padding
-        avail_numel = fp32_flat_groups[0].numel() * world_size
-        print_pid(f"Trainable params: Have {avail_numel} numels to process.")
+        avail_numel = fp32_flat_groups[0].numel(
+        ) * world_size
+        print_pid(
+            f"Trainable params: Have {avail_numel} numels to process.")
         print_pid(
             f"Trainable params: Need {wanted_numel} numels in {wanted_params} params."
         )
@@ -632,7 +662,8 @@ def _zero3_merge_trainable_params(
         state_dict[name] = (
             torch.cat(
                 tuple(
-                    fp32_flat_groups[i].narrow(0, offset, partitioned_numel)
+                    fp32_flat_groups[i].narrow(
+                        0, offset, partitioned_numel)
                     for i in range(world_size)
                 ),
                 0,
@@ -687,7 +718,8 @@ def _get_fp32_state_dict_from_zero3_checkpoint(
         print_pid(f"added {len(extra_states)} extra_states")
 
     if not exclude_frozen_parameters:
-        _zero3_merge_frozen_params(state_dict, world_size, zero_model_states)
+        _zero3_merge_frozen_params(
+            state_dict, world_size, zero_model_states)
 
     _zero3_merge_trainable_params(
         state_dict, world_size, fp32_flat_groups, zero_model_states
@@ -738,12 +770,15 @@ def process_single_rank(
     print_pid(f"Gathering rank {rank} state_dict...")
 
     start = time.time()
-    output_path = os.path.join(output_dir, create_ds_output_path(rank))
+    output_path = os.path.join(
+        output_dir, create_ds_output_path(rank))
     if os.path.exists(output_path) and not overwrite:
-        print_pid(f"Output path {output_path} exists, skipping")
+        print_pid(
+            f"Output path {output_path} exists, skipping")
         return
 
-    print_pid(f" -> Gathering data parallel partitions for mp rank {rank}...")
+    print_pid(
+        f" -> Gathering data parallel partitions for mp rank {rank}...")
 
     if os.environ.get("ZERO3_CONVERSION_DEBUG", "0") == "1":
         breakpoint()
@@ -767,7 +802,8 @@ def process_single_rank(
         if isinstance(value, torch.Tensor):
             checkpoint["param_shapes"][param] = value.shape
 
-    print_pid(f" -> Saving mp rank {rank} checkpoint to {output_path}")
+    print_pid(
+        f" -> Saving mp rank {rank} checkpoint to {output_path}")
     torch.save(checkpoint, f"{output_path}")
 
     total_time = get_elapsed(time.time() - start)

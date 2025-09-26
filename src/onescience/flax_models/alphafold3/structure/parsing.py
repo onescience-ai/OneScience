@@ -29,7 +29,8 @@ from onescience.flax_models.alphafold3.structure import (
 ChainIndex: TypeAlias = int
 ResIndex: TypeAlias = int
 AtomName: TypeAlias = str
-BondAtomId: TypeAlias = tuple[ChainIndex, ResIndex, AtomName]
+BondAtomId: TypeAlias = tuple[ChainIndex,
+                              ResIndex, AtomName]
 
 _INSERTION_CODE_REMAP: Mapping[str, str] = {".": "?"}
 
@@ -57,8 +58,10 @@ class SequenceFormat(enum.Enum):
     """The possible formats for an input sequence."""
 
     FASTA = "fasta"  # One-letter code used in FASTA.
-    CCD_CODES = "ccd_codes"  # Multiple-letter chemical components dictionary ids.
-    LIGAND_SMILES = "ligand_smiles"  # SMILES string defining a molecule.
+    # Multiple-letter chemical components dictionary ids.
+    CCD_CODES = "ccd_codes"
+    # SMILES string defining a molecule.
+    LIGAND_SMILES = "ligand_smiles"
 
 
 def _create_bond_lookup(
@@ -69,13 +72,17 @@ def _create_bond_lookup(
     for bond_i, (from_atom_id, dest_atom_id) in enumerate(bonded_atom_pairs):
         from_chain_i, from_res_i, from_atom_name = from_atom_id
         dest_chain_i, dest_res_i, dest_atom_name = dest_atom_id
-        bonds_by_from_atom_name = bond_lookup.setdefault((from_chain_i, from_res_i), {})
-        bonds_by_dest_atom_name = bond_lookup.setdefault((dest_chain_i, dest_res_i), {})
+        bonds_by_from_atom_name = bond_lookup.setdefault(
+            (from_chain_i, from_res_i), {})
+        bonds_by_dest_atom_name = bond_lookup.setdefault(
+            (dest_chain_i, dest_res_i), {})
         bonds_by_from_atom_name.setdefault(
-            from_atom_name, BondIndices(from_indices=[], dest_indices=[])
+            from_atom_name, BondIndices(
+                from_indices=[], dest_indices=[])
         ).from_indices.append(bond_i)
         bonds_by_dest_atom_name.setdefault(
-            dest_atom_name, BondIndices(from_indices=[], dest_indices=[])
+            dest_atom_name, BondIndices(
+                from_indices=[], dest_indices=[])
         ).dest_indices.append(bond_i)
     return bond_lookup
 
@@ -84,7 +91,8 @@ def _get_atom_element(
     ccd: chemical_components.Ccd, res_name: str, atom_name: str
 ) -> str:
     return (
-        chemical_components.type_symbol(ccd=ccd, res_name=res_name, atom_name=atom_name)
+        chemical_components.type_symbol(
+            ccd=ccd, res_name=res_name, atom_name=atom_name)
         or "?"
     )
 
@@ -97,7 +105,8 @@ def _get_representative_atom(
 ) -> tuple[str, str]:
     match sequence_format:
         case SequenceFormat.CCD_CODES:
-            atom_name = _get_first_non_leaving_atom(ccd=ccd, res_name=res_name)
+            atom_name = _get_first_non_leaving_atom(
+                ccd=ccd, res_name=res_name)
             atom_element = _get_atom_element(
                 ccd=ccd, res_name=res_name, atom_name=atom_name
             )
@@ -168,7 +177,8 @@ def _get_str_model_id(
             match model_id.value:
                 case ModelID.FIRST.value:
                     try:
-                        str_model_id = _get_first_model_id(cif)
+                        str_model_id = _get_first_model_id(
+                            cif)
                     except IndexError as e:
                         raise NoAtomsError(
                             "The mmCIF does not have any atoms or"
@@ -205,14 +215,18 @@ def _parse_bonds(
         # This is the category key item for the _struct_conn table, therefore
         # we use it to determine whether to parse bond info.
         return bonds.Bonds.make_empty()
-    from_atom, dest_atom = mmcif.get_bond_atom_indices(cif, model_id)
+    from_atom, dest_atom = mmcif.get_bond_atom_indices(
+        cif, model_id)
     from_atom = np.array(from_atom, dtype=np.int64)
     dest_atom = np.array(dest_atom, dtype=np.int64)
     num_bonds = from_atom.shape[0]
     bond_key = np.arange(num_bonds, dtype=np.int64)
-    bond_type = cif.get_array("_struct_conn.conn_type_id", dtype=object)
-    if "_struct_conn.pdbx_role" in cif:  # This column isn't always present.
-        bond_role = cif.get_array("_struct_conn.pdbx_role", dtype=object)
+    bond_type = cif.get_array(
+        "_struct_conn.conn_type_id", dtype=object)
+    # This column isn't always present.
+    if "_struct_conn.pdbx_role" in cif:
+        bond_role = cif.get_array(
+            "_struct_conn.pdbx_role", dtype=object)
     else:
         bond_role = np.full((num_bonds,), "?", dtype=object)
 
@@ -222,16 +236,22 @@ def _parse_bonds(
     # bioassembly.
     # We do not currently support parsing these types of bonds.
     if "_struct_conn.ptnr1_symmetry" in cif:
-        ptnr1_symmetry = cif.get_array("_struct_conn.ptnr1_symmetry", dtype=object)
-        np.logical_and(bonds_mask, ptnr1_symmetry == "1_555", out=bonds_mask)
+        ptnr1_symmetry = cif.get_array(
+            "_struct_conn.ptnr1_symmetry", dtype=object)
+        np.logical_and(
+            bonds_mask, ptnr1_symmetry == "1_555", out=bonds_mask)
     if "_struct_conn.ptnr2_symmetry" in cif:
-        ptnr2_symmetry = cif.get_array("_struct_conn.ptnr2_symmetry", dtype=object)
-        np.logical_and(bonds_mask, ptnr2_symmetry == "1_555", out=bonds_mask)
+        ptnr2_symmetry = cif.get_array(
+            "_struct_conn.ptnr2_symmetry", dtype=object)
+        np.logical_and(
+            bonds_mask, ptnr2_symmetry == "1_555", out=bonds_mask)
     # Remove bonds that involve atoms that are not part of the structure,
     # e.g. waters if include_water=False. In a rare case this also removes invalid
     # bonds that are indicated by a key that is set to _atom_site size.
-    np.logical_and(bonds_mask, np.isin(from_atom, atom_key), out=bonds_mask)
-    np.logical_and(bonds_mask, np.isin(dest_atom, atom_key), out=bonds_mask)
+    np.logical_and(bonds_mask, np.isin(
+        from_atom, atom_key), out=bonds_mask)
+    np.logical_and(bonds_mask, np.isin(
+        dest_atom, atom_key), out=bonds_mask)
     return bonds.Bonds(
         key=bond_key[bonds_mask],
         type=bond_type[bonds_mask],
@@ -263,13 +283,16 @@ def _get_mmcif_header(
 
     release_date = mmcif.get_release_date(cif)
     if release_date is not None:
-        release_date = datetime.date.fromisoformat(release_date)
+        release_date = datetime.date.fromisoformat(
+            release_date)
 
     experiments = cif.get("_exptl.method")
-    structure_method = ",".join(experiments) if experiments else None
+    structure_method = ",".join(
+        experiments) if experiments else None
 
     try:
-        bioassembly_data = bioassemblies.BioassemblyData.from_mmcif(cif)
+        bioassembly_data = bioassemblies.BioassemblyData.from_mmcif(
+            cif)
     except bioassemblies.MissingBioassemblyDataError:
         bioassembly_data = None
 
@@ -336,7 +359,8 @@ def from_parsed_mmcif(
     Returns:
       A Structure representation of the mmCIF object.
     """
-    str_model_id = _get_str_model_id(cif=mmcif_object, model_id=model_id)
+    str_model_id = _get_str_model_id(
+        cif=mmcif_object, model_id=model_id)
     header = _get_mmcif_header(
         mmcif_object, fix_mse=fix_mse_residues, fix_unknown_dna=fix_unknown_dna
     )
@@ -356,7 +380,8 @@ def from_parsed_mmcif(
         # informative error message when dealing with bad multi-model mmCIFs.
         # Also always use a specific model ID, even when parsing all models.
         if str_model_id == "":  # pylint: disable=g-explicit-bool-comparison
-            bonds_model_id = _get_first_model_id(mmcif_object)
+            bonds_model_id = _get_first_model_id(
+                mmcif_object)
         else:
             bonds_model_id = str_model_id
 
@@ -472,14 +497,16 @@ def from_res_arrays(atom_mask: np.ndarray, **kwargs) -> structure.Structure:
             # to the constructor. They are expected to be global fields (e.g. name).
             # Other values will raise an error when the constructor is called.
             if k in structure.TABLE_FIELDS:
-                raise ValueError(f"Table fields must not be set. Got {k}.")
+                raise ValueError(
+                    f"Table fields must not be set. Got {k}.")
             initializer_kwargs[k] = val
             continue
         elif val is None:
             raise ValueError(f"{k} must be non-None.")
 
         if not isinstance(val, np.ndarray):
-            raise TypeError(f"Value for {k} must be a NumPy array. Got {type(val)}.")
+            raise TypeError(
+                f"Value for {k} must be a NumPy array. Got {type(val)}.")
         if k in structure.CHAIN_FIELDS or k in structure.RESIDUE_FIELDS:
             if val.shape != (num_res,):
                 raise ValueError(
@@ -495,61 +522,80 @@ def from_res_arrays(atom_mask: np.ndarray, **kwargs) -> structure.Structure:
                     f"{(num_res, num_atom)=}. Got {val.shape=}."
                 )
             leading_dims = val.shape[:-2]
-            flat_val = val.reshape(leading_dims + (-1,), order="C")
+            flat_val = val.reshape(
+                leading_dims + (-1,), order="C")
             masked_val = flat_val[..., included_indices]
             fields[k] = masked_val
 
     # Get chain IDs or assume this is a single-chain structure.
-    chain_id = kwargs.get("chain_id", np.array(["A"] * num_res, dtype=object))
+    chain_id = kwargs.get("chain_id", np.array(
+        ["A"] * num_res, dtype=object))
     # Find chain starts in res-sized arrays, use these to make chain-sized arrays.
-    chain_start = np.concatenate(([0], np.where(chain_id[1:] != chain_id[:-1])[0] + 1))
+    chain_start = np.concatenate(
+        ([0], np.where(chain_id[1:] != chain_id[:-1])[0] + 1))
     if len(set(chain_id)) != len(chain_start):
-        raise ValueError(f"Chain IDs must be contiguous, but got {chain_id}")
+        raise ValueError(
+            f"Chain IDs must be contiguous, but got {chain_id}")
 
-    chain_lengths = np.diff(chain_start, append=len(chain_id))
-    chain_key = np.repeat(np.arange(len(chain_start)), chain_lengths)
+    chain_lengths = np.diff(
+        chain_start, append=len(chain_id))
+    chain_key = np.repeat(
+        np.arange(len(chain_start)), chain_lengths)
 
     chain_entity_id = fields.get("chain_entity_id")
     if chain_entity_id is not None:
         entity_id = chain_entity_id[chain_start]
     else:
         entity_id = np.array(
-            [str(mmcif.str_id_to_int_id(cid)) for cid in chain_id[chain_start]],
+            [str(mmcif.str_id_to_int_id(cid))
+             for cid in chain_id[chain_start]],
             dtype=object,
         )
     chain_str_empty = np.full((num_res,), ".", dtype=object)
     chains_table = structure_tables.Chains(
         key=chain_key[chain_start],
         id=chain_id[chain_start],
-        type=fields.get("chain_type", chain_str_empty)[chain_start],
-        auth_asym_id=fields.get("chain_auth_asym_id", chain_id)[chain_start],
+        type=fields.get("chain_type", chain_str_empty)[
+            chain_start],
+        auth_asym_id=fields.get("chain_auth_asym_id", chain_id)[
+            chain_start],
         entity_id=entity_id,
-        entity_desc=fields.get("chain_entity_desc", chain_str_empty)[chain_start],
+        entity_desc=fields.get("chain_entity_desc", chain_str_empty)[
+            chain_start],
     )
 
     # Since all arrays are residue-shaped, we can use them directly.
     res_key = np.arange(num_res, dtype=np.int64)
-    res_id = fields.get("res_id", res_key + 1).astype(np.int32)
+    res_id = fields.get(
+        "res_id", res_key + 1).astype(np.int32)
     residues_table = structure_tables.Residues(
         key=res_key,
         chain_key=chain_key,
         id=res_id,
-        name=fields.get("res_name", np.full(num_res, "UNK", dtype=object)),
+        name=fields.get("res_name", np.full(
+            num_res, "UNK", dtype=object)),
         auth_seq_id=fields.get(
-            "res_auth_seq_id", np.char.mod("%d", res_id).astype(object)
+            "res_auth_seq_id", np.char.mod(
+                "%d", res_id).astype(object)
         ),
         insertion_code=fields.get(
-            "res_insertion_code", np.full(num_res, "?", dtype=object)
+            "res_insertion_code", np.full(
+                num_res, "?", dtype=object)
         ),
     )
 
     # The atom-sized arrays have already been masked and reshaped.
-    num_atoms_per_res = np.sum(atom_mask, axis=1, dtype=np.int32)
-    num_atoms_total = np.sum(num_atoms_per_res, dtype=np.int32)
+    num_atoms_per_res = np.sum(
+        atom_mask, axis=1, dtype=np.int32)
+    num_atoms_total = np.sum(
+        num_atoms_per_res, dtype=np.int32)
     # Structure is immutable, so use the same array multiple times to save RAM.
-    atom_str_empty = np.full(num_atoms_total, ".", dtype=object)
-    atom_float32_zeros = np.zeros(num_atoms_total, dtype=np.float32)
-    atom_float32_ones = np.ones(num_atoms_total, dtype=np.float32)
+    atom_str_empty = np.full(
+        num_atoms_total, ".", dtype=object)
+    atom_float32_zeros = np.zeros(
+        num_atoms_total, dtype=np.float32)
+    atom_float32_ones = np.ones(
+        num_atoms_total, dtype=np.float32)
     atoms_table = structure_tables.Atoms(
         key=np.arange(num_atoms_total, dtype=np.int64),
         chain_key=np.repeat(chain_key, num_atoms_per_res),
@@ -559,15 +605,18 @@ def from_res_arrays(atom_mask: np.ndarray, **kwargs) -> structure.Structure:
         x=fields.get("atom_x", atom_float32_zeros),
         y=fields.get("atom_y", atom_float32_zeros),
         z=fields.get("atom_z", atom_float32_zeros),
-        b_factor=fields.get("atom_b_factor", atom_float32_zeros),
-        occupancy=fields.get("atom_occupancy", atom_float32_ones),
+        b_factor=fields.get(
+            "atom_b_factor", atom_float32_zeros),
+        occupancy=fields.get(
+            "atom_occupancy", atom_float32_ones),
     )
 
     return structure.Structure(
         chains=chains_table,
         residues=residues_table,
         atoms=atoms_table,
-        bonds=structure_tables.Bonds.make_empty(),  # Currently not set.
+        # Currently not set.
+        bonds=structure_tables.Bonds.make_empty(),
         **initializer_kwargs,
     )
 
@@ -585,21 +634,25 @@ def expand_sequence(
     match sequence_format:
         case SequenceFormat.FASTA:
             if not all(c.isalpha() for c in sequence):
-                raise ValueError(f'Sequence "{sequence}" has non-alphabetic characters')
+                raise ValueError(
+                    f'Sequence "{sequence}" has non-alphabetic characters')
             match chain_type:
                 case mmcif_names.PROTEIN_CHAIN:
                     res_name_map = residue_names.PROTEIN_COMMON_ONE_TO_THREE
                     default_res_name = residue_names.UNK
                 case mmcif_names.RNA_CHAIN:
-                    res_name_map = {r: r for r in residue_names.RNA_TYPES}
+                    res_name_map = {
+                        r: r for r in residue_names.RNA_TYPES}
                     default_res_name = residue_names.UNK_RNA
                 case mmcif_names.DNA_CHAIN:
                     res_name_map = residue_names.DNA_COMMON_ONE_TO_TWO
                     default_res_name = residue_names.UNK_DNA
                 case _:
-                    raise ValueError(f"{chain_type=} not supported for FASTA format.")
+                    raise ValueError(
+                        f"{chain_type=} not supported for FASTA format.")
             return [
-                res_name_map.get(one_letter_res, default_res_name)
+                res_name_map.get(
+                    one_letter_res, default_res_name)
                 for one_letter_res in sequence
             ]
         case SequenceFormat.CCD_CODES:
@@ -657,22 +710,28 @@ def from_sequences_and_bonds(
     chem_comp = {}
 
     num_bonds = len(bonded_atom_pairs or ())
-    from_atom_key = np.full((num_bonds,), -1, dtype=np.int64)
-    dest_atom_key = np.full((num_bonds,), -1, dtype=np.int64)
+    from_atom_key = np.full(
+        (num_bonds,), -1, dtype=np.int64)
+    dest_atom_key = np.full(
+        (num_bonds,), -1, dtype=np.int64)
 
     # Create map (chain_i, res_i) -> {atom_name -> (from_idxs dest_idxs)}.
     # This allows quick lookup of whether a residue has any bonded atoms, and
     # which bonds those atoms participate in.
-    bond_lookup = _create_bond_lookup(bonded_atom_pairs or ())
+    bond_lookup = _create_bond_lookup(
+        bonded_atom_pairs or ())
 
     current_atom_key = 0
     for chain_i, (sequence, curr_chain_type, sequence_format) in enumerate(
-        zip(sequences, chain_types, sequence_formats, strict=True)
+        zip(sequences, chain_types,
+            sequence_formats, strict=True)
     ):
-        current_chain_id = mmcif.int_id_to_str_id(chain_i + 1)
+        current_chain_id = mmcif.int_id_to_str_id(
+            chain_i + 1)
         num_chain_residues = 0
         for res_i, full_res_name in enumerate(
-            expand_sequence(sequence, curr_chain_type, sequence_format)
+            expand_sequence(
+                sequence, curr_chain_type, sequence_format)
         ):
             current_res_id = res_i + 1
             num_res_atoms = 0
@@ -711,7 +770,8 @@ def from_sequences_and_bonds(
             if sequence_format == SequenceFormat.LIGAND_SMILES:
                 # Sequence expect to be in the format <ligand_id>:<ligand_smiles>,
                 # which always corresponds to a single-residue chain.
-                ligand_id, ligand_smiles = sequence.split(":", maxsplit=1)
+                ligand_id, ligand_smiles = sequence.split(
+                    ":", maxsplit=1)
                 if ccd.get(ligand_id) is not None:
                     raise ValueError(
                         f"Ligand name {ligand_id} is in CCD - it is not supported to give"
@@ -719,7 +779,8 @@ def from_sequences_and_bonds(
                     )
                 # We need to provide additional chemical components metadata for
                 # ligands specified via SMILES strings since they might not be in CCD.
-                _add_ligand_to_chem_comp(chem_comp, ligand_id, ligand_smiles)
+                _add_ligand_to_chem_comp(
+                    chem_comp, ligand_id, ligand_smiles)
 
             assert num_res_atoms >= 1
             res_atom_count.append(num_res_atoms)
@@ -731,7 +792,8 @@ def from_sequences_and_bonds(
         chain_type.append(curr_chain_type)
         chain_res_count.append(num_chain_residues)
 
-    chem_comp_data = struc_chem_comps.ChemicalComponentsData(chem_comp)
+    chem_comp_data = struc_chem_comps.ChemicalComponentsData(
+        chem_comp)
     chem_comp_data = struc_chem_comps.populate_missing_ccd_data(
         ccd=ccd,
         chemical_components_data=chem_comp_data,
@@ -739,11 +801,13 @@ def from_sequences_and_bonds(
     )
 
     if bonded_atom_pairs is not None:
-        unknown_bond_col = np.full((num_bonds,), "?", dtype=object)
+        unknown_bond_col = np.full(
+            (num_bonds,), "?", dtype=object)
         if bond_type is None:
             bond_type_col = unknown_bond_col
         else:
-            bond_type_col = np.full((num_bonds,), bond_type, dtype=object)
+            bond_type_col = np.full(
+                (num_bonds,), bond_type, dtype=object)
         bonds_table = bonds.Bonds(
             key=np.arange(num_bonds, dtype=np.int64),
             type=bond_type_col,
@@ -754,15 +818,18 @@ def from_sequences_and_bonds(
     else:
         bonds_table = structure_tables.Bonds.make_empty()
 
-    chain_key = np.arange(len(sequences), dtype=np.int64)  # 1 chain per sequence.
+    # 1 chain per sequence.
+    chain_key = np.arange(len(sequences), dtype=np.int64)
     chain_id = np.array(chain_id, dtype=object)
     chains_table = structure_tables.Chains(
         key=chain_key,
         id=chain_id,
         type=np.array(chain_type, dtype=object),
         auth_asym_id=chain_id,
-        entity_id=np.char.mod("%d", chain_key + 1).astype(object),
-        entity_desc=np.array(["."] * len(chain_key), dtype=object),
+        entity_id=np.char.mod(
+            "%d", chain_key + 1).astype(object),
+        entity_desc=np.array(
+            ["."] * len(chain_key), dtype=object),
     )
 
     res_key = np.arange(len(res_name), dtype=np.int64)
@@ -772,12 +839,15 @@ def from_sequences_and_bonds(
         chain_key=res_chain_key,
         id=np.array(res_id, dtype=np.int32),
         name=np.array(res_name, dtype=object),
-        auth_seq_id=np.char.mod("%d", res_id).astype(object),
-        insertion_code=np.full(len(res_name), "?", dtype=object),
+        auth_seq_id=np.char.mod(
+            "%d", res_id).astype(object),
+        insertion_code=np.full(
+            len(res_name), "?", dtype=object),
     )
 
     num_atoms = current_atom_key
-    atom_float32_zeros = np.zeros(num_atoms, dtype=np.float32)
+    atom_float32_zeros = np.zeros(
+        num_atoms, dtype=np.float32)
     atoms_table = structure_tables.Atoms(
         key=np.arange(num_atoms, dtype=np.int64),
         chain_key=np.repeat(res_chain_key, res_atom_count),
@@ -835,7 +905,8 @@ class _ChainResBuilder:
         self.entity_id_by_chain_id = entity_id_by_chain_id
         self.chain_type_by_entity_id = chain_type_by_entity_id
         self.entity_desc_by_entity_id = entity_desc_by_entity_id
-        self.key_for_res: dict[tuple[str, str, str, str], int] = {}
+        self.key_for_res: dict[tuple[str,
+                                     str, str, str], int] = {}
 
         self._fix_mse_residues = fix_mse_residues
         self._fix_unknown_dna = fix_unknown_dna
@@ -858,14 +929,16 @@ class _ChainResBuilder:
         chain_ids_with_prev = np.concatenate(
             (([self.chain_id[-1] if self.chain_id else None], chain_ids))
         )
-        chain_change_mask = chain_ids_with_prev[:-1] != chain_ids_with_prev[1:]
+        chain_change_mask = chain_ids_with_prev[:-
+                                                1] != chain_ids_with_prev[1:]
         chain_change_ids = chain_ids[chain_change_mask]
         chain_keys = string_array.remap(
             chain_change_ids, self.chain_key_by_chain_id, inplace=False
         )
         self.chain_key.extend(chain_keys)
         self.chain_id.extend(chain_change_ids)
-        self.chain_auth_asym_id.extend(chain_auth_asym_ids[chain_change_mask])
+        self.chain_auth_asym_id.extend(
+            chain_auth_asym_ids[chain_change_mask])
         chain_entity_id = string_array.remap(
             chain_change_ids, self.entity_id_by_chain_id, inplace=False
         )
@@ -881,7 +954,8 @@ class _ChainResBuilder:
 
         # Create residue table data.
         num_prev_res = len(self.res_id)
-        res_keys = np.arange(num_prev_res, num_prev_res + len(res_ids))
+        res_keys = np.arange(
+            num_prev_res, num_prev_res + len(res_ids))
         res_iter = zip(
             chain_ids,
             res_auth_seq_ids,
@@ -896,7 +970,8 @@ class _ChainResBuilder:
         self.key_for_res.update(key_for_res_update)
         self.res_key.extend(res_keys)
         self.res_chain_key.extend(
-            string_array.remap(chain_ids, self.chain_key_by_chain_id, inplace=False)
+            string_array.remap(
+                chain_ids, self.chain_key_by_chain_id, inplace=False)
         )
         self.res_id.extend(res_ids)
         self.res_name.extend(res_names)
@@ -908,58 +983,78 @@ class _ChainResBuilder:
         chain_key = np.array(self.chain_key, dtype=np.int64)
         if not np.all(chain_key[:-1] <= chain_key[1:]):
             # If the order is inconsistent with the atoms table, sort so that it is.
-            order = np.argsort(self.chain_key, kind="stable")
+            order = np.argsort(
+                self.chain_key, kind="stable")
             return structure_tables.Chains(
                 key=chain_key[order],
-                id=np.array(self.chain_id, dtype=object)[order],
-                type=np.array(self.chain_type, dtype=object)[order],
-                auth_asym_id=np.array(self.chain_auth_asym_id, dtype=object)[order],
-                entity_id=np.array(self.chain_entity_id, dtype=object)[order],
-                entity_desc=np.array(self.chain_entity_desc, dtype=object)[order],
+                id=np.array(self.chain_id, dtype=object)[
+                    order],
+                type=np.array(self.chain_type, dtype=object)[
+                    order],
+                auth_asym_id=np.array(
+                    self.chain_auth_asym_id, dtype=object)[order],
+                entity_id=np.array(
+                    self.chain_entity_id, dtype=object)[order],
+                entity_desc=np.array(
+                    self.chain_entity_desc, dtype=object)[order],
             )
         return structure_tables.Chains(
             key=chain_key,
             id=np.array(self.chain_id, dtype=object),
             type=np.array(self.chain_type, dtype=object),
-            auth_asym_id=np.array(self.chain_auth_asym_id, dtype=object),
-            entity_id=np.array(self.chain_entity_id, dtype=object),
-            entity_desc=np.array(self.chain_entity_desc, dtype=object),
+            auth_asym_id=np.array(
+                self.chain_auth_asym_id, dtype=object),
+            entity_id=np.array(
+                self.chain_entity_id, dtype=object),
+            entity_desc=np.array(
+                self.chain_entity_desc, dtype=object),
         )
 
     def make_residues_table(self) -> structure_tables.Residues:
         """Returns the Structure residues table."""
         res_name = np.array(self.res_name, dtype=object)
-        res_chain_key = np.array(self.res_chain_key, dtype=np.int64)
+        res_chain_key = np.array(
+            self.res_chain_key, dtype=np.int64)
 
         if self._fix_mse_residues:
-            string_array.remap(res_name, mapping={"MSE": "MET"}, inplace=True)
+            string_array.remap(res_name, mapping={
+                               "MSE": "MET"}, inplace=True)
 
         if self._fix_unknown_dna:
             # Remap residues from N -> DN in DNA chains only.
             dna_chain_mask = (
-                np.array(self.chain_type, dtype=object) == mmcif_names.DNA_CHAIN
+                np.array(
+                    self.chain_type, dtype=object) == mmcif_names.DNA_CHAIN
             )
-            dna_chain_key = np.array(self.chain_key, dtype=object)[dna_chain_mask]
-            res_name[(res_name == "N") & np.isin(res_chain_key, dna_chain_key)] = "DN"
+            dna_chain_key = np.array(self.chain_key, dtype=object)[
+                dna_chain_mask]
+            res_name[(res_name == "N") & np.isin(
+                res_chain_key, dna_chain_key)] = "DN"
 
         if not np.all(res_chain_key[:-1] <= res_chain_key[1:]):
             # If the order is inconsistent with the atoms table, sort so that it is.
             order = np.argsort(res_chain_key, kind="stable")
             return structure_tables.Residues(
-                key=np.array(self.res_key, dtype=np.int64)[order],
+                key=np.array(self.res_key, dtype=np.int64)[
+                    order],
                 chain_key=res_chain_key[order],
-                id=np.array(self.res_id, dtype=np.int32)[order],
+                id=np.array(self.res_id, dtype=np.int32)[
+                    order],
                 name=res_name[order],
-                auth_seq_id=np.array(self.res_auth_seq_id, dtype=object)[order],
-                insertion_code=np.array(self.res_insertion_code, dtype=object)[order],
+                auth_seq_id=np.array(
+                    self.res_auth_seq_id, dtype=object)[order],
+                insertion_code=np.array(
+                    self.res_insertion_code, dtype=object)[order],
             )
         return structure_tables.Residues(
             key=np.array(self.res_key, dtype=np.int64),
             chain_key=res_chain_key,
             id=np.array(self.res_id, dtype=np.int32),
             name=res_name,
-            auth_seq_id=np.array(self.res_auth_seq_id, dtype=object),
-            insertion_code=np.array(self.res_insertion_code, dtype=object),
+            auth_seq_id=np.array(
+                self.res_auth_seq_id, dtype=object),
+            insertion_code=np.array(
+                self.res_insertion_code, dtype=object),
         )
 
 
@@ -986,11 +1081,14 @@ def _generate_required_tables_if_missing(
     # checks to prevent running the expensive O(n) check on most files.
     if (
         len(atom_site_entities) > 0  # pylint: disable=g-explicit-length-test
-        and "_entity.id" not in cif  # Ignore if the _entity table exists.
+        # Ignore if the _entity table exists.
+        and "_entity.id" not in cif
         and atom_site_entities[0] == "?"  # Cheap check.
-        and set(atom_site_entities) == {"?"}  # Expensive check.
+        # Expensive check.
+        and set(atom_site_entities) == {"?"}
     ):
-        label_asym_ids = cif.get_array("_atom_site.label_asym_id", dtype=object)
+        label_asym_ids = cif.get_array(
+            "_atom_site.label_asym_id", dtype=object)
         atom_site_entities = [
             str(mmcif.str_id_to_int_id(cid)) for cid in label_asym_ids
         ]
@@ -1000,10 +1098,12 @@ def _generate_required_tables_if_missing(
     # Check table existence by checking the presence of its primary key.
     if "_struct_asym.id" not in cif:
         # Infer the _struct_asym table using the _atom_site table.
-        asym_ids = _get_string_array_default(cif, "_atom_site.label_asym_id", [])
+        asym_ids = _get_string_array_default(
+            cif, "_atom_site.label_asym_id", [])
 
         if (
-            len(atom_site_entities) == 0 or len(asym_ids) == 0
+            len(atom_site_entities) == 0 or len(
+                asym_ids) == 0
         ):  # pylint: disable=g-explicit-length-test
             raise ValueError(
                 "Could not parse an mmCIF with no _struct_asym table and also no "
@@ -1012,24 +1112,31 @@ def _generate_required_tables_if_missing(
 
         # Deduplicate, but keep the order intact - dict.fromkeys maintains order.
         entity_id_chain_id_pairs = list(
-            dict.fromkeys(zip(atom_site_entities, asym_ids, strict=True))
+            dict.fromkeys(
+                zip(atom_site_entities, asym_ids, strict=True))
         )
-        update["_struct_asym.entity_id"] = [e for e, _ in entity_id_chain_id_pairs]
-        update["_struct_asym.id"] = [c for _, c in entity_id_chain_id_pairs]
+        update["_struct_asym.entity_id"] = [
+            e for e, _ in entity_id_chain_id_pairs]
+        update["_struct_asym.id"] = [
+            c for _, c in entity_id_chain_id_pairs]
 
     if "_entity.id" not in cif:
         # Infer the _entity_poly and _entity tables using the _atom_site table.
-        residues = _get_string_array_default(cif, "_atom_site.label_comp_id", [])
-        group_pdb = _get_string_array_default(cif, "_atom_site.group_PDB", [])
+        residues = _get_string_array_default(
+            cif, "_atom_site.label_comp_id", [])
+        group_pdb = _get_string_array_default(
+            cif, "_atom_site.group_PDB", [])
         if "_atom_site.label_entity_id" in cif:
             entities = atom_site_entities
         else:
             # If _atom_site.label_entity_id not set, use the asym_id -> entity_id map.
             asym_to_entity = dict(
-                zip(cif["_struct_asym.id"], cif["_struct_asym.entity_id"], strict=True)
+                zip(cif["_struct_asym.id"],
+                    cif["_struct_asym.entity_id"], strict=True)
             )
             entities = string_array.remap(
-                cif.get_array("_atom_site.label_asym_id", dtype=object),
+                cif.get_array(
+                    "_atom_site.label_asym_id", dtype=object),
                 mapping=asym_to_entity,
             )
 
@@ -1041,7 +1148,8 @@ def _generate_required_tables_if_missing(
         for entity_id, group in itertools.groupby(
             zip(entities, residues, group_pdb, strict=True), key=lambda e: e[0]
         ):
-            _, entity_residues, entity_group_pdb = zip(*group, strict=True)
+            _, entity_residues, entity_group_pdb = zip(
+                *group, strict=True)
             entity_type = _guess_entity_type(
                 chain_residues=entity_residues, atom_types=entity_group_pdb
             )
@@ -1049,7 +1157,8 @@ def _generate_required_tables_if_missing(
             entity_types.append(entity_type)
 
             if entity_poly_table_missing and entity_type == mmcif_names.POLYMER_CHAIN:
-                polymer_type = mmcif_names.guess_polymer_type(entity_residues)
+                polymer_type = mmcif_names.guess_polymer_type(
+                    entity_residues)
                 entity_poly_entity_ids.append(entity_id)
                 entity_poly_types.append(polymer_type)
 
@@ -1060,7 +1169,8 @@ def _generate_required_tables_if_missing(
             update["_entity_poly.type"] = entity_poly_types
 
     if "_atom_site.type_symbol" not in cif:
-        update["_atom_site.type_symbol"] = mmcif.get_or_infer_type_symbol(cif)
+        update["_atom_site.type_symbol"] = mmcif.get_or_infer_type_symbol(
+            cif)
 
     return update
 
@@ -1088,17 +1198,20 @@ def _maybe_add_missing_scheme_tables(
     if not all(col in cif for col in required_poly_seq_scheme_cols):
         # Create a mask for atoms where each polymer residue start.
         entity_id_by_chain_id = dict(
-            zip(cif["_struct_asym.id"], cif["_struct_asym.entity_id"], strict=True)
+            zip(cif["_struct_asym.id"],
+                cif["_struct_asym.entity_id"], strict=True)
         )
         chain_type_by_entity_id = dict(
-            zip(cif["_entity.id"], cif["_entity.type"], strict=True)
+            zip(cif["_entity.id"],
+                cif["_entity.type"], strict=True)
         )
         # Remap asym ID -> entity ID.
         chain_type = string_array.remap(
             label_asym_ids, mapping=entity_id_by_chain_id, inplace=False
         )
         # Remap entity ID -> chain type.
-        string_array.remap(chain_type, mapping=chain_type_by_entity_id, inplace=True)
+        string_array.remap(
+            chain_type, mapping=chain_type_by_entity_id, inplace=True)
         res_mask = np.zeros_like(label_seq_ids, dtype=bool)
         res_mask[res_starts] = True
         res_mask &= chain_type == mmcif_names.POLYMER_CHAIN
@@ -1110,19 +1223,23 @@ def _maybe_add_missing_scheme_tables(
         )
         if all(col in cif for col in entity_poly_seq_cols):
             # Use _entity_poly_seq if available.
-            poly_seq_num = cif.get_array("_entity_poly_seq.num", dtype=object)
-            poly_seq_mon_id = cif.get_array("_entity_poly_seq.mon_id", dtype=object)
+            poly_seq_num = cif.get_array(
+                "_entity_poly_seq.num", dtype=object)
+            poly_seq_mon_id = cif.get_array(
+                "_entity_poly_seq.mon_id", dtype=object)
             poly_seq_entity_id = cif.get_array(
                 "_entity_poly_seq.entity_id", dtype=object
             )
             label_seq_id_to_auth_seq_id = dict(
-                zip(label_seq_ids[res_mask], auth_seq_ids[res_mask], strict=True)
+                zip(label_seq_ids[res_mask],
+                    auth_seq_ids[res_mask], strict=True)
             )
             scheme_pdb_seq_num = string_array.remap(
                 poly_seq_num, mapping=label_seq_id_to_auth_seq_id, default_value="."
             )
             label_seq_id_to_ins_code = dict(
-                zip(label_seq_ids[res_mask], pdb_ins_codes[res_mask], strict=True)
+                zip(label_seq_ids[res_mask],
+                    pdb_ins_codes[res_mask], strict=True)
             )
             scheme_pdb_ins_code = string_array.remap(
                 poly_seq_num, mapping=label_seq_id_to_ins_code, default_value="."
@@ -1133,17 +1250,20 @@ def _maybe_add_missing_scheme_tables(
             # we therefore need to replicate each entity for all of the chains.
             scheme_asym_id = []
             select = []
-            indices = np.arange(len(poly_seq_entity_id), dtype=np.int32)
+            indices = np.arange(
+                len(poly_seq_entity_id), dtype=np.int32)
             for asym_id, entity_id in zip(
                 cif["_struct_asym.id"], cif["_struct_asym.entity_id"], strict=True
             ):
                 entity_mask = poly_seq_entity_id == entity_id
                 select.extend(indices[entity_mask])
-                scheme_asym_id.extend([asym_id] * sum(entity_mask))
+                scheme_asym_id.extend(
+                    [asym_id] * sum(entity_mask))
 
             scheme_pdb_strand_id = string_array.remap(
                 np.array(scheme_asym_id, dtype=object),
-                mapping=mmcif.get_internal_to_author_chain_id_map(cif),
+                mapping=mmcif.get_internal_to_author_chain_id_map(
+                    cif),
                 inplace=False,
             )
 
@@ -1158,7 +1278,8 @@ def _maybe_add_missing_scheme_tables(
             res_asym_ids = label_asym_ids[res_mask]
             res_strand_ids = string_array.remap(
                 array=res_asym_ids,
-                mapping=mmcif.get_internal_to_author_chain_id_map(cif),
+                mapping=mmcif.get_internal_to_author_chain_id_map(
+                    cif),
                 inplace=False,
             )
             update["_pdbx_poly_seq_scheme.asym_id"] = res_asym_ids
@@ -1190,23 +1311,27 @@ def _maybe_add_missing_scheme_tables(
         # correctly multi-residue ligands in _pdbx_nonpoly_scheme and the tables
         # constructed here live only while parsing, hence this is unnecessary.
         entity_id_by_chain_id = dict(
-            zip(cif["_struct_asym.id"], cif["_struct_asym.entity_id"], strict=True)
+            zip(cif["_struct_asym.id"],
+                cif["_struct_asym.entity_id"], strict=True)
         )
         chain_type_by_entity_id = dict(
-            zip(cif["_entity.id"], cif["_entity.type"], strict=True)
+            zip(cif["_entity.id"],
+                cif["_entity.type"], strict=True)
         )
         # Remap asym ID -> entity ID.
         chain_type = string_array.remap(
             label_asym_ids, mapping=entity_id_by_chain_id, inplace=False
         )
         # Remap entity ID -> chain type.
-        string_array.remap(chain_type, mapping=chain_type_by_entity_id, inplace=True)
+        string_array.remap(
+            chain_type, mapping=chain_type_by_entity_id, inplace=True)
         res_mask = np.zeros_like(label_seq_ids, dtype=bool)
         res_mask[res_starts] = True
         res_mask &= chain_type != mmcif_names.POLYMER_CHAIN
 
         if not np.any(res_mask):
-            return update  # Shortcut: no non-polymer residues.
+            # Shortcut: no non-polymer residues.
+            return update
 
         ins_codes = string_array.remap(
             pdb_ins_codes[res_mask], mapping={"?": "."}, inplace=False
@@ -1228,15 +1353,18 @@ def _get_chain_key_by_chain_id(
     # table are present in the _struct_asym table.
     unique_resolved_chain_ids = set(resolved_chain_ids)
     if not unique_resolved_chain_ids.issubset(set(struct_asym_chain_ids)):
-        unique_resolved_chain_ids = sorted(unique_resolved_chain_ids)
-        unique_struct_asym_chain_ids = sorted(set(struct_asym_chain_ids))
+        unique_resolved_chain_ids = sorted(
+            unique_resolved_chain_ids)
+        unique_struct_asym_chain_ids = sorted(
+            set(struct_asym_chain_ids))
         raise ValueError(
             "Bad mmCIF: chain IDs in _atom_site.label_asym_id "
             f"{unique_resolved_chain_ids} is not a subset of chain IDs in "
             f"_struct_asym.id {unique_struct_asym_chain_ids}."
         )
 
-    resolved_mask = string_array.isin(struct_asym_chain_ids, unique_resolved_chain_ids)
+    resolved_mask = string_array.isin(
+        struct_asym_chain_ids, unique_resolved_chain_ids)
     # For all resolved chains, use the _atom_site order they appear in. E.g.
     # resolved_chain_ids     = [B A   E D F]
     # struct_asym_chain_ids  = [A B C D E F]
@@ -1300,23 +1428,36 @@ def get_tables(
             return cif.get_array(col, dtype=np.float32, gather=atom_site_first_model)
 
     # These columns are the same for all models, fetch them just for the 1st one.
-    label_comp_ids = _first_model_string_array("_atom_site.label_comp_id")
-    label_asym_ids = _first_model_string_array("_atom_site.label_asym_id")
-    label_seq_ids = _first_model_string_array("_atom_site.label_seq_id")
-    label_atom_ids = _first_model_string_array("_atom_site.label_atom_id")
+    label_comp_ids = _first_model_string_array(
+        "_atom_site.label_comp_id")
+    label_asym_ids = _first_model_string_array(
+        "_atom_site.label_asym_id")
+    label_seq_ids = _first_model_string_array(
+        "_atom_site.label_seq_id")
+    label_atom_ids = _first_model_string_array(
+        "_atom_site.label_atom_id")
     if "_atom_site.auth_seq_id" in cif:
-        auth_seq_ids = _first_model_string_array("_atom_site.auth_seq_id")
+        auth_seq_ids = _first_model_string_array(
+            "_atom_site.auth_seq_id")
     else:
-        auth_seq_ids = label_seq_ids  # auth_seq_id unset, fallback to label_seq_id.
-    type_symbols = _first_model_string_array("_atom_site.type_symbol")
-    pdbx_pdb_ins_codes = _first_model_string_array("_atom_site.pdbx_PDB_ins_code")
+        # auth_seq_id unset, fallback to label_seq_id.
+        auth_seq_ids = label_seq_ids
+    type_symbols = _first_model_string_array(
+        "_atom_site.type_symbol")
+    pdbx_pdb_ins_codes = _first_model_string_array(
+        "_atom_site.pdbx_PDB_ins_code")
 
     # These columns are different for all models, fetch them as requested.
-    atom_x = _requested_models_float_array("_atom_site.Cartn_x")
-    atom_y = _requested_models_float_array("_atom_site.Cartn_y")
-    atom_z = _requested_models_float_array("_atom_site.Cartn_z")
-    atom_b_factor = _requested_models_float_array("_atom_site.B_iso_or_equiv")
-    atom_occupancy = _requested_models_float_array("_atom_site.occupancy")
+    atom_x = _requested_models_float_array(
+        "_atom_site.Cartn_x")
+    atom_y = _requested_models_float_array(
+        "_atom_site.Cartn_y")
+    atom_z = _requested_models_float_array(
+        "_atom_site.Cartn_z")
+    atom_b_factor = _requested_models_float_array(
+        "_atom_site.B_iso_or_equiv")
+    atom_occupancy = _requested_models_float_array(
+        "_atom_site.occupancy")
 
     # Make sure the scheme (residue) tables exist in case they are not present.
     if cif_update := _maybe_add_missing_scheme_tables(
@@ -1343,24 +1484,31 @@ def get_tables(
 
     # Get keys for chains in the order they appear in _atom_site while also
     # dealing with empty chains.
-    resolved_chain_ids = label_asym_ids[layout.chain_starts()]
-    struct_asym_chain_ids = cif.get_array("_struct_asym.id", dtype=object)
+    resolved_chain_ids = label_asym_ids[layout.chain_starts(
+    )]
+    struct_asym_chain_ids = cif.get_array(
+        "_struct_asym.id", dtype=object)
 
     chain_key_by_chain_id = _get_chain_key_by_chain_id(
         resolved_chain_ids=resolved_chain_ids,
         struct_asym_chain_ids=struct_asym_chain_ids,
     )
     entity_id_by_chain_id = dict(
-        zip(struct_asym_chain_ids, cif["_struct_asym.entity_id"], strict=True)
+        zip(struct_asym_chain_ids,
+            cif["_struct_asym.entity_id"], strict=True)
     )
     entity_description = cif.get(
-        "_entity.pdbx_description", ["?"] * len(cif["_entity.id"])
+        "_entity.pdbx_description", [
+            "?"] * len(cif["_entity.id"])
     )
     entity_desc_by_entity_id = dict(
-        zip(cif["_entity.id"], entity_description, strict=True)
+        zip(cif["_entity.id"],
+            entity_description, strict=True)
     )
-    chain_type_by_entity_id = mmcif.get_chain_type_by_entity_id(cif)
-    auth_asym_id_by_chain_id = mmcif.get_internal_to_author_chain_id_map(cif)
+    chain_type_by_entity_id = mmcif.get_chain_type_by_entity_id(
+        cif)
+    auth_asym_id_by_chain_id = mmcif.get_internal_to_author_chain_id_map(
+        cif)
 
     chain_res_builder = _ChainResBuilder(
         chain_key_by_chain_id=chain_key_by_chain_id,
@@ -1377,11 +1525,14 @@ def get_tables(
         return cif.get_array(key=f"_pdbx_poly_seq_scheme.{col}", dtype=object)
 
     poly_seq_asym_ids = _get_poly_seq_scheme_col("asym_id")
-    poly_seq_pdb_seq_nums = _get_poly_seq_scheme_col("pdb_seq_num")
+    poly_seq_pdb_seq_nums = _get_poly_seq_scheme_col(
+        "pdb_seq_num")
     poly_seq_seq_ids = _get_poly_seq_scheme_col("seq_id")
     poly_seq_mon_ids = _get_poly_seq_scheme_col("mon_id")
-    poly_seq_pdb_strand_ids = _get_poly_seq_scheme_col("pdb_strand_id")
-    poly_seq_pdb_ins_codes = _get_poly_seq_scheme_col("pdb_ins_code")
+    poly_seq_pdb_strand_ids = _get_poly_seq_scheme_col(
+        "pdb_strand_id")
+    poly_seq_pdb_ins_codes = _get_poly_seq_scheme_col(
+        "pdb_ins_code")
     string_array.remap(
         poly_seq_pdb_ins_codes, mapping=_INSERTION_CODE_REMAP, inplace=True
     )
@@ -1392,9 +1543,12 @@ def get_tables(
     # for the residues that were selected in the atoms table.
     poly_seq_mask = mmcif_utils.selected_polymer_residue_mask(
         layout=layout,
-        atom_site_label_asym_ids=label_asym_ids[layout.residue_starts()],
-        atom_site_label_seq_ids=label_seq_ids[layout.residue_starts()],
-        atom_site_label_comp_ids=label_comp_ids[layout.residue_starts()],
+        atom_site_label_asym_ids=label_asym_ids[layout.residue_starts(
+        )],
+        atom_site_label_seq_ids=label_seq_ids[layout.residue_starts(
+        )],
+        atom_site_label_comp_ids=label_comp_ids[layout.residue_starts(
+        )],
         poly_seq_asym_ids=poly_seq_asym_ids,
         poly_seq_seq_ids=poly_seq_seq_ids,
         poly_seq_mon_ids=poly_seq_mon_ids,
@@ -1405,7 +1559,8 @@ def get_tables(
         # Instead, we don't want them included in the chains/residues tables at all.
         keep_mask = string_array.remap(
             poly_seq_asym_ids,
-            mapping={cid: True for cid in resolved_chain_ids},
+            mapping={
+                cid: True for cid in resolved_chain_ids},
             default_value=False,
             inplace=False,
         ).astype(bool)
@@ -1414,7 +1569,8 @@ def get_tables(
     chain_res_builder.add_residues(
         chain_ids=poly_seq_asym_ids[poly_seq_mask],
         chain_auth_asym_ids=poly_seq_pdb_strand_ids[poly_seq_mask],
-        res_ids=poly_seq_seq_ids[poly_seq_mask].astype(np.int32),
+        res_ids=poly_seq_seq_ids[poly_seq_mask].astype(
+            np.int32),
         res_names=poly_seq_mon_ids[poly_seq_mask],
         res_auth_seq_ids=poly_seq_pdb_seq_nums[poly_seq_mask],
         res_ins_codes=poly_seq_pdb_ins_codes[poly_seq_mask],
@@ -1430,8 +1586,10 @@ def get_tables(
             return np.array([], dtype=object)
 
     nonpoly_asym_ids = _get_nonpoly_scheme_col("asym_id")
-    nonpoly_auth_seq_ids = _get_nonpoly_scheme_col("pdb_seq_num")
-    nonpoly_pdb_ins_codes = _get_nonpoly_scheme_col("pdb_ins_code")
+    nonpoly_auth_seq_ids = _get_nonpoly_scheme_col(
+        "pdb_seq_num")
+    nonpoly_pdb_ins_codes = _get_nonpoly_scheme_col(
+        "pdb_ins_code")
     nonpoly_mon_ids = _get_nonpoly_scheme_col("mon_id")
     nonpoly_auth_asym_id = string_array.remap(
         nonpoly_asym_ids, mapping=auth_asym_id_by_chain_id, inplace=False
@@ -1445,24 +1603,32 @@ def get_tables(
             return np.array([], dtype=object)
 
     branch_asym_ids = _get_branch_scheme_col("asym_id")
-    branch_auth_seq_ids = _get_branch_scheme_col("pdb_seq_num")
-    branch_pdb_ins_codes = _get_branch_scheme_col("pdb_ins_code")
+    branch_auth_seq_ids = _get_branch_scheme_col(
+        "pdb_seq_num")
+    branch_pdb_ins_codes = _get_branch_scheme_col(
+        "pdb_ins_code")
     branch_mon_ids = _get_branch_scheme_col("mon_id")
     branch_auth_asym_id = string_array.remap(
         branch_asym_ids, mapping=auth_asym_id_by_chain_id, inplace=False
     )
 
     if branch_asym_ids.size > 0 and branch_pdb_ins_codes.size == 0:
-        branch_pdb_ins_codes = np.array(["."] * branch_asym_ids.size, dtype=object)
+        branch_pdb_ins_codes = np.array(
+            ["."] * branch_asym_ids.size, dtype=object)
 
     # Compute the heterogeneous residue masks as above, this time for ligands.
     nonpoly_mask, branch_mask = mmcif_utils.selected_ligand_residue_mask(
         layout=layout,
-        atom_site_label_asym_ids=label_asym_ids[layout.residue_starts()],
-        atom_site_label_seq_ids=label_seq_ids[layout.residue_starts()],
-        atom_site_auth_seq_ids=auth_seq_ids[layout.residue_starts()],
-        atom_site_label_comp_ids=label_comp_ids[layout.residue_starts()],
-        atom_site_pdbx_pdb_ins_codes=pdbx_pdb_ins_codes[layout.residue_starts()],
+        atom_site_label_asym_ids=label_asym_ids[layout.residue_starts(
+        )],
+        atom_site_label_seq_ids=label_seq_ids[layout.residue_starts(
+        )],
+        atom_site_auth_seq_ids=auth_seq_ids[layout.residue_starts(
+        )],
+        atom_site_label_comp_ids=label_comp_ids[layout.residue_starts(
+        )],
+        atom_site_pdbx_pdb_ins_codes=pdbx_pdb_ins_codes[layout.residue_starts(
+        )],
         nonpoly_asym_ids=nonpoly_asym_ids,
         nonpoly_auth_seq_ids=nonpoly_auth_seq_ids,
         nonpoly_pdb_ins_codes=nonpoly_pdb_ins_codes,
@@ -1475,12 +1641,15 @@ def get_tables(
 
     if not include_water:
         if nonpoly_mask:
-            nonpoly_mask &= (nonpoly_mon_ids != "HOH") & (nonpoly_mon_ids != "DOD")
+            nonpoly_mask &= (nonpoly_mon_ids != "HOH") & (
+                nonpoly_mon_ids != "DOD")
         if branch_mask:
             # Fix for bad mmCIFs that have water in the branch scheme table.
-            branch_mask &= (branch_mon_ids != "HOH") & (branch_mon_ids != "DOD")
+            branch_mask &= (branch_mon_ids != "HOH") & (
+                branch_mon_ids != "DOD")
 
-    string_array.remap(pdbx_pdb_ins_codes, mapping=_INSERTION_CODE_REMAP, inplace=True)
+    string_array.remap(
+        pdbx_pdb_ins_codes, mapping=_INSERTION_CODE_REMAP, inplace=True)
     string_array.remap(
         nonpoly_pdb_ins_codes, mapping=_INSERTION_CODE_REMAP, inplace=True
     )
@@ -1497,8 +1666,10 @@ def get_tables(
             indices * (chain_ids != np.roll(chain_ids, 1))
         )
 
-    branch_residue_ids = _ligand_residue_ids(branch_asym_ids[branch_mask])
-    nonpoly_residue_ids = _ligand_residue_ids(nonpoly_asym_ids[nonpoly_mask])
+    branch_residue_ids = _ligand_residue_ids(
+        branch_asym_ids[branch_mask])
+    nonpoly_residue_ids = _ligand_residue_ids(
+        nonpoly_asym_ids[nonpoly_mask])
 
     chain_res_builder.add_residues(
         chain_ids=branch_asym_ids[branch_mask],
@@ -1523,7 +1694,8 @@ def get_tables(
 
     # Construct foreign residue keys for the atoms table.
     res_ends = np.array(layout.residues(), dtype=np.int32)
-    res_starts = np.array(layout.residue_starts(), dtype=np.int32)
+    res_starts = np.array(
+        layout.residue_starts(), dtype=np.int32)
     res_lengths = res_ends - res_starts
 
     # Check just for HOH, DOD can be part e.g. of hydroxycysteine.
@@ -1533,11 +1705,13 @@ def get_tables(
         )
         water_mask = res_chain_types != mmcif_names.WATER
         if "HOH" in set(residues.name[water_mask]):
-            raise ValueError("Bad mmCIF file: non-water entity has water molecules.")
+            raise ValueError(
+                "Bad mmCIF file: non-water entity has water molecules.")
     else:
         # Include resolved and unresolved residues.
         if "HOH" in set(residues.name) | set(label_comp_ids[res_starts]):
-            raise ValueError("Bad mmCIF file: non-water entity has water molecules.")
+            raise ValueError(
+                "Bad mmCIF file: non-water entity has water molecules.")
 
     atom_chain_key = string_array.remap(
         label_asym_ids, mapping=chain_res_builder.chain_key_by_chain_id
@@ -1564,11 +1738,14 @@ def get_tables(
         ) from e
 
     # The residue ID will be shared for all atoms within that residue.
-    atom_res_key = np.repeat(atom_res_key_per_res, repeats=res_lengths)
+    atom_res_key = np.repeat(
+        atom_res_key_per_res, repeats=res_lengths)
 
     if fix_mse_residues:
-        met_residues_mask = (residues.name == "MET")[atom_res_key]
-        unfixed_mse_selenium_mask = met_residues_mask & (label_atom_ids == "SE")
+        met_residues_mask = (residues.name == "MET")[
+            atom_res_key]
+        unfixed_mse_selenium_mask = met_residues_mask & (
+            label_atom_ids == "SE")
         label_atom_ids[unfixed_mse_selenium_mask] = "SD"
         type_symbols[unfixed_mse_selenium_mask] = "S"
 
@@ -1595,7 +1772,8 @@ def from_atom_arrays(
     release_date: datetime.date | None = None,
     resolution: float | None = None,
     structure_method: str | None = None,
-    all_residues: Mapping[str, Sequence[tuple[str, int]]] | None = None,
+    all_residues: Mapping[str,
+                          Sequence[tuple[str, int]]] | None = None,
     bioassembly_data: bioassemblies.BioassemblyData | None = None,
     chemical_components_data: struc_chem_comps.ChemicalComponentsData | None = None,
     bond_table: structure_tables.Bonds | None = None,

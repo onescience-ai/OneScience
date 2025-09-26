@@ -1,4 +1,4 @@
-#### Patially copy from codes in MASKGIT paper
+# Patially copy from codes in MASKGIT paper
 
 from typing import Any, Union
 
@@ -41,21 +41,28 @@ def squared_euclidean_distance_fn(
 
 def entropy_loss_fn(affinity, mask, loss_type="softmax", temperature=1.0):
     """Calculates the entropy loss."""
-    affinity = affinity * mask[..., None] + (1.0 - mask[..., None]) * -1e5
+    affinity = affinity * \
+        mask[..., None] + (1.0 - mask[..., None]) * -1e5
     affinity /= temperature
-    probs = jax.nn.softmax(affinity, axis=-1)  # (Nres, Ncode)
+    probs = jax.nn.softmax(
+        affinity, axis=-1)  # (Nres, Ncode)
     log_probs = jax.nn.log_softmax(affinity + 1e-5, axis=-1)
     if loss_type == "softmax":
         target_probs = probs
     elif loss_type == "argmax":
         codes = jnp.argmax(affinity, axis=-1)
-        onehots = jax.nn.one_hot(codes, affinity.shape[-1], dtype=affinity.dtype)
-        onehots = probs - jax.lax.stop_gradient(probs - onehots)
+        onehots = jax.nn.one_hot(
+            codes, affinity.shape[-1], dtype=affinity.dtype)
+        onehots = probs - \
+            jax.lax.stop_gradient(probs - onehots)
         target_probs = onehots
     else:
-        raise ValueError("Entropy loss {} not supported".format(loss_type))
-    avg_probs = jnp.sum(target_probs * mask[..., None], axis=0) / jnp.sum(mask)
-    avg_entropy = -jnp.sum(avg_probs * jnp.log(avg_probs + 1e-5))
+        raise ValueError(
+            "Entropy loss {} not supported".format(loss_type))
+    avg_probs = jnp.sum(
+        target_probs * mask[..., None], axis=0) / jnp.sum(mask)
+    avg_entropy = - \
+        jnp.sum(avg_probs * jnp.log(avg_probs + 1e-5))
     sample_entropy = -jnp.sum(
         jnp.sum(target_probs * log_probs, axis=-1) * mask
     ) / jnp.sum(mask)
@@ -71,9 +78,9 @@ class VQTokenizer(nn.Module):
 
     @nn.compact
     def __call__(self, x, mask):
-        #### shape: x (Nres, d), mask: (Nres)
+        # shape: x (Nres, d), mask: (Nres)
 
-        #### initialize
+        # initialize
         train = self.config.train
         codebook_size = self.config.num_code
         codebook = self.param(
@@ -88,18 +95,23 @@ class VQTokenizer(nn.Module):
         stochastic_sampling = self.config.stochastic_sampling
         sampling_temperature = self.config.sampling_temperature
 
-        #### quantize
+        # quantize
         a2, b2 = None, None
         if l2_norm:
             _dtype = x.dtype
             x = x.astype(jnp.float32)
             x = (
-                x + jnp.expand_dims(1.0 - mask, axis=-1).astype(jnp.float32) * 1e-6
-            )  ##### prevent nan bug
-            x = x / jnp.maximum(jnp.linalg.norm(x, axis=-1, keepdims=True), 1e-6)
+                x +
+                jnp.expand_dims(
+                    1.0 - mask, axis=-1).astype(jnp.float32) * 1e-6
+            )  # prevent nan bug
+            x = x / \
+                jnp.maximum(jnp.linalg.norm(
+                    x, axis=-1, keepdims=True), 1e-6)
             x = x.astype(_dtype)
             a2, b2 = 1.0, 1.0
-        distances = squared_euclidean_distance_fn(x, codebook, a2=a2, b2=b2)
+        distances = squared_euclidean_distance_fn(
+            x, codebook, a2=a2, b2=b2)
 
         logits = -distances
         if stochastic_sampling:
@@ -108,10 +120,11 @@ class VQTokenizer(nn.Module):
             )
             logits = logits / sampling_temperature + noise
         encoding_indices = jnp.argmax(logits, axis=-1)
-        encodings = jax.nn.one_hot(encoding_indices, codebook_size, dtype=self.dtype)
+        encodings = jax.nn.one_hot(
+            encoding_indices, codebook_size, dtype=self.dtype)
         quantized = self.quantize(encodings)
 
-        #### loss
+        # loss
         result_dict = dict()
         if train:
             e_latent_loss = jnp.sum(
@@ -134,9 +147,12 @@ class VQTokenizer(nn.Module):
                     loss_type=self.config.entropy_loss_type,
                     temperature=self.config.entropy_temperature,
                 )
-            e_latent_loss = jnp.asarray(e_latent_loss, jnp.float32)
-            q_latent_loss = jnp.asarray(q_latent_loss, jnp.float32)
-            entropy_loss = jnp.asarray(entropy_loss, jnp.float32)
+            e_latent_loss = jnp.asarray(
+                e_latent_loss, jnp.float32)
+            q_latent_loss = jnp.asarray(
+                q_latent_loss, jnp.float32)
+            entropy_loss = jnp.asarray(
+                entropy_loss, jnp.float32)
             result_dict = dict(
                 # quantizer_loss=loss,
                 e_latent_loss=e_latent_loss,
@@ -160,7 +176,8 @@ class VQTokenizer(nn.Module):
         return quantized, result_dict
 
     def quantize(self, z: jnp.ndarray) -> jnp.ndarray:
-        codebook = jnp.asarray(self.variables["params"]["codebook"], dtype=self.dtype)
+        codebook = jnp.asarray(
+            self.variables["params"]["codebook"], dtype=self.dtype)
         return jnp.dot(z, codebook)
 
     def get_codebook(self) -> jnp.ndarray:
@@ -172,7 +189,7 @@ class VQTokenizer(nn.Module):
 
 
 #################################################
-## The GumbelVQTokenizer code is not modified yet
+# The GumbelVQTokenizer code is not modified yet
 #################################################
 class GumbelVQTokenizer(nn.Module):
     """Gumbel VQ."""
@@ -194,18 +211,23 @@ class GumbelVQTokenizer(nn.Module):
         codebook = jnp.asarray(codebook, dtype=self.dtype)
         l2_norm = self.config.l2_norm
 
-        #### quantize
+        # quantize
         a2, b2 = None, None
         if l2_norm:
             _dtype = x.dtype
             x = x.astype(jnp.float32)
             x = (
-                x + jnp.expand_dims(1.0 - mask, axis=-1).astype(jnp.float32) * 1e-6
-            )  ##### prevent nan bug
-            x = x / jnp.maximum(jnp.linalg.norm(x, axis=-1, keepdims=True), 1e-6)
+                x +
+                jnp.expand_dims(
+                    1.0 - mask, axis=-1).astype(jnp.float32) * 1e-6
+            )  # prevent nan bug
+            x = x / \
+                jnp.maximum(jnp.linalg.norm(
+                    x, axis=-1, keepdims=True), 1e-6)
             x = x.astype(_dtype)
             a2, b2 = 1.0, 1.0
-        distances = squared_euclidean_distance_fn(x, codebook, a2=a2, b2=b2)
+        distances = squared_euclidean_distance_fn(
+            x, codebook, a2=a2, b2=b2)
 
         result_dict = dict()
         encoding_indices = jnp.argmin(distances, axis=-1)
@@ -213,7 +235,8 @@ class GumbelVQTokenizer(nn.Module):
             noise = jax.random.gumbel(
                 self.make_rng("gumbel_noise"), distances.shape, dtype=self.dtype
             )
-            encodings = jax.nn.softmax((-distances + noise) / tau, axis=-1)
+            encodings = jax.nn.softmax(
+                (-distances + noise) / tau, axis=-1)
             quantized = self.quantize(encodings)
         else:
             encodings = jax.nn.one_hot(
@@ -230,7 +253,8 @@ class GumbelVQTokenizer(nn.Module):
         return quantized, result_dict
 
     def quantize(self, z: jnp.ndarray) -> jnp.ndarray:
-        codebook = jnp.asarray(self.variables["params"]["codebook"], dtype=self.dtype)
+        codebook = jnp.asarray(
+            self.variables["params"]["codebook"], dtype=self.dtype)
         return jnp.dot(z, codebook)
 
     def decode_ids(self, ids: jnp.ndarray) -> jnp.ndarray:

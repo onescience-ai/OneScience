@@ -33,7 +33,8 @@ class NodeSet(NamedTuple):
     """Represents a set of nodes."""
 
     n_node: ArrayLike  # [num_flat_graphs]
-    features: ArrayLikeTree  # Prev. `nodes`: [num_flat_nodes] + feature_shape
+    # Prev. `nodes`: [num_flat_nodes] + feature_shape
+    features: ArrayLikeTree
 
 
 class EdgesIndices(NamedTuple):
@@ -48,14 +49,16 @@ class EdgeSet(NamedTuple):
 
     n_edge: ArrayLike  # [num_flat_graphs]
     indices: EdgesIndices
-    features: ArrayLikeTree  # Prev. `edges`: [num_flat_edges] + feature_shape
+    # Prev. `edges`: [num_flat_edges] + feature_shape
+    features: ArrayLikeTree
 
 
 class Context(NamedTuple):
     # `n_graph` always contains ones but it is useful to query the leading shape
     # in case of graphs without any nodes or edges sets.
     n_graph: ArrayLike  # [num_flat_graphs]
-    features: ArrayLikeTree  # Prev. `globals`: [num_flat_graphs] + feature_shape
+    # Prev. `globals`: [num_flat_graphs] + feature_shape
+    features: ArrayLikeTree
 
 
 class EdgeSetKey(NamedTuple):
@@ -77,11 +80,13 @@ class TypedGraph(NamedTuple):
     edges: Mapping[EdgeSetKey, EdgeSet]
 
     def edge_key_by_name(self, name: str) -> EdgeSetKey:
-        found_key = [k for k in self.edges.keys() if k.name == name]
+        found_key = [
+            k for k in self.edges.keys() if k.name == name]
         if len(found_key) != 1:
             raise KeyError(
                 "invalid edge key '{}'. Available edges: [{}]".format(
-                    name, ", ".join(x.name for x in self.edges.keys())
+                    name, ", ".join(
+                        x.name for x in self.edges.keys())
                 )
             )
         return found_key[0]

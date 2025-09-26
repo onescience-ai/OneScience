@@ -29,7 +29,8 @@ class Hmmalign:
         """
         self.binary_path = binary_path
 
-        subprocess_utils.check_binary_exists(path=self.binary_path, name="hmmalign")
+        subprocess_utils.check_binary_exists(
+            path=self.binary_path, name="hmmalign")
 
     def align_sequences(
         self,
@@ -65,9 +66,12 @@ class Hmmalign:
           RuntimeError: If hmmalign fails.
         """
         with tempfile.TemporaryDirectory() as query_tmp_dir:
-            input_profile = os.path.join(query_tmp_dir, "profile.hmm")
-            input_sequences = os.path.join(query_tmp_dir, "sequences.a3m")
-            output_a3m_path = os.path.join(query_tmp_dir, "output.a3m")
+            input_profile = os.path.join(
+                query_tmp_dir, "profile.hmm")
+            input_sequences = os.path.join(
+                query_tmp_dir, "sequences.a3m")
+            output_a3m_path = os.path.join(
+                query_tmp_dir, "output.a3m")
 
             with open(input_profile, "w") as f:
                 f.write(profile)
@@ -78,7 +82,8 @@ class Hmmalign:
             cmd = [
                 self.binary_path,
                 *("-o", output_a3m_path),
-                *("--outformat", "A2M"),  # A2M is A3M in the HMMER suite.
+                # A2M is A3M in the HMMER suite.
+                *("--outformat", "A2M"),
             ]
             if extra_flags:
                 for flag_name, flag_value in extra_flags.items():
@@ -124,9 +129,12 @@ class Hmmalign:
         sequences_no_gaps_a3m = []
         for seq, desc in parsers.lazy_parse_fasta_string(sequences_a3m):
             sequences_no_gaps_a3m.append(f">{desc}")
-            sequences_no_gaps_a3m.append(seq.translate(deletion_table))
-        sequences_no_gaps_a3m = "\n".join(sequences_no_gaps_a3m)
+            sequences_no_gaps_a3m.append(
+                seq.translate(deletion_table))
+        sequences_no_gaps_a3m = "\n".join(
+            sequences_no_gaps_a3m)
 
-        aligned_sequences = self.align(sequences_no_gaps_a3m, profile)
+        aligned_sequences = self.align(
+            sequences_no_gaps_a3m, profile)
 
         return aligned_sequences

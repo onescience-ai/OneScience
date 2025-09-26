@@ -11,15 +11,18 @@ class LAMMPS_MACE(torch.nn.Module):
     def __init__(self, model, **kwargs):
         super().__init__()
         self.model = model
-        self.register_buffer("atomic_numbers", model.atomic_numbers)
+        self.register_buffer(
+            "atomic_numbers", model.atomic_numbers)
         self.register_buffer("r_max", model.r_max)
-        self.register_buffer("num_interactions", model.num_interactions)
+        self.register_buffer(
+            "num_interactions", model.num_interactions)
         if not hasattr(model, "heads"):
             model.heads = [None]
         self.register_buffer(
             "head",
             torch.tensor(
-                self.model.heads.index(kwargs.get("head", self.model.heads[-1])),
+                self.model.heads.index(kwargs.get(
+                    "head", self.model.heads[-1])),
                 dtype=torch.long,
             ).unsqueeze(0),
         )
@@ -56,8 +59,10 @@ class LAMMPS_MACE(torch.nn.Module):
             }
         positions = data["positions"]
         displacement = out["displacement"]
-        forces: Optional[torch.Tensor] = torch.zeros_like(positions)
-        virials: Optional[torch.Tensor] = torch.zeros_like(data["cell"])
+        forces: Optional[torch.Tensor] = torch.zeros_like(
+            positions)
+        virials: Optional[torch.Tensor] = torch.zeros_like(
+            data["cell"])
         # accumulate energies of local atoms
         node_energy_local = node_energy * local_or_ghost
         total_energy_local = scatter_sum(

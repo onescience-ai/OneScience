@@ -35,7 +35,8 @@ def get_property_from_atoms(
     """
     try:
         # get_properties returns a Properties dict-like object, so we index again for the property requested
-        prop = atoms.get_properties([property_name])[property_name]
+        prop = atoms.get_properties([property_name])[
+            property_name]
     except (PropertyNotPresent, ValueError, RuntimeError):
         try:
             prop = atoms.info[property_name]
@@ -63,7 +64,8 @@ def normalize_property(
     if normalize_by == "natoms":
         return property_value / len(atoms)
     else:
-        norm_prop = get_property_from_atoms(atoms, normalize_by)
+        norm_prop = get_property_from_atoms(
+            atoms, normalize_by)
         return property_value / norm_prop
 
 
@@ -84,7 +86,8 @@ def get_property_dict_from_atoms(
     normalize_by = normalize_by or {}
     results = {}
     for property_name in properties:
-        results[property_name] = get_property_from_atoms(atoms, property_name)
+        results[property_name] = get_property_from_atoms(
+            atoms, property_name)
         if property_name in normalize_by:
             norm_by = normalize_by[property_name]
             key = (
@@ -92,5 +95,6 @@ def get_property_dict_from_atoms(
                 if norm_by == "natoms"
                 else f"{property_name}_per_{norm_by}"
             )
-            results[key] = normalize_property(results[property_name], atoms, norm_by)
+            results[key] = normalize_property(
+                results[property_name], atoms, norm_by)
     return results

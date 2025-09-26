@@ -32,21 +32,29 @@ class SE3TransformerWrapper(nn.Module):
         fiber_edge = Fiber({0: num_edge_features})
         if l1_out_features > 0:
             if l1_in_features > 0:
-                fiber_in = Fiber({0: l0_in_features, 1: l1_in_features})
-                fiber_hidden = Fiber.create(num_degrees, num_channels)
-                fiber_out = Fiber({0: l0_out_features, 1: l1_out_features})
+                fiber_in = Fiber(
+                    {0: l0_in_features, 1: l1_in_features})
+                fiber_hidden = Fiber.create(
+                    num_degrees, num_channels)
+                fiber_out = Fiber(
+                    {0: l0_out_features, 1: l1_out_features})
             else:
                 fiber_in = Fiber({0: l0_in_features})
-                fiber_hidden = Fiber.create(num_degrees, num_channels)
-                fiber_out = Fiber({0: l0_out_features, 1: l1_out_features})
+                fiber_hidden = Fiber.create(
+                    num_degrees, num_channels)
+                fiber_out = Fiber(
+                    {0: l0_out_features, 1: l1_out_features})
         else:
             if l1_in_features > 0:
-                fiber_in = Fiber({0: l0_in_features, 1: l1_in_features})
-                fiber_hidden = Fiber.create(num_degrees, num_channels)
+                fiber_in = Fiber(
+                    {0: l0_in_features, 1: l1_in_features})
+                fiber_hidden = Fiber.create(
+                    num_degrees, num_channels)
                 fiber_out = Fiber({0: l0_out_features})
             else:
                 fiber_in = Fiber({0: l0_in_features})
-                fiber_hidden = Fiber.create(num_degrees, num_channels)
+                fiber_hidden = Fiber.create(
+                    num_degrees, num_channels)
                 fiber_out = Fiber({0: l0_out_features})
 
         self.se3 = SE3Transformer(
@@ -78,17 +86,21 @@ class SE3TransformerWrapper(nn.Module):
                     if "net.6" in n:
                         nn.init.zeros_(p)
                     else:
-                        nn.init.kaiming_normal_(p, nonlinearity="relu")
+                        nn.init.kaiming_normal_(
+                            p, nonlinearity="relu")
 
         # make last layers to be zero-initialized
         # self.se3.graph_modules[-1].to_kernel_self['0'] = init_lecun_normal_param(self.se3.graph_modules[-1].to_kernel_self['0'])
         # self.se3.graph_modules[-1].to_kernel_self['1'] = init_lecun_normal_param(self.se3.graph_modules[-1].to_kernel_self['1'])
-        nn.init.zeros_(self.se3.graph_modules[-1].to_kernel_self["0"])
-        nn.init.zeros_(self.se3.graph_modules[-1].to_kernel_self["1"])
+        nn.init.zeros_(
+            self.se3.graph_modules[-1].to_kernel_self["0"])
+        nn.init.zeros_(
+            self.se3.graph_modules[-1].to_kernel_self["1"])
 
     def forward(self, G, type_0_features, type_1_features=None, edge_features=None):
         if self.l1_in > 0:
-            node_features = {"0": type_0_features, "1": type_1_features}
+            node_features = {
+                "0": type_0_features, "1": type_1_features}
         else:
             node_features = {"0": type_0_features}
         edge_features = {"0": edge_features}

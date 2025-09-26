@@ -35,7 +35,8 @@ class NaNCleaner(base.Predictor):
         """Cleans the dataset of NaNs."""
         data_array = dataset[self._var_to_clean]
         dataset = dataset.assign(
-            {self._var_to_clean: data_array.fillna(self._fill_value)}
+            {self._var_to_clean: data_array.fillna(
+                self._fill_value)}
         )
         return dataset
 
@@ -45,9 +46,12 @@ class NaNCleaner(base.Predictor):
         # NaN positions don't change between input frames, if they do then
         # we should be more careful about re-introducing them.
         if self._var_to_clean in predictions.keys():
-            nan_mask = np.isnan(stale_inputs[self._var_to_clean]).any(dim="time")
-            with_nan_values = predictions[self._var_to_clean].where(~nan_mask, np.nan)
-            predictions = predictions.assign({self._var_to_clean: with_nan_values})
+            nan_mask = np.isnan(
+                stale_inputs[self._var_to_clean]).any(dim="time")
+            with_nan_values = predictions[self._var_to_clean].where(
+                ~nan_mask, np.nan)
+            predictions = predictions.assign(
+                {self._var_to_clean: with_nan_values})
         return predictions
 
     def __call__(
@@ -64,9 +68,11 @@ class NaNCleaner(base.Predictor):
             inputs = self._clean(inputs)
         if forcings and self._var_to_clean in forcings.keys():
             forcings = self._clean(forcings)
-        predictions = self._predictor(inputs, targets_template, forcings, **kwargs)
+        predictions = self._predictor(
+            inputs, targets_template, forcings, **kwargs)
         if self._reintroduce_nans:
-            predictions = self._maybe_reintroduce_nans(original_inputs, predictions)
+            predictions = self._maybe_reintroduce_nans(
+                original_inputs, predictions)
         return predictions
 
     def loss(
@@ -105,5 +111,6 @@ class NaNCleaner(base.Predictor):
             inputs, targets, forcings, **kwargs
         )
         if self._reintroduce_nans:
-            predictions = self._maybe_reintroduce_nans(original_inputs, predictions)
+            predictions = self._maybe_reintroduce_nans(
+                original_inputs, predictions)
         return loss, predictions

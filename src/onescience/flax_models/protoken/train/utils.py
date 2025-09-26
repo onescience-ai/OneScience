@@ -39,19 +39,25 @@ def set_dropout_rate_config(d, dropout_rate):
 def periodic_decay_weight_schedule(
     step, period, decay_time_scale, min_weight, max_weight
 ):
-    step, period, decay_time_scale = float(step), float(period), float(decay_time_scale)
-    period_factor = (1.0 + np.cos(2 * np.pi * step / period)) / 2.0
+    step, period, decay_time_scale = float(
+        step), float(period), float(decay_time_scale)
+    period_factor = (
+        1.0 + np.cos(2 * np.pi * step / period)) / 2.0
     decay_factor = np.exp(-step / decay_time_scale)
 
-    weight = decay_factor * (max_weight - min_weight) * period_factor + min_weight
+    weight = decay_factor * \
+        (max_weight - min_weight) * \
+        period_factor + min_weight
 
     return weight
 
 
 def decay_weight_schedule(step, decay_time_scale, min_weight, max_weight):
-    step, decay_time_scale = float(step), float(decay_time_scale)
+    step, decay_time_scale = float(
+        step), float(decay_time_scale)
     decay_factor = np.exp(-step / decay_time_scale)
 
-    weight = decay_factor * (max_weight - min_weight) + min_weight
+    weight = decay_factor * \
+        (max_weight - min_weight) + min_weight
 
     return weight

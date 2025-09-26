@@ -66,7 +66,8 @@ class Sequence_Model(torch.nn.Module):
             norm_first=False,
             bias=True,
         )
-        decoder_norm = LayerNorm(input_dim, eps=1e-5, bias=True)
+        decoder_norm = LayerNorm(
+            input_dim, eps=1e-5, bias=True)
         self.decoder = TransformerDecoder(
             decoder_layer, num_layers_decoder, decoder_norm
         )
@@ -121,19 +122,22 @@ class Sequence_Model(torch.nn.Module):
         z = z0  # .unsqueeze(1)
 
         for i in range(step_size):
-            prediction = self.forward(z, context)[:, -1].unsqueeze(1)
+            prediction = self.forward(z, context)[
+                :, -1].unsqueeze(1)
             z = torch.concat([z, prediction], dim=1)
         return z
 
     @staticmethod
     def generate_square_subsequent_mask(
         sz: int,
-        device: torch.device = torch.device(torch._C._get_default_device()),
+        device: torch.device = torch.device(
+            torch._C._get_default_device()),
         dtype: torch.dtype = torch.get_default_dtype(),
     ) -> Tensor:
         """Generates a square mask for the sequence. The mask shows which entries should not be used."""
 
         return torch.triu(
-            torch.full((sz, sz), float("-inf"), dtype=dtype, device=device),
+            torch.full((sz, sz), float("-inf"),
+                       dtype=dtype, device=device),
             diagonal=1,
         )

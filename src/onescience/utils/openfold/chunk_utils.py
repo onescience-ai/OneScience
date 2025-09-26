@@ -57,7 +57,8 @@ def _get_minimal_slice_set(
         start_edges = [s == 0 for s in start]
         reduce_edge_list(start_edges)
     if end_edges is None:
-        end_edges = [e == (d - 1) for e, d in zip(end, dims)]
+        end_edges = [e == (d - 1)
+                     for e, d in zip(end, dims)]
         reduce_edge_list(end_edges)
 
     # Base cases. Either start/end are empty and we're done, or the final,
@@ -89,11 +90,12 @@ def _get_minimal_slice_set(
         return [
             path + (slice(sdi, sdi + 1),) + s
             for s in _get_minimal_slice_set(
-                start[divergence_idx + 1 :],
-                [d - 1 for d in dims[divergence_idx + 1 :]],
-                dims[divergence_idx + 1 :],
-                start_edges=start_edges[divergence_idx + 1 :],
-                end_edges=[1 for _ in end_edges[divergence_idx + 1 :]],
+                start[divergence_idx + 1:],
+                [d - 1 for d in dims[divergence_idx + 1:]],
+                dims[divergence_idx + 1:],
+                start_edges=start_edges[divergence_idx + 1:],
+                end_edges=[
+                    1 for _ in end_edges[divergence_idx + 1:]],
             )
         ]
 
@@ -102,38 +104,46 @@ def _get_minimal_slice_set(
         return [
             path + (slice(edi, edi + 1),) + s
             for s in _get_minimal_slice_set(
-                [0 for _ in start[divergence_idx + 1 :]],
-                end[divergence_idx + 1 :],
-                dims[divergence_idx + 1 :],
-                start_edges=[1 for _ in start_edges[divergence_idx + 1 :]],
-                end_edges=end_edges[divergence_idx + 1 :],
+                [0 for _ in start[divergence_idx + 1:]],
+                end[divergence_idx + 1:],
+                dims[divergence_idx + 1:],
+                start_edges=[
+                    1 for _ in start_edges[divergence_idx + 1:]],
+                end_edges=end_edges[divergence_idx + 1:],
             )
         ]
 
     # If both start and end are at the edges of the subtree rooted at
     # divergence_idx, we can just select the whole subtree at once
     if start_edges[divergence_idx] and end_edges[divergence_idx]:
-        slices.append(path + (slice(start[divergence_idx], end[divergence_idx] + 1),))
+        slices.append(
+            path + (slice(start[divergence_idx], end[divergence_idx] + 1),))
     # If just start is at the edge, we can grab almost all of the subtree,
     # treating only the ragged bottom edge as an edge case
     elif start_edges[divergence_idx]:
-        slices.append(path + (slice(start[divergence_idx], end[divergence_idx]),))
+        slices.append(
+            path + (slice(start[divergence_idx], end[divergence_idx]),))
         slices.extend(lower())
     # Analogous to the previous case, but the top is ragged this time
     elif end_edges[divergence_idx]:
         slices.extend(upper())
         slices.append(
-            path + (slice(start[divergence_idx] + 1, end[divergence_idx] + 1),)
+            path +
+            (slice(start[divergence_idx] +
+             1, end[divergence_idx] + 1),)
         )
     # If both sides of the range are ragged, we need to handle both sides
     # separately. If there's contiguous meat in between them, we can index it
     # in one big chunk
     else:
         slices.extend(upper())
-        middle_ground = end[divergence_idx] - start[divergence_idx]
+        middle_ground = end[divergence_idx] - \
+            start[divergence_idx]
         if middle_ground > 1:
             slices.append(
-                path + (slice(start[divergence_idx] + 1, end[divergence_idx]),)
+                path +
+                (slice(start[divergence_idx] +
+                 1, end[divergence_idx]),)
             )
         slices.extend(lower())
 
@@ -159,9 +169,11 @@ def _chunk_slice(
     """
 
     batch_dims = t.shape[:no_batch_dims]
-    start_idx = list(_flat_idx_to_idx(flat_start, batch_dims))
+    start_idx = list(_flat_idx_to_idx(
+        flat_start, batch_dims))
     # _get_minimal_slice_set is inclusive
-    end_idx = list(_flat_idx_to_idx(flat_end - 1, batch_dims))
+    end_idx = list(_flat_idx_to_idx(
+        flat_end - 1, batch_dims))
 
     # Get an ordered list of slices to perform
     slices = _get_minimal_slice_set(
@@ -215,52 +227,62 @@ def chunk_layer(
     if not (len(inputs) > 0):
         raise ValueError("Must provide at least one input")
 
-    initial_dims = [shape[:no_batch_dims] for shape in _fetch_dims(inputs)]
-    orig_batch_dims = tuple([max(s) for s in zip(*initial_dims)])
+    initial_dims = [shape[:no_batch_dims]
+                    for shape in _fetch_dims(inputs)]
+    orig_batch_dims = tuple([max(s)
+                            for s in zip(*initial_dims)])
 
     def _prep_inputs(t):
         if not low_mem:
             if not sum(t.shape[:no_batch_dims]) == no_batch_dims:
-                t = t.expand(orig_batch_dims + t.shape[no_batch_dims:])
+                t = t.expand(orig_batch_dims +
+                             t.shape[no_batch_dims:])
             t = t.reshape(-1, *t.shape[no_batch_dims:])
         else:
-            t = t.expand(orig_batch_dims + t.shape[no_batch_dims:])
+            t = t.expand(orig_batch_dims +
+                         t.shape[no_batch_dims:])
         return t
 
     prepped_inputs = tensor_tree_map(_prep_inputs, inputs)
     prepped_outputs = None
     if _out is not None:
-        reshape_fn = lambda t: t.view([-1] + list(t.shape[no_batch_dims:]))
+        def reshape_fn(t): return t.view(
+            [-1] + list(t.shape[no_batch_dims:]))
         prepped_outputs = tensor_tree_map(reshape_fn, _out)
 
     flat_batch_dim = 1
     for d in orig_batch_dims:
         flat_batch_dim *= d
 
-    no_chunks = flat_batch_dim // chunk_size + (flat_batch_dim % chunk_size != 0)
+    no_chunks = flat_batch_dim // chunk_size + \
+        (flat_batch_dim % chunk_size != 0)
 
     i = 0
     out = prepped_outputs
     for _ in range(no_chunks):
         # Chunk the input
         if not low_mem:
-            select_chunk = lambda t: t[i : i + chunk_size] if t.shape[0] != 1 else t
+            def select_chunk(
+                t): return t[i: i + chunk_size] if t.shape[0] != 1 else t
         else:
             select_chunk = partial(
                 _chunk_slice,
                 flat_start=i,
-                flat_end=min(flat_batch_dim, i + chunk_size),
+                flat_end=min(flat_batch_dim,
+                             i + chunk_size),
                 no_batch_dims=len(orig_batch_dims),
             )
 
-        chunks = tensor_tree_map(select_chunk, prepped_inputs)
+        chunks = tensor_tree_map(
+            select_chunk, prepped_inputs)
 
         # Run the layer on the chunk
         output_chunk = layer(**chunks)
 
         # Allocate space for the output
         if out is None:
-            allocate = lambda t: t.new_zeros((flat_batch_dim,) + t.shape[1:])
+            def allocate(t): return t.new_zeros(
+                (flat_batch_dim,) + t.shape[1:])
             out = tensor_tree_map(allocate, output_chunk)
 
         # Put the chunk in its pre-allocated space
@@ -273,28 +295,29 @@ def chunk_layer(
                         assign(v, d2[k])
                     else:
                         if _add_into_out:
-                            v[i : i + chunk_size] += d2[k]
+                            v[i: i + chunk_size] += d2[k]
                         else:
-                            v[i : i + chunk_size] = d2[k]
+                            v[i: i + chunk_size] = d2[k]
 
             assign(out, output_chunk)
         elif out_type is tuple:
             for x1, x2 in zip(out, output_chunk):
                 if _add_into_out:
-                    x1[i : i + chunk_size] += x2
+                    x1[i: i + chunk_size] += x2
                 else:
-                    x1[i : i + chunk_size] = x2
+                    x1[i: i + chunk_size] = x2
         elif out_type is torch.Tensor:
             if _add_into_out:
-                out[i : i + chunk_size] += output_chunk
+                out[i: i + chunk_size] += output_chunk
             else:
-                out[i : i + chunk_size] = output_chunk
+                out[i: i + chunk_size] = output_chunk
         else:
             raise ValueError("Not supported")
 
         i += chunk_size
 
-    reshape = lambda t: t.view(orig_batch_dims + t.shape[1:])
+    def reshape(t): return t.view(
+        orig_batch_dims + t.shape[1:])
     out = tensor_tree_map(reshape, out)
 
     return out
@@ -317,8 +340,10 @@ class ChunkSizeTuner:
         if min_chunk_size >= self.max_chunk_size:
             return min_chunk_size
 
-        candidates = [2**l for l in range(int(math.log(self.max_chunk_size, 2)) + 1)]
-        candidates = [c for c in candidates if c > min_chunk_size]
+        candidates = [
+            2**l for l in range(int(math.log(self.max_chunk_size, 2)) + 1)]
+        candidates = [
+            c for c in candidates if c > min_chunk_size]
         candidates = [min_chunk_size] + candidates
         candidates[-1] += 4
 
@@ -347,11 +372,15 @@ class ChunkSizeTuner:
         for a1, a2 in zip(ac1, ac2):
             assert type(ac1) == type(ac2)
             if type(ac1) is list or type(ac1) is tuple:
-                consistent &= self._compare_arg_caches(a1, a2)
+                consistent &= self._compare_arg_caches(
+                    a1, a2)
             elif type(ac1) is dict:
-                a1_items = [v for _, v in sorted(a1.items(), key=lambda x: x[0])]
-                a2_items = [v for _, v in sorted(a2.items(), key=lambda x: x[0])]
-                consistent &= self._compare_arg_caches(a1_items, a2_items)
+                a1_items = [v for _, v in sorted(
+                    a1.items(), key=lambda x: x[0])]
+                a2_items = [v for _, v in sorted(
+                    a2.items(), key=lambda x: x[0])]
+                consistent &= self._compare_arg_caches(
+                    a1_items, a2_items)
             else:
                 consistent &= a1 == a2
 
@@ -364,12 +393,16 @@ class ChunkSizeTuner:
         min_chunk_size: int,
     ) -> int:
         consistent = True
-        remove_tensors = lambda a: a.shape if type(a) is torch.Tensor else a
+
+        def remove_tensors(a): return a.shape if type(
+            a) is torch.Tensor else a
         arg_data = tree_map(remove_tensors, args, object)
         if self.cached_arg_data is not None:
             # If args have changed shape/value, we need to re-tune
-            assert len(self.cached_arg_data) == len(arg_data)
-            consistent = self._compare_arg_caches(self.cached_arg_data, arg_data)
+            assert len(self.cached_arg_data) == len(
+                arg_data)
+            consistent = self._compare_arg_caches(
+                self.cached_arg_data, arg_data)
         else:
             # Otherwise, we can reuse the precomputed value
             consistent = False

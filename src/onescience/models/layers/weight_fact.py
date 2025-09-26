@@ -53,9 +53,11 @@ class WeightFactLinear(nn.Module):
         self.mean = mean
         self.stddev = stddev
 
-        self.weight = nn.Parameter(torch.empty((out_features, in_features)))
+        self.weight = nn.Parameter(
+            torch.empty((out_features, in_features)))
         if bias:
-            self.bias = nn.Parameter(torch.empty(out_features))
+            self.bias = nn.Parameter(
+                torch.empty(out_features))
         else:
             self.register_parameter("bias", None)
         self.reset_parameters()
@@ -63,7 +65,8 @@ class WeightFactLinear(nn.Module):
     def reset_parameters(self) -> None:
         """Factorize weights and reset bias"""
         nn.init.xavier_uniform_(self.weight)
-        g, v = weight_fact(self.weight.detach(), mean=self.mean, stddev=self.stddev)
+        g, v = weight_fact(self.weight.detach(
+        ), mean=self.mean, stddev=self.stddev)
         self.g = nn.Parameter(g)
         self.v = nn.Parameter(v)
         self.weight = None  # remove the weight parameter

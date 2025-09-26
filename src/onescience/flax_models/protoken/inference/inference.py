@@ -38,7 +38,8 @@ class InferenceVQWithLossCell(nn.Module):
 
         self._dtype = jnp.bfloat16 if self.bf16_flag else jnp.float32
 
-        self.distogram_loss_func = CA_DistogramLoss(self.train_cfg.distogram)
+        self.distogram_loss_func = CA_DistogramLoss(
+            self.train_cfg.distogram)
         # self.confidence_loss_func = ConfidenceLoss(self.train_cfg.confidence).integrated_bce_loss
 
         self.num_aatypes = 20  # 0
@@ -53,12 +54,13 @@ class InferenceVQWithLossCell(nn.Module):
             features=self.vq_cfg.dim_in, kernel_init=lecun_normal(), use_bias=False
         )
 
-        ####### loss weights
+        # loss weights
         self.fape_loss_weight = self.train_cfg.fape.loss_weight
         self.fape_IPA_weight = jnp.array(
             self.train_cfg.fape.IPA_weight, dtype=jnp.float32
         )
-        self.fape_IPA_weight = self.fape_IPA_weight / jnp.sum(self.fape_IPA_weight)
+        self.fape_IPA_weight = self.fape_IPA_weight / \
+            jnp.sum(self.fape_IPA_weight)
         self.violation_loss_weight = self.train_cfg.structural_violation.loss_weight
         self.distogram_w1 = self.train_cfg.distogram.w1
         self.distogram_w2 = self.train_cfg.distogram.w2
@@ -91,7 +93,7 @@ class InferenceVQWithLossCell(nn.Module):
         perms_padding_mask,
     ):
 
-        ####### generate keys
+        # generate keys
         fape_clamp_key = self.make_rng("fape_clamp_key")
         dmat_rng_key = self.make_rng("dmat_rng_key")
 
@@ -112,7 +114,7 @@ class InferenceVQWithLossCell(nn.Module):
                 torsion_angles_mask,
             ) = jax.tree_map(lambda x: jnp.bfloat16(x), bf16_process_list)
 
-        ########### encoding
+        # encoding
         single_act, single_act_, pair_act_ = self.encoder(
             seq_mask,
             aatype,
@@ -125,49 +127,57 @@ class InferenceVQWithLossCell(nn.Module):
             torsion_angles_mask,
         )
 
-        ########### vq tokenize
+        # vq tokenize
         single_act_project_in = self.project_in(single_act)
 
         inverse_folding_logits = single_act_project_in[
-            :, self.vq_dim :
-        ]  #### get inverse folding logits
-        ##### inverse folding loss here
+            :, self.vq_dim:
+        ]  # get inverse folding logits
+        # inverse folding loss here
         inverse_folding_loss = 0.0
         if self.inverse_folding_loss_weight > 0.0:
             inverse_folding_logits = jnp.array(
                 inverse_folding_logits, dtype=jnp.float32
             )
-            true_aatype_onehot = jax.nn.one_hot(true_aatype, num_classes=20)
+            true_aatype_onehot = jax.nn.one_hot(
+                true_aatype, num_classes=20)
             inverse_folding_loss = softmax_cross_entropy(
                 inverse_folding_logits, true_aatype_onehot, seq_mask
             )
 
-        single_act_project_in = single_act_project_in[:, : self.vq_dim]
-        vq_act, quantize_results = self.vq_tokenizer(single_act_project_in, seq_mask)
+        single_act_project_in = single_act_project_in[:,
+                                                      : self.vq_dim]
+        vq_act, quantize_results = self.vq_tokenizer(
+            single_act_project_in, seq_mask)
         if not self.quantize:
             vq_act = quantize_results["raw"]
         vq_act_project_out = self.project_out(vq_act)
 
         vq_loss = 0.0
         if self.vq_e_latent_loss_weight > 0.0:
-            vq_loss += self.vq_e_latent_loss_weight * quantize_results["e_latent_loss"]
+            vq_loss += self.vq_e_latent_loss_weight * \
+                quantize_results["e_latent_loss"]
         if self.vq_q_latent_loss_weight > 0.0:
-            vq_loss += self.vq_q_latent_loss_weight * quantize_results["q_latent_loss"]
+            vq_loss += self.vq_q_latent_loss_weight * \
+                quantize_results["q_latent_loss"]
         if self.vq_entropy_loss_weight > 0.0:
-            vq_loss += self.vq_entropy_loss_weight * quantize_results["entropy_loss"]
+            vq_loss += self.vq_entropy_loss_weight * \
+                quantize_results["entropy_loss"]
 
-        ########### vq decoder
+        # vq decoder
         single_act_decode, pair_act_decode, dist_logits, dist_bin_edges = (
-            self.vq_decoder(vq_act_project_out, seq_mask, residue_index)
+            self.vq_decoder(
+                vq_act_project_out, seq_mask, residue_index)
         )
 
-        ########### distogram loss
+        # distogram loss
         dmat_loss, lddt_loss, contact_loss = 0.0, 0.0, 0.0
         if self.distogram_loss_weight > 0.0:
             dist_logits, dist_gt_perms, dist_mask_perms, perms_padding_mask = (
                 jax.tree_map(
                     jnp.float32,
-                    [dist_logits, dist_gt_perms, dist_mask_perms, perms_padding_mask],
+                    [dist_logits, dist_gt_perms,
+                        dist_mask_perms, perms_padding_mask],
                 )
             )
 
@@ -179,7 +189,7 @@ class InferenceVQWithLossCell(nn.Module):
                 dmat_rng_key,
             )
 
-        ########### protein decoder
+        # protein decoder
         (
             final_atom_positions,
             final_atom14_positions,
@@ -189,7 +199,7 @@ class InferenceVQWithLossCell(nn.Module):
             pLDDT_logits,
         ) = self.protein_decoder(single_act_decode, pair_act_decode, seq_mask, aatype)
 
-        ########### fape loss:
+        # fape loss:
         (
             final_atom_positions,
             final_atom14_positions,
@@ -219,10 +229,11 @@ class InferenceVQWithLossCell(nn.Module):
             IPA_weights=self.fape_IPA_weight,
         )
 
-        ########### structure violation loss
+        # structure violation loss
         structure_violation_loss = 0.0
         if self.violation_loss_weight > 0.0:
-            asym_id = jnp.zeros_like(seq_mask, dtype=jnp.int32)
+            asym_id = jnp.zeros_like(
+                seq_mask, dtype=jnp.int32)
             violation_result_dict = find_structural_violations_array(
                 aatype=aatype,
                 residue_index=residue_index,
@@ -249,10 +260,12 @@ class InferenceVQWithLossCell(nn.Module):
             structure_loss + self.distogram_loss_weight * distogram_loss
         )
 
-        aux_loss = self.inverse_folding_loss_weight * inverse_folding_loss + vq_loss
+        aux_loss = self.inverse_folding_loss_weight * \
+            inverse_folding_loss + vq_loss
 
-        ########### seq length power
-        seq_len_weight = jnp.power(jnp.sum(seq_mask), self.seq_len_power)
+        # seq length power
+        seq_len_weight = jnp.power(
+            jnp.sum(seq_mask), self.seq_len_power)
 
         loss = reconstruction_loss + aux_loss
 
@@ -278,14 +291,14 @@ class InferenceVQWithLossCell(nn.Module):
             "single_act_quantized": vq_act,
             "code_count": quantize_results["code_count"],
             "vq_indexes": quantize_results["encoding_indices"],
-            ##### self-consistent negative structures
+            # self-consistent negative structures
             "reconstructed_backbone_affine_tensor": structure_traj[-1],
             "reconstructed_atom_positions": final_atom_positions,
             "seq_mask": seq_mask,
             "residue_index": residue_index,
             "true_aatype": true_aatype,
             "atom_mask": template_all_atom_masks,
-            ##### per-residue consistency loss weight
+            # per-residue consistency loss weight
             "lddt": lddt(
                 backbone_affine_tensor[None, :, -3:],
                 backbone_affine_tensor_label[None, :, -3:],

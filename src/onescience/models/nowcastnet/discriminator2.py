@@ -40,12 +40,16 @@ class Net(nn.Module):
         x_c = x.unsqueeze(axis=1)
         x2 = self.BlockDown_3D_1(x_c)
 
-        x_d = F.pad(x, (0, 0, 0, 0, 1, 2), mode="constant", value=0)
-        x_d = x_d.view(x_d.shape[0], 4, 8, x_d.shape[2], x_d.shape[3])
+        x_d = F.pad(x, (0, 0, 0, 0, 1, 2),
+                    mode="constant", value=0)
+        x_d = x_d.view(
+            x_d.shape[0], 4, 8, x_d.shape[2], x_d.shape[3])
         x3 = self.BlockDown_3D_2(x_d)
 
-        x2 = x2.view(x2.shape[0], -1, x2.shape[3], x2.shape[4])
-        x3 = x3.view(x3.shape[0], -1, x3.shape[3], x3.shape[4])
+        x2 = x2.view(x2.shape[0], -1,
+                     x2.shape[3], x2.shape[4])
+        x3 = x3.view(x3.shape[0], -1,
+                     x3.shape[3], x3.shape[4])
         x_temp = torch.cat((x1, x2, x3), dim=1)
 
         x_temp = self.LBlockDown_1(x_temp)

@@ -32,11 +32,13 @@ def get_beta_schedule(T, b0, bT, schedule_type, schedule_params={}, inference=Fa
         schedule = torch.linspace(b0, bT, T)
 
     else:
-        raise NotImplementedError(f"Schedule of type {schedule_type} not implemented.")
+        raise NotImplementedError(
+            f"Schedule of type {schedule_type} not implemented.")
 
     # get alphabar_t for convenience
     alpha_schedule = 1 - schedule
-    alphabar_t_schedule = torch.cumprod(alpha_schedule, dim=0)
+    alphabar_t_schedule = torch.cumprod(
+        alpha_schedule, dim=0)
 
     if inference:
         print(
@@ -128,7 +130,8 @@ class EuclideanDiffuser:
 def write_pkl(save_path: str, pkl_data):
     """Serialize data into a pickle file."""
     with open(save_path, "wb") as handle:
-        pickle.dump(pkl_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(pkl_data, handle,
+                    protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def read_pkl(read_path: str, verbose=False):
@@ -207,7 +210,8 @@ class IGSO3:
         Args:
             L: truncation level for power series expansion of the pdf.
         """
-        replace_period = lambda x: str(x).replace(".", "_")
+        def replace_period(x): return str(
+            x).replace(".", "_")
         if self.schedule == "linear":
             cache_fname = os.path.join(
                 self.cache_dir,
@@ -221,7 +225,8 @@ class IGSO3:
                 f"_max_sigma_{replace_period(self.max_sigma)}_schedule_{self.schedule}",
             )
         else:
-            raise ValueError(f"Unrecognize schedule {self.schedule}")
+            raise ValueError(
+                f"Unrecognize schedule {self.schedule}")
 
         if not os.path.isdir(self.cache_dir):
             os.makedirs(self.cache_dir)
@@ -272,17 +277,21 @@ class IGSO3:
         if torch.any(t < 0) or torch.any(t > 1):
             raise ValueError(f"Invalid t={t}")
         if self.schedule == "exponential":
-            sigma = t * np.log10(self.max_sigma) + (1 - t) * np.log10(self.min_sigma)
+            sigma = t * \
+                np.log10(self.max_sigma) + \
+                (1 - t) * np.log10(self.min_sigma)
             return 10**sigma
         elif self.schedule == "linear":  # Variance exploding analogue of Ho schedule
             # add self.min_sigma for stability
             return (
                 self.min_sigma
                 + t * self.min_b
-                + (1 / 2) * (t**2) * (self.max_b - self.min_b)
+                + (1 / 2) * (t**2) *
+                (self.max_b - self.min_b)
             )
         else:
-            raise ValueError(f"Unrecognize schedule {self.schedule}")
+            raise ValueError(
+                f"Unrecognize schedule {self.schedule}")
 
     def g(self, t):
         """
@@ -315,7 +324,8 @@ class IGSO3:
         Returns:
         sampled angles of rotation. [len(ts), N]
         """
-        assert sum(ts == 0) == 0, "assumes one-indexed, not zero indexed"
+        assert sum(
+            ts == 0) == 0, "assumes one-indexed, not zero indexed"
         all_samples = []
         for t in ts:
             sigma_idx = self.t_to_idx(t)
@@ -410,7 +420,8 @@ class IGSO3:
         num_res = len(xyz)
 
         N = torch.from_numpy(xyz[None, :, 0, :])
-        Ca = torch.from_numpy(xyz[None, :, 1, :])  # [1, num_res, 3, 3]
+        # [1, num_res, 3, 3]
+        Ca = torch.from_numpy(xyz[None, :, 1, :])
         C = torch.from_numpy(xyz[None, :, 2, :])
 
         # scipy rotation object for true coordinates
@@ -419,10 +430,12 @@ class IGSO3:
         Ca = Ca[0]
 
         # Sample rotations and scores from IGSO3
-        sampled_rots = self.sample_vec(t, n_samples=num_res)  # [T, N, 3]
+        sampled_rots = self.sample_vec(
+            t, n_samples=num_res)  # [T, N, 3]
 
         if diffusion_mask is not None:
-            non_diffusion_mask = 1 - diffusion_mask[None, :, None]
+            non_diffusion_mask = 1 - \
+                diffusion_mask[None, :, None]
             sampled_rots = sampled_rots * non_diffusion_mask
 
         # Apply sampled rot.
@@ -431,10 +444,12 @@ class IGSO3:
             .as_matrix()
             .reshape(self.T, num_res, 3, 3)
         )
-        R_perturbed = np.einsum("tnij,njk->tnik", R_sampled, R_true)
+        R_perturbed = np.einsum(
+            "tnij,njk->tnik", R_sampled, R_true)
         perturbed_crds = (
             np.einsum(
-                "tnij,naj->tnai", R_sampled, xyz[:, :3, :] - Ca[:, None, ...].numpy()
+                "tnij,naj->tnai", R_sampled, xyz[:,
+                                                 :3, :] - Ca[:, None, ...].numpy()
             )
             + Ca[None, :, None].numpy()
         )
@@ -445,7 +460,8 @@ class IGSO3:
             R_perturbed = R_perturbed[idx]
 
         return (
-            perturbed_crds.transpose(1, 0, 2, 3),  # [L, T, 3, 3]
+            perturbed_crds.transpose(
+                1, 0, 2, 3),  # [L, T, 3, 3]
             R_perturbed.transpose(1, 0, 2, 3),
         )
 
@@ -495,14 +511,17 @@ class IGSO3:
         R_0, R_t = torch.tensor(R_0), torch.tensor(R_t)
         R_0t = torch.einsum("...ij,...kj->...ik", R_t, R_0)
         R_0t_rotvec = torch.tensor(
-            scipy_R.from_matrix(R_0t.cpu().numpy()).as_rotvec()
+            scipy_R.from_matrix(
+                R_0t.cpu().numpy()).as_rotvec()
         ).to(R_0.device)
 
         # Approximate the score based on the prediction of R0.
         # R_t @ hat(Score_approx) is the score approximation in the Lie algebra
         # SO(3) (i.e. the output of Algorithm 1)
-        Omega = torch.linalg.norm(R_0t_rotvec, axis=-1).numpy()
-        Score_approx = R_0t_rotvec * (self.score_norm(t, Omega) / Omega)[:, None]
+        Omega = torch.linalg.norm(
+            R_0t_rotvec, axis=-1).numpy()
+        Score_approx = R_0t_rotvec * \
+            (self.score_norm(t, Omega) / Omega)[:, None]
 
         # Compute scaling for score and sampled noise (following Eq 6 of [2])
         continuous_t = t / self.T
@@ -522,15 +541,18 @@ class IGSO3:
         # Sample perturbation from discretized SDE (following eq. 6 of [2]),
         # This approximate sampling from IGSO3(* ; Delta_r, rot_g^2 *
         # self.step_size) with tangent Gaussian.
-        Perturb_tangent = Delta_r + rot_g * np.sqrt(self.step_size) * Z
+        Perturb_tangent = Delta_r + rot_g * \
+            np.sqrt(self.step_size) * Z
         if mask is not None:
-            Perturb_tangent *= (1 - mask.long())[:, None, None]
+            Perturb_tangent *= (1 -
+                                mask.long())[:, None, None]
         Perturb = igso3.Exp(Perturb_tangent)
 
         if return_perturb:
             return Perturb
 
-        Interp_rot = torch.einsum("...ij,...jk->...ik", Perturb, R_t)
+        Interp_rot = torch.einsum(
+            "...ij,...jk->...ik", Perturb, R_t)
 
         return Interp_rot
 
@@ -624,14 +646,16 @@ class Diffuser:
         """
 
         if diffusion_mask is None:
-            diffusion_mask = torch.zeros(len(xyz.squeeze())).to(dtype=bool)
+            diffusion_mask = torch.zeros(
+                len(xyz.squeeze())).to(dtype=bool)
 
         get_allatom = ComputeAllAtomCoords().to(device=xyz.device)
         L = len(xyz)
 
         # bring to origin and scale
         # check if any BB atoms are nan before centering
-        nan_mask = ~torch.isnan(xyz.squeeze()[:, :3]).any(dim=-1).any(dim=-1)
+        nan_mask = ~torch.isnan(
+            xyz.squeeze()[:, :3]).any(dim=-1).any(dim=-1)
         assert torch.sum(~nan_mask) == 0
 
         # Centre unmasked structure at origin, as in training (to prevent information leak)
@@ -663,12 +687,13 @@ class Diffuser:
         diffused_frame_crds /= self.crd_scale
         # print('Time to diffuse frames: ',time.time()-tick)
 
-        ##### Now combine all the diffused quantities to make full atom diffused poses
+        # Now combine all the diffused quantities to make full atom diffused poses
         time.time()
         cum_delta = deltas.cumsum(dim=1)
         # The coordinates of the translated AND rotated frames
         diffused_BB = (
-            torch.from_numpy(diffused_frame_crds) + cum_delta[:, :, None, :]
+            torch.from_numpy(
+                diffused_frame_crds) + cum_delta[:, :, None, :]
         ).transpose(
             0, 1
         )  # [n,L,3,3]
@@ -682,7 +707,8 @@ class Diffuser:
 
         # Add in sidechains from motif
         if include_motif_sidechains:
-            diffused_fa[:, diffusion_mask, :14, :] = xyz_true[None, diffusion_mask, :14]
+            diffused_fa[:, diffusion_mask, :14,
+                        :] = xyz_true[None, diffusion_mask, :14]
 
         if t_list is None:
             fa_stack = diffused_fa

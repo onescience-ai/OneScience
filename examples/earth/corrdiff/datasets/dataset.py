@@ -22,12 +22,14 @@ def init_train_valid_datasets_from_config(
     dataloader_cfg: Union[dict, None] = None,
     batch_size: int = 1,  # 每个数据批次的样本数量
     seed: int = 0,
-    validation_dataset_cfg: Union[dict, None] = None,  # validation/cwb.yaml
+    # validation/cwb.yaml
+    validation_dataset_cfg: Union[dict, None] = None,
     train_test_split: bool = True,
 ) -> Tuple[
     base.DownscalingDataset,  # 数据集
     Iterable,  # 数据集迭代器
-    Union[base.DownscalingDataset, None],  # 验证集        if train_test_split is True
+    # 验证集        if train_test_split is True
+    Union[base.DownscalingDataset, None],
     Union[Iterable, None],  # 验证集迭代器
 ]:
     """
@@ -75,9 +77,11 @@ def init_dataset_from_config(
     if "train_test_split" in dataset_cfg:
         # handled by init_train_valid_datasets_from_config
         del dataset_cfg["train_test_split"]
-    dataset_init_func = known_datasets[dataset_type]  # cwb.get_zarr_dataset
+    # cwb.get_zarr_dataset
+    dataset_init_func = known_datasets[dataset_type]
 
-    dataset_obj = dataset_init_func(**dataset_cfg)  # 调用cwb.get_zarr_dataset
+    dataset_obj = dataset_init_func(
+        **dataset_cfg)  # 调用cwb.get_zarr_dataset
     if dataloader_cfg is None:
         dataloader_cfg = {}
 

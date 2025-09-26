@@ -31,7 +31,8 @@ class FCLayer(nn.Module):
         self,
         in_features: int,
         out_features: int,
-        activation_fn: Union[nn.Module, Callable[[Tensor], Tensor], None] = None,
+        activation_fn: Union[nn.Module, Callable[[
+            Tensor], Tensor], None] = None,
         weight_norm: bool = False,
         weight_fact: bool = False,
         activation_par: Union[nn.Parameter, None] = None,
@@ -53,11 +54,14 @@ class FCLayer(nn.Module):
             )
 
         if weight_norm:
-            self.linear = WeightNormLinear(in_features, out_features, bias=True)
+            self.linear = WeightNormLinear(
+                in_features, out_features, bias=True)
         elif weight_fact:
-            self.linear = WeightFactLinear(in_features, out_features, bias=True)
+            self.linear = WeightFactLinear(
+                in_features, out_features, bias=True)
         else:
-            self.linear = nn.Linear(in_features, out_features, bias=True)
+            self.linear = nn.Linear(
+                in_features, out_features, bias=True)
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
@@ -90,7 +94,8 @@ class ConvFCLayer(nn.Module):
 
     def __init__(
         self,
-        activation_fn: Union[nn.Module, Callable[[Tensor], Tensor], None] = None,
+        activation_fn: Union[nn.Module, Callable[[
+            Tensor], Tensor], None] = None,
         activation_par: Union[nn.Parameter, None] = None,
     ) -> None:
         super().__init__()
@@ -134,18 +139,21 @@ class Conv1dFCLayer(ConvFCLayer):
         self,
         in_features: int,
         out_features: int,
-        activation_fn: Union[nn.Module, Callable[[Tensor], Tensor], None] = None,
+        activation_fn: Union[nn.Module, Callable[[
+            Tensor], Tensor], None] = None,
         activation_par: Union[nn.Parameter, None] = None,
         weight_norm: bool = False,
     ) -> None:
         super().__init__(activation_fn, activation_par)
         self.in_channels = in_features
         self.out_channels = out_features
-        self.conv = nn.Conv1d(in_features, out_features, kernel_size=1, bias=True)
+        self.conv = nn.Conv1d(
+            in_features, out_features, kernel_size=1, bias=True)
         self.reset_parameters()
 
         if weight_norm:
-            raise NotImplementedError("Weight norm not supported for Conv FC layers")
+            raise NotImplementedError(
+                "Weight norm not supported for Conv FC layers")
 
     def reset_parameters(self) -> None:
         """Reset layer weights"""
@@ -177,13 +185,15 @@ class Conv2dFCLayer(ConvFCLayer):
         self,
         in_channels: int,
         out_channels: int,
-        activation_fn: Union[nn.Module, Callable[[Tensor], Tensor], None] = None,
+        activation_fn: Union[nn.Module, Callable[[
+            Tensor], Tensor], None] = None,
         activation_par: Union[nn.Parameter, None] = None,
     ) -> None:
         super().__init__(activation_fn, activation_par)
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=True)
+        self.conv = nn.Conv2d(
+            in_channels, out_channels, kernel_size=1, bias=True)
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
@@ -217,13 +227,15 @@ class Conv3dFCLayer(ConvFCLayer):
         self,
         in_channels: int,
         out_channels: int,
-        activation_fn: Union[nn.Module, Callable[[Tensor], Tensor], None] = None,
+        activation_fn: Union[nn.Module, Callable[[
+            Tensor], Tensor], None] = None,
         activation_par: Union[nn.Parameter, None] = None,
     ) -> None:
         super().__init__(activation_fn, activation_par)
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.conv = nn.Conv3d(in_channels, out_channels, kernel_size=1, bias=True)
+        self.conv = nn.Conv3d(
+            in_channels, out_channels, kernel_size=1, bias=True)
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
@@ -263,11 +275,13 @@ class ConvNdFCLayer(ConvFCLayer):
         super().__init__(activation_fn, activation_par)
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.conv = ConvNdKernel1Layer(in_channels, out_channels)
+        self.conv = ConvNdKernel1Layer(
+            in_channels, out_channels)
         self.reset_parameters()
 
     def reset_parameters(self):
-        self.conv.apply(self.initialise_parameters)  # recursively apply initialisations
+        # recursively apply initialisations
+        self.conv.apply(self.initialise_parameters)
 
     def initialise_parameters(self, model):
         """Reset layer weights"""
@@ -302,10 +316,12 @@ class ConvNdKernel1Layer(nn.Module):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size=1, bias=True)
+        self.conv = nn.Conv1d(
+            in_channels, out_channels, kernel_size=1, bias=True)
 
     def forward(self, x: Tensor) -> Tensor:
         dims = list(x.size())
         dims[1] = self.out_channels
-        x = self.conv(x.view(dims[0], self.in_channels, -1)).view(dims)
+        x = self.conv(
+            x.view(dims[0], self.in_channels, -1)).view(dims)
         return x

@@ -29,7 +29,8 @@ def main():
     logger = logging.getLogger()
 
     current_path = os.getcwd()
-    config_file_path = os.path.join(current_path, "conf/oceancast.yaml")
+    config_file_path = os.path.join(
+        current_path, "conf/oceancast.yaml")
     params = YParams(config_file_path, "afno_backbone")
 
     world_rank = 0
@@ -39,9 +40,11 @@ def main():
     params["pipeline_group_size"] = 4
     params["batch_size"] = 8
     world_rank = int(os.environ["RANK"])
-    dist.init_process_group("nccl", rank=world_rank, world_size=world_size)
+    dist.init_process_group(
+        "nccl", rank=world_rank, world_size=world_size)
 
-    is_first_rank = (world_rank % params.pipeline_group_size) == 0
+    is_first_rank = (world_rank %
+                     params.pipeline_group_size) == 0
     pipeline_group_rank = world_rank % params.pipeline_group_size
     pipeline_group_size = params.pipeline_group_size
 
@@ -57,7 +60,8 @@ def main():
     set_p2p_tensor_shapes([(micro_batch_size, 40, 90, 768)])
     set_p2p_tensor_dtype(torch.float32)
 
-    model = build_dualpipe_model(params, pipeline_group_rank, pipeline_group_size)
+    model = build_dualpipe_model(
+        params, pipeline_group_rank, pipeline_group_size)
     # train_data_loader, train_dataset, train_sampler = get_data_loader(params, dist.is_initialized(), mode='train')
     # valid_data_loader, valid_dataset, valid_sampler = get_data_loader(params, dist.is_initialized(), mode='valid')
     train_data_loader, train_dataset, train_sampler = get_data_loader(
@@ -68,9 +72,11 @@ def main():
     )
 
     mask = torch.load(params.maskpath)
-    loss_obj = lambda x, y: loss_function(mask.to(y.device))(x, y)
+    def loss_obj(x, y): return loss_function(
+        mask.to(y.device))(x, y)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=params.lr)
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=params.lr)
     scheduler = get_scheduler(optimizer, params)
 
     best_valid_loss = float("inf")
@@ -95,8 +101,10 @@ def main():
         train_loss = 0
         for iteration_idx, data in enumerate(train_data_loader):
             input_tensor, label_tensor = data
-            input_tensor = input_tensor.to(f"cuda:{local_rank}", dtype=torch.float)
-            label_tensor = label_tensor.to(f"cuda:{local_rank}", dtype=torch.float)
+            input_tensor = input_tensor.to(
+                f"cuda:{local_rank}", dtype=torch.float)
+            label_tensor = label_tensor.to(
+                f"cuda:{local_rank}", dtype=torch.float)
             if not is_first_rank:
                 input_tensor = None
                 label_tensor = None
@@ -125,8 +133,10 @@ def main():
         with torch.no_grad():
             for iteration_idx, data in enumerate(valid_data_loader):
                 input_tensor, label_tensor = data
-                input_tensor = input_tensor.to(f"cuda:{local_rank}", dtype=torch.float)
-                label_tensor = label_tensor.to(f"cuda:{local_rank}", dtype=torch.float)
+                input_tensor = input_tensor.to(
+                    f"cuda:{local_rank}", dtype=torch.float)
+                label_tensor = label_tensor.to(
+                    f"cuda:{local_rank}", dtype=torch.float)
                 if not is_first_rank:
                     input_tensor = None
                     label_tensor = None
@@ -173,8 +183,10 @@ def main():
                 f"Valid Loss: {valid_loss:.4f}, "
                 f"Best loss at Epoch: {best_loss_epoch + 1}"
             )
-            train_losses = np.append(train_losses, train_loss)
-            valid_losses = np.append(valid_losses, valid_loss)
+            train_losses = np.append(
+                train_losses, train_loss)
+            valid_losses = np.append(
+                valid_losses, valid_loss)
             np.save(train_loss_file, train_losses)
             np.save(valid_loss_file, valid_losses)
 
@@ -183,13 +195,15 @@ def main():
                 logger.info("Early stopping triggered.")
             break
     if world_rank == 0:
-        print("=" * 10, f"\n dp cost {time.perf_counter() - t1:.2f} \n", "=" * 10)
+        print(
+            "=" * 10, f"\n dp cost {time.perf_counter() - t1:.2f} \n", "=" * 10)
 
 
 def save_checkpoint(
     model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_name
 ):
-    model_to_save = model.module if hasattr(model, "module") else model
+    model_to_save = model.module if hasattr(
+        model, "module") else model
     state = {
         "model_state_dict": model_to_save.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),

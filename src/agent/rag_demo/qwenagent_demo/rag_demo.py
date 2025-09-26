@@ -6,7 +6,8 @@ from qwen_agent.utils.output_beautify import typewriter_print
 # Step 2: Configure the LLM you are using.
 llm_cfg = {
     "model": "qwen3_32B",
-    "model_server": "http://localhost:8000/v1",  # base_url, also known as api_base
+    # base_url, also known as api_base
+    "model_server": "http://localhost:8000/v1",
     "api_key": "EMPTY",
     "generate_cfg": {"top_p": 0.8, "thought_in_content": False},
 }
@@ -50,7 +51,8 @@ while True:
     print("bot response:")
     for response in bot.run(messages=messages, enable_thinking=False):
         # Streaming output.
-        response_plain_text = typewriter_print(response, response_plain_text)
+        response_plain_text = typewriter_print(
+            response, response_plain_text)
     # Append the bot responses to the chat history.
     messages.extend(response)
     messages = messages[: histroy_len - 1]

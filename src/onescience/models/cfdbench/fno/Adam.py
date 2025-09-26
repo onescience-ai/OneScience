@@ -39,14 +39,18 @@ def adam(
 
         # Decay the first and second moment running average coefficient
         exp_avg.mul_(beta1).add_(grad, alpha=1 - beta1)
-        exp_avg_sq.mul_(beta2).addcmul_(grad, grad.conj(), value=1 - beta2)
+        exp_avg_sq.mul_(beta2).addcmul_(
+            grad, grad.conj(), value=1 - beta2)
         if amsgrad:
             # Maintains the maximum of all 2nd moment running avg. till now
-            torch.maximum(max_exp_avg_sqs[i], exp_avg_sq, out=max_exp_avg_sqs[i])
+            torch.maximum(
+                max_exp_avg_sqs[i], exp_avg_sq, out=max_exp_avg_sqs[i])
             # Use the max. for normalizing running avg. of gradient
-            denom = (max_exp_avg_sqs[i].sqrt() / math.sqrt(bias_correction2)).add_(eps)
+            denom = (max_exp_avg_sqs[i].sqrt(
+            ) / math.sqrt(bias_correction2)).add_(eps)
         else:
-            denom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(eps)
+            denom = (exp_avg_sq.sqrt() /
+                     math.sqrt(bias_correction2)).add_(eps)
 
         step_size = lr / bias_correction1
 
@@ -88,15 +92,20 @@ class Adam(Optimizer):
         amsgrad=False,
     ):
         if not 0.0 <= lr:
-            raise ValueError("Invalid learning rate: {}".format(lr))
+            raise ValueError(
+                "Invalid learning rate: {}".format(lr))
         if not 0.0 <= eps:
-            raise ValueError("Invalid epsilon value: {}".format(eps))
+            raise ValueError(
+                "Invalid epsilon value: {}".format(eps))
         if not 0.0 <= betas[0] < 1.0:
-            raise ValueError("Invalid beta parameter at index 0: {}".format(betas[0]))
+            raise ValueError(
+                "Invalid beta parameter at index 0: {}".format(betas[0]))
         if not 0.0 <= betas[1] < 1.0:
-            raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
+            raise ValueError(
+                "Invalid beta parameter at index 1: {}".format(betas[1]))
         if not 0.0 <= weight_decay:
-            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
+            raise ValueError(
+                "Invalid weight_decay value: {}".format(weight_decay))
         defaults = dict(
             lr=lr,
             betas=betas,
@@ -165,7 +174,8 @@ class Adam(Optimizer):
                     exp_avg_sqs.append(state["exp_avg_sq"])
 
                     if group["amsgrad"]:
-                        max_exp_avg_sqs.append(state["max_exp_avg_sq"])
+                        max_exp_avg_sqs.append(
+                            state["max_exp_avg_sq"])
 
                     # update the steps for each param group update
                     state["step"] += 1

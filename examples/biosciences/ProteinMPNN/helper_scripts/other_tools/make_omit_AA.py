@@ -10,7 +10,8 @@ with open("/home/justas/projects/lab_github/mpnn/data/pdbs.jsonl", "r") as json_
 my_dict = {}
 for json_str in json_list:
     result = json.loads(json_str)
-    all_chain_list = [item[-1:] for item in list(result) if item[:9] == "seq_chain"]
+    all_chain_list = [item[-1:]
+                      for item in list(result) if item[:9] == "seq_chain"]
     fixed_position_dict = {}
     print(result["name"])
     if result["name"] == "5TTA":
@@ -31,7 +32,8 @@ for json_str in json_list:
                         "GPL",
                     ],
                     [
-                        [int(item) for item in list(itertools.chain([40, 41, 42, 43]))],
+                        [int(item) for item in list(
+                            itertools.chain([40, 41, 42, 43]))],
                         "WC",
                     ],
                     [

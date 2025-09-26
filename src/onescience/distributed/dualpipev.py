@@ -93,7 +93,8 @@ class DualPipeV(nn.Module):
         is_last_stage = self.is_first_rank and phase == 1
 
         outputs = self.module[phase](*inputs)
-        outputs = [outputs] if isinstance(outputs, torch.Tensor) else outputs
+        outputs = [outputs] if isinstance(
+            outputs, torch.Tensor) else outputs
         if is_last_stage and self.criterion is not None:
             labels = self.labels[chunk_id]
             loss = self.criterion(*outputs, *labels)
@@ -101,7 +102,8 @@ class DualPipeV(nn.Module):
 
         if self.is_last_rank and phase == 0:
             self.input_chunks[1].append(
-                [output.detach().requires_grad_() for output in outputs]
+                [output.detach().requires_grad_()
+                 for output in outputs]
             )
         if (not is_last_stage) or self.return_outputs:
             self.output_chunks[phase].append(outputs)
@@ -126,7 +128,8 @@ class DualPipeV(nn.Module):
                 self.output_chunks[phase][chunk_id] = None
             output_grads = self.output_grad_chunks[phase][chunk_id]
             self.output_grad_chunks[phase][chunk_id] = None
-            non_empty = [(t, g) for t, g in zip(outputs, output_grads) if g is not None]
+            non_empty = [(t, g) for t, g in zip(
+                outputs, output_grads) if g is not None]
             outputs, output_grads = list(zip(*non_empty))
             if len(outputs) > 0:
                 run_backward(outputs, output_grads)
@@ -140,19 +143,23 @@ class DualPipeV(nn.Module):
         if self.is_last_rank and phase == 1:
             self.output_grad_chunks[0].append(input_grads)
         else:
-            self.input_grad_chunks[phase].append(input_grads)
+            self.input_grad_chunks[phase].append(
+                input_grads)
 
     def _forward_backward_compute_chunk(self, phase0: int, phase1: int) -> None:
 
         if self.forward_only:
-            self.log("_forward_backward_compute_chunk", phase0)
+            self.log(
+                "_forward_backward_compute_chunk", phase0)
             self._forward_compute_chunk(phase0)
             return
         if not self.overlapped_forward_backward:
             self._forward_compute_chunk(phase0)
-            self.log("_forward_backward_compute_chunk", phase0)
+            self.log(
+                "_forward_backward_compute_chunk", phase0)
             self._backward_compute_chunk(phase1)
-            self.log("_forward_backward_compute_chunk", phase1)
+            self.log(
+                "_forward_backward_compute_chunk", phase1)
             return
 
         # pre-forward
@@ -206,7 +213,8 @@ class DualPipeV(nn.Module):
         # post-forward
         if self.is_last_rank and phase0 == 0:
             self.input_chunks[1].append(
-                [output.detach().requires_grad_() for output in outputs0]
+                [output.detach().requires_grad_()
+                 for output in outputs0]
             )
         if (not is_last_stage0) or self.return_outputs:
             self.output_chunks[phase0].append(outputs0)
@@ -220,7 +228,8 @@ class DualPipeV(nn.Module):
         if self.is_last_rank and phase1 == 1:
             self.output_grad_chunks[0].append(input_grads1)
         else:
-            self.input_grad_chunks[phase1].append(input_grads1)
+            self.input_grad_chunks[phase1].append(
+                input_grads1)
 
     def _forward_chunk(self, phase: int, recv: bool = True, send: bool = True) -> None:
         self.log("_forward_chunk", phase)
@@ -360,7 +369,8 @@ class DualPipeV(nn.Module):
         labels: List[Optional[torch.Tensor]] = [],
         return_outputs: bool = False,
     ) -> Tuple[
-        Optional[torch.Tensor], Optional[Union[torch.Tensor, Tuple[torch.Tensor]]]
+        Optional[torch.Tensor], Optional[Union[torch.Tensor,
+                                               Tuple[torch.Tensor]]]
     ]:
         """
         Execute a training or inference step.
@@ -395,8 +405,10 @@ class DualPipeV(nn.Module):
         self._reset_states()
 
         if self.is_first_rank:
-            self.input_chunks = (scatter(inputs, num_chunks, self.batch_dim), [])
-            self.labels = scatter(labels, num_chunks, self.batch_dim)
+            self.input_chunks = (
+                scatter(inputs, num_chunks, self.batch_dim), [])
+            self.labels = scatter(
+                labels, num_chunks, self.batch_dim)
             self.criterion = criterion
 
         # Step 1: nF0
@@ -410,7 +422,8 @@ class DualPipeV(nn.Module):
         for i in range(step_2):
             self._forward_chunk(0, recv=False, send=False)
             self._recv_forward(0)
-            self._forward_chunk(1, send=(not self.is_last_rank) or (i < step_2 - 1))
+            self._forward_chunk(
+                1, send=(not self.is_last_rank) or (i < step_2 - 1))
             self._send_forward(0)
 
         # Step 3: nB1W1F1 (Use zero bubble)
@@ -427,13 +440,15 @@ class DualPipeV(nn.Module):
             if i == 0:
                 if self.is_last_rank:
                     # NOTE: We don't overlap these two chunks to further reduce bubble size.
-                    self._forward_chunk(0, recv=False, send=False)
+                    self._forward_chunk(
+                        0, recv=False, send=False)
                     self._send_forward(1)
                     self._backward_chunk(1, send=False)
                     self._send_forward(0)
                     self._send_backward(1)
                 else:
-                    self._forward_backward_chunk(0, 1, recv0=False)
+                    self._forward_backward_chunk(
+                        0, 1, recv0=False)
             else:
                 self._forward_backward_chunk(0, 1)
             self._forward_backward_chunk(1, 0)
@@ -474,7 +489,8 @@ class DualPipeV(nn.Module):
             if criterion is not None:
                 loss = torch.stack(self.loss_chunks)
             if return_outputs:
-                outputs = gather(self.output_chunks[1], self.batch_dim)
+                outputs = gather(
+                    self.output_chunks[1], self.batch_dim)
                 if len(outputs) == 1:
                     outputs = outputs[0]
 

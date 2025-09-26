@@ -1,3 +1,4 @@
+from onescience.models.transolver.MLP import MLP
 import argparse
 import json
 import logging
@@ -48,9 +49,12 @@ parser.add_argument(
     default=0,
     type=int,
 )
-parser.add_argument("--data_path", default="./dataset/Dataset ", type=str)
-parser.add_argument("--save_path", default="./metrics", type=str)
-parser.add_argument("--result_path", default="./results", type=str)
+parser.add_argument(
+    "--data_path", default="./dataset/Dataset ", type=str)
+parser.add_argument(
+    "--save_path", default="./metrics", type=str)
+parser.add_argument(
+    "--result_path", default="./results", type=str)
 parser.add_argument("--gpu", default=0, type=int)
 parser.add_argument(
     "--n_test",
@@ -77,10 +81,12 @@ logger = logging.getLogger()
 
 if dist.world_size > 1:
     device = torch.device(
-        f"cuda:{dist.local_rank}" if torch.cuda.is_available() else "cpu"
+        f"cuda:{dist.local_rank}" if torch.cuda.is_available(
+        ) else "cpu"
     )
 else:
-    device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        f"cuda:{args.gpu}" if torch.cuda.is_available() else "cpu")
 
 if dist.rank == 0:
     logger.info(f"World size: {dist.world_size}")
@@ -94,7 +100,8 @@ osp.join(args.result_path, args.task, "true_coefs")
 
 manifest_train = manifest[args.task + "_train"]
 test_dataset = (
-    manifest[args.task + "_test"] if args.task != "scarce" else manifest["full_test"]
+    manifest[args.task +
+             "_test"] if args.task != "scarce" else manifest["full_test"]
 )
 n = int(0.1 * len(manifest_train))
 train_dataset = manifest_train[:-n]
@@ -114,7 +121,6 @@ if dist.rank == 0:
 with open("params.yaml", "r") as f:  # hyperparameters of the model
     hparams = yaml.safe_load(f)[args.model]
 
-from onescience.models.transolver.MLP import MLP
 
 models = []
 for i in range(args.nmodel):
@@ -138,12 +144,14 @@ for i in range(args.nmodel):
         if args.model == "GraphSAGE":
             from modeonescience.models.transolverls.GraphSAGE import GraphSAGE
 
-            model = GraphSAGE(hparams, encoder, decoder).to(device)
+            model = GraphSAGE(
+                hparams, encoder, decoder).to(device)
 
         elif args.model == "PointNet":
             from onescience.models.transolver.PointNet import PointNet
 
-            model = PointNet(hparams, encoder, decoder).to(device)
+            model = PointNet(
+                hparams, encoder, decoder).to(device)
 
         elif args.model == "MLP":
             from onescience.models.transolver.NN import NN
@@ -153,7 +161,8 @@ for i in range(args.nmodel):
         elif args.model == "GUNet":
             from onescience.models.transolver.GUNet import GUNet
 
-            model = GUNet(hparams, encoder, decoder).to(device)
+            model = GUNet(hparams, encoder,
+                          decoder).to(device)
         else:
             raise ValueError(f"Unknown model: {args.model}")
 
@@ -180,7 +189,8 @@ for i in range(args.nmodel):
     models.append(model)
 
 if dist.rank == 0:
-    save_path = osp.join(args.save_path, args.task, args.model)
+    save_path = osp.join(
+        args.save_path, args.task, args.model)
     os.makedirs(save_path, exist_ok=True)
     torch.save(models, osp.join(save_path, args.model))
 
@@ -202,12 +212,16 @@ if args.score and dist.rank == 0:
     # models can be a stack of the same model (for example MLP) on the task s, if you have another stack of another model (for example GraphSAGE)
     # you can put in model argument [models_MLP, models_GraphSAGE] and it will output the results for both models (mean and std) in an ordered array.
     np.save(osp.join(results_dir, "true_coefs"), coefs[0])
-    np.save(osp.join(results_dir, "pred_coefs_mean"), coefs[1])
-    np.save(osp.join(results_dir, "pred_coefs_std"), coefs[2])
+    np.save(
+        osp.join(results_dir, "pred_coefs_mean"), coefs[1])
+    np.save(
+        osp.join(results_dir, "pred_coefs_std"), coefs[2])
     for n, file in enumerate(coefs[3]):
-        np.save(osp.join(results_dir, f"true_surf_coefs_{n}"), file)
+        np.save(
+            osp.join(results_dir, f"true_surf_coefs_{n}"), file)
     for n, file in enumerate(coefs[4]):
-        np.save(osp.join(results_dir, f"surf_coefs_{n}"), file)
+        np.save(
+            osp.join(results_dir, f"surf_coefs_{n}"), file)
     np.save(osp.join(results_dir, "true_bls"), coefs[5])
     np.save(osp.join(results_dir, "bls"), coefs[6])
     logger.info("end score")

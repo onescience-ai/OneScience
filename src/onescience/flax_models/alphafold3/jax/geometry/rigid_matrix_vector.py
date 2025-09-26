@@ -48,16 +48,21 @@ def _compute_covariance_matrix(
 
     out = []
 
-    normalized_weights = weights / (weights.sum(axis=-1, keepdims=True) + epsilon)
+    normalized_weights = weights / \
+        (weights.sum(axis=-1, keepdims=True) + epsilon)
 
-    weighted_average = lambda x: jnp.sum(normalized_weights * x, axis=-1)
+    def weighted_average(x): return jnp.sum(
+        normalized_weights * x, axis=-1)
 
     out.append(
         jnp.stack(
             (
-                weighted_average(row_values.x * col_values.x),
-                weighted_average(row_values.x * col_values.y),
-                weighted_average(row_values.x * col_values.z),
+                weighted_average(
+                    row_values.x * col_values.x),
+                weighted_average(
+                    row_values.x * col_values.y),
+                weighted_average(
+                    row_values.x * col_values.z),
             ),
             axis=-1,
         )
@@ -66,9 +71,12 @@ def _compute_covariance_matrix(
     out.append(
         jnp.stack(
             (
-                weighted_average(row_values.y * col_values.x),
-                weighted_average(row_values.y * col_values.y),
-                weighted_average(row_values.y * col_values.z),
+                weighted_average(
+                    row_values.y * col_values.x),
+                weighted_average(
+                    row_values.y * col_values.y),
+                weighted_average(
+                    row_values.y * col_values.z),
             ),
             axis=-1,
         )
@@ -77,9 +85,12 @@ def _compute_covariance_matrix(
     out.append(
         jnp.stack(
             (
-                weighted_average(row_values.z * col_values.x),
-                weighted_average(row_values.z * col_values.y),
-                weighted_average(row_values.z * col_values.z),
+                weighted_average(
+                    row_values.z * col_values.x),
+                weighted_average(
+                    row_values.z * col_values.y),
+                weighted_average(
+                    row_values.z * col_values.z),
             ),
             axis=-1,
         )
@@ -97,13 +108,15 @@ class Rigid3Array:
 
     def __matmul__(self, other: Self) -> Self:
         new_rotation = self.rotation @ other.rotation
-        new_translation = self.apply_to_point(other.translation)
+        new_translation = self.apply_to_point(
+            other.translation)
         return Rigid3Array(new_rotation, new_translation)
 
     def inverse(self) -> Self:
         """Return Rigid3Array corresponding to inverse transform."""
         inv_rotation = self.rotation.inverse()
-        inv_translation = inv_rotation.apply_to_point(-self.translation)
+        inv_translation = inv_rotation.apply_to_point(
+            -self.translation)
         return Rigid3Array(inv_rotation, inv_translation)
 
     def apply_to_point(self, point: vector.Vec3Array) -> vector.Vec3Array:
@@ -117,14 +130,16 @@ class Rigid3Array:
 
     def compose_rotation(self, other_rotation: rotation_matrix.Rot3Array) -> Self:
         rot = self.rotation @ other_rotation
-        trans = jax.tree.map(lambda x: jnp.broadcast_to(x, rot.shape), self.translation)
+        trans = jax.tree.map(lambda x: jnp.broadcast_to(
+            x, rot.shape), self.translation)
         return Rigid3Array(rot, trans)
 
     @classmethod
     def identity(cls, shape: Any, dtype: jnp.dtype = jnp.float32) -> Self:
         """Return identity Rigid3Array of given shape."""
         return cls(
-            rotation_matrix.Rot3Array.identity(shape, dtype=dtype),
+            rotation_matrix.Rot3Array.identity(
+                shape, dtype=dtype),
             vector.Vec3Array.zeros(shape, dtype=dtype),
         )  # pytype: disable=wrong-arg-count  # trace-all-classes
 
@@ -139,22 +154,29 @@ class Rigid3Array:
 
     @classmethod
     def from_array(cls, array):
-        rot = rotation_matrix.Rot3Array.from_array(array[..., :3])
+        rot = rotation_matrix.Rot3Array.from_array(
+            array[..., :3])
         vec = vector.Vec3Array.from_array(array[..., -1])
-        return cls(rot, vec)  # pytype: disable=wrong-arg-count  # trace-all-classes
+        # pytype: disable=wrong-arg-count  # trace-all-classes
+        return cls(rot, vec)
 
     @classmethod
     def from_array4x4(cls, array: jnp.ndarray) -> Self:
         """Construct Rigid3Array from homogeneous 4x4 array."""
         if array.shape[-2:] != (4, 4):
-            raise ValueError(f"array.shape({array.shape}) must be [..., 4, 4]")
+            raise ValueError(
+                f"array.shape({array.shape}) must be [..., 4, 4]")
         rotation = rotation_matrix.Rot3Array(
-            *(array[..., 0, 0], array[..., 0, 1], array[..., 0, 2]),
-            *(array[..., 1, 0], array[..., 1, 1], array[..., 1, 2]),
-            *(array[..., 2, 0], array[..., 2, 1], array[..., 2, 2]),
+            *(array[..., 0, 0], array[..., 0, 1],
+              array[..., 0, 2]),
+            *(array[..., 1, 0], array[..., 1, 1],
+              array[..., 1, 2]),
+            *(array[..., 2, 0], array[..., 2, 1],
+              array[..., 2, 2]),
         )
         translation = vector.Vec3Array(
-            array[..., 0, 3], array[..., 1, 3], array[..., 2, 3]
+            array[..., 0, 3], array[...,
+                                    1, 3], array[..., 2, 3]
         )
         return cls(
             rotation, translation
@@ -188,10 +210,14 @@ class Rigid3Array:
         def compute_center(value):
             return utils.weighted_mean(value=value, weights=weights, axis=-1)
 
-        points_to_center = jax.tree.map(compute_center, points_to)
-        points_from_center = jax.tree.map(compute_center, points_from)
-        centered_points_to = points_to - points_to_center[..., None]
-        centered_points_from = points_from - points_from_center[..., None]
+        points_to_center = jax.tree.map(
+            compute_center, points_to)
+        points_from_center = jax.tree.map(
+            compute_center, points_from)
+        centered_points_to = points_to - \
+            points_to_center[..., None]
+        centered_points_from = points_from - \
+            points_from_center[..., None]
         cov_mat = _compute_covariance_matrix(
             centered_points_to,
             centered_points_from,
@@ -202,7 +228,8 @@ class Rigid3Array:
             jnp.reshape(cov_mat, cov_mat.shape[:-2] + (9,))
         )
 
-        translations = points_to_center - rots.apply_to_point(points_from_center)
+        translations = points_to_center - \
+            rots.apply_to_point(points_from_center)
 
         return cls(
             rots, translations

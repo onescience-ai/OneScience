@@ -48,26 +48,33 @@ class Protenix(nn.Module):
             assert configs.loss.weight.alpha_distogram == 0.0
 
         # Diffusion scheduler
-        self.train_noise_sampler = TrainingNoiseSampler(**configs.train_noise_sampler)
+        self.train_noise_sampler = TrainingNoiseSampler(
+            **configs.train_noise_sampler)
         self.inference_noise_scheduler = InferenceNoiseScheduler(
             **configs.inference_noise_scheduler
         )
         self.diffusion_batch_size = self.configs.diffusion_batch_size
 
         # Model
-        self.input_embedder = InputFeatureEmbedder(**configs.model.input_embedder)
+        self.input_embedder = InputFeatureEmbedder(
+            **configs.model.input_embedder)
         self.relative_position_encoding = RelativePositionEncoding(
             **configs.model.relative_position_encoding
         )
-        self.template_embedder = TemplateEmbedder(**configs.model.template_embedder)
+        self.template_embedder = TemplateEmbedder(
+            **configs.model.template_embedder)
         self.msa_module = MSAModule(
             **configs.model.msa_module,
             msa_configs=configs.data.get("msa", {}),
         )
-        self.pairformer_stack = PairformerStack(**configs.model.pairformer)
-        self.diffusion_module = DiffusionModule(**configs.model.diffusion_module)
-        self.distogram_head = DistogramHead(**configs.model.distogram_head)
-        self.confidence_head = ConfidenceHead(**configs.model.confidence_head)
+        self.pairformer_stack = PairformerStack(
+            **configs.model.pairformer)
+        self.diffusion_module = DiffusionModule(
+            **configs.model.diffusion_module)
+        self.distogram_head = DistogramHead(
+            **configs.model.distogram_head)
+        self.confidence_head = ConfidenceHead(
+            **configs.model.confidence_head)
 
         self.c_s, self.c_z, self.c_s_inputs = (
             configs.c_s,
@@ -135,20 +142,26 @@ class Protenix(nn.Module):
         s_inputs = self.input_embedder(
             input_feature_dict, inplace_safe=False, chunk_size=chunk_size
         )  # [..., N_token, 449]
-        s_init = self.linear_no_bias_sinit(s_inputs)  #  [..., N_token, c_s]
+        s_init = self.linear_no_bias_sinit(
+            s_inputs)  # [..., N_token, c_s]
         z_init = (
             self.linear_no_bias_zinit1(s_init)[..., None, :]
             + self.linear_no_bias_zinit2(s_init)[..., None, :, :]
-        )  #  [..., N_token, N_token, c_z]
+        )  # [..., N_token, N_token, c_z]
         if inplace_safe:
-            z_init += self.relative_position_encoding(input_feature_dict)
+            z_init += self.relative_position_encoding(
+                input_feature_dict)
             z_init += self.linear_no_bias_token_bond(
-                input_feature_dict["token_bonds"].unsqueeze(dim=-1)
+                input_feature_dict["token_bonds"].unsqueeze(
+                    dim=-1)
             )
         else:
-            z_init = z_init + self.relative_position_encoding(input_feature_dict)
+            z_init = z_init + \
+                self.relative_position_encoding(
+                    input_feature_dict)
             z_init = z_init + self.linear_no_bias_token_bond(
-                input_feature_dict["token_bonds"].unsqueeze(dim=-1)
+                input_feature_dict["token_bonds"].unsqueeze(
+                    dim=-1)
             )
         # Line 6
         z = torch.zeros_like(z_init)
@@ -161,7 +174,9 @@ class Protenix(nn.Module):
                 and (not self.train_confidence_only)
                 and cycle_no == (N_cycle - 1)
             ):
-                z = z_init + self.linear_no_bias_z_cycle(self.layernorm_z_cycle(z))
+                z = z_init + \
+                    self.linear_no_bias_z_cycle(
+                        self.layernorm_z_cycle(z))
                 if inplace_safe:
                     if self.template_embedder.n_blocks > 0:
                         z += self.template_embedder(
@@ -210,7 +225,9 @@ class Protenix(nn.Module):
                         inplace_safe=inplace_safe,
                         chunk_size=chunk_size,
                     )
-                s = s_init + self.linear_no_bias_s(self.layernorm_s(s))
+                s = s_init + \
+                    self.linear_no_bias_s(
+                        self.layernorm_s(s))
                 s, z = self.pairformer_stack(
                     s,
                     z,
@@ -336,7 +353,8 @@ class Protenix(nn.Module):
         }
 
         all_log_dict = simple_merge_dict_list(log_dicts)
-        all_time_dict = simple_merge_dict_list(time_trackers)
+        all_time_dict = simple_merge_dict_list(
+            time_trackers)
         return all_pred_dict, all_log_dict, all_time_dict
 
     def _main_inference_loop(
@@ -389,7 +407,8 @@ class Protenix(nn.Module):
                 del input_feature_dict[key]
             torch.cuda.empty_cache()
         step_trunk = time.time()
-        time_tracker.update({"pairformer": step_trunk - step_st})
+        time_tracker.update(
+            {"pairformer": step_trunk - step_st})
         # Sample diffusion
         # [..., N_sample, N_atom, 3]
         N_sample = self.configs.sample_diffusion["N_sample"]
@@ -410,7 +429,8 @@ class Protenix(nn.Module):
         )
 
         step_diffusion = time.time()
-        time_tracker.update({"diffusion": step_diffusion - step_trunk})
+        time_tracker.update(
+            {"diffusion": step_diffusion - step_trunk})
         if mode == "inference" and N_token > 2000:
             torch.cuda.empty_cache()
         # Distogram logits: log contact_probs only, to reduce the dimension
@@ -443,8 +463,10 @@ class Protenix(nn.Module):
         )
 
         step_confidence = time.time()
-        time_tracker.update({"confidence": step_confidence - step_diffusion})
-        time_tracker.update({"model_forward": time.time() - step_st})
+        time_tracker.update(
+            {"confidence": step_confidence - step_diffusion})
+        time_tracker.update(
+            {"model_forward": time.time() - step_st})
 
         # Permutation: when label is given, permute coordinates and other heads
         if label_dict is not None and symmetric_permutation is not None:
@@ -452,18 +474,21 @@ class Protenix(nn.Module):
                 input_feature_dict=input_feature_dict,
                 pred_dict=pred_dict,
                 label_dict=label_dict,
-                permute_by_pocket=("pocket_mask" in label_dict)
+                permute_by_pocket=(
+                    "pocket_mask" in label_dict)
                 and ("interested_ligand_mask" in label_dict),
             )
             last_step_seconds = step_confidence
-            time_tracker.update({"permutation": time.time() - last_step_seconds})
+            time_tracker.update(
+                {"permutation": time.time() - last_step_seconds})
 
         # Summary Confidence & Full Data
         # Computed after coordinates and logits are permuted
         if label_dict is None:
             interested_atom_mask = None
         else:
-            interested_atom_mask = label_dict.get("interested_ligand_mask", None)
+            interested_atom_mask = label_dict.get(
+                "interested_ligand_mask", None)
         (
             pred_dict["summary_confidence"],
             pred_dict["full_data"],
@@ -481,11 +506,13 @@ class Protenix(nn.Module):
             token_has_frame=input_feature_dict["has_frame"],
             atom_coordinate=pred_dict["coordinate"],
             atom_to_token_idx=input_feature_dict["atom_to_token_idx"],
-            atom_is_polymer=1 - input_feature_dict["is_ligand"],
+            atom_is_polymer=1 -
+            input_feature_dict["is_ligand"],
             N_recycle=N_cycle,
             interested_atom_mask=interested_atom_mask,
             return_full_data=True,
-            mol_id=(input_feature_dict["mol_id"] if mode != "inference" else None),
+            mol_id=(
+                input_feature_dict["mol_id"] if mode != "inference" else None),
             elements_one_hot=(
                 input_feature_dict["ref_element"] if mode != "inference" else None
             ),
@@ -671,7 +698,8 @@ class Protenix(nn.Module):
         """
 
         assert mode in ["train", "inference", "eval"]
-        inplace_safe = not (self.training or torch.is_grad_enabled())
+        inplace_safe = not (
+            self.training or torch.is_grad_enabled())
         chunk_size = self.configs.infer_setting.chunk_size if inplace_safe else None
 
         if mode == "train":

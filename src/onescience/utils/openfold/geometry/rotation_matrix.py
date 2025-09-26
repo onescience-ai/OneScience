@@ -10,14 +10,16 @@ import torch
 from onescience.utils.openfold.geometry import utils, vector
 from onescience.utils.openfold.tensor_utils import tensor_tree_map
 
-COMPONENTS = ["xx", "xy", "xz", "yx", "yy", "yz", "zx", "zy", "zz"]
+COMPONENTS = ["xx", "xy", "xz", "yx",
+              "yy", "yz", "zx", "zy", "zz"]
 
 
 @dataclasses.dataclass(frozen=True)
 class Rot3Array:
     """Rot3Array Matrix in 3 dimensional Space implemented as struct of arrays."""
 
-    xx: torch.Tensor = dataclasses.field(metadata={"dtype": torch.float32})
+    xx: torch.Tensor = dataclasses.field(
+        metadata={"dtype": torch.float32})
     xy: torch.Tensor
     xz: torch.Tensor
     yx: torch.Tensor
@@ -39,9 +41,12 @@ class Rot3Array:
 
     def __matmul__(self, other: Rot3Array) -> Rot3Array:
         """Composes two Rot3Arrays."""
-        c0 = self.apply_to_point(vector.Vec3Array(other.xx, other.yx, other.zx))
-        c1 = self.apply_to_point(vector.Vec3Array(other.xy, other.yy, other.zy))
-        c2 = self.apply_to_point(vector.Vec3Array(other.xz, other.yz, other.zz))
+        c0 = self.apply_to_point(
+            vector.Vec3Array(other.xx, other.yx, other.zx))
+        c1 = self.apply_to_point(
+            vector.Vec3Array(other.xy, other.yy, other.zy))
+        c2 = self.apply_to_point(
+            vector.Vec3Array(other.xz, other.yz, other.zz))
         return Rot3Array(c0.x, c1.x, c2.x, c0.y, c1.y, c2.y, c0.z, c1.z, c2.z)
 
     def map_tensor_fn(self, fn) -> Rot3Array:
@@ -77,7 +82,8 @@ class Rot3Array:
     def unsqueeze(self, dim: int):
         return Rot3Array(
             *tensor_tree_map(
-                lambda t: t.unsqueeze(dim), [getattr(self, c) for c in COMPONENTS]
+                lambda t: t.unsqueeze(dim), [getattr(
+                    self, c) for c in COMPONENTS]
             )
         )
 
@@ -87,8 +93,10 @@ class Rot3Array:
     @classmethod
     def identity(cls, shape, device) -> Rot3Array:
         """Returns identity of given shape."""
-        ones = torch.ones(shape, dtype=torch.float32, device=device)
-        zeros = torch.zeros(shape, dtype=torch.float32, device=device)
+        ones = torch.ones(
+            shape, dtype=torch.float32, device=device)
+        zeros = torch.zeros(
+            shape, dtype=torch.float32, device=device)
         return cls(ones, zeros, zeros, zeros, ones, zeros, zeros, zeros, ones)
 
     @classmethod
@@ -124,9 +132,12 @@ class Rot3Array:
         """Convert Rot3Array to array of shape [..., 3, 3]."""
         return torch.stack(
             [
-                torch.stack([self.xx, self.xy, self.xz], dim=-1),
-                torch.stack([self.yx, self.yy, self.yz], dim=-1),
-                torch.stack([self.zx, self.zy, self.zz], dim=-1),
+                torch.stack(
+                    [self.xx, self.xy, self.xz], dim=-1),
+                torch.stack(
+                    [self.yx, self.yy, self.yz], dim=-1),
+                torch.stack(
+                    [self.zx, self.zy, self.zz], dim=-1),
             ],
             dim=-2,
         )
@@ -143,7 +154,8 @@ class Rot3Array:
     ) -> Rot3Array:
         """Construct Rot3Array from components of quaternion."""
         if normalize:
-            inv_norm = torch.rsqrt(torch.clamp(w**2 + x**2 + y**2 + z**2, min=eps))
+            inv_norm = torch.rsqrt(torch.clamp(
+                w**2 + x**2 + y**2 + z**2, min=eps))
             w = w * inv_norm
             x = x * inv_norm
             y = y * inv_norm
@@ -161,7 +173,7 @@ class Rot3Array:
 
     def reshape(self, new_shape):
         field_names = utils.get_field_names(Rot3Array)
-        reshape_fn = lambda t: t.reshape(new_shape)
+        def reshape_fn(t): return t.reshape(new_shape)
         return Rot3Array(
             **{name: reshape_fn(getattr(self, name)) for name in field_names}
         )
@@ -169,7 +181,7 @@ class Rot3Array:
     @classmethod
     def cat(cls, rots: List[Rot3Array], dim: int) -> Rot3Array:
         field_names = utils.get_field_names(Rot3Array)
-        cat_fn = lambda l: torch.cat(l, dim=dim)
+        def cat_fn(l): return torch.cat(l, dim=dim)
         return cls(
             **{name: cat_fn([getattr(r, name) for r in rots]) for name in field_names}
         )

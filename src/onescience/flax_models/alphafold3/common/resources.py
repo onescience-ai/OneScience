@@ -10,7 +10,8 @@ from typing import BinaryIO, Final, Literal, TextIO
 import onescience.flax_models.alphafold3.common
 
 _DATA_ROOT: Final[pathlib.Path] = (
-    resources.files(onescience.flax_models.alphafold3.common).joinpath("..").resolve()
+    resources.files(onescience.flax_models.alphafold3.common).joinpath(
+        "..").resolve()
 )
 ROOT = _DATA_ROOT
 
@@ -36,7 +37,8 @@ def open_resource(
 
 
 @typing.overload
-def open_resource(name: str | os.PathLike[str], mode: Literal["rb"]) -> BinaryIO: ...
+def open_resource(
+    name: str | os.PathLike[str], mode: Literal["rb"]) -> BinaryIO: ...
 
 
 def open_resource(name: str | os.PathLike[str], mode: str = "rb") -> TextIO | BinaryIO:

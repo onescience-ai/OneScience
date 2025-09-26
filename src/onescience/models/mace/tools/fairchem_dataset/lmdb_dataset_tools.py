@@ -116,14 +116,17 @@ class BaseDataset(ABC):
             if isinstance(config["src"], str):
                 self.paths = [Path(self.config["src"])]
             else:
-                self.paths = tuple(Path(path) for path in sorted(config["src"]))
+                self.paths = tuple(
+                    Path(path) for path in sorted(config["src"]))
 
         self.lin_ref = None
         if self.config.get("lin_ref", False):
             lin_ref = torch.tensor(
-                np.load(self.config["lin_ref"], allow_pickle=True)["coeff"]
+                np.load(self.config["lin_ref"], allow_pickle=True)[
+                    "coeff"]
             )
-            self.lin_ref = torch.nn.Parameter(lin_ref, requires_grad=False)
+            self.lin_ref = torch.nn.Parameter(
+                lin_ref, requires_grad=False)
 
     def __len__(self) -> int:
         return self.num_samples
@@ -141,7 +144,8 @@ class BaseDataset(ABC):
         metadata_npzs = []
         if self.config.get("metadata_path", None) is not None:
             metadata_npzs.append(
-                np.load(self.config["metadata_path"], allow_pickle=True)
+                np.load(
+                    self.config["metadata_path"], allow_pickle=True)
             )
 
         else:
@@ -151,7 +155,8 @@ class BaseDataset(ABC):
                 else:
                     metadata_file = path / "metadata.npz"
                 if metadata_file.is_file():
-                    metadata_npzs.append(np.load(metadata_file, allow_pickle=True))
+                    metadata_npzs.append(
+                        np.load(metadata_file, allow_pickle=True))
 
         if len(metadata_npzs) == 0:
             logging.warning(
@@ -160,7 +165,8 @@ class BaseDataset(ABC):
             return {}
 
         metadata = {
-            field: np.concatenate([metadata[field] for metadata in metadata_npzs])
+            field: np.concatenate(
+                [metadata[field] for metadata in metadata_npzs])
             for field in metadata_npzs[0]
         }
 
@@ -223,7 +229,8 @@ class LMDBDatabase(ase.db.core.Database):
         create_indices: bool = True,
         use_lock_file: bool = False,
         serial: bool = False,
-        readonly: bool = False,  # Moved after *args to make it keyword-only
+        # Moved after *args to make it keyword-only
+        readonly: bool = False,
         *args,
         **kwargs,
     ) -> None:
@@ -322,7 +329,8 @@ class LMDBDatabase(ase.db.core.Database):
 
         constraints = row.get("constraints")
         if constraints:
-            dct["constraints"] = [constraint.todict() for constraint in constraints]
+            dct["constraints"] = [constraint.todict()
+                                  for constraint in constraints]
 
         # json doesn't like Cell objects, so make it an array
         dct["cell"] = np.asarray(dct["cell"])
@@ -337,14 +345,16 @@ class LMDBDatabase(ase.db.core.Database):
         # Add the new entry
         self.txn.put(
             f"{id}".encode("ascii"),
-            zlib.compress(orjson.dumps(dct, option=orjson.OPT_SERIALIZE_NUMPY)),
+            zlib.compress(orjson.dumps(
+                dct, option=orjson.OPT_SERIALIZE_NUMPY)),
         )
         # only append if idx is not in ids
         if id not in self.ids:
             self.ids.append(id)
             self.txn.put(
                 "nextid".encode("ascii"),
-                zlib.compress(orjson.dumps(nextid, option=orjson.OPT_SERIALIZE_NUMPY)),
+                zlib.compress(orjson.dumps(
+                    nextid, option=orjson.OPT_SERIALIZE_NUMPY)),
             )
         # check if id is in removed ids and remove accordingly
         if id in self.deleted_ids:
@@ -370,7 +380,8 @@ class LMDBDatabase(ase.db.core.Database):
         self.txn.put(
             "deleted_ids".encode("ascii"),
             zlib.compress(
-                orjson.dumps(self.deleted_ids, option=orjson.OPT_SERIALIZE_NUMPY)
+                orjson.dumps(
+                    self.deleted_ids, option=orjson.OPT_SERIALIZE_NUMPY)
             ),
         )
 
@@ -391,7 +402,8 @@ class LMDBDatabase(ase.db.core.Database):
         if data is not None:
             dct = orjson.loads(zlib.decompress(data))
         else:
-            raise KeyError(f"Id {idx} missing from the database!")
+            raise KeyError(
+                f"Id {idx} missing from the database!")
 
         if not include_data:
             dct.pop("data", None)
@@ -401,12 +413,14 @@ class LMDBDatabase(ase.db.core.Database):
 
     def _get_row_by_index(self, index: int, include_data: bool = True):
         """Auxiliary function to get the ith entry, rather than a specific id"""
-        data = self.txn.get(f"{self.ids[index]}".encode("ascii"))
+        data = self.txn.get(
+            f"{self.ids[index]}".encode("ascii"))
 
         if data is not None:
             dct = orjson.loads(zlib.decompress(data))
         else:
-            raise KeyError(f"Id {id} missing from the database!")
+            raise KeyError(
+                f"Id {id} missing from the database!")
 
         if not include_data:
             dct.pop("data", None)
@@ -424,7 +438,8 @@ class LMDBDatabase(ase.db.core.Database):
         offset: int = 0,
         sort: str | None = None,
         include_data: bool = True,
-        _columns: str = "all",  # Unused parameter marked with underscore
+        # Unused parameter marked with underscore
+        _columns: str = "all",
     ):
         if explain:
             yield {"explain": (0, 0, 0, "scan table")}
@@ -450,7 +465,7 @@ class LMDBDatabase(ase.db.core.Database):
             rows += missing
 
             if limit:
-                rows = rows[offset : offset + limit]
+                rows = rows[offset: offset + limit]
             for _, row in rows:
                 yield row
             return
@@ -458,12 +473,14 @@ class LMDBDatabase(ase.db.core.Database):
         if not limit:
             limit = -offset - 1
 
-        cmps = [(key, ase.db.core.ops[op], val) for key, op, val in cmps]
+        cmps = [(key, ase.db.core.ops[op], val)
+                for key, op, val in cmps]
         n = 0
         for idx in self.ids:
             if n - offset == limit:
                 return
-            row = self._get_row(idx, include_data=include_data)
+            row = self._get_row(
+                idx, include_data=include_data)
 
             for key in keys:
                 if key not in row:
@@ -471,12 +488,15 @@ class LMDBDatabase(ase.db.core.Database):
             else:
                 for key, op, val in cmps:
                     if isinstance(key, int):
-                        value = np.equal(row.numbers, key).sum()
+                        value = np.equal(
+                            row.numbers, key).sum()
                     else:
                         value = row.get(key)
                         if key == "pbc":
-                            assert op in [ase.db.core.ops["="], ase.db.core.ops["!="]]
-                            value = "".join("FT"[x] for x in value)
+                            assert op in [
+                                ase.db.core.ops["="], ase.db.core.ops["!="]]
+                            value = "".join(
+                                "FT"[x] for x in value)
                     if value is None or not op(value, val):
                         break
                 else:
@@ -493,11 +513,13 @@ class LMDBDatabase(ase.db.core.Database):
     def db_metadata(self):
         """Load the metadata from the DB if present"""
         if self._metadata is None:
-            metadata = self.txn.get("metadata".encode("ascii"))
+            metadata = self.txn.get(
+                "metadata".encode("ascii"))
             if metadata is None:
                 self._metadata = {}
             else:
-                self._metadata = orjson.loads(zlib.decompress(metadata))
+                self._metadata = orjson.loads(
+                    zlib.decompress(metadata))
 
         return self._metadata.copy()
 
@@ -508,7 +530,8 @@ class LMDBDatabase(ase.db.core.Database):
         # Put the updated metadata dictionary
         self.txn.put(
             "metadata".encode("ascii"),
-            zlib.compress(orjson.dumps(dct, option=orjson.OPT_SERIALIZE_NUMPY)),
+            zlib.compress(orjson.dumps(
+                dct, option=orjson.OPT_SERIALIZE_NUMPY)),
         )
 
     @property
@@ -542,12 +565,15 @@ class LMDBDatabase(ase.db.core.Database):
         we just store the deleted ids.
         """
         # Load the deleted ids
-        deleted_ids_data = self.txn.get("deleted_ids".encode("ascii"))
+        deleted_ids_data = self.txn.get(
+            "deleted_ids".encode("ascii"))
         if deleted_ids_data is not None:
-            self.deleted_ids = orjson.loads(zlib.decompress(deleted_ids_data))
+            self.deleted_ids = orjson.loads(
+                zlib.decompress(deleted_ids_data))
 
         # Reconstruct the full id list
-        self.ids = [i for i in range(1, self._nextid) if i not in set(self.deleted_ids)]
+        self.ids = [i for i in range(
+            1, self._nextid) if i not in set(self.deleted_ids)]
 
 
 # Placeholder for AtomsToGraphs class
@@ -583,36 +609,43 @@ class AtomsToGraphs:
         data = Data()
 
         # Set positions
-        data.pos = torch.tensor(atoms.get_positions(), dtype=torch.float)
+        data.pos = torch.tensor(
+            atoms.get_positions(), dtype=torch.float)
 
         # Set atomic numbers
-        data.atomic_numbers = torch.tensor(atoms.get_atomic_numbers(), dtype=torch.long)
+        data.atomic_numbers = torch.tensor(
+            atoms.get_atomic_numbers(), dtype=torch.long)
 
         # Set cell if available
         if atoms.cell is not None:
-            data.cell = torch.tensor(atoms.get_cell(), dtype=torch.float)
+            data.cell = torch.tensor(
+                atoms.get_cell(), dtype=torch.float)
 
         # Set PBC if requested
         if self.r_pbc:
-            data.pbc = torch.tensor(atoms.get_pbc(), dtype=torch.bool)
+            data.pbc = torch.tensor(
+                atoms.get_pbc(), dtype=torch.bool)
 
         # Set energy if requested
         if self.r_energy:
             energy = self._get_property(atoms, "energy")
             if energy is not None:
-                data.energy = torch.tensor(energy, dtype=torch.float)
+                data.energy = torch.tensor(
+                    energy, dtype=torch.float)
 
         # Set forces if requested
         if self.r_forces:
             forces = self._get_property(atoms, "forces")
             if forces is not None:
-                data.forces = torch.tensor(forces, dtype=torch.float)
+                data.forces = torch.tensor(
+                    forces, dtype=torch.float)
 
         # Set stress if requested
         if self.r_stress:
             stress = self._get_property(atoms, "stress")
             if stress is not None:
-                data.stress = torch.tensor(stress, dtype=torch.float)
+                data.stress = torch.tensor(
+                    stress, dtype=torch.float)
 
         # Set sid if provided
         if sid is not None:
@@ -650,13 +683,15 @@ class AtomsToGraphs:
 
         if prop_name in method_map and hasattr(atoms, method_map[prop_name]):
             try:
-                method = getattr(atoms, method_map[prop_name])
+                method = getattr(
+                    atoms, method_map[prop_name])
                 return method()
             except (
                 AttributeError,
                 RuntimeError,
             ) as exc:  # Fixed W0718 by specifying exceptions
-                logging.debug(f"Error getting property {prop_name}: {exc}")
+                logging.debug(
+                    f"Error getting property {prop_name}: {exc}")
                 # Removed unnecessary pass (W0107)
 
         return None
@@ -694,7 +729,8 @@ class AseAtomsDataset(BaseDataset, ABC):
     def __init__(
         self,
         config: dict,
-        atoms_transform: Callable[[ase.Atoms, Any], ase.Atoms] = apply_one_tags,
+        atoms_transform: Callable[[
+            ase.Atoms, Any], ase.Atoms] = apply_one_tags,
     ) -> None:
         super().__init__(config)
 
@@ -708,8 +744,10 @@ class AseAtomsDataset(BaseDataset, ABC):
         a2g_args["r_pbc"] = True
         self.a2g = AtomsToGraphs(**a2g_args)
 
-        self.key_mapping = self.config.get("key_mapping", None)
-        self.transforms = DataTransforms(self.config.get("transforms", {}))
+        self.key_mapping = self.config.get(
+            "key_mapping", None)
+        self.transforms = DataTransforms(
+            self.config.get("transforms", {}))
 
         self.atoms_transform = atoms_transform
 
@@ -749,16 +787,19 @@ class AseAtomsDataset(BaseDataset, ABC):
 
         # apply linear reference
         if self.a2g.r_energy is True and self.lin_ref is not None:
-            data_object.energy -= sum(self.lin_ref[data_object.atomic_numbers.long()])
+            data_object.energy -= sum(
+                self.lin_ref[data_object.atomic_numbers.long()])
 
         # Transform data object
         data_object = self.transforms(data_object)
 
         if self.key_mapping is not None:
-            data_object = rename_data_object_keys(data_object, self.key_mapping)
+            data_object = rename_data_object_keys(
+                data_object, self.key_mapping)
 
         if self.config.get("include_relaxed_energy", False):
-            data_object.energy_relaxed = self.get_relaxed_energy(self.ids[idx])
+            data_object.energy_relaxed = self.get_relaxed_energy(
+                self.ids[idx])
 
         return data_object
 
@@ -807,11 +848,13 @@ class AseDBDataset(AseAtomsDataset):
             filepaths = []
             for path in sorted(config["src"]):
                 if os.path.isdir(path):
-                    filepaths.extend(sorted(glob(f"{path}/*")))
+                    filepaths.extend(
+                        sorted(glob(f"{path}/*")))
                 elif os.path.isfile(path):
                     filepaths.append(path)
                 else:
-                    raise RuntimeError(f"Error reading dataset in {path}!")
+                    raise RuntimeError(
+                        f"Error reading dataset in {path}!")
         elif os.path.isfile(config["src"]):
             filepaths = [config["src"]]
         elif os.path.isdir(config["src"]):
@@ -823,7 +866,8 @@ class AseDBDataset(AseAtomsDataset):
 
         for path in filepaths:
             try:
-                self.dbs.append(self.connect_db(path, config.get("connect_args", {})))
+                self.dbs.append(self.connect_db(
+                    path, config.get("connect_args", {})))
             except ValueError:
                 logging.debug(
                     f"Tried to connect to {path} but it's not an ASE database!"
@@ -840,7 +884,8 @@ class AseDBDataset(AseAtomsDataset):
                 self.db_ids.append(db.ids)
             else:
                 # this is the slow alternative
-                self.db_ids.append([row.id for row in db.select(**self.select_args)])
+                self.db_ids.append(
+                    [row.id for row in db.select(**self.select_args)])
 
         idlens = [len(ids) for ids in self.db_ids]
         self._idlen_cumulative = np.cumsum(idlens).tolist()
@@ -861,7 +906,8 @@ class AseDBDataset(AseAtomsDataset):
         # Extract index of element within that db
         el_idx = idx
         if db_idx != 0:
-            el_idx = idx - self._idlen_cumulative[db_idx - 1]
+            el_idx = idx - \
+                self._idlen_cumulative[db_idx - 1]
         assert el_idx >= 0
 
         # Use a wrapper method to avoid protected access warning
@@ -903,7 +949,8 @@ class AseDBDataset(AseAtomsDataset):
         if calc_kwargs:
             from ase.calculators.singlepoint import SinglePointCalculator
 
-            calc = SinglePointCalculator(atoms, **calc_kwargs)
+            calc = SinglePointCalculator(
+                atoms, **calc_kwargs)
             atoms.calc = calc
 
         return atoms
@@ -922,7 +969,8 @@ class AseDBDataset(AseAtomsDataset):
     ) -> ase.db.core.Database:
         if connect_args is None:
             connect_args = {}
-        db_type = connect_args.get("type", "extract_from_name")
+        db_type = connect_args.get(
+            "type", "extract_from_name")
         if db_type in ("lmdb", "aselmdb") or (
             db_type == "extract_from_name"
             and str(address).rsplit(".", maxsplit=1)[-1] in ("lmdb", "aselmdb")

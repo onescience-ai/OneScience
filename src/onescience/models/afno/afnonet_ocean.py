@@ -88,7 +88,8 @@ class AFNO2D(nn.Module):
             )
         )
         self.b2 = nn.Parameter(
-            self.scale * torch.randn(2, self.num_blocks, self.block_size)
+            self.scale *
+            torch.randn(2, self.num_blocks, self.block_size)
         )
 
     def forward(self, x):
@@ -104,7 +105,8 @@ class AFNO2D(nn.Module):
         x = torch.fft.rfft2(x, dim=(1, 2), norm="ortho")
 
         # 重组数据，拆分为batch, 14, 8, 8，96
-        x = x.reshape(B, H, W // 2 + 1, self.num_blocks, self.block_size)
+        x = x.reshape(B, H, W // 2 + 1,
+                      self.num_blocks, self.block_size)
 
         # 计算实部
         o1_real = torch.zeros(
@@ -133,14 +135,15 @@ class AFNO2D(nn.Module):
         o2_imag = torch.zeros(x.shape, device=x.device)
 
         total_modes = H // 2 + 1
-        kept_modes = int(total_modes * self.hard_thresholding_fraction)
+        kept_modes = int(
+            total_modes * self.hard_thresholding_fraction)
 
         # 爱因斯坦求和，可以根据第一个参数灵活的计算
         # o1 real的维度为 B, H, W // 2 + 1, self.num_blocks, self.block_size * self.hidden_size_factor
         # 实际是             B 14       8                 8,                           96*1
         # 选择要保留的频率成分，total_modes - kept_modes 到 total_modes + kept_modes 范围内的频率
         # 实际上total_modes == kept_modes，因此保留的就是全部
-        o1_real[:, total_modes - kept_modes : total_modes + kept_modes, :kept_modes] = (
+        o1_real[:, total_modes - kept_modes: total_modes + kept_modes, :kept_modes] = (
             F.relu(
                 torch.einsum(
                     "...bi,bio->...bo",
@@ -152,7 +155,7 @@ class AFNO2D(nn.Module):
                     # 输出维度：[B, 14, 8, 8, 96]
                     x[
                         :,
-                        total_modes - kept_modes : total_modes + kept_modes,
+                        total_modes - kept_modes: total_modes + kept_modes,
                         :kept_modes,
                     ].real,
                     self.w1[0],
@@ -161,7 +164,7 @@ class AFNO2D(nn.Module):
                     "...bi,bio->...bo",
                     x[
                         :,
-                        total_modes - kept_modes : total_modes + kept_modes,
+                        total_modes - kept_modes: total_modes + kept_modes,
                         :kept_modes,
                     ].imag,
                     self.w1[1],
@@ -170,13 +173,13 @@ class AFNO2D(nn.Module):
             )
         )
 
-        o1_imag[:, total_modes - kept_modes : total_modes + kept_modes, :kept_modes] = (
+        o1_imag[:, total_modes - kept_modes: total_modes + kept_modes, :kept_modes] = (
             F.relu(
                 torch.einsum(
                     "...bi,bio->...bo",
                     x[
                         :,
-                        total_modes - kept_modes : total_modes + kept_modes,
+                        total_modes - kept_modes: total_modes + kept_modes,
                         :kept_modes,
                     ].imag,
                     self.w1[0],
@@ -185,7 +188,7 @@ class AFNO2D(nn.Module):
                     "...bi,bio->...bo",
                     x[
                         :,
-                        total_modes - kept_modes : total_modes + kept_modes,
+                        total_modes - kept_modes: total_modes + kept_modes,
                         :kept_modes,
                     ].real,
                     self.w1[1],
@@ -194,36 +197,36 @@ class AFNO2D(nn.Module):
             )
         )
 
-        o2_real[:, total_modes - kept_modes : total_modes + kept_modes, :kept_modes] = (
+        o2_real[:, total_modes - kept_modes: total_modes + kept_modes, :kept_modes] = (
             torch.einsum(
                 "...bi,bio->...bo",
                 o1_real[
-                    :, total_modes - kept_modes : total_modes + kept_modes, :kept_modes
+                    :, total_modes - kept_modes: total_modes + kept_modes, :kept_modes
                 ],
                 self.w2[0],
             )
             - torch.einsum(
                 "...bi,bio->...bo",
                 o1_imag[
-                    :, total_modes - kept_modes : total_modes + kept_modes, :kept_modes
+                    :, total_modes - kept_modes: total_modes + kept_modes, :kept_modes
                 ],
                 self.w2[1],
             )
             + self.b2[0]
         )
 
-        o2_imag[:, total_modes - kept_modes : total_modes + kept_modes, :kept_modes] = (
+        o2_imag[:, total_modes - kept_modes: total_modes + kept_modes, :kept_modes] = (
             torch.einsum(
                 "...bi,bio->...bo",
                 o1_imag[
-                    :, total_modes - kept_modes : total_modes + kept_modes, :kept_modes
+                    :, total_modes - kept_modes: total_modes + kept_modes, :kept_modes
                 ],
                 self.w2[0],
             )
             + torch.einsum(
                 "...bi,bio->...bo",
                 o1_real[
-                    :, total_modes - kept_modes : total_modes + kept_modes, :kept_modes
+                    :, total_modes - kept_modes: total_modes + kept_modes, :kept_modes
                 ],
                 self.w2[1],
             )
@@ -243,7 +246,8 @@ class AFNO2D(nn.Module):
         x = x.reshape(B, H, W // 2 + 1, C)
 
         # 进行逆傅里叶变换，结果是一个实数域张量
-        x = torch.fft.irfft2(x, s=(H, W), dim=(1, 2), norm="ortho")
+        x = torch.fft.irfft2(
+            x, s=(H, W), dim=(1, 2), norm="ortho")
         x = x.type(dtype)
 
         return x + bias
@@ -268,7 +272,8 @@ class Block(nn.Module):
         self.filter = AFNO2D(
             dim, num_blocks, sparsity_threshold, hard_thresholding_fraction
         )
-        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(
+            drop_path) if drop_path > 0.0 else nn.Identity()
         # self.drop_path = nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
@@ -321,8 +326,10 @@ class AFNONet(nn.Module):
         super().__init__()
         self.params = params
         self.depth = params.depth
-        self.img_size = (params.image_width, params.image_height)
-        self.patch_size = (params.patch_size, params.patch_size)
+        self.img_size = (params.image_width,
+                         params.image_height)
+        self.patch_size = (
+            params.patch_size, params.patch_size)
         self.in_chans = len(params.in_channels)
         self.out_chans = len(params.out_channels)
         self.num_features = self.embed_dim = embed_dim
@@ -337,10 +344,12 @@ class AFNONet(nn.Module):
         )
         num_patches = self.patch_embed.num_patches
 
-        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, embed_dim))
+        self.pos_embed = nn.Parameter(
+            torch.zeros(1, num_patches, embed_dim))
         self.pos_drop = nn.Dropout(p=drop_rate)
 
-        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, self.depth)]
+        dpr = [x.item() for x in torch.linspace(
+            0, drop_path_rate, self.depth)]
         self.h = self.img_size[0] // self.patch_size[0]
         self.w = self.img_size[1] // self.patch_size[1]
         self.blocks = nn.ModuleList(
@@ -363,7 +372,8 @@ class AFNONet(nn.Module):
         # 输入为768， 输出为目标通道*patch长*patch宽，用于后续重组
         self.head = nn.Linear(
             embed_dim,
-            self.out_chans * self.patch_size[0] * self.patch_size[1],
+            self.out_chans *
+            self.patch_size[0] * self.patch_size[1],
             bias=False,
         )
 
@@ -428,7 +438,8 @@ class PatchEmbed(nn.Module):
     # 将一张图划分为patch
     def __init__(self, img_size, patch_size, in_chans=3, embed_dim=768):
         super().__init__()
-        num_patches = (img_size[1] // patch_size[1]) * (img_size[0] // patch_size[0])
+        num_patches = (
+            img_size[1] // patch_size[1]) * (img_size[0] // patch_size[0])
         self.img_size = img_size
         self.patch_size = patch_size
         self.num_patches = num_patches

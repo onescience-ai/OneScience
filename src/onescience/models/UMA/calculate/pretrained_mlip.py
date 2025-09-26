@@ -20,8 +20,10 @@ class HuggingFaceCheckpoint:
     filename: str
     repo_id: Literal["facebook/UMA"]
     subfolder: str | None = None  # specify a hf repo subfolder
-    revision: str | None = None  # specify a version tag, branch, commit hash
-    atom_refs: dict | None = None  # specify an isolated atomic reference
+    # specify a version tag, branch, commit hash
+    revision: str | None = None
+    # specify an isolated atomic reference
+    atom_refs: dict | None = None
 
 
 @dataclass
@@ -30,7 +32,8 @@ class PretrainedModels:
 
 
 # 这里指定新的路径
-pretrained_model_path = os.path.join(os.getcwd(), "models", "pretrained_models.json")
+pretrained_model_path = os.path.join(
+    os.getcwd(), "models", "pretrained_models.json")
 
 # 加载 pretrained_models.json
 with open(pretrained_model_path, "rb") as f:
@@ -87,7 +90,8 @@ def get_predict_unit(
         revision=model_checkpoint.revision,
         cache_dir=cache_dir,
     )
-    atom_refs = get_isolated_atomic_energies(model_name, cache_dir)
+    atom_refs = get_isolated_atomic_energies(
+        model_name, cache_dir)
     return load_predict_unit(
         checkpoint_path, inference_settings, overrides, device, atom_refs
     )

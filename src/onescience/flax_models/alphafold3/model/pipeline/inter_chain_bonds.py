@@ -80,21 +80,25 @@ def get_polymer_ligand_and_ligand_ligand_bonds(
                 *mmcif_names.POLYMER_CHAIN_TYPES,
             }
         ),
-        allowed_chain_types2=list(mmcif_names.LIGAND_CHAIN_TYPES),
+        allowed_chain_types2=list(
+            mmcif_names.LIGAND_CHAIN_TYPES),
         allowed_res_names=allowed_res_names,
         allow_multiple_bonds_per_atom=allow_multiple_bonds_per_atom,
     )
     ligand_ligand_bonds_mask = np.isin(
-        all_bonds.chain_type, list(mmcif_names.LIGAND_CHAIN_TYPES)
+        all_bonds.chain_type, list(
+            mmcif_names.LIGAND_CHAIN_TYPES)
     )
     polymer_ligand_bonds_mask = np.isin(
-        all_bonds.chain_type, list(mmcif_names.POLYMER_CHAIN_TYPES)
+        all_bonds.chain_type, list(
+            mmcif_names.POLYMER_CHAIN_TYPES)
     )
     polymer_ligand_bonds_mask = np.logical_and(
         ligand_ligand_bonds_mask.any(axis=1),
         polymer_ligand_bonds_mask.any(axis=1),
     )
-    ligand_ligand_bonds = all_bonds[ligand_ligand_bonds_mask.all(axis=1)]
+    ligand_ligand_bonds = all_bonds[ligand_ligand_bonds_mask.all(
+        axis=1)]
     polymer_ligand_bonds = all_bonds[polymer_ligand_bonds_mask]
     return polymer_ligand_bonds, ligand_ligand_bonds
 
@@ -113,7 +117,8 @@ def _remove_multi_bonds(
     ):
         key1 = (chain_id[0], res_id[0], atom_name[0])
         key2 = (chain_id[1], res_id[1], atom_name[1])
-        keep_indx.append(bool(key1 not in uids) and bool(key2 not in uids))
+        keep_indx.append(
+            bool(key1 not in uids) and bool(key2 not in uids))
         if key1 not in uids:
             uids[key1] = None
         if key2 not in uids:
@@ -154,8 +159,10 @@ def get_ligand_ligand_bonds(
             else BOND_THRESHOLD_ALL_ANGSTROM
         ),
         struct=struct,
-        allowed_chain_types1=list(mmcif_names.LIGAND_CHAIN_TYPES),
-        allowed_chain_types2=list(mmcif_names.LIGAND_CHAIN_TYPES),
+        allowed_chain_types1=list(
+            mmcif_names.LIGAND_CHAIN_TYPES),
+        allowed_chain_types2=list(
+            mmcif_names.LIGAND_CHAIN_TYPES),
         allowed_res_names=allowed_res_names,
         allow_multiple_bonds_per_atom=allow_multiple_bonds_per_atom,
     )
@@ -197,8 +204,10 @@ def get_polymer_ligand_bonds(
     return get_bond_layout(
         bond_threshold=bond_threshold,
         struct=struct,
-        allowed_chain_types1=list(mmcif_names.POLYMER_CHAIN_TYPES),
-        allowed_chain_types2=list(mmcif_names.LIGAND_CHAIN_TYPES),
+        allowed_chain_types1=list(
+            mmcif_names.POLYMER_CHAIN_TYPES),
+        allowed_chain_types2=list(
+            mmcif_names.LIGAND_CHAIN_TYPES),
         allowed_res_names=allowed_res_names,
         allow_multiple_bonds_per_atom=allow_multiple_bonds_per_atom,
     )
@@ -250,9 +259,12 @@ def get_bond_layout(
             chain_type=np.empty((0, 2), dtype=object),
             atom_element=np.empty((0, 2), dtype=object),
         )
-    from_atom_idxs, dest_atom_idxs = struct.bonds.get_atom_indices(struct.atom_key)
-    from_atoms = _get_bond_atom_arrays(struct, from_atom_idxs)
-    dest_atoms = _get_bond_atom_arrays(struct, dest_atom_idxs)
+    from_atom_idxs, dest_atom_idxs = struct.bonds.get_atom_indices(
+        struct.atom_key)
+    from_atoms = _get_bond_atom_arrays(
+        struct, from_atom_idxs)
+    dest_atoms = _get_bond_atom_arrays(
+        struct, dest_atom_idxs)
     # Chain type
     chain_mask = np.logical_or(
         np.logical_and(
@@ -287,12 +299,15 @@ def get_bond_layout(
     else:
         all_mask = chain_mask
     # Bond type mask
-    type_mask = np.isin(struct.bonds.type, list(include_bond_types))
+    type_mask = np.isin(
+        struct.bonds.type, list(include_bond_types))
     np.logical_and(all_mask, type_mask, out=all_mask)
     # Bond length check. Work in square length to avoid taking many square roots.
-    bond_length_squared = np.square(from_atoms.coords - dest_atoms.coords).sum(axis=1)
+    bond_length_squared = np.square(
+        from_atoms.coords - dest_atoms.coords).sum(axis=1)
     bond_threshold_squared = bond_threshold * bond_threshold
-    np.logical_and(all_mask, bond_length_squared < bond_threshold_squared, out=all_mask)
+    np.logical_and(all_mask, bond_length_squared <
+                   bond_threshold_squared, out=all_mask)
     # Inter-chain and inter-residue bonds for ligands
     ligand_types = list(mmcif_names.LIGAND_CHAIN_TYPES)
     is_ligand = np.logical_or(
@@ -307,14 +322,18 @@ def get_bond_layout(
     )
     res_id_differs = from_atoms.res_id != dest_atoms.res_id
     chain_id_differs = from_atoms.chain_id != dest_atoms.chain_id
-    is_inter_res = np.logical_or(res_id_differs, chain_id_differs)
-    is_inter_ligand_res = np.logical_and(is_inter_res, is_ligand)
-    is_inter_chain_not_ligand = np.logical_and(chain_id_differs, ~is_ligand)
+    is_inter_res = np.logical_or(
+        res_id_differs, chain_id_differs)
+    is_inter_ligand_res = np.logical_and(
+        is_inter_res, is_ligand)
+    is_inter_chain_not_ligand = np.logical_and(
+        chain_id_differs, ~is_ligand)
     # If ligand then inter-res & inter-chain bonds, otherwise inter-chain only.
     combined_allowed_bonds = np.logical_or(
         is_inter_chain_not_ligand, is_inter_ligand_res
     )
-    np.logical_and(all_mask, combined_allowed_bonds, out=all_mask)
+    np.logical_and(
+        all_mask, combined_allowed_bonds, out=all_mask)
     bond_layout = atom_layout.AtomLayout(
         atom_name=np.stack(
             [
@@ -325,7 +344,8 @@ def get_bond_layout(
             dtype=object,
         ),
         res_id=np.stack(
-            [from_atoms.res_id[all_mask], dest_atoms.res_id[all_mask]],
+            [from_atoms.res_id[all_mask],
+                dest_atoms.res_id[all_mask]],
             axis=1,
             dtype=int,
         ),
@@ -342,5 +362,6 @@ def get_bond_layout(
         bond_layout = _remove_multi_bonds(bond_layout)
     return atom_layout.fill_in_optional_fields(
         bond_layout,
-        reference_atoms=atom_layout.atom_layout_from_structure(struct),
+        reference_atoms=atom_layout.atom_layout_from_structure(
+            struct),
     )

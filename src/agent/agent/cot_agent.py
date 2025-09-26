@@ -1,23 +1,22 @@
 #!/user/bin/env
+from agent.untils.until import pretty_print
+from agent.agent.unit.tool_runner import ToolRunner
+from agent.agent.unit.cot_runner import CotRunner
+from yaml import safe_load
+from langgraph.typing import StateLike
+from langgraph.graph import END, StateGraph
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.runnables.utils import Input, Output
+from langchain_core.runnables import Runnable, RunnableConfig
+from typing import Any, Dict, Iterator, Optional
 import argparse
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-sys.path.append(os.path.join(os.path.dirname(__file__), "unit"))
-
-from typing import Any, Dict, Iterator, Optional
-
-from langchain_core.runnables import Runnable, RunnableConfig
-from langchain_core.runnables.utils import Input, Output
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.graph import END, StateGraph
-from langgraph.typing import StateLike
-from yaml import safe_load
-
-from agent.agent.unit.cot_runner import CotRunner
-from agent.agent.unit.tool_runner import ToolRunner
-from agent.untils.until import pretty_print
+sys.path.append(os.path.dirname(
+    os.path.dirname(os.path.dirname(__file__))))
+sys.path.append(os.path.join(
+    os.path.dirname(__file__), "unit"))
 
 
 class CotAgent(Runnable):
@@ -53,7 +52,8 @@ class CotAgent(Runnable):
         workflow.add_edge("tools", "agent")
 
         # Compile the graph
-        self.workflow = workflow.compile(checkpointer=mem or InMemorySaver())
+        self.workflow = workflow.compile(
+            checkpointer=mem or InMemorySaver())
 
     def invoke(
         self,
@@ -109,7 +109,8 @@ if __name__ == "__main__":
     from agent.untils.until import gen_job_log_name, setup_global_logger
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--job_name", type=str, required=True, description="任务名称")
+    parser.add_argument(
+        "--job_name", type=str, required=True, description="任务名称")
     parser.add_argument(
         "--human_message", type=str, required=True, description="用户任务输入"
     )

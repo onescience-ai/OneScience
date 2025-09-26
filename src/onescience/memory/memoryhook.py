@@ -50,7 +50,9 @@ class register_memory_class:
 
         if self.forward:
             for name, layer in model.named_modules():
-                layer.register_forward_hook(monitor_memory_forward)
+                layer.register_forward_hook(
+                    monitor_memory_forward)
         if self.backward:
             for name, layer in model.named_modules():
-                layer.register_backward_hook(monitor_memory_backward)
+                layer.register_backward_hook(
+                    monitor_memory_backward)

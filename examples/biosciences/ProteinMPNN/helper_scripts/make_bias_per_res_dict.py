@@ -45,20 +45,23 @@ def main(args):
             bias_per_residue = np.zeros([chain_length, 21])
 
             if chain == "A":
-                residues = [0, 1, 2, 3, 4, 5, 11, 12, 13, 14, 15]
+                residues = [0, 1, 2, 3, 4,
+                            5, 11, 12, 13, 14, 15]
                 amino_acids = [5, 9]  # [G, L]
                 for res in residues:
                     for aa in amino_acids:
                         bias_per_residue[res, aa] = 100.5
 
             if chain == "C":
-                residues = [0, 1, 2, 3, 4, 5, 11, 12, 13, 14, 15]
+                residues = [0, 1, 2, 3, 4,
+                            5, 11, 12, 13, 14, 15]
                 amino_acids = range(21)[1:]  # [G, L]
                 for res in residues:
                     for aa in amino_acids:
                         bias_per_residue[res, aa] = -100.5
 
-            bias_by_res_dict[chain] = bias_per_residue.tolist()
+            bias_by_res_dict[chain] = bias_per_residue.tolist(
+            )
         my_dict[result["name"]] = bias_by_res_dict
 
     with open(args.output_path, "w") as f:
@@ -69,7 +72,8 @@ if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
-    argparser.add_argument("--input_path", type=str, help="Path to the parsed PDBs")
+    argparser.add_argument(
+        "--input_path", type=str, help="Path to the parsed PDBs")
     argparser.add_argument(
         "--output_path", type=str, help="Path to the output dictionary"
     )

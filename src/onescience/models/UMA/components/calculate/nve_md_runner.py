@@ -30,7 +30,8 @@ def get_thermo(filename):
         thermo = f.read().splitlines()
         sim_time, Et = [], []
         for i in range(1, len(thermo)):
-            t, Etot, _, _, _ = (float(x) for x in thermo[i].split(" ") if x)
+            t, Etot, _, _, _ = (float(x)
+                                for x in thermo[i].split(" ") if x)
             sim_time.append(t)
             Et.append(Etot)
     return np.array(sim_time), np.array(Et)
@@ -83,18 +84,21 @@ def get_nve_md_data(dataset_root, dataset_name):
     if dataset_name == "tm23":
         dataset = [
             (
-                ase.io.read(f"{dataset_root}/tm23/{metal}_melt_nequip_test.xyz"),
+                ase.io.read(
+                    f"{dataset_root}/tm23/{metal}_melt_nequip_test.xyz"),
                 TM23_TEMP[metal],
             )
             for metal in TM23_METALS
         ]
     elif dataset_name == "md22":
         dataset = [
-            (ase.io.read(f"{dataset_root}/md22/md22_{mol}.xyz"), MD22_TEMP[mol])
+            (ase.io.read(
+                f"{dataset_root}/md22/md22_{mol}.xyz"), MD22_TEMP[mol])
             for mol in MD22_MOLS
         ]
     else:
-        raise ValueError(f"Unknown dataset name: {dataset_name}")
+        raise ValueError(
+            f"Unknown dataset name: {dataset_name}")
     return dataset
 
 
@@ -161,7 +165,8 @@ class NVEMDRunner(CalculateRunner):
 
         # run MD
         MaxwellBoltzmannDistribution(atoms, temp * units.kB)
-        integrator = VelocityVerlet(atoms=atoms, timestep=self.time_step * units.fs)
+        integrator = VelocityVerlet(
+            atoms=atoms, timestep=self.time_step * units.fs)
         logger = MDLogger(
             dyn=integrator,
             atoms=atoms,
@@ -171,7 +176,8 @@ class NVEMDRunner(CalculateRunner):
             ),
             peratom=True,
         )
-        integrator.attach(logger, interval=self.save_frequency)
+        integrator.attach(
+            logger, interval=self.save_frequency)
 
         for _step in tqdm(range(self.steps)):
             integrator.run(1)

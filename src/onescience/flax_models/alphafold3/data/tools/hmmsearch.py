@@ -76,23 +76,29 @@ class Hmmsearch(object):
 
         self.flags = tuple(map(str, flags))
 
-        subprocess_utils.check_binary_exists(path=self.binary_path, name="hmmsearch")
+        subprocess_utils.check_binary_exists(
+            path=self.binary_path, name="hmmsearch")
 
         if not os.path.exists(self.database_path):
-            logging.error("Could not find hmmsearch database %s", database_path)
-            raise ValueError(f"Could not find hmmsearch database {database_path}")
+            logging.error(
+                "Could not find hmmsearch database %s", database_path)
+            raise ValueError(
+                f"Could not find hmmsearch database {database_path}")
 
     def query_with_hmm(self, hmm: str) -> str:
         """Queries the database using hmmsearch using a given hmm."""
         with tempfile.TemporaryDirectory() as query_tmp_dir:
-            hmm_input_path = os.path.join(query_tmp_dir, "query.hmm")
-            sto_out_path = os.path.join(query_tmp_dir, "output.sto")
+            hmm_input_path = os.path.join(
+                query_tmp_dir, "query.hmm")
+            sto_out_path = os.path.join(
+                query_tmp_dir, "output.sto")
             with open(hmm_input_path, "w") as f:
                 f.write(hmm)
 
             cmd = [
                 self.binary_path,
-                "--noali",  # Don't include the alignment in stdout.
+                # Don't include the alignment in stdout.
+                "--noali",
                 *("--cpu", "8"),
             ]
             # If adding flags, we have to do so before the output and input:
@@ -126,7 +132,8 @@ class Hmmsearch(object):
 
         # Only the "fast" model construction makes sense with A3M, as it doesn't
         # have any way to annotate reference columns.
-        hmm = self.hmmbuild_runner.build_profile_from_a3m(a3m_in)
+        hmm = self.hmmbuild_runner.build_profile_from_a3m(
+            a3m_in)
         return self.query_with_hmm(hmm)
 
     def query_with_sto(self, msa_sto: str, model_construction: str = "fast") -> str:

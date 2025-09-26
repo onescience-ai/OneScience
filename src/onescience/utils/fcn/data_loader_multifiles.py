@@ -15,7 +15,8 @@ from onescience.utils.fcn.img_utils import reshape_fields, reshape_precip
 def get_data_loader(params, files_pattern, distributed, train):
 
     dataset = GetDataset(params, files_pattern, train)
-    sampler = DistributedSampler(dataset, shuffle=train) if distributed else None
+    sampler = DistributedSampler(
+        dataset, shuffle=train) if distributed else None
 
     dataloader = DataLoader(
         dataset,
@@ -54,7 +55,8 @@ class GetDataset(Dataset):
         self.add_noise = params.add_noise if train else False
 
         if self.precip:
-            path = params.precip + "/train" if train else params.precip + "/test"
+            path = params.precip + \
+                "/train" if train else params.precip + "/test"
             self.precip_paths = glob.glob(path + "/*.h5")
             self.precip_paths.sort()
 
@@ -69,11 +71,13 @@ class GetDataset(Dataset):
             self.orography_path = params.orography_path
 
     def _get_files_stats(self):
-        self.files_paths = glob.glob(self.location + "/*.h5")
+        self.files_paths = glob.glob(
+            self.location + "/*.h5")
         self.files_paths.sort()
         self.n_years = len(self.files_paths)
         with h5py.File(self.files_paths[0], "r") as _f:
-            logging.info("Getting file stats from {}".format(self.files_paths[0]))
+            logging.info("Getting file stats from {}".format(
+                self.files_paths[0]))
             self.n_samples_per_year = _f["fields"].shape[0]
             # original image shape (before padding)
             self.img_shape_x = (
@@ -83,8 +87,10 @@ class GetDataset(Dataset):
 
         self.n_samples_total = self.n_years * self.n_samples_per_year
         self.files = [None for _ in range(self.n_years)]
-        self.precip_files = [None for _ in range(self.n_years)]
-        logging.info("Number of samples per year: {}".format(self.n_samples_per_year))
+        self.precip_files = [
+            None for _ in range(self.n_years)]
+        logging.info("Number of samples per year: {}".format(
+            self.n_samples_per_year))
         logging.info(
             "Found data at path {}. Number of examples: {}. Image Shape: {} x {} x {}".format(
                 self.location,
@@ -94,7 +100,8 @@ class GetDataset(Dataset):
                 self.n_in_channels,
             )
         )
-        logging.info("Delta t: {} hours".format(6 * self.dt))
+        logging.info(
+            "Delta t: {} hours".format(6 * self.dt))
         logging.info(
             "Including {} hours of past history in training at a frequency of {} hours".format(
                 6 * self.dt * self.n_history, 6 * self.dt
@@ -116,7 +123,8 @@ class GetDataset(Dataset):
         return self.n_samples_total
 
     def __getitem__(self, global_idx):
-        year_idx = int(global_idx / self.n_samples_per_year)  # which year we are on
+        # which year we are on
+        year_idx = int(global_idx / self.n_samples_per_year)
         local_idx = int(
             global_idx % self.n_samples_per_year
         )  # which sample in that year we are on - determines indices for centering
@@ -135,12 +143,14 @@ class GetDataset(Dataset):
                 local_idx += self.dt * self.n_history
 
             # if we are on the last image in a year predict identity, else predict next timestep
-            step = 0 if local_idx >= self.n_samples_per_year - self.dt else self.dt
+            step = 0 if local_idx >= self.n_samples_per_year - \
+                self.dt else self.dt
         else:
             inp_local_idx = local_idx
             tar_local_idx = local_idx
             # if we are on the last image in a year predict identity, else predict next timestep
-            step = 0 if tar_local_idx >= self.n_samples_per_year - self.dt else self.dt
+            step = 0 if tar_local_idx >= self.n_samples_per_year - \
+                self.dt else self.dt
             # first year has 2 missing samples in precip (they are first two time points)
             if year_idx == 0:
                 lim = 1458
@@ -166,15 +176,18 @@ class GetDataset(Dataset):
             orog = None
 
         if self.train and (self.crop_size_x or self.crop_size_y):
-            rnd_x = random.randint(0, self.img_shape_x - self.crop_size_x)
-            rnd_y = random.randint(0, self.img_shape_y - self.crop_size_y)
+            rnd_x = random.randint(
+                0, self.img_shape_x - self.crop_size_x)
+            rnd_y = random.randint(
+                0, self.img_shape_y - self.crop_size_y)
         else:
             rnd_x = 0
             rnd_y = 0
 
         if self.precip:
             return reshape_fields(
-                self.files[year_idx][inp_local_idx, self.in_channels],
+                self.files[year_idx][inp_local_idx,
+                                     self.in_channels],
                 "inp",
                 self.crop_size_x,
                 self.crop_size_y,
@@ -198,9 +211,9 @@ class GetDataset(Dataset):
             if self.two_step_training:
                 return reshape_fields(
                     self.files[year_idx][
-                        (local_idx - self.dt * self.n_history) : (
+                        (local_idx - self.dt * self.n_history): (
                             local_idx + 1
-                        ) : self.dt,
+                        ): self.dt,
                         self.in_channels,
                     ],
                     "inp",
@@ -216,7 +229,7 @@ class GetDataset(Dataset):
                     self.add_noise,
                 ), reshape_fields(
                     self.files[year_idx][
-                        local_idx + step : local_idx + step + 2, self.out_channels
+                        local_idx + step: local_idx + step + 2, self.out_channels
                     ],
                     "tar",
                     self.crop_size_x,
@@ -232,9 +245,9 @@ class GetDataset(Dataset):
             else:
                 return reshape_fields(
                     self.files[year_idx][
-                        (local_idx - self.dt * self.n_history) : (
+                        (local_idx - self.dt * self.n_history): (
                             local_idx + 1
-                        ) : self.dt,
+                        ): self.dt,
                         self.in_channels,
                     ],
                     "inp",
@@ -249,7 +262,8 @@ class GetDataset(Dataset):
                     orog,
                     self.add_noise,
                 ), reshape_fields(
-                    self.files[year_idx][local_idx + step, self.out_channels],
+                    self.files[year_idx][local_idx +
+                                         step, self.out_channels],
                     "tar",
                     self.crop_size_x,
                     self.crop_size_y,

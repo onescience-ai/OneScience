@@ -46,7 +46,9 @@ class AdsorbMLReducer(JsonDFReducer):
             results[f"{self.target_data_key}"]
             - results[f"{self.target_data_key}_target"]
         )
-        success_rate = (results["diff"] <= self.threshold).sum() / results["diff"].size
+        success_rate = (results["diff"] <= self.threshold).sum(
+        ) / results["diff"].size
         num_anomalies = results["anomaly_count"].sum()
-        metrics = {"success_rate": success_rate, "num_anomalies": num_anomalies}
+        metrics = {"success_rate": success_rate,
+                   "num_anomalies": num_anomalies}
         return pd.DataFrame([metrics], index=[run_name])

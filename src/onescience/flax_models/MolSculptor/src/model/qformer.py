@@ -1,17 +1,15 @@
 """Q-Former model"""
 
+from .transformer import AttentionBlock, TransitionBlock
+from ..module.transformer import NormBlock
+from ml_collections.config_dict import ConfigDict
+from jax import Array
 import os
 import sys
 
 import flax.linen as nn
 
 sys.path.append(os.path.dirname(sys.path[0]))
-
-from jax import Array
-from ml_collections.config_dict import ConfigDict
-
-from ..module.transformer import NormBlock
-from .transformer import AttentionBlock, TransitionBlock
 
 
 class QFormerBlock(nn.Module):
@@ -30,11 +28,11 @@ class QFormerBlock(nn.Module):
         q_rope_index=None,
     ) -> Array:
 
-        #### set global config
+        # set global config
         norm_method = self.global_config.norm_method
         norm_small = self.global_config.norm_small
 
-        #### 1. Self Attention Block
+        # 1. Self Attention Block
         act, d_act, m_act = (q_act, q_act, q_mask)
         d_act = AttentionBlock(
             self.config.self_attention,
@@ -44,8 +42,9 @@ class QFormerBlock(nn.Module):
         acc_act += d_act
         act = NormBlock(norm_method, norm_small)(act)
 
-        #### 2. Cross Attention Block
-        act, d_act, m_act = act, (act, kv_act), (q_mask, kv_mask)
+        # 2. Cross Attention Block
+        act, d_act, m_act = act, (act,
+                                  kv_act), (q_mask, kv_mask)
         d_act = AttentionBlock(
             self.config.cross_attention,
             self.global_config,
@@ -54,7 +53,7 @@ class QFormerBlock(nn.Module):
         acc_act += d_act
         act = NormBlock(norm_method, norm_small)(act)
 
-        #### 3. Feed Forward Block
+        # 3. Feed Forward Block
         act, d_act = act, act
         d_act = TransitionBlock(
             self.config.transition_block,

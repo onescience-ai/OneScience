@@ -47,7 +47,8 @@ class MollifiedUniformPrior(Prior):
     support = constraints.real
 
     def __init__(self, a, b, tail_sigma=0.1):
-        self.a, self.b, self.tail_sigma = broadcast_all(a, b, tail_sigma)
+        self.a, self.b, self.tail_sigma = broadcast_all(
+            a, b, tail_sigma)
 
         if isinstance(a, Number) or isinstance(b, Number):
             batch_shape = torch.Size()
@@ -67,12 +68,14 @@ class MollifiedUniformPrior(Prior):
     @property
     def _log_normalization_constant(self):
         return -torch.log(
-            1 + (self.b - self.a) / (math.sqrt(2 * math.pi) * self.tail_sigma)
+            1 + (self.b - self.a) /
+            (math.sqrt(2 * math.pi) * self.tail_sigma)
         )
 
     def log_prob(self, X):
         # expression preserving gradients under automatic differentiation
-        tail_dist = ((X - self.mean).abs() - self._half_range).clamp(min=0)
+        tail_dist = ((X - self.mean).abs() -
+                     self._half_range).clamp(min=0)
         return (
             Normal(loc=torch.zeros_like(self.a), scale=self.tail_sigma).log_prob(
                 tail_dist

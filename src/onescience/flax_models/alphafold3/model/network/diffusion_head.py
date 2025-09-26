@@ -27,7 +27,8 @@ def random_rotation(key):
     # random normal vectors)
     v0, v1 = jax.random.normal(key, shape=(2, 3))
     e0 = v0 / jnp.maximum(1e-10, jnp.linalg.norm(v0))
-    v1 = v1 - e0 * jnp.dot(v1, e0, precision=jax.lax.Precision.HIGHEST)
+    v1 = v1 - e0 * \
+        jnp.dot(v1, e0, precision=jax.lax.Precision.HIGHEST)
     e1 = v1 / jnp.maximum(1e-10, jnp.linalg.norm(v1))
     e2 = jnp.cross(e0, e1)
     return jnp.stack([e0, e1, e2])
@@ -48,13 +49,15 @@ def random_augmentation(
     Returns:
       Transformed positions with the same shape as input positions.
     """
-    rotation_key, translation_key = jax.random.split(rng_key)
+    rotation_key, translation_key = jax.random.split(
+        rng_key)
 
     center = utils.mask_mean(
         mask[..., None], positions, axis=(-2, -3), keepdims=True, eps=1e-6
     )
     rot = random_rotation(rotation_key)
-    translation = jax.random.normal(translation_key, shape=(3,))
+    translation = jax.random.normal(
+        translation_key, shape=(3,))
 
     augmented_positions = (
         jnp.einsum(
@@ -125,15 +128,18 @@ class DiffusionHead(hk.Module):
         noise_level: jnp.ndarray,
         use_conditioning: bool,
     ) -> tuple[jnp.ndarray, jnp.ndarray]:
-        single_embedding = use_conditioning * embeddings["single"]
-        pair_embedding = use_conditioning * embeddings["pair"]
+        single_embedding = use_conditioning * \
+            embeddings["single"]
+        pair_embedding = use_conditioning * \
+            embeddings["pair"]
 
         rel_features = featurization.create_relative_encoding(
             seq_features=batch.token_features,
             max_relative_idx=32,
             max_relative_chain=2,
         ).astype(pair_embedding.dtype)
-        features_2d = jnp.concatenate([pair_embedding, rel_features], axis=-1)
+        features_2d = jnp.concatenate(
+            [pair_embedding, rel_features], axis=-1)
         pair_cond = hm.Linear(
             self.config.conditioning.pair_channel,
             precision="highest",
@@ -152,7 +158,8 @@ class DiffusionHead(hk.Module):
             )
 
         target_feat = embeddings["target_feat"]
-        features_1d = jnp.concatenate([single_embedding, target_feat], axis=-1)
+        features_1d = jnp.concatenate(
+            [single_embedding, target_feat], axis=-1)
         single_cond = hm.LayerNorm(
             use_fast_variance=False,
             create_offset=False,
@@ -211,7 +218,8 @@ class DiffusionHead(hk.Module):
 
             # Position features
             act = positions_noisy * atom_mask[..., None]
-            act = act / jnp.sqrt(noise_level**2 + SIGMA_DATA**2)
+            act = act / \
+                jnp.sqrt(noise_level**2 + SIGMA_DATA**2)
 
             enc = atom_cross_attention.atom_cross_att_encoder(
                 token_atoms_act=act,
@@ -225,7 +233,8 @@ class DiffusionHead(hk.Module):
             act = enc.token_act
 
             # Token-token attention
-            chex.assert_shape(act, (None, self.config.per_token_channels))
+            chex.assert_shape(
+                act, (None, self.config.per_token_channels))
             act = jnp.asarray(act, dtype=jnp.float32)
 
             act += hm.Linear(
@@ -242,9 +251,12 @@ class DiffusionHead(hk.Module):
             )
 
             act = jnp.asarray(act, dtype=jnp.float32)
-            trunk_single_cond = jnp.asarray(trunk_single_cond, dtype=jnp.float32)
-            trunk_pair_cond = jnp.asarray(trunk_pair_cond, dtype=jnp.float32)
-            sequence_mask = jnp.asarray(sequence_mask, dtype=jnp.float32)
+            trunk_single_cond = jnp.asarray(
+                trunk_single_cond, dtype=jnp.float32)
+            trunk_pair_cond = jnp.asarray(
+                trunk_pair_cond, dtype=jnp.float32)
+            sequence_mask = jnp.asarray(
+                sequence_mask, dtype=jnp.float32)
 
             transformer = diffusion_transformer.Transformer(
                 self.config.transformer, self.global_config
@@ -261,7 +273,8 @@ class DiffusionHead(hk.Module):
             # (n_tokens, per_token_channels)
 
             # (Possibly) atom-granularity decoder
-            assert isinstance(enc, atom_cross_attention.AtomCrossAttEncoderOutput)
+            assert isinstance(
+                enc, atom_cross_attention.AtomCrossAttEncoderOutput)
             position_update = atom_cross_attention.atom_cross_att_decoder(
                 token_act=act,
                 enc=enc,
@@ -271,14 +284,17 @@ class DiffusionHead(hk.Module):
                 name="diffusion",
             )
 
-            skip_scaling = SIGMA_DATA**2 / (noise_level**2 + SIGMA_DATA**2)
+            skip_scaling = SIGMA_DATA**2 / \
+                (noise_level**2 + SIGMA_DATA**2)
             out_scaling = (
-                noise_level * SIGMA_DATA / jnp.sqrt(noise_level**2 + SIGMA_DATA**2)
+                noise_level * SIGMA_DATA /
+                jnp.sqrt(noise_level**2 + SIGMA_DATA**2)
             )
         # End `with utils.bfloat16_context()`.
 
         return (
-            skip_scaling * positions_noisy + out_scaling * position_update
+            skip_scaling * positions_noisy +
+            out_scaling * position_update
         ) * atom_mask[..., None]
 
 
@@ -313,29 +329,38 @@ def sample(
         key, positions, noise_level_prev = carry
         key, key_noise, key_aug = jax.random.split(key, 3)
 
-        positions = random_augmentation(rng_key=key_aug, positions=positions, mask=mask)
+        positions = random_augmentation(
+            rng_key=key_aug, positions=positions, mask=mask)
 
-        gamma = config.gamma_0 * (noise_level > config.gamma_min)
+        gamma = config.gamma_0 * \
+            (noise_level > config.gamma_min)
         t_hat = noise_level_prev * (1 + gamma)
 
-        noise_scale = config.noise_scale * jnp.sqrt(t_hat**2 - noise_level_prev**2)
-        noise = noise_scale * jax.random.normal(key_noise, positions.shape)
+        noise_scale = config.noise_scale * \
+            jnp.sqrt(t_hat**2 - noise_level_prev**2)
+        noise = noise_scale * \
+            jax.random.normal(key_noise, positions.shape)
         positions_noisy = positions + noise
 
-        positions_denoised = denoising_step(positions_noisy, t_hat)
-        grad = (positions_noisy - positions_denoised) / t_hat
+        positions_denoised = denoising_step(
+            positions_noisy, t_hat)
+        grad = (positions_noisy -
+                positions_denoised) / t_hat
 
         d_t = noise_level - t_hat
-        positions_out = positions_noisy + config.step_scale * d_t * grad
+        positions_out = positions_noisy + \
+            config.step_scale * d_t * grad
 
         return (key, positions_out, noise_level), positions_out
 
     num_samples = config.num_samples
 
-    noise_levels = noise_schedule(jnp.linspace(0, 1, config.steps + 1))
+    noise_levels = noise_schedule(
+        jnp.linspace(0, 1, config.steps + 1))
 
     key, noise_key = jax.random.split(key)
-    positions = jax.random.normal(noise_key, (num_samples,) + mask.shape + (3,))
+    positions = jax.random.normal(
+        noise_key, (num_samples,) + mask.shape + (3,))
     positions *= noise_levels[0]
 
     init = (
@@ -347,9 +372,11 @@ def sample(
     apply_denoising_step = hk.vmap(
         apply_denoising_step, in_axes=(0, None), split_rng=(not hk.running_init())
     )
-    result, _ = hk.scan(apply_denoising_step, init, noise_levels[1:], unroll=4)
+    result, _ = hk.scan(
+        apply_denoising_step, init, noise_levels[1:], unroll=4)
     _, positions_out, _ = result
 
-    final_dense_atom_mask = jnp.tile(mask[None], (num_samples, 1, 1))
+    final_dense_atom_mask = jnp.tile(
+        mask[None], (num_samples, 1, 1))
 
     return {"atom_positions": positions_out, "mask": final_dense_atom_mask}

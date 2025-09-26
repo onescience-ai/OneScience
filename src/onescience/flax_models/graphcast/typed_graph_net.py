@@ -27,7 +27,8 @@ GNUpdateNodeFn = Callable[
 ]
 
 GNUpdateGlobalFn = Callable[
-    [Mapping[str, NodeFeatures], Mapping[str, EdgeFeatures], Globals], Globals
+    [Mapping[str, NodeFeatures],
+        Mapping[str, EdgeFeatures], Globals], Globals
 ]
 
 
@@ -92,11 +93,13 @@ def GraphNetwork(  # pylint: disable=invalid-name
         # Edge update.
         updated_edges = dict(updated_graph.edges)
         for edge_set_name, edge_fn in update_edge_fn.items():
-            edge_set_key = graph.edge_key_by_name(edge_set_name)
+            edge_set_key = graph.edge_key_by_name(
+                edge_set_name)
             updated_edges[edge_set_key] = _edge_update(
                 updated_graph, edge_fn, edge_set_key
             )
-        updated_graph = updated_graph._replace(edges=updated_edges)
+        updated_graph = updated_graph._replace(
+            edges=updated_edges)
 
         # Node update.
         updated_nodes = dict(updated_graph.nodes)
@@ -104,7 +107,8 @@ def GraphNetwork(  # pylint: disable=invalid-name
             updated_nodes[node_set_key] = _node_update(
                 updated_graph, node_fn, node_set_key, aggregate_edges_for_nodes_fn
             )
-        updated_graph = updated_graph._replace(nodes=updated_nodes)
+        updated_graph = updated_graph._replace(
+            nodes=updated_nodes)
 
         # Global update.
         if update_global_fn:
@@ -114,7 +118,8 @@ def GraphNetwork(  # pylint: disable=invalid-name
                 aggregate_edges_for_globals_fn,
                 aggregate_nodes_for_globals_fn,
             )
-            updated_graph = updated_graph._replace(context=updated_context)
+            updated_graph = updated_graph._replace(
+                context=updated_context)
 
         return updated_graph
 
@@ -127,16 +132,21 @@ def _edge_update(graph, edge_fn, edge_set_key):  # pylint: disable=invalid-name
     sender_nodes = graph.nodes[edge_set_key.node_sets[0]]
     receiver_nodes = graph.nodes[edge_set_key.node_sets[1]]
     edge_set = graph.edges[edge_set_key]
-    senders = edge_set.indices.senders  # pytype: disable=attribute-error
-    receivers = edge_set.indices.receivers  # pytype: disable=attribute-error
+    # pytype: disable=attribute-error
+    senders = edge_set.indices.senders
+    # pytype: disable=attribute-error
+    receivers = edge_set.indices.receivers
 
-    sent_attributes = tree.tree_map(lambda n: n[senders], sender_nodes.features)
-    received_attributes = tree.tree_map(lambda n: n[receivers], receiver_nodes.features)
+    sent_attributes = tree.tree_map(
+        lambda n: n[senders], sender_nodes.features)
+    received_attributes = tree.tree_map(
+        lambda n: n[receivers], receiver_nodes.features)
 
     n_edge = edge_set.n_edge
     sum_n_edge = senders.shape[0]
     global_features = tree.tree_map(
-        lambda g: jnp.repeat(g, n_edge, axis=0, total_repeat_length=sum_n_edge),
+        lambda g: jnp.repeat(
+            g, n_edge, axis=0, total_repeat_length=sum_n_edge),
         graph.context.features,
     )
     new_features = edge_fn(
@@ -150,31 +160,37 @@ def _node_update(
 ):  # pylint: disable=invalid-name
     """Updates an edge set of a given key."""
     node_set = graph.nodes[node_set_key]
-    sum_n_node = tree.tree_leaves(node_set.features)[0].shape[0]
+    sum_n_node = tree.tree_leaves(
+        node_set.features)[0].shape[0]
 
     sent_features = {}
     for edge_set_key, edge_set in graph.edges.items():
         sender_node_set_key = edge_set_key.node_sets[0]
         if sender_node_set_key == node_set_key:
-            assert isinstance(edge_set.indices, typed_graph.EdgesIndices)
+            assert isinstance(
+                edge_set.indices, typed_graph.EdgesIndices)
             senders = edge_set.indices.senders
             sent_features[edge_set_key.name] = tree.tree_map(
-                lambda e: aggregation_fn(e, senders, sum_n_node), edge_set.features
+                lambda e: aggregation_fn(
+                    e, senders, sum_n_node), edge_set.features
             )  # pylint: disable=cell-var-from-loop
 
     received_features = {}
     for edge_set_key, edge_set in graph.edges.items():
         receiver_node_set_key = edge_set_key.node_sets[1]
         if receiver_node_set_key == node_set_key:
-            assert isinstance(edge_set.indices, typed_graph.EdgesIndices)
+            assert isinstance(
+                edge_set.indices, typed_graph.EdgesIndices)
             receivers = edge_set.indices.receivers
             received_features[edge_set_key.name] = tree.tree_map(
-                lambda e: aggregation_fn(e, receivers, sum_n_node), edge_set.features
+                lambda e: aggregation_fn(
+                    e, receivers, sum_n_node), edge_set.features
             )  # pylint: disable=cell-var-from-loop
 
     n_node = node_set.n_node
     global_features = tree.tree_map(
-        lambda g: jnp.repeat(g, n_node, axis=0, total_repeat_length=sum_n_node),
+        lambda g: jnp.repeat(
+            g, n_node, axis=0, total_repeat_length=sum_n_node),
         graph.context.features,
     )
     new_features = node_fn(
@@ -192,7 +208,8 @@ def _global_update(
 
     edge_features = {}
     for edge_set_key, edge_set in graph.edges.items():
-        assert isinstance(edge_set.indices, typed_graph.EdgesIndices)
+        assert isinstance(
+            edge_set.indices, typed_graph.EdgesIndices)
         sum_n_edge = edge_set.indices.senders.shape[0]
         edge_gr_idx = jnp.repeat(
             graph_idx, edge_set.n_edge, axis=0, total_repeat_length=sum_n_edge
@@ -206,7 +223,8 @@ def _global_update(
 
     node_features = {}
     for node_set_key, node_set in graph.nodes.items():
-        sum_n_node = tree.tree_leaves(node_set.features)[0].shape[0]
+        sum_n_node = tree.tree_leaves(
+            node_set.features)[0].shape[0]
         node_gr_idx = jnp.repeat(
             graph_idx, node_set.n_node, axis=0, total_repeat_length=sum_n_node
         )
@@ -217,25 +235,29 @@ def _global_update(
             node_set.features,
         )
 
-    new_features = global_fn(node_features, edge_features, graph.context.features)
+    new_features = global_fn(
+        node_features, edge_features, graph.context.features)
     return graph.context._replace(features=new_features)
 
 
 InteractionUpdateNodeFn = Callable[
-    [jraph.NodeFeatures, Mapping[str, SenderFeatures], Mapping[str, ReceiverFeatures]],
+    [jraph.NodeFeatures, Mapping[str, SenderFeatures],
+        Mapping[str, ReceiverFeatures]],
     jraph.NodeFeatures,
 ]
 
 
 InteractionUpdateNodeFnNoSentEdges = Callable[
-    [jraph.NodeFeatures, Mapping[str, ReceiverFeatures]], jraph.NodeFeatures
+    [jraph.NodeFeatures, Mapping[str, ReceiverFeatures]
+     ], jraph.NodeFeatures
 ]
 
 
 def InteractionNetwork(  # pylint: disable=invalid-name
     update_edge_fn: Mapping[str, jraph.InteractionUpdateEdgeFn],
     update_node_fn: Mapping[
-        str, Union[InteractionUpdateNodeFn, InteractionUpdateNodeFnNoSentEdges]
+        str, Union[InteractionUpdateNodeFn,
+                   InteractionUpdateNodeFnNoSentEdges]
     ],
     aggregate_edges_for_nodes_fn: jraph.AggregateEdgesToNodesFn = jraph.segment_sum,
     include_sent_messages_in_node_update: bool = False,
@@ -267,18 +289,21 @@ def InteractionNetwork(  # pylint: disable=invalid-name
     # An InteractionNetwork edge function does not have global feature inputs,
     # so we filter the passed global argument in the GraphNetwork.
     wrapped_update_edge_fn = tree.tree_map(
-        lambda fn: lambda e, s, r, g: fn(e, s, r), update_edge_fn
+        lambda fn: lambda e, s, r, g: fn(
+            e, s, r), update_edge_fn
     )
 
     # Similarly, we wrap the update_node_fn to ensure only the expected
     # arguments are passed to the Interaction net.
     if include_sent_messages_in_node_update:
         wrapped_update_node_fn = tree.tree_map(
-            lambda fn: lambda n, s, r, g: fn(n, s, r), update_node_fn
+            lambda fn: lambda n, s, r, g: fn(
+                n, s, r), update_node_fn
         )
     else:
         wrapped_update_node_fn = tree.tree_map(
-            lambda fn: lambda n, s, r, g: fn(n, r), update_node_fn
+            lambda fn: lambda n, s, r, g: fn(
+                n, r), update_node_fn
         )
     return GraphNetwork(
         update_edge_fn=wrapped_update_edge_fn,
@@ -288,8 +313,10 @@ def InteractionNetwork(  # pylint: disable=invalid-name
 
 
 def GraphMapFeatures(  # pylint: disable=invalid-name
-    embed_edge_fn: Optional[Mapping[str, jraph.EmbedEdgeFn]] = None,
-    embed_node_fn: Optional[Mapping[str, jraph.EmbedNodeFn]] = None,
+    embed_edge_fn: Optional[Mapping[str,
+                                    jraph.EmbedEdgeFn]] = None,
+    embed_node_fn: Optional[Mapping[str,
+                                    jraph.EmbedNodeFn]] = None,
     embed_global_fn: Optional[jraph.EmbedGlobalFn] = None,
 ):
     """Returns function which embeds the components of a graph independently.
@@ -307,7 +334,8 @@ def GraphMapFeatures(  # pylint: disable=invalid-name
         updated_edges = dict(graph.edges)
         if embed_edge_fn:
             for edge_set_name, embed_fn in embed_edge_fn.items():
-                edge_set_key = graph.edge_key_by_name(edge_set_name)
+                edge_set_key = graph.edge_key_by_name(
+                    edge_set_name)
                 edge_set = graph.edges[edge_set_key]
                 updated_edges[edge_set_key] = edge_set._replace(
                     features=embed_fn(edge_set.features)
@@ -324,7 +352,8 @@ def GraphMapFeatures(  # pylint: disable=invalid-name
         updated_context = graph.context
         if embed_global_fn:
             updated_context = updated_context._replace(
-                features=embed_global_fn(updated_context.features)
+                features=embed_global_fn(
+                    updated_context.features)
             )
 
         return graph._replace(

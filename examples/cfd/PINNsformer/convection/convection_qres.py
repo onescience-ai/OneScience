@@ -21,14 +21,21 @@ torch.cuda.manual_seed(seed)
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
 epochs = 1000
 
-res, b_left, b_right, b_upper, b_lower = get_data([0, 2 * np.pi], [0, 1], 101, 101)
-res_test, _, _, _, _ = get_data([0, 2 * np.pi], [0, 1], 101, 101)
+res, b_left, b_right, b_upper, b_lower = get_data(
+    [0, 2 * np.pi], [0, 1], 101, 101)
+res_test, _, _, _, _ = get_data(
+    [0, 2 * np.pi], [0, 1], 101, 101)
 
-res = torch.tensor(res, dtype=torch.float32, requires_grad=True).to(device)
-b_left = torch.tensor(b_left, dtype=torch.float32, requires_grad=True).to(device)
-b_right = torch.tensor(b_right, dtype=torch.float32, requires_grad=True).to(device)
-b_upper = torch.tensor(b_upper, dtype=torch.float32, requires_grad=True).to(device)
-b_lower = torch.tensor(b_lower, dtype=torch.float32, requires_grad=True).to(device)
+res = torch.tensor(res, dtype=torch.float32,
+                   requires_grad=True).to(device)
+b_left = torch.tensor(
+    b_left, dtype=torch.float32, requires_grad=True).to(device)
+b_right = torch.tensor(
+    b_right, dtype=torch.float32, requires_grad=True).to(device)
+b_upper = torch.tensor(
+    b_upper, dtype=torch.float32, requires_grad=True).to(device)
+b_lower = torch.tensor(
+    b_lower, dtype=torch.float32, requires_grad=True).to(device)
 
 x_res, t_res = res[:, 0:1], res[:, 1:2]
 x_left, t_left = b_left[:, 0:1], b_left[:, 1:2]
@@ -44,10 +51,12 @@ def init_weights(m):
 
 
 # Train QRes
-model = QRes1D(in_dim=2, hidden_dim=128, out_dim=1, num_layer=2).to(device)
+model = QRes1D(in_dim=2, hidden_dim=128,
+               out_dim=1, num_layer=2).to(device)
 
 model.apply(init_weights)
-optim = LBFGS(model.parameters(), line_search_fn="strong_wolfe")
+optim = LBFGS(model.parameters(),
+              line_search_fn="strong_wolfe")
 
 print(model)
 print(get_n_params(model))
@@ -80,9 +89,11 @@ for i in pbar:
 
         loss_res = torch.mean((u_t + 50 * u_x) ** 2)
         loss_bc = torch.mean((pred_upper - pred_lower) ** 2)
-        loss_ic = torch.mean((pred_left[:, 0] - torch.sin(x_left[:, 0])) ** 2)
+        loss_ic = torch.mean(
+            (pred_left[:, 0] - torch.sin(x_left[:, 0])) ** 2)
 
-        loss_track.append([loss_res.item(), loss_bc.item(), loss_ic.item()])
+        loss_track.append(
+            [loss_res.item(), loss_bc.item(), loss_ic.item()])
 
         loss = loss_res + loss_bc + loss_ic
         optim.zero_grad()
@@ -100,7 +111,8 @@ print(
 print("Train Loss: {:4f}".format(np.sum(loss_track[-1])))
 
 # Visualize QRes
-res_test = torch.tensor(res_test, dtype=torch.float32, requires_grad=True).to(device)
+res_test = torch.tensor(
+    res_test, dtype=torch.float32, requires_grad=True).to(device)
 x_test, t_test = res_test[:, 0:1], res_test[:, 1:2]
 
 with torch.no_grad():
@@ -126,21 +138,24 @@ if not os.path.exists("./result"):
     os.makedirs("./result")
 fig, axes = plt.subplots(1, 3, figsize=(12, 4))
 # Predicted u(x,t)
-im0 = axes[0].imshow(pred, extent=[0, np.pi * 2, 1, 0], aspect="auto")
+im0 = axes[0].imshow(
+    pred, extent=[0, np.pi * 2, 1, 0], aspect="auto")
 axes[0].set_xlabel("x")
 axes[0].set_ylabel("t")
 axes[0].set_title("Predicted u(x,t)")
 fig.colorbar(im0, ax=axes[0])
 
 # Exact u(x,t)
-im1 = axes[1].imshow(u, extent=[0, np.pi * 2, 1, 0], aspect="auto")
+im1 = axes[1].imshow(
+    u, extent=[0, np.pi * 2, 1, 0], aspect="auto")
 axes[1].set_xlabel("x")
 axes[1].set_ylabel("t")
 axes[1].set_title("Exact u(x,t)")
 fig.colorbar(im1, ax=axes[1])
 
 # Absolute Error
-im2 = axes[2].imshow(np.abs(pred - u), extent=[0, np.pi * 2, 1, 0], aspect="auto")
+im2 = axes[2].imshow(
+    np.abs(pred - u), extent=[0, np.pi * 2, 1, 0], aspect="auto")
 axes[2].set_xlabel("x")
 axes[2].set_ylabel("t")
 axes[2].set_title("Absolute Error")

@@ -55,11 +55,14 @@ def get_next_frames(xt, px0, t, diffuser, so3_type, diffusion_mask, noise_scale=
     R_t, Ca_t = rigid_from_3_points(N_t, Ca_t, C_t)
 
     # this must be to normalize them or something
-    R_0 = scipy_R.from_matrix(R_0.squeeze().numpy()).as_matrix()
-    R_t = scipy_R.from_matrix(R_t.squeeze().numpy()).as_matrix()
+    R_0 = scipy_R.from_matrix(
+        R_0.squeeze().numpy()).as_matrix()
+    R_t = scipy_R.from_matrix(
+        R_t.squeeze().numpy()).as_matrix()
 
     L = R_t.shape[0]
-    all_rot_transitions = np.broadcast_to(np.identity(3), (L, 3, 3)).copy()
+    all_rot_transitions = np.broadcast_to(
+        np.identity(3), (L, 3, 3)).copy()
     # Sample next frame for each residue
     if so3_type == "igso3":
         # don't do calculations on masked positions since they end up as identity matrix
@@ -83,7 +86,8 @@ def get_next_frames(xt, px0, t, diffuser, so3_type, diffusion_mask, noise_scale=
         np.einsum(
             "lrij,laj->lrai",
             all_rot_transitions,
-            xt[:, :3, :] - Ca_t.squeeze()[:, None, ...].numpy(),
+            xt[:, :3, :] -
+            Ca_t.squeeze()[:, None, ...].numpy(),
         )
         + Ca_t.squeeze()[:, None, None, ...].numpy()
     )
@@ -100,14 +104,16 @@ def get_mu_xt_x0(xt, px0, t, beta_schedule, alphabar_schedule, eps=1e-6):
     # sigma is predefined from beta. Often referred to as beta tilde t
     t_idx = t - 1
     sigma = (
-        (1 - alphabar_schedule[t_idx - 1]) / (1 - alphabar_schedule[t_idx])
+        (1 - alphabar_schedule[t_idx - 1]
+         ) / (1 - alphabar_schedule[t_idx])
     ) * beta_schedule[t_idx]
 
     xt_ca = xt[:, 1, :]
     px0_ca = px0[:, 1, :]
 
     a = (
-        (torch.sqrt(alphabar_schedule[t_idx - 1] + eps) * beta_schedule[t_idx])
+        (torch.sqrt(
+            alphabar_schedule[t_idx - 1] + eps) * beta_schedule[t_idx])
         / (1 - alphabar_schedule[t_idx])
     ) * px0_ca
     b = (
@@ -165,8 +171,10 @@ def get_next_ca(
         xt, px0, t, beta_schedule=beta_schedule, alphabar_schedule=alphabar_schedule
     )
 
-    sampled_crds = torch.normal(mu, torch.sqrt(sigma * noise_scale))
-    delta = sampled_crds - xt[:, 1, :]  # check sign of this is correct
+    sampled_crds = torch.normal(
+        mu, torch.sqrt(sigma * noise_scale))
+    # check sign of this is correct
+    delta = sampled_crds - xt[:, 1, :]
 
     if not diffusion_mask is None:
         # Don't move motif
@@ -318,7 +326,8 @@ class Denoise:
         # 1 centre motifs at origin and get rotation matrix
         px0_motif = px0[diffusion_mask, :3].reshape(-1, 3)
         xT_motif = xT[diffusion_mask, :3].reshape(-1, 3)
-        px0_motif_mean = np.copy(px0_motif.mean(0))  # need later
+        px0_motif_mean = np.copy(
+            px0_motif.mean(0))  # need later
         xT_motif_mean = np.copy(xT_motif.mean(0))
 
         # center at origin
@@ -385,7 +394,8 @@ class Denoise:
         if not xyz.grad is None:
             xyz.grad.zero_()
 
-        current_potential = self.potential_manager.compute_all_potentials(xyz)
+        current_potential = self.potential_manager.compute_all_potentials(
+            xyz)
         current_potential.backward()
 
         # Since we are not moving frames, Cb grads are same as Ca grads
@@ -397,7 +407,8 @@ class Denoise:
 
         # check for NaN's
         if torch.isnan(Ca_grads).any():
-            print("WARNING: NaN in potential gradients, replacing with zero grad.")
+            print(
+                "WARNING: NaN in potential gradients, replacing with zero grad.")
             Ca_grads[:] = 0
 
         return Ca_grads
@@ -444,7 +455,8 @@ class Denoise:
         ###############################
 
         if align_motif and diffusion_mask.any():
-            px0 = self.align_to_xt_motif(px0, xt, diffusion_mask)
+            px0 = self.align_to_xt_motif(
+                px0, xt, diffusion_mask)
         # xT_motif_aligned = self.align_to_xt_motif(px0, xt, diffusion_mask)
 
         px0 = px0.to(xt.device)
@@ -484,18 +496,22 @@ class Denoise:
             xt.clone(), diffusion_mask=diffusion_mask
         )
 
-        ca_deltas += self.potential_manager.get_guide_scale(t) * grad_ca
+        ca_deltas += self.potential_manager.get_guide_scale(
+            t) * grad_ca
 
         # add the delta to the new frames
-        frames_next = torch.from_numpy(frames_next) + ca_deltas[:, None, :]  # translate
+        frames_next = torch.from_numpy(
+            frames_next) + ca_deltas[:, None, :]  # translate
 
-        fullatom_next = torch.full_like(xt, float("nan")).unsqueeze(0)
+        fullatom_next = torch.full_like(
+            xt, float("nan")).unsqueeze(0)
         fullatom_next[:, :, :3] = frames_next[None]
         # This is never used so just make it a fudged tensor - NRB
         torch.zeros(1, 1)
 
         if include_motif_sidechains:
-            fullatom_next[:, diffusion_mask, :14] = xt[None, diffusion_mask]
+            fullatom_next[:, diffusion_mask,
+                          :14] = xt[None, diffusion_mask]
 
         return fullatom_next.squeeze()[:, :14, :], px0
 
@@ -511,7 +527,8 @@ def sampler_selector(conf: DictConfig):
         elif conf.inference.model_runner == "ScaffoldedSampler":
             sampler = model_runners.ScaffoldedSampler(conf)
         else:
-            raise ValueError(f"Unrecognized sampler {conf.model_runner}")
+            raise ValueError(
+                f"Unrecognized sampler {conf.model_runner}")
     return sampler
 
 
@@ -529,8 +546,10 @@ def parse_pdb_lines(lines, parse_hetatom=False, ignore_het_h=True):
         if l[:4] == "ATOM" and l[12:16].strip() == "CA":
             res.append((l[22:26], l[17:20]))
             # chain letter, res num
-            pdb_idx.append((l[21:22].strip(), int(l[22:26].strip())))
-    seq = [util.aa2num[r[1]] if r[1] in util.aa2num.keys() else 20 for r in res]
+            pdb_idx.append(
+                (l[21:22].strip(), int(l[22:26].strip())))
+    seq = [util.aa2num[r[1]] if r[1]
+           in util.aa2num.keys() else 20 for r in res]
     pdb_idx = [
         (l[21:22].strip(), int(l[22:26].strip()))
         for l in lines
@@ -538,7 +557,8 @@ def parse_pdb_lines(lines, parse_hetatom=False, ignore_het_h=True):
     ]  # chain letter, res num
 
     # 4 BB + up to 10 SC atoms
-    xyz = np.full((len(res), 14, 3), np.nan, dtype=np.float32)
+    xyz = np.full((len(res), 14, 3),
+                  np.nan, dtype=np.float32)
     for l in lines:
         if l[:4] != "ATOM":
             continue
@@ -582,12 +602,14 @@ def parse_pdb_lines(lines, parse_hetatom=False, ignore_het_h=True):
 
     out = {
         "xyz": xyz,  # cartesian coordinates, [Lx14]
-        "mask": mask,  # mask showing which atoms are present in the PDB file, [Lx14]
+        # mask showing which atoms are present in the PDB file, [Lx14]
+        "mask": mask,
         "idx": np.array(
             [i[1] for i in pdb_idx]
         ),  # residue numbers in the PDB file, [L]
         "seq": np.array(seq),  # amino acid sequence, [L]
-        "pdb_idx": pdb_idx,  # list of (chain letter, residue number) in the pdb file, [L]
+        # list of (chain letter, residue number) in the pdb file, [L]
+        "pdb_idx": pdb_idx,
     }
 
     # heteroatoms (ligands, etc)
@@ -603,7 +625,8 @@ def parse_pdb_lines(lines, parse_hetatom=False, ignore_het_h=True):
                         name=l[16:20],
                     )
                 )
-                xyz_het.append([float(l[30:38]), float(l[38:46]), float(l[46:54])])
+                xyz_het.append(
+                    [float(l[30:38]), float(l[38:46]), float(l[46:54])])
 
         out["xyz_het"] = np.array(xyz_het)
         out["info_het"] = info_het
@@ -613,10 +636,12 @@ def parse_pdb_lines(lines, parse_hetatom=False, ignore_het_h=True):
 
 def process_target(pdb_path, parse_hetatom=False, center=True):
     # Read target pdb and extract features.
-    target_struct = parse_pdb(pdb_path, parse_hetatom=parse_hetatom)
+    target_struct = parse_pdb(
+        pdb_path, parse_hetatom=parse_hetatom)
 
     # Zero-center positions
-    ca_center = target_struct["xyz"][:, :1, :].mean(axis=0, keepdims=True)
+    ca_center = target_struct["xyz"][:, :1, :].mean(
+        axis=0, keepdims=True)
     if not center:
         ca_center = 0
     xyz = torch.from_numpy(target_struct["xyz"] - ca_center)
@@ -651,13 +676,16 @@ def get_idx0_hotspots(mappings, ppi_conf, binderlen):
     if binderlen > 0:
         if ppi_conf.hotspot_res is not None:
             assert all(
-                [i[0].isalpha() for i in ppi_conf.hotspot_res]
+                [i[0].isalpha()
+                 for i in ppi_conf.hotspot_res]
             ), "Hotspot residues need to be provided in pdb-indexed form. E.g. A100,A103"
-            hotspots = [(i[0], int(i[1:])) for i in ppi_conf.hotspot_res]
+            hotspots = [(i[0], int(i[1:]))
+                        for i in ppi_conf.hotspot_res]
             hotspot_idx = []
             for i, res in enumerate(mappings["receptor_con_ref_pdb_idx"]):
                 if res in hotspots:
-                    hotspot_idx.append(mappings["receptor_con_hal_idx0"][i])
+                    hotspot_idx.append(
+                        mappings["receptor_con_hal_idx0"][i])
     return hotspot_idx
 
 
@@ -717,8 +745,10 @@ class BlockAdjacency:
         # maximum sampled insertion in each loop segment
         if "-" in str(self.conf.scaffoldguided.sampled_insertion):
             self.sampled_insertion = [
-                int(str(self.conf.scaffoldguided.sampled_insertion).split("-")[0]),
-                int(str(self.conf.scaffoldguided.sampled_insertion).split("-")[1]),
+                int(str(self.conf.scaffoldguided.sampled_insertion).split(
+                    "-")[0]),
+                int(str(self.conf.scaffoldguided.sampled_insertion).split(
+                    "-")[1]),
             ]
         else:
             self.sampled_insertion = [
@@ -729,18 +759,24 @@ class BlockAdjacency:
         # maximum sampled insertion at N- and C-terminus
         if "-" in str(self.conf.scaffoldguided.sampled_N):
             self.sampled_N = [
-                int(str(self.conf.scaffoldguided.sampled_N).split("-")[0]),
-                int(str(self.conf.scaffoldguided.sampled_N).split("-")[1]),
+                int(str(self.conf.scaffoldguided.sampled_N).split(
+                    "-")[0]),
+                int(str(self.conf.scaffoldguided.sampled_N).split(
+                    "-")[1]),
             ]
         else:
-            self.sampled_N = [0, int(self.conf.scaffoldguided.sampled_N)]
+            self.sampled_N = [
+                0, int(self.conf.scaffoldguided.sampled_N)]
         if "-" in str(self.conf.scaffoldguided.sampled_C):
             self.sampled_C = [
-                int(str(self.conf.scaffoldguided.sampled_C).split("-")[0]),
-                int(str(self.conf.scaffoldguided.sampled_C).split("-")[1]),
+                int(str(self.conf.scaffoldguided.sampled_C).split(
+                    "-")[0]),
+                int(str(self.conf.scaffoldguided.sampled_C).split(
+                    "-")[1]),
             ]
         else:
-            self.sampled_C = [0, int(self.conf.scaffoldguided.sampled_C)]
+            self.sampled_C = [
+                0, int(self.conf.scaffoldguided.sampled_C)]
 
         # number of residues to mask ss identity of in H/E regions (from junction)
         # e.g. if ss_mask = 2, L,L,L,H,H,H,H,H,H,H,L,L,E,E,E,E,E,E,L,L,L,L,L,L would become\
@@ -781,9 +817,11 @@ class BlockAdjacency:
         """
         Given at item, get the ss tensor and block adjacency matrix for that item
         """
-        ss = torch.load(os.path.join(self.scaffold_dir, f'{item.split(".")[0]}_ss.pt'))
+        ss = torch.load(os.path.join(
+            self.scaffold_dir, f'{item.split(".")[0]}_ss.pt'))
         adj = torch.load(
-            os.path.join(self.scaffold_dir, f'{item.split(".")[0]}_adj.pt')
+            os.path.join(self.scaffold_dir,
+                         f'{item.split(".")[0]}_adj.pt')
         )
 
         return ss, adj
@@ -812,17 +850,21 @@ class BlockAdjacency:
         # Ending edge case: last segment is length one
         if not end == mask.shape[0]:
             if mask[i].item() is True:
-                segments.append(("loop", mask.shape[0] - begin))
+                segments.append(
+                    ("loop", mask.shape[0] - begin))
             else:
-                segments.append(("ss", mask.shape[0] - begin))
+                segments.append(
+                    ("ss", mask.shape[0] - begin))
         return segments
 
     def expand_mask(self, mask, segments):
         """
         Function to generate a new mask with dilated loops and N and C terminal additions
         """
-        N_add = random.randint(self.sampled_N[0], self.sampled_N[1])
-        C_add = random.randint(self.sampled_C[0], self.sampled_C[1])
+        N_add = random.randint(
+            self.sampled_N[0], self.sampled_N[1])
+        C_add = random.randint(
+            self.sampled_C[0], self.sampled_C[1])
 
         output = N_add * [False]
         for ss, length in segments:
@@ -835,15 +877,18 @@ class BlockAdjacency:
                 )
                 output.extend((length + ins) * [False])
         output.extend(C_add * [False])
-        assert torch.sum(torch.tensor(output)) == torch.sum(~mask)
+        assert torch.sum(torch.tensor(
+            output)) == torch.sum(~mask)
         return torch.tensor(output)
 
     def expand_ss(self, ss, adj, mask, expanded_mask):
         """
         Given an expanded mask, populate a new ss and adj based on this
         """
-        ss_out = torch.ones(expanded_mask.shape[0]) * 3  # set to mask token
-        adj_out = torch.full((expanded_mask.shape[0], expanded_mask.shape[0]), 0.0)
+        ss_out = torch.ones(
+            expanded_mask.shape[0]) * 3  # set to mask token
+        adj_out = torch.full(
+            (expanded_mask.shape[0], expanded_mask.shape[0]), 0.0)
         ss_out[expanded_mask] = ss[~mask]
         expanded_mask_2d = torch.full(adj_out.shape, True)
         # mask out loops/insertions, which is ~expanded_mask
@@ -855,7 +900,8 @@ class BlockAdjacency:
         mask_2d[mask, :] = False
         mask_2d[:, mask] = False
         adj_out[expanded_mask_2d] = adj[mask_2d]
-        adj_out = adj_out.reshape((expanded_mask.shape[0], expanded_mask.shape[0]))
+        adj_out = adj_out.reshape(
+            (expanded_mask.shape[0], expanded_mask.shape[0]))
 
         return ss_out, adj_out
 
@@ -911,7 +957,8 @@ class BlockAdjacency:
         expanded_mask = self.expand_mask(mask, segments)
 
         # expand ss and adj
-        ss, adj = self.expand_ss(ss, adj, mask, expanded_mask)
+        ss, adj = self.expand_ss(
+            ss, adj, mask, expanded_mask)
 
         # finally, mask some proportion of the ss at either end of the non-loop ss blocks
         ss, adj = self.mask_ss_adj(ss, adj, expanded_mask)
@@ -963,7 +1010,8 @@ class Target:
                         [
                             (crop[0], p)
                             for p in np.arange(
-                                int(crop.split("-")[0][1:]), int(crop.split("-")[1]) + 1
+                                int(crop.split(
+                                    "-")[0][1:]), int(crop.split("-")[1]) + 1
                             )
                         ]
                     )
@@ -1006,7 +1054,8 @@ class Target:
             try:
                 self.pdb[key] = val[mask]
             except:
-                self.pdb[key] = [i for idx, i in enumerate(val) if mask[idx]]
+                self.pdb[key] = [i for idx,
+                                 i in enumerate(val) if mask[idx]]
         self.pdb["crop_mask"] = mask
 
     def get_target(self):

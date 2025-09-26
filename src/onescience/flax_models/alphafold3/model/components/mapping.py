@@ -31,9 +31,11 @@ def _maybe_get_size(array, axis):
 
 def _expand_axes(axes, values, name="sharded_apply"):
     values_tree_def = jax.tree_util.tree_structure(values)
-    flat_axes = jax.api_util.flatten_axes(name, values_tree_def, axes)
+    flat_axes = jax.api_util.flatten_axes(
+        name, values_tree_def, axes)
     # Replace None's with PROXY.
-    flat_axes = [PROXY if x is None else x for x in flat_axes]
+    flat_axes = [
+        PROXY if x is None else x for x in flat_axes]
     return jax.tree_util.tree_unflatten(values_tree_def, flat_axes)
 
 
@@ -65,7 +67,8 @@ def sharded_map(
         # memory cost, as long as large concrete tensors are not encountered.
         return hk.vmap(fun, in_axes=in_axes, out_axes=out_axes, split_rng=False)
     else:
-        vmapped_fun = hk.vmap(fun, in_axes, out_axes, split_rng=True)
+        vmapped_fun = hk.vmap(
+            fun, in_axes, out_axes, split_rng=True)
         return sharded_apply(vmapped_fun, shard_size, in_axes, out_axes)
 
 
@@ -102,7 +105,8 @@ def sharded_apply(
         "but with additional array axes over which {fun} is mapped."
     )
     if new_out_axes:
-        raise NotImplementedError("New output axes not yet implemented.")
+        raise NotImplementedError(
+            "New output axes not yet implemented.")
 
     if shard_size is None:
         return fun
@@ -112,7 +116,8 @@ def sharded_apply(
         # Expand in axes and determine loop range.
         in_axes_ = _expand_axes(in_axes, args)
 
-        in_sizes = jax.tree.map(_maybe_get_size, args, in_axes_)
+        in_sizes = jax.tree.map(
+            _maybe_get_size, args, in_axes_)
         in_size = max(jax.tree_util.tree_leaves(in_sizes))
 
         num_extra_shards = (in_size - 1) // shard_size
@@ -123,7 +128,8 @@ def sharded_apply(
 
         def apply_fun_to_slice(slice_start, slice_size):
             input_slice = jax.tree.map(
-                lambda array, axis: _maybe_slice(array, slice_start, slice_size, axis),
+                lambda array, axis: _maybe_slice(
+                    array, slice_start, slice_size, axis),
                 args,
                 in_axes_,
             )
@@ -132,21 +138,25 @@ def sharded_apply(
         remainder_shape_dtype = hk.eval_shape(
             partial(apply_fun_to_slice, 0, last_shard_size)
         )
-        out_dtypes = jax.tree.map(lambda x: x.dtype, remainder_shape_dtype)
-        out_shapes = jax.tree.map(lambda x: x.shape, remainder_shape_dtype)
-        out_axes_ = _expand_axes(out_axes, remainder_shape_dtype)
+        out_dtypes = jax.tree.map(
+            lambda x: x.dtype, remainder_shape_dtype)
+        out_shapes = jax.tree.map(
+            lambda x: x.shape, remainder_shape_dtype)
+        out_axes_ = _expand_axes(
+            out_axes, remainder_shape_dtype)
 
         if num_extra_shards > 0:
             regular_shard_shape_dtype = hk.eval_shape(
                 partial(apply_fun_to_slice, 0, shard_size)
             )
-            shard_shapes = jax.tree.map(lambda x: x.shape, regular_shard_shape_dtype)
+            shard_shapes = jax.tree.map(
+                lambda x: x.shape, regular_shard_shape_dtype)
 
             def make_output_shape(axis, shard_shape, remainder_shape):
                 return (
                     shard_shape[:axis]
                     + (shard_shape[axis] * num_extra_shards + remainder_shape[axis],)
-                    + shard_shape[axis + 1 :]
+                    + shard_shape[axis + 1:]
                 )
 
             out_shapes = jax.tree.map(
@@ -159,27 +169,34 @@ def sharded_apply(
             return jax.lax.dynamic_update_slice_in_dim(full_array, update, i, axis)
 
         def compute_shard(outputs, slice_start, slice_size):
-            slice_out = apply_fun_to_slice(slice_start, slice_size)
-            update_slice = partial(dynamic_update_slice_in_dim, i=slice_start)
+            slice_out = apply_fun_to_slice(
+                slice_start, slice_size)
+            update_slice = partial(
+                dynamic_update_slice_in_dim, i=slice_start)
             return jax.tree.map(update_slice, outputs, slice_out, out_axes_)
 
         def scan_iteration(outputs, i):
-            new_outputs = compute_shard(outputs, i, shard_size)
+            new_outputs = compute_shard(
+                outputs, i, shard_size)
             return new_outputs, ()
 
-        slice_starts = jnp.arange(0, in_size - shard_size + 1, shard_size)
+        slice_starts = jnp.arange(
+            0, in_size - shard_size + 1, shard_size)
 
         def allocate_buffer(dtype, shape):
             return jnp.zeros(shape, dtype=dtype)
 
-        outputs = jax.tree.map(allocate_buffer, out_dtypes, out_shapes)
+        outputs = jax.tree.map(
+            allocate_buffer, out_dtypes, out_shapes)
 
         if slice_starts.shape[0] > 0:
-            outputs, _ = hk.scan(scan_iteration, outputs, slice_starts)
+            outputs, _ = hk.scan(
+                scan_iteration, outputs, slice_starts)
 
         if last_shard_size != shard_size:
             remainder_start = in_size - last_shard_size
-            outputs = compute_shard(outputs, remainder_start, last_shard_size)
+            outputs = compute_shard(
+                outputs, remainder_start, last_shard_size)
 
         return outputs
 
@@ -195,7 +212,8 @@ def inference_subbatch(
     output_subbatch_dim: int | None = None,
 ) -> PytreeJaxArray:
     """Run through subbatches (like batch apply but with split and concat)."""
-    assert len(batched_args) > 0  # pylint: disable=g-explicit-length-test
+    assert len(
+        batched_args) > 0  # pylint: disable=g-explicit-length-test
 
     if hk.running_init():
         args = list(batched_args) + list(nonbatched_args)

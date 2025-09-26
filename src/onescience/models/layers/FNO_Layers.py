@@ -16,7 +16,8 @@ class SpectralConv1d(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.modes1 = (
-            modes1  # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            modes1
         )
 
         self.scale = 1 / (in_channels * out_channels)
@@ -64,7 +65,8 @@ class SpectralConv2d(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.modes1 = (
-            modes1  # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            modes1
         )
         self.modes2 = modes2
 
@@ -102,14 +104,17 @@ class SpectralConv2d(nn.Module):
             device=x.device,
         )
         out_ft[:, :, : self.modes1, : self.modes2] = self.compl_mul2d(
-            x_ft[:, :, : self.modes1, : self.modes2], self.weights1
+            x_ft[:, :, : self.modes1,
+                 : self.modes2], self.weights1
         )
-        out_ft[:, :, -self.modes1 :, : self.modes2] = self.compl_mul2d(
-            x_ft[:, :, -self.modes1 :, : self.modes2], self.weights2
+        out_ft[:, :, -self.modes1:, : self.modes2] = self.compl_mul2d(
+            x_ft[:, :, -self.modes1:,
+                 : self.modes2], self.weights2
         )
 
         # Return to physical space
-        x = torch.fft.irfft2(out_ft, s=(x.size(-2), x.size(-1)))
+        x = torch.fft.irfft2(
+            out_ft, s=(x.size(-2), x.size(-1)))
         return x
 
 
@@ -129,7 +134,8 @@ class SpectralConv3d(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.modes1 = (
-            modes1  # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            # Number of Fourier modes to multiply, at most floor(N/2) + 1
+            modes1
         )
         self.modes2 = modes2
         self.modes3 = modes3
@@ -201,18 +207,23 @@ class SpectralConv3d(nn.Module):
             device=x.device,
         )
         out_ft[:, :, : self.modes1, : self.modes2, : self.modes3] = self.compl_mul3d(
-            x_ft[:, :, : self.modes1, : self.modes2, : self.modes3], self.weights1
+            x_ft[:, :, : self.modes1, : self.modes2,
+                 : self.modes3], self.weights1
         )
-        out_ft[:, :, -self.modes1 :, : self.modes2, : self.modes3] = self.compl_mul3d(
-            x_ft[:, :, -self.modes1 :, : self.modes2, : self.modes3], self.weights2
+        out_ft[:, :, -self.modes1:, : self.modes2, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, -self.modes1:, : self.modes2,
+                 : self.modes3], self.weights2
         )
-        out_ft[:, :, : self.modes1, -self.modes2 :, : self.modes3] = self.compl_mul3d(
-            x_ft[:, :, : self.modes1, -self.modes2 :, : self.modes3], self.weights3
+        out_ft[:, :, : self.modes1, -self.modes2:, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, : self.modes1, -self.modes2:,
+                 : self.modes3], self.weights3
         )
-        out_ft[:, :, -self.modes1 :, -self.modes2 :, : self.modes3] = self.compl_mul3d(
-            x_ft[:, :, -self.modes1 :, -self.modes2 :, : self.modes3], self.weights4
+        out_ft[:, :, -self.modes1:, -self.modes2:, : self.modes3] = self.compl_mul3d(
+            x_ft[:, :, -self.modes1:, -self.modes2:,
+                 : self.modes3], self.weights4
         )
 
         # Return to physical space
-        x = torch.fft.irfftn(out_ft, s=(x.size(-3), x.size(-2), x.size(-1)))
+        x = torch.fft.irfftn(out_ft, s=(
+            x.size(-3), x.size(-2), x.size(-1)))
         return x

@@ -23,9 +23,12 @@ class LinearNormConditioning(hk.Module):
         feature_size = inputs.shape[-1]
         conditional_linear_layer = hk.Linear(
             output_size=2 * feature_size,
-            w_init=hk.initializers.TruncatedNormal(stddev=1e-8),
+            w_init=hk.initializers.TruncatedNormal(
+                stddev=1e-8),
         )
-        conditional_scale_offset = conditional_linear_layer(norm_conditioning)
-        scale_minus_one, offset = jnp.split(conditional_scale_offset, 2, axis=-1)
+        conditional_scale_offset = conditional_linear_layer(
+            norm_conditioning)
+        scale_minus_one, offset = jnp.split(
+            conditional_scale_offset, 2, axis=-1)
         scale = scale_minus_one + 1.0
         return inputs * scale + offset

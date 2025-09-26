@@ -72,7 +72,8 @@ class LRSchedulerCallback(BaseCallback):
         self.scheduler = self.get_scheduler(optimizer, args)
 
     def on_checkpoint_load(self, checkpoint):
-        self.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        self.scheduler.load_state_dict(
+            checkpoint["scheduler_state_dict"])
 
     def on_checkpoint_save(self, checkpoint):
         checkpoint["scheduler_state_dict"] = self.scheduler.state_dict()
@@ -80,7 +81,8 @@ class LRSchedulerCallback(BaseCallback):
     def on_epoch_end(self):
         if self.logger is not None:
             self.logger.log_metrics(
-                {"learning rate": self.scheduler.get_last_lr()[0]},
+                {"learning rate": self.scheduler.get_last_lr()[
+                    0]},
                 step=self.scheduler.last_epoch,
             )
         self.scheduler.step()
@@ -102,12 +104,14 @@ class QM9MetricCallback(BaseCallback):
     def on_validation_end(self, epoch=None):
         mae = self.mae.compute() * self.targets_std
         logging.info(f"{self.prefix} MAE: {mae}")
-        self.logger.log_metrics({f"{self.prefix} MAE": mae}, epoch)
+        self.logger.log_metrics(
+            {f"{self.prefix} MAE": mae}, epoch)
         self.best_mae = min(self.best_mae, mae)
 
     def on_fit_end(self):
         if self.best_mae != float("inf"):
-            self.logger.log_metrics({f"{self.prefix} best MAE": self.best_mae})
+            self.logger.log_metrics(
+                {f"{self.prefix} best MAE": self.best_mae})
 
 
 class QM9LRSchedulerCallback(LRSchedulerCallback):
@@ -166,6 +170,7 @@ class PerformanceCallback(BaseCallback):
             f"total_time_{self.mode}": timestamps[-1] - timestamps[0],
         }
         for level in [90, 95, 99]:
-            stats.update({f"latency_{self.mode}_{level}": np.percentile(deltas, level)})
+            stats.update(
+                {f"latency_{self.mode}_{level}": np.percentile(deltas, level)})
 
         return stats

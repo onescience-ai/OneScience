@@ -4,7 +4,8 @@ from operator import mul
 
 import torch
 
-attn_core_inplace_cuda = importlib.import_module("attn_core_inplace_cuda")
+attn_core_inplace_cuda = importlib.import_module(
+    "attn_core_inplace_cuda")
 
 
 SUPPORTED_DTYPES = [torch.float32, torch.bfloat16]
@@ -14,7 +15,8 @@ class AttentionCoreFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, q, k, v, bias_1=None, bias_2=None):
         if bias_1 is None and bias_2 is not None:
-            raise ValueError("bias_1 must be specified before bias_2")
+            raise ValueError(
+                "bias_1 must be specified before bias_2")
         if q.dtype not in SUPPORTED_DTYPES:
             raise ValueError("Unsupported datatype")
 
@@ -51,7 +53,8 @@ class AttentionCoreFunction(torch.autograd.Function):
         q, k, v, attention_logits = ctx.saved_tensors
         grad_q = grad_k = grad_v = grad_bias_1 = grad_bias_2 = None
 
-        grad_v = torch.matmul(attention_logits.transpose(-1, -2), grad_output)
+        grad_v = torch.matmul(
+            attention_logits.transpose(-1, -2), grad_output)
 
         attn_core_inplace_cuda.backward_(
             attention_logits,
@@ -65,14 +68,16 @@ class AttentionCoreFunction(torch.autograd.Function):
         if ctx.bias_1_shape is not None:
             grad_bias_1 = torch.sum(
                 attention_logits,
-                dim=tuple(i for i, d in enumerate(ctx.bias_1_shape) if d == 1),
+                dim=tuple(i for i, d in enumerate(
+                    ctx.bias_1_shape) if d == 1),
                 keepdim=True,
             )
 
         if ctx.bias_2_shape is not None:
             grad_bias_2 = torch.sum(
                 attention_logits,
-                dim=tuple(i for i, d in enumerate(ctx.bias_2_shape) if d == 1),
+                dim=tuple(i for i, d in enumerate(
+                    ctx.bias_2_shape) if d == 1),
                 keepdim=True,
             )
 

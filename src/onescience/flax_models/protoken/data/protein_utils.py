@@ -40,7 +40,8 @@ class Protein:
 
     # Cartesian coordinates of atoms in angstroms. The atom types correspond to
     # residue_constants.atom_types, i.e. the first three are N, CA, CB.
-    atom_positions: np.ndarray  # [num_res, num_atom_type, 3]
+    # [num_res, num_atom_type, 3]
+    atom_positions: np.ndarray
 
     # Amino-acid type for each residue represented as an integer between 0 and
     # 20, where 20 is 'X'.
@@ -69,7 +70,8 @@ def to_pdb(prot: Protein) -> str:
         PDB string.
     """
     restypes_ = restypes + ["X"]
-    res_1to3 = lambda r: restype_1to3.get(restypes_[r], "UNK")
+    def res_1to3(r): return restype_1to3.get(
+        restypes_[r], "UNK")
 
     pdb_lines = []
 
@@ -95,11 +97,13 @@ def to_pdb(prot: Protein) -> str:
                 continue
 
             record_type = "ATOM"
-            name = atom_name if len(atom_name) == 4 else f" {atom_name}"
+            name = atom_name if len(
+                atom_name) == 4 else f" {atom_name}"
             alt_loc = ""
             insertion_code = ""
             occupancy = 1.00
-            element = atom_name[0]  # Protein supports only C, N, O, S, this works.
+            # Protein supports only C, N, O, S, this works.
+            element = atom_name[0]
             charge = ""
             # PDB is a columnar format, every space matters here!
             atom_line = (
@@ -158,7 +162,8 @@ def from_prediction(
     """
     fold_output = result["structure_module"]
     if b_factors is None:
-        b_factors = np.zeros_like(fold_output["final_atom_mask"])
+        b_factors = np.zeros_like(
+            fold_output["final_atom_mask"])
 
     return Protein(
         aatype=features["aatype"][0],
@@ -174,7 +179,8 @@ def renum_pdb_str(pdb_str, Ls=None, renum=True, offset=1):
         L_init = 0
         new_chain = {}
         for L, c in zip(Ls, alphabet_list):
-            new_chain.update({i: c for i in range(L_init, L_init + L)})
+            new_chain.update(
+                {i: c for i in range(L_init, L_init + L)})
             L_init += L
 
     n, num, pdb_out = 0, offset, []
@@ -184,7 +190,7 @@ def renum_pdb_str(pdb_str, Ls=None, renum=True, offset=1):
     for line in pdb_str.split("\n"):
         if line[:4] == "ATOM":
             chain = line[21:22]
-            resnum = int(line[22 : 22 + 5])
+            resnum = int(line[22: 22 + 5])
         if resnum_ is None:
             resnum_ = resnum
         if chain_ is None:
@@ -199,9 +205,11 @@ def renum_pdb_str(pdb_str, Ls=None, renum=True, offset=1):
                 new_chain_ = new_chain[n]
         N = num if renum else resnum
         if Ls is None:
-            pdb_out.append("%s%4i%s" % (line[:22], N, line[26:]))
+            pdb_out.append("%s%4i%s" %
+                           (line[:22], N, line[26:]))
         else:
-            pdb_out.append("%s%s%4i%s" % (line[:21], new_chain[n], N, line[26:]))
+            pdb_out.append("%s%s%4i%s" % (
+                line[:21], new_chain[n], N, line[26:]))
     return "\n".join(pdb_out)
 
 
@@ -211,8 +219,10 @@ def save_pdb_from_aux(aux, filename=None, renum_pdb=True):
     - set get_best=False, to get the last sampled sequence
     """
     aux = jax.tree_map(np.asarray, aux)
-    p = {k: aux[k] for k in ["aatype", "residue_index", "atom_positions", "atom_mask"]}
-    p["b_factors"] = 100 * p["atom_mask"] * aux["plddt"][..., None]
+    p = {k: aux[k] for k in [
+        "aatype", "residue_index", "atom_positions", "atom_mask"]}
+    p["b_factors"] = 100 * p["atom_mask"] * \
+        aux["plddt"][..., None]
     Ls = [len(aux["aatype"])]
 
     def to_pdb_str(x, n=None):
@@ -229,7 +239,8 @@ def save_pdb_from_aux(aux, filename=None, renum_pdb=True):
             p["aatype"] = p["aatype"].argmax(-1)
         p_str = ""
         for n in range(p["atom_positions"].shape[0]):
-            p_str += to_pdb_str(jax.tree_map(lambda x: x[n], p), n + 1)
+            p_str += to_pdb_str(
+                jax.tree_map(lambda x: x[n], p), n + 1)
         p_str += "END\n"
     else:
         if p["aatype"].ndim == 2:

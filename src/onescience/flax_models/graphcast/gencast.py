@@ -29,7 +29,8 @@ TARGET_SURFACE_VARS = (
     "2m_temperature",
     "mean_sea_level_pressure",
     "10m_v_component_of_wind",
-    "10m_u_component_of_wind",  # GenCast predicts in 12hr timesteps.
+    # GenCast predicts in 12hr timesteps.
+    "10m_u_component_of_wind",
     "total_precipitation_12hr",
     "sea_surface_temperature",
 )
@@ -51,7 +52,8 @@ TASK = graphcast.TaskConfig(
         + graphcast.GENERATED_FORCING_VARS
         + graphcast.STATIC_VARS
     ),
-    target_variables=TARGET_SURFACE_VARS + graphcast.TARGET_ATMOSPHERIC_VARS,
+    target_variables=TARGET_SURFACE_VARS +
+    graphcast.TARGET_ATMOSPHERIC_VARS,
     # GenCast doesn't take incident solar radiation as a forcing.
     forcing_variables=graphcast.GENERATED_FORCING_VARS,
     pressure_levels=graphcast.PRESSURE_LEVELS_WEATHERBENCH_13,
@@ -143,13 +145,17 @@ class GenCast(predictor_base.Predictor):
         """Constructs GenCast."""
         # Output size depends on number of variables being predicted.
         num_surface_vars = len(
-            set(task_config.target_variables) - set(graphcast.ALL_ATMOSPHERIC_VARS)
+            set(task_config.target_variables) -
+            set(graphcast.ALL_ATMOSPHERIC_VARS)
         )
         num_atmospheric_vars = len(
-            set(task_config.target_variables) & set(graphcast.ALL_ATMOSPHERIC_VARS)
+            set(task_config.target_variables) & set(
+                graphcast.ALL_ATMOSPHERIC_VARS)
         )
         num_outputs = (
-            num_surface_vars + len(task_config.pressure_levels) * num_atmospheric_vars
+            num_surface_vars +
+            len(task_config.pressure_levels) *
+            num_atmospheric_vars
         )
         denoiser_architecture_config.node_output_size = num_outputs
         self._denoiser = denoiser.Denoiser(
@@ -188,7 +194,8 @@ class GenCast(predictor_base.Predictor):
         """The preconditioned denoising function D from the paper (Eqn 7)."""
         raw_predictions = self._denoiser(
             inputs=inputs,
-            noisy_targets=noisy_targets * self._c_in(noise_levels),
+            noisy_targets=noisy_targets *
+            self._c_in(noise_levels),
             noise_levels=noise_levels,
             forcings=forcings,
             **kwargs
@@ -213,10 +220,12 @@ class GenCast(predictor_base.Predictor):
     ) -> predictor_base.LossAndDiagnostics:
 
         if self._noise_config is None:
-            raise ValueError("Noise config must be specified to train GenCast.")
+            raise ValueError(
+                "Noise config must be specified to train GenCast.")
 
         # Sample noise levels:
-        dtype = casting.infer_floating_dtype(targets)  # pytype: disable=wrong-arg-types
+        dtype = casting.infer_floating_dtype(
+            targets)  # pytype: disable=wrong-arg-types
         key = hk.next_rng_key()
         batch_size = inputs.sizes["batch"]
         noise_levels = xarray_jax.DataArray(
@@ -224,13 +233,15 @@ class GenCast(predictor_base.Predictor):
                 min_value=self._noise_config.training_min_noise_level,
                 max_value=self._noise_config.training_max_noise_level,
                 rho=self._noise_config.training_noise_level_rho,
-                cdf=jax.random.uniform(key, shape=(batch_size,), dtype=dtype),
+                cdf=jax.random.uniform(
+                    key, shape=(batch_size,), dtype=dtype),
             ),
             dims=("batch",),
         )
 
         # Sample noise and apply it to targets:
-        noise = samplers_utils.spherical_white_noise_like(targets) * noise_levels
+        noise = samplers_utils.spherical_white_noise_like(
+            targets) * noise_levels
         noisy_targets = targets + noise
 
         denoised_predictions = self._preconditioned_denoiser(

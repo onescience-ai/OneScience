@@ -72,8 +72,10 @@ class _StaticCapture(object):
             model = model.module
 
         if not isinstance(model, onescience.models.Module):
-            self.logger.error("Model not a onescience Module!")
-            raise ValueError("Model not a onescience Module!")
+            self.logger.error(
+                "Model not a onescience Module!")
+            raise ValueError(
+                "Model not a onescience Module!")
         self.model = model
 
         self.optim = optim
@@ -83,7 +85,8 @@ class _StaticCapture(object):
 
         # Set up toggles for optimizations
         if not (amp_type == torch.float16 or amp_type == torch.bfloat16):
-            raise ValueError("AMP type must be torch.float16 or torch.bfloat16")
+            raise ValueError(
+                "AMP type must be torch.float16 or torch.bfloat16")
         # CUDA device
         if "cuda" in str(self.model.device):
             # CUDA graphs
@@ -114,9 +117,11 @@ class _StaticCapture(object):
             self.amp_dtype = amp_type
             # Gradient Scaler
             scaler_enabled = self.use_gradscaler and amp_type == torch.float16
-            self.scaler = self._init_amp_scaler(scaler_enabled, self.logger)
+            self.scaler = self._init_amp_scaler(
+                scaler_enabled, self.logger)
 
-            self.replay_stream = torch.cuda.Stream(self.model.device)
+            self.replay_stream = torch.cuda.Stream(
+                self.model.device)
         # CPU device
         else:
             self.cuda_graphs_enabled = False
@@ -138,7 +143,8 @@ class _StaticCapture(object):
                 amp_type = torch.bfloat16
             self.amp_dtype = torch.bfloat16
             # Gradient Scaler (not enabled)
-            self.scaler = self._init_amp_scaler(False, self.logger)
+            self.scaler = self._init_amp_scaler(
+                False, self.logger)
             self.replay_stream = None
 
         if self.cuda_graphs_enabled:
@@ -146,7 +152,8 @@ class _StaticCapture(object):
 
         self.output = None
         self.iteration = 0
-        self.cuda_graph_warmup = cuda_graph_warmup  # Default for DDP = 11
+        # Default for DDP = 11
+        self.cuda_graph_warmup = cuda_graph_warmup
 
     def __call__(self, fn: Callable) -> Callable:
         self.function = fn
@@ -161,7 +168,8 @@ class _StaticCapture(object):
                 else:
                     # 这个步骤在deepspeed的optimizer的step方法中已经实现，当兼容ds的时候不需要在梯度清零
                     # self._zero_grads()
-                    self.output = self._amp_forward(*args, **kwds)
+                    self.output = self._amp_forward(
+                        *args, **kwds)
 
                 if not self.eval:
                     # Update model parameters
@@ -183,7 +191,8 @@ class _StaticCapture(object):
         """
         # Graph warm up
         if self.iteration < self.cuda_graph_warmup:
-            self.replay_stream.wait_stream(torch.cuda.current_stream())
+            self.replay_stream.wait_stream(
+                torch.cuda.current_stream())
             self._zero_grads()
             with torch.cuda.stream(self.replay_stream):
                 output = self._amp_forward(*args, **kwargs)
@@ -193,17 +202,20 @@ class _StaticCapture(object):
         else:
             # Graph record
             if self.iteration == self.cuda_graph_warmup:
-                self.logger.warning(f"Recording graph of '{self.function.__name__}'")
+                self.logger.warning(
+                    f"Recording graph of '{self.function.__name__}'")
                 self._zero_grads()
                 torch.cuda.synchronize()
                 if DistributedManager().distributed:
                     torch.distributed.barrier()
                     # TODO: temporary workaround till this issue is fixed:
                     # https://github.com/pytorch/pytorch/pull/104487#issuecomment-1638665876
-                    delay = os.environ.get("MODULUS_CUDA_GRAPH_CAPTURE_DELAY", "10")
+                    delay = os.environ.get(
+                        "MODULUS_CUDA_GRAPH_CAPTURE_DELAY", "10")
                     time.sleep(int(delay))
                 with torch.cuda.graph(self.graph):
-                    output = self._amp_forward(*args, **kwargs)
+                    output = self._amp_forward(
+                        *args, **kwargs)
                     self.output = output.detach()
             # Graph replay
             self.graph.replay()
@@ -266,17 +278,21 @@ class _StaticCapture(object):
         self, scaler_enabled: bool, logger: Logger
     ) -> torch.cuda.amp.GradScaler:
         # Create gradient scaler
-        scaler = torch.cuda.amp.GradScaler(enabled=scaler_enabled)
+        scaler = torch.cuda.amp.GradScaler(
+            enabled=scaler_enabled)
         # Store scaler in class variable
         self.amp_scalers[self.label] = scaler
-        logging.debug(f"Created gradient scaler {self.label}")
+        logging.debug(
+            f"Created gradient scaler {self.label}")
 
         # If our checkpoint dictionary has weights for this scaler lets load
         if self.label in self.amp_scaler_checkpoints:
             try:
-                scaler.load_state_dict(self.amp_scaler_checkpoints[self.label])
+                scaler.load_state_dict(
+                    self.amp_scaler_checkpoints[self.label])
                 del self.amp_scaler_checkpoints[self.label]
-                self.logger.info(f"Loaded grad scaler state dictionary {self.label}.")
+                self.logger.info(
+                    f"Loaded grad scaler state dictionary {self.label}.")
             except Exception as e:
                 self.logger.error(
                     f"Failed to load grad scaler {self.label} state dict from saved "
@@ -315,8 +331,10 @@ class _StaticCapture(object):
             # If scaler has been created already load the weights
             if key in cls._amp_scalers:
                 try:
-                    cls._amp_scalers[key].load_state_dict(value)
-                    cls._logger.info(f"Loaded grad scaler state dictionary {key}.")
+                    cls._amp_scalers[key].load_state_dict(
+                        value)
+                    cls._logger.info(
+                        f"Loaded grad scaler state dictionary {key}.")
                 except Exception as e:
                     cls._logger.error(
                         f"Failed to load grad scaler state dict with id {key}."

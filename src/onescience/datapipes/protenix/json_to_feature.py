@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 class SampleDictToFeatures:
     def __init__(self, single_sample_dict):
         self.single_sample_dict = single_sample_dict
-        self.input_dict = add_entity_atom_array(single_sample_dict)
+        self.input_dict = add_entity_atom_array(
+            single_sample_dict)
         self.entity_poly_type = self.get_entity_poly_type()
 
     def get_entity_poly_type(self) -> dict[str, str]:
@@ -47,7 +48,8 @@ class SampleDictToFeatures:
         }
         entity_poly_type = {}
         for idx, type2entity_dict in enumerate(self.input_dict["sequences"]):
-            assert len(type2entity_dict) == 1, "Only one entity type is allowed."
+            assert len(
+                type2entity_dict) == 1, "Only one entity type is allowed."
             for entity_type, entity in type2entity_dict.items():
                 if "sequence" in entity:
                     assert entity_type in [
@@ -75,15 +77,24 @@ class SampleDictToFeatures:
 
                 entity_atom_array = None
                 for asym_chain_count in range(1, entity["count"] + 1):
-                    asym_id_str = int_to_letters(asym_chain_idx + 1)
-                    asym_chain = copy.deepcopy(entity["atom_array"])
-                    chain_id = [asym_id_str] * len(asym_chain)
-                    copy_id = [asym_chain_count] * len(asym_chain)
-                    asym_chain.set_annotation("label_asym_id", chain_id)
-                    asym_chain.set_annotation("auth_asym_id", chain_id)
-                    asym_chain.set_annotation("chain_id", chain_id)
-                    asym_chain.set_annotation("label_seq_id", asym_chain.res_id)
-                    asym_chain.set_annotation("copy_id", copy_id)
+                    asym_id_str = int_to_letters(
+                        asym_chain_idx + 1)
+                    asym_chain = copy.deepcopy(
+                        entity["atom_array"])
+                    chain_id = [asym_id_str] * \
+                        len(asym_chain)
+                    copy_id = [asym_chain_count] * \
+                        len(asym_chain)
+                    asym_chain.set_annotation(
+                        "label_asym_id", chain_id)
+                    asym_chain.set_annotation(
+                        "auth_asym_id", chain_id)
+                    asym_chain.set_annotation(
+                        "chain_id", chain_id)
+                    asym_chain.set_annotation(
+                        "label_seq_id", asym_chain.res_id)
+                    asym_chain.set_annotation(
+                        "copy_id", copy_id)
                     if entity_atom_array is None:
                         entity_atom_array = asym_chain
                     else:
@@ -91,7 +102,8 @@ class SampleDictToFeatures:
                     asym_chain_idx += 1
 
                 entity_atom_array.set_annotation(
-                    "label_entity_id", [entity_id] * len(entity_atom_array)
+                    "label_entity_id", [
+                        entity_id] * len(entity_atom_array)
                 )
 
                 if entity_type in ["proteinChain", "dnaSequence", "rnaSequence"]:
@@ -126,9 +138,11 @@ class SampleDictToFeatures:
         Returns:
             np.ndarray: Array of indices for specified atoms on each asym chain.
         """
-        entity_mask = atom_array.label_entity_id == str(entity_id)
+        entity_mask = atom_array.label_entity_id == str(
+            entity_id)
         position_mask = atom_array.res_id == int(position)
-        atom_name_mask = atom_array.atom_name == str(atom_name)
+        atom_name_mask = atom_array.atom_name == str(
+            atom_name)
 
         if copy_id is not None:
             copy_mask = atom_array.copy_id == int(copy_id)
@@ -159,19 +173,23 @@ class SampleDictToFeatures:
             for idx, i in enumerate(["left", "right"]):
                 entity_id = int(
                     bond_info_dict.get(
-                        f"{i}_entity", bond_info_dict.get(f"entity{idx+1}")
+                        f"{i}_entity", bond_info_dict.get(
+                            f"entity{idx+1}")
                     )
                 )
                 copy_id = bond_info_dict.get(
-                    f"{i}_copy", bond_info_dict.get(f"copy{idx+1}")
+                    f"{i}_copy", bond_info_dict.get(
+                        f"copy{idx+1}")
                 )
                 position = int(
                     bond_info_dict.get(
-                        f"{i}_position", bond_info_dict.get(f"position{idx+1}")
+                        f"{i}_position", bond_info_dict.get(
+                            f"position{idx+1}")
                     )
                 )
                 atom_name = bond_info_dict.get(
-                    f"{i}_atom", bond_info_dict.get(f"atom{idx+1}")
+                    f"{i}_atom", bond_info_dict.get(
+                        f"atom{idx+1}")
                 )
 
                 if copy_id is not None:
@@ -185,7 +203,8 @@ class SampleDictToFeatures:
                 if isinstance(atom_name, int):
                     # Convert AtomMap in SMILES to atom name in AtomArray
                     entity_dict = list(
-                        self.input_dict["sequences"][int(entity_id - 1)].values()
+                        self.input_dict["sequences"][int(
+                            entity_id - 1)].values()
                     )[0]
                     assert "atom_map_to_atom_name" in entity_dict
                     atom_name = entity_dict["atom_map_to_atom_name"][atom_name]
@@ -206,11 +225,15 @@ class SampleDictToFeatures:
 
             # Create bond between each asym chain pair
             for atom_idx1, atom_idx2 in zip(bond_atoms[0], bond_atoms[1]):
-                atom_array.bonds.add_bond(atom_idx1, atom_idx2, 1)
-                bond_count[atom_idx1] = bond_count.get(atom_idx1, 0) + 1
-                bond_count[atom_idx2] = bond_count.get(atom_idx2, 0) + 1
+                atom_array.bonds.add_bond(
+                    atom_idx1, atom_idx2, 1)
+                bond_count[atom_idx1] = bond_count.get(
+                    atom_idx1, 0) + 1
+                bond_count[atom_idx2] = bond_count.get(
+                    atom_idx2, 0) + 1
 
-        atom_array = remove_leaving_atoms(atom_array, bond_count)
+        atom_array = remove_leaving_atoms(
+            atom_array, bond_count)
 
         return atom_array
 
@@ -228,19 +251,29 @@ class SampleDictToFeatures:
         Returns:
             AtomArray: Biotite Atom array with attributes added.
         """
-        atom_array = AddAtomArrayAnnot.add_token_mol_type(atom_array, entity_poly_type)
-        atom_array = AddAtomArrayAnnot.add_centre_atom_mask(atom_array)
-        atom_array = AddAtomArrayAnnot.add_atom_mol_type_mask(atom_array)
-        atom_array = AddAtomArrayAnnot.add_distogram_rep_atom_mask(atom_array)
-        atom_array = AddAtomArrayAnnot.add_plddt_m_rep_atom_mask(atom_array)
-        atom_array = AddAtomArrayAnnot.add_cano_seq_resname(atom_array)
-        atom_array = AddAtomArrayAnnot.add_tokatom_idx(atom_array)
-        atom_array = AddAtomArrayAnnot.add_modified_res_mask(atom_array)
-        atom_array = AddAtomArrayAnnot.unique_chain_and_add_ids(atom_array)
+        atom_array = AddAtomArrayAnnot.add_token_mol_type(
+            atom_array, entity_poly_type)
+        atom_array = AddAtomArrayAnnot.add_centre_atom_mask(
+            atom_array)
+        atom_array = AddAtomArrayAnnot.add_atom_mol_type_mask(
+            atom_array)
+        atom_array = AddAtomArrayAnnot.add_distogram_rep_atom_mask(
+            atom_array)
+        atom_array = AddAtomArrayAnnot.add_plddt_m_rep_atom_mask(
+            atom_array)
+        atom_array = AddAtomArrayAnnot.add_cano_seq_resname(
+            atom_array)
+        atom_array = AddAtomArrayAnnot.add_tokatom_idx(
+            atom_array)
+        atom_array = AddAtomArrayAnnot.add_modified_res_mask(
+            atom_array)
+        atom_array = AddAtomArrayAnnot.unique_chain_and_add_ids(
+            atom_array)
         atom_array = AddAtomArrayAnnot.find_equiv_mol_and_assign_ids(
             atom_array, check_final_equiv=False
         )
-        atom_array = AddAtomArrayAnnot.add_ref_space_uid(atom_array)
+        atom_array = AddAtomArrayAnnot.add_ref_space_uid(
+            atom_array)
         return atom_array
 
     @staticmethod
@@ -271,9 +304,11 @@ class SampleDictToFeatures:
             AtomArray: Biotite Atom array.
         """
         atom_array = self.build_full_atom_array()
-        atom_array = self.add_bonds_between_entities(atom_array)
+        atom_array = self.add_bonds_between_entities(
+            atom_array)
         atom_array = self.mse_to_met(atom_array)
-        atom_array = self.add_atom_array_attributes(atom_array, self.entity_poly_type)
+        atom_array = self.add_atom_array_attributes(
+            atom_array, self.entity_poly_type)
         return atom_array
 
     def get_feature_dict(self) -> tuple[dict[str, torch.Tensor], AtomArray, TokenArray]:
@@ -303,11 +338,13 @@ class SampleDictToFeatures:
 
         # [N_token]
         feature_dict["has_frame"] = torch.Tensor(
-            token_array_with_frame.get_annotation("has_frame")
+            token_array_with_frame.get_annotation(
+                "has_frame")
         ).long()
 
         # [N_token, 3]
         feature_dict["frame_atom_index"] = torch.Tensor(
-            token_array_with_frame.get_annotation("frame_atom_index")
+            token_array_with_frame.get_annotation(
+                "frame_atom_index")
         ).long()
         return feature_dict, atom_array, token_array

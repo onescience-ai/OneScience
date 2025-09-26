@@ -118,12 +118,15 @@ def collect_residues_with_symmetric_atoms(
     device = coord_mask.device
 
     # Find start & end positions of each residue
-    diff = torch.tensor([True] + (ref_space_uid[1:] != ref_space_uid[:-1]).tolist())
+    diff = torch.tensor(
+        [True] + (ref_space_uid[1:] != ref_space_uid[:-1]).tolist())
     start_positions = torch.cat(
-        (torch.nonzero(diff, as_tuple=True)[0], torch.tensor([len(ref_space_uid)]))
+        (torch.nonzero(diff, as_tuple=True)[
+         0], torch.tensor([len(ref_space_uid)]))
     )
     res_start_end = list(
-        zip(start_positions[:-1].tolist(), start_positions[1:].tolist())
+        zip(start_positions[:-1].tolist(),
+            start_positions[1:].tolist())
     )  # [N_res, 2]
     N_res = len(res_start_end)
     assert N_res == len(torch.unique(ref_space_uid))
@@ -136,17 +139,21 @@ def collect_residues_with_symmetric_atoms(
     # Traverse residues and store the corresponding data
     for start, end in res_start_end:
 
-        assert len(torch.unique(ref_space_uid[start:end])) == 1
+        assert len(torch.unique(
+            ref_space_uid[start:end])) == 1
 
         # Skip if this residue contains < 3 resolved atoms.
         # Alignment requires at least 3 atoms to obtain a reasonable result.
-        res_coord_mask = coord_mask[start:end].bool()  # [N_res_atom]
+        # [N_res_atom]
+        res_coord_mask = coord_mask[start:end].bool()
         if res_coord_mask.sum() < 3:
             continue
 
         # Drop duplicated permutations
-        perm = torch.tensor(atom_perm_list[start:end], device=device, dtype=torch.long)
-        perm = torch.unique(perm, dim=-1)  # [N_res_atom, N_perm]
+        perm = torch.tensor(
+            atom_perm_list[start:end], device=device, dtype=torch.long)
+        # [N_res_atom, N_perm]
+        perm = torch.unique(perm, dim=-1)
         N_res_atom, N_perm = perm.size()
 
         # Basic checks
@@ -162,15 +169,19 @@ def collect_residues_with_symmetric_atoms(
         identity_perm = torch.arange(len(perm), device=device).unsqueeze(
             dim=-1
         )  # [N_res_atom, 1]
-        is_sym_atom = perm != identity_perm  # [N_res_atom, N_perm]
-        is_sym_atom_resolved = is_sym_atom * res_coord_mask.unsqueeze(dim=-1)
+        # [N_res_atom, N_perm]
+        is_sym_atom = perm != identity_perm
+        is_sym_atom_resolved = is_sym_atom * \
+            res_coord_mask.unsqueeze(dim=-1)
         is_valid_perm = is_sym_atom_resolved.any(dim=0)
         if not is_valid_perm.any():
             # Skip if no valid permutation (other than identity) exists
             continue
         perm = perm[..., is_valid_perm]
-        perm = torch.cat([identity_perm, perm], dim=-1)  # Put identity to the first
-        perm = perm.transpose(-1, -2)  # [N_perm, N_res_atom]
+        # Put identity to the first
+        perm = torch.cat([identity_perm, perm], dim=-1)
+        # [N_perm, N_res_atom]
+        perm = perm.transpose(-1, -2)
 
         position_list.append((start, end))
         perm_list.append(perm)
@@ -204,7 +215,8 @@ def collect_permuted_coords(
             [N_total_perm, MAX_N_res_atom]
     """
 
-    MAX_N_res_atom = max(perm.size(-1) for perm in perm_list)
+    MAX_N_res_atom = max(perm.size(-1)
+                         for perm in perm_list)
     perm_coord = []  # [N_total_perm, N_res_atom, 3]
     perm_coord_mask = []  # [N_total_perm, N_res_atom]
 
@@ -214,18 +226,23 @@ def collect_permuted_coords(
         # Basic shape checks
         N_perm, N_res_atom = perm.size()
         assert res_coord.size(-1) == 3
-        assert res_coord.size(0) == res_coord_mask.size(0) == perm.size(-1)
+        assert res_coord.size(0) == res_coord_mask.size(
+            0) == perm.size(-1)
 
         # Permute coordinates & masks
-        res_coord_permuted = res_coord[perm]  # [N_perm, N_res_atom, 3]
-        res_coord_mask_permuted = res_coord_mask[perm]  # [N_perm, N_res_atom]
+        # [N_perm, N_res_atom, 3]
+        res_coord_permuted = res_coord[perm]
+        # [N_perm, N_res_atom]
+        res_coord_mask_permuted = res_coord_mask[perm]
         assert res_coord_permuted.size() == (N_perm, N_res_atom, 3)
         assert res_coord_mask_permuted.size() == (N_perm, N_res_atom)
 
         if run_checker:
             Checker.are_permutations(perm, dim=-1)
-            Checker.batch_permute(perm, res_coord, res_coord_permuted)
-            Checker.batch_permute(perm, res_coord_mask, res_coord_mask_permuted)
+            Checker.batch_permute(
+                perm, res_coord, res_coord_permuted)
+            Checker.batch_permute(
+                perm, res_coord_mask, res_coord_mask_permuted)
 
         # Pad to MAX_N_res_atom
         N_res_atom = perm.size(dim=-1)
@@ -247,7 +264,8 @@ def collect_permuted_coords(
 
     # Shape check
     assert perm_coord.size() == (N_total_perm, MAX_N_res_atom, 3)
-    assert perm_coord_mask.size() == (N_total_perm, MAX_N_res_atom)
+    assert perm_coord_mask.size() == (
+        N_total_perm, MAX_N_res_atom)
 
     return perm_coord, perm_coord_mask
 
@@ -318,16 +336,19 @@ class AtomPermutation(object):
         """
 
         if true_coord.dim() < pred_coord.dim():
-            assert pred_coord.dim() == 3  # [Batch, N_atom, 3]
+            # [Batch, N_atom, 3]
+            assert pred_coord.dim() == 3
             Batch = pred_coord.size(0)
-            expand_func = lambda x: expand_at_dim(x, dim=0, n=Batch)
+            def expand_func(x): return expand_at_dim(
+                x, dim=0, n=Batch)
         else:
-            expand_func = lambda x: x
+            def expand_func(x): return x
 
         with torch.cuda.amp.autocast(enabled=False):
             aligned_rmsd, transformed_pred_coord, _, _ = self_aligned_rmsd(
                 pred_pose=pred_coord.to(torch.float32),
-                true_pose=expand_func(true_coord.to(torch.float32)),
+                true_pose=expand_func(
+                    true_coord.to(torch.float32)),
                 atom_mask=expand_func(true_coord_mask),
                 allowing_reflection=False,
                 reduce=False,
@@ -393,8 +414,10 @@ class AtomPermutation(object):
         """
 
         # Find max number of per-residue atoms
-        per_residue_N_perm = [perm.size(0) for perm in per_residue_perm_list]
-        per_residue_N_atom = [perm.size(1) for perm in per_residue_perm_list]
+        per_residue_N_perm = [
+            perm.size(0) for perm in per_residue_perm_list]
+        per_residue_N_atom = [
+            perm.size(1) for perm in per_residue_perm_list]
         N_max_atom = max(per_residue_N_atom)
 
         # Permute true coordinates & masks according to the permutations in per_residue_perm_list
@@ -404,7 +427,8 @@ class AtomPermutation(object):
             perm_list=per_residue_perm_list,
             run_checker=run_checker,
         )  # [N_total_perm, N_max_atom, 3], [N_total_perm, N_max_atom]
-        assert permuted_coord.size(-2) == permuted_coord_mask.size(-1) == N_max_atom
+        assert permuted_coord.size(
+            -2) == permuted_coord_mask.size(-1) == N_max_atom
         N_total_perm = permuted_coord.size(0)
 
         # Pad 'pred_coord' to the same shape as 'permuted_coord'
@@ -427,15 +451,18 @@ class AtomPermutation(object):
             ),
             dim=-3,
         )  # [N_total_perm, N_max_atom, 3] or [Batch, N_total_perm, N_max_atom, 3]
-        assert pred_coord.shape[-3:] == (N_total_perm, N_max_atom, 3)
+        assert pred_coord.shape[-3:] == (
+            N_total_perm, N_max_atom, 3)
 
         batch_shape = pred_coord.shape[:-3]
         assert len(batch_shape) in [0, 1]
         if len(batch_shape) == 1:
             # expand true coord & mask to have the same batch size as pred coord
             Batch = pred_coord.size(0)
-            permuted_coord = expand_at_dim(permuted_coord, dim=0, n=Batch)
-            permuted_coord_mask = expand_at_dim(permuted_coord_mask, dim=0, n=Batch)
+            permuted_coord = expand_at_dim(
+                permuted_coord, dim=0, n=Batch)
+            permuted_coord_mask = expand_at_dim(
+                permuted_coord_mask, dim=0, n=Batch)
 
         # Compute per-residue rmsd
         with torch.cuda.amp.autocast(enabled=False):
@@ -459,9 +486,12 @@ class AtomPermutation(object):
         for N_perm, N_res_atom, perm in zip(
             per_residue_N_perm, per_residue_N_atom, per_residue_perm_list
         ):
-            cur_res_rmsd = per_res_rmsd[..., i : i + N_perm]  # [batch_shape, N_perm]
-            best_rmsd, best_j = torch.min(cur_res_rmsd, dim=-1)  # [batch_shape]
-            best_perm = perm[best_j]  # [batch_shape, N_res_atom]
+            # [batch_shape, N_perm]
+            cur_res_rmsd = per_res_rmsd[..., i: i + N_perm]
+            best_rmsd, best_j = torch.min(
+                cur_res_rmsd, dim=-1)  # [batch_shape]
+            # [batch_shape, N_res_atom]
+            best_perm = perm[best_j]
             best_permutation_list.append(best_perm)
 
             is_permuted_list.append(
@@ -570,22 +600,26 @@ class AtomPermutation(object):
             run_checker=run_checker,
         )
         log_dict["N_res"] = N_res
-        log_dict["N_res_with_symmetry"] = len(per_residue_coord_list)
+        log_dict["N_res_with_symmetry"] = len(
+            per_residue_coord_list)
         log_dict["N_res_permuted"] = 0.0
         log_dict["has_res_permuted"] = 0
 
         # If no residues contain symmetry, return now.
         if not per_residue_perm_list:
-            print("No atom permutation is needed. Return the identity permutation.")
+            print(
+                "No atom permutation is needed. Return the identity permutation.")
             return (permutation, log_dict)
 
         # no_permute_atom_mask: 1 represent this atom can not be permuted
-        no_permute_atom_mask = torch.ones_like(true_coord_mask)
+        no_permute_atom_mask = torch.ones_like(
+            true_coord_mask)
         for (start, end), per_residue_perm in zip(
             per_residue_position_list, per_residue_perm_list
         ):
             no_permute_atom_mask[start:end] = 1 - (
-                (per_residue_perm != per_residue_perm[0]).sum(dim=0) > 0
+                (per_residue_perm != per_residue_perm[0]).sum(
+                    dim=0) > 0
             ).to(torch.int32)
 
         # Perform a global alignment of predictions to true coordinates
@@ -597,7 +631,8 @@ class AtomPermutation(object):
             alignment_mask = no_permute_atom_mask * alignment_mask
 
         if alignment_mask.sum().item() < 3:
-            print("No atom permutation is needed. Return the identity permutation.")
+            print(
+                "No atom permutation is needed. Return the identity permutation.")
             return (permutation, log_dict)
 
         # This is for atom permutation, use mask with different strategies
@@ -614,20 +649,23 @@ class AtomPermutation(object):
             true_coord_mask,
             eps=self.eps,
         )
-        log_dict["unpermuted_rmsd"] = aligned_rmsd.mean().item()  # [Batch]
+        # [Batch]
+        log_dict["unpermuted_rmsd"] = aligned_rmsd.mean().item()
 
         """ 
         To efficiently optimize the residues parallely, group the residues
         according to the number of atoms in each residue.
         """
-        per_residue_N_atom = [coord.size(0) for coord in per_residue_coord_list]
+        per_residue_N_atom = [coord.size(
+            0) for coord in per_residue_coord_list]
         res_atom_cutoff = [15, 30, 50, 100, 100000]
         grouped_indices = {}
         for i, n in enumerate(per_residue_N_atom):
             for atom_cutoff in res_atom_cutoff:
                 if n <= atom_cutoff:
                     break
-            grouped_indices.setdefault(atom_cutoff, []).append(i)
+            grouped_indices.setdefault(
+                atom_cutoff, []).append(i)
 
         assert len(sum(list(grouped_indices.values()), [])) == len(
             per_residue_perm_list
@@ -641,10 +679,12 @@ class AtomPermutation(object):
         for atom_cutoff, residue_group in grouped_indices.items():
 
             if verbose:
-                print(f"{len(residue_group)} residues have <={atom_cutoff} atoms.")
+                print(
+                    f"{len(residue_group)} residues have <={atom_cutoff} atoms.")
 
             # Enumerte permutations within each residue to minimize per-residue RMSD
-            per_res_pos_list = [per_residue_position_list[i] for i in residue_group]
+            per_res_pos_list = [
+                per_residue_position_list[i] for i in residue_group]
             (
                 per_res_best_permutation,
                 per_res_is_permuted,
@@ -652,7 +692,8 @@ class AtomPermutation(object):
                 per_res_ori_rmsd,
             ) = self._optimize_per_residue_permutation_by_rmsd(
                 per_residue_pred_coord_list=[
-                    transformed_pred_coord[..., pos[0] : pos[1], :]
+                    transformed_pred_coord[...,
+                                           pos[0]: pos[1], :]
                     for pos in per_res_pos_list
                 ],
                 per_residue_coord_list=[
@@ -661,22 +702,28 @@ class AtomPermutation(object):
                 per_residue_coord_mask_list=[
                     per_residue_coord_mask_list[i] for i in residue_group
                 ],
-                per_residue_perm_list=[per_residue_perm_list[i] for i in residue_group],
+                per_residue_perm_list=[
+                    per_residue_perm_list[i] for i in residue_group],
                 eps=self.eps,
                 run_checker=self.run_checker,
             )
             residue_position_list.extend(per_res_pos_list)
-            residue_best_permutation_list.extend(per_res_best_permutation)
-            residue_is_permuted_list.extend(per_res_is_permuted)
-            residue_optimized_rmsd_list.extend(per_res_optimized_rmsd)
-            residue_original_rmsd_list.extend(per_res_ori_rmsd)
+            residue_best_permutation_list.extend(
+                per_res_best_permutation)
+            residue_is_permuted_list.extend(
+                per_res_is_permuted)
+            residue_optimized_rmsd_list.extend(
+                per_res_optimized_rmsd)
+            residue_original_rmsd_list.extend(
+                per_res_ori_rmsd)
 
         # Aggregate per_residue results
         # 1. Best permutation
         indices_list = [
             torch.arange(pos[0], pos[1], device=device) for pos in residue_position_list
         ]
-        residue_atom_indices = torch.cat(indices_list, dim=-1)  # [N_perm_atom]
+        residue_atom_indices = torch.cat(
+            indices_list, dim=-1)  # [N_perm_atom]
         residue_best_permutation = torch.cat(
             [
                 ind[perm]
@@ -684,13 +731,17 @@ class AtomPermutation(object):
             ],
             dim=-1,
         )  # [Batch, N_perm_atom] or [N_perm_atom]
-        permutation[..., residue_atom_indices] = residue_best_permutation
+        permutation[...,
+                    residue_atom_indices] = residue_best_permutation
 
         # 2. Other statistics
-        is_res_permuted = torch.stack(residue_is_permuted_list, dim=-1).float()
-        log_dict["N_res_permuted"] = is_res_permuted.sum(dim=-1).mean().item()
+        is_res_permuted = torch.stack(
+            residue_is_permuted_list, dim=-1).float()
+        log_dict["N_res_permuted"] = is_res_permuted.sum(
+            dim=-1).mean().item()
         log_dict["has_res_permuted"] = (
-            (is_res_permuted.sum(dim=-1) > 0).float().mean().item()
+            (is_res_permuted.sum(dim=-1)
+             > 0).float().mean().item()
         )
 
         return permutation, log_dict
@@ -750,7 +801,8 @@ def correct_symmetric_atoms(
     assert pred_coord.size(-1) == 3
 
     if alignment_mask is not None:
-        alignment_mask = (true_coord_mask * alignment_mask).bool()
+        alignment_mask = (
+            true_coord_mask * alignment_mask).bool()
     else:
         alignment_mask = true_coord_mask.bool()
 
@@ -782,7 +834,8 @@ def correct_symmetric_atoms(
         )
         log_dict["permuted_rmsd"] = permuted_rmsd.mean().item()
         log_dict["improved_rmsd"] = (
-            log_dict["unpermuted_rmsd"] - log_dict["permuted_rmsd"]
+            log_dict["unpermuted_rmsd"] -
+            log_dict["permuted_rmsd"]
         )
 
     if permute_label:
@@ -796,14 +849,17 @@ def correct_symmetric_atoms(
         # Find the permutation of the prediction
         if pred_coord.dim() == 2:
             # Inverse permutation for 1D case
-            indices_permutation = torch.argsort(indices_permutation)
+            indices_permutation = torch.argsort(
+                indices_permutation)
             pred_coord_permuted = pred_coord[indices_permutation]
         else:
             # Inverse permutation for 2D case (batch mode)
-            indices_permutation = torch.argsort(indices_permutation, dim=1)
+            indices_permutation = torch.argsort(
+                indices_permutation, dim=1)
             indices_permutation_expanded = expand_at_dim(
                 indices_permutation, dim=-1, n=3
             )  # [Batch, N_atom, 3]
-            pred_coord_permuted = pred_coord.gather(1, indices_permutation_expanded)
+            pred_coord_permuted = pred_coord.gather(
+                1, indices_permutation_expanded)
 
         return pred_coord_permuted, None, log_dict, indices_permutation

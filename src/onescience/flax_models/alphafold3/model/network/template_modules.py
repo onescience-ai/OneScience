@@ -37,14 +37,16 @@ def dgram_from_positions(positions, config: DistogramFeaturesConfig):
     Returns:
       Distogram with the specified number of bins.
     """
-    lower_breaks = jnp.linspace(config.min_bin, config.max_bin, config.num_bins)
+    lower_breaks = jnp.linspace(
+        config.min_bin, config.max_bin, config.num_bins)
     lower_breaks = jnp.square(lower_breaks)
     upper_breaks = jnp.concatenate(
         [lower_breaks[1:], jnp.array([1e8], dtype=jnp.float32)], axis=-1
     )
     dist2 = jnp.sum(
         jnp.square(
-            jnp.expand_dims(positions, axis=-2) - jnp.expand_dims(positions, axis=-3)
+            jnp.expand_dims(positions, axis=-2) -
+            jnp.expand_dims(positions, axis=-3)
         ),
         axis=-1,
         keepdims=True,
@@ -80,20 +82,23 @@ def make_backbone_rigid(
 
     slice_index = jax.vmap(lambda x, i: x[i])
     rigid_mask = (
-        slice_index(mask, a) * slice_index(mask, b) * slice_index(mask, c)
+        slice_index(mask, a) * slice_index(mask,
+                                           b) * slice_index(mask, c)
     ).astype(jnp.float32)
 
     frame_positions = []
     for indices in [a, b, c]:
         frame_positions.append(
-            jax.tree.map(lambda x, idx=indices: slice_index(x, idx), positions)
+            jax.tree.map(
+                lambda x, idx=indices: slice_index(x, idx), positions)
         )
 
     rotation = geometry.Rot3Array.from_two_vectors(
         frame_positions[2] - frame_positions[1],
         frame_positions[0] - frame_positions[1],
     )
-    rigid = geometry.Rigid3Array(rotation, frame_positions[1])
+    rigid = geometry.Rigid3Array(
+        rotation, frame_positions[1])
 
     return rigid, rigid_mask
 
@@ -105,7 +110,8 @@ class TemplateEmbedding(hk.Module):
         num_channels: int = 64
         template_stack: modules.PairFormerIteration.Config = base_config.autocreate(
             num_layer=2,
-            pair_transition=base_config.autocreate(num_intermediate_factor=2),
+            pair_transition=base_config.autocreate(
+                num_intermediate_factor=2),
         )
         dgram_features: DistogramFeaturesConfig = base_config.autocreate()
 
@@ -151,23 +157,28 @@ class TemplateEmbedding(hk.Module):
             num_residues,
             query_num_channels,
         )
-        assert templates.aatype.shape == (num_templates, num_residues)
+        assert templates.aatype.shape == (
+            num_templates, num_residues)
         assert templates.atom_positions.shape == (
             num_templates,
             num_residues,
             num_atoms,
             3,
         )
-        assert templates.atom_mask.shape == (num_templates, num_residues, num_atoms)
-        assert padding_mask_2d.shape == (num_residues, num_residues)
+        assert templates.atom_mask.shape == (
+            num_templates, num_residues, num_atoms)
+        assert padding_mask_2d.shape == (
+            num_residues, num_residues)
 
         num_templates = templates.aatype.shape[0]
         num_res, _, query_num_channels = query_embedding.shape
 
         # Embed each template separately.
-        template_embedder = SingleTemplateEmbedding(self.config, self.global_config)
+        template_embedder = SingleTemplateEmbedding(
+            self.config, self.global_config)
 
-        subkeys = jnp.array(jax.random.split(key, num_templates))
+        subkeys = jnp.array(
+            jax.random.split(key, num_templates))
 
         def scan_fn(carry, x):
             templates, key = x
@@ -181,19 +192,22 @@ class TemplateEmbedding(hk.Module):
             return carry + embedding, None
 
         scan_init = jnp.zeros(
-            (num_res, num_res, c.num_channels), dtype=query_embedding.dtype
+            (num_res, num_res,
+             c.num_channels), dtype=query_embedding.dtype
         )
         summed_template_embeddings, _ = hk.scan(
             scan_fn, scan_init, (templates, subkeys)
         )
 
-        embedding = summed_template_embeddings / (1e-7 + num_templates)
+        embedding = summed_template_embeddings / \
+            (1e-7 + num_templates)
         embedding = jax.nn.relu(embedding)
         embedding = hm.Linear(
             query_num_channels, initializer="relu", name="output_linear"
         )(embedding)
 
-        assert embedding.shape == (num_residues, num_residues, query_num_channels)
+        assert embedding.shape == (
+            num_residues, num_residues, query_num_channels)
         return embedding
 
 
@@ -254,15 +268,18 @@ class SingleTemplateEmbedding(hk.Module):
             pseudo_beta_positions, pseudo_beta_mask = scoring.pseudo_beta_fn(
                 templates.aatype, dense_atom_positions, dense_atom_mask
             )
-            pseudo_beta_mask_2d = pseudo_beta_mask[:, None] * pseudo_beta_mask[None, :]
+            pseudo_beta_mask_2d = pseudo_beta_mask[:,
+                                                   None] * pseudo_beta_mask[None, :]
             pseudo_beta_mask_2d *= multichain_mask_2d
             dgram = dgram_from_positions(
                 pseudo_beta_positions, self.config.dgram_features
             )
             dgram *= pseudo_beta_mask_2d[..., None]
             dgram = dgram.astype(dtype)
-            pseudo_beta_mask_2d = pseudo_beta_mask_2d.astype(dtype)
-            to_concat = [(dgram, 1), (pseudo_beta_mask_2d, 0)]
+            pseudo_beta_mask_2d = pseudo_beta_mask_2d.astype(
+                dtype)
+            to_concat = [
+                (dgram, 1), (pseudo_beta_mask_2d, 0)]
 
             aatype = jax.nn.one_hot(
                 aatype,
@@ -283,28 +300,35 @@ class SingleTemplateEmbedding(hk.Module):
                 axis=0,
             )
             rigid, backbone_mask = make_backbone_rigid(
-                geometry.Vec3Array.from_array(dense_atom_positions),
+                geometry.Vec3Array.from_array(
+                    dense_atom_positions),
                 dense_atom_mask,
                 template_group_indices.astype(jnp.int32),
             )
             points = rigid.translation
-            rigid_vec = rigid[:, None].inverse().apply_to_point(points)
+            rigid_vec = rigid[:, None].inverse(
+            ).apply_to_point(points)
             unit_vector = rigid_vec.normalized()
-            unit_vector = [unit_vector.x, unit_vector.y, unit_vector.z]
+            unit_vector = [unit_vector.x,
+                           unit_vector.y, unit_vector.z]
 
-            unit_vector = [x.astype(dtype) for x in unit_vector]
+            unit_vector = [x.astype(dtype)
+                           for x in unit_vector]
             backbone_mask = backbone_mask.astype(dtype)
 
-            backbone_mask_2d = backbone_mask[:, None] * backbone_mask[None, :]
+            backbone_mask_2d = backbone_mask[:,
+                                             None] * backbone_mask[None, :]
             backbone_mask_2d *= multichain_mask_2d
-            unit_vector = [x * backbone_mask_2d for x in unit_vector]
+            unit_vector = [
+                x * backbone_mask_2d for x in unit_vector]
 
             # Note that the backbone_mask takes into account C, CA and N (unlike
             # pseudo beta mask which just needs CB) so we add both masks as features.
             to_concat.extend([(x, 0) for x in unit_vector])
             to_concat.append((backbone_mask_2d, 0))
 
-            query_embedding = hm.LayerNorm(name="query_embedding_norm")(query_embedding)
+            query_embedding = hm.LayerNorm(
+                name="query_embedding_norm")(query_embedding)
             # Allow the template embedder to see the query embedding.  Note this
             # contains the position relative feature, so this is how the network knows
             # which residues are next to each other.
@@ -321,7 +345,8 @@ class SingleTemplateEmbedding(hk.Module):
                 )(x)
             return act
 
-        act = construct_input(query_embedding, templates, multichain_mask_2d)
+        act = construct_input(
+            query_embedding, templates, multichain_mask_2d)
 
         if c.template_stack.num_layer:
 

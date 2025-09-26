@@ -42,14 +42,16 @@ class NormBlock(nn.Module):
             x_safe = nn.RMSNorm(epsilon=self.eps)(x_safe)
             return x_safe.astype(x.dtype)
         else:
-            raise ValueError(f"Unsupported norm method: {self.norm_method}")
+            raise ValueError(
+                f"Unsupported norm method: {self.norm_method}")
 
 
 class Transition(nn.Module):
 
     config: Union[Config, ConfigDict]
     global_config: Union[Config, ConfigDict]
-    hyper_lora_config: Union[Config, ConfigDict, None] = None
+    hyper_lora_config: Union[Config,
+                             ConfigDict, None] = None
 
     @nn.compact
     def __call__(self, z_ij: Array, hyper_var: Array = None):
@@ -60,20 +62,22 @@ class Transition(nn.Module):
             z_ij: shape of (B, N, n, C) or (N, n, C), out pair activations;
         """
 
-        ## ----- algorithm -----
-        ## z_ij -> Norm(z_ij) -> FFN or GLU(z_ij)
+        # ----- algorithm -----
+        # z_ij -> Norm(z_ij) -> FFN or GLU(z_ij)
         bf16_flag = self.global_config.bf16_flag
         arr_type = jnp.bfloat16 if bf16_flag else jnp.float32
         dropout_flag = self.global_config.dropout_flag
 
         act_fn = get_activation(self.config.act_fn)
         method = self.config.method
-        assert method in ["ffn", "glu"], f"Unsupported method in transition: {method}."
+        assert method in [
+            "ffn", "glu"], f"Unsupported method in transition: {method}."
 
         _dim_channel = z_ij.shape[-1]
         _dim_transition = self.config.transition_factor * _dim_channel
-        kernel_initializer = get_initializer(self.config.kernel_initializer)
-        ## for lora
+        kernel_initializer = get_initializer(
+            self.config.kernel_initializer)
+        # for lora
         arg_dict = {
             "features": _dim_transition,
             "use_bias": False,
@@ -96,20 +100,25 @@ class Transition(nn.Module):
             hyper_var_ = {}
         if method == "ffn":
             # (..., N, n, C) -> (..., N, n, C*f) -> (..., N, n, C)
-            z_ij = DenseModule(name="ffn1", **arg_dict)(z_ij, **hyper_var_)
+            z_ij = DenseModule(
+                name="ffn1", **arg_dict)(z_ij, **hyper_var_)
             z_ij = act_fn(z_ij)
             arg_dict["features"] = _dim_channel
-            z_ij = DenseModule(name="ffn2", **arg_dict)(z_ij, **hyper_var_)
+            z_ij = DenseModule(
+                name="ffn2", **arg_dict)(z_ij, **hyper_var_)
         elif method == "glu":
             # (..., N, n, C) -> (..., N, n, C*f)
-            h_ij = DenseModule(name="glu1", **arg_dict)(z_ij, **hyper_var_)
+            h_ij = DenseModule(
+                name="glu1", **arg_dict)(z_ij, **hyper_var_)
             # (..., N, n, C) -> (..., N, n, C*f)
-            k_ij = DenseModule(name="glu2", **arg_dict)(z_ij, **hyper_var_)
+            k_ij = DenseModule(
+                name="glu2", **arg_dict)(z_ij, **hyper_var_)
             # (..., N, n, C*f) * (..., N, n, C*f) -> (..., N, n, C*f)
             z_ij = h_ij * act_fn(k_ij)
             # (..., N, n, C*f) -> (..., N, n, C)
             arg_dict["features"] = _dim_channel
-            z_ij = DenseModule(name="glu_out", **arg_dict)(z_ij, **hyper_var_)
+            z_ij = DenseModule(
+                name="glu_out", **arg_dict)(z_ij, **hyper_var_)
 
         return z_ij
 
@@ -128,7 +137,7 @@ class OuterProduct(nn.Module):
 
         outerproduct_dim = self.config.outerproduct_dim
         output_dim = self.config.output_dim
-        has_bias = self.config.has_bias  ## default is True
+        has_bias = self.config.has_bias  # default is True
 
         self.left_projection = nn.Dense(
             features=outerproduct_dim,
@@ -168,16 +177,20 @@ class OuterProduct(nn.Module):
         _n = s_j.shape[-2]
 
         # (B, N, C) -> (B, N, C1)
-        left_act = m_i[..., None] * self.left_projection(act)
+        left_act = m_i[..., None] * \
+            self.left_projection(act)
         _c1 = left_act.shape[-1]
         # (B, N, n, C) -> (B, N, n, C1)
-        right_act = m_j[..., None] * self.right_projection(s_j)
+        right_act = m_j[..., None] * \
+            self.right_projection(s_j)
         # (B, N, C1) -> (B, C1, N) -> (B, C1*N, 1)
-        left_act = jnp.swapaxes(left_act, -1, -2).reshape(-1, _c1 * _nres, 1)
+        left_act = jnp.swapaxes(
+            left_act, -1, -2).reshape(-1, _c1 * _nres, 1)
         # (B, N, n, C1) -> (B, N, n*C1) -> (B, C1, N, n*C1) -> (B, C1*N, n*C1)
         right_act = jnp.reshape(right_act, (_bs, _nres, -1))
         right_act = right_act[:, None, :, :].repeat(_c1, -3)
-        right_act = jnp.reshape(right_act, (_bs, _c1 * _nres, _n * _c1))
+        right_act = jnp.reshape(
+            right_act, (_bs, _c1 * _nres, _n * _c1))
         # (B, C1*N, 1) * (B, C1*N, n*C1) -> (B, C1*N, n*C1) -> (B, C1, N, n, C1)
         act = left_act * right_act
         act = jnp.reshape(act, (_bs, _c1, _nres, _n, _c1))
@@ -204,7 +217,7 @@ class OuterDifference(nn.Module):
 
         outerdiff_dim = self.config.outerdiff_dim
         output_dim = self.config.output_dim
-        has_bias = self.config.has_bias  ## default is True
+        has_bias = self.config.has_bias  # default is True
 
         self.left_projection = nn.Dense(
             features=outerdiff_dim,
@@ -243,9 +256,11 @@ class OuterDifference(nn.Module):
         s_j.shape[-2]
 
         # (B, N, C) -> (B, N, C1) C1 = outerdiff_dim
-        left_act = m_i[..., None] * self.left_projection(act)
+        left_act = m_i[..., None] * \
+            self.left_projection(act)
         # (B, N, n, C) -> (B, N, n, C1)
-        right_act = m_j[..., None] * self.right_projection(s_j)
+        right_act = m_j[..., None] * \
+            self.right_projection(s_j)
         # (B, N, C1) -> (B, N, 1, C1)
         left_act = jnp.expand_dims(left_act, axis=-2)
         # (B, N, 1, C1) - (B, N, n, C1) -> (B, N, n, C1) -> (B, N, n, C2)

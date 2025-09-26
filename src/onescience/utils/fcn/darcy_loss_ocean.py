@@ -18,12 +18,15 @@ class LpLoss(object):
     def masked_rel(self, x, y):
         num_examples = x.size()[0]
         mask_sliced = self.mask
-        mask_expanded = mask_sliced.unsqueeze(0).unsqueeze(0)
+        mask_expanded = mask_sliced.unsqueeze(
+            0).unsqueeze(0)
         mask_re = mask_expanded.expand_as(x)
         mask = mask_re.reshape(num_examples, -1)
-        diff = (x.view(num_examples, -1) - y.view(num_examples, -1)) * mask
+        diff = (x.view(num_examples, -1) -
+                y.view(num_examples, -1)) * mask
         diff_norms = torch.norm(diff, self.p, 1)
-        y_norms = torch.norm(y.view(num_examples, -1) * mask, self.p, 1)
+        y_norms = torch.norm(
+            y.view(num_examples, -1) * mask, self.p, 1)
         y_norms = y_norms + (y_norms == 0).float() * 1e-8
         rel_norms = diff_norms / y_norms
         if self.reduction:

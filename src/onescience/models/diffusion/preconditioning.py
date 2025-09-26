@@ -16,7 +16,8 @@ from onescience.models.diffusion import DhariwalUNet, SongUNet  # noqa: F401 for
 from onescience.models.meta import ModelMetaData
 from onescience.models.module import Module
 
-network_module = importlib.import_module("onescience.models.diffusion")
+network_module = importlib.import_module(
+    "onescience.models.diffusion")
 
 
 @dataclass
@@ -113,7 +114,8 @@ class VPPrecond(Module):
             None
             if self.label_dim == 0
             else (
-                torch.zeros([1, self.label_dim], device=x.device)
+                torch.zeros([1, self.label_dim],
+                            device=x.device)
                 if class_labels is None
                 else class_labels.to(torch.float32).reshape(-1, self.label_dim)
             )
@@ -183,7 +185,8 @@ class VPPrecond(Module):
         """
         sigma = torch.as_tensor(sigma)
         return (
-            (self.beta_min**2 + 2 * self.beta_d * (1 + sigma**2).log()).sqrt()
+            (self.beta_min**2 + 2 * self.beta_d *
+             (1 + sigma**2).log()).sqrt()
             - self.beta_min
         ) / self.beta_d
 
@@ -288,7 +291,8 @@ class VEPrecond(Module):
             None
             if self.label_dim == 0
             else (
-                torch.zeros([1, self.label_dim], device=x.device)
+                torch.zeros([1, self.label_dim],
+                            device=x.device)
                 if class_labels is None
                 else class_labels.to(torch.float32).reshape(-1, self.label_dim)
             )
@@ -434,7 +438,8 @@ class iDDPMPrecond(Module):
             None
             if self.label_dim == 0
             else (
-                torch.zeros([1, self.label_dim], device=x.device)
+                torch.zeros([1, self.label_dim],
+                            device=x.device)
                 if class_labels is None
                 else class_labels.to(torch.float32).reshape(-1, self.label_dim)
             )
@@ -449,7 +454,9 @@ class iDDPMPrecond(Module):
         c_out = -sigma
         c_in = 1 / (sigma**2 + 1).sqrt()
         c_noise = (
-            self.M - 1 - self.round_sigma(sigma, return_index=True).to(torch.float32)
+            self.M - 1 -
+            self.round_sigma(sigma, return_index=True).to(
+                torch.float32)
         )
 
         F_x = self.model(
@@ -463,7 +470,8 @@ class iDDPMPrecond(Module):
                 f"Expected the dtype to be {dtype}, but got {F_x.dtype} instead."
             )
 
-        D_x = c_skip * x + c_out * F_x[:, : self.img_channels].to(torch.float32)
+        D_x = c_skip * x + c_out * \
+            F_x[:, : self.img_channels].to(torch.float32)
         return D_x
 
     def alpha_bar(self, j):
@@ -504,10 +512,12 @@ class iDDPMPrecond(Module):
         """
         sigma = torch.as_tensor(sigma)
         index = torch.cdist(
-            sigma.to(self.u.device).to(torch.float32).reshape(1, -1, 1),
+            sigma.to(self.u.device).to(
+                torch.float32).reshape(1, -1, 1),
             self.u.reshape(1, -1, 1),
         ).argmin(2)
-        result = index if return_index else self.u[index.flatten()].to(sigma.dtype)
+        result = index if return_index else self.u[index.flatten()].to(
+            sigma.dtype)
         return result.reshape(sigma.shape).to(sigma.device)
 
 
@@ -602,7 +612,8 @@ class EDMPrecond(Module):
             None
             if self.label_dim == 0
             else (
-                torch.zeros([1, self.label_dim], device=x.device)
+                torch.zeros([1, self.label_dim],
+                            device=x.device)
                 if class_labels is None
                 else class_labels.to(torch.float32).reshape(-1, self.label_dim)
             )
@@ -613,8 +624,10 @@ class EDMPrecond(Module):
             else torch.float32
         )
 
-        c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
-        c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
+        c_skip = self.sigma_data**2 / \
+            (sigma**2 + self.sigma_data**2)
+        c_out = sigma * self.sigma_data / \
+            (sigma**2 + self.sigma_data**2).sqrt()
         c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
         c_noise = sigma.log() / 4
 
@@ -768,8 +781,10 @@ class EDMPrecondSR(Module):
             else torch.float32
         )
 
-        c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
-        c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
+        c_skip = self.sigma_data**2 / \
+            (sigma**2 + self.sigma_data**2)
+        c_out = sigma * self.sigma_data / \
+            (sigma**2 + self.sigma_data**2).sqrt()
         c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
         c_noise = sigma.log() / 4
 
@@ -786,7 +801,7 @@ class EDMPrecondSR(Module):
             )
 
         # Skip connection - for SR there's size mismatch bwtween input and output
-        x = x[:, 0 : self.img_out_channels, :, :]
+        x = x[:, 0: self.img_out_channels, :, :]
         D_x = c_skip * x + c_out * F_x.to(torch.float32)
         return D_x
 
@@ -845,7 +860,8 @@ class _ConditionalPrecond(torch.nn.Module):
         # EDMPrecond based code argument ordering has to be maintained which means
         # sigma has to change from a positional only to a positional-or-keyword arg
         if sigma is None:
-            raise ValueError("sigma must be provided, it cannot be None")
+            raise ValueError(
+                "sigma must be provided, it cannot be None")
 
         x = x.to(torch.float32)
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
@@ -855,8 +871,10 @@ class _ConditionalPrecond(torch.nn.Module):
             else torch.float32
         )
 
-        c_skip = self.sigma_data**2 / (sigma**2 + self.sigma_data**2)
-        c_out = sigma * self.sigma_data / (sigma**2 + self.sigma_data**2).sqrt()
+        c_skip = self.sigma_data**2 / \
+            (sigma**2 + self.sigma_data**2)
+        c_out = sigma * self.sigma_data / \
+            (sigma**2 + self.sigma_data**2).sqrt()
         c_in = 1 / (self.sigma_data**2 + sigma**2).sqrt()
         c_noise = sigma.log() / 4
 
@@ -1026,7 +1044,8 @@ class VEPrecond_dfsr(torch.nn.Module):
             None
             if self.label_dim == 0
             else (
-                torch.zeros([1, self.label_dim], device=x.device)
+                torch.zeros([1, self.label_dim],
+                            device=x.device)
                 if class_labels is None
                 else class_labels.to(torch.float32).reshape(-1, self.label_dim)
             )
@@ -1038,7 +1057,8 @@ class VEPrecond_dfsr(torch.nn.Module):
         )
 
         c_in = 1
-        c_noise = sigma  # Change the definitation of c_noise to avoid -inf values for zero sigma
+        # Change the definitation of c_noise to avoid -inf values for zero sigma
+        c_noise = sigma
 
         F_x = self.model(
             (c_in * x).to(dtype),
@@ -1156,7 +1176,8 @@ class VEPrecond_dfsr_cond(torch.nn.Module):
             None
             if self.label_dim == 0
             else (
-                torch.zeros([1, self.label_dim], device=x.device)
+                torch.zeros([1, self.label_dim],
+                            device=x.device)
                 if class_labels is None
                 else class_labels.to(torch.float32).reshape(-1, self.label_dim)
             )
@@ -1172,7 +1193,8 @@ class VEPrecond_dfsr_cond(torch.nn.Module):
 
         # Compute physics-informed conditioning information using vorticity residual
         dx = (
-            self.voriticity_residual((x * self.dataset_scale + self.dataset_mean))
+            self.voriticity_residual(
+                (x * self.dataset_scale + self.dataset_mean))
             / self.dataset_scale
         )
         x = self.conv_in(x)
@@ -1226,8 +1248,10 @@ class VEPrecond_dfsr_cond(torch.nn.Module):
         k_x = (
             torch.cat(
                 (
-                    torch.arange(start=0, end=k_max, step=1, device=device),
-                    torch.arange(start=-k_max, end=0, step=1, device=device),
+                    torch.arange(
+                        start=0, end=k_max, step=1, device=device),
+                    torch.arange(
+                        start=-k_max, end=0, step=1, device=device),
                 ),
                 0,
             )
@@ -1238,8 +1262,10 @@ class VEPrecond_dfsr_cond(torch.nn.Module):
         k_y = (
             torch.cat(
                 (
-                    torch.arange(start=0, end=k_max, step=1, device=device),
-                    torch.arange(start=-k_max, end=0, step=1, device=device),
+                    torch.arange(
+                        start=0, end=k_max, step=1, device=device),
+                    torch.arange(
+                        start=-k_max, end=0, step=1, device=device),
                 ),
                 0,
             )
@@ -1258,22 +1284,30 @@ class VEPrecond_dfsr_cond(torch.nn.Module):
         wy_h = 1j * k_y * w_h
         wlap_h = -lap * w_h
 
-        u = torch.fft.irfft2(u_h[..., :, : k_max + 1], dim=[2, 3])
-        v = torch.fft.irfft2(v_h[..., :, : k_max + 1], dim=[2, 3])
-        wx = torch.fft.irfft2(wx_h[..., :, : k_max + 1], dim=[2, 3])
-        wy = torch.fft.irfft2(wy_h[..., :, : k_max + 1], dim=[2, 3])
-        wlap = torch.fft.irfft2(wlap_h[..., :, : k_max + 1], dim=[2, 3])
+        u = torch.fft.irfft2(
+            u_h[..., :, : k_max + 1], dim=[2, 3])
+        v = torch.fft.irfft2(
+            v_h[..., :, : k_max + 1], dim=[2, 3])
+        wx = torch.fft.irfft2(
+            wx_h[..., :, : k_max + 1], dim=[2, 3])
+        wy = torch.fft.irfft2(
+            wy_h[..., :, : k_max + 1], dim=[2, 3])
+        wlap = torch.fft.irfft2(
+            wlap_h[..., :, : k_max + 1], dim=[2, 3])
         advection = u * wx + v * wy
 
         wt = (w[:, 2:, :, :] - w[:, :-2, :, :]) / (2 * dt)
 
         # establish forcing term
-        x = torch.linspace(0, 2 * np.pi, nx + 1, device=device)
+        x = torch.linspace(
+            0, 2 * np.pi, nx + 1, device=device)
         x = x[0:-1]
         X, Y = torch.meshgrid(x, x)
         f = -4 * torch.cos(4 * Y)
 
-        residual = wt + (advection - (1.0 / re) * wlap + 0.1 * w[:, 1:-1]) - f
+        residual = wt + \
+            (advection - (1.0 / re) *
+             wlap + 0.1 * w[:, 1:-1]) - f
         residual_loss = (residual**2).mean()
         dw = torch.autograd.grad(residual_loss, w)[0]
 

@@ -15,14 +15,17 @@ def compute_split_shapes(size: int, num_chunks: int) -> List[int]:
 
     # first, check if we can split using div-up to balance the load:
     chunk_size = (size + num_chunks - 1) // num_chunks
-    last_chunk_size = max(0, size - chunk_size * (num_chunks - 1))
+    last_chunk_size = max(
+        0, size - chunk_size * (num_chunks - 1))
     if last_chunk_size == 0:
         # in this case, the last shard would be empty, split with floor instead:
         chunk_size = size // num_chunks
-        last_chunk_size = size - chunk_size * (num_chunks - 1)
+        last_chunk_size = size - \
+            chunk_size * (num_chunks - 1)
 
     # generate sections list
-    sections = [chunk_size for _ in range(num_chunks - 1)] + [last_chunk_size]
+    sections = [chunk_size for _ in range(
+        num_chunks - 1)] + [last_chunk_size]
 
     return sections
 
@@ -43,15 +46,18 @@ def pad_helper(tensor, dim, new_size, mode="zero"):
     output_shape = [0 for _ in range(2 * ndim_pad)]
     orig_size = tensor.shape[dim]
     output_shape[1] = new_size - orig_size
-    tensor_pad = F.pad(tensor, output_shape, mode="constant", value=0.0)
+    tensor_pad = F.pad(
+        tensor, output_shape, mode="constant", value=0.0)
 
     if mode == "conj":
         lhs_slice = [
-            slice(0, x) if idx != dim else slice(orig_size, new_size)
+            slice(0, x) if idx != dim else slice(
+                orig_size, new_size)
             for idx, x in enumerate(tensor.shape)
         ]
         rhs_slice = [
-            slice(0, x) if idx != dim else slice(1, output_shape[1] + 1)
+            slice(0, x) if idx != dim else slice(
+                1, output_shape[1] + 1)
             for idx, x in enumerate(tensor.shape)
         ]
         tensor_pad[lhs_slice] = torch.flip(
@@ -70,7 +76,8 @@ def truncate_helper(tensor, dim, new_size):
         slice(0, x) if idx != dim else slice(0, new_size)
         for idx, x in enumerate(tensor.shape)
     ]
-    tensor_trunc = tensor[output_slice].contiguous(memory_format=input_format)
+    tensor_trunc = tensor[output_slice].contiguous(
+        memory_format=input_format)
 
     return tensor_trunc
 
@@ -87,7 +94,8 @@ def split_tensor_along_dim(tensor, dim, num_chunks):
         )
 
     # get split
-    sections = compute_split_shapes(tensor.shape[dim], num_chunks)
+    sections = compute_split_shapes(
+        tensor.shape[dim], num_chunks)
     tensor_list = torch.split(tensor, sections, dim=dim)
 
     return tensor_list
@@ -148,10 +156,12 @@ def distributed_transpose(tensor, dim0, dim1, group=None, async_op=False):
         y.contiguous(memory_format=input_format)
         for y in torch.split(tensor, split_size, dim=dim0)
     ]
-    x_recv = [torch.empty_like(x_send[0]) for _ in range(comm_size)]
+    x_recv = [torch.empty_like(x_send[0])
+              for _ in range(comm_size)]
 
     # global transposition
-    req = dist.all_to_all(x_recv, x_send, group=group, async_op=async_op)
+    req = dist.all_to_all(
+        x_recv, x_send, group=group, async_op=async_op)
 
     return x_recv, req
 
@@ -187,11 +197,13 @@ def _split(input_, dim_, group=None):  # pragma: no cover
         return input_
 
     # Split along last dimension.
-    input_list = split_tensor_along_dim(input_, dim_, comm_size)
+    input_list = split_tensor_along_dim(
+        input_, dim_, comm_size)
 
     # Note: torch.split does not create contiguous tensors by default.
     rank = dist.get_rank(group=group)
-    output = input_list[rank].contiguous(memory_format=input_format)
+    output = input_list[rank].contiguous(
+        memory_format=input_format)
 
     return output
 
@@ -252,11 +264,13 @@ def all_gather_v_wrapper(
             )
     else:
         # assume equal shape on all ranks
-        tensor_list = [torch.empty_like(tensor) for _ in range(comm_size)]
+        tensor_list = [torch.empty_like(
+            tensor) for _ in range(comm_size)]
 
     dist.all_gather(tensor_list, tensor, group=group)
 
-    output = torch.cat(tensor_list, dim=dim).contiguous(memory_format=tensor_format)
+    output = torch.cat(tensor_list, dim=dim).contiguous(
+        memory_format=tensor_format)
 
     return output
 
@@ -482,7 +496,8 @@ def scatter_v_wrapper(
     x_recv = [None] * comm_size
     if rank == src:
         scatter_list = torch.split(tensor, sizes, dim=dim)
-        scatter_list = [t.contiguous() for t in scatter_list]
+        scatter_list = [t.contiguous()
+                        for t in scatter_list]
         x_send = scatter_list
     else:
         for r in range(comm_size):
@@ -496,7 +511,8 @@ def scatter_v_wrapper(
             tensor_shape[dim] = sizes[rank]
         else:
             tensor_shape[dim] = 0
-        x_recv[r] = torch.empty(tensor_shape, device=tensor.device, dtype=tensor.dtype)
+        x_recv[r] = torch.empty(
+            tensor_shape, device=tensor.device, dtype=tensor.dtype)
 
     dist.all_to_all(x_recv, x_send, group=group)
 
@@ -656,7 +672,8 @@ def indexed_all_to_all_v_wrapper_bwd(
             dtype=torch.float32,
             device=tensor.device,
         )
-        tensor_to_recv = tensor_to_recv.to(dtype=torch.float32)
+        tensor_to_recv = tensor_to_recv.to(
+            dtype=torch.float32)
     else:
         out = torch.zeros(
             tensor_shape,
@@ -664,7 +681,8 @@ def indexed_all_to_all_v_wrapper_bwd(
             device=tensor.device,
         )
 
-    out.index_add_(source=tensor_to_recv, index=indices, dim=dim)
+    out.index_add_(source=tensor_to_recv,
+                   index=indices, dim=dim)
 
     if out.dtype != tensor.dtype:
         out = out.to(tensor.dtype)
@@ -707,7 +725,8 @@ def mark_module_as_shared(
         # "The hook should not modify its argument, but it can optionally return a new gradient
         #  which will be used in place of grad."
         # as all_reduce is an in-place operation, need to copy gradient
-        grad = _reduce(grad.clone(), group=group, use_fp32=use_fp32_reduction)
+        grad = _reduce(grad.clone(), group=group,
+                       use_fp32=use_fp32_reduction)
         return grad
 
     def hook_post_accum(param: torch.Tensor) -> None:
@@ -715,7 +734,8 @@ def mark_module_as_shared(
         # "Note that, unlike other autograd hooks, this hook operates on the tensor that requires grad
         #  and not the grad itself. The hook can in-place modify and access its Tensor argument,
         # including its .grad field."
-        param.grad = _reduce(param.grad, group=group, use_fp32=use_fp32_reduction)
+        param.grad = _reduce(
+            param.grad, group=group, use_fp32=use_fp32_reduction)
 
     for name, param in module.named_parameters(recurse=recurse):
         error_msg = f"Parameter {name} already marked as having shared weights, can't mark it again!"
@@ -724,7 +744,8 @@ def mark_module_as_shared(
         if torch.__version__ < (2, 1):
             handle = param.register_hook(hook)
         else:
-            handle = param.register_post_accumulate_grad_hook(hook_post_accum)
+            handle = param.register_post_accumulate_grad_hook(
+                hook_post_accum)
         setattr(param, handle_key, handle)
 
     return module

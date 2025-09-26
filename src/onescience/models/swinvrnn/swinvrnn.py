@@ -52,48 +52,66 @@ class SwinRNN(Module):
     ):
         super().__init__(meta=MetaData())
         input_resolution = img_size[1:]
-        self.cube_embedding = CubeEmbedding(img_size, patch_size, in_chans, embed_dim)
+        self.cube_embedding = CubeEmbedding(
+            img_size, patch_size, in_chans, embed_dim)
         self.swin_block1 = SwinTransformer(
             embed_dim, input_resolution, num_heads, window_size, depth=2
         )
-        self.down1 = ConvBlock(embed_dim, embed_dim, num_groups, upsample=-1)
-        self.down1x = ConvBlock(in_chans, in_chans, in_chans, upsample=-1)
-        self.lin_proj1 = nn.Linear(embed_dim + in_chans, embed_dim)
+        self.down1 = ConvBlock(
+            embed_dim, embed_dim, num_groups, upsample=-1)
+        self.down1x = ConvBlock(
+            in_chans, in_chans, in_chans, upsample=-1)
+        self.lin_proj1 = nn.Linear(
+            embed_dim + in_chans, embed_dim)
         self.swin_decoder1 = SwinTransformer(
             embed_dim, input_resolution, num_heads, window_size, depth=12
         )
-        input_resolution = (input_resolution[0] // 2, input_resolution[1] // 2)
+        input_resolution = (
+            input_resolution[0] // 2, input_resolution[1] // 2)
         self.swin_block2 = SwinTransformer(
             embed_dim, input_resolution, num_heads, window_size, depth=2
         )
-        self.down2 = ConvBlock(embed_dim, embed_dim, num_groups, upsample=-1)
-        self.down2x = ConvBlock(in_chans, in_chans, in_chans, upsample=-1)
-        self.lin_proj2 = nn.Linear(embed_dim + in_chans, embed_dim)
+        self.down2 = ConvBlock(
+            embed_dim, embed_dim, num_groups, upsample=-1)
+        self.down2x = ConvBlock(
+            in_chans, in_chans, in_chans, upsample=-1)
+        self.lin_proj2 = nn.Linear(
+            embed_dim + in_chans, embed_dim)
         self.swin_decoder2 = SwinTransformer(
             embed_dim, input_resolution, num_heads, window_size, depth=12
         )
-        input_resolution = (input_resolution[0] // 2, input_resolution[1] // 2)
+        input_resolution = (
+            input_resolution[0] // 2, input_resolution[1] // 2)
         self.swin_block3 = SwinTransformer(
             embed_dim, input_resolution, num_heads, window_size, depth=2
         )
-        self.down3 = ConvBlock(embed_dim, embed_dim, num_groups, upsample=-1)
-        self.down3x = ConvBlock(in_chans, in_chans, in_chans, upsample=-1)
-        self.lin_proj3 = nn.Linear(embed_dim + in_chans, embed_dim)
+        self.down3 = ConvBlock(
+            embed_dim, embed_dim, num_groups, upsample=-1)
+        self.down3x = ConvBlock(
+            in_chans, in_chans, in_chans, upsample=-1)
+        self.lin_proj3 = nn.Linear(
+            embed_dim + in_chans, embed_dim)
         self.swin_decoder3 = SwinTransformer(
             embed_dim, input_resolution, num_heads, window_size, depth=12
         )
-        input_resolution = (input_resolution[0] // 2, input_resolution[1] // 2)
+        input_resolution = (
+            input_resolution[0] // 2, input_resolution[1] // 2)
         self.swin_block4 = SwinTransformer(
             embed_dim, input_resolution, num_heads, window_size, depth=2
         )
-        self.lin_proj4 = nn.Linear(embed_dim + in_chans, embed_dim)
+        self.lin_proj4 = nn.Linear(
+            embed_dim + in_chans, embed_dim)
         self.swin_decoder4 = SwinTransformer(
             embed_dim, input_resolution, num_heads, window_size, depth=12
         )
-        self.up3x = ConvBlock(embed_dim, embed_dim, num_groups, upsample=1)
-        self.up2x = ConvBlock(embed_dim * 2, embed_dim, num_groups, upsample=1)
-        self.up1x = ConvBlock(embed_dim * 2, embed_dim, num_groups, upsample=1)
-        self.pred = ConvBlock(embed_dim * 2, out_chans, out_chans, upsample=0)
+        self.up3x = ConvBlock(
+            embed_dim, embed_dim, num_groups, upsample=1)
+        self.up2x = ConvBlock(
+            embed_dim * 2, embed_dim, num_groups, upsample=1)
+        self.up1x = ConvBlock(
+            embed_dim * 2, embed_dim, num_groups, upsample=1)
+        self.pred = ConvBlock(
+            embed_dim * 2, out_chans, out_chans, upsample=0)
 
         self.patch_size = patch_size
         self.input_resolution = input_resolution
@@ -118,7 +136,8 @@ class SwinRNN(Module):
         h1_d = torch.cat(
             [xT.reshape(B, Cin, -1), h1.reshape(B, self.embed_dim, -1)], dim=1
         ).transpose(1, 2)
-        h1_d = self.lin_proj1(h1_d).transpose(1, 2).reshape(B, self.embed_dim, H, W)
+        h1_d = self.lin_proj1(h1_d).transpose(
+            1, 2).reshape(B, self.embed_dim, H, W)
         h1_d = self.swin_decoder1(h1_d)
         h1 = h1 + h1_d
         x2T = self.down1x(xT)
@@ -126,7 +145,8 @@ class SwinRNN(Module):
         h2_d = torch.cat(
             [x2T.reshape(B, Cin, -1), h2.reshape(B, self.embed_dim, -1)], dim=1
         ).transpose(1, 2)
-        h2_d = self.lin_proj2(h2_d).transpose(1, 2).reshape(B, self.embed_dim, H, W)
+        h2_d = self.lin_proj2(h2_d).transpose(
+            1, 2).reshape(B, self.embed_dim, H, W)
         h2_d = self.swin_decoder2(h2_d)
         h2 = h2 + h2_d
         x3T = self.down2x(x2T)
@@ -134,7 +154,8 @@ class SwinRNN(Module):
         h3_d = torch.cat(
             [x3T.reshape(B, Cin, -1), h3.reshape(B, self.embed_dim, -1)], dim=1
         ).transpose(1, 2)
-        h3_d = self.lin_proj3(h3_d).transpose(1, 2).reshape(B, self.embed_dim, H, W)
+        h3_d = self.lin_proj3(h3_d).transpose(
+            1, 2).reshape(B, self.embed_dim, H, W)
         h3_d = self.swin_decoder3(h3_d)
         h3 = h3 + h3_d
         x4T = self.down3x(x3T)
@@ -142,7 +163,8 @@ class SwinRNN(Module):
         h4_d = torch.cat(
             [x4T.reshape(B, Cin, -1), h4.reshape(B, self.embed_dim, -1)], dim=1
         ).transpose(1, 2)
-        h4_d = self.lin_proj4(h4_d).transpose(1, 2).reshape(B, self.embed_dim, H, W)
+        h4_d = self.lin_proj4(h4_d).transpose(
+            1, 2).reshape(B, self.embed_dim, H, W)
         h4_d = self.swin_decoder4(h4_d)
         h4 = h4 + h4_d
         h4_up = self.up3x(h4)

@@ -51,12 +51,14 @@ def wasserstein_from_normal(
             )
             vals0 = torch.nn.functional.relu(vals0)
         sqrt_sig0 = torch.matmul(
-            torch.matmul(vecs0, torch.diag_embed(torch.sqrt(vals0))),
+            torch.matmul(vecs0, torch.diag_embed(
+                torch.sqrt(vals0))),
             vecs0.transpose(-2, -1),
         )
 
         # Compute C = (sig0^1/2 * sig1 * sig0^1/2)
-        C = torch.matmul(torch.matmul(sqrt_sig0, sigma1), sqrt_sig0)
+        C = torch.matmul(torch.matmul(
+            sqrt_sig0, sigma1), sqrt_sig0)
 
         # Compute Csqrt = sqrt( C )
         vals0, vecs0 = torch.linalg.eigh(C)
@@ -66,13 +68,15 @@ def wasserstein_from_normal(
             )
             vals0 = torch.nn.functional.relu(vals0)
         sqrtC = torch.matmul(
-            torch.matmul(vecs0, torch.diag_embed(torch.sqrt(vals0))),
+            torch.matmul(vecs0, torch.diag_embed(
+                torch.sqrt(vals0))),
             vecs0.transpose(-2, -1),
         )
 
         # Compute T = tr(sig0 + sig1 - 2* sqrtC)
         if sigma_ndim > 2:
-            T = torch.vmap(torch.trace)(sigma0 + sigma1 - 2 * sqrtC)
+            T = torch.vmap(torch.trace)(
+                sigma0 + sigma1 - 2 * sqrtC)
         else:
             T = torch.trace(sigma0 + sigma1 - 2 * sqrtC)
 

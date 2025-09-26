@@ -23,14 +23,19 @@ class DistanceNetwork(nn.Module):
 
         # predict theta, phi (non-symmetric)
         logits_asymm = self.proj_asymm(x)
-        logits_theta = logits_asymm[:, :, :, :37].permute(0, 3, 1, 2)
-        logits_phi = logits_asymm[:, :, :, 37:].permute(0, 3, 1, 2)
+        logits_theta = logits_asymm[:, :, :, :37].permute(
+            0, 3, 1, 2)
+        logits_phi = logits_asymm[:, :, :, 37:].permute(
+            0, 3, 1, 2)
 
         # predict dist, omega
         logits_symm = self.proj_symm(x)
-        logits_symm = logits_symm + logits_symm.permute(0, 2, 1, 3)
-        logits_dist = logits_symm[:, :, :, :37].permute(0, 3, 1, 2)
-        logits_omega = logits_symm[:, :, :, 37:].permute(0, 3, 1, 2)
+        logits_symm = logits_symm + \
+            logits_symm.permute(0, 2, 1, 3)
+        logits_dist = logits_symm[:, :, :, :37].permute(
+            0, 3, 1, 2)
+        logits_omega = logits_symm[:, :, :, 37:].permute(
+            0, 3, 1, 2)
 
         return logits_dist, logits_omega, logits_theta, logits_phi
 
@@ -48,7 +53,8 @@ class MaskedTokenNetwork(nn.Module):
 
     def forward(self, x):
         B, N, L = x.shape[:3]
-        logits = self.proj(x).permute(0, 3, 1, 2).reshape(B, -1, N * L)
+        logits = self.proj(x).permute(
+            0, 3, 1, 2).reshape(B, -1, N * L)
 
         return logits
 

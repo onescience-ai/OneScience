@@ -23,7 +23,8 @@ class GridMeshConnectivityTest(absltest.TestCase):
                     [-inv_sqrt2, 0.0, -inv_sqrt2],
                     [0.0, -inv_sqrt2, -inv_sqrt2],
                 ],
-                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0]],
+                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0],
+                    [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0]],
                 [
                     [inv_sqrt2, 0.0, inv_sqrt2],
                     [0.0, inv_sqrt2, inv_sqrt2],
@@ -36,7 +37,8 @@ class GridMeshConnectivityTest(absltest.TestCase):
         coordinates = grid_mesh_connectivity._grid_lat_lon_to_coordinates(
             grid_latitude, grid_longitude
         )
-        np.testing.assert_allclose(expected_coordinates, coordinates, atol=1e-15)
+        np.testing.assert_allclose(
+            expected_coordinates, coordinates, atol=1e-15)
 
     def test_radius_query_indices_smoke(self):
         # TODO(alvarosg): Add non-smoke test?

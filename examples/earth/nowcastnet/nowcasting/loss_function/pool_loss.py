@@ -15,8 +15,10 @@ class MaxPoolLoss(nn.Module):
         output2 = self.pool2(fake_image)
 
         weight = torch.minimum(
-            torch.full(output1.shape, 24).to(self.configs.device), 1 + output1
+            torch.full(output1.shape, 24).to(
+                self.configs.device), 1 + output1
         )
-        loss = torch.mean(torch.abs(output1 - output2) * weight)
+        loss = torch.mean(
+            torch.abs(output1 - output2) * weight)
 
         return loss

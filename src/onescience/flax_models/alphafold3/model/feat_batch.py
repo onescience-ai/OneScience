@@ -32,19 +32,26 @@ class Batch:
         """Construct batch object from dictionary."""
         return cls(
             msa=features.MSA.from_data_dict(batch),
-            templates=features.Templates.from_data_dict(batch),
-            token_features=features.TokenFeatures.from_data_dict(batch),
-            ref_structure=features.RefStructure.from_data_dict(batch),
+            templates=features.Templates.from_data_dict(
+                batch),
+            token_features=features.TokenFeatures.from_data_dict(
+                batch),
+            ref_structure=features.RefStructure.from_data_dict(
+                batch),
             predicted_structure_info=features.PredictedStructureInfo.from_data_dict(
                 batch
             ),
             polymer_ligand_bond_info=features.PolymerLigandBondInfo.from_data_dict(
                 batch
             ),
-            ligand_ligand_bond_info=features.LigandLigandBondInfo.from_data_dict(batch),
-            pseudo_beta_info=features.PseudoBetaInfo.from_data_dict(batch),
-            atom_cross_att=features.AtomCrossAtt.from_data_dict(batch),
-            convert_model_output=features.ConvertModelOutput.from_data_dict(batch),
+            ligand_ligand_bond_info=features.LigandLigandBondInfo.from_data_dict(
+                batch),
+            pseudo_beta_info=features.PseudoBetaInfo.from_data_dict(
+                batch),
+            atom_cross_att=features.AtomCrossAtt.from_data_dict(
+                batch),
+            convert_model_output=features.ConvertModelOutput.from_data_dict(
+                batch),
             frames=features.Frames.from_data_dict(batch),
         )
 

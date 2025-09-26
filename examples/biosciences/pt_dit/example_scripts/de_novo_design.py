@@ -6,6 +6,13 @@ This script provides examples of utilizing PT-DiT, a pre-trained multimodal diff
 to co-design protein sequences (represented as amino acids) and structures (represented as ProTokens).
 """
 
+from onescience.flax_models.Pt_DiT.train.schedulers import GaussianDiffusion
+from onescience.flax_models.Pt_DiT.model.diffusion_transformer import (
+    DiffusionTransformer,
+)
+from flax.jax_utils import replicate
+import jax.numpy as jnp
+import jax
 import argparse
 import os
 import pickle as pkl
@@ -17,9 +24,6 @@ from tqdm import tqdm
 
 # JAX setup
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "False"
-import jax
-import jax.numpy as jnp
-from flax.jax_utils import replicate
 
 # Add paths for imports
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -27,10 +31,6 @@ parent_dir = os.path.dirname(script_dir)
 sys.path.append(parent_dir)
 
 # Import PT-DiT components
-from onescience.flax_models.Pt_DiT.model.diffusion_transformer import (
-    DiffusionTransformer,
-)
-from onescience.flax_models.Pt_DiT.train.schedulers import GaussianDiffusion
 
 # Import configs - use absolute path to avoid relative import issues
 try:
@@ -83,17 +83,24 @@ class DeNovoDesign:
         """Load ProToken and amino acid embeddings"""
         print("Loading embeddings...")
 
-        protoken_emb_path = os.path.join(self.embeddings_dir, "protoken_emb.pkl")
-        aatype_emb_path = os.path.join(self.embeddings_dir, "aatype_emb.pkl")
+        protoken_emb_path = os.path.join(
+            self.embeddings_dir, "protoken_emb.pkl")
+        aatype_emb_path = os.path.join(
+            self.embeddings_dir, "aatype_emb.pkl")
 
         with open(protoken_emb_path, "rb") as f:
-            self.protoken_emb = jnp.array(pkl.load(f), dtype=jnp.float32)
+            self.protoken_emb = jnp.array(
+                pkl.load(f), dtype=jnp.float32)
         with open(aatype_emb_path, "rb") as f:
-            self.aatype_emb = jnp.array(pkl.load(f), dtype=jnp.float32)
+            self.aatype_emb = jnp.array(
+                pkl.load(f), dtype=jnp.float32)
 
-        self.dim_emb = self.protoken_emb.shape[-1] + self.aatype_emb.shape[-1]
-        print(f"ProToken embedding shape: {self.protoken_emb.shape}")
-        print(f"AA type embedding shape: {self.aatype_emb.shape}")
+        self.dim_emb = self.protoken_emb.shape[-1] + \
+            self.aatype_emb.shape[-1]
+        print(
+            f"ProToken embedding shape: {self.protoken_emb.shape}")
+        print(
+            f"AA type embedding shape: {self.aatype_emb.shape}")
         print(f"Total embedding dimension: {self.dim_emb}")
 
     def setup_model(self):
@@ -109,10 +116,12 @@ class DeNovoDesign:
 
     def load_parameters(self):
         """Load model parameters"""
-        print(f"Loading parameters from {self.ckpt_path}...")
+        print(
+            f"Loading parameters from {self.ckpt_path}...")
         with open(self.ckpt_path, "rb") as f:
             params = pkl.load(f)
-            params = jax.tree_util.tree_map(lambda x: jnp.array(x), params)
+            params = jax.tree_util.tree_map(
+                lambda x: jnp.array(x), params)
 
         # Replicate params across devices
         self.params = replicate(params)
@@ -126,12 +135,14 @@ class DeNovoDesign:
 
         # Setup pmap functions
         self.pjit_denoise_step = jax.pmap(
-            jax.jit(partial(self.denoise_step, clamp_x0_fn=None)),
+            jax.jit(
+                partial(self.denoise_step, clamp_x0_fn=None)),
             axis_name="i",
             in_axes=(0, 0, 0, None, 0, 0),
         )
         self.pjit_denoise_step_clamped = jax.pmap(
-            jax.jit(partial(self.denoise_step, clamp_x0_fn=self.clamp_x0_fn)),
+            jax.jit(partial(self.denoise_step,
+                    clamp_x0_fn=self.clamp_x0_fn)),
             axis_name="i",
             in_axes=(0, 0, 0, None, 0, 0),
         )
@@ -165,8 +176,10 @@ class DeNovoDesign:
 
     def protoken_emb_distance_fn(self, x, y):
         """Calculate ProToken embedding distance"""
-        x_ = x / (jnp.linalg.norm(x, axis=-1, keepdims=True) + 1e-6)
-        y_ = y / (jnp.linalg.norm(y, axis=-1, keepdims=True) + 1e-6)
+        x_ = x / (jnp.linalg.norm(x, axis=-
+                  1, keepdims=True) + 1e-6)
+        y_ = y / (jnp.linalg.norm(y, axis=-
+                  1, keepdims=True) + 1e-6)
         return -jnp.sum(x_ * y_, axis=-1)
 
     def aatype_emb_distance_fn(self, x, y):
@@ -233,7 +246,8 @@ class DeNovoDesign:
             self.protoken_emb_distance_fn(
                 x0[..., None, : self.protoken_emb.shape[-1]],
                 self.protoken_emb.reshape(
-                    (1,) * (len(x0.shape) - 1) + self.protoken_emb.shape
+                    (1,) * (len(x0.shape) - 1) +
+                    self.protoken_emb.shape
                 ),
             ),
             axis=-1,
@@ -242,15 +256,17 @@ class DeNovoDesign:
         if self.infer_protuple:
             aatype_indexes = jnp.argmin(
                 self.aatype_emb_distance_fn(
-                    x0[..., None, self.protoken_emb.shape[-1] :],
+                    x0[..., None, self.protoken_emb.shape[-1]:],
                     self.aatype_emb.reshape(
-                        (1,) * (len(x0.shape) - 1) + self.aatype_emb.shape
+                        (1,) * (len(x0.shape) - 1) +
+                        self.aatype_emb.shape
                     ),
                 ),
                 axis=-1,
             )
             return jnp.concatenate(
-                [self.protoken_emb[protoken_indexes], self.aatype_emb[aatype_indexes]],
+                [self.protoken_emb[protoken_indexes],
+                    self.aatype_emb[aatype_indexes]],
                 axis=-1,
             )
         else:
@@ -264,7 +280,8 @@ class DeNovoDesign:
         indicator = params["params"]["protoken_indicator"]
         if self.infer_protuple:
             indicator = jnp.concatenate(
-                [indicator, params["params"]["aatype_indicator"]], axis=-1
+                [indicator, params["params"]
+                    ["aatype_indicator"]], axis=-1
             )
 
         eps_prime = self.jit_apply_fn(
@@ -280,14 +297,16 @@ class DeNovoDesign:
         )
 
         rng_key, normal_key = jax.random.split(rng_key)
-        x = mean + jnp.exp(0.5 * log_variance) * jax.random.normal(normal_key, x.shape)
+        x = mean + jnp.exp(0.5 * log_variance) * \
+            jax.random.normal(normal_key, x.shape)
         return x, rng_key
 
     def q_sample(self, x, t, rng_key):
         """Sample q(z_t|z_0)"""
         t = jnp.full((x.shape[0],), t)
         rng_key, normal_key = jax.random.split(rng_key)
-        eps = jax.random.normal(normal_key, x.shape, dtype=jnp.float32)
+        eps = jax.random.normal(
+            normal_key, x.shape, dtype=jnp.float32)
         x_t = self.scheduler.q_sample(x, t, eps)
         return x_t, rng_key
 
@@ -295,7 +314,8 @@ class DeNovoDesign:
         """Add noise step"""
         t = jnp.full((x.shape[0],), t)
         rng_key, normal_key = jax.random.split(rng_key)
-        x = self.scheduler.q_sample_step(x, t, jax.random.normal(normal_key, x.shape))
+        x = self.scheduler.q_sample_step(
+            x, t, jax.random.normal(normal_key, x.shape))
         return x, rng_key
 
     def index_from_embedding(self, x):
@@ -312,7 +332,7 @@ class DeNovoDesign:
         if self.infer_protuple:
             aatype_indexes = jnp.argmin(
                 self.aatype_emb_distance_fn(
-                    x[..., None, self.protoken_emb.shape[-1] :],
+                    x[..., None, self.protoken_emb.shape[-1]:],
                     self.aatype_emb[None, None, ...],
                 ),
                 axis=-1,
@@ -341,13 +361,15 @@ class DeNovoDesign:
                 x, rng_keys = denoise_fn(
                     self.params, x, seq_mask, t, residue_index, rng_keys
                 )
-                x, rng_keys = self.pjit_noise_step(x, t, rng_keys)
+                x, rng_keys = self.pjit_noise_step(
+                    x, t, rng_keys)
 
             x, rng_keys = self.pjit_denoise_step(
                 self.params, x, seq_mask, t, residue_index, rng_keys
             )
 
-        ret = {"embedding": x, "seq_mask": seq_mask, "residue_index": residue_index}
+        ret = {"embedding": x, "seq_mask": seq_mask,
+               "residue_index": residue_index}
         ret.update(self.pjit_index_from_embedding(x))
 
         return ret
@@ -371,16 +393,20 @@ class DeNovoDesign:
 
         rng_key, normal_key = jax.random.split(rng_key)
         x = jax.random.normal(
-            rng_key, shape=(self.batch_size, self.nres, self.dim_emb), dtype=jnp.float32
+            rng_key, shape=(
+                self.batch_size, self.nres, self.dim_emb), dtype=jnp.float32
         )
-        seq_mask = jnp.ones((self.batch_size, self.nres), dtype=jnp.bool_)
+        seq_mask = jnp.ones(
+            (self.batch_size, self.nres), dtype=jnp.bool_)
         residue_index = jnp.tile(
-            jnp.arange(self.nres, dtype=jnp.int32)[None, ...], (self.batch_size, 1)
+            jnp.arange(self.nres, dtype=jnp.int32)[
+                None, ...], (self.batch_size, 1)
         )
 
         # Reshape for multi-device
-        reshape_func = lambda x: x.reshape(
-            self.ndevices, x.shape[0] // self.ndevices, *x.shape[1:]
+        def reshape_func(x): return x.reshape(
+            self.ndevices, x.shape[0] // self.ndevices, *
+            x.shape[1:]
         )
         x, seq_mask, residue_index = jax.tree.map(
             reshape_func, (x, seq_mask, residue_index)
@@ -391,7 +417,8 @@ class DeNovoDesign:
         )
 
         # Split RNG keys for devices
-        rng_keys, rng_key = self.split_multiple_rng_keys(rng_key, self.ndevices)
+        rng_keys, rng_key = self.split_multiple_rng_keys(
+            rng_key, self.ndevices)
 
         # Run inference
         ret = self.run_inference(
@@ -400,7 +427,8 @@ class DeNovoDesign:
 
         # Save results
         ret = jax.tree_util.tree_map(
-            lambda x: np.array(x).reshape(-1, *x.shape[2:]).tolist(), ret
+            lambda x: np.array(
+                x).reshape(-1, *x.shape[2:]).tolist(), ret
         )
 
         result_path = os.path.join(output_dir, "result.pkl")
@@ -410,10 +438,12 @@ class DeNovoDesign:
 
         # Save flattened results
         ret_flatten = self.flatten_list_of_dicts([ret])
-        result_flatten_path = os.path.join(output_dir, "result_flatten.pkl")
+        result_flatten_path = os.path.join(
+            output_dir, "result_flatten.pkl")
         with open(result_flatten_path, "wb") as f:
             pkl.dump(ret_flatten, f)
-        print(f"Flattened results saved to {result_flatten_path}")
+        print(
+            f"Flattened results saved to {result_flatten_path}")
 
         return ret_flatten, result_flatten_path
 
@@ -424,7 +454,8 @@ class DeNovoDesign:
         # Create PDB output directory
         os.makedirs(output_dir, exist_ok=True)
 
-        self._decode_structures_fallback(result_path, output_dir)
+        self._decode_structures_fallback(
+            result_path, output_dir)
 
     def _decode_structures_fallback(self, result_path, output_dir):
         """Fallback method using installed onescience ProToken module"""
@@ -437,12 +468,15 @@ class DeNovoDesign:
 
         print(f"Running command: {cmd}")
         os.system(cmd)
-        print(f"Structures decoded and saved to {output_dir}")
+        print(
+            f"Structures decoded and saved to {output_dir}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="De-novo protein design with PT-DiT")
-    parser.add_argument("--nres", type=int, default=256, help="Protein length")
+    parser = argparse.ArgumentParser(
+        description="De-novo protein design with PT-DiT")
+    parser.add_argument(
+        "--nres", type=int, default=256, help="Protein length")
     parser.add_argument(
         "--nsample_per_device", type=int, default=8, help="Samples per device"
     )
@@ -470,7 +504,8 @@ def main():
         default="../ckpts/protoken_params_100000.pkl",
         help="ProToken checkpoint",
     )
-    parser.add_argument("--seed", type=int, default=8888, help="Random seed")
+    parser.add_argument(
+        "--seed", type=int, default=8888, help="Random seed")
     parser.add_argument(
         "--n_eq_steps", type=int, default=50, help="Number of equilibrium steps"
     )
@@ -511,8 +546,10 @@ def main():
 
     # Decode structures if requested
     if args.decode_structures:
-        pdb_output_dir = os.path.join(args.output_dir, "pdb")
-        designer.decode_structures(result_path, pdb_output_dir)
+        pdb_output_dir = os.path.join(
+            args.output_dir, "pdb")
+        designer.decode_structures(
+            result_path, pdb_output_dir)
 
     print("=== Design completed successfully ===")
 

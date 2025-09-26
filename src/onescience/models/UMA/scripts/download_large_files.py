@@ -38,7 +38,8 @@ FILE_GROUPS = {
     ],
     "cattsunami": [
         Path("tests/applications/cattsunami/tests/autoframe_inputs_dissociation.pkl"),
-        Path("tests/applications/cattsunami/tests/autoframe_inputs_transfer.pkl"),
+        Path(
+            "tests/applications/cattsunami/tests/autoframe_inputs_transfer.pkl"),
     ],
     "docs": [
         Path("docs/tutorials/NRR/NRR_example_bulks.pkl"),
@@ -99,7 +100,8 @@ def change_path_for_pypi(
             new_files.append(test_par_dir / file)
         elif top_level_name == "src":
             # turn `src` into `site-packages` or whatever the correct name is
-            new_files.append(install_dir / Path(str(file).replace("src", par_dir, 1)))
+            new_files.append(
+                install_dir / Path(str(file).replace("src", par_dir, 1)))
     return new_files
 
 
@@ -114,7 +116,8 @@ def download_file_group(file_group: str, test_par_dir: Path | None = None) -> No
     if file_group in FILE_GROUPS:
         files_to_download = FILE_GROUPS[file_group]
     elif file_group == "ALL":
-        files_to_download = [item for group in FILE_GROUPS.values() for item in group]
+        files_to_download = [
+            item for group in FILE_GROUPS.values() for item in group]
     else:
         raise ValueError(
             f'Requested file group {file_group} not recognized. Please select one of {["ALL", *list(FILE_GROUPS)]}'
@@ -133,12 +136,14 @@ def download_file_group(file_group: str, test_par_dir: Path | None = None) -> No
             files_to_download, fc_parent, install_dir, test_par_dir
         )
     else:
-        files_to_download = [install_dir / file for file in files_to_download]
+        files_to_download = [
+            install_dir / file for file in files_to_download]
 
     missing_path = False
     for file in files_to_download:
         if not file.parent.exists():
-            print(f"Cannot download {file}, the path does not exist.")
+            print(
+                f"Cannot download {file}, the path does not exist.")
             missing_path = True
         elif not file.exists():
             print(f"Downloading {file}...")

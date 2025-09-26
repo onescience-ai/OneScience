@@ -19,12 +19,14 @@ def sampleCube(dim, l_bounds, u_bounds, N=100):
     """
     sample = []
     for i in range(dim):
-        sample.append(np.linspace(l_bounds[i], u_bounds[i], N))
+        sample.append(np.linspace(
+            l_bounds[i], u_bounds[i], N))
     if dim == 2:
         x, y = np.meshgrid(sample[0], sample[1])
         return np.hstack((x.reshape(-1, 1), y.reshape(-1, 1)))
     if dim == 3:
-        x, y, z = np.meshgrid(sample[0], sample[1], sample[2])
+        x, y, z = np.meshgrid(
+            sample[0], sample[1], sample[2])
         return np.hstack((x.reshape(-1, 1), y.reshape(-1, 1), z.reshape(-1, 1)))
     return sample[0].reshape(-1, 1)
 
@@ -45,7 +47,8 @@ def sampleCubeMC(dim, l_bounds, u_bounds, N=100):
     """
     sample = []
     for i in range(dim):
-        sample.append(np.random.uniform(l_bounds[i], u_bounds[i], [N, 1]))
+        sample.append(np.random.uniform(
+            l_bounds[i], u_bounds[i], [N, 1]))
     data = np.concatenate(sample, axis=1)
     return data
 

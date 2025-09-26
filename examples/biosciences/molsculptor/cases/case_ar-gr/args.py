@@ -9,13 +9,13 @@
 @Usage   : Callback in mol_pipline.py
 """
 
+from pathlib import Path
+import configparser
+import argparse
 import os
 
 os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".90"
 
-import argparse
-import configparser
-from pathlib import Path
 
 OBJECT_PATH = Path(__name__).resolve().parents[4]
 print(OBJECT_PATH)

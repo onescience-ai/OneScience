@@ -15,19 +15,24 @@ class GraphViT(nn.Module):
         super(GraphViT, self).__init__()
         pos_start = -3
         pos_length = 8
-        self.encoder = Encoder(nb_gn, state_size, pos_length)
-        self.graph_pooling = GraphPooling(w_size, pos_length=pos_length)
-        self.graph_retrieve = GraphRetrieveSimple(w_size, pos_length, state_size)
+        self.encoder = Encoder(
+            nb_gn, state_size, pos_length)
+        self.graph_pooling = GraphPooling(
+            w_size, pos_length=pos_length)
+        self.graph_retrieve = GraphRetrieveSimple(
+            w_size, pos_length, state_size)
         self.attention = nn.ModuleList(
             [
-                AttentionBlock_PreLN(w_size, pos_length, n_heads)
+                AttentionBlock_PreLN(
+                    w_size, pos_length, n_heads)
                 for _ in range(n_attention)
             ]
         )
         self.ln = nn.LayerNorm(w_size)
 
         self.noise_std = 0.0
-        self.positional_encoder = Positional_Encoder(pos_start, pos_length)
+        self.positional_encoder = Positional_Encoder(
+            pos_start, pos_length)
 
     def forward(
         self,
@@ -46,9 +51,11 @@ class GraphViT(nn.Module):
                 node_type[:, 0, :, NODE_OUTPUT] == 1,
             )
             noise = (
-                torch.randn_like(state[:, 0]).to(state[:, 0].device) * self.noise_std
+                torch.randn_like(state[:, 0]).to(
+                    state[:, 0].device) * self.noise_std
             )
-            state[:, 0][mask] = state[:, 0][mask] + noise[mask]
+            state[:, 0][mask] = state[:,
+                                      0][mask] + noise[mask]
 
         state_hat, output_hat = [
             state[:, 0]
@@ -57,7 +64,8 @@ class GraphViT(nn.Module):
 
         for t in range(1, state.shape[1]):
             mesh_posenc, cluster_posenc = self.positional_encoder(
-                mesh_pos[:, t - 1], clusters[:, t - 1], clusters_mask[:, t - 1]
+                mesh_pos[:, t - 1], clusters[:,
+                                             t - 1], clusters_mask[:, t - 1]
             )
 
             # V：更新后的节点特征 E：更新后的边特征
@@ -70,25 +78,30 @@ class GraphViT(nn.Module):
             )
             # W- cluster级别的特征表示,将节点级特征聚合到簇级别，减少计算复杂度
             W = self.graph_pooling(
-                V, clusters[:, t - 1], mesh_posenc, clusters_mask[:, t - 1]
+                V, clusters[:, t -
+                            1], mesh_posenc, clusters_mask[:, t - 1]
             )
 
             # This attention_mask deals with the ghost nodes needed to batch multiple simulations
-            attention_mask = clusters_mask[:, t - 1].sum(-1, keepdim=True) == 0
+            attention_mask = clusters_mask[:,
+                                           t - 1].sum(-1, keepdim=True) == 0
             attention_mask = (
                 attention_mask.unsqueeze(1)
                 .repeat(1, len(self.attention), 1, W.shape[1])
                 .view(-1, W.shape[1], W.shape[1])
             )
-            attention_mask[:, torch.eye(W.shape[1], dtype=torch.bool)] = False
-            attention_mask = attention_mask.transpose(-1, -2)
+            attention_mask[:, torch.eye(
+                W.shape[1], dtype=torch.bool)] = False
+            attention_mask = attention_mask.transpose(
+                -1, -2)
 
             for i, a in enumerate(self.attention):
                 W = a(W, attention_mask, cluster_posenc)
             W = self.ln(W)
 
             next_output = self.graph_retrieve(
-                W, V, clusters[:, t - 1], mesh_posenc, edges[:, t - 1], E
+                W, V, clusters[:, t -
+                               1], mesh_posenc, edges[:, t - 1], E
             )
             # 预测新状态 = 当前状态 + 状态变化量
             next_state = state_hat[-1] + next_output
@@ -97,9 +110,11 @@ class GraphViT(nn.Module):
 
             # Following MGN, we force the boundary conditions at each steps
             mask = torch.logical_or(
-                node_type[:, t, :, NODE_INPUT] == 1, node_type[:, t, :, NODE_WALL] == 1
+                node_type[:, t, :, NODE_INPUT] == 1, node_type[:,
+                                                               t, :, NODE_WALL] == 1
             )
-            mask = torch.logical_or(mask, node_type[:, t, :, NODE_DISABLE] == 1)
+            mask = torch.logical_or(
+                mask, node_type[:, t, :, NODE_DISABLE] == 1)
             next_state[mask, :] = state[:, t][mask, :]
 
             state_hat.append(next_state)
@@ -168,23 +183,31 @@ class GraphPooling(nn.Module):
                 1, 1, positional_encoding.shape[-1]
             ),
         )
-        pos_features = pos_by_cluster.reshape(*clusters.shape, -1)
+        pos_features = pos_by_cluster.reshape(
+            *clusters.shape, -1)
 
         V_by_cluster = torch.gather(
-            V, -2, clusters.reshape(clusters.shape[0], -1, 1).repeat(1, 1, V.shape[-1])
+            V, -
+            2, clusters.reshape(
+                clusters.shape[0], -1, 1).repeat(1, 1, V.shape[-1])
         )
-        V_by_cluster = V_by_cluster.reshape(*clusters.shape, -1)
+        V_by_cluster = V_by_cluster.reshape(
+            *clusters.shape, -1)
 
-        inpt_by_cluster = torch.cat([V_by_cluster, pos_features], dim=-1)
+        inpt_by_cluster = torch.cat(
+            [V_by_cluster, pos_features], dim=-1)
 
         B, C, N, S = inpt_by_cluster.shape
-        output, h = self.rnn_pooling(inpt_by_cluster.reshape(B * C, N, S))
-        indices = (cluster_mask.sum(-1).long() - 1).reshape(B * C)
+        output, h = self.rnn_pooling(
+            inpt_by_cluster.reshape(B * C, N, S))
+        indices = (cluster_mask.sum(-1).long() -
+                   1).reshape(B * C)
         indices[indices == -1] = output.shape[-2] - 1
         w = torch.gather(
             output,
             1,
-            indices.unsqueeze(-1).unsqueeze(-1).repeat(1, 1, output.shape[-1]),
+            indices.unsqueeze(-1).unsqueeze(-1).repeat(1,
+                                                       1, output.shape[-1]),
         )
 
         w = self.linear_rnn(w)
@@ -213,11 +236,14 @@ class GraphRetrieveSimple(nn.Module):
         C = W.shape[1]
         K = clusters.shape[-1]
 
-        W = W.unsqueeze(-2).repeat(1, 1, K, 1).view(B, C * K, -1)
-        W = W.scatter(-2, clusters.reshape(B, -1, 1).repeat(1, 1, W.shape[-1]), W)
+        W = W.unsqueeze(-2).repeat(1, 1, K,
+                                   1).view(B, C * K, -1)
+        W = W.scatter(-2, clusters.reshape(B, -1,
+                      1).repeat(1, 1, W.shape[-1]), W)
         W = W[:, :N]
 
-        nodes = torch.cat([V, W, positional_encoding], dim=-1)
+        nodes = torch.cat(
+            [V, W, positional_encoding], dim=-1)
         nodes, _ = self.gnn(nodes, E, edges)
         final_state = self.final_mlp(nodes)
         return final_state
@@ -248,14 +274,17 @@ class Encoder(nn.Module):
         V = torch.cat([states, node_type], dim=-1)
 
         senders = torch.gather(
-            mesh_pos, -2, edges[..., 0].unsqueeze(-1).repeat(1, 1, 2)
+            mesh_pos, -
+            2, edges[..., 0].unsqueeze(-1).repeat(1, 1, 2)
         )
         receivers = torch.gather(
-            mesh_pos, -2, edges[..., 1].unsqueeze(-1).repeat(1, 1, 2)
+            mesh_pos, -
+            2, edges[..., 1].unsqueeze(-1).repeat(1, 1, 2)
         )
 
         distance = senders - receivers
-        norm = torch.sqrt((distance**2).sum(-1, keepdims=True))
+        norm = torch.sqrt(
+            (distance**2).sum(-1, keepdims=True))
         E = torch.cat([distance, norm], dim=-1)
 
         V = self.encoder_node(V)
@@ -284,16 +313,19 @@ class Positional_Encoder(nn.Module):
         _, K, C = clusters.shape
 
         meshpos_by_cluster = torch.gather(
-            mesh_pos, -2, clusters.reshape(B, -1, 1).repeat(1, 1, 2)
+            mesh_pos, -
+            2, clusters.reshape(B, -1, 1).repeat(1, 1, 2)
         )
-        meshpos_by_cluster = meshpos_by_cluster.reshape(*clusters.shape, -1)
+        meshpos_by_cluster = meshpos_by_cluster.reshape(
+            *clusters.shape, -1)
 
         clusters_centers = meshpos_by_cluster.sum(dim=-2)
         clusters_centers = clusters_centers / (
             cluster_mask.sum(-1, keepdim=True) + 1e-8
         )
 
-        distances_to_cluster = clusters_centers.unsqueeze(-2) - meshpos_by_cluster
+        distances_to_cluster = clusters_centers.unsqueeze(
+            -2) - meshpos_by_cluster
         pos_embeddings = self.embed(distances_to_cluster)
         S = pos_embeddings.shape[-1]
         pos_embeddings = pos_embeddings.reshape(B, -1, S)
@@ -304,7 +336,8 @@ class Positional_Encoder(nn.Module):
         )
         relative_positions = relative_positions[:, :N]
 
-        nodes_embedding = torch.cat([self.embed(mesh_pos), relative_positions], dim=-1)
+        nodes_embedding = torch.cat(
+            [self.embed(mesh_pos), relative_positions], dim=-1)
 
         return nodes_embedding, self.embed(clusters_centers)
 
@@ -316,8 +349,10 @@ class Positional_Encoder(nn.Module):
         )
         index = index.float()
         freq = 2**index * torch.pi
-        cos_feat = torch.cos(freq.view(1, 1, -1) * pos.unsqueeze(-1))
-        sin_feat = torch.sin(freq.view(1, 1, -1) * pos.unsqueeze(-1))
+        cos_feat = torch.cos(
+            freq.view(1, 1, -1) * pos.unsqueeze(-1))
+        sin_feat = torch.sin(
+            freq.view(1, 1, -1) * pos.unsqueeze(-1))
         embedding = torch.cat([cos_feat, sin_feat], dim=-1)
         embedding = embedding.view(*original_shape[:-1], -1)
         return embedding

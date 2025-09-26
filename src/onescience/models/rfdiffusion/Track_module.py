@@ -28,7 +28,8 @@ class MSAPairStr2MSA(nn.Module):
         self.proj_pair = nn.Linear(d_pair + 36, d_pair)
         self.norm_state = nn.LayerNorm(d_state)
         self.proj_state = nn.Linear(d_state, d_msa)
-        self.drop_row = Dropout(broadcast_dim=1, p_drop=p_drop)
+        self.drop_row = Dropout(
+            broadcast_dim=1, p_drop=p_drop)
         self.row_attn = MSARowAttentionWithBias(
             d_msa=d_msa, d_pair=d_pair, n_head=n_head, d_hidden=d_hidden
         )
@@ -101,8 +102,10 @@ class PairStr2Pair(nn.Module):
         self.emb_rbf = nn.Linear(d_rbf, d_hidden)
         self.proj_rbf = nn.Linear(d_hidden, d_pair)
 
-        self.drop_row = Dropout(broadcast_dim=1, p_drop=p_drop)
-        self.drop_col = Dropout(broadcast_dim=2, p_drop=p_drop)
+        self.drop_row = Dropout(
+            broadcast_dim=1, p_drop=p_drop)
+        self.drop_col = Dropout(
+            broadcast_dim=2, p_drop=p_drop)
 
         self.row_attn = BiasedAxialAttention(
             d_pair, d_pair, n_head, d_hidden, p_drop=p_drop, is_row=True
@@ -116,7 +119,8 @@ class PairStr2Pair(nn.Module):
         self.reset_parameter()
 
     def reset_parameter(self):
-        nn.init.kaiming_normal_(self.emb_rbf.weight, nonlinearity="relu")
+        nn.init.kaiming_normal_(
+            self.emb_rbf.weight, nonlinearity="relu")
         nn.init.zeros_(self.emb_rbf.bias)
 
         self.proj_rbf = init_lecun_normal(self.proj_rbf)
@@ -125,10 +129,13 @@ class PairStr2Pair(nn.Module):
     def forward(self, pair, rbf_feat):
         B, L = pair.shape[:2]
 
-        rbf_feat = self.proj_rbf(F.relu_(self.emb_rbf(rbf_feat)))
+        rbf_feat = self.proj_rbf(
+            F.relu_(self.emb_rbf(rbf_feat)))
 
-        pair = pair + self.drop_row(self.row_attn(pair, rbf_feat))
-        pair = pair + self.drop_col(self.col_attn(pair, rbf_feat))
+        pair = pair + \
+            self.drop_row(self.row_attn(pair, rbf_feat))
+        pair = pair + \
+            self.drop_col(self.col_attn(pair, rbf_feat))
         pair = pair + self.ff(pair)
         return pair
 
@@ -139,7 +146,8 @@ class MSA2Pair(nn.Module):
         self.norm = nn.LayerNorm(d_msa)
         self.proj_left = nn.Linear(d_msa, d_hidden)
         self.proj_right = nn.Linear(d_msa, d_hidden)
-        self.proj_out = nn.Linear(d_hidden * d_hidden, d_pair)
+        self.proj_out = nn.Linear(
+            d_hidden * d_hidden, d_pair)
 
         self.reset_parameter()
 
@@ -160,7 +168,8 @@ class MSA2Pair(nn.Module):
         left = self.proj_left(msa)
         right = self.proj_right(msa)
         right = right / float(N)
-        out = einsum("bsli,bsmj->blmij", left, right).reshape(B, L, L, -1)
+        out = einsum("bsli,bsmj->blmij", left,
+                     right).reshape(B, L, L, -1)
         out = self.proj_out(out)
 
         pair = pair + out
@@ -197,9 +206,11 @@ class SCPred(nn.Module):
         nn.init.zeros_(self.linear_out.bias)
 
         # right before relu activation: He initializer (kaiming normal)
-        nn.init.kaiming_normal_(self.linear_1.weight, nonlinearity="relu")
+        nn.init.kaiming_normal_(
+            self.linear_1.weight, nonlinearity="relu")
         nn.init.zeros_(self.linear_1.bias)
-        nn.init.kaiming_normal_(self.linear_3.weight, nonlinearity="relu")
+        nn.init.kaiming_normal_(
+            self.linear_3.weight, nonlinearity="relu")
         nn.init.zeros_(self.linear_3.bias)
 
         # right before residual connection: zero initialize
@@ -222,8 +233,12 @@ class SCPred(nn.Module):
         state = self.norm_si(state)
         si = self.linear_s0(seq) + self.linear_si(state)
 
-        si = si + self.linear_2(F.relu_(self.linear_1(F.relu_(si))))
-        si = si + self.linear_4(F.relu_(self.linear_3(F.relu_(si))))
+        si = si + \
+            self.linear_2(
+                F.relu_(self.linear_1(F.relu_(si))))
+        si = si + \
+            self.linear_4(
+                F.relu_(self.linear_3(F.relu_(si))))
 
         si = self.linear_out(F.relu_(si))
         return si.view(B, L, 10, 2)
@@ -249,15 +264,21 @@ class Str2Str(nn.Module):
         self.norm_pair = nn.LayerNorm(d_pair)
         self.norm_state = nn.LayerNorm(d_state)
 
-        self.embed_x = nn.Linear(d_msa + d_state, SE3_param["l0_in_features"])
-        self.embed_e1 = nn.Linear(d_pair, SE3_param["num_edge_features"])
+        self.embed_x = nn.Linear(
+            d_msa + d_state, SE3_param["l0_in_features"])
+        self.embed_e1 = nn.Linear(
+            d_pair, SE3_param["num_edge_features"])
         self.embed_e2 = nn.Linear(
-            SE3_param["num_edge_features"] + 36 + 1, SE3_param["num_edge_features"]
+            SE3_param["num_edge_features"] + 36 +
+            1, SE3_param["num_edge_features"]
         )
 
-        self.norm_node = nn.LayerNorm(SE3_param["l0_in_features"])
-        self.norm_edge1 = nn.LayerNorm(SE3_param["num_edge_features"])
-        self.norm_edge2 = nn.LayerNorm(SE3_param["num_edge_features"])
+        self.norm_node = nn.LayerNorm(
+            SE3_param["l0_in_features"])
+        self.norm_edge1 = nn.LayerNorm(
+            SE3_param["num_edge_features"])
+        self.norm_edge2 = nn.LayerNorm(
+            SE3_param["num_edge_features"])
 
         self.se3 = SE3TransformerWrapper(**SE3_param)
         self.sc_predictor = SCPred(
@@ -296,20 +317,24 @@ class Str2Str(nn.Module):
         pair = self.norm_edge1(self.embed_e1(pair))
 
         neighbor = get_seqsep(idx)
-        rbf_feat = rbf(torch.cdist(xyz[:, :, 1], xyz[:, :, 1]))
+        rbf_feat = rbf(torch.cdist(
+            xyz[:, :, 1], xyz[:, :, 1]))
         pair = torch.cat((pair, rbf_feat, neighbor), dim=-1)
         pair = self.norm_edge2(self.embed_e2(pair))
 
         # define graph
         if top_k != 0:
-            G, edge_feats = make_topk_graph(xyz[:, :, 1, :], pair, idx, top_k=top_k)
+            G, edge_feats = make_topk_graph(
+                xyz[:, :, 1, :], pair, idx, top_k=top_k)
         else:
-            G, edge_feats = make_full_graph(xyz[:, :, 1, :], pair, idx, top_k=top_k)
+            G, edge_feats = make_full_graph(
+                xyz[:, :, 1, :], pair, idx, top_k=top_k)
         l1_feats = xyz - xyz[:, :, 1, :].unsqueeze(2)
         l1_feats = l1_feats.reshape(B * L, -1, 3)
 
         # apply SE(3) Transformer & update coordinates
-        shift = self.se3(G, node.reshape(B * L, -1, 1), l1_feats, edge_feats)
+        shift = self.se3(G, node.reshape(
+            B * L, -1, 1), l1_feats, edge_feats)
 
         state = shift["0"].reshape(B, L, -1)  # (B, L, C)
 
@@ -330,18 +355,22 @@ class Str2Str(nn.Module):
         )
 
         delRi = torch.zeros((B, L, 3, 3), device=xyz.device)
-        delRi[:, :, 0, 0] = qA * qA + qB * qB - qC * qC - qD * qD
+        delRi[:, :, 0, 0] = qA * qA + \
+            qB * qB - qC * qC - qD * qD
         delRi[:, :, 0, 1] = 2 * qB * qC - 2 * qA * qD
         delRi[:, :, 0, 2] = 2 * qB * qD + 2 * qA * qC
         delRi[:, :, 1, 0] = 2 * qB * qC + 2 * qA * qD
-        delRi[:, :, 1, 1] = qA * qA - qB * qB + qC * qC - qD * qD
+        delRi[:, :, 1, 1] = qA * qA - \
+            qB * qB + qC * qC - qD * qD
         delRi[:, :, 1, 2] = 2 * qC * qD - 2 * qA * qB
         delRi[:, :, 2, 0] = 2 * qB * qD - 2 * qA * qC
         delRi[:, :, 2, 1] = 2 * qC * qD + 2 * qA * qB
-        delRi[:, :, 2, 2] = qA * qA - qB * qB - qC * qC + qD * qD
+        delRi[:, :, 2, 2] = qA * qA - \
+            qB * qB - qC * qC + qD * qD
 
         Ri = einsum("bnij,bnjk->bnik", delRi, R_in)
-        Ti = delTi + T_in  # einsum('bnij,bnj->bni', delRi, T_in) + delTi
+        # einsum('bnij,bnj->bni', delRi, T_in) + delTi
+        Ti = delTi + T_in
 
         alpha = self.sc_predictor(msa[:, 0], state)
         return Ri, Ti, state, alpha
@@ -395,19 +424,24 @@ class IterBlock(nn.Module):
     def forward(
         self, msa, pair, R_in, T_in, xyz, state, idx, motif_mask, use_checkpoint=False
     ):
-        rbf_feat = rbf(torch.cdist(xyz[:, :, 1, :], xyz[:, :, 1, :]))
+        rbf_feat = rbf(torch.cdist(
+            xyz[:, :, 1, :], xyz[:, :, 1, :]))
         if use_checkpoint:
             msa = checkpoint.checkpoint(
-                create_custom_forward(self.msa2msa), msa, pair, rbf_feat, state
+                create_custom_forward(
+                    self.msa2msa), msa, pair, rbf_feat, state
             )
             pair = checkpoint.checkpoint(
-                create_custom_forward(self.msa2pair), msa, pair
+                create_custom_forward(
+                    self.msa2pair), msa, pair
             )
             pair = checkpoint.checkpoint(
-                create_custom_forward(self.pair2pair), pair, rbf_feat
+                create_custom_forward(
+                    self.pair2pair), pair, rbf_feat
             )
             R, T, state, alpha = checkpoint.checkpoint(
-                create_custom_forward(self.str2str, top_k=0),
+                create_custom_forward(
+                    self.str2str, top_k=0),
                 msa,
                 pair,
                 R_in,
@@ -515,7 +549,8 @@ class IterativeSimulator(nn.Module):
     def reset_parameter(self):
         self.proj_state = init_lecun_normal(self.proj_state)
         nn.init.zeros_(self.proj_state.bias)
-        self.proj_state2 = init_lecun_normal(self.proj_state2)
+        self.proj_state2 = init_lecun_normal(
+            self.proj_state2)
         nn.init.zeros_(self.proj_state2.bias)
 
     def forward(
@@ -548,7 +583,8 @@ class IterativeSimulator(nn.Module):
             motif_mask = torch.zeros(L).bool()
 
         R_in = (
-            torch.eye(3, device=xyz_in.device).reshape(1, 1, 3, 3).expand(B, L, -1, -1)
+            torch.eye(3, device=xyz_in.device).reshape(
+                1, 1, 3, 3).expand(B, L, -1, -1)
         )
         T_in = xyz_in[:, :, 1].clone()
         xyz_in = xyz_in - T_in.unsqueeze(-2)
@@ -562,7 +598,8 @@ class IterativeSimulator(nn.Module):
             R_in = R_in.detach()  # detach rotation (for stability)
             T_in = T_in.detach()
             # Get current BB structure
-            xyz = einsum("bnij,bnaj->bnai", R_in, xyz_in) + T_in.unsqueeze(-2)
+            xyz = einsum("bnij,bnaj->bnai", R_in,
+                         xyz_in) + T_in.unsqueeze(-2)
 
             msa_full, pair, R_in, T_in, state, alpha = self.extra_block[i_m](
                 msa_full,
@@ -583,7 +620,8 @@ class IterativeSimulator(nn.Module):
             R_in = R_in.detach()
             T_in = T_in.detach()
             # Get current BB structure
-            xyz = einsum("bnij,bnaj->bnai", R_in, xyz_in) + T_in.unsqueeze(-2)
+            xyz = einsum("bnij,bnaj->bnai", R_in,
+                         xyz_in) + T_in.unsqueeze(-2)
 
             msa, pair, R_in, T_in, state, alpha = self.main_block[i_m](
                 msa,
@@ -604,7 +642,8 @@ class IterativeSimulator(nn.Module):
         for i_m in range(self.n_ref_block):
             R_in = R_in.detach()
             T_in = T_in.detach()
-            xyz = einsum("bnij,bnaj->bnai", R_in, xyz_in) + T_in.unsqueeze(-2)
+            xyz = einsum("bnij,bnaj->bnai", R_in,
+                         xyz_in) + T_in.unsqueeze(-2)
             R_in, T_in, state, alpha = self.str_refiner(
                 msa, pair, R_in, T_in, xyz, state, idx, top_k=64, motif_mask=motif_mask
             )

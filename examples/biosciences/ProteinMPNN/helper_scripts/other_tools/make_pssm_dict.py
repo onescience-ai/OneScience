@@ -39,7 +39,8 @@ for i in range(20):
 pssm_log_odds = np_lines[:, :20] @ permutation_matrix
 pssm_probs = np_lines[:, 20:40] @ permutation_matrix
 
-X_mask = np.concatenate([np.zeros([1, 20]), np.ones([1, 1])], -1)
+X_mask = np.concatenate(
+    [np.zeros([1, 20]), np.ones([1, 1])], -1)
 
 
 def softmax(x, T):
@@ -53,7 +54,8 @@ with open("/home/justas/projects/cages/parsed/test.jsonl", "r") as json_file:
 my_dict = {}
 for json_str in json_list:
     result = json.loads(json_str)
-    all_chain_list = [item[-1:] for item in list(result) if item[:9] == "seq_chain"]
+    all_chain_list = [item[-1:]
+                      for item in list(result) if item[:9] == "seq_chain"]
     pssm_dict = {}
     for chain in all_chain_list:
         pssm_dict[chain] = {}
@@ -63,7 +65,8 @@ for json_str in json_list:
         pssm_dict[chain]["pssm_bias"] = (
             softmax(pssm_log_odds - X_mask * 1e8, 1.0)
         ).tolist()  # PSSM like, [length, 21] such that sum over the last dimension adds up to 1.0
-        pssm_dict[chain]["pssm_log_odds"] = (pssm_log_odds).tolist()
+        pssm_dict[chain]["pssm_log_odds"] = (
+            pssm_log_odds).tolist()
     my_dict[result["name"]] = pssm_dict
 
 # Write output to:

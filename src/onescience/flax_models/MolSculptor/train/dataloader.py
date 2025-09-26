@@ -40,14 +40,14 @@ class TrainDataLoader:
         data_config,
     ):
 
-        self.name_list = name_list  ### a list of dirs
+        self.name_list = name_list  # a list of dirs
         self.data_config = data_config
         self.process_id = jax.process_index()
         # self.load_int = data_config['pre_load_int']
         self.data_it = 0
         self.recoder = recoder
 
-        ### create indexes and shuffle
+        # create indexes and shuffle
         np.random.seed(data_config["seed"])
 
         self.device_batch_size = data_config["batch_size_device"]
@@ -55,39 +55,47 @@ class TrainDataLoader:
         self.gbs = self.device_batch_size * jax.device_count()
         self.lbs = self.device_batch_size * jax.local_device_count()
         self.data = np.empty(
-            (0, data_config["n_query_tokens"], data_config["latent_dim"]),
+            (0, data_config["n_query_tokens"],
+             data_config["latent_dim"]),
             dtype=np.float32,
         )
         self.start_idx = 0
         self.end_idx = 0
 
     def update(self, idx_it):
-        #### check for a new epoch
+        # check for a new epoch
         if self.data_it >= len(self.name_list):
             self.data_it = 0
             np.random.shuffle(self.name_list)
         this_data_path = self.name_list[self.data_it]
-        self.recoder.info(f"--------------------------------------------------")
-        self.recoder.info(f"Loading data, from {this_data_path}...")
+        self.recoder.info(
+            f"--------------------------------------------------")
+        self.recoder.info(
+            f"Loading data, from {this_data_path}...")
         self.data_it += 1
-        #### update data
+        # update data
         with open(this_data_path, "rb") as f:
             data_to_update = pkl.load(f)["latent"]
         self.data = np.concatenate(
-            [self.data[idx_it - self.start_idx :], data_to_update], axis=0
-        )  ### (N, T, D)
+            [self.data[idx_it - self.start_idx:],
+                data_to_update], axis=0
+        )  # (N, T, D)
         self.start_idx = idx_it
         self.end_idx = idx_it + self.data.shape[0]
-        self.recoder.info(f"\tStart index now: {self.start_idx},")
-        self.recoder.info(f"\tEnd index now: {self.end_idx},")
-        self.recoder.info(f"--------------------------------------------------")
+        self.recoder.info(
+            f"\tStart index now: {self.start_idx},")
+        self.recoder.info(
+            f"\tEnd index now: {self.end_idx},")
+        self.recoder.info(
+            f"--------------------------------------------------")
         # breakpoint() ## check here
 
     def check(self, step_it):
 
         start_it = step_it * self.gbs + self.lbs * self.process_id
-        stop_it = step_it * self.gbs + self.lbs * (self.process_id + 1)
-        #### check if the data is enough
+        stop_it = step_it * self.gbs + \
+            self.lbs * (self.process_id + 1)
+        # check if the data is enough
         if stop_it > self.end_idx:
             # breakpoint() ## check here
             self.update(start_it)
@@ -99,10 +107,11 @@ class TrainDataLoader:
 
     def organize(self, step_it):
 
-        ### get indexes: (load_int * dbs * n_device)
+        # get indexes: (load_int * dbs * n_device)
         def _get_idxs():
             start_it = step_it * self.gbs + self.lbs * self.process_id
-            stop_it = step_it * self.gbs + self.lbs * (self.process_id + 1)
+            stop_it = step_it * self.gbs + \
+                self.lbs * (self.process_id + 1)
             return np.arange(start_it, stop_it) - self.start_idx
 
         _idx = _get_idxs()
@@ -124,7 +133,8 @@ class TrainDataLoader:
             + batch_data.shape[1:],
         )
         # breakpoint()
-        batch_data *= np.sqrt(self.data_config["latent_dim"])
+        batch_data *= np.sqrt(
+            self.data_config["latent_dim"])
         return {"feat": batch_data}
 
     def load_init_data(
@@ -134,7 +144,7 @@ class TrainDataLoader:
         return {"feat": self.data[:1]}
 
 
-### for ae training
+# for ae training
 DTYPE = np.int16
 
 
@@ -176,7 +186,8 @@ def make_graph_feature(
     batched_graph_feature = {
         top_key: {
             sub_key: np.stack(
-                [this_graph[top_key][sub_key] for this_graph in graph_feature]
+                [this_graph[top_key][sub_key]
+                    for this_graph in graph_feature]
             )
             for sub_key in key_dict[top_key]
         }
@@ -207,21 +218,22 @@ def make_sequence_feature(
     assert sampling_method in [
         "random",
         "clustered",
-    ]  ### updated 11-13: support clustered
+    ]  # updated 11-13: support clustered
 
     def padding_prefix(
         arr, n_pad_to_tokens=n_pad_to_tokens, n_prefix=n_prefix, mask_token=mask_token
     ):
-        ### process arr label for prefix tokens
-        ### arr shape: (n, n_repeats, n_tokens)
+        # process arr label for prefix tokens
+        # arr shape: (n, n_repeats, n_tokens)
         input_tokens = arr["input_tokens"]
         input_mask = arr["input_mask"]
         label = arr["label"]
         label_mask = arr["label_mask"]
-        ### check
-        assert np.ndim(input_tokens) == 3, "Input array tokens' dim should be 3!"
+        # check
+        assert np.ndim(
+            input_tokens) == 3, "Input array tokens' dim should be 3!"
 
-        ### padding for prefix tokens
+        # padding for prefix tokens
         label = np.pad(
             label,
             ((0, 0), (0, 0), (n_prefix, 0)),
@@ -254,9 +266,9 @@ def make_sequence_feature(
         label = arr_dict["label"]
         label_mask = arr_dict["label_mask"]
 
-        ## for random smiles (deprecated)
+        # for random smiles (deprecated)
         n_sf = input_tokens.shape[0]
-        if n_sf <= k:  ## If n_sf <= k, just padding
+        if n_sf <= k:  # If n_sf <= k, just padding
             n_pad = k - n_sf
             input_tokens = np.pad(
                 input_tokens, ((0, n_pad), (0, 0)), mode="constant", constant_values=0
@@ -270,24 +282,27 @@ def make_sequence_feature(
             label_mask = np.pad(
                 label_mask, ((0, n_pad), (0, 0)), mode="constant", constant_values=0
             )
-        else:  ## n_sf > k
+        else:  # n_sf > k
 
-            ### updated 11-13
+            # updated 11-13
             if sampling_method == "random":
                 cano_index = max(arr_dict["cano_index"], 0)
-                choose_idxs = np.delete(np.arange(n_sf, dtype=np.int16), cano_index)
+                choose_idxs = np.delete(
+                    np.arange(n_sf, dtype=np.int16), cano_index)
                 # shuffle_idxs = np.random.choice(choose_idxs, size=k-1, replace=False)
                 np.random.shuffle(choose_idxs)
                 # breakpoint() ### check
                 shuffle_idxs = choose_idxs[: k - 1]
-                shuffle_idxs = np.insert(shuffle_idxs, 0, cano_index)
+                shuffle_idxs = np.insert(
+                    shuffle_idxs, 0, cano_index)
 
                 input_tokens = input_tokens[shuffle_idxs]
                 input_mask = input_mask[shuffle_idxs]
                 label = label[shuffle_idxs]
                 label_mask = label_mask[shuffle_idxs]
-            else:  ### clustered
-                cluster_dict = arr_dict["cluster_dict"]  # (n_sf,)
+            else:  # clustered
+                # (n_sf,)
+                cluster_dict = arr_dict["cluster_dict"]
                 shuffle_idxs = samp_dict_fn(cluster_dict)
 
                 input_tokens = input_tokens[shuffle_idxs]
@@ -300,21 +315,21 @@ def make_sequence_feature(
             "input_mask": input_mask,
             "label": label,
             "label_mask": label_mask,
-        }  ### (n_repeat_k, n_tokens)
+        }  # (n_repeat_k, n_tokens)
 
     pad_or_crop_k_fn = partial(pad_or_crop_k, k=k)
     seq_tokens = [pad_or_crop_k_fn(x) for x in seq_tokens]
     train_dict = {
         "input_tokens": np.stack(
             [data["input_tokens"] for data in seq_tokens], axis=0
-        ),  ### (num_batches*batch_size, num_repeats, num_tokens)
+        ),  # (num_batches*batch_size, num_repeats, num_tokens)
         "input_mask": np.stack([data["input_mask"] for data in seq_tokens], axis=0),
         "label": np.stack([data["label"] for data in seq_tokens], axis=0),
         "label_mask": np.stack([data["label_mask"] for data in seq_tokens], axis=0),
     }
     train_dict = padding_prefix(
         train_dict
-    )  ### (num_batches*batch_size, num_repeats, num_tokens)
+    )  # (num_batches*batch_size, num_repeats, num_tokens)
 
     return train_dict
 
@@ -324,7 +339,8 @@ def make_feature(
     data_config,
 ):
 
-    graph_feature = [data["graph_features"] for data in data_list]
+    graph_feature = [data["graph_features"]
+                     for data in data_list]
     seq_tokens = [data["tokens"] for data in data_list]
     # for g in graph_feature:
     #     g['bond_features'] = recover_from_csr(g['bond_features'])
@@ -341,7 +357,7 @@ def make_feature(
 
 
 def organize_name_list(train_name_list, selected_index):
-    ### name list: dict with keys 'path' and 'id'
+    # name list: dict with keys 'path' and 'id'
     organized_name_list = train_name_list["path"][selected_index]
     return organized_name_list
 
@@ -361,7 +377,7 @@ class AEDataLoader:
         self.device_partition = data_config["device_partition"]
         assert self.device_partition.sum() == jax.device_count()
 
-        ### create indexes and shuffle
+        # create indexes and shuffle
         self.num_data = len(self.name_list["path"])
         self.data_indexes = np.arange(self.num_data)
         np.random.seed(data_config["seed"])
@@ -369,8 +385,10 @@ class AEDataLoader:
 
         self.device_batch_size = data_config["batch_size_device"]
         self.num_local_devices = jax.local_device_count()
-        self.global_batch_size = self.device_batch_size * jax.device_count()
-        self.local_batch_size = self.device_batch_size * jax.local_device_count()
+        self.global_batch_size = self.device_batch_size * \
+            jax.device_count()
+        self.local_batch_size = self.device_batch_size * \
+            jax.local_device_count()
 
     def shuffle_indexes(
         self,
@@ -380,7 +398,7 @@ class AEDataLoader:
 
     def organize(self, step_it):
 
-        ### get indexes: (load_int * dbs * n_device)
+        # get indexes: (load_int * dbs * n_device)
         def _get_idxs(
             this_size,
         ):
@@ -390,7 +408,8 @@ class AEDataLoader:
             )
             stop_it = (
                 step_it * self.global_batch_size
-                + self.local_batch_size * self.load_int * (self.process_id + 1)
+                + self.local_batch_size *
+                self.load_int * (self.process_id + 1)
             )
             return np.int64(np.arange(start_it, stop_it) % this_size)
 
@@ -400,11 +419,11 @@ class AEDataLoader:
         return organize_name_list(
             self.name_list,
             load_idx,
-        )  ## (num_batches * n_local_devices * dbs)
+        )  # (num_batches * n_local_devices * dbs)
 
     def _make_feature(self, name_list_trunk, data_config):
 
-        #### make batched data
+        # make batched data
         data_from_pickle = read_files_in_parallel(
             name_list_trunk, data_config["n_workers"]
         )
@@ -432,7 +451,8 @@ class AEDataLoader:
 
         name_list_trunk = self.organize(step_it)
         data_config = self.data_config
-        input_feat, label = self._make_feature(name_list_trunk, data_config)
+        input_feat, label = self._make_feature(
+            name_list_trunk, data_config)
 
         return input_feat, label
 
@@ -443,7 +463,8 @@ class AEDataLoader:
         init_name_list = self.name_list["path"][: self.device_batch_size]
         data_config = copy.deepcopy(self.data_config)
         data_config["pre_load_int"] = 1
-        init_data = self._make_feature(init_name_list, data_config)
+        init_data = self._make_feature(
+            init_name_list, data_config)
         print("Data shape and dtypes:")
         for _data in init_data:
             print_nested_dict(
@@ -458,7 +479,8 @@ class AEDataLoader:
         start_idx = data_it * local_batch_size
         stop_idx = (data_it + 1) * local_batch_size
 
-        data_it = tree_map(lambda arr: arr[start_idx:stop_idx], data)
+        data_it = tree_map(
+            lambda arr: arr[start_idx:stop_idx], data)
         data_it = tree_map(
             lambda arr: jnp.reshape(
                 arr,

@@ -33,7 +33,8 @@ def main():
         level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
     )
     logger = logging.getLogger()
-    config_file_path = os.path.join(current_path, "conf/oceancast.yaml")
+    config_file_path = os.path.join(
+        current_path, "conf/oceancast.yaml")
     params = YParams(config_file_path, "afno_backbone")
     params["world_size"] = 1
     if "WORLD_SIZE" in os.environ:
@@ -43,7 +44,8 @@ def main():
     local_rank = 0
 
     if params["world_size"] > 1:
-        dist.init_process_group(backend="nccl", init_method="env://")
+        dist.init_process_group(
+            backend="nccl", init_method="env://")
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
     torch.cuda.set_device(local_rank)
@@ -68,7 +70,8 @@ def main():
     mask_tensor = torch.load(params.maskpath)
     mask = mask_tensor.to(local_rank)
     loss_obj = loss_function(mask)
-    optimizer = torch.optim.Adam(model.parameters(), lr=params.lr)
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=params.lr)
     scheduler = get_scheduler(optimizer, params)
     best_valid_loss = 1.0e6
     best_loss_epoch = 0
@@ -92,7 +95,8 @@ def main():
         model.train()
         train_loss = 0
         for iteration_idx, data in enumerate(train_data_loader, 0):
-            inp, tar = map(lambda x: x.to(local_rank, dtype=torch.float), data)
+            inp, tar = map(lambda x: x.to(
+                local_rank, dtype=torch.float), data)
             gen = model(inp)
             loss = loss_obj(gen, tar)
             optimizer.zero_grad()
@@ -100,7 +104,8 @@ def main():
             optimizer.step()
             if params["world_size"] > 1:
                 dist.all_reduce(loss)
-                train_loss += float(loss / dist.get_world_size())
+                train_loss += float(loss /
+                                    dist.get_world_size())
             else:
                 train_loss += float(loss)
             if world_rank == 0:
@@ -114,12 +119,14 @@ def main():
         valid_loss = 0
         with torch.no_grad():
             for iteration_idx, data in enumerate(valid_data_loader, 0):
-                inp, tar = map(lambda x: x.to(local_rank, dtype=torch.float), data)
+                inp, tar = map(lambda x: x.to(
+                    local_rank, dtype=torch.float), data)
                 gen = model(inp)
                 loss = loss_obj(gen, tar)
                 if params["world_size"] > 1:
                     dist.all_reduce(loss)
-                    valid_loss += float(loss / dist.get_world_size())
+                    valid_loss += float(loss /
+                                        dist.get_world_size())
                 else:
                     valid_loss += float(loss)
                 if world_rank == 0:
@@ -151,21 +158,25 @@ def main():
                 f"Valid Loss: {valid_loss:.4f},"
                 f"Best loss at Epoch: {best_loss_epoch + 1}"
             )
-            train_losses = np.append(train_losses, train_loss)
-            valid_losses = np.append(valid_losses, valid_loss)
+            train_losses = np.append(
+                train_losses, train_loss)
+            valid_losses = np.append(
+                valid_losses, valid_loss)
 
             np.save(train_loss_file, train_losses)
             np.save(valid_loss_file, valid_losses)
 
         if epoch - best_loss_epoch > params.patience:
-            print("Loss has not decrease in 30 epochs, stopping training...")
+            print(
+                "Loss has not decrease in 30 epochs, stopping training...")
             exit()
 
 
 def save_checkpoint(
     model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_name
 ):
-    model_to_save = model.module if hasattr(model, "module") else model
+    model_to_save = model.module if hasattr(
+        model, "module") else model
     state = {
         "model_state_dict": model_to_save.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),

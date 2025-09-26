@@ -23,7 +23,8 @@ def create_query_fasta_file(sequence: str, path: str, linewidth: int = 80):
 def check_binary_exists(path: str, name: str) -> None:
     """Checks if a binary exists on the given path and raises otherwise."""
     if not os.path.exists(path):
-        raise RuntimeError(f"{name} binary not found at {path}")
+        raise RuntimeError(
+            f"{name} binary not found at {path}")
 
 
 def run(
@@ -70,7 +71,8 @@ def run(
     except subprocess.CalledProcessError as e:
         if log_on_process_error:
             # Logs have a 15k character limit, so log the error line by line.
-            logging.error("%s failed. %s stderr begin:", cmd_name, cmd_name)
+            logging.error(
+                "%s failed. %s stderr begin:", cmd_name, cmd_name)
             for error_line in e.stderr.splitlines():
                 if stripped_error_line := error_line.strip():
                     logging.error(stripped_error_line)
@@ -84,7 +86,8 @@ def run(
         raise RuntimeError(error_msg) from e
     end_time = time.time()
 
-    logging.info("Finished %s in %.3f seconds", cmd_name, end_time - start_time)
+    logging.info("Finished %s in %.3f seconds",
+                 cmd_name, end_time - start_time)
     stdout, stderr = completed_process.stdout, completed_process.stderr
 
     if log_stdout and stdout:

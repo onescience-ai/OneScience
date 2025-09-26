@@ -82,7 +82,8 @@ class RoseTTAFoldModule(nn.Module):
         )
 
         # Update inputs with outputs from previous round
-        self.recycle = Recycling(d_msa=d_msa, d_pair=d_pair, d_state=d_state)
+        self.recycle = Recycling(
+            d_msa=d_msa, d_pair=d_pair, d_state=d_state)
         #
         self.simulator = IterativeSimulator(
             n_extra_block=n_extra_block,
@@ -99,7 +100,8 @@ class RoseTTAFoldModule(nn.Module):
             p_drop=p_drop,
         )
         ##
-        self.c6d_pred = DistanceNetwork(d_pair, p_drop=p_drop)
+        self.c6d_pred = DistanceNetwork(
+            d_pair, p_drop=p_drop)
         self.aa_pred = MaskedTokenNetwork(d_msa)
         self.lddt_pred = LDDTNetwork(d_state)
 
@@ -131,7 +133,8 @@ class RoseTTAFoldModule(nn.Module):
 
         B, N, L = msa_latent.shape[:3]
         # Get embeddings
-        msa_latent, pair, state = self.latent_emb(msa_latent, seq, idx)
+        msa_latent, pair, state = self.latent_emb(
+            msa_latent, seq, idx)
         msa_full = self.full_emb(msa_full, seq, idx)
 
         # Do recycling
@@ -142,14 +145,16 @@ class RoseTTAFoldModule(nn.Module):
         msa_recycle, pair_recycle, state_recycle = self.recycle(
             seq, msa_prev, pair_prev, xyz, state_prev
         )
-        msa_latent[:, 0] = msa_latent[:, 0] + msa_recycle.reshape(B, L, -1)
+        msa_latent[:, 0] = msa_latent[:, 0] + \
+            msa_recycle.reshape(B, L, -1)
         pair = pair + pair_recycle
         state = state + state_recycle
 
         # Get timestep embedding (if using)
         if hasattr(self, "timestep_embedder"):
             assert t is not None
-            time_emb = self.timestep_embedder(L, t, motif_mask)
+            time_emb = self.timestep_embedder(
+                L, t, motif_mask)
             n_tmpl = t1d.shape[1]
             t1d = torch.cat(
                 [t1d, time_emb[None, None, ...].repeat(1, n_tmpl, 1, 1)], dim=-1
@@ -181,7 +186,8 @@ class RoseTTAFoldModule(nn.Module):
         if return_raw:
             # get last structure
             xyz = einsum(
-                "bnij,bnaj->bnai", R[-1], xyz[:, :, :3] - xyz[:, :, 1].unsqueeze(-2)
+                "bnij,bnaj->bnai", R[-1], xyz[:, :,
+                                              :3] - xyz[:, :, 1].unsqueeze(-2)
             ) + T[-1].unsqueeze(-2)
             return msa[:, 0], pair, xyz, state, alpha_s[-1]
 
@@ -194,7 +200,8 @@ class RoseTTAFoldModule(nn.Module):
         if return_infer:
             # get last structure
             xyz = einsum(
-                "bnij,bnaj->bnai", R[-1], xyz[:, :, :3] - xyz[:, :, 1].unsqueeze(-2)
+                "bnij,bnaj->bnai", R[-1], xyz[:, :,
+                                              :3] - xyz[:, :, 1].unsqueeze(-2)
             ) + T[-1].unsqueeze(-2)
 
             # get scalar plddt
@@ -204,7 +211,8 @@ class RoseTTAFoldModule(nn.Module):
                 bin_step, 1.0, nbin, dtype=lddt.dtype, device=lddt.device
             )
             pred_lddt = nn.Softmax(dim=1)(lddt)
-            pred_lddt = torch.sum(lddt_bins[None, :, None] * pred_lddt, dim=1)
+            pred_lddt = torch.sum(
+                lddt_bins[None, :, None] * pred_lddt, dim=1)
 
             return (
                 msa[:, 0],
@@ -225,7 +233,8 @@ class RoseTTAFoldModule(nn.Module):
 
         # get all intermediate bb structures
         xyz = einsum(
-            "rbnij,bnaj->rbnai", R, xyz[:, :, :3] - xyz[:, :, 1].unsqueeze(-2)
+            "rbnij,bnaj->rbnai", R, xyz[:, :,
+                                        :3] - xyz[:, :, 1].unsqueeze(-2)
         ) + T.unsqueeze(-2)
 
         return logits, logits_aa, logits_exp, xyz, alpha_s, lddt

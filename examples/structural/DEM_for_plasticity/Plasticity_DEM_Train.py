@@ -137,7 +137,8 @@ x_var = {"x_lr": 0.05, "neuron": 100, "act_func": "tanh"}
 lr = x_var["x_lr"]
 H = int(x_var["neuron"])
 act_fn = x_var["act_func"]
-print("LR: " + str(lr) + ", H: " + str(H) + ", act fn: " + act_fn)
+print("LR: " + str(lr) + ", H: " +
+      str(H) + ", act fn: " + act_fn)
 
 
 # Begin training

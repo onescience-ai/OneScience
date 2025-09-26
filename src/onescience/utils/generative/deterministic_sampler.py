@@ -41,7 +41,8 @@ def deterministic_sampler(
     if solver not in ["euler", "heun"]:
         raise ValueError(f"Unknown solver {solver}")
     if discretization not in ["vp", "ve", "iddpm", "edm"]:
-        raise ValueError(f"Unknown discretization {discretization}")
+        raise ValueError(
+            f"Unknown discretization {discretization}")
     if schedule not in ["vp", "ve", "linear"]:
         raise ValueError(f"Unknown schedule {schedule}")
     if scaling not in ["vp", "none"]:
@@ -50,7 +51,8 @@ def deterministic_sampler(
     # Helper functions for VP & VE noise level schedules.
     vp_sigma = (
         lambda beta_d, beta_min: lambda t: (
-            np.e ** (0.5 * beta_d * (t**2) + beta_min * t) - 1
+            np.e ** (0.5 * beta_d * (t**2) +
+                     beta_min * t) - 1
         )
         ** 0.5
     )
@@ -61,23 +63,26 @@ def deterministic_sampler(
     )
     vp_sigma_inv = (
         lambda beta_d, beta_min: lambda sigma: (
-            (beta_min**2 + 2 * beta_d * (sigma**2 + 1).log()).sqrt() - beta_min
+            (beta_min**2 + 2 * beta_d *
+             (sigma**2 + 1).log()).sqrt() - beta_min
         )
         / beta_d
     )
-    ve_sigma = lambda t: t.sqrt()
-    ve_sigma_deriv = lambda t: 0.5 / t.sqrt()
-    ve_sigma_inv = lambda sigma: sigma**2
+    def ve_sigma(t): return t.sqrt()
+    def ve_sigma_deriv(t): return 0.5 / t.sqrt()
+    def ve_sigma_inv(sigma): return sigma**2
 
     # Select default noise level range based on the specified time step discretization.
     if sigma_min is None:
-        vp_def = vp_sigma(beta_d=19.1, beta_min=0.1)(t=epsilon_s)
+        vp_def = vp_sigma(
+            beta_d=19.1, beta_min=0.1)(t=epsilon_s)
         sigma_min = {"vp": vp_def, "ve": 0.02, "iddpm": 0.002, "edm": 0.002}[
             discretization
         ]
     if sigma_max is None:
         vp_def = vp_sigma(beta_d=19.1, beta_min=0.1)(t=1)
-        sigma_max = {"vp": vp_def, "ve": 100, "iddpm": 81, "edm": 80}[discretization]
+        sigma_max = {"vp": vp_def, "ve": 100,
+                     "iddpm": 81, "edm": 80}[discretization]
 
     # Adjust noise levels based on what's supported by the network.
     sigma_min = max(sigma_min, net.sigma_min)
@@ -92,25 +97,35 @@ def deterministic_sampler(
     vp_beta_min = np.log(sigma_max**2 + 1) - 0.5 * vp_beta_d
 
     # Define time steps in terms of noise level.
-    step_indices = torch.arange(num_steps, dtype=torch.float64, device=latents.device)
+    step_indices = torch.arange(
+        num_steps, dtype=torch.float64, device=latents.device)
     if discretization == "vp":
-        orig_t_steps = 1 + step_indices / (num_steps - 1) * (epsilon_s - 1)
-        sigma_steps = vp_sigma(vp_beta_d, vp_beta_min)(orig_t_steps)
+        orig_t_steps = 1 + step_indices / \
+            (num_steps - 1) * (epsilon_s - 1)
+        sigma_steps = vp_sigma(
+            vp_beta_d, vp_beta_min)(orig_t_steps)
     elif discretization == "ve":
         orig_t_steps = (sigma_max**2) * (
-            (sigma_min**2 / sigma_max**2) ** (step_indices / (num_steps - 1))
+            (sigma_min**2 / sigma_max **
+             2) ** (step_indices / (num_steps - 1))
         )
         sigma_steps = ve_sigma(orig_t_steps)
     elif discretization == "iddpm":
-        u = torch.zeros(M + 1, dtype=torch.float64, device=latents.device)
-        alpha_bar = lambda j: (0.5 * np.pi * j / M / (C_2 + 1)).sin() ** 2
+        u = torch.zeros(
+            M + 1, dtype=torch.float64, device=latents.device)
+
+        def alpha_bar(j): return (
+            0.5 * np.pi * j / M / (C_2 + 1)).sin() ** 2
         for j in torch.arange(M, 0, -1, device=latents.device):  # M, ..., 1
             u[j - 1] = (
-                (u[j] ** 2 + 1) / (alpha_bar(j - 1) / alpha_bar(j)).clip(min=C_1) - 1
+                (u[j] ** 2 + 1) / (alpha_bar(j - 1) /
+                                   alpha_bar(j)).clip(min=C_1) - 1
             ).sqrt()
-        u_filtered = u[torch.logical_and(u >= sigma_min, u <= sigma_max)]
+        u_filtered = u[torch.logical_and(
+            u >= sigma_min, u <= sigma_max)]
         sigma_steps = u_filtered[
-            ((len(u_filtered) - 1) / (num_steps - 1) * step_indices)
+            ((len(u_filtered) - 1) /
+             (num_steps - 1) * step_indices)
             .round()
             .to(torch.int64)
         ]
@@ -132,26 +147,30 @@ def deterministic_sampler(
         sigma_deriv = ve_sigma_deriv
         sigma_inv = ve_sigma_inv
     else:
-        sigma = lambda t: t
-        sigma_deriv = lambda t: 1
-        sigma_inv = lambda sigma: sigma
+        def sigma(t): return t
+        def sigma_deriv(t): return 1
+        def sigma_inv(sigma): return sigma
 
     # Define scaling schedule.
     if scaling == "vp":
-        s = lambda t: 1 / (1 + sigma(t) ** 2).sqrt()
-        s_deriv = lambda t: -sigma(t) * sigma_deriv(t) * (s(t) ** 3)
+        def s(t): return 1 / (1 + sigma(t) ** 2).sqrt()
+        def s_deriv(t): return -sigma(t) * \
+            sigma_deriv(t) * (s(t) ** 3)
     else:
-        s = lambda t: 1
-        s_deriv = lambda t: 0
+        def s(t): return 1
+        def s_deriv(t): return 0
 
     # Compute final time steps based on the corresponding noise levels.
     t_steps = sigma_inv(net.round_sigma(sigma_steps))
-    t_steps = torch.cat([t_steps, torch.zeros_like(t_steps[:1])])  # t_N = 0
+    t_steps = torch.cat(
+        [t_steps, torch.zeros_like(t_steps[:1])])  # t_N = 0
 
     # Main sampling loop.
     t_next = t_steps[0]
-    x_next = latents.to(torch.float64) * (sigma(t_next) * s(t_next))
-    for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):  # 0, ..., N-1
+    x_next = latents.to(torch.float64) * \
+        (sigma(t_next) * s(t_next))
+    # 0, ..., N-1
+    for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):
         x_cur = x_next
 
         # Increase noise temporarily.
@@ -160,7 +179,8 @@ def deterministic_sampler(
             if S_min <= sigma(t_cur) <= S_max
             else 0
         )
-        t_hat = sigma_inv(net.round_sigma(sigma(t_cur) + gamma * sigma(t_cur)))
+        t_hat = sigma_inv(net.round_sigma(
+            sigma(t_cur) + gamma * sigma(t_cur)))
         x_hat = s(t_hat) / s(t_cur) * x_cur + (
             sigma(t_hat) ** 2 - sigma(t_cur) ** 2
         ).clip(min=0).sqrt() * s(t_hat) * S_noise * randn_like(x_cur)
@@ -171,7 +191,8 @@ def deterministic_sampler(
             torch.float64
         )
         d_cur = (
-            sigma_deriv(t_hat) / sigma(t_hat) + s_deriv(t_hat) / s(t_hat)
+            sigma_deriv(t_hat) / sigma(t_hat) +
+            s_deriv(t_hat) / s(t_hat)
         ) * x_hat - sigma_deriv(t_hat) * s(t_hat) / sigma(t_hat) * denoised
         x_prime = x_hat + alpha * h * d_cur
         t_prime = t_hat + alpha * h
@@ -184,10 +205,12 @@ def deterministic_sampler(
                 torch.float64
             )
             d_prime = (
-                sigma_deriv(t_prime) / sigma(t_prime) + s_deriv(t_prime) / s(t_prime)
+                sigma_deriv(t_prime) / sigma(t_prime) +
+                s_deriv(t_prime) / s(t_prime)
             ) * x_prime - sigma_deriv(t_prime) * s(t_prime) / sigma(t_prime) * denoised
             x_next = x_hat + h * (
-                (1 - 1 / (2 * alpha)) * d_cur + 1 / (2 * alpha) * d_prime
+                (1 - 1 / (2 * alpha)) * d_cur +
+                1 / (2 * alpha) * d_prime
             )
 
     return x_next

@@ -22,7 +22,8 @@ def main():
     )
     logger = logging.getLogger()
 
-    config_file_path = os.path.join(current_path, "conf/config.yaml")
+    config_file_path = os.path.join(
+        current_path, "conf/config.yaml")
     cfg = YParams(config_file_path, "fengwu")
     cfg["N_in_channels"] = len(cfg.channels)
     cfg["N_out_channels"] = len(cfg.channels)
@@ -33,17 +34,20 @@ def main():
     local_rank = 0
 
     if cfg.world_size > 1:
-        dist.init_process_group(backend="nccl", init_method="env://")
+        dist.init_process_group(
+            backend="nccl", init_method="env://")
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
 
-    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
+    train_dataset = ERA5HDF5Datapipe(
+        params=cfg, distributed=dist.is_initialized())
     train_dataloader, train_sampler = train_dataset.train_dataloader()
     world_rank == 0 and logger.info(
         f"Loaded train_dataloader of size {len(train_dataloader)}"
     )
 
-    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
+    val_dataset = ERA5HDF5Datapipe(
+        params=cfg, distributed=dist.is_initialized())
     val_dataloader, val_sampler = val_dataset.val_dataloader()
     world_rank == 0 and logger.info(
         f"Loaded val_dataloader of size {len(val_dataloader)}"
@@ -58,7 +62,8 @@ def main():
         window_size=cfg.window_size,
     ).to(local_rank)
     if cfg.world_size == 1:
-        total_params = sum(p.numel() for p in fengwu_model.parameters())
+        total_params = sum(p.numel()
+                           for p in fengwu_model.parameters())
         print(
             "-" * 20,
             f"now params is {total_params}, {total_params / 1e6: .2f}M, {total_params / 1e9: .2f}B",
@@ -72,7 +77,8 @@ def main():
             find_unused_parameters=True,
         )
 
-    optimizer = optimizers.FusedAdam(fengwu_model.parameters(), lr=cfg.lr)
+    optimizer = optimizers.FusedAdam(
+        fengwu_model.parameters(), lr=cfg.lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, factor=0.2, patience=5, mode="min"
     )
@@ -102,8 +108,10 @@ def main():
         train_loss = 0
         batch_start_time = time.time()
         for j, data in enumerate(train_dataloader):
-            invar = data[0].to(local_rank, dtype=torch.float32)
-            outvar = data[1].to(local_rank, dtype=torch.float32)
+            invar = data[0].to(
+                local_rank, dtype=torch.float32)
+            outvar = data[1].to(
+                local_rank, dtype=torch.float32)
 
             surface = invar[:, :4, :, :]
             z = invar[:, 4:41, :, :]
@@ -131,7 +139,8 @@ def main():
 
             # surface, z, r, u, v, t = fengwu_model(surface, z, r, u, v, t)
 
-            outvar_pred = torch.concat([surface_p, z_p, r_p, u_p, v_p, t_p], dim=1)
+            outvar_pred = torch.concat(
+                [surface_p, z_p, r_p, u_p, v_p, t_p], dim=1)
 
             loss = loss_obj(outvar, outvar_pred)
 
@@ -154,8 +163,10 @@ def main():
         val_batch_time = time.time()
         with torch.no_grad():
             for j, data in enumerate(val_dataloader):
-                invar = data[0].to(local_rank, dtype=torch.float32)
-                outvar = data[1].to(local_rank, dtype=torch.float32)
+                invar = data[0].to(
+                    local_rank, dtype=torch.float32)
+                outvar = data[1].to(
+                    local_rank, dtype=torch.float32)
 
                 surface = invar[:, :4, :, :]
                 z = invar[:, 4:41, :, :]
@@ -164,9 +175,11 @@ def main():
                 v = invar[:, 115:152, :, :]
                 t = invar[:, 152:189, :, :]
 
-                surface, z, r, u, v, t = fengwu_model(surface, z, r, u, v, t)
+                surface, z, r, u, v, t = fengwu_model(
+                    surface, z, r, u, v, t)
 
-                outvar_pred = torch.concat([surface_p, z_p, r_p, u_p, v_p, t_p], dim=1)
+                outvar_pred = torch.concat(
+                    [surface_p, z_p, r_p, u_p, v_p, t_p], dim=1)
 
                 loss = loss_obj(outvar, outvar_pred)
 
@@ -212,8 +225,10 @@ def main():
                 f"Best loss at Epoch: {best_loss_epoch + 1}"
                 + (", saving checkpoint" if is_save_ckp else "")
             )
-            train_losses = np.append(train_losses, train_loss)
-            valid_losses = np.append(valid_losses, valid_loss)
+            train_losses = np.append(
+                train_losses, train_loss)
+            valid_losses = np.append(
+                valid_losses, valid_loss)
 
             np.save(train_loss_file, train_losses)
             np.save(valid_loss_file, valid_losses)
@@ -227,7 +242,8 @@ def main():
 def save_checkpoint(
     model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path
 ):
-    model_to_save = model.module if hasattr(model, "module") else model
+    model_to_save = model.module if hasattr(
+        model, "module") else model
     state = {
         "model_state_dict": model_to_save.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),

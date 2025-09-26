@@ -57,7 +57,8 @@ class Fiber(dict):
             ]
         elif not isinstance(structure[0], FiberEl):
             structure = list(
-                map(lambda t: FiberEl(*t), sorted(structure, key=lambda x: x[1]))
+                map(lambda t: FiberEl(*t),
+                    sorted(structure, key=lambda x: x[1]))
             )
         self.structure = structure
         super().__init__({d: m for d, m in self.structure})
@@ -86,7 +87,8 @@ class Fiber(dict):
         structure = {}
         for k, v in feats.items():
             degree = int(k)
-            assert len(v.shape) == 3, "Feature shape should be (N, C, 2D+1)"
+            assert len(
+                v.shape) == 3, "Feature shape should be (N, C, 2D+1)"
             assert v.shape[-1] == degree_to_dim(degree)
             structure[degree] = v.shape[-2]
         return Fiber(structure)
@@ -116,7 +118,8 @@ class Fiber(dict):
         """
         if isinstance(other, Fiber):
             return Fiber(
-                {t.degree: t.channels + other[t.degree] for t in self.structure}
+                {t.degree: t.channels +
+                    other[t.degree] for t in self.structure}
             )
         elif isinstance(other, int):
             return Fiber({t.degree: t.channels + other for t in self.structure})
@@ -147,7 +150,8 @@ class Fiber(dict):
         # dict(N, num_channels, 2d+1) -> (N, num_heads, -1)
         fibers = [
             tensors[str(degree)].reshape(
-                *tensors[str(degree)].shape[:-2], num_heads, -1
+                *tensors[str(degree)].shape[:-
+                                            2], num_heads, -1
             )
             for degree in self.degrees
         ]

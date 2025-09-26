@@ -24,7 +24,8 @@ def data_list_collater(
                 n_neighbors.append(n_index.shape[0])
             batch.neighbors = torch.tensor(n_neighbors)
         except (NotImplementedError, TypeError):
-            logging.warning("No edge index information, set otf_graph=True")
+            logging.warning(
+                "No edge index information, set otf_graph=True")
 
     if to_dict:
         batch = dict(batch.items())

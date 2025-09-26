@@ -132,7 +132,8 @@ def get_model(spatial_dim, if_temporal, args):
     dim = spatial_dim + 1 if if_temporal else spatial_dim
     if dim == 1:
         model = FNO1d(
-            in_dim=model_args["in_channels"] * initial_step + 1,
+            in_dim=model_args["in_channels"] *
+            initial_step + 1,
             out_dim=model_args["out_channels"],
             modes=model_args["modes1"],
             fc_dim=model_args["fc_dim"],
@@ -141,7 +142,8 @@ def get_model(spatial_dim, if_temporal, args):
         )
     elif dim == 2:
         model = FNO2d(
-            in_dim=model_args["in_channels"] * initial_step + 2,
+            in_dim=model_args["in_channels"] *
+            initial_step + 2,
             out_dim=model_args["out_channels"],
             modes1=model_args["modes1"],
             modes2=model_args["modes2"],
@@ -151,7 +153,8 @@ def get_model(spatial_dim, if_temporal, args):
         )
     elif dim == 3:
         model = FNO3d(
-            in_dim=model_args["in_channels"] * initial_step + 3,
+            in_dim=model_args["in_channels"] *
+            initial_step + 3,
             out_dim=model_args["out_channels"],
             modes1=model_args["modes1"],
             modes2=model_args["modes2"],
@@ -194,13 +197,15 @@ def train_loop(
         if not if_temporal:  # DarcyFlow
             a = u[..., 0:1]
             u = u[..., 1:2]
-            input = generate_input(a, grid[..., :-1]).squeeze(-2)
+            input = generate_input(
+                a, grid[..., :-1]).squeeze(-2)
         else:
             input = generate_input(a, grid)
 
         pred = model(input)
         data_loss = loss_fn(
-            pred[..., : u.shape[-1]].reshape([bs, -1]), u.reshape([bs, -1])
+            pred[..., : u.shape[-1]
+                 ].reshape([bs, -1]), u.reshape([bs, -1])
         )
 
         if f_weight > 0:
@@ -209,15 +214,18 @@ def train_loop(
             if not if_temporal:  # DarcyFlow
                 a = u[..., 0:1]
                 u = u[..., 1:2]
-                input = generate_input(a, grid[..., :-1]).squeeze(-2)
+                input = generate_input(
+                    a, grid[..., :-1]).squeeze(-2)
             else:
                 input = generate_input(a, grid)
             pred = model(input)
-            ic_loss, f_loss = pde_loss(pred, a, u, train_args, grid)
+            ic_loss, f_loss = pde_loss(
+                pred, a, u, train_args, grid)
         else:
             ic_loss = torch.tensor(0.0)
             f_loss = torch.tensor(0.0)
-        loss = data_weight * data_loss + ic_weight * ic_loss + f_weight * f_loss
+        loss = data_weight * data_loss + \
+            ic_weight * ic_loss + f_weight * f_loss
         # if loss.isnan():
         #     continue
         optimizer.zero_grad()
@@ -249,16 +257,19 @@ def val_loop(dataloader, model, if_temporal, device, train_args):
         if not if_temporal:  # DarcyFlow
             a = u[..., 0:1]
             u = u[..., 1:2]
-            input = generate_input(a, grid[..., :-1]).squeeze(-2)
+            input = generate_input(
+                a, grid[..., :-1]).squeeze(-2)
         else:
             input = generate_input(a, grid)
 
         pred = model(input)
         data_loss = loss_fn(
-            pred[..., : u.shape[-1]].reshape([bs, -1]), u.reshape([bs, -1])
+            pred[..., : u.shape[-1]
+                 ].reshape([bs, -1]), u.reshape([bs, -1])
         )
         L_inf = torch.norm(
-            pred[..., : u.shape[-1]].reshape([bs, -1]) - u.reshape([bs, -1]),
+            pred[..., : u.shape[-1]
+                 ].reshape([bs, -1]) - u.reshape([bs, -1]),
             p=float("inf"),
         ).item()
         max_inf = L_inf if max_inf < L_inf else max_inf
@@ -270,7 +281,8 @@ def val_loop(dataloader, model, if_temporal, device, train_args):
 @timer
 @torch.no_grad()
 def test_loop(
-    dataloader, model, if_temporal, device, metric_names=["MSE", "L2RE", "MaxError"]
+    dataloader, model, if_temporal, device, metric_names=[
+        "MSE", "L2RE", "MaxError"]
 ):
     model.eval()
     # initial result dict
@@ -283,10 +295,12 @@ def test_loop(
         if not if_temporal:  # DarcyFlow
             a = u[..., 0:1]
             u = u[..., 1:2]
-            input = generate_input(a, grid[..., :-1]).squeeze(-2)
+            input = generate_input(
+                a, grid[..., :-1]).squeeze(-2)
         else:
             input = generate_input(a, grid)
-        pred = model(input)[..., : u.shape[-1]].reshape(u.shape)
+        pred = model(
+            input)[..., : u.shape[-1]].reshape(u.shape)
 
         for name in metric_names:
             metric_fn = getattr(metrics, name)
@@ -306,20 +320,23 @@ def test_loop(
 
 def main(args):
     # init
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cuda:0" if torch.cuda.is_available() else "cpu")
     checkpoint = (
         torch.load(args["model_path"])
         if not args["if_training"] or args["continue_training"]
         else None
     )
-    saved_model_name = args["train"].get("save_name", args["model_name"])
+    saved_model_name = args["train"].get(
+        "save_name", args["model_name"])
     saved_model_name = (
         saved_model_name
         + f"_lr{args['optimizer']['lr']}"
         + f"_bs{args['dataloader']['batch_size']}"
     )
     saved_dir = os.path.join(
-        args["output_dir"], os.path.splitext(args["dataset"]["file_name"])[0]
+        args["output_dir"], os.path.splitext(
+            args["dataset"]["file_name"])[0]
     )
     if not os.path.exists(saved_dir):
         os.makedirs(saved_dir)
@@ -333,13 +350,15 @@ def main(args):
     _, sample, _ = next(iter(val_loader))
     spatial_dim = len(sample.shape) - 3
     if_temporal = True if sample.shape[-2] != 1 else False
-    args["train"].update({"dx": train_pde.dx, "dt": train_pde.dt})
+    args["train"].update(
+        {"dx": train_pde.dx, "dt": train_pde.dt})
 
     # model
     model = get_model(spatial_dim, if_temporal, args)
-    ## if test, load model from checkpoint
+    # if test, load model from checkpoint
     if not args["if_training"]:
-        model.load_state_dict(checkpoint["model_state_dict"])
+        model.load_state_dict(
+            checkpoint["model_state_dict"])
         if torch.cuda.device_count() > 8:
             model = nn.DataParallel(model)
         model.to(device)
@@ -350,7 +369,8 @@ def main(args):
         )
         # time_list=[]
         # for i in range(10):
-        res, time = test_loop(val_loader, model, if_temporal, device)
+        res, time = test_loop(
+            val_loader, model, if_temporal, device)
         #     time_list.append(time)
         # time_list.pop(time_list.index(max(time_list)))
         # time_list.pop(time_list.index(min(time_list)))
@@ -365,10 +385,12 @@ def main(args):
                 print(f"{name}: {val:.6f}")
         print("Done")
         return
-    ## if continue training, resume model from checkpoint
+    # if continue training, resume model from checkpoint
     if args["continue_training"]:
-        print(f"continue training, load checkpoint from {args['model_path']}")
-        model.load_state_dict(checkpoint["model_state_dict"])
+        print(
+            f"continue training, load checkpoint from {args['model_path']}")
+        model.load_state_dict(
+            checkpoint["model_state_dict"])
     if torch.cuda.device_count() > 8:
         model = nn.DataParallel(model)
     model.to(device)
@@ -376,14 +398,16 @@ def main(args):
     # optimizer
     optim_args = args["optimizer"]
     optim_name = optim_args.pop("name")
-    ## if continue training, resume optimizer and scheduler from checkpoint
+    # if continue training, resume optimizer and scheduler from checkpoint
     if args["continue_training"]:
         optimizer = getattr(torch.optim, optim_name)(
-            [{"params": model.parameters(), "initial_lr": optim_args["lr"]}],
+            [{"params": model.parameters(
+            ), "initial_lr": optim_args["lr"]}],
             **optim_args,
         )
     else:
-        optimizer = getattr(torch.optim, optim_name)(model.parameters(), **optim_args)
+        optimizer = getattr(torch.optim, optim_name)(
+            model.parameters(), **optim_args)
 
     # scheduler
     start_epoch = 0
@@ -399,10 +423,11 @@ def main(args):
 
     # train
     print(f"start training from epoch {start_epoch}")
-    pbar = tqdm(range(start_epoch, args["epochs"]), dynamic_ncols=True, smoothing=0.05)
+    pbar = tqdm(range(
+        start_epoch, args["epochs"]), dynamic_ncols=True, smoothing=0.05)
     loss_curve = []
     for epoch in pbar:
-        ## train loop
+        # train loop
         train_loss, train_data, train_ic, train_f = train_loop(
             train_loader,
             pde_loader,
@@ -418,8 +443,9 @@ def main(args):
         )
         # print(f"[Epoch {epoch}] train_loss: {train_loss}, data_loss: {train_data}, train_f: {train_f},train_ic:{train_ic}")
         loss_curve.append(train_loss)
-        ## save latest
-        saved_path = os.path.join(saved_dir, saved_model_name)
+        # save latest
+        saved_path = os.path.join(
+            saved_dir, saved_model_name)
         model_state_dict = (
             model.module.state_dict()
             if torch.cuda.device_count() > 8
@@ -434,15 +460,17 @@ def main(args):
             },
             saved_path + "-latest.pt",
         )
-        ## validate
+        # validate
         if (epoch + 1) % args["save_period"] == 0:
             val_loss, L_inf = val_loop(
                 val_loader, model, if_temporal, device, args["train"]
             )
-            print(f"[Epoch {epoch}] val_loss: {val_loss:.5e}, L_inf: {L_inf:.5e}")
-            print("================================================", flush=True)
+            print(
+                f"[Epoch {epoch}] val_loss: {val_loss:.5e}, L_inf: {L_inf:.5e}")
+            print(
+                "================================================", flush=True)
             if val_loss < min_val_loss:
-                ### save best
+                # save best
                 torch.save(
                     {
                         "epoch": epoch + 1,
@@ -456,13 +484,15 @@ def main(args):
                     },
                     saved_path + "-best.pt",
                 )
-    torch.save({"loss_curve": loss_curve}, saved_path + "_loss_curve.pt")
+    torch.save({"loss_curve": loss_curve},
+               saved_path + "_loss_curve.pt")
     print("Done.")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("config_file", type=str, help="Path to config file")
+    parser.add_argument(
+        "config_file", type=str, help="Path to config file")
     cmd_args = parser.parse_args()
     with open(cmd_args.config_file, "r") as f:
         args = yaml.safe_load(f)

@@ -57,7 +57,8 @@ def get_populated_edge_features(
     edge_features = edge_features.copy() if edge_features else {}
     r = relative_pos.norm(dim=-1, keepdim=True)
     if "0" in edge_features:
-        edge_features["0"] = torch.cat([edge_features["0"], r[..., None]], dim=1)
+        edge_features["0"] = torch.cat(
+            [edge_features["0"], r[..., None]], dim=1)
     else:
         edge_features["0"] = r[..., None]
 
@@ -111,7 +112,8 @@ class SE3Transformer(nn.Module):
         self.low_memory = low_memory
 
         if low_memory and not tensor_cores:
-            logging.warning("Low memory mode will have no effect with no Tensor Cores")
+            logging.warning(
+                "Low memory mode will have no effect with no Tensor Cores")
 
         # Fully fused convolutions when using Tensor Cores (and not low memory mode)
         fuse_level = (
@@ -152,7 +154,8 @@ class SE3Transformer(nn.Module):
 
         if pooling is not None:
             assert return_type is not None, "return_type must be specified when pooling"
-            self.pooling_module = GPooling(pool=pooling, feat_type=return_type)
+            self.pooling_module = GPooling(
+                pool=pooling, feat_type=return_type)
 
     def forward(
         self,
@@ -178,7 +181,8 @@ class SE3Transformer(nn.Module):
             fully_fused=self.tensor_cores and not self.low_memory,
         )
 
-        edge_feats = get_populated_edge_features(graph.edata["rel_pos"], edge_feats)
+        edge_feats = get_populated_edge_features(
+            graph.edata["rel_pos"], edge_feats)
 
         node_feats = self.graph_modules(
             node_feats, edge_feats, graph=graph, basis=basis
@@ -263,7 +267,8 @@ class SE3TransformerPooled(nn.Module):
         kwargs["pooling"] = kwargs["pooling"] or "max"
         self.transformer = SE3Transformer(
             fiber_in=fiber_in,
-            fiber_hidden=Fiber.create(num_degrees, num_channels),
+            fiber_hidden=Fiber.create(
+                num_degrees, num_channels),
             fiber_out=fiber_out,
             fiber_edge=fiber_edge,
             return_type=0,
@@ -278,13 +283,15 @@ class SE3TransformerPooled(nn.Module):
         )
 
     def forward(self, graph, node_feats, edge_feats, basis=None):
-        feats = self.transformer(graph, node_feats, edge_feats, basis).squeeze(-1)
+        feats = self.transformer(
+            graph, node_feats, edge_feats, basis).squeeze(-1)
         y = self.mlp(feats).squeeze(-1)
         return y
 
     @staticmethod
     def add_argparse_args(parent_parser):
-        parser = parent_parser.add_argument_group("Model architecture")
+        parser = parent_parser.add_argument_group(
+            "Model architecture")
         SE3Transformer.add_argparse_args(parser)
         parser.add_argument(
             "--num_degrees",

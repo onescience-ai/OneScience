@@ -42,7 +42,8 @@ def gated_linear_unit(
     x: Float[Array, "*B M K"],
     weight: Float[Array, "K 2 N"],
     *,
-    activation: Callable[[jax.Array], jax.Array] | None = None,
+    activation: Callable[[jax.Array],
+                         jax.Array] | None = None,
     precision: jax.lax.Precision | None = None,
     implementation: Implementation | None = None,
 ) -> Float[Array, "*B M N"]:
@@ -78,7 +79,8 @@ def gated_linear_unit(
     match implementation:
         case "triton":
             if not triton_utils.has_triton_support():
-                raise NotImplementedError("Triton not supported on this platform.")
+                raise NotImplementedError(
+                    "Triton not supported on this platform.")
         case _:
             ...
 

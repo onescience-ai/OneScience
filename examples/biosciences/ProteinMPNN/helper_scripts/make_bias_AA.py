@@ -5,7 +5,8 @@ def main(args):
 
     import json
 
-    bias_list = [float(item) for item in args.bias_list.split()]
+    bias_list = [float(item)
+                 for item in args.bias_list.split()]
     AA_list = [str(item) for item in args.AA_list.split()]
 
     my_dict = dict(zip(AA_list, bias_list))

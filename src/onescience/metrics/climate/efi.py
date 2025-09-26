@@ -41,13 +41,15 @@ def efi_gaussian(
     Reference: https://www.atmos.albany.edu/daes/atmclasses/atm401/spring_2016/ppts_pdfs/ECMWF_EFI.pdf
     """
 
-    clim_cdf = normal_cdf(climatology_mean, climatology_std, bin_edges, grid="right")
+    clim_cdf = normal_cdf(
+        climatology_mean, climatology_std, bin_edges, grid="right")
 
     return (
         2.0
         / torch.pi
         * torch.trapz(
-            (clim_cdf - pred_cdf) / torch.sqrt(1e-8 + clim_cdf * (1.0 - clim_cdf)),
+            (clim_cdf - pred_cdf) /
+            torch.sqrt(1e-8 + clim_cdf * (1.0 - clim_cdf)),
             clim_cdf,
             dim=0,
         )
@@ -82,7 +84,9 @@ def efi(bin_edges: Tensor, counts: Tensor, quantiles: Tensor) -> Tensor:
         2.0
         / torch.pi
         * torch.trapz(
-            (quantiles - pred_cdf) / torch.sqrt(1e-8 + quantiles * (1.0 - quantiles)),
+            (quantiles - pred_cdf) /
+            torch.sqrt(1e-8 + quantiles *
+                       (1.0 - quantiles)),
             quantiles,
             dim=0,
         )

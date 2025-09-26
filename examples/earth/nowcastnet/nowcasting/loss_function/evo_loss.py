@@ -43,12 +43,16 @@ class EvolutionLoss(nn.Module):
         length = self.configs.evo_ic
         for t in range(length):
             weight_t = torch.minimum(
-                torch.full(real[:, t].shape, 24).to(self.configs.device), 1 + real[:, t]
+                torch.full(real[:, t].shape, 24).to(
+                    self.configs.device), 1 + real[:, t]
             )
-            J_accum += self.weighted_distance(real[:, t], evo_result[:, t], weight_t)
-            J_accum += self.weighted_distance(real[:, t], evo_motion[:, t], weight_t)
+            J_accum += self.weighted_distance(
+                real[:, t], evo_result[:, t], weight_t)
+            J_accum += self.weighted_distance(
+                real[:, t], evo_motion[:, t], weight_t)
 
-            J_motion += self.motion_regularization(v_x[:, t], v_y[:, t], weight_t)
+            J_motion += self.motion_regularization(
+                v_x[:, t], v_y[:, t], weight_t)
 
         return J_accum + self.lamda * J_motion
 

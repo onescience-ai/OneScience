@@ -80,7 +80,8 @@ class DistributedManager(object):
         if not hasattr(obj, "_distributed"):
             obj._distributed = False
         if not hasattr(obj, "_device"):
-            obj._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            obj._device = torch.device(
+                "cuda:0" if torch.cuda.is_available() else "cpu")
         if not hasattr(obj, "_cuda"):
             obj._cuda = torch.cuda.is_available()
         if not hasattr(obj, "_broadcast_buffers"):
@@ -258,8 +259,10 @@ class DistributedManager(object):
     def initialize_open_mpi(addr, port):
         """Setup method using OpenMPI initialization"""
         rank = int(os.environ.get("OMPI_COMM_WORLD_RANK"))
-        world_size = int(os.environ.get("OMPI_COMM_WORLD_SIZE"))
-        local_rank = int(os.environ.get("OMPI_COMM_WORLD_LOCAL_RANK"))
+        world_size = int(os.environ.get(
+            "OMPI_COMM_WORLD_SIZE"))
+        local_rank = int(os.environ.get(
+            "OMPI_COMM_WORLD_LOCAL_RANK"))
 
         DistributedManager.setup(
             rank=rank,
@@ -317,15 +320,18 @@ class DistributedManager(object):
         port = os.getenv("MASTER_PORT", "12355")
         # https://pytorch.org/docs/master/notes/cuda.html#id5
         os.environ["NCCL_ASYNC_ERROR_HANDLING"] = "0"
-        initialization_method = os.getenv("MODULUS_DISTRIBUTED_INITIALIZATION_METHOD")
+        initialization_method = os.getenv(
+            "MODULUS_DISTRIBUTED_INITIALIZATION_METHOD")
         if initialization_method is None:
             try:
                 DistributedManager.initialize_env()
             except TypeError:
                 if "SLURM_PROCID" in os.environ:
-                    DistributedManager.initialize_slurm(port)
+                    DistributedManager.initialize_slurm(
+                        port)
                 elif "OMPI_COMM_WORLD_RANK" in os.environ:
-                    DistributedManager.initialize_open_mpi(addr, port)
+                    DistributedManager.initialize_open_mpi(
+                        addr, port)
                 else:
                     warn(
                         "Could not initialize using ENV, SLURM or OPENMPI methods. Assuming this is a single process job"
@@ -336,7 +342,8 @@ class DistributedManager(object):
         elif initialization_method == "SLURM":
             DistributedManager.initialize_slurm(port)
         elif initialization_method == "OPENMPI":
-            DistributedManager.initialize_open_mpi(addr, port)
+            DistributedManager.initialize_open_mpi(
+                addr, port)
         else:
             raise RuntimeError(
                 "Unknown initialization method "
@@ -377,7 +384,8 @@ class DistributedManager(object):
                 manager._local_rank = local_rank
 
         manager._device = torch.device(
-            f"cuda:{manager.local_rank}" if torch.cuda.is_available() else "cpu"
+            f"cuda:{manager.local_rank}" if torch.cuda.is_available(
+            ) else "cpu"
         )
 
         if manager._distributed:
@@ -440,7 +448,8 @@ class DistributedManager(object):
             )
 
         if name in manager._groups:
-            raise AssertionError(f"Group with name {name} already exists")
+            raise AssertionError(
+                f"Group with name {name} already exists")
 
         # Get parent group's params
         group = manager._groups[group_name] if group_name else None
@@ -510,12 +519,15 @@ class DistributedManager(object):
             )
 
         if group_name not in manager._groups:
-            raise ValueError(f"Group with name {group_name} does not exist")
+            raise ValueError(
+                f"Group with name {group_name} does not exist")
         if orthogonal_group_name in manager._groups:
-            raise ValueError(f"Group with name {orthogonal_group_name} already exists")
+            raise ValueError(
+                f"Group with name {orthogonal_group_name} already exists")
 
         group_ranks = manager._group_ranks[group_name]
-        orthogonal_ranks = [list(i) for i in zip(*group_ranks)]
+        orthogonal_ranks = [list(i)
+                            for i in zip(*group_ranks)]
 
         for ranks in orthogonal_ranks:
             tmp_group = dist.new_group(ranks=ranks)
@@ -527,7 +539,8 @@ class DistributedManager(object):
         manager._group_ranks[orthogonal_group_name] = orthogonal_ranks
 
         if verbose and manager.rank == 0:
-            print(f"Process group '{orthogonal_group_name}':")
+            print(
+                f"Process group '{orthogonal_group_name}':")
             for grp in manager._group_ranks[orthogonal_group_name]:
                 print("    ", grp)
 
@@ -562,7 +575,8 @@ class DistributedManager(object):
         # to create nested process groups
         q = queue.Queue()
         q.put(config.root_id)
-        DistributedManager.create_group_from_node(config.root)
+        DistributedManager.create_group_from_node(
+            config.root)
 
         while not q.empty():
             node_id = q.get()
@@ -596,7 +610,8 @@ class DistributedManager(object):
             and DistributedManager._shared_state["_distributed"]
         ):
             if torch.cuda.is_available():
-                dist.barrier(device_ids=[DistributedManager().local_rank])
+                dist.barrier(
+                    device_ids=[DistributedManager().local_rank])
             else:
                 dist.barrier()
             dist.destroy_process_group()

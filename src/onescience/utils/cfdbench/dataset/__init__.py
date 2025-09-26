@@ -21,10 +21,12 @@ def get_dataset(
         time_step_size: The time difference between input and output.
     """
     problem_name = data_name.split("_")[0]
-    subset_name = data_name[len(problem_name) + 1 :]
-    assert problem_name in ["cavity", "tube", "dam", "cylinder"]
+    subset_name = data_name[len(problem_name) + 1:]
+    assert problem_name in [
+        "cavity", "tube", "dam", "cylinder"]
     if rank == 0:
-        print(f"Loading problem: {problem_name}, subset: {subset_name}")
+        print(
+            f"Loading problem: {problem_name}, subset: {subset_name}")
     if problem_name == "tube":
         train_data, dev_data, test_data = get_tube_datasets(
             data_dir / problem_name,
@@ -85,8 +87,9 @@ def get_auto_dataset(
         delta_time: The time difference between input and output.
     """
     problem_name = data_name.split("_")[0]
-    assert problem_name in ["cavity", "tube", "dam", "cylinder"]
-    subset_name = data_name[len(problem_name) + 1 :]
+    assert problem_name in [
+        "cavity", "tube", "dam", "cylinder"]
+    subset_name = data_name[len(problem_name) + 1:]
     assert delta_time > 0
     if rank == 0:
         print("Loading data...")

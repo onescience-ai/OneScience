@@ -74,13 +74,15 @@ def replace_function(module, replace_layers_list, ddp_flag=False):
     # ---------- 内部辅助函数 ----------
     def _get_by_path(root, path: str):
         for key in path.split("."):
-            root = root[int(key)] if key.isdigit() else getattr(root, key)
+            root = root[int(key)] if key.isdigit(
+            ) else getattr(root, key)
         return root
 
     def _set_by_path(root, path: str, value):
         keys = path.split(".")
         for key in keys[:-1]:
-            root = root[int(key)] if key.isdigit() else getattr(root, key)
+            root = root[int(key)] if key.isdigit(
+            ) else getattr(root, key)
         last = keys[-1]
         if last.isdigit():
             root[int(last)] = value

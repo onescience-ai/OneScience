@@ -30,7 +30,8 @@ def get_tools(tool_modules: list):
         application_tool_examples = []
         for module_name in tool_modules:
             full_module_name = f"{PACKAGE_NAME}.{module_name}"
-            module = importlib.import_module(full_module_name)
+            module = importlib.import_module(
+                full_module_name)
 
             for name, obj in inspect.getmembers(module):
                 if inspect.isclass(obj) and inspect.getmro(obj)[1] == BaseTool:
@@ -47,10 +48,13 @@ def get_tools(tool_modules: list):
 
         for module_name in tool_modules:
             full_module_name = f"{EXAMPLE_PACKAGE_NAME}.{module_name}"
-            module = importlib.import_module(full_module_name)
-            application_tool_examples.extend(getattr(module, "examples", []))
+            module = importlib.import_module(
+                full_module_name)
+            application_tool_examples.extend(
+                getattr(module, "examples", []))
 
-        logger.info(f"application tools: {application_tool_names}")
+        logger.info(
+            f"application tools: {application_tool_names}")
         return application_tools, application_tool_examples
 
 
@@ -74,9 +78,11 @@ def match_tool_modules(prompt: str, chat_model_config: dict):
 请确保输出严格符合以下 JSON Schema：
 {format_instructions}
 """
-    llm = ChatModel[chat_model_config["factory_name"]](**chat_model_config["model"])
+    llm = ChatModel[chat_model_config["factory_name"]](
+        **chat_model_config["model"])
 
-    parser = JsonOutputParser(pydantic_object=ToolModulesResult)
+    parser = JsonOutputParser(
+        pydantic_object=ToolModulesResult)
     messages = [
         SystemMessage(
             system_prompt.format(
@@ -91,11 +97,13 @@ def match_tool_modules(prompt: str, chat_model_config: dict):
         ),
         HumanMessage(prompt),
     ]
-    runnable = ChatPromptTemplate.from_messages(messages) | llm | parser
+    runnable = ChatPromptTemplate.from_messages(
+        messages) | llm | parser
 
     result = runnable.invoke({})
 
-    result = ToolModulesResult.model_validate_json(json.dumps(result))
+    result = ToolModulesResult.model_validate_json(
+        json.dumps(result))
     return result.modules
 
 

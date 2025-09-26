@@ -1,11 +1,10 @@
+from ml_collections.config_dict import ConfigDict
+import jax.numpy as jnp
+import flax.linen as nn
 import os
 import sys
 
 sys.path.append(os.path.dirname(sys.path[0]))
-
-import flax.linen as nn
-import jax.numpy as jnp
-from ml_collections.config_dict import ConfigDict
 
 
 class EmbeddingBlock(nn.Module):
@@ -24,10 +23,10 @@ class EmbeddingBlock(nn.Module):
         dim_atom_feature = self.config.dim_atom_feature
         dim_bond_feature = (
             self.config.dim_bond_feature
-        )  ## atom feature and bond feature are the same.
+        )  # atom feature and bond feature are the same.
         embedding_config = self.config.embedding
 
-        #### extract atom features
+        # extract atom features
         atom_emb_config = embedding_config.atom_embedding
 
         atom_type = atom_features["atom_type"]
@@ -82,7 +81,7 @@ class EmbeddingBlock(nn.Module):
             + chiral_emb
         )
 
-        #### extract bond features
+        # extract bond features
         bond_emb_config = embedding_config.bond_embedding
 
         bond_type = bond_features["bond_type"]

@@ -70,7 +70,8 @@ def realign_hit_to_structure(
     best_score = -1
     best_start = 0
     best_query_to_hit_mapping = query_to_hit_mapping
-    max_num_gaps_before_subseq = min(hit_start_index, max_num_gaps)
+    max_num_gaps_before_subseq = min(
+        hit_start_index, max_num_gaps)
     # It is possible the gaps needed to align the PDB seqres subsequence and
     # the Structure subsequence need to be inserted before the match region.
     # Try and pick the alignment with the best number of aligned residues.
@@ -136,8 +137,9 @@ def _remap_to_struc_seq(
             # Explore which alignment aligns the next residue (if present).
             best_shift = 0
             for shift in range(0, remaining_num_gaps + 1):
-                next_hit_res = hit_seq[hit_seq_idx + shift : hit_seq_idx + shift + 1]
-                next_struc_res = struc_seq[struc_seq_idx : struc_seq_idx + 1]
+                next_hit_res = hit_seq[hit_seq_idx +
+                                       shift: hit_seq_idx + shift + 1]
+                next_struc_res = struc_seq[struc_seq_idx: struc_seq_idx + 1]
                 if next_hit_res == next_struc_res:
                     best_shift = shift
                     break
@@ -151,7 +153,8 @@ def _remap_to_struc_seq(
 
     fixed_mapping = {}
     for query_idx, original_hit_idx in mapping.items():
-        fixed_hit_idx = hit_to_struc_seq_mapping.get(original_hit_idx)
+        fixed_hit_idx = hit_to_struc_seq_mapping.get(
+            original_hit_idx)
         if fixed_hit_idx is not None:
             fixed_mapping[query_idx] = fixed_hit_idx
 

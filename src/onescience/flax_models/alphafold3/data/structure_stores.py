@@ -32,10 +32,12 @@ class StructureStore:
             self._structure_mapping = None
             path_str = os.fspath(structures)
             if path_str.endswith(".tar"):
-                self._structure_tar = tarfile.open(path_str, "r")
+                self._structure_tar = tarfile.open(
+                    path_str, "r")
                 self._structure_path = None
             else:
-                self._structure_path = pathlib.Path(structures)
+                self._structure_path = pathlib.Path(
+                    structures)
                 self._structure_tar = None
 
     @functools.cached_property
@@ -61,7 +63,8 @@ class StructureStore:
             try:
                 return self._structure_mapping[target_name]
             except KeyError as e:
-                raise NotFoundError(f"{target_name=} not found") from e
+                raise NotFoundError(
+                    f"{target_name=} not found") from e
 
         if self._structure_tar is not None:
             try:
@@ -69,15 +72,19 @@ class StructureStore:
                 if struct_file := self._structure_tar.extractfile(member):
                     return struct_file.read().decode()
                 else:
-                    raise NotFoundError(f"{target_name=} not found")
+                    raise NotFoundError(
+                        f"{target_name=} not found")
             except KeyError:
-                raise NotFoundError(f"{target_name=} not found") from None
+                raise NotFoundError(
+                    f"{target_name=} not found") from None
 
-        filepath = self._structure_path / f"{target_name}.cif"
+        filepath = self._structure_path / \
+            f"{target_name}.cif"
         try:
             return filepath.read_text()
         except FileNotFoundError as e:
-            raise NotFoundError(f"{target_name=} not found at {filepath=}") from e
+            raise NotFoundError(
+                f"{target_name=} not found at {filepath=}") from e
 
     def target_names(self) -> Sequence[str]:
         """Returns all targets in the store."""

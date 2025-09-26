@@ -183,7 +183,8 @@ class DenoiserArchitectureConfig:
     latent_size: int = 512
     hidden_layers: int = 1
     radius_query_fraction_edge_length: float = 0.6
-    norm_conditioning_features: tuple[str, ...] = ("noise_level_encodings",)
+    norm_conditioning_features: tuple[str, ...] = (
+        "noise_level_encodings",)
     grid2mesh_aggregate_normalization: Optional[float] = None
     node_output_size: Optional[int] = None
 
@@ -210,7 +211,8 @@ class Denoiser(base.Denoiser):
         # Use default values if not specified.
         if noise_encoder_config is None:
             noise_encoder_config = NoiseEncoderConfig()
-        self._noise_level_encoder = FourierFeaturesMLP(**noise_encoder_config)
+        self._noise_level_encoder = FourierFeaturesMLP(
+            **noise_encoder_config)
 
     def __call__(
         self,
@@ -225,14 +227,16 @@ class Denoiser(base.Denoiser):
         forcings = forcings.assign(noisy_targets)
 
         if noise_levels.dims != ("batch",):
-            raise ValueError("noise_levels expected to be shape (batch,).")
+            raise ValueError(
+                "noise_levels expected to be shape (batch,).")
         noise_level_encodings = self._noise_level_encoder(
             xarray_jax.unwrap_data(noise_levels)
         )
         noise_level_encodings = xarray_jax.Variable(
             ("batch", "noise_level_encoding_channels"), noise_level_encodings
         )
-        inputs = inputs.assign(noise_level_encodings=noise_level_encodings)
+        inputs = inputs.assign(
+            noise_level_encodings=noise_level_encodings)
 
         return self._predictor(
             inputs=inputs, targets_template=noisy_targets, forcings=forcings, **kwargs
@@ -297,7 +301,8 @@ class _DenoiserArchitecture:
             aggregate_normalization=(
                 denoiser_architecture_config.grid2mesh_aggregate_normalization
             ),
-            edge_latent_size=dict(grid2mesh=denoiser_architecture_config.latent_size),
+            edge_latent_size=dict(
+                grid2mesh=denoiser_architecture_config.latent_size),
             embed_edges=True,
             embed_nodes=True,
             f32_aggregation=True,
@@ -328,7 +333,8 @@ class _DenoiserArchitecture:
         # message passing step.
         self._mesh2grid_gnn = deep_typed_graph_net.DeepTypedGraphNet(
             activation="swish",
-            edge_latent_size=dict(mesh2grid=denoiser_architecture_config.latent_size),
+            edge_latent_size=dict(
+                mesh2grid=denoiser_architecture_config.latent_size),
             embed_nodes=False,
             f32_aggregation=False,
             include_sent_messages_in_node_update=False,
@@ -370,7 +376,8 @@ class _DenoiserArchitecture:
         # A "_init_grid_properties":
         self._grid_lat = None  # [num_lat_points]
         self._grid_lon = None  # [num_lon_points]
-        self._num_grid_nodes = None  # num_lat_points * num_lon_points
+        # num_lat_points * num_lon_points
+        self._num_grid_nodes = None
         self._grid_nodes_lat = None  # [num_grid_nodes]
         self._grid_nodes_lon = None  # [num_grid_nodes]
 
@@ -391,7 +398,8 @@ class _DenoiserArchitecture:
         # xarray (batch, time, lat, lon, level, multiple vars, forcings)
         # -> [num_grid_nodes, batch, num_channels]
         grid_node_features, global_norm_conditioning = (
-            self._inputs_to_grid_node_features_and_norm_conditioning(inputs, forcings)
+            self._inputs_to_grid_node_features_and_norm_conditioning(
+                inputs, forcings)
         )
 
         # [num_mesh_nodes, batch, latent_size], [num_grid_nodes, batch, latent_size]
@@ -444,20 +452,26 @@ class _DenoiserArchitecture:
             mesh_nodes_lon,
         ) = model_utils.spherical_to_lat_lon(phi=mesh_phi, theta=mesh_theta)
         # Convert to f32 to ensure the lat/lon features aren't in f64.
-        self._mesh_nodes_lat = mesh_nodes_lat.astype(np.float32)
-        self._mesh_nodes_lon = mesh_nodes_lon.astype(np.float32)
+        self._mesh_nodes_lat = mesh_nodes_lat.astype(
+            np.float32)
+        self._mesh_nodes_lon = mesh_nodes_lon.astype(
+            np.float32)
 
     def _init_grid_properties(self, grid_lat: np.ndarray, grid_lon: np.ndarray):
         """Inits static properties that have to do with grid nodes."""
         self._grid_lat = grid_lat.astype(np.float32)
         self._grid_lon = grid_lon.astype(np.float32)
         # Initialized the counters.
-        self._num_grid_nodes = grid_lat.shape[0] * grid_lon.shape[0]
+        self._num_grid_nodes = grid_lat.shape[0] * \
+            grid_lon.shape[0]
 
         # Initialize lat and lon for the grid.
-        grid_nodes_lon, grid_nodes_lat = np.meshgrid(grid_lon, grid_lat)
-        self._grid_nodes_lon = grid_nodes_lon.reshape([-1]).astype(np.float32)
-        self._grid_nodes_lat = grid_nodes_lat.reshape([-1]).astype(np.float32)
+        grid_nodes_lon, grid_nodes_lat = np.meshgrid(
+            grid_lon, grid_lat)
+        self._grid_nodes_lon = grid_nodes_lon.reshape(
+            [-1]).astype(np.float32)
+        self._grid_nodes_lat = grid_nodes_lat.reshape(
+            [-1]).astype(np.float32)
 
     def _init_grid2mesh_graph(self) -> typed_graph.TypedGraph:
         """Build Grid2Mesh graph."""
@@ -502,15 +516,18 @@ class _DenoiserArchitecture:
         )
         edge_set = typed_graph.EdgeSet(
             n_edge=n_edge,
-            indices=typed_graph.EdgesIndices(senders=senders, receivers=receivers),
+            indices=typed_graph.EdgesIndices(
+                senders=senders, receivers=receivers),
             features=edge_features,
         )
-        nodes = {"grid_nodes": grid_node_set, "mesh_nodes": mesh_node_set}
+        nodes = {"grid_nodes": grid_node_set,
+                 "mesh_nodes": mesh_node_set}
         edges = {
             typed_graph.EdgeSetKey("grid2mesh", ("grid_nodes", "mesh_nodes")): edge_set
         }
         grid2mesh_graph = typed_graph.TypedGraph(
-            context=typed_graph.Context(n_graph=np.array([1]), features=()),
+            context=typed_graph.Context(
+                n_graph=np.array([1]), features=()),
             nodes=nodes,
             edges=edges,
         )
@@ -521,7 +538,8 @@ class _DenoiserArchitecture:
         # Work simply on the mesh edges.
         # N.B.To make sure ordering is preserved, any changes to faces_to_edges here
         # should be reflected in the other 2 calls to faces_to_edges in this file.
-        senders, receivers = icosahedral_mesh.faces_to_edges(self._mesh.faces)
+        senders, receivers = icosahedral_mesh.faces_to_edges(
+            self._mesh.faces)
 
         # Precompute structural node and edge features according to config options.
         # Structural features are those that depend on the fixed values of the
@@ -538,16 +556,20 @@ class _DenoiserArchitecture:
         n_mesh_node = np.array([self._num_mesh_nodes])
         n_edge = np.array([senders.shape[0]])
         assert n_mesh_node == len(node_features)
-        mesh_node_set = typed_graph.NodeSet(n_node=n_mesh_node, features=node_features)
+        mesh_node_set = typed_graph.NodeSet(
+            n_node=n_mesh_node, features=node_features)
         edge_set = typed_graph.EdgeSet(
             n_edge=n_edge,
-            indices=typed_graph.EdgesIndices(senders=senders, receivers=receivers),
+            indices=typed_graph.EdgesIndices(
+                senders=senders, receivers=receivers),
             features=edge_features,
         )
         nodes = {"mesh_nodes": mesh_node_set}
-        edges = {typed_graph.EdgeSetKey("mesh", ("mesh_nodes", "mesh_nodes")): edge_set}
+        edges = {typed_graph.EdgeSetKey(
+            "mesh", ("mesh_nodes", "mesh_nodes")): edge_set}
         mesh_graph = typed_graph.TypedGraph(
-            context=typed_graph.Context(n_graph=np.array([1]), features=()),
+            context=typed_graph.Context(
+                n_graph=np.array([1]), features=()),
             nodes=nodes,
             edges=edges,
         )
@@ -593,15 +615,18 @@ class _DenoiserArchitecture:
         )
         edge_set = typed_graph.EdgeSet(
             n_edge=n_edge,
-            indices=typed_graph.EdgesIndices(senders=senders, receivers=receivers),
+            indices=typed_graph.EdgesIndices(
+                senders=senders, receivers=receivers),
             features=edge_features,
         )
-        nodes = {"grid_nodes": grid_node_set, "mesh_nodes": mesh_node_set}
+        nodes = {"grid_nodes": grid_node_set,
+                 "mesh_nodes": mesh_node_set}
         edges = {
             typed_graph.EdgeSetKey("mesh2grid", ("mesh_nodes", "grid_nodes")): edge_set
         }
         mesh2grid_graph = typed_graph.TypedGraph(
-            context=typed_graph.Context(n_graph=np.array([1]), features=()),
+            context=typed_graph.Context(
+                n_graph=np.array([1]), features=()),
             nodes=nodes,
             edges=edges,
         )
@@ -626,7 +651,8 @@ class _DenoiserArchitecture:
                 [
                     grid_node_features,
                     _add_batch_second_axis(
-                        grid_nodes.features.astype(grid_node_features.dtype), batch_size
+                        grid_nodes.features.astype(
+                            grid_node_features.dtype), batch_size
                     ),
                 ],
                 axis=-1,
@@ -637,7 +663,8 @@ class _DenoiserArchitecture:
         # the mesh nodes, we also append some dummy zero input features for the
         # mesh nodes.
         dummy_mesh_node_features = jnp.zeros(
-            (self._num_mesh_nodes,) + grid_node_features.shape[1:],
+            (self._num_mesh_nodes,) +
+            grid_node_features.shape[1:],
             dtype=grid_node_features.dtype,
         )
         new_mesh_nodes = mesh_nodes._replace(
@@ -645,7 +672,8 @@ class _DenoiserArchitecture:
                 [
                     dummy_mesh_node_features,
                     _add_batch_second_axis(
-                        mesh_nodes.features.astype(dummy_mesh_node_features.dtype),
+                        mesh_nodes.features.astype(
+                            dummy_mesh_node_features.dtype),
                         batch_size,
                     ),
                 ],
@@ -654,22 +682,26 @@ class _DenoiserArchitecture:
         )
 
         # Broadcast edge structural features to the required batch size.
-        grid2mesh_edges_key = grid2mesh_graph.edge_key_by_name("grid2mesh")
+        grid2mesh_edges_key = grid2mesh_graph.edge_key_by_name(
+            "grid2mesh")
         edges = grid2mesh_graph.edges[grid2mesh_edges_key]
 
         new_edges = edges._replace(
             features=_add_batch_second_axis(
-                edges.features.astype(dummy_mesh_node_features.dtype), batch_size
+                edges.features.astype(
+                    dummy_mesh_node_features.dtype), batch_size
             )
         )
 
         input_graph = self._grid2mesh_graph_structure._replace(
             edges={grid2mesh_edges_key: new_edges},
-            nodes={"grid_nodes": new_grid_nodes, "mesh_nodes": new_mesh_nodes},
+            nodes={"grid_nodes": new_grid_nodes,
+                   "mesh_nodes": new_mesh_nodes},
         )
 
         # Run the GNN.
-        grid2mesh_out = self._grid2mesh_gnn(input_graph, global_norm_conditioning)
+        grid2mesh_out = self._grid2mesh_gnn(
+            input_graph, global_norm_conditioning)
         latent_mesh_nodes = grid2mesh_out.nodes["mesh_nodes"].features
         latent_grid_nodes = grid2mesh_out.nodes["grid_nodes"].features
         return latent_mesh_nodes, latent_grid_nodes
@@ -704,7 +736,8 @@ class _DenoiserArchitecture:
 
         new_edges = edges._replace(
             features=_add_batch_second_axis(
-                edges.features.astype(latent_mesh_nodes.dtype), batch_size
+                edges.features.astype(
+                    latent_mesh_nodes.dtype), batch_size
             )
         )
 
@@ -743,24 +776,30 @@ class _DenoiserArchitecture:
         assert mesh2grid_graph is not None
         mesh_nodes = mesh2grid_graph.nodes["mesh_nodes"]
         grid_nodes = mesh2grid_graph.nodes["grid_nodes"]
-        new_mesh_nodes = mesh_nodes._replace(features=updated_latent_mesh_nodes)
-        new_grid_nodes = grid_nodes._replace(features=latent_grid_nodes)
-        mesh2grid_key = mesh2grid_graph.edge_key_by_name("mesh2grid")
+        new_mesh_nodes = mesh_nodes._replace(
+            features=updated_latent_mesh_nodes)
+        new_grid_nodes = grid_nodes._replace(
+            features=latent_grid_nodes)
+        mesh2grid_key = mesh2grid_graph.edge_key_by_name(
+            "mesh2grid")
         edges = mesh2grid_graph.edges[mesh2grid_key]
 
         new_edges = edges._replace(
             features=_add_batch_second_axis(
-                edges.features.astype(latent_grid_nodes.dtype), batch_size
+                edges.features.astype(
+                    latent_grid_nodes.dtype), batch_size
             )
         )
 
         input_graph = mesh2grid_graph._replace(
             edges={mesh2grid_key: new_edges},
-            nodes={"mesh_nodes": new_mesh_nodes, "grid_nodes": new_grid_nodes},
+            nodes={"mesh_nodes": new_mesh_nodes,
+                   "grid_nodes": new_grid_nodes},
         )
 
         # Run the GNN.
-        output_graph = self._mesh2grid_gnn(input_graph, global_norm_conditioning)
+        output_graph = self._mesh2grid_gnn(
+            input_graph, global_norm_conditioning)
         output_grid_nodes = output_graph.nodes["grid_nodes"].features
 
         return output_grid_nodes
@@ -773,8 +812,10 @@ class _DenoiserArchitecture:
         """xarray ->[n_grid_nodes, batch, n_channels], [batch, n_cond channels]."""
 
         if self._norm_conditioning_features:
-            norm_conditioning_inputs = inputs[list(self._norm_conditioning_features)]
-            inputs = inputs.drop_vars(list(self._norm_conditioning_features))
+            norm_conditioning_inputs = inputs[list(
+                self._norm_conditioning_features)]
+            inputs = inputs.drop_vars(
+                list(self._norm_conditioning_features))
 
             if "lat" in norm_conditioning_inputs or "lon" in norm_conditioning_inputs:
                 raise ValueError(
@@ -793,8 +834,10 @@ class _DenoiserArchitecture:
 
         # xarray `Dataset` (batch, time, lat, lon, level, multiple vars)
         # to xarray `DataArray` (batch, lat, lon, channels)
-        stacked_inputs = model_utils.dataset_to_stacked(inputs)
-        stacked_forcings = model_utils.dataset_to_stacked(forcings)
+        stacked_inputs = model_utils.dataset_to_stacked(
+            inputs)
+        stacked_forcings = model_utils.dataset_to_stacked(
+            forcings)
         stacked_inputs = xarray.concat(
             [stacked_inputs, stacked_forcings], dim="channels"
         )
@@ -819,7 +862,8 @@ class _DenoiserArchitecture:
 
         # numpy array with shape [lat_lon_node, batch, channels]
         assert self._grid_lat is not None and self._grid_lon is not None
-        grid_shape = (self._grid_lat.shape[0], self._grid_lon.shape[0])
+        grid_shape = (
+            self._grid_lat.shape[0], self._grid_lon.shape[0])
         grid_outputs_lat_lon_leading = grid_node_outputs.reshape(
             grid_shape + grid_node_outputs.shape[1:]
         )
@@ -827,7 +871,8 @@ class _DenoiserArchitecture:
         grid_xarray_lat_lon_leading = xarray_jax.DataArray(
             data=grid_outputs_lat_lon_leading, dims=dims
         )
-        grid_xarray = model_utils.restore_leading_axes(grid_xarray_lat_lon_leading)
+        grid_xarray = model_utils.restore_leading_axes(
+            grid_xarray_lat_lon_leading)
 
         # xarray `DataArray` (batch, lat, lon, channels)
         # to xarray `Dataset` (batch, one time step, lat, lon, level, multiple vars)
@@ -838,13 +883,15 @@ def _add_batch_second_axis(data, batch_size):
     # data [leading_dim, trailing_dim]
     assert data.ndim == 2
     ones = jnp.ones([batch_size, 1], dtype=data.dtype)
-    return data[:, None] * ones  # [leading_dim, batch, trailing_dim]
+    # [leading_dim, batch, trailing_dim]
+    return data[:, None] * ones
 
 
 def _get_max_edge_distance(mesh):
     # N.B.To make sure ordering is preserved, any changes to faces_to_edges here
     # should be reflected in the other 2 calls to faces_to_edges in this file.
-    senders, receivers = icosahedral_mesh.faces_to_edges(mesh.faces)
+    senders, receivers = icosahedral_mesh.faces_to_edges(
+        mesh.faces)
     edge_distances = np.linalg.norm(
         mesh.vertices[senders] - mesh.vertices[receivers], axis=-1
     )
@@ -856,17 +903,22 @@ def _permute_mesh_to_banded(mesh):
     # Build adjacency matrix.
     # N.B.To make sure ordering is preserved, any changes to faces_to_edges here
     # should be reflected in the other 2 calls to faces_to_edges in this file.
-    senders, receivers = icosahedral_mesh.faces_to_edges(mesh.faces)
+    senders, receivers = icosahedral_mesh.faces_to_edges(
+        mesh.faces)
     num_mesh_nodes = mesh.vertices.shape[0]
-    adj_mat = sparse.csr_matrix((num_mesh_nodes, num_mesh_nodes))
+    adj_mat = sparse.csr_matrix(
+        (num_mesh_nodes, num_mesh_nodes))
     adj_mat[senders, receivers] = 1
     # Permutation to banded (this algorithm is deterministic, a given sparse
     # adjacency matrix will yield the same permutation every time this is run).
     mesh_permutation = sparse.csgraph.reverse_cuthill_mckee(
         adj_mat, symmetric_mode=True
     )
-    vertex_permutation_map = {j: i for i, j in enumerate(mesh_permutation)}
-    permute_func = np.vectorize(lambda x: vertex_permutation_map[x])
+    vertex_permutation_map = {
+        j: i for i, j in enumerate(mesh_permutation)}
+    permute_func = np.vectorize(
+        lambda x: vertex_permutation_map[x])
     return icosahedral_mesh.TriangularMesh(
-        vertices=mesh.vertices[mesh_permutation], faces=permute_func(mesh.faces)
+        vertices=mesh.vertices[mesh_permutation], faces=permute_func(
+            mesh.faces)
     )

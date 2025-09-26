@@ -18,11 +18,14 @@ def check_args(args):
     if args.model_dir is None:
         args.model_dir = args.work_dir
     if args.checkpoints_dir is None:
-        args.checkpoints_dir = os.path.join(args.work_dir, "checkpoints")
+        args.checkpoints_dir = os.path.join(
+            args.work_dir, "checkpoints")
     if args.results_dir is None:
-        args.results_dir = os.path.join(args.work_dir, "results")
+        args.results_dir = os.path.join(
+            args.work_dir, "results")
     if args.downloads_dir is None:
-        args.downloads_dir = os.path.join(args.work_dir, "downloads")
+        args.downloads_dir = os.path.join(
+            args.work_dir, "downloads")
 
     # Model
     # Check if hidden_irreps, num_channels and max_L are consistent
@@ -34,7 +37,8 @@ def check_args(args):
         and args.max_L is not None
     ):
         args.hidden_irreps = o3.Irreps(
-            (args.num_channels * o3.Irreps.spherical_harmonics(args.max_L))
+            (args.num_channels *
+             o3.Irreps.spherical_harmonics(args.max_L))
             .sort()
             .irreps.simplify()
         )
@@ -51,33 +55,39 @@ def check_args(args):
             )
         )
         assert (
-            len({irrep.mul for irrep in o3.Irreps(args.hidden_irreps)}) == 1
+            len({irrep.mul for irrep in o3.Irreps(
+                args.hidden_irreps)}) == 1
         ), "All channels must have the same dimension, use the num_channels and max_L keywords to specify the number of channels and the maximum L"
     elif args.num_channels is not None and args.max_L is not None:
         assert args.num_channels > 0, "num_channels must be positive integer"
         assert args.max_L >= 0, "max_L must be non-negative integer"
         args.hidden_irreps = o3.Irreps(
-            (args.num_channels * o3.Irreps.spherical_harmonics(args.max_L))
+            (args.num_channels *
+             o3.Irreps.spherical_harmonics(args.max_L))
             .sort()
             .irreps.simplify()
         )
         assert (
-            len({irrep.mul for irrep in o3.Irreps(args.hidden_irreps)}) == 1
+            len({irrep.mul for irrep in o3.Irreps(
+                args.hidden_irreps)}) == 1
         ), "All channels must have the same dimension, use the num_channels and max_L keywords to specify the number of channels and the maximum L"
     elif args.hidden_irreps is not None:
         assert (
-            len({irrep.mul for irrep in o3.Irreps(args.hidden_irreps)}) == 1
+            len({irrep.mul for irrep in o3.Irreps(
+                args.hidden_irreps)}) == 1
         ), "All channels must have the same dimension, use the num_channels and max_L keywords to specify the number of channels and the maximum L"
 
         args.num_channels = list(
-            {irrep.mul for irrep in o3.Irreps(args.hidden_irreps)}
+            {irrep.mul for irrep in o3.Irreps(
+                args.hidden_irreps)}
         )[0]
         args.max_L = o3.Irreps(args.hidden_irreps).lmax
     elif args.max_L is not None and args.num_channels is None:
         assert args.max_L >= 0, "max_L must be non-negative integer"
         args.num_channels = 128
         args.hidden_irreps = o3.Irreps(
-            (args.num_channels * o3.Irreps.spherical_harmonics(args.max_L))
+            (args.num_channels *
+             o3.Irreps.spherical_harmonics(args.max_L))
             .sort()
             .irreps.simplify()
         )
@@ -85,7 +95,8 @@ def check_args(args):
         assert args.num_channels > 0, "num_channels must be positive integer"
         args.max_L = 1
         args.hidden_irreps = o3.Irreps(
-            (args.num_channels * o3.Irreps.spherical_harmonics(args.max_L))
+            (args.num_channels *
+             o3.Irreps.spherical_harmonics(args.max_L))
             .sort()
             .irreps.simplify()
         )
@@ -103,7 +114,8 @@ def check_args(args):
 
     if args.swa:
         if args.start_swa is None:
-            args.start_swa = max(1, args.max_num_epochs // 4 * 3)
+            args.start_swa = max(
+                1, args.max_num_epochs // 4 * 3)
         if args.start_swa > args.max_num_epochs:
             log_messages.append(
                 (

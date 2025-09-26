@@ -33,7 +33,8 @@ class RunInfo:
     seed: int
 
 
-name_re = re.compile(r"(?P<name>.+)_run-(?P<seed>\d+)_train.txt")
+name_re = re.compile(
+    r"(?P<name>.+)_run-(?P<seed>\d+)_train.txt")
 
 
 def parse_path(path: str) -> RunInfo:
@@ -162,7 +163,8 @@ def plot(
     data = data[data["epoch"] > min_epoch]
     if heads is None:
         data = (
-            data.groupby(["name", "mode", "epoch"]).agg(["mean", "std"]).reset_index()
+            data.groupby(["name", "mode", "epoch"]).agg(
+                ["mean", "std"]).reset_index()
         )
 
         valid_data = data[data["mode"] == "eval"]
@@ -219,15 +221,19 @@ def plot(
         if error_bars:
             ax.fill_between(
                 train_data["epoch"],
-                train_data["loss"]["mean"] - train_data["loss"]["std"],
-                train_data["loss"]["mean"] + train_data["loss"]["std"],
+                train_data["loss"]["mean"] -
+                train_data["loss"]["std"],
+                train_data["loss"]["mean"] +
+                train_data["loss"]["std"],
                 alpha=0.3,
                 color=colors[1],
             )
             ax.fill_between(
                 valid_data["epoch"],
-                valid_data["loss"]["mean"] - valid_data["loss"]["std"],
-                valid_data["loss"]["mean"] + valid_data["loss"]["std"],
+                valid_data["loss"]["mean"] -
+                valid_data["loss"]["std"],
+                valid_data["loss"]["mean"] +
+                valid_data["loss"]["std"],
                 alpha=0.3,
                 color=colors[0],
             )
@@ -258,7 +264,8 @@ def plot(
                 main_ax = ax
             else:
                 main_ax = ax.twinx()
-                main_ax.spines.right.set_position(("outward", 40 * (i - 1)))
+                main_ax.spines.right.set_position(
+                    ("outward", 40 * (i - 1)))
                 twin_axes.append(main_ax)
 
             main_ax.plot(
@@ -272,8 +279,10 @@ def plot(
             if error_bars:
                 main_ax.fill_between(
                     valid_data["epoch"],
-                    (valid_data[key]["mean"] - valid_data[key]["std"]) * 1e3,
-                    (valid_data[key]["mean"] + valid_data[key]["std"]) * 1e3,
+                    (valid_data[key]["mean"] -
+                     valid_data[key]["std"]) * 1e3,
+                    (valid_data[key]["mean"] +
+                     valid_data[key]["std"]) * 1e3,
                     alpha=0.3,
                     color=color,
                 )
@@ -307,7 +316,8 @@ def get_paths(path: str) -> List[str]:
     paths = glob.glob(os.path.join(path, "*_train.txt"))
 
     if len(paths) == 0:
-        raise RuntimeError(f"Cannot find results in '{path}'")
+        raise RuntimeError(
+            f"Cannot find results in '{path}'")
 
     return paths
 
