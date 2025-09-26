@@ -4,7 +4,8 @@
 
 ### 模型简介
 
-Evo2 是一款面向基因组的基础模型，基于 **StripedHyena 2** 架构，支持**最长百万碱基上下文**，在大规模基因组数据集 **OpenGenome2** 上训练，覆盖细菌、古菌和真核等多类物种。模型提供 **7B** 和 **40B** 等版本，具备强大的长序列建模能力，可应用于变异效应预测、基因组设计和跨尺度序列分析。Evo2 已集成至本项目，支持高性能推理和微调，适合科研与实际生物学应用场景。
+Evo2 是一款面向基因组的基础模型，基于 **StripedHyena 2** 架构，支持**最长百万碱基上下文**，在大规模基因组数据集 **OpenGenome2** 上训练，覆盖细菌、古菌和真核等多类物种。模型提供 **7B** 和 **40B** 等版本，具备强大的长序列建模能力，可应用于变异效应预测、基因组设计和跨尺度序列分析。Evo2 已集成至本项目，支持高性能推理和微调，适合科研与实际生物学应用场景。  
+论文链接 ["Genome modeling and design across all domains of life with Evo 2"](https://www.biorxiv.org/content/10.1101/2025.02.18.638918v1)
 
 ### 模型结构
 ![](../../../doc/evo2.jpg)
@@ -12,7 +13,8 @@ Evo2 是一款面向基因组的基础模型，基于 **StripedHyena 2** 架构�
 ### 环境安装
 ```shell
 conda create -n your-name python=3.11 -y
-pip install packages of constraints.txt
+# 下载适配包脚本，自动下载 constraints.txt 中的包
+sh /tools/install_envs_constraints.sh
 pip install -c constraints.txt .[bio]
 ```
 
@@ -313,5 +315,5 @@ srun python infer.py  --ckpt-dir checkpoint/evo2_nemo_7b --prompt "ATGCGT" --out
 
 ### 许可证
 
-evo2项目（包括代码和模型参数）在[Apache 2.0](https://github.com/bytedance/Protenix/blob/main/LICENSE)许可下提供，可免费用于学术研究和商业用途。
+evo2项目（包括代码和模型参数）在[Apache 2.0](https://github.com/ArcInstitute/evo2/LICENSE)许可下提供，可免费用于学术研究和商业用途。
 
