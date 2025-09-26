@@ -62,7 +62,7 @@ python preprocess_data_json.py \
 - 实用示例
   `python tools/checkpoint_convert/convert_to_nemo.py --model-path <CKPT_FILE> --output-dir <OUTPUT_DIR>  --model-size <MODEL_SIZE>`
 
-#### 7B 脚本示例
+**7B 脚本示例**
 ```bash
 srun python tools/checkpoint_convert/convert_to_nemo.py \
   --model-path checkpoint/evo2_savanna_7b/savanna_evo2_7b.pt \
@@ -70,7 +70,7 @@ srun python tools/checkpoint_convert/convert_to_nemo.py \
   --model-size 7b_arc_longcontext 
 ```
 
-#### 注意事项
+**注意事项**
 
 1. **模型权重来源**  
    - 官网提供了两种模型权重：**训练** 和 **推理**。  
