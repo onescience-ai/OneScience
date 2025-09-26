@@ -70,7 +70,8 @@ class TEVCallback(Callback):
         named_params = dict(pl_module.named_parameters())
 
         # Find all parameter keys containing 'embed'
-        embed_keys = [key for key in named_params.keys() if "embed" in key]
+        embed_keys = [
+            key for key in named_params.keys() if "embed" in key]
 
         # Validate we have exactly one embedding layer
         if len(embed_keys) == 0:
@@ -83,7 +84,9 @@ class TEVCallback(Callback):
 
         # If using tensor parallelism, gather embedding shards
         if parallel_state.get_tensor_model_parallel_world_size() > 1:
-            embed = _gather_along_last_dim(embed, group=parallel_state.get_tensor_model_parallel_group())
+            embed = _gather_along_last_dim(
+                embed, group=parallel_state.get_tensor_model_parallel_group()
+            )
 
         # If using context parallelism, gather across context parallel ranks
         if parallel_state.get_context_parallel_world_size() > 1:
@@ -91,9 +94,13 @@ class TEVCallback(Callback):
             dim_size = list(embed.size())
             dim_size[0] = dim_size[0] * world_size
 
-            output = torch.empty(dim_size, dtype=embed.dtype, device=torch.cuda.current_device())
+            output = torch.empty(
+                dim_size, dtype=embed.dtype, device=torch.cuda.current_device()
+            )
             torch.distributed.all_gather_into_tensor(
-                output, embed.contiguous(), group=parallel_state.get_context_parallel_group()
+                output,
+                embed.contiguous(),
+                group=parallel_state.get_context_parallel_group(),
             )
             embed = output
 
@@ -101,7 +108,8 @@ class TEVCallback(Callback):
         # First center the embeddings by subtracting the mean
         # Then calculate the mean squared deviation (variance)
         # Finally take the square root to get standard deviation
-        tev = torch.sqrt(torch.mean(torch.pow(embed - embed.mean(dim=0), 2), dim=0))
+        tev = torch.sqrt(torch.mean(
+            torch.pow(embed - embed.mean(dim=0), 2), dim=0))
 
         # Calculate statistics of the TEV values
         tev_mean = torch.mean(tev).item()
@@ -110,5 +118,9 @@ class TEVCallback(Callback):
         # Only log on data parallel rank 0 to avoid duplicate logging
         if parallel_state.get_data_parallel_rank() == 0:
             # Log the TEV statistics
-            pl_module.log("tev_mean", tev_mean, on_step=True, on_epoch=False, sync_dist=False)
-            pl_module.log("tev_sd", tev_sd, on_step=True, on_epoch=False, sync_dist=False)
+            pl_module.log(
+                "tev_mean", tev_mean, on_step=True, on_epoch=False, sync_dist=False
+            )
+            pl_module.log(
+                "tev_sd", tev_sd, on_step=True, on_epoch=False, sync_dist=False
+            )

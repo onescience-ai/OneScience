@@ -13,7 +13,11 @@ from biotite.structure import AtomArray
 from biotite.structure.io import pdbx
 from biotite.structure.io.pdb import PDBFile
 
-from onescience.datapipes.protenix.constants import DNA_STD_RESIDUES, PRO_STD_RESIDUES, RNA_STD_RESIDUES
+from onescience.datapipes.protenix.constants import (
+    DNA_STD_RESIDUES,
+    PRO_STD_RESIDUES,
+    RNA_STD_RESIDUES,
+)
 
 
 def remove_numbers(s: str) -> str:
@@ -63,7 +67,8 @@ def get_inter_residue_bonds(atom_array: AtomArray) -> np.ndarray:
     res_id_diff = atom_array.res_id[idx_i] != atom_array.res_id[idx_j]
     diff_mask = chain_id_diff | res_id_diff
     inter_residue_bonds = atom_array.bonds._bonds[diff_mask]
-    inter_residue_bonds = inter_residue_bonds[:, :2]  # remove bond type
+    # remove bond type
+    inter_residue_bonds = inter_residue_bonds[:, :2]
     return inter_residue_bonds
 
 
@@ -136,7 +141,8 @@ def get_ligand_polymer_bond_mask(
         unique_chain_id, counts = np.unique(
             atom_array.label_asym_id, return_counts=True
         )
-        chain_id_to_count_map = dict(zip(unique_chain_id, counts))
+        chain_id_to_count_map = dict(
+            zip(unique_chain_id, counts))
         ions_mask = np.array(
             [
                 chain_id_to_count_map[label_asym_id] == 1
@@ -144,12 +150,14 @@ def get_ligand_polymer_bond_mask(
             ]
         )
 
-        lig_mask = (atom_array.mol_type == "ligand") & ~ions_mask
+        lig_mask = (atom_array.mol_type ==
+                    "ligand") & ~ions_mask
     else:
         lig_mask = atom_array.mol_type == "ligand"
 
     # identify polymer by mol_type (protein, rna, dna, ligand)
-    polymer_mask = np.isin(atom_array.mol_type, ["protein", "rna", "dna"])
+    polymer_mask = np.isin(atom_array.mol_type, [
+                           "protein", "rna", "dna"])
 
     idx_i = atom_array.bonds._bonds[:, 0]
     idx_j = atom_array.bonds._bonds[:, 1]
@@ -166,6 +174,7 @@ def get_ligand_polymer_bond_mask(
             lig_polymer_bond_indices
         ]  # np.array([[atom1, atom2, bond_order]...])
     return lig_polymer_bonds
+
 
 @functools.lru_cache
 def parse_pdb_cluster_file_to_dict(
@@ -195,7 +204,8 @@ def parse_pdb_cluster_file_to_dict(
             # use first member as cluster id.
             cluster_id = f"pdb_cluster_{pdb_clusters[0]}"
             for ids in pdb_clusters:
-                pdb_cluster_dict[ids.lower()] = (cluster_id, cluster_size)
+                pdb_cluster_dict[ids.lower()] = (
+                    cluster_id, cluster_size)
     return pdb_cluster_dict
 
 
@@ -265,7 +275,8 @@ def save_structure_cif(
     )
     # save pred coordinates wo unresolved atoms
     if hasattr(atom_array, "is_resolved"):
-        pred_atom_array_wo_unresol = get_clean_data(pred_atom_array)
+        pred_atom_array_wo_unresol = get_clean_data(
+            pred_atom_array)
         save_atoms_to_cif(
             output_fpath.replace(".cif", "_wounresol.cif"),
             pred_atom_array_wo_unresol,
@@ -292,7 +303,8 @@ class CIFWriter:
     def _get_entity_block(self):
         if self.entity_poly_type is None:
             return {}
-        entity_ids_in_atom_array = np.sort(np.unique(self.atom_array.label_entity_id))
+        entity_ids_in_atom_array = np.sort(
+            np.unique(self.atom_array.label_entity_id))
         entity_block_dict = defaultdict(list)
         for entity_id in entity_ids_in_atom_array:
             if entity_id not in self.entity_poly_type:
@@ -300,7 +312,8 @@ class CIFWriter:
             else:
                 entity_type = "polymer"
             entity_block_dict["id"].append(entity_id)
-            entity_block_dict["pdbx_description"].append(".")
+            entity_block_dict["pdbx_description"].append(
+                ".")
             entity_block_dict["type"].append(entity_type)
         return pdbx.CIFCategory(entity_block_dict)
 
@@ -319,7 +332,8 @@ class CIFWriter:
                 continue
 
             entity_poly["entity_id"].append(entity_id)
-            entity_poly["pdbx_strand_id"].append(label_asym_ids_str)
+            entity_poly["pdbx_strand_id"].append(
+                label_asym_ids_str)
             entity_poly["type"].append(entity_type)
 
         if not entity_poly:
@@ -329,7 +343,8 @@ class CIFWriter:
         for entity_id, label_asym_ids_str in zip(
             entity_poly["entity_id"], entity_poly["pdbx_strand_id"]
         ):
-            first_label_asym_id = label_asym_ids_str.split(",")[0]
+            first_label_asym_id = label_asym_ids_str.split(",")[
+                0]
             first_asym_chain = self.atom_array[
                 self.atom_array.label_asym_id == first_label_asym_id
             ]
@@ -337,20 +352,27 @@ class CIFWriter:
                 first_asym_chain, add_exclusive_stop=True
             )
             asym_chain = first_asym_chain[
-                chain_starts[0] : chain_starts[1]
+                chain_starts[0]: chain_starts[1]
             ]  # ensure the asym chain is a single chain
 
-            res_starts = struc.get_residue_starts(asym_chain, add_exclusive_stop=False)
-            asym_chain_entity_id = asym_chain[res_starts].label_entity_id.tolist()
+            res_starts = struc.get_residue_starts(
+                asym_chain, add_exclusive_stop=False)
+            asym_chain_entity_id = asym_chain[res_starts].label_entity_id.tolist(
+            )
             asym_chain_hetero = [
                 "n" if not i else "y" for i in asym_chain[res_starts].hetero
             ]
-            asym_chain_res_name = asym_chain[res_starts].res_name.tolist()
-            asym_chain_res_id = asym_chain[res_starts].res_id.tolist()
+            asym_chain_res_name = asym_chain[res_starts].res_name.tolist(
+            )
+            asym_chain_res_id = asym_chain[res_starts].res_id.tolist(
+            )
 
-            entity_poly_seq["entity_id"].extend(asym_chain_entity_id)
-            entity_poly_seq["hetero"].extend(asym_chain_hetero)
-            entity_poly_seq["mon_id"].extend(asym_chain_res_name)
+            entity_poly_seq["entity_id"].extend(
+                asym_chain_entity_id)
+            entity_poly_seq["hetero"].extend(
+                asym_chain_hetero)
+            entity_poly_seq["mon_id"].extend(
+                asym_chain_res_name)
             entity_poly_seq["num"].extend(asym_chain_res_id)
 
         block_dict = {
@@ -378,27 +400,33 @@ class CIFWriter:
 
         """
         if entry_id is None:
-            entry_id = os.path.basename(output_path).replace(".cif", "")
+            entry_id = os.path.basename(
+                output_path).replace(".cif", "")
 
-        block_dict = {"entry": pdbx.CIFCategory({"id": entry_id})}
+        block_dict = {
+            "entry": pdbx.CIFCategory({"id": entry_id})}
         if self.entity_poly_type:
             block_dict["entity"] = self._get_entity_block()
-            block_dict.update(self._get_entity_poly_and_entity_poly_seq_block())
+            block_dict.update(
+                self._get_entity_poly_and_entity_poly_seq_block())
 
         block = pdbx.CIFBlock(block_dict)
         cif = pdbx.CIFFile(
             {
-                os.path.basename(output_path).replace(".cif", "")
+                os.path.basename(
+                    output_path).replace(".cif", "")
                 + "_predicted_by_protenix": block
             }
         )
-        pdbx.set_structure(cif, self.atom_array, include_bonds=include_bonds)
+        pdbx.set_structure(
+            cif, self.atom_array, include_bonds=include_bonds)
         block = cif.block
         atom_site = block.get("atom_site")
 
         occ = atom_site.get("occupancy")
         if occ is None:
-            atom_site["occupancy"] = np.ones(len(self.atom_array), dtype=float)
+            atom_site["occupancy"] = np.ones(
+                len(self.atom_array), dtype=float)
 
         atom_site["label_entity_id"] = self.atom_array.label_entity_id
         cif.write(output_path)
@@ -423,25 +451,30 @@ def make_dummy_feature(
     for feat_name in dummy_feats:
         if feat_name not in ["msa", "template"]:
             cur_feat_shape = feat_shape[feat_name]
-            features_dict[feat_name] = torch.zeros(cur_feat_shape)
+            features_dict[feat_name] = torch.zeros(
+                cur_feat_shape)
     if "msa" in dummy_feats:
         # features_dict["msa"] = features_dict["restype"].unsqueeze(0)
         features_dict["msa"] = torch.nonzero(features_dict["restype"])[:, 1].unsqueeze(
             0
         )
         assert features_dict["msa"].shape == feat_shape["msa"]
-        features_dict["has_deletion"] = torch.zeros(feat_shape["has_deletion"])
-        features_dict["deletion_value"] = torch.zeros(feat_shape["deletion_value"])
+        features_dict["has_deletion"] = torch.zeros(
+            feat_shape["has_deletion"])
+        features_dict["deletion_value"] = torch.zeros(
+            feat_shape["deletion_value"])
         features_dict["profile"] = features_dict["restype"]
         assert features_dict["profile"].shape == feat_shape["profile"]
-        features_dict["deletion_mean"] = torch.zeros(feat_shape["deletion_mean"])
+        features_dict["deletion_mean"] = torch.zeros(
+            feat_shape["deletion_mean"])
         for key in [
             "prot_pair_num_alignments",
             "prot_unpair_num_alignments",
             "rna_pair_num_alignments",
             "rna_unpair_num_alignments",
         ]:
-            features_dict[key] = torch.tensor(0, dtype=torch.int32)
+            features_dict[key] = torch.tensor(
+                0, dtype=torch.int32)
 
     if "template" in dummy_feats:
         features_dict["template_restype"] = (
@@ -454,7 +487,8 @@ def make_dummy_feature(
             feat_shape["template_all_atom_positions"]
         )
     if features_dict["msa"].dim() < 2:
-        raise ValueError(f"msa must be 2D, get shape: {features_dict['msa'].shape}")
+        raise ValueError(
+            f"msa must be 2D, get shape: {features_dict['msa'].shape}")
     return features_dict
 
 
@@ -519,7 +553,8 @@ def get_data_shape_dict(num_token, num_atom, num_msa, num_templ, num_pocket):
         # Reference features
         "ref_pos": (num_atom, 3),
         "ref_mask": (num_atom,),
-        "ref_element": (num_atom, 128),  # note: 128 elem in the paper
+        # note: 128 elem in the paper
+        "ref_element": (num_atom, 128),
         "ref_charge": (num_atom,),
         "ref_atom_name_chars": (num_atom, 4, 64),
         "ref_space_uid": (num_atom,),
@@ -547,7 +582,8 @@ def get_data_shape_dict(num_token, num_atom, num_msa, num_templ, num_pocket):
         # Input features
         "atom_to_token_idx": (num_atom,),  # after crop
         "atom_to_tokatom_idx": (num_atom,),  # after crop
-        "pae_rep_atom_mask": (num_atom,),  # same as "pae_rep_atom_mask" in label_dict
+        # same as "pae_rep_atom_mask" in label_dict
+        "pae_rep_atom_mask": (num_atom,),
         "is_distillation": (1,),
     }
 
@@ -563,12 +599,15 @@ def get_data_shape_dict(num_token, num_atom, num_msa, num_templ, num_pocket):
         "plddt_m_rep_atom_mask": (num_atom,),
         "modified_res_mask": (num_atom,),
         "bond_mask": (num_atom, num_atom),
-        "is_protein": (num_atom,),  # Atom level, not token level
+        # Atom level, not token level
+        "is_protein": (num_atom,),
         "is_rna": (num_atom,),
         "is_dna": (num_atom,),
         "is_ligand": (num_atom,),
-        "has_frame": (num_token,),  # move to input_feature_dict?
-        "frame_atom_index": (num_token, 3),  # atom index after crop
+        # move to input_feature_dict?
+        "has_frame": (num_token,),
+        # atom index after crop
+        "frame_atom_index": (num_token, 3),
         "resolution": (1,),
         # Metrics
         "interested_ligand_mask": (
@@ -604,7 +643,8 @@ def get_lig_lig_bonds(
         unique_chain_id, counts = np.unique(
             atom_array.label_asym_id, return_counts=True
         )
-        chain_id_to_count_map = dict(zip(unique_chain_id, counts))
+        chain_id_to_count_map = dict(
+            zip(unique_chain_id, counts))
         ions_mask = np.array(
             [
                 chain_id_to_count_map[label_asym_id] == 1
@@ -612,11 +652,13 @@ def get_lig_lig_bonds(
             ]
         )
 
-        lig_mask = (atom_array.mol_type == "ligand") & ~ions_mask
+        lig_mask = (atom_array.mol_type ==
+                    "ligand") & ~ions_mask
     else:
         lig_mask = atom_array.mol_type == "ligand"
 
-    chain_res_id = np.vstack((atom_array.label_asym_id, atom_array.res_id)).T
+    chain_res_id = np.vstack(
+        (atom_array.label_asym_id, atom_array.res_id)).T
     idx_i = atom_array.bonds._bonds[:, 0]
     idx_j = atom_array.bonds._bonds[:, 1]
 
@@ -643,18 +685,21 @@ def pdb_to_cif(input_fname: str, output_fname: str, entry_id: str = None):
         entry_id (str, optional): entry id. Defaults to None.
     """
     pdbfile = PDBFile.read(input_fname)
-    atom_array = pdbfile.get_structure(model=1, include_bonds=True, altloc="first")
+    atom_array = pdbfile.get_structure(
+        model=1, include_bonds=True, altloc="first")
 
     seq_to_entity_id = {}
     cnt = 0
-    chain_starts = struc.get_chain_starts(atom_array, add_exclusive_stop=True)
+    chain_starts = struc.get_chain_starts(
+        atom_array, add_exclusive_stop=True)
 
     # split chains by hetero
     new_chain_starts = []
     for c_start, c_stop in zip(chain_starts[:-1], chain_starts[1:]):
         new_chain_starts.append(c_start)
         chain_start_hetero = atom_array.hetero[c_start]
-        hetero_diff = np.where(atom_array.hetero[c_start:c_stop] != chain_start_hetero)
+        hetero_diff = np.where(
+            atom_array.hetero[c_start:c_stop] != chain_start_hetero)
         if hetero_diff[0].shape[0] > 0:
             new_chain_start = c_start + hetero_diff[0][0]
             new_chain_starts.append(new_chain_start)
@@ -665,7 +710,8 @@ def pdb_to_cif(input_fname: str, output_fname: str, entry_id: str = None):
     new_chain_starts2 = []
     for c_start, c_stop in zip(new_chain_starts[:-1], new_chain_starts[1:]):
         new_chain_starts2.append(c_start)
-        res_id_diff = np.diff(atom_array.res_id[c_start:c_stop])
+        res_id_diff = np.diff(
+            atom_array.res_id[c_start:c_stop])
         uncont_res_starts = np.where(res_id_diff >= 1)
 
         if uncont_res_starts[0].shape[0] > 0:
@@ -676,11 +722,13 @@ def pdb_to_cif(input_fname: str, output_fname: str, entry_id: str = None):
                     atom_array.hetero[new_chain_start]
                     and atom_array.hetero[new_chain_start - 1]
                 ):
-                    new_chain_starts2.append(new_chain_start)
+                    new_chain_starts2.append(
+                        new_chain_start)
 
     chain_starts = new_chain_starts2 + [chain_starts[-1]]
 
-    label_entity_id = np.zeros(len(atom_array), dtype=np.int32)
+    label_entity_id = np.zeros(
+        len(atom_array), dtype=np.int32)
     atom_index = np.arange(len(atom_array), dtype=np.int32)
     res_id = copy.deepcopy(atom_array.res_id)
 
@@ -692,8 +740,10 @@ def pdb_to_cif(input_fname: str, output_fname: str, entry_id: str = None):
         chain_id[c_start:c_stop] = new_chain_id
 
         chain_array = atom_array[c_start:c_stop]
-        residue_starts = struc.get_residue_starts(chain_array, add_exclusive_stop=True)
-        resname_seq = [name for name in chain_array[residue_starts[:-1]].res_name]
+        residue_starts = struc.get_residue_starts(
+            chain_array, add_exclusive_stop=True)
+        resname_seq = [
+            name for name in chain_array[residue_starts[:-1]].res_name]
         resname_str = "_".join(resname_seq)
         if (
             all([name in DNA_STD_RESIDUES for name in resname_seq])
@@ -716,7 +766,8 @@ def pdb_to_cif(input_fname: str, output_fname: str, entry_id: str = None):
     atom_array = atom_array[atom_index]
 
     # add label entity id
-    atom_array.set_annotation("label_entity_id", label_entity_id)
+    atom_array.set_annotation(
+        "label_entity_id", label_entity_id)
     entity_poly_type = {}
     for seq, entity_id in seq_to_entity_id.items():
         resname_seq = seq.split("_")
@@ -743,17 +794,21 @@ def pdb_to_cif(input_fname: str, output_fname: str, entry_id: str = None):
             continue
 
     # add label atom id
-    atom_array.set_annotation("label_atom_id", atom_array.atom_name)
+    atom_array.set_annotation(
+        "label_atom_id", atom_array.atom_name)
 
     # add label asym id
     atom_array.chain_id = chain_id  # reset chain_id
-    atom_array.set_annotation("label_asym_id", atom_array.chain_id)
+    atom_array.set_annotation(
+        "label_asym_id", atom_array.chain_id)
 
     # add label seq id
     atom_array.res_id = res_id  # reset res_id
-    atom_array.set_annotation("label_seq_id", atom_array.res_id)
+    atom_array.set_annotation(
+        "label_seq_id", atom_array.res_id)
 
-    w = CIFWriter(atom_array=atom_array, entity_poly_type=entity_poly_type)
+    w = CIFWriter(atom_array=atom_array,
+                  entity_poly_type=entity_poly_type)
     w.save_to_cif(
         output_fname,
         entry_id=entry_id or os.path.basename(output_fname),

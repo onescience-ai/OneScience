@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import os
@@ -63,7 +61,8 @@ class AdsorptionSinglePointRunner(CalculateRunner):
             list[dict[str, Any]] - List of dictionaries containing calculation results
         """
         all_results = []
-        chunk_indices = np.array_split(range(len(self.input_data)), num_jobs)[job_num]
+        chunk_indices = np.array_split(
+            range(len(self.input_data)), num_jobs)[job_num]
         for i in tqdm(chunk_indices, desc="Running singlepoints"):
             atoms = self.input_data.get_atoms(i)
             identifier = atoms.info["identifier"]
@@ -78,8 +77,10 @@ class AdsorptionSinglePointRunner(CalculateRunner):
                 fixed_mask = atoms.constraints[0].index
             else:
                 fixed_mask = []
-            free_mask = np.array([i for i in range(len(atoms)) if i not in fixed_mask])
-            dft_adsorption_energy = dft_energy - dft_slab_energy - gas_reference_energy
+            free_mask = np.array(
+                [i for i in range(len(atoms)) if i not in fixed_mask])
+            dft_adsorption_energy = dft_energy - \
+                dft_slab_energy - gas_reference_energy
 
             # compute ml predictions
             atoms.calc = self.calculator

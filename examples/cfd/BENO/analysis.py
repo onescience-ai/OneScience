@@ -1,26 +1,21 @@
 import argparse
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import pickle
-import pprint as pp
+import random
+import warnings
 from timeit import default_timer
+
+import matplotlib.tri as tri
+import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch_geometric.data import Data, DataLoader
-from torch_geometric.utils import scatter
+from torch_geometric.data import DataLoader, HeteroData
 from torchvision.transforms import GaussianBlur
-import sys, os
+
+from onescience.models.beno.BE_MPNN import HeteroGNS
+from onescience.utils.beno.util import record_data, to_np_array
 
 # from utilities import *
 from onescience.utils.beno.utilities import *
-from onescience.utils.beno.util import record_data, to_cpu, to_np_array, make_dir
-from onescience.models.beno.BE_MPNN import HeteroGNS
-import random
-import matplotlib.tri as tri
-from torch_geometric.data import HeteroData
-import warnings
 
 warnings.filterwarnings("ignore")
 fix_seed = 2025
@@ -34,24 +29,30 @@ torch.backends.cudnn.benchmark = False
 
 parser = argparse.ArgumentParser(description="Testing")
 
-parser.add_argument("--dataset_type", default="32x32", type=str, help="dataset type")
-parser.add_argument("--epochs", default=1000, type=int, help="Epochs")
-parser.add_argument("--lr", default=0.00001, type=float, help="learning rate")
+parser.add_argument(
+    "--dataset_type", default="32x32", type=str, help="dataset type")
+parser.add_argument(
+    "--epochs", default=1000, type=int, help="Epochs")
+parser.add_argument(
+    "--lr", default=0.00001, type=float, help="learning rate")
 parser.add_argument(
     "--inspect_interval", default=100, type=int, help="inspect interval"
 )
-parser.add_argument("--id", default="0", type=str, help="ID")
+parser.add_argument("--id", default="0",
+                    type=str, help="ID")
 parser.add_argument(
     "--init_boudary_loc",
     default="regular",
     type=str,
     help='choose from "random" or "regular" ',
 )
-parser.add_argument("--trans_layer", default=3, type=int, help="Layer of Transformer")
+parser.add_argument("--trans_layer", default=3,
+                    type=int, help="Layer of Transformer")
 parser.add_argument(
     "--boundary_dim", default=128, type=int, help="Layer of Transformer"
 )
-parser.add_argument("--batch_size", default=1, type=int, help="batch size")
+parser.add_argument(
+    "--batch_size", default=1, type=int, help="batch size")
 parser.add_argument(
     "--act",
     default="relu",
@@ -76,7 +77,7 @@ sol_all = np.load(DATA_PATH + "SOL_N32_4c_all.npy")
 bc_all = np.load(DATA_PATH + "BC_N32_4c_all.npy")
 ntrain = 900
 ntest = 100
-## ===============================================================
+# ===============================================================
 
 # ## ===============================================================
 
@@ -87,7 +88,7 @@ ntest = 100
 # ntrain = 900
 # ntest =100
 
-## ===============================================================
+# ===============================================================
 
 # DATA_PATH = f"./data/"
 # f_all = np.load(DATA_PATH + "RHS_N32_10.npy")
@@ -135,7 +136,8 @@ bc_value_1 = bc_value[0:ntrain, :, :]
 bc_euco = torch.tensor(bc_euco)
 bcv_normalizer = GaussianNormalizer(bc_value_1)
 bc_value = bcv_normalizer.encode(bc_value)
-bc_euco = to_np_array(torch.cat([bc_euco, bc_value], dim=-1))
+bc_euco = to_np_array(
+    torch.cat([bc_euco, bc_value], dim=-1))
 
 all_a = f_all[:, :, 2]
 all_a_smooth = to_np_array(
@@ -143,7 +145,8 @@ all_a_smooth = to_np_array(
         start_dim=1
     )
 )
-all_a_reshape = all_a_smooth.reshape(-1, resolution, resolution)
+all_a_reshape = all_a_smooth.reshape(
+    -1, resolution, resolution)
 all_a_gradx = np.concatenate(
     [
         all_a_reshape[:, 1:2] - all_a_reshape[:, 0:1],
@@ -156,8 +159,10 @@ all_a_gradx = all_a_gradx.reshape(-1, n)
 all_a_grady = np.concatenate(
     [
         all_a_reshape[:, :, 1:2] - all_a_reshape[:, :, 0:1],
-        (all_a_reshape[:, :, 2:] - all_a_reshape[:, :, :-2]) / 2,
-        all_a_reshape[:, :, -1:] - all_a_reshape[:, :, -2:-1],
+        (all_a_reshape[:, :, 2:] -
+         all_a_reshape[:, :, :-2]) / 2,
+        all_a_reshape[:, :, -1:] -
+        all_a_reshape[:, :, -2:-1],
     ],
     2,
 )
@@ -187,10 +192,13 @@ for j in range(ntrain):
         if cells_state[j][p] != 0:
             outdomain_idx = np.append(outdomain_idx, int(p))
     indomain_idx = list(
-        set([i for i in range(resolution * resolution)]) - set(list(outdomain_idx))
+        set([i for i in range(resolution * resolution)]
+            ) - set(list(outdomain_idx))
     )
-    indomain_u = np.append(indomain_u, sol_all[j][indomain_idx])
-    indomain_a = np.append(indomain_a, f_all[j][indomain_idx][:, 2])
+    indomain_u = np.append(
+        indomain_u, sol_all[j][indomain_idx])
+    indomain_a = np.append(
+        indomain_a, f_all[j][indomain_idx][:, 2])
 
 indomain_u = torch.tensor(indomain_u)
 indomain_a = torch.tensor(indomain_a)
@@ -213,7 +221,8 @@ u_normalizer = GaussianNormalizer(x=indomain_u)
 train_u = u_normalizer.encode(train_u)
 
 grid_input = f_all[-1, :, 0:2]
-meshgenerator = MeshGenerator([[0, 1], [0, 1]], [s, s], grid_input=grid_input)
+meshgenerator = MeshGenerator(
+    [[0, 1], [0, 1]], [s, s], grid_input=grid_input)
 
 data_test = []
 for j in range(ntest):
@@ -229,8 +238,10 @@ for j in range(ntest):
     dist2bd_x = np.array([0, 0])[np.newaxis, :]
     dist2bd_y = np.array([0, 0])[np.newaxis, :]
     for p in range(len(mesh_idx_temp)):
-        indomain_x = coord_all[j + ntrain][mesh_idx_temp[p]][0]
-        indomain_y = coord_all[j + ntrain][mesh_idx_temp[p]][1]
+        indomain_x = coord_all[j +
+                               ntrain][mesh_idx_temp[p]][0]
+        indomain_y = coord_all[j +
+                               ntrain][mesh_idx_temp[p]][1]
 
         horizon_bd_y = np.where(bc_euco_test[j, :, 0].round(4) == indomain_x.round(4))[
             0
@@ -238,22 +249,28 @@ for j in range(ntest):
 
         dist2bd_y_temp = np.array(
             [
-                np.abs(bc_euco_test[j, horizon_bd_y[0], 1] - indomain_y),
-                np.abs(bc_euco_test[j, horizon_bd_y[1], 1] - indomain_y),
+                np.abs(
+                    bc_euco_test[j, horizon_bd_y[0], 1] - indomain_y),
+                np.abs(
+                    bc_euco_test[j, horizon_bd_y[1], 1] - indomain_y),
             ]
         )
-        dist2bd_y = np.vstack([dist2bd_y, dist2bd_y_temp[np.newaxis, :]])
+        dist2bd_y = np.vstack(
+            [dist2bd_y, dist2bd_y_temp[np.newaxis, :]])
         horizon_bd_x = np.where(bc_euco_test[j, :, 1].round(4) == indomain_y.round(4))[
             0
         ]
 
         dist2bd_x_temp = np.array(
             [
-                np.abs(bc_euco_test[j, horizon_bd_x[0], 0] - indomain_x),
-                np.abs(bc_euco_test[j, horizon_bd_x[1], 0] - indomain_x),
+                np.abs(
+                    bc_euco_test[j, horizon_bd_x[0], 0] - indomain_x),
+                np.abs(
+                    bc_euco_test[j, horizon_bd_x[1], 0] - indomain_x),
             ]
         )
-        dist2bd_x = np.vstack([dist2bd_x, dist2bd_x_temp[np.newaxis, :]])
+        dist2bd_x = np.vstack(
+            [dist2bd_x, dist2bd_x_temp[np.newaxis, :]])
     dist2bd_y = torch.tensor(dist2bd_y[1:]).float()
     dist2bd_x = torch.tensor(dist2bd_x[1:]).float()
 
@@ -263,9 +280,11 @@ for j in range(ntest):
     yy = to_np_array(grid[:, 1])
     triang = tri.Triangulation(xx, yy)
     tri_edge = triang.edges
-    edge_index = meshgenerator.ball_connectivity(ns=10, tri_edge=tri_edge)
+    edge_index = meshgenerator.ball_connectivity(
+        ns=10, tri_edge=tri_edge)
     edge_attr = meshgenerator.attributes(theta=test_a[j, :])
-    cell_state_test_current = torch.FloatTensor(cells_state_test[j])
+    cell_state_test_current = torch.FloatTensor(
+        cells_state_test[j])
     test_x = torch.cat(
         [
             grid,
@@ -288,14 +307,16 @@ for j in range(ntest):
 
     data = HeteroData()
     data["G1"].x = test_x  # node features ▲u=f
-    data["G1"].boundary = bd_coord_input_1  # boundary value=0
+    # boundary value=0
+    data["G1"].boundary = bd_coord_input_1
     data["G1"].edge_features = edge_attr
     data["G1"].sample_idx = idx
     data["G1"].edge_index = edge_index
     data["G1"].cell_state = cell_state_test_current
 
-    data["G2"].x = test_x_2  ##node features ▲u=0
-    data["G2"].boundary = bd_coord_input  # boundary value=g(x)
+    data["G2"].x = test_x_2  # node features ▲u=0
+    # boundary value=g(x)
+    data["G2"].boundary = bd_coord_input
     data["G2"].edge_features = edge_attr
     data["G2"].sample_idx = idx
     data["G2"].edge_index = edge_index
@@ -304,7 +325,8 @@ for j in range(ntest):
 
     data_test.append(data)
 
-test_loader = DataLoader(data_test, batch_size=batch_size, shuffle=False)
+test_loader = DataLoader(
+    data_test, batch_size=batch_size, shuffle=False)
 
 if torch.cuda.is_available():
     device = torch.device("cuda:0")
@@ -358,7 +380,8 @@ filename_model = "1Resolution_32_poisson_ntrain900_kerwidth256_Transformer_layer
 myloss = LpLoss(size_average=False)
 u_normalizer.cuda(device)
 
-data_record = pickle.load(open(f"./model/{filename_model}", "rb"))
+data_record = pickle.load(
+    open(f"./model/{filename_model}", "rb"))
 
 model.load_state_dict(data_record["state_dict"][-1])
 analysis_record = {}
@@ -374,39 +397,56 @@ with torch.no_grad():
         data = data.to(device)
         out_indomain = model(data)
 
-        data_all = torch.zeros((resolution * resolution, 10)).to(device)
-        out = torch.zeros((resolution * resolution, 1)).to(device)
-        label = torch.zeros((resolution * resolution)).to(device)
-        grid_info = torch.zeros((resolution * resolution, 2)).to(device)
+        data_all = torch.zeros(
+            (resolution * resolution, 10)).to(device)
+        out = torch.zeros(
+            (resolution * resolution, 1)).to(device)
+        label = torch.zeros(
+            (resolution * resolution)).to(device)
+        grid_info = torch.zeros(
+            (resolution * resolution, 2)).to(device)
 
         out[data["G1"].sample_idx] = out_indomain
         label[data["G1"].sample_idx] = data["G1+2"].y
         data_all[data["G1"].sample_idx, :] = data["G1"].x
 
-        grid_info[data["G1"].sample_idx, :] = data["G1"].x[:, :2]
+        grid_info[data["G1"].sample_idx,
+                  :] = data["G1"].x[:, :2]
 
         out = u_normalizer.decode(out.view(batch_size2, -1))
 
-        out_tem = torch.zeros((1, resolution * resolution)).to(device)
+        out_tem = torch.zeros(
+            (1, resolution * resolution)).to(device)
         out_tem[0][data["G1"].sample_idx] = out[0][data["G1"].sample_idx]
-        cell_state_tem = torch.zeros((1, resolution * resolution)).to(device)
+        cell_state_tem = torch.zeros(
+            (1, resolution * resolution)).to(device)
         cell_state_tem[0, :] = data["G1"].cell_state
 
-        a_ori = a_normalizer.decode(data_all[:, 2].view(1, -1))
-        a_ori_tem = torch.zeros((1, resolution * resolution)).to(device)
+        a_ori = a_normalizer.decode(
+            data_all[:, 2].view(1, -1))
+        a_ori_tem = torch.zeros(
+            (1, resolution * resolution)).to(device)
         a_ori_tem[0][data["G1"].sample_idx] = a_ori[0][data["G1"].sample_idx]
 
-        grid_tem = torch.zeros((1, resolution * resolution, 2)).to(device)
-        grid_tem[0][data["G1"].sample_idx, :] = grid_info[data["G1"].sample_idx, :]
+        grid_tem = torch.zeros(
+            (1, resolution * resolution, 2)).to(device)
+        grid_tem[0][data["G1"].sample_idx,
+                    :] = grid_info[data["G1"].sample_idx, :]
 
-        l2_item = myloss(out_tem, label.view(batch_size2, -1)).item()
-        mae_item = nn.L1Loss()(out_tem, label.view(batch_size2, -1)).item()
-        record_data(analysis_record, [l2_item, mae_item], ["L2", "MAE"])
+        l2_item = myloss(out_tem, label.view(
+            batch_size2, -1)).item()
+        mae_item = nn.L1Loss()(
+            out_tem, label.view(batch_size2, -1)).item()
+        record_data(analysis_record, [
+                    l2_item, mae_item], ["L2", "MAE"])
         out_all = np.append(out_all, to_np_array(out_tem))
         label_all = np.append(label_all, to_np_array(label))
-        a_ori_all = np.append(a_ori_all, to_np_array(a_ori_tem))
-        mask_all = np.append(mask_all, to_np_array(cell_state_tem))
-        grid_all = np.append(grid_all, to_np_array(grid_tem))
+        a_ori_all = np.append(
+            a_ori_all, to_np_array(a_ori_tem))
+        mask_all = np.append(
+            mask_all, to_np_array(cell_state_tem))
+        grid_all = np.append(
+            grid_all, to_np_array(grid_tem))
 
 plot_data(
     predict_term=out_all,

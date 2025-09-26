@@ -1,2 +1,0 @@
-from .fully_connected import FullyConnected
-from .fully_connected import FullyConnectedNet

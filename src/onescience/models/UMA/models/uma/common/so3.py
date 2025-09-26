@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import math
@@ -36,18 +34,23 @@ class CoefficientMapping(torch.nn.Module):
             mmax = min(self.mmax, l)
             m = torch.arange(-mmax, mmax + 1).long()
             m_complex = torch.cat([m_complex, m], dim=0)
-            m_harmonic = torch.cat([m_harmonic, torch.abs(m).long()], dim=0)
-            l_harmonic = torch.cat([l_harmonic, m.fill_(l).long()], dim=0)
+            m_harmonic = torch.cat(
+                [m_harmonic, torch.abs(m).long()], dim=0)
+            l_harmonic = torch.cat(
+                [l_harmonic, m.fill_(l).long()], dim=0)
         self.res_size = len(l_harmonic)
 
         num_coefficients = len(l_harmonic)
         # `self.to_m` moves m components from different L to contiguous index
-        to_m = torch.zeros([num_coefficients, num_coefficients])
-        self.m_size = torch.zeros([self.mmax + 1]).long().tolist()
+        to_m = torch.zeros(
+            [num_coefficients, num_coefficients])
+        self.m_size = torch.zeros(
+            [self.mmax + 1]).long().tolist()
 
         offset = 0
         for m in range(self.mmax + 1):
-            idx_r, idx_i = self.complex_idx(m, -1, m_complex, l_harmonic)
+            idx_r, idx_i = self.complex_idx(
+                m, -1, m_complex, l_harmonic)
 
             for idx_out, idx_in in enumerate(idx_r):
                 to_m[idx_out + offset, idx_in] = 1.0
@@ -62,9 +65,12 @@ class CoefficientMapping(torch.nn.Module):
         to_m = to_m.detach()
 
         # save tensors and they will be moved to GPU
-        self.register_buffer("l_harmonic", l_harmonic, persistent=False)
-        self.register_buffer("m_harmonic", m_harmonic, persistent=False)
-        self.register_buffer("m_complex", m_complex, persistent=False)
+        self.register_buffer(
+            "l_harmonic", l_harmonic, persistent=False)
+        self.register_buffer(
+            "m_harmonic", m_harmonic, persistent=False)
+        self.register_buffer(
+            "m_complex", m_complex, persistent=False)
         self.register_buffer("to_m", to_m, persistent=False)
 
         self.pre_compute_coefficient_idx()
@@ -80,14 +86,17 @@ class CoefficientMapping(torch.nn.Module):
 
         indices = torch.arange(len(l_harmonic))
         # Real part
-        mask_r = torch.bitwise_and(l_harmonic.le(lmax), m_complex.eq(m))
+        mask_r = torch.bitwise_and(
+            l_harmonic.le(lmax), m_complex.eq(m))
         mask_idx_r = torch.masked_select(indices, mask_r)
 
         mask_idx_i = torch.tensor([]).long()
         # Imaginary part
         if m != 0:
-            mask_i = torch.bitwise_and(l_harmonic.le(lmax), m_complex.eq(-m))
-            mask_idx_i = torch.masked_select(indices, mask_i)
+            mask_i = torch.bitwise_and(
+                l_harmonic.le(lmax), m_complex.eq(-m))
+            mask_idx_i = torch.masked_select(
+                indices, mask_i)
 
         return mask_idx_r, mask_idx_i
 
@@ -98,9 +107,11 @@ class CoefficientMapping(torch.nn.Module):
         lmax = self.lmax
         for l in range(lmax + 1):
             for m in range(lmax + 1):
-                mask = torch.bitwise_and(self.l_harmonic.le(l), self.m_harmonic.le(m))
+                mask = torch.bitwise_and(
+                    self.l_harmonic.le(l), self.m_harmonic.le(m))
                 indices = torch.arange(len(mask))
-                mask_indices = torch.masked_select(indices, mask)
+                mask_indices = torch.masked_select(
+                    indices, mask)
                 self.register_buffer(
                     f"coefficient_idx_l{l}_m{m}", mask_indices, persistent=False
                 )
@@ -114,15 +125,18 @@ class CoefficientMapping(torch.nn.Module):
         for l in range(lmax + 1):
             l_list = []
             for m in range(lmax + 1):
-                l_list.append(getattr(self, f"coefficient_idx_l{l}_m{m}", None))
+                l_list.append(
+                    getattr(self, f"coefficient_idx_l{l}_m{m}", None))
             coefficient_idx_list.append(l_list)
         return coefficient_idx_list
 
     # Return mask containing coefficients less than or equal to degree (l) and order (m)
     def coefficient_idx(self, lmax: int, mmax: int):
         if lmax > self.lmax or mmax > self.lmax:
-            mask = torch.bitwise_and(self.l_harmonic.le(lmax), self.m_harmonic.le(mmax))
-            indices = torch.arange(len(mask), device=mask.device)
+            mask = torch.bitwise_and(self.l_harmonic.le(
+                lmax), self.m_harmonic.le(mmax))
+            indices = torch.arange(
+                len(mask), device=mask.device)
             return torch.masked_select(indices, mask)
         else:
             temp = self.prepare_coefficient_idx()
@@ -141,13 +155,15 @@ class CoefficientMapping(torch.nn.Module):
                         continue
                     start_idx = l_sub**2
                     length = 2 * l_sub + 1
-                    rescale_factor = math.sqrt(length / (2 * m + 1))
+                    rescale_factor = math.sqrt(
+                        length / (2 * m + 1))
                     rotate_inv_rescale[
                         :,
-                        start_idx : (start_idx + length),
-                        start_idx : (start_idx + length),
+                        start_idx: (start_idx + length),
+                        start_idx: (start_idx + length),
                     ] = rescale_factor
-                rotate_inv_rescale = rotate_inv_rescale[:, :, mask_indices]
+                rotate_inv_rescale = rotate_inv_rescale[:,
+                                                        :, mask_indices]
                 self.register_buffer(
                     f"rotate_inv_rescale_l{l}_m{m}",
                     rotate_inv_rescale,
@@ -187,7 +203,8 @@ class SO3_Grid(torch.nn.Module):
             self.lat_resolution = resolution
             self.long_resolution = resolution
 
-        self.mapping = CoefficientMapping(self.lmax, self.lmax)
+        self.mapping = CoefficientMapping(
+            self.lmax, self.lmax)
         self.rescale = rescale
 
         to_grid = ToS2Grid(
@@ -195,7 +212,8 @@ class SO3_Grid(torch.nn.Module):
             (self.lat_resolution, self.long_resolution),
             normalization=normalization,  # normalization="integral",
         )
-        to_grid_mat = torch.einsum("mbi, am -> bai", to_grid.shb, to_grid.sha).detach()
+        to_grid_mat = torch.einsum(
+            "mbi, am -> bai", to_grid.shb, to_grid.sha).detach()
         # rescale based on mmax
         if rescale and lmax != mmax:
             for lval in range(lmax + 1):
@@ -203,9 +221,11 @@ class SO3_Grid(torch.nn.Module):
                     continue
                 start_idx = lval**2
                 length = 2 * lval + 1
-                rescale_factor = math.sqrt(length / (2 * mmax + 1))
-                to_grid_mat[:, :, start_idx : (start_idx + length)] = (
-                    to_grid_mat[:, :, start_idx : (start_idx + length)] * rescale_factor
+                rescale_factor = math.sqrt(
+                    length / (2 * mmax + 1))
+                to_grid_mat[:, :, start_idx: (start_idx + length)] = (
+                    to_grid_mat[:, :, start_idx: (
+                        start_idx + length)] * rescale_factor
                 )
         to_grid_mat = to_grid_mat[
             :, :, self.mapping.coefficient_idx(self.lmax, self.mmax)
@@ -226,9 +246,11 @@ class SO3_Grid(torch.nn.Module):
                     continue
                 start_idx = lval**2
                 length = 2 * lval + 1
-                rescale_factor = math.sqrt(length / (2 * mmax + 1))
-                from_grid_mat[:, :, start_idx : (start_idx + length)] = (
-                    from_grid_mat[:, :, start_idx : (start_idx + length)]
+                rescale_factor = math.sqrt(
+                    length / (2 * mmax + 1))
+                from_grid_mat[:, :, start_idx: (start_idx + length)] = (
+                    from_grid_mat[:, :, start_idx: (
+                        start_idx + length)]
                     * rescale_factor
                 )
         from_grid_mat = from_grid_mat[
@@ -236,8 +258,10 @@ class SO3_Grid(torch.nn.Module):
         ]
 
         # save tensors and they will be moved to GPU
-        self.register_buffer("to_grid_mat", to_grid_mat, persistent=False)
-        self.register_buffer("from_grid_mat", from_grid_mat, persistent=False)
+        self.register_buffer(
+            "to_grid_mat", to_grid_mat, persistent=False)
+        self.register_buffer(
+            "from_grid_mat", from_grid_mat, persistent=False)
 
     # Compute matrices to transform irreps to grid
     def get_to_grid_mat(self, device=None):
@@ -249,7 +273,8 @@ class SO3_Grid(torch.nn.Module):
 
     # Compute grid from irreps representation
     def to_grid(self, embedding, lmax: int, mmax: int):
-        to_grid_mat = self.to_grid_mat[:, :, self.mapping.coefficient_idx(lmax, mmax)]
+        to_grid_mat = self.to_grid_mat[:, :, self.mapping.coefficient_idx(
+            lmax, mmax)]
         return torch.einsum("bai, zic -> zbac", to_grid_mat, embedding)
 
     # Compute irreps from grid representation

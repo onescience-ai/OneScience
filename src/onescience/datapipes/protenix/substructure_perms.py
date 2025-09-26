@@ -26,7 +26,8 @@ def recursive_permutation(atom_inds, permutation_list, res):
     def _permute_atom_ind(atom_inds, permutation):
         # atom_inds: list of atom (positional) indices
         # permutation: values to be permutated in the given order
-        permute_inds = [i for i, a in enumerate(atom_inds) if a in permutation]
+        permute_inds = [i for i, a in enumerate(
+            atom_inds) if a in permutation]
         for i, perm_ind in enumerate(permute_inds):
             atom_inds[perm_ind] = permutation[i]
         return atom_inds
@@ -36,8 +37,10 @@ def recursive_permutation(atom_inds, permutation_list, res):
     else:
         current_permutation_list = permutation_list.copy()
         for permutation in current_permutation_list.pop(0):
-            atom_inds_permed = _permute_atom_ind(atom_inds.copy(), permutation)
-            recursive_permutation(atom_inds_permed, current_permutation_list, res)
+            atom_inds_permed = _permute_atom_ind(
+                atom_inds.copy(), permutation)
+            recursive_permutation(
+                atom_inds_permed, current_permutation_list, res)
 
 
 def augment_atom_maps_with_conjugate_terminal_groups(
@@ -77,9 +80,11 @@ def augment_atom_maps_with_conjugate_terminal_groups(
         return result
 
     # group terminal group tuples with common atom_indices: [{0, 2}, {10, 11, 12}, {14, 15}]
-    terminal_atom_clusters = _terminal_atom_cluster_from_pairs(terminal_group_tuples)
+    terminal_atom_clusters = _terminal_atom_cluster_from_pairs(
+        terminal_group_tuples)
     MaxTerminalGroups = max(
-        1, int(np.ceil(np.emath.logn(3, MaxMatches / len(original_maps))))
+        1, int(np.ceil(np.emath.logn(
+            3, MaxMatches / len(original_maps))))
     )
     # if MaxTerminalGroups is less than the total number terminal groups, sample the first {MaxTerminalGroups} groups (to remove randomness)
 
@@ -92,16 +97,19 @@ def augment_atom_maps_with_conjugate_terminal_groups(
     )[: min(MaxTerminalGroups, len(terminal_atom_clusters))]
 
     # within each terminal group, if there are different atom types, split by atom type (if only one left, discard)
-    perm_groups = _split_sets_by_mapped_values(perm_groups, atomic_number_mapping)
+    perm_groups = _split_sets_by_mapped_values(
+        perm_groups, atomic_number_mapping)
     perm_groups = [p for p in perm_groups if len(p) > 1]
 
     # all permutations according to symmetric conjugate terminal atoms: [[(0, 2), (2, 0)], [(10, 11, 12), (10, 12, 11), (11, 10, 12), (11, 12, 10), (12, 10, 11), (12, 11, 10)], [(14, 15), (15, 14)]]
-    perm_groups = [sorted(list(itertools.permutations(g))) for g in perm_groups]
+    perm_groups = [
+        sorted(list(itertools.permutations(g))) for g in perm_groups]
 
     # recursively permute the original mappings
     augmented_maps = []
     for initial_mapping in original_maps:
-        recursive_permutation(list(initial_mapping), perm_groups, augmented_maps)
+        recursive_permutation(
+            list(initial_mapping), perm_groups, augmented_maps)
 
     # Convert to the same data type as in original_maps
     augmented_maps = tuple(tuple(a) for a in augmented_maps)
@@ -138,13 +146,15 @@ def _get_substructure_perms(
 
     # Get substructure matches
     base_perms = np.array(
-        mol.GetSubstructMatches(mol, uniquify=False, maxMatches=MaxMatches)
+        mol.GetSubstructMatches(
+            mol, uniquify=False, maxMatches=MaxMatches)
     )
     assert len(base_perms) > 0, "no matches found, error"
     # Check stereochem
     if CheckStereochem:
         chem_order = np.array(
-            list(Chem.rdmolfiles.CanonicalRankAtoms(mol, breakTies=False))
+            list(Chem.rdmolfiles.CanonicalRankAtoms(
+                mol, breakTies=False))
         )
         perms_mask = (chem_order[base_perms] == chem_order[None]).sum(
             -1
@@ -180,11 +190,14 @@ def _get_substructure_perms(
         new_to_ori_idx_map[new_idx] = ori_idx
         ori_to_new_idx_map[ori_idx] = new_idx
 
-    base_perms = np.vectorize(new_to_ori_idx_map.get)(base_perms)
-    perms = np.zeros(shape=(base_perms.shape[0], len(ori_idx_w_h)))
+    base_perms = np.vectorize(
+        new_to_ori_idx_map.get)(base_perms)
+    perms = np.zeros(
+        shape=(base_perms.shape[0], len(ori_idx_w_h)))
     for i in range(len(ori_idx_w_h)):
         if i in ori_to_new_idx_map:
-            perms[:, i] = base_perms[:, ori_to_new_idx_map[i]]
+            perms[:, i] = base_perms[:,
+                                     ori_to_new_idx_map[i]]
         else:
             # The position of the H atom will not be exchanged.
             perms[:, i] = i
@@ -205,14 +218,17 @@ def get_substructure_perms(
     }
 
     if KeepProtonation:
-        perms = _get_substructure_perms(mol, Neutralize=False, **kwargs)
+        perms = _get_substructure_perms(
+            mol, Neutralize=False, **kwargs)
     else:
         # Have to deuplicate permutations across the two protonation states
         perms = np.unique(
             np.row_stack(
                 (
-                    _get_substructure_perms(mol, Neutralize=False, **kwargs),
-                    _get_substructure_perms(mol, Neutralize=True, **kwargs),
+                    _get_substructure_perms(
+                        mol, Neutralize=False, **kwargs),
+                    _get_substructure_perms(
+                        mol, Neutralize=True, **kwargs),
                 )
             ),
             axis=0,
@@ -220,7 +236,8 @@ def get_substructure_perms(
 
     nperm = len(perms)
     if nperm > MaxMatches:
-        perms = perms[np.random.choice(range(nperm), MaxMatches, replace=False)]
+        perms = perms[np.random.choice(
+            range(nperm), MaxMatches, replace=False)]
     return perms
 
 

@@ -20,11 +20,10 @@ from typing import Any, Literal, Sequence
 
 import lightning.pytorch as pl
 import torch
-from lightning.pytorch.callbacks import BasePredictionWriter
 
 # from bionemo.llm.lightning import batch_collator
 from bionemo.evo2.lightning import batch_collator
-
+from lightning.pytorch.callbacks import BasePredictionWriter
 
 IntervalT = Literal["epoch", "batch"]
 
@@ -41,7 +40,8 @@ class PredictionWriter(BasePredictionWriter, pl.Callback):
         self,
         output_dir: str | os.PathLike,
         write_interval: IntervalT,
-        batch_dim_key_defaults: dict[str, int] | None = None,
+        batch_dim_key_defaults: dict[str,
+                                     int] | None = None,
         seq_dim_key_defaults: dict[str, int] | None = None,
     ):
         """Initializes the callback.
@@ -58,7 +58,9 @@ class PredictionWriter(BasePredictionWriter, pl.Callback):
         self.batch_dim_key_defaults = batch_dim_key_defaults
         self.seq_dim_key_defaults = seq_dim_key_defaults
 
-    def setup(self, trainer: pl.Trainer, pl_module: pl.LightningModule, *args, **kwargs) -> None:  # noqa: D417
+    def setup(
+        self, trainer: pl.Trainer, pl_module: pl.LightningModule, *args, **kwargs
+    ) -> None:  # noqa: D417
         """Invoked with Trainer.fit, validate, test, and predict are called. Will immediately fail when 'write_interval' is 'epoch' and 'trainer.num_devices' > 1.
 
         Args:
@@ -96,17 +98,23 @@ class PredictionWriter(BasePredictionWriter, pl.Callback):
         """
         # this will create N (num processes) files in `output_dir` each containing
         # the predictions of it's respective rank
-        result_path = os.path.join(self.output_dir, f"predictions__rank_{trainer.global_rank}__batch_{batch_idx}.pt")
+        result_path = os.path.join(
+            self.output_dir,
+            f"predictions__rank_{trainer.global_rank}__batch_{batch_idx}.pt",
+        )
 
         # batch_indices is not captured due to a lightning bug when return_predictions = False
         # we use input IDs in the prediction to map the result to input.
 
         # NOTE store the batch_idx so we do not need to rely on filenames for reconstruction of inputs. This is wrapped
         # in a tensor and list container to ensure compatibility with batch_collator.
-        prediction["batch_idx"] = torch.tensor([batch_idx], dtype=torch.int64)
+        prediction["batch_idx"] = torch.tensor(
+            [batch_idx], dtype=torch.int64)
 
         torch.save(prediction, result_path)
-        logging.info(f"Inference predictions are stored in {result_path}\n{prediction.keys()}")
+        logging.info(
+            f"Inference predictions are stored in {result_path}\n{prediction.keys()}"
+        )
 
     def write_on_epoch_end(
         self,
@@ -134,7 +142,9 @@ class PredictionWriter(BasePredictionWriter, pl.Callback):
         # this will create N (num processes) files in `output_dir` each containing
         # the predictions of it's respective rank
 
-        result_path = os.path.join(self.output_dir, f"predictions__rank_{trainer.global_rank}.pt")
+        result_path = os.path.join(
+            self.output_dir, f"predictions__rank_{trainer.global_rank}.pt"
+        )
 
         # collate multiple batches / ignore empty ones
         collate_kwargs = {}
@@ -143,7 +153,9 @@ class PredictionWriter(BasePredictionWriter, pl.Callback):
         if self.seq_dim_key_defaults is not None:
             collate_kwargs["seq_dim_key_defaults"] = self.seq_dim_key_defaults
 
-        prediction = batch_collator([item for item in predictions if item is not None], **collate_kwargs)
+        prediction = batch_collator(
+            [item for item in predictions if item is not None], **collate_kwargs
+        )
 
         # batch_indices is not captured due to a lightning bug when return_predictions = False
         # we use input IDs in the prediction to map the result to input
@@ -152,4 +164,5 @@ class PredictionWriter(BasePredictionWriter, pl.Callback):
         else:
             keys = "tensor"
         torch.save(prediction, result_path)
-        logging.info(f"Inference predictions are stored in {result_path}\n{keys}")
+        logging.info(
+            f"Inference predictions are stored in {result_path}\n{keys}")

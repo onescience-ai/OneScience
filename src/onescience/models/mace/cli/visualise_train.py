@@ -11,7 +11,8 @@ from torchmetrics import Metric
 
 plt.rcParams.update({"font.size": 8})
 mpl_logger = logging.getLogger("matplotlib")
-mpl_logger.setLevel(logging.WARNING)  # Only show WARNING and above
+# Only show WARNING and above
+mpl_logger.setLevel(logging.WARNING)
 
 colors = [
     "#1f77b4",  # muted blue
@@ -28,12 +29,16 @@ colors = [
 
 error_type = {
     "TotalRMSE": (
-        [("rmse_e", "RMSE E [meV]"), ("rmse_f", "RMSE F [meV / A]")],
-        [("energy", "Energy per atom [eV]"), ("force", "Force [eV / A]")],
+        [("rmse_e", "RMSE E [meV]"),
+         ("rmse_f", "RMSE F [meV / A]")],
+        [("energy", "Energy per atom [eV]"),
+         ("force", "Force [eV / A]")],
     ),
     "PerAtomRMSE": (
-        [("rmse_e_per_atom", "RMSE E/atom [meV]"), ("rmse_f", "RMSE F [meV / A]")],
-        [("energy", "Energy per atom [eV]"), ("force", "Force [eV / A]")],
+        [("rmse_e_per_atom", "RMSE E/atom [meV]"),
+         ("rmse_f", "RMSE F [meV / A]")],
+        [("energy", "Energy per atom [eV]"),
+         ("force", "Force [eV / A]")],
     ),
     "PerAtomRMSEstressvirials": (
         [
@@ -60,12 +65,16 @@ error_type = {
         ],
     ),
     "TotalMAE": (
-        [("mae_e", "MAE E [meV]"), ("mae_f", "MAE F [meV / A]")],
-        [("energy", "Energy per atom [eV]"), ("force", "Force [eV / A]")],
+        [("mae_e", "MAE E [meV]"),
+         ("mae_f", "MAE F [meV / A]")],
+        [("energy", "Energy per atom [eV]"),
+         ("force", "Force [eV / A]")],
     ),
     "PerAtomMAE": (
-        [("mae_e_per_atom", "MAE E/atom [meV]"), ("mae_f", "MAE F [meV / A]")],
-        [("energy", "Energy per atom [eV]"), ("force", "Force [eV / A]")],
+        [("mae_e_per_atom", "MAE E/atom [meV]"),
+         ("mae_f", "MAE F [meV / A]")],
+        [("energy", "Energy per atom [eV]"),
+         ("force", "Force [eV / A]")],
     ),
     "DipoleRMSE": (
         [
@@ -75,7 +84,8 @@ error_type = {
         [("dipole", "Dipole per atom [Debye]")],
     ),
     "DipoleMAE": (
-        [("mae_mu", "MAE MU [mDebye]"), ("rel_mae_f", "Relative MU MAE [%]")],
+        [("mae_mu", "MAE MU [mDebye]"),
+         ("rel_mae_f", "Relative MU MAE [%]")],
         [("dipole", "Dipole per atom [Debye]")],
     ),
     "EnergyDipoleRMSE": (
@@ -142,16 +152,20 @@ class TrainingPlotter:
         labels, quantities = error_type[self.table_type]
 
         for head in self.heads:
-            fig = plt.figure(layout="constrained", figsize=(10, 6))
+            fig = plt.figure(
+                layout="constrained", figsize=(10, 6))
             fig.suptitle(
                 f"Model loaded from epoch {model_epoch} ({head} head)", fontsize=16
             )
 
-            subfigs = fig.subfigures(2, 1, height_ratios=[1, 1], hspace=0.05)
+            subfigs = fig.subfigures(
+                2, 1, height_ratios=[1, 1], hspace=0.05)
             axsTop = subfigs[0].subplots(1, 2, sharey=False)
-            axsBottom = subfigs[1].subplots(1, len(quantities), sharey=False)
+            axsBottom = subfigs[1].subplots(
+                1, len(quantities), sharey=False)
 
-            plot_epoch_dependence(axsTop, data, head, model_epoch, labels)
+            plot_epoch_dependence(
+                axsTop, data, head, model_epoch, labels)
 
             # Use the pre-computed results for plotting
             plot_inference_from_results(
@@ -176,7 +190,8 @@ class TrainingPlotter:
             # Save the figure using the appropriate stage in the filename
             filename = f"{self.results_dir[:-4]}_{head}_{stage}.png"
 
-            fig.savefig(filename, dpi=300, bbox_inches="tight")
+            fig.savefig(filename, dpi=300,
+                        bbox_inches="tight")
             plt.close(fig)
 
 
@@ -185,7 +200,8 @@ def parse_training_results(path: str) -> List[dict]:
     with open(path, mode="r", encoding="utf-8") as f:
         for line in f:
             try:
-                d = json.loads(line.strip())  # Ensure it's valid JSON
+                # Ensure it's valid JSON
+                d = json.loads(line.strip())
                 results.append(d)
             except json.JSONDecodeError:
                 print(
@@ -248,7 +264,8 @@ def plot_epoch_dependence(
             main_ax = ax
         else:
             main_ax = ax.twinx()
-            main_ax.spines.right.set_position(("outward", 60 * (i - 1)))
+            main_ax.spines.right.set_position(
+                ("outward", 60 * (i - 1)))
             twin_axes.append(main_ax)
 
         main_ax.plot(
@@ -353,7 +370,8 @@ def plot_inference_from_results(
             if scatter is not None:
                 legend_labels[name] = scatter
 
-        fixed_color_test = colors[2]  # Color for test dataset
+        # Color for test dataset
+        fixed_color_test = colors[2]
 
         # Plot test data (single legend entry)
         for name, result in test_dict.items():
@@ -445,7 +463,8 @@ def model_inference(
 
     for name in all_data_loaders:
         data_loader = all_data_loaders[name]
-        logging.debug(f"Running inference on {name} dataset")
+        logging.debug(
+            f"Running inference on {name} dataset")
         scatter_metric = InferenceMetric().to(device)
 
         for batch in data_loader:
@@ -454,9 +473,12 @@ def model_inference(
             output = model(
                 batch_dict,
                 training=False,
-                compute_force=output_args.get("forces", False),
-                compute_virials=output_args.get("virials", False),
-                compute_stress=output_args.get("stress", False),
+                compute_force=output_args.get(
+                    "forces", False),
+                compute_virials=output_args.get(
+                    "virials", False),
+                compute_stress=output_args.get(
+                    "stress", False),
             )
 
             results = scatter_metric(batch, output)
@@ -486,34 +508,56 @@ class InferenceMetric(Metric):
     def __init__(self):
         super().__init__()
         # Raw values
-        self.add_state("ref_energies", default=[], dist_reduce_fx="cat")
-        self.add_state("pred_energies", default=[], dist_reduce_fx="cat")
-        self.add_state("ref_forces", default=[], dist_reduce_fx="cat")
-        self.add_state("pred_forces", default=[], dist_reduce_fx="cat")
-        self.add_state("ref_stress", default=[], dist_reduce_fx="cat")
-        self.add_state("pred_stress", default=[], dist_reduce_fx="cat")
-        self.add_state("ref_virials", default=[], dist_reduce_fx="cat")
-        self.add_state("pred_virials", default=[], dist_reduce_fx="cat")
-        self.add_state("ref_dipole", default=[], dist_reduce_fx="cat")
-        self.add_state("pred_dipole", default=[], dist_reduce_fx="cat")
+        self.add_state(
+            "ref_energies", default=[], dist_reduce_fx="cat")
+        self.add_state("pred_energies",
+                       default=[], dist_reduce_fx="cat")
+        self.add_state(
+            "ref_forces", default=[], dist_reduce_fx="cat")
+        self.add_state(
+            "pred_forces", default=[], dist_reduce_fx="cat")
+        self.add_state(
+            "ref_stress", default=[], dist_reduce_fx="cat")
+        self.add_state(
+            "pred_stress", default=[], dist_reduce_fx="cat")
+        self.add_state(
+            "ref_virials", default=[], dist_reduce_fx="cat")
+        self.add_state(
+            "pred_virials", default=[], dist_reduce_fx="cat")
+        self.add_state(
+            "ref_dipole", default=[], dist_reduce_fx="cat")
+        self.add_state(
+            "pred_dipole", default=[], dist_reduce_fx="cat")
 
         # Per-atom normalized values
-        self.add_state("ref_energies_per_atom", default=[], dist_reduce_fx="cat")
-        self.add_state("pred_energies_per_atom", default=[], dist_reduce_fx="cat")
-        self.add_state("ref_virials_per_atom", default=[], dist_reduce_fx="cat")
-        self.add_state("pred_virials_per_atom", default=[], dist_reduce_fx="cat")
-        self.add_state("ref_dipole_per_atom", default=[], dist_reduce_fx="cat")
-        self.add_state("pred_dipole_per_atom", default=[], dist_reduce_fx="cat")
+        self.add_state("ref_energies_per_atom",
+                       default=[], dist_reduce_fx="cat")
+        self.add_state("pred_energies_per_atom",
+                       default=[], dist_reduce_fx="cat")
+        self.add_state("ref_virials_per_atom",
+                       default=[], dist_reduce_fx="cat")
+        self.add_state("pred_virials_per_atom",
+                       default=[], dist_reduce_fx="cat")
+        self.add_state("ref_dipole_per_atom",
+                       default=[], dist_reduce_fx="cat")
+        self.add_state("pred_dipole_per_atom",
+                       default=[], dist_reduce_fx="cat")
 
         # Store atom counts for each configuration
-        self.add_state("atom_counts", default=[], dist_reduce_fx="cat")
+        self.add_state(
+            "atom_counts", default=[], dist_reduce_fx="cat")
 
         # Counters
-        self.add_state("n_energy", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("n_forces", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("n_stress", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("n_virials", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("n_dipole", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("n_energy", default=torch.tensor(
+            0.0), dist_reduce_fx="sum")
+        self.add_state("n_forces", default=torch.tensor(
+            0.0), dist_reduce_fx="sum")
+        self.add_state("n_stress", default=torch.tensor(
+            0.0), dist_reduce_fx="sum")
+        self.add_state("n_virials", default=torch.tensor(
+            0.0), dist_reduce_fx="sum")
+        self.add_state("n_dipole", default=torch.tensor(
+            0.0), dist_reduce_fx="sum")
 
     def update(self, batch, output):  # pylint: disable=arguments-differ
         """Update metric states with new batch data."""
@@ -527,8 +571,10 @@ class InferenceMetric(Metric):
             self.ref_energies.append(batch.energy)
             self.pred_energies.append(output["energy"])
             # Per-atom normalization
-            self.ref_energies_per_atom.append(batch.energy / atoms_per_config)
-            self.pred_energies_per_atom.append(output["energy"] / atoms_per_config)
+            self.ref_energies_per_atom.append(
+                batch.energy / atoms_per_config)
+            self.pred_energies_per_atom.append(
+                output["energy"] / atoms_per_config)
 
         # Forces
         if output.get("forces") is not None and batch.forces is not None:
@@ -548,18 +594,24 @@ class InferenceMetric(Metric):
             self.ref_virials.append(batch.virials)
             self.pred_virials.append(output["virials"])
             # Per-atom normalization
-            atoms_per_config_3d = atoms_per_config.view(-1, 1, 1)
-            self.ref_virials_per_atom.append(batch.virials / atoms_per_config_3d)
-            self.pred_virials_per_atom.append(output["virials"] / atoms_per_config_3d)
+            atoms_per_config_3d = atoms_per_config.view(
+                -1, 1, 1)
+            self.ref_virials_per_atom.append(
+                batch.virials / atoms_per_config_3d)
+            self.pred_virials_per_atom.append(
+                output["virials"] / atoms_per_config_3d)
 
         # Dipole
         if output.get("dipole") is not None and batch.dipole is not None:
             self.n_dipole += 1.0
             self.ref_dipole.append(batch.dipole)
             self.pred_dipole.append(output["dipole"])
-            atoms_per_config_3d = atoms_per_config.view(-1, 1)
-            self.ref_dipole_per_atom.append(batch.dipole / atoms_per_config_3d)
-            self.pred_dipole_per_atom.append(output["dipole"] / atoms_per_config_3d)
+            atoms_per_config_3d = atoms_per_config.view(
+                -1, 1)
+            self.ref_dipole_per_atom.append(
+                batch.dipole / atoms_per_config_3d)
+            self.pred_dipole_per_atom.append(
+                output["dipole"] / atoms_per_config_3d)
 
     def _process_data(self, ref_list, pred_list):
         # Handle different possible states of ref_list and pred_list in distributed mode
@@ -585,7 +637,8 @@ class InferenceMetric(Metric):
 
         # Process energies
         if self.n_energy:
-            ref_e, pred_e = self._process_data(self.ref_energies, self.pred_energies)
+            ref_e, pred_e = self._process_data(
+                self.ref_energies, self.pred_energies)
             ref_e_pa, pred_e_pa = self._process_data(
                 self.ref_energies_per_atom, self.pred_energies_per_atom
             )
@@ -598,7 +651,8 @@ class InferenceMetric(Metric):
 
         # Process forces
         if self.n_forces:
-            ref_f, pred_f = self._process_data(self.ref_forces, self.pred_forces)
+            ref_f, pred_f = self._process_data(
+                self.ref_forces, self.pred_forces)
             results["forces"] = {
                 "reference": ref_f,
                 "predicted": pred_f,
@@ -606,7 +660,8 @@ class InferenceMetric(Metric):
 
         # Process stress
         if self.n_stress:
-            ref_s, pred_s = self._process_data(self.ref_stress, self.pred_stress)
+            ref_s, pred_s = self._process_data(
+                self.ref_stress, self.pred_stress)
             results["stress"] = {
                 "reference": ref_s,
                 "predicted": pred_s,
@@ -614,7 +669,8 @@ class InferenceMetric(Metric):
 
         # Process virials
         if self.n_virials:
-            ref_v, pred_v = self._process_data(self.ref_virials, self.pred_virials)
+            ref_v, pred_v = self._process_data(
+                self.ref_virials, self.pred_virials)
             ref_v_pa, pred_v_pa = self._process_data(
                 self.ref_virials_per_atom, self.pred_virials_per_atom
             )
@@ -627,7 +683,8 @@ class InferenceMetric(Metric):
 
         # Process dipoles
         if self.n_dipole:
-            ref_d, pred_d = self._process_data(self.ref_dipole, self.pred_dipole)
+            ref_d, pred_d = self._process_data(
+                self.ref_dipole, self.pred_dipole)
             ref_d_pa, pred_d_pa = self._process_data(
                 self.ref_dipole_per_atom, self.pred_dipole_per_atom
             )

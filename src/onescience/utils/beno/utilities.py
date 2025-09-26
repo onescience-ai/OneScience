@@ -1,14 +1,8 @@
-import torch
-import numpy as np
-import scipy.io
-import h5py
-import sklearn.metrics
-from torch_geometric.data import Data
-import torch.nn as nn
-from scipy.ndimage import gaussian_filter
-from torch_geometric.nn import GCNConv
-import pdb
+import os  # 需要导入os模块来处理目录操作
 import matplotlib.pyplot as plt
+import numpy as np
+import sklearn.metrics
+import torch
 
 
 def compute_boundary_gradient(bc_all, sol_all, coord_all, resolution):
@@ -25,7 +19,8 @@ def compute_boundary_gradient(bc_all, sol_all, coord_all, resolution):
         bc_gradient: 边界点的法向梯度，形状为 [n_samples, n_boundary_points]
     """
     n_samples, n_boundary_points, _ = bc_all.shape
-    bc_gradient = np.zeros((n_samples, n_boundary_points))  # 输出法向梯度
+    bc_gradient = np.zeros(
+        (n_samples, n_boundary_points))  # 输出法向梯度
 
     dx = 1 / (resolution - 1)  # 假设网格均匀分布在 [0, 1] 区间
 
@@ -48,28 +43,32 @@ def compute_boundary_gradient(bc_all, sol_all, coord_all, resolution):
                 neighbors.append(boundary_idx + 1)
             if boundary_idx >= resolution:  # 上方不是边界
                 neighbors.append(boundary_idx - resolution)
-            if boundary_idx < resolution * (resolution - 1):  # 下方不是边界
+            # 下方不是边界
+            if boundary_idx < resolution * (resolution - 1):
                 neighbors.append(boundary_idx + resolution)
 
             # 计算法向量（假设均匀网格，单位法向量由邻点和当前点的坐标推导）
             normal_vector = np.array(
                 [
-                    bx - coord_all[sample_idx][neighbors, 0].mean(),
-                    by - coord_all[sample_idx][neighbors, 1].mean(),
+                    bx -
+                    coord_all[sample_idx][neighbors,
+                                          0].mean(),
+                    by -
+                    coord_all[sample_idx][neighbors,
+                                          1].mean(),
                 ]
             )
-            normal_vector = normal_vector / np.linalg.norm(normal_vector)
+            normal_vector = normal_vector / \
+                np.linalg.norm(normal_vector)
 
             # 计算梯度（解的方向导数）
             neighbor_values = sol_all[sample_idx, neighbors]
             bc_gradient[sample_idx, i] = (
-                np.dot(neighbor_values - b_value, normal_vector) / dx
+                np.dot(neighbor_values - b_value,
+                       normal_vector) / dx
             )
 
     return bc_gradient
-
-
-import os  # 需要导入os模块来处理目录操作
 
 
 def plot_data(
@@ -95,11 +94,16 @@ def plot_data(
         interpolation: 图像插值方法
         save_path: 如果提供路径，则保存图片到该路径 (str)
     """
-    predict_term = predict_term.reshape(-1, resolution, resolution)
-    true_term = true_term.reshape(-1, resolution, resolution)
-    forcing_term = forcing_term.reshape(-1, resolution, resolution)
-    forcing_mask = forcing_mask.reshape(-1, resolution, resolution)
-    grid_info = grid_info.reshape(-1, resolution, resolution, 2)
+    predict_term = predict_term.reshape(
+        -1, resolution, resolution)
+    true_term = true_term.reshape(-1,
+                                  resolution, resolution)
+    forcing_term = forcing_term.reshape(
+        -1, resolution, resolution)
+    forcing_mask = forcing_mask.reshape(
+        -1, resolution, resolution)
+    grid_info = grid_info.reshape(-1,
+                                  resolution, resolution, 2)
     # 获取 true_term 的第一个维度的大小
     num_total_samples = true_term.shape[0]
     # 从第一个维度中随机选取 num_samples 个样本
@@ -107,9 +111,11 @@ def plot_data(
         raise ValueError(
             f"num_samples ({num_samples}) cannot be greater than the total number of samples ({num_total_samples})."
         )
-    sample_indices = np.random.choice(num_total_samples, num_samples, replace=False)
+    sample_indices = np.random.choice(
+        num_total_samples, num_samples, replace=False)
 
-    fig, axes = plt.subplots(4, num_samples, figsize=(4 * num_samples, 8))
+    fig, axes = plt.subplots(
+        4, num_samples, figsize=(4 * num_samples, 8))
 
     for idx, i in enumerate(sample_indices):
         # 第 i 个样本的源项 f 和解项 u
@@ -128,7 +134,8 @@ def plot_data(
         f_masked = np.where(internal_mask, f, np.nan)
         p_u_masked = np.where(internal_mask, p_u, np.nan)
         t_u_masked = np.where(internal_mask, t_u, np.nan)
-        error_masked = np.where(internal_mask, error, np.nan)
+        error_masked = np.where(
+            internal_mask, error, np.nan)
 
         # 绘制源项 f
         ax_f = axes[0, idx]
@@ -139,8 +146,10 @@ def plot_data(
             extent=[0, 1, 0, 1],
             interpolation=interpolation,
         )
-        ax_f.set_title(f"(a) Forcing term $f$ (Sample {i+1})", fontsize=12)
-        plt.colorbar(im_f, ax=ax_f, fraction=0.046, pad=0.04)
+        ax_f.set_title(
+            f"(a) Forcing term $f$ (Sample {i+1})", fontsize=12)
+        plt.colorbar(
+            im_f, ax=ax_f, fraction=0.046, pad=0.04)
 
         # 绘制真实解项 u
         ax_t_u = axes[1, idx]
@@ -151,8 +160,10 @@ def plot_data(
             extent=[0, 1, 0, 1],
             interpolation=interpolation,
         )
-        ax_t_u.set_title(f"(b) True Solution term $u$ (Sample {i+1})", fontsize=12)
-        plt.colorbar(im_t_u, ax=ax_t_u, fraction=0.046, pad=0.04)
+        ax_t_u.set_title(
+            f"(b) True Solution term $u$ (Sample {i+1})", fontsize=12)
+        plt.colorbar(im_t_u, ax=ax_t_u,
+                     fraction=0.046, pad=0.04)
 
         # 绘制预测解项 u
         ax_p_u = axes[2, idx]
@@ -163,8 +174,10 @@ def plot_data(
             extent=[0, 1, 0, 1],
             interpolation=interpolation,
         )
-        ax_p_u.set_title(f"(c) Predict Solution term $u$ (Sample {i+1})", fontsize=12)
-        plt.colorbar(im_p_u, ax=ax_p_u, fraction=0.046, pad=0.04)
+        ax_p_u.set_title(
+            f"(c) Predict Solution term $u$ (Sample {i+1})", fontsize=12)
+        plt.colorbar(im_p_u, ax=ax_p_u,
+                     fraction=0.046, pad=0.04)
 
         # 绘制预测误差
         ax_error = axes[3, idx]
@@ -175,8 +188,10 @@ def plot_data(
             extent=[0, 1, 0, 1],
             interpolation=interpolation,
         )
-        ax_error.set_title(f"(d) Absolute Error (Sample {i+1})", fontsize=12)
-        plt.colorbar(im_error, ax=ax_error, fraction=0.046, pad=0.04)
+        ax_error.set_title(
+            f"(d) Absolute Error (Sample {i+1})", fontsize=12)
+        plt.colorbar(im_error, ax=ax_error,
+                     fraction=0.046, pad=0.04)
 
     # 布局调整
     plt.tight_layout()
@@ -209,11 +224,11 @@ class MeshGenerator(object):
             # self.grid = np.linspace(real_space[0][0], real_space[0][1], self.n).reshape((self.n, 1))
         else:
             self.n = 1
-            grids = []
             for j in range(self.d):
                 # grids.append(np.linspace(real_space[j][0], real_space[j][1], mesh_size[j]))
                 # grids.append(np.linspace(real_space[j][0]+(0.5/mesh_size[j]), real_space[j][1]-(0.5/mesh_size[j]), mesh_size[j]))
-                self.n *= mesh_size[j]  # 对于多维网格，节点数 = 各维度网格点数的乘积
+                # 对于多维网格，节点数 = 各维度网格点数的乘积
+                self.n *= mesh_size[j]
 
         self.idx = np.array(range(self.n))
         self.grid = grid_input
@@ -241,20 +256,27 @@ class MeshGenerator(object):
     def ball_connectivity(
         self, is_forward=False, ns=10, tri_edge=None
     ):  # 根据输入的网格节点计算边索引，构造图的连接关系。
-        self.pwd = sklearn.metrics.pairwise_distances(self.grid_sample)
+        self.pwd = sklearn.metrics.pairwise_distances(
+            self.grid_sample)
         tri_edge = tri_edge.T
 
         edge_index_1 = np.array([])
         edge_index_2 = np.array([])
         for i in range(self.grid_sample.shape[0]):
-            edge_index_1 = np.append(edge_index_1, np.array([i]).repeat(ns + 1))
-            edge_index_2 = np.append(edge_index_2, np.argsort(self.pwd[i])[: ns + 1])
-        self.edge_index = np.vstack([edge_index_1, edge_index_2])
-        self.edge_index = np.concatenate([self.edge_index, tri_edge], -1)
+            edge_index_1 = np.append(
+                edge_index_1, np.array([i]).repeat(ns + 1))
+            edge_index_2 = np.append(
+                edge_index_2, np.argsort(self.pwd[i])[: ns + 1])
+        self.edge_index = np.vstack(
+            [edge_index_1, edge_index_2])
+        self.edge_index = np.concatenate(
+            [self.edge_index, tri_edge], -1)
 
         self.edge_index = torch.tensor(self.edge_index)
-        self.edge_index = torch.cat([self.edge_index, self.edge_index.flip(0)], dim=1)
-        self.edge_index = MeshGenerator.deduplicate_rows(self.edge_index.T).T
+        self.edge_index = torch.cat(
+            [self.edge_index, self.edge_index.flip(0)], dim=1)
+        self.edge_index = MeshGenerator.deduplicate_rows(
+            self.edge_index.T).T
         self.n_edges = self.edge_index.shape[1]
         if is_forward:
             print(self.edge_index.shape)
@@ -271,13 +293,18 @@ class MeshGenerator(object):
     ):  # 构造边特征矩阵 edge_attr 包括：1.几何特性（如边长） 2.起点和终点的属性 3.起点和终点的坐标
         # pwd = sklearn.metrics.pairwise_distances(self.grid_sample)
         theta = theta[self.idx]
-        edge_attr = np.zeros((self.n_edges, 2 * self.d + 2 * self.attr_features + 1))
-        self.edge_index = torch.tensor(self.edge_index).to(torch.int64)
+        edge_attr = np.zeros(
+            (self.n_edges, 2 * self.d + 2 * self.attr_features + 1))
+        self.edge_index = torch.tensor(
+            self.edge_index).to(torch.int64)
 
         for p in range(self.n_edges):
-            edge_attr[p, 6:7] = self.pwd[self.edge_index[0][p]][self.edge_index[1][p]]
-        edge_attr[:, 4:5] = theta[self.edge_index[0]].view(-1, self.attr_features)
-        edge_attr[:, 5:6] = theta[self.edge_index[1]].view(-1, self.attr_features)
+            edge_attr[p, 6:7] = self.pwd[self.edge_index[0]
+                                         [p]][self.edge_index[1][p]]
+        edge_attr[:, 4:5] = theta[self.edge_index[0]
+                                  ].view(-1, self.attr_features)
+        edge_attr[:, 5:6] = theta[self.edge_index[1]
+                                  ].view(-1, self.attr_features)
         edge_attr[:, 0:4] = self.grid_sample[self.edge_index.T].reshape(
             (self.n_edges, -1)
         )
@@ -338,7 +365,8 @@ class LpLoss(object):
         h = 1.0 / (x.size()[1] - 1.0)
 
         all_norms = (h ** (self.d / self.p)) * torch.norm(
-            x.view(num_examples, -1) - y.view(num_examples, -1), self.p, 1
+            x.view(num_examples, -1) -
+            y.view(num_examples, -1), self.p, 1
         )
 
         if self.reduction:
@@ -350,12 +378,15 @@ class LpLoss(object):
         return all_norms
 
     def rel(self, x, y):
-        num_examples = x.size()[0]  # x.size()=[1,num_indomain]
+        # x.size()=[1,num_indomain]
+        num_examples = x.size()[0]
 
         diff_norms = torch.norm(
-            x.reshape(num_examples, -1) - y.reshape(num_examples, -1), self.p, 1
+            x.reshape(num_examples, -1) -
+            y.reshape(num_examples, -1), self.p, 1
         )  # pred-gd 求L2范数
-        y_norms = torch.norm(y.reshape(num_examples, -1), self.p, 1)
+        y_norms = torch.norm(
+            y.reshape(num_examples, -1), self.p, 1)
 
         if self.reduction:
             if self.size_average:
@@ -388,11 +419,13 @@ class RandomMeshGenerator(object):
             grids = []
             for j in range(self.d):
                 grids.append(
-                    np.linspace(real_space[j][0], real_space[j][1], mesh_size[j])
+                    np.linspace(
+                        real_space[j][0], real_space[j][1], mesh_size[j])
                 )
                 self.n *= mesh_size[j]
 
-            self.grid = np.vstack([xx.ravel() for xx in np.meshgrid(*grids)]).T
+            self.grid = np.vstack(
+                [xx.ravel() for xx in np.meshgrid(*grids)]).T
 
         if self.m > self.n:
             self.m = self.n
@@ -410,14 +443,16 @@ class RandomMeshGenerator(object):
         return torch.tensor(self.grid_sample, dtype=torch.float)
 
     def ball_connectivity(self, r):
-        pwd = sklearn.metrics.pairwise_distances(self.grid_sample)
+        pwd = sklearn.metrics.pairwise_distances(
+            self.grid_sample)
         self.edge_index = np.vstack(np.where(pwd <= r))
         self.n_edges = self.edge_index.shape[1]
 
         return torch.tensor(self.edge_index, dtype=torch.long)
 
     def gaussian_connectivity(self, sigma):
-        pwd = sklearn.metrics.pairwise_distances(self.grid_sample)
+        pwd = sklearn.metrics.pairwise_distances(
+            self.grid_sample)
         rbf = np.exp(-(pwd**2) / sigma**2)
         sample = np.random.binomial(1, rbf)
         self.edge_index = np.vstack(np.where(sample))
@@ -427,24 +462,30 @@ class RandomMeshGenerator(object):
     def attributes(self, f=None, theta=None):
         if f is None:
             if theta is None:
-                edge_attr = self.grid[self.edge_index.T].reshape((self.n_edges, -1))
+                edge_attr = self.grid[self.edge_index.T].reshape(
+                    (self.n_edges, -1))
             else:
                 theta = theta[self.idx]
-                edge_attr = np.zeros((self.n_edges, 3 * self.d))
-                edge_attr[:, 0 : 2 * self.d] = self.grid_sample[
+                edge_attr = np.zeros(
+                    (self.n_edges, 3 * self.d))
+                edge_attr[:, 0: 2 * self.d] = self.grid_sample[
                     self.edge_index.T
                 ].reshape((self.n_edges, -1))
-                edge_attr[:, 2 * self.d] = theta[self.edge_index[0]]
-                edge_attr[:, 2 * self.d + 1] = theta[self.edge_index[1]]
+                edge_attr[:, 2 *
+                          self.d] = theta[self.edge_index[0]]
+                edge_attr[:, 2 * self.d +
+                          1] = theta[self.edge_index[1]]
         else:
-            xy = self.grid_sample[self.edge_index.T].reshape((self.n_edges, -1))
+            xy = self.grid_sample[self.edge_index.T].reshape(
+                (self.n_edges, -1))
             if theta is None:
-                edge_attr = f(xy[:, 0 : self.d], xy[:, self.d :])
+                edge_attr = f(
+                    xy[:, 0: self.d], xy[:, self.d:])
             else:
                 theta = theta[self.idx]
                 edge_attr = f(
-                    xy[:, 0 : self.d],
-                    xy[:, self.d :],
+                    xy[:, 0: self.d],
+                    xy[:, self.d:],
                     theta[self.edge_index[0]],
                     theta[self.edge_index[1]],
                 )

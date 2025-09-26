@@ -1,34 +1,35 @@
 #!/user/bin/env
+from agent.untils.until import pretty_print
+from agent.agent.unit.tool_runner import ToolRunner
+from agent.agent.unit.generate_runner import GenerateRunner, ParseRunner
+from yaml import safe_load
+from langgraph.typing import StateLike
+from langgraph.graph import END, StateGraph
+from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.runnables.utils import Input, Output
+from langchain_core.runnables import Runnable, RunnableConfig
+from langchain_core.messages import AIMessage
+from typing import Any, Dict, Iterator, Optional
+import re
+import argparse
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-sys.path.append(os.path.join(os.path.dirname(__file__), "unit"))
-
-import re
-import argparse
-from yaml import safe_load
-from typing import Dict, Optional, Any, Iterator
-from langgraph.typing import StateLike
-from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import InMemorySaver
-from langchain_core.runnables import Runnable, RunnableConfig
-from langchain_core.runnables.utils import Input, Output
-from langchain_core.messages import AIMessage
-
-from agent.agent.unit.tool_runner import ToolRunner
-from agent.agent.unit.generate_runner import GenerateRunner, ParseRunner
-from agent.untils.until import pretty_print
+sys.path.append(os.path.dirname(
+    os.path.dirname(os.path.dirname(__file__))))
+sys.path.append(os.path.join(
+    os.path.dirname(__file__), "unit"))
 
 
 class ReactAgent(Runnable):
 
-    def __init__(self,
-            agent_config: Dict,
-            rag_config: Optional[Dict],
-            state_schema: type(StateLike),
-            mem: InMemorySaver = None,
-            reflect_times:int = 0,
+    def __init__(
+        self,
+        agent_config: Dict,
+        rag_config: Optional[Dict],
+        state_schema: type(StateLike),
+        mem: InMemorySaver = None,
+        reflect_times: int = 0,
     ):
         workflow = StateGraph(state_schema)
         tool = ToolRunner(agent_config, rag_config)
@@ -57,7 +58,8 @@ class ReactAgent(Runnable):
             workflow.add_conditional_edges(
                 "reflect",
                 self.routing_function_reflect,
-                path_map={"generate": "generate", "end": END},
+                path_map={
+                    "generate": "generate", "end": END},
             )
         else:
             workflow.add_conditional_edges(
@@ -72,7 +74,8 @@ class ReactAgent(Runnable):
         workflow.add_edge("tool", "generate")
 
         # Compile the graph
-        self.workflow = workflow.compile(checkpointer=mem or InMemorySaver())
+        self.workflow = workflow.compile(
+            checkpointer=mem or InMemorySaver())
         if reflect_times > 0:
             self.cur_reflect_times = 0
             self.reflect_times = reflect_times
@@ -91,7 +94,8 @@ class ReactAgent(Runnable):
         print(f"last_msg：：：{msg}")
         if msg.content == "由于重复出现解析错误，执行已终止。请检查您的输入并重试。":
             # If we've already tried to correct the model twice, just end the conversation
-            print("Detected repeated parsing errors, ending conversation")
+            print(
+                "Detected repeated parsing errors, ending conversation")
             return "end"
         elif (
             msg.content
@@ -105,7 +109,8 @@ class ReactAgent(Runnable):
             if "<solution>" in msg and "</solution>" not in msg:
                 msg += "</solution>"
 
-            answer_match = re.search(r"<solution>(.*?)</solution>", msg, re.DOTALL)
+            answer_match = re.search(
+                r"<solution>(.*?)</solution>", msg, re.DOTALL)
             if answer_match:
                 return "end"
             else:
@@ -114,7 +119,8 @@ class ReactAgent(Runnable):
     def routing_function_reflect(self, state: type(StateLike)) -> str:
         if self.cur_reflect_times < self.reflect_times:
             self.cur_reflect_times += 1
-            print(f"reflect times: {self.cur_reflect_times}")
+            print(
+                f"reflect times: {self.cur_reflect_times}")
             return "generate"
         else:
             return "end"
@@ -136,24 +142,44 @@ class ReactAgent(Runnable):
 
 if __name__ == "__main__":
     import uuid
-    from agent.untils.until import setup_global_logger
+
     from agent.agent.unit.agent_state import AgentState
-    from agent.untils.until import gen_job_log_name
+    from agent.untils.until import gen_job_log_name, setup_global_logger
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--job_name', type=str, required=True, description="任务名称")
-    parser.add_argument('--human_message', type=str, required=True, description="用户任务输入")
-    parser.add_argument('--agent_config_path', type=str, required=True, description="Agent配置文件")
-    parser.add_argument('--rag_config_path', type=str, default=None, description="RAG配置文件,若不使用RAG可为空")
-    parser.add_argument('--reflect_times', type=int, default=0, description="reflect次数")
-    parser.add_argument('--recursion_limit', type=int, default=50, description="langgraph的recursion_limit参数")
+    parser.add_argument(
+        "--job_name", type=str, required=True, description="任务名称")
+    parser.add_argument(
+        "--human_message", type=str, required=True, description="用户任务输入"
+    )
+    parser.add_argument(
+        "--agent_config_path", type=str, required=True, description="Agent配置文件"
+    )
+    parser.add_argument(
+        "--rag_config_path",
+        type=str,
+        default=None,
+        description="RAG配置文件,若不使用RAG可为空",
+    )
+    parser.add_argument(
+        "--reflect_times", type=int, default=0, description="reflect次数"
+    )
+    parser.add_argument(
+        "--recursion_limit",
+        type=int,
+        default=50,
+        description="langgraph的recursion_limit参数",
+    )
     args = parser.parse_args()
 
     log_name = gen_job_log_name(args.job_name, "../logs")
     setup_global_logger(f"../logs/{log_name}")
 
     user = uuid.uuid4()
-    config = {"configurable": {"thread_id": f"thread_{user}"}, "recursion_limit": args.recursion_limit}
+    config = {
+        "configurable": {"thread_id": f"thread_{user}"},
+        "recursion_limit": args.recursion_limit,
+    }
     with open(parser.agent_config_path, "r") as f:
         agent_config = safe_load(f)
         agent_config["user"] = user
@@ -164,8 +190,10 @@ if __name__ == "__main__":
         rag_config["user"] = user
 
     inputs = {"messages": [("user", args.human_message)]}
-    react = ReactAgent(agent_config=agent_config,
-                       rag_config=rag_config,
-                       state_schema=AgentState,
-                       reflect_times=args.reflect_times)
+    react = ReactAgent(
+        agent_config=agent_config,
+        rag_config=rag_config,
+        state_schema=AgentState,
+        reflect_times=args.reflect_times,
+    )
     react.stream(inputs, config)

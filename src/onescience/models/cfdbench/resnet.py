@@ -1,8 +1,7 @@
 from typing import Optional
 
 import torch
-from torch import nn, Tensor
-
+from torch import Tensor, nn
 
 from .base_model import AutoCfdModel
 
@@ -162,21 +161,23 @@ class ResNet(AutoCfdModel):
         residual = inputs[:, : self.out_chan]
         batch_size, n_chan, height, width = inputs.shape
         if mask is None:
-            mask = torch.ones((batch_size, height, width)).to(inputs.device)
+            mask = torch.ones(
+                (batch_size, height, width)).to(inputs.device)
         else:
             if mask.dim() == 3:
                 mask = mask.unsqueeze(1)  # (B, 1, h, w)
-        inputs = torch.cat([inputs, mask], dim=1)  # (B, c + 1, h, w)
+        # (B, c + 1, h, w)
+        inputs = torch.cat([inputs, mask], dim=1)
 
         # Add case params as additional channels
-        case_params = case_params.unsqueeze(-1).unsqueeze(-1)  # (B, c, 1, 1)
+        # (B, c, 1, 1)
+        case_params = case_params.unsqueeze(
+            -1).unsqueeze(-1)
         # (B, n_params, h, w)
         case_params = case_params.expand(
-            -1, -1, inputs.shape[-2], inputs.shape[-1]
-        )
-        inputs = torch.cat(
-            [inputs, case_params], dim=1
-        )  # (B, c + n_params, h, w)
+            -1, -1, inputs.shape[-2], inputs.shape[-1])
+        # (B, c + n_params, h, w)
+        inputs = torch.cat([inputs, case_params], dim=1)
 
         inputs = self.blocks(inputs)  # (B, c, h, w)
         preds = inputs + residual
@@ -203,7 +204,8 @@ class ResNet(AutoCfdModel):
         case_params: Tensor,
         mask: Optional[Tensor] = None,
     ):
-        outputs = self.forward(inputs, case_params=case_params, mask=mask)
+        outputs = self.forward(
+            inputs, case_params=case_params, mask=mask)
         preds = outputs["preds"]
         return preds
 
@@ -230,7 +232,6 @@ class ResNet(AutoCfdModel):
         # boundaries = (1 - mask) * cur_frame  # (1, c, h, w)
         for _ in range(steps):
             cur_frame = self.generate(
-                cur_frame, case_params=case_params, mask=mask
-            )
+                cur_frame, case_params=case_params, mask=mask)
             frames.append(cur_frame)
         return frames

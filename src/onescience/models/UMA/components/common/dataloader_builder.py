@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import logging
@@ -19,7 +17,8 @@ def get_dataloader(
         num_replicas = distutils.get_world_size()
         rank = distutils.get_rank()
 
-    logging.info(f"get_dataloader::Calling batch_sampler_fn={batch_sampler_fn}...")
+    logging.info(
+        f"get_dataloader::Calling batch_sampler_fn={batch_sampler_fn}...")
     batch_sampler = batch_sampler_fn(
         dataset=dataset,
         num_replicas=num_replicas,

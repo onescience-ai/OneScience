@@ -26,7 +26,8 @@ def window_partition(x: torch.Tensor, window_size, ndim=3):
     elif ndim == 2:
         B, Lat, Lon, C = x.shape
         win_lat, win_lon = window_size
-        x = x.view(B, Lat // win_lat, win_lat, Lon // win_lon, win_lon, C)
+        x = x.view(B, Lat // win_lat, win_lat,
+                   Lon // win_lon, win_lon, C)
         windows = (
             x.permute(0, 3, 1, 2, 4, 5)
             .contiguous()
@@ -61,13 +62,16 @@ def window_reverse(windows, window_size, Pl=1, Lat=1, Lon=1, ndim=3):
             win_lon,
             -1,
         )
-        x = x.permute(0, 2, 4, 3, 5, 1, 6, 7).contiguous().view(B, Pl, Lat, Lon, -1)
+        x = x.permute(0, 2, 4, 3, 5, 1, 6, 7).contiguous().view(
+            B, Pl, Lat, Lon, -1)
         return x
     elif ndim == 2:
         win_lat, win_lon = window_size
         B = int(windows.shape[0] / (Lon / win_lon))
-        x = windows.view(B, Lon // win_lon, Lat // win_lat, win_lat, win_lon, -1)
-        x = x.permute(0, 2, 3, 1, 4, 5).contiguous().view(B, Lat, Lon, -1)
+        x = windows.view(
+            B, Lon // win_lon, Lat // win_lat, win_lat, win_lon, -1)
+        x = x.permute(0, 2, 3, 1, 4, 5).contiguous().view(
+            B, Lat, Lon, -1)
         return x
 
 
@@ -89,7 +93,8 @@ def get_shift_window_mask(input_resolution, window_size, shift_size, ndim=3):
         win_pl, win_lat, win_lon = window_size
         shift_pl, shift_lat, shift_lon = shift_size
 
-        img_mask = torch.zeros((1, Pl, Lat, Lon + shift_lon, 1))
+        img_mask = torch.zeros(
+            (1, Pl, Lat, Lon + shift_lon, 1))
     elif ndim == 2:
         Lat, Lon = input_resolution
         win_lat, win_lon = window_size
@@ -139,7 +144,8 @@ def get_shift_window_mask(input_resolution, window_size, shift_size, ndim=3):
     mask_windows = mask_windows.view(
         mask_windows.shape[0], mask_windows.shape[1], win_total
     )
-    attn_mask = mask_windows.unsqueeze(2) - mask_windows.unsqueeze(3)
+    attn_mask = mask_windows.unsqueeze(
+        2) - mask_windows.unsqueeze(3)
     attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(
         attn_mask == 0, float(0.0)
     )

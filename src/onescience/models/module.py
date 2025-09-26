@@ -34,7 +34,8 @@ class Module(torch.nn.Module):
         Meta data class for storing info regarding model, by default None
     """
 
-    _file_extension = ".mdlus"  # Set file extension for saving and loading
+    # Set file extension for saving and loading
+    _file_extension = ".mdlus"
     __model_checkpoint_version__ = (
         "0.1.0"  # Used for file versioning and is not the same as modulus version
     )
@@ -75,7 +76,8 @@ class Module(torch.nn.Module):
     def __init__(self, meta: Union[ModelMetaData, None] = None):
         super().__init__()
         self.meta = meta
-        self.register_buffer("device_buffer", torch.empty(0))
+        self.register_buffer(
+            "device_buffer", torch.empty(0))
         self._setup_logger()
 
     def _setup_logger(self):
@@ -100,7 +102,8 @@ class Module(torch.nn.Module):
             ):
                 yield member
             else:
-                print(f"Skipping potentially malicious file: {member.name}")
+                print(
+                    f"Skipping potentially malicious file: {member.name}")
 
     @classmethod
     def instantiate(cls, arg_dict: Dict[str, Any]) -> "Module":
@@ -122,7 +125,8 @@ class Module(torch.nn.Module):
 
         _cls_name = arg_dict["__name__"]
         registry = ModelRegistry()
-        if cls.__name__ == arg_dict["__name__"]:  # If cls is the class
+        # If cls is the class
+        if cls.__name__ == arg_dict["__name__"]:
             _cls = cls
         elif _cls_name in registry.list_models():  # Built in registry
             _cls = registry.factory(_cls_name)
@@ -130,12 +134,17 @@ class Module(torch.nn.Module):
             try:
                 # Otherwise, try to import the class
                 for key, value in arg_dict.items():
-                    if arg_dict["__name__"] == 'EDMPrecondSR' or arg_dict["__name__"] == 'UNet':
-                        if key == '__module__':
-                            arg_dict[key] = value.replace('modulus', 'onescience')
+                    if (
+                        arg_dict["__name__"] == "EDMPrecondSR"
+                        or arg_dict["__name__"] == "UNet"
+                    ):
+                        if key == "__module__":
+                            arg_dict[key] = value.replace(
+                                "modulus", "onescience")
                     else:
                         break
-                _mod = importlib.import_module(arg_dict["__module__"])
+                _mod = importlib.import_module(
+                    arg_dict["__module__"])
                 _cls = getattr(_mod, arg_dict["__name__"])
             except AttributeError:
                 # Cross fingers and hope for the best (maybe the class name changed)
@@ -181,7 +190,8 @@ class Module(torch.nn.Module):
         with tempfile.TemporaryDirectory() as temp_dir:
             local_path = Path(temp_dir)
 
-            torch.save(self.state_dict(), local_path / "model.pt")
+            torch.save(self.state_dict(),
+                       local_path / "model.pt")
 
             with open(local_path / "args.json", "w") as f:
                 json.dump(self._args, f)
@@ -196,7 +206,8 @@ class Module(torch.nn.Module):
                 import git
 
                 try:
-                    repo = git.Repo(search_parent_directories=True)
+                    repo = git.Repo(
+                        search_parent_directories=True)
                     metadata_info["git_hash"] = repo.head.object.hexsha
                 except git.InvalidGitRepositoryError:
                     metadata_info["git_hash"] = None
@@ -219,13 +230,16 @@ class Module(torch.nn.Module):
     @staticmethod
     def _check_checkpoint(local_path: str) -> bool:
         if not local_path.joinpath("args.json").exists():
-            raise IOError("File 'args.json' not found in checkpoint")
+            raise IOError(
+                "File 'args.json' not found in checkpoint")
 
         if not local_path.joinpath("metadata.json").exists():
-            raise IOError("File 'metadata.json' not found in checkpoint")
+            raise IOError(
+                "File 'metadata.json' not found in checkpoint")
 
         if not local_path.joinpath("model.pt").exists():
-            raise IOError("Model weights 'model.pt' not found in checkpoint")
+            raise IOError(
+                "Model weights 'model.pt' not found in checkpoint")
 
         # Check if the checkpoint version is compatible with the current version
         with open(local_path.joinpath("metadata.json"), "r") as f:
@@ -271,7 +285,8 @@ class Module(torch.nn.Module):
             # Open the tar file and extract its contents to the temporary directory
             with tarfile.open(cached_file_name, "r") as tar:
                 tar.extractall(
-                    path=local_path, members=list(Module._safe_members(tar, local_path))
+                    path=local_path, members=list(
+                        Module._safe_members(tar, local_path))
                 )
 
             # Check if the checkpoint is valid
@@ -313,7 +328,8 @@ class Module(torch.nn.Module):
             # Open the tar file and extract its contents to the temporary directory
             with tarfile.open(cached_file_name, "r") as tar:
                 tar.extractall(
-                    path=local_path, members=list(cls._safe_members(tar, local_path))
+                    path=local_path, members=list(
+                        cls._safe_members(tar, local_path))
                 )
 
             # Check if the checkpoint is valid
@@ -322,7 +338,7 @@ class Module(torch.nn.Module):
             # Load model arguments and instantiate the model
             with open(local_path.joinpath("args.json"), "r") as f:
                 args = json.load(f)
-            #print(f"args:{args}")
+            # print(f"args:{args}")
             model = cls.instantiate(args)
 
             # Load the model weights
@@ -355,26 +371,32 @@ class Module(torch.nn.Module):
         class ModulusModel(Module):
             def __init__(self, *args, **kwargs):
                 super().__init__(meta=meta)
-                self.inner_model = torch_model_class(*args, **kwargs)
+                self.inner_model = torch_model_class(
+                    *args, **kwargs)
 
             def forward(self, x):
                 return self.inner_model(x)
 
         # Get the argument names and default values of the PyTorch model's init method
-        init_argspec = inspect.getfullargspec(torch_model_class.__init__)
-        model_argnames = init_argspec.args[1:]  # Exclude 'self'
+        init_argspec = inspect.getfullargspec(
+            torch_model_class.__init__)
+        # Exclude 'self'
+        model_argnames = init_argspec.args[1:]
         model_defaults = init_argspec.defaults or []
         defaults_dict = dict(
-            zip(model_argnames[-len(model_defaults) :], model_defaults)
+            zip(model_argnames[-len(model_defaults):],
+                model_defaults)
         )
 
         # Define the signature of new init
-        params = [inspect.Parameter("self", inspect.Parameter.POSITIONAL_OR_KEYWORD)]
+        params = [inspect.Parameter(
+            "self", inspect.Parameter.POSITIONAL_OR_KEYWORD)]
         params += [
             inspect.Parameter(
                 argname,
                 inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                default=defaults_dict.get(argname, inspect.Parameter.empty),
+                default=defaults_dict.get(
+                    argname, inspect.Parameter.empty),
             )
             for argname in model_argnames
         ]

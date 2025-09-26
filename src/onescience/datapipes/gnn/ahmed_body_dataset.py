@@ -8,10 +8,9 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import yaml
-from torch import Tensor
-
 from physicsnemo.datapipes.datapipe import Datapipe
 from physicsnemo.datapipes.meta import DatapipeMetaData
+from torch import Tensor
 
 from .utils import load_json, read_vtp_file, save_json
 
@@ -108,7 +107,8 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
             "slant_angle",
             "fillet_radius",
         ),
-        outvar_keys: Iterable[str] = ("p", "wallShearStress"),
+        outvar_keys: Iterable[str] = (
+            "p", "wallShearStress"),
         normalize_keys: Iterable[str] = (
             "p",
             "wallShearStress",
@@ -121,7 +121,8 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
             "slant_angle",
             "fillet_radius",
         ),
-        normalization_bound: Tuple[float, float] = (-1.0, 1.0),
+        normalization_bound: Tuple[float,
+                                   float] = (-1.0, 1.0),
         force_reload: bool = False,
         name: str = "dataset",
         verbose: bool = False,
@@ -143,10 +144,12 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
         data_dir = Path(data_dir)
         self.data_dir = data_dir / self.split
         if not self.data_dir.is_dir():
-            raise IOError(f"Directory not found {self.data_dir}")
+            raise IOError(
+                f"Directory not found {self.data_dir}")
         self.info_dir = data_dir / (self.split + "_info")
         if not self.info_dir.is_dir():
-            raise IOError(f"Directory not found {self.info_dir}")
+            raise IOError(
+                f"Directory not found {self.info_dir}")
         self.input_keys = list(invar_keys)
         self.output_keys = list(outvar_keys)
         self.normalize_keys = list(normalize_keys)
@@ -158,17 +161,22 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
         case_info_files = []
         self.case_ids = []
         for case_file in sorted(self.data_dir.glob("*.vtp")):
-            case_id = int(str(case_file.stem).removeprefix("case"))
+            case_id = int(
+                str(case_file.stem).removeprefix("case"))
             # Check if there is a corresponding info file.
-            case_info_file = self.info_dir / f"case{case_id}_info.txt"
+            case_info_file = self.info_dir / \
+                f"case{case_id}_info.txt"
             if not case_info_file.is_file():
-                raise IOError(f"File not found {case_info_file}")
+                raise IOError(
+                    f"File not found {case_info_file}")
             case_files.append(str(case_file))
             case_info_files.append(str(case_info_file))
             self.case_ids.append(case_id)
 
-        self.length = min(len(self.case_ids), self.num_samples)
-        logging.info(f"Using {self.length} {split} samples.")
+        self.length = min(
+            len(self.case_ids), self.num_samples)
+        logging.info(
+            f"Using {self.length} {split} samples.")
 
         if self.num_samples > self.length:
             raise ValueError(
@@ -190,22 +198,26 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
                 # Make sure we don't oversubscribe CPUs on a node.
                 # TODO(akamenev): this should be in DistributedManager.
                 local_node_size = max(
-                    int(os.environ.get("OMPI_COMM_WORLD_LOCAL_SIZE", 1)), 1
+                    int(os.environ.get(
+                        "OMPI_COMM_WORLD_LOCAL_SIZE", 1)), 1
                 )
-                num_workers = len(os.sched_getaffinity(0)) // local_node_size
+                num_workers = len(
+                    os.sched_getaffinity(0)) // local_node_size
                 return max(num_workers - 1, 1)
 
             num_workers = get_num_workers()
         with cf.ProcessPoolExecutor(
             max_workers=num_workers,
-            mp_context=torch.multiprocessing.get_context("spawn"),
+            mp_context=torch.multiprocessing.get_context(
+                "spawn"),
         ) as executor:
-            for (i, graph, coeff, normal, area) in executor.map(
+            for i, graph, coeff, normal, area in executor.map(
                 self.create_graph,
                 range(self.length),
                 case_files[: self.length],
                 case_info_files[: self.length],
-                chunksize=max(1, self.length // num_workers),
+                chunksize=max(
+                    1, self.length // num_workers),
             ):
                 self.graphs[i] = graph
                 if self.compute_drag:
@@ -218,7 +230,8 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
 
         # normalize the node and edge features
         if self.split == "train":
-            self.node_stats = self._get_node_stats(keys=self.normalize_keys)
+            self.node_stats = self._get_node_stats(
+                keys=self.normalize_keys)
             self.edge_stats = self._get_edge_stats()
         else:
             if not os.path.exists("node_stats.json"):
@@ -245,7 +258,8 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
             Tuple that contains graph index, graph, and optionally coeff, normal and area values.
         """
         polydata = read_vtp_file(file_path)
-        graph = self._create_dgl_graph(polydata, self.output_keys, dtype=torch.int32)
+        graph = self._create_dgl_graph(
+            polydata, self.output_keys, dtype=torch.int32)
         info = self._read_info_file(info_path)
         for v in vars(info):
             if v not in self.input_keys:
@@ -259,16 +273,20 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
         area = None
         if "normals" in self.input_keys or self.compute_drag:
             mesh = pv.read(file_path)
-            mesh.compute_normals(cell_normals=True, point_normals=False, inplace=True)
+            mesh.compute_normals(
+                cell_normals=True, point_normals=False, inplace=True)
             if "normals" in self.input_keys:
                 graph.ndata["normals"] = torch.from_numpy(
-                    mesh.cell_data_to_point_data()["Normals"]
+                    mesh.cell_data_to_point_data()[
+                        "Normals"]
                 )
             if self.compute_drag:
                 mesh = mesh.compute_cell_sizes()
                 mesh = mesh.cell_data_to_point_data()
-                frontal_area = info.width * info.height / 2 * (10 ** (-6))
-                coeff = 2.0 / ((info.velocity**2) * frontal_area)
+                frontal_area = info.width * \
+                    info.height / 2 * (10 ** (-6))
+                coeff = 2.0 / \
+                    ((info.velocity**2) * frontal_area)
                 normal = torch.from_numpy(mesh["Normals"])
                 area = torch.from_numpy(mesh["Area"])
         return index, graph, coeff, normal, area
@@ -312,8 +330,10 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
             col = col.long()
 
             disp = pos[row] - pos[col]
-            disp_norm = torch.linalg.norm(disp, dim=-1, keepdim=True)
-            graph.edata["x"] = torch.cat((disp, disp_norm), dim=-1)
+            disp_norm = torch.linalg.norm(
+                disp, dim=-1, keepdim=True)
+            graph.edata["x"] = torch.cat(
+                (disp, disp_norm), dim=-1)
 
         return self.graphs
 
@@ -343,7 +363,8 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
         for i in range(len(self.graphs)):
             for key in invar_keys:
                 self.graphs[i].ndata[key] = (
-                    self.graphs[i].ndata[key] - self.node_stats[key + "_mean"]
+                    self.graphs[i].ndata[key] -
+                    self.node_stats[key + "_mean"]
                 ) / self.node_stats[key + "_std"]
 
             self.graphs[i].ndata["x"] = torch.cat(
@@ -373,7 +394,8 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
 
         for i in range(len(self.graphs)):
             self.graphs[i].edata["x"] = (
-                self.graphs[i].edata["x"] - self.edge_stats["edge_mean"]
+                self.graphs[i].edata["x"] -
+                self.edge_stats["edge_mean"]
             ) / self.edge_stats["edge_std"]
         return self.graphs
 
@@ -397,15 +419,20 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
         """
 
         stats = self.node_stats
-        stats = {key: val.to(device) for key, val in stats.items()}
+        stats = {key: val.to(device)
+                 for key, val in stats.items()}
         p_pred = pred[:, [0]]
         s_pred = pred[:, 1:]
         p_gt = gt[:, [0]]
         s_gt = gt[:, 1:]
         p_pred = p_pred * stats["p_std"] + stats["p_mean"]
-        s_pred = s_pred * stats["wallShearStress_std"] + stats["wallShearStress_mean"]
+        s_pred = s_pred * \
+            stats["wallShearStress_std"] + \
+            stats["wallShearStress_mean"]
         p_gt = p_gt * stats["p_std"] + stats["p_mean"]
-        s_gt = s_gt * stats["wallShearStress_std"] + stats["wallShearStress_mean"]
+        s_gt = s_gt * \
+            stats["wallShearStress_std"] + \
+            stats["wallShearStress_mean"]
         pred = torch.cat((p_pred, s_pred), dim=-1)
         gt = torch.cat((p_gt, s_gt), dim=-1)
         return pred, gt
@@ -430,13 +457,16 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
         }
         for i in range(self.length):
             stats["edge_mean"] += (
-                torch.mean(self.graphs[i].edata["x"], dim=0) / self.length
+                torch.mean(
+                    self.graphs[i].edata["x"], dim=0) / self.length
             )
             stats["edge_meansqr"] += (
-                torch.mean(torch.square(self.graphs[i].edata["x"]), dim=0) / self.length
+                torch.mean(torch.square(
+                    self.graphs[i].edata["x"]), dim=0) / self.length
             )
         stats["edge_std"] = torch.sqrt(
-            stats["edge_meansqr"] - torch.square(stats["edge_mean"])
+            stats["edge_meansqr"] -
+            torch.square(stats["edge_mean"])
         )
         stats.pop("edge_meansqr")
 
@@ -472,16 +502,19 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
         for i in range(self.length):
             for key in keys:
                 stats[key + "_mean"] += (
-                    torch.mean(self.graphs[i].ndata[key], dim=0) / self.length
+                    torch.mean(
+                        self.graphs[i].ndata[key], dim=0) / self.length
                 )
                 stats[key + "_meansqr"] += (
-                    torch.mean(torch.square(self.graphs[i].ndata[key]), dim=0)
+                    torch.mean(torch.square(
+                        self.graphs[i].ndata[key]), dim=0)
                     / self.length
                 )
 
         for key in keys:
             stats[key + "_std"] = torch.sqrt(
-                stats[key + "_meansqr"] - torch.square(stats[key + "_mean"])
+                stats[key + "_meansqr"] -
+                torch.square(stats[key + "_mean"])
             )
             stats.pop(key + "_meansqr")
 
@@ -549,15 +582,18 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
         # Extract point data and connectivity information from the vtkPolyData
         points = polydata.GetPoints()
         if points is None:
-            raise ValueError("Failed to get points from the polydata.")
+            raise ValueError(
+                "Failed to get points from the polydata.")
 
         vertices = np.array(
-            [points.GetPoint(i) for i in range(points.GetNumberOfPoints())]
+            [points.GetPoint(i) for i in range(
+                points.GetNumberOfPoints())]
         )
 
         polys = polydata.GetPolys()
         if polys is None:
-            raise ValueError("Failed to get polygons from the polydata.")
+            raise ValueError(
+                "Failed to get polygons from the polydata.")
 
         polys.InitTraversal()
 
@@ -578,24 +614,28 @@ class AhmedBodyDataset(DGLDataset, Datapipe):
             graph = dgl.add_self_loop(graph)
 
         # Assign node features using the vertex data
-        graph.ndata["pos"] = torch.tensor(vertices, dtype=torch.float32)
+        graph.ndata["pos"] = torch.tensor(
+            vertices, dtype=torch.float32)
 
         # Extract node attributes from the vtkPolyData
         point_data = polydata.GetPointData()
         if point_data is None:
-            raise ValueError("Failed to get point data from the polydata.")
+            raise ValueError(
+                "Failed to get point data from the polydata.")
 
         for i in range(point_data.GetNumberOfArrays()):
             array = point_data.GetArray(i)
             array_name = array.GetName()
             if array_name in outvar_keys:
                 array_data = np.zeros(
-                    (points.GetNumberOfPoints(), array.GetNumberOfComponents())
+                    (points.GetNumberOfPoints(),
+                     array.GetNumberOfComponents())
                 )
                 for j in range(points.GetNumberOfPoints()):
                     array.GetTuple(j, array_data[j])
 
                 # Assign node attributes to the DGL graph
-                graph.ndata[array_name] = torch.tensor(array_data, dtype=torch.float32)
+                graph.ndata[array_name] = torch.tensor(
+                    array_data, dtype=torch.float32)
 
         return graph

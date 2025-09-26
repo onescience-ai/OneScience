@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import argparse
@@ -39,7 +38,8 @@ def write_images_to_lmdb(mp_arg) -> None:
         sid, _ = os.path.splitext(os.path.basename(sample))
         fid = -1
         # add atom tags
-        data_object.tags = torch.LongTensor(ml_relaxed.get_tags())
+        data_object.tags = torch.LongTensor(
+            ml_relaxed.get_tags())
         data_object.sid = int(sid)
         data_object.fid = fid
 
@@ -54,7 +54,8 @@ def write_images_to_lmdb(mp_arg) -> None:
 
     # Save count of objects in lmdb.
     txn = db.begin(write=True)
-    txn.put("length".encode("ascii"), pickle.dumps(idx, protocol=-1))
+    txn.put("length".encode("ascii"),
+            pickle.dumps(idx, protocol=-1))
     txn.commit()
 
     db.sync()
@@ -64,7 +65,8 @@ def write_images_to_lmdb(mp_arg) -> None:
 def main(args, split) -> None:
     systems = glob.glob(f"{eval(f'args.{split}')}/*.traj")
 
-    systems_chunked = np.array_split(systems, args.num_workers)
+    systems_chunked = np.array_split(
+        systems, args.num_workers)
 
     # Initialize feature extractor.
     a2g = AtomsToGraphs(

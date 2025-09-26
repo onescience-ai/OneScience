@@ -19,7 +19,8 @@ def _compute_lat_weights(lat: Tensor) -> Tensor:
         Latitude weight tensor [H]
     """
 
-    lat_weight = torch.abs(torch.cos(torch.pi * (lat / 180.0)))
+    lat_weight = torch.abs(
+        torch.cos(torch.pi * (lat / 180.0)))
 
     lat_weight = lat_weight / lat_weight.sum()
     return lat_weight
@@ -114,7 +115,8 @@ def global_mean(x: Tensor, lat: Tensor, keepdims: bool = False) -> Tensor:
         )
 
     # Mean out the latitudes
-    lat_reduced = zonal_mean(x, lat, dim=-2, keepdims=keepdims)
+    lat_reduced = zonal_mean(
+        x, lat, dim=-2, keepdims=keepdims)
 
     # Return after reduction across longitudes
     return torch.mean(lat_reduced, dim=-1, keepdims=keepdims)
@@ -157,10 +159,12 @@ def global_var(
     gm = global_mean(x, lat, keepdims=True)
 
     # Take var of lat
-    lat_reduced = zonal_mean((x - gm) ** 2, lat, dim=-2, keepdims=keepdims)
+    lat_reduced = zonal_mean(
+        (x - gm) ** 2, lat, dim=-2, keepdims=keepdims)
 
     # Take var over longitude
-    long_reduce = torch.mean(lat_reduced, dim=-1, keepdims=keepdims)
+    long_reduce = torch.mean(
+        lat_reduced, dim=-1, keepdims=keepdims)
 
     if std:
         return torch.sqrt(long_reduce)

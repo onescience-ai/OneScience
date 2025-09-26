@@ -20,10 +20,10 @@ from typing import Generic, Sequence, TypeVar
 from megatron.core.transformer.module import MegatronModule
 from nemo.lightning.megatron_parallel import DataT, MegatronLossReduction
 
-
 __all__: Sequence[str] = (
     "BionemoMegatronModel",
-    "MegatronLossReduction",  # re-export Megatron's loss definition as it's a core part of the bionemo-llm API
+    # re-export Megatron's loss definition as it's a core part of the bionemo-llm API
+    "MegatronLossReduction",
     "MegatronLossType",
     "MegatronModelType",
 )
@@ -45,7 +45,9 @@ class BionemoMegatronModel(MegatronModule, Generic[DataT], ABC):
 # _: type[Model] = BionemoMegatronModel
 
 
-MegatronModelType = TypeVar("MegatronModelType", bound=MegatronModule)
+MegatronModelType = TypeVar(
+    "MegatronModelType", bound=MegatronModule)
 # bound=BionemoMegatronModel)
 
-MegatronLossType = TypeVar("MegatronLossType", bound=MegatronLossReduction)
+MegatronLossType = TypeVar(
+    "MegatronLossType", bound=MegatronLossReduction)

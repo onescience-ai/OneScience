@@ -60,7 +60,8 @@ def find_rank(
     n = torch.sum(counts, dim=0)[0]
     bin_mids = 0.5 * (bin_edges[1:] + bin_edges[:-1])
 
-    right = torch.sum(counts * (bin_mids <= obs[None, ...]), dim=0)
+    right = torch.sum(
+        counts * (bin_mids <= obs[None, ...]), dim=0)
 
     return right / n
 
@@ -95,7 +96,8 @@ def _rank_probability_score_from_counts(
     """
     cdf = torch.cumsum(rank_counts, dim=0)
     cdf = cdf / cdf[-1]
-    normalization = torch.sum((1.0 - rank_bin_edges[1:]) ** 2, dim=0)
+    normalization = torch.sum(
+        (1.0 - rank_bin_edges[1:]) ** 2, dim=0)
     return torch.sum((cdf - rank_bin_edges[1:]) ** 2, dim=0) / normalization
 
 

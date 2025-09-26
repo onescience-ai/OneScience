@@ -54,7 +54,8 @@ class _ScatterToParallelRegion(torch.autograd.Function):
         ctx.dim = dim_
         ctx.group = group_
         ctx.split_shapes = compute_split_shapes(
-            input_.shape[dim_], DistributedManager().group_size(group_)
+            input_.shape[dim_], DistributedManager(
+            ).group_size(group_)
         )
         return _split(input_, dim_, group=DistributedManager().group(group_))
 
@@ -92,7 +93,8 @@ class _GatherFromParallelRegion(torch.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output):  # pragma: no cover
         return (
-            _split(grad_output, ctx.dim, group=DistributedManager().group(ctx.group)),
+            _split(grad_output, ctx.dim,
+                   group=DistributedManager().group(ctx.group)),
             None,
             None,
             None,

@@ -3,13 +3,15 @@ Taken and modified from AIRS/OpenPDE
 https://github.com/divelab/AIRS/blob/main/OpenPDE/G-FNO/models/GFNO.py
 """
 
-import torch.nn.functional as F
+import math
+
 import torch
 import torch.nn as nn
-import math
-from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
+import torch.nn.functional as F
+
 from onescience.models.layers.Basic import MLP
-from onescience.models.layers.GeoFNO_Projection import SpectralConv2d_IrregularGeo, IPHI
+from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
+from onescience.models.layers.GeoFNO_Projection import IPHI, SpectralConv2d_IrregularGeo
 
 # ----------------------------------------------------------------------------------------------------------------------
 # GFNO2d
@@ -34,11 +36,13 @@ class GConv2d(nn.Module):
         self.out_channels = out_channels
         self.reflection = reflection
         self.rt_group_size = 4
-        self.group_size = self.rt_group_size * (1 + reflection)
+        self.group_size = self.rt_group_size * \
+            (1 + reflection)
         assert kernel_size % 2 == 1, "kernel size must be odd"
         dtype = torch.cfloat if spectral else torch.float
         self.kernel_size_Y = kernel_size
-        self.kernel_size_X = kernel_size // 2 + 1 if Hermitian else kernel_size
+        self.kernel_size_X = kernel_size // 2 + \
+            1 if Hermitian else kernel_size
         self.Hermitian = Hermitian
         if first_layer or last_layer:
             self.W = nn.Parameter(
@@ -104,7 +108,8 @@ class GConv2d(nn.Module):
                 )
         self.first_layer = first_layer
         self.last_layer = last_layer
-        self.B = nn.Parameter(torch.empty(1, out_channels, 1, 1)) if bias else None
+        self.B = nn.Parameter(torch.empty(
+            1, out_channels, 1, 1)) if bias else None
         self.eval_build = True
         self.reset_parameters()
         self.get_weight()
@@ -132,13 +137,16 @@ class GConv2d(nn.Module):
                 [
                     self.W["y0_modes"],
                     self.W["00_modes"].cfloat(),
-                    self.W["y0_modes"].flip(dims=(-2,)).conj(),
+                    self.W["y0_modes"].flip(
+                        dims=(-2,)).conj(),
                 ],
                 dim=-2,
             )
-            self.weights = torch.cat([self.weights, self.W["yposx_modes"]], dim=-1)
             self.weights = torch.cat(
-                [self.weights[..., 1:].conj().rot90(k=2, dims=[-2, -1]), self.weights],
+                [self.weights, self.W["yposx_modes"]], dim=-1)
+            self.weights = torch.cat(
+                [self.weights[..., 1:].conj().rot90(
+                    k=2, dims=[-2, -1]), self.weights],
                 dim=-1,
             )
         else:
@@ -147,15 +155,17 @@ class GConv2d(nn.Module):
         if self.first_layer or self.last_layer:
 
             # construct the weight
-            self.weights = self.weights.repeat(1, self.group_size, 1, 1, 1)
+            self.weights = self.weights.repeat(
+                1, self.group_size, 1, 1, 1)
 
             # apply each of the group elements to the corresponding repetition
             for k in range(1, self.rt_group_size):
-                self.weights[:, k] = self.weights[:, k].rot90(k=k, dims=[-2, -1])
+                self.weights[:, k] = self.weights[:, k].rot90(
+                    k=k, dims=[-2, -1])
 
             # apply each the reflection group element to the rotated kernels
             if self.reflection:
-                self.weights[:, self.rt_group_size :] = self.weights[
+                self.weights[:, self.rt_group_size:] = self.weights[
                     :, : self.rt_group_size
                 ].flip(dims=[-2])
 
@@ -165,7 +175,8 @@ class GConv2d(nn.Module):
                     -1, self.in_channels, self.kernel_size_Y, self.kernel_size_Y
                 )
                 if self.B is not None:
-                    self.bias = self.B.repeat_interleave(repeats=self.group_size, dim=1)
+                    self.bias = self.B.repeat_interleave(
+                        repeats=self.group_size, dim=1)
             else:
                 self.weights = self.weights.transpose(2, 1).reshape(
                     self.out_channels, -1, self.kernel_size_Y, self.kernel_size_Y
@@ -175,26 +186,33 @@ class GConv2d(nn.Module):
         else:
 
             # construct the weight
-            self.weights = self.weights.repeat(1, self.group_size, 1, 1, 1, 1)
+            self.weights = self.weights.repeat(
+                1, self.group_size, 1, 1, 1, 1)
 
             # apply elements in the rotation group
             for k in range(1, self.rt_group_size):
-                self.weights[:, k] = self.weights[:, k - 1].rot90(dims=[-2, -1])
+                self.weights[:, k] = self.weights[:,
+                                                  k - 1].rot90(dims=[-2, -1])
 
                 if self.reflection:
                     self.weights[:, k] = torch.cat(
                         [
-                            self.weights[:, k, :, self.rt_group_size - 1].unsqueeze(2),
-                            self.weights[:, k, :, : (self.rt_group_size - 1)],
-                            self.weights[:, k, :, (self.rt_group_size + 1) :],
-                            self.weights[:, k, :, self.rt_group_size].unsqueeze(2),
+                            self.weights[:, k, :,
+                                         self.rt_group_size - 1].unsqueeze(2),
+                            self.weights[:, k, :, : (
+                                self.rt_group_size - 1)],
+                            self.weights[:, k, :,
+                                         (self.rt_group_size + 1):],
+                            self.weights[:, k, :, self.rt_group_size].unsqueeze(
+                                2),
                         ],
                         dim=2,
                     )
                 else:
                     self.weights[:, k] = torch.cat(
                         [
-                            self.weights[:, k, :, -1].unsqueeze(2),
+                            self.weights[:, k,
+                                         :, -1].unsqueeze(2),
                             self.weights[:, k, :, :-1],
                         ],
                         dim=2,
@@ -202,10 +220,12 @@ class GConv2d(nn.Module):
 
             if self.reflection:
                 # apply elements in the reflection group
-                self.weights[:, self.rt_group_size :] = torch.cat(
+                self.weights[:, self.rt_group_size:] = torch.cat(
                     [
-                        self.weights[:, : self.rt_group_size, :, self.rt_group_size :],
-                        self.weights[:, : self.rt_group_size, :, : self.rt_group_size],
+                        self.weights[:, : self.rt_group_size,
+                                     :, self.rt_group_size:],
+                        self.weights[:, : self.rt_group_size,
+                                     :, : self.rt_group_size],
                     ],
                     dim=3,
                 ).flip([-2])
@@ -218,17 +238,20 @@ class GConv2d(nn.Module):
                 self.kernel_size_Y,
             )
             if self.B is not None:
-                self.bias = self.B.repeat_interleave(repeats=self.group_size, dim=1)
+                self.bias = self.B.repeat_interleave(
+                    repeats=self.group_size, dim=1)
 
         if self.Hermitian:
-            self.weights = self.weights[..., -self.kernel_size_X :]
+            self.weights = self.weights[..., -
+                                        self.kernel_size_X:]
 
     def forward(self, x):
 
         self.get_weight()
 
         # output is of shape (batch * out_channels, number of group elements, ny, nx)
-        x = nn.functional.conv2d(input=x, weight=self.weights)
+        x = nn.functional.conv2d(
+            input=x, weight=self.weights)
 
         # add the bias
         if self.B is not None:
@@ -274,14 +297,16 @@ class GSpectralConv2d(nn.Module):
 
         # get the index of the zero frequency and construct weight
         freq0_y = (
-            (torch.fft.fftshift(torch.fft.fftfreq(x.shape[-2])) == 0).nonzero().item()
+            (torch.fft.fftshift(torch.fft.fftfreq(
+                x.shape[-2])) == 0).nonzero().item()
         )
         self.get_weight()
 
         # Compute Fourier coeffcients up to factor of e^(- something constant)
-        x_ft = torch.fft.fftshift(torch.fft.rfft2(x), dim=-2)
+        x_ft = torch.fft.fftshift(
+            torch.fft.rfft2(x), dim=-2)
         x_ft = x_ft[
-            ..., (freq0_y - self.modes + 1) : (freq0_y + self.modes), : self.modes
+            ..., (freq0_y - self.modes + 1): (freq0_y + self.modes), : self.modes
         ]
 
         # Multiply relevant Fourier modes
@@ -294,7 +319,7 @@ class GSpectralConv2d(nn.Module):
             device=x.device,
         )
         out_ft[
-            ..., (freq0_y - self.modes + 1) : (freq0_y + self.modes), : self.modes
+            ..., (freq0_y - self.modes + 1): (freq0_y + self.modes), : self.modes
         ] = self.compl_mul2d(x_ft, self.weights)
 
         # Return to physical space
@@ -343,7 +368,8 @@ class GNorm(nn.Module):
         self.norm = torch.nn.InstanceNorm3d(width)
 
     def forward(self, x):
-        x = x.view(x.shape[0], -1, self.group_size, x.shape[-2], x.shape[-1])
+        x = x.view(
+            x.shape[0], -1, self.group_size, x.shape[-2], x.shape[-1])
         x = self.norm(x)
         x = x.view(x.shape[0], -1, x.shape[-2], x.shape[-1])
         return x
@@ -373,8 +399,10 @@ class Model(nn.Module):
         reflection = False
 
         if args.unified_pos and args.geotype != "unstructured":
-            self.pos = unified_pos_embedding(args.shapelist, args.ref, device=device)
-            in_dim = args.fun_dim + args.ref ** len(args.shapelist)
+            self.pos = unified_pos_embedding(
+                args.shapelist, args.ref, device=device)
+            in_dim = args.fun_dim + \
+                args.ref ** len(args.shapelist)
         else:
             in_dim = args.fun_dim + args.space_dim
         self.preprocess = MLP(
@@ -422,7 +450,8 @@ class Model(nn.Module):
             self.point_q = nn.Sequential(
                 nn.Linear(self.width, self.width * 4),
                 nn.GELU(),
-                nn.Linear(self.width * 4, self.out_channels),
+                nn.Linear(self.width * 4,
+                          self.out_channels),
             )
         else:
             grid_h, grid_w = args.shapelist
@@ -434,7 +463,8 @@ class Model(nn.Module):
                 last_layer=True,
             )
 
-        self.padding = [(16 - size % 16) % 16 for size in [grid_h, grid_w]]
+        self.padding = [(16 - size % 16) %
+                        16 for size in [grid_h, grid_w]]
 
         self.p = GConv2d(
             in_channels=args.n_hidden,
@@ -515,7 +545,8 @@ class Model(nn.Module):
             kernel_size=1,
             reflection=reflection,
         )
-        self.norm = GNorm(self.width, group_size=4 * (1 + reflection))
+        self.norm = GNorm(
+            self.width, group_size=4 * (1 + reflection))
 
     # ===== 两条数据路径：与 FNO 对齐 =====
     def structured_geo(self, x, fx, T=None):
@@ -528,37 +559,45 @@ class Model(nn.Module):
 
         # 位置嵌入或直接用 x
         if self.args.unified_pos:
-            pos = self.pos.repeat(B, 1, 1)  # (B, N, pos_dim)
-            feats = torch.cat([pos, fx], dim=-1) if fx is not None else pos
+            pos = self.pos.repeat(
+                B, 1, 1)  # (B, N, pos_dim)
+            feats = torch.cat(
+                [pos, fx], dim=-1) if fx is not None else pos
         else:
-            feats = torch.cat([x, fx], dim=-1) if fx is not None else x
+            feats = torch.cat(
+                [x, fx], dim=-1) if fx is not None else x
 
         # 预处理到 n_hidden
         feats = self.preprocess(feats)  # (B, N, n_hidden)
 
         # 加时间嵌入
         if (T is not None) and (self.time_fc is not None):
-            t_emb = timestep_embedding(T, self.args.n_hidden).repeat(1, N, 1)
+            t_emb = timestep_embedding(
+                T, self.args.n_hidden).repeat(1, N, 1)
             feats = feats + self.time_fc(t_emb)
 
         # reshape -> (B, C=n_hidden, H, W)
         H, W = self.args.shapelist
-        xg = feats.permute(0, 2, 1).reshape(B, self.args.n_hidden, H, W)
+        xg = feats.permute(0, 2, 1).reshape(
+            B, self.args.n_hidden, H, W)
 
         # padding (右/下)
         if not all(p == 0 for p in self.padding):
-            xg = F.pad(xg, [0, self.padding[1], 0, self.padding[0]])
+            xg = F.pad(
+                xg, [0, self.padding[1], 0, self.padding[0]])
 
         # === GFNO 主干 ===
         xg = self._gfno_stem_forward(xg)
 
         # 去 padding
         if not all(p == 0 for p in self.padding):
-            xg = xg[..., : -self.padding[0], : -self.padding[1]]
+            xg = xg[..., : -self.padding[0],
+                    : -self.padding[1]]
 
         # 投到 out_dim，并拉回 (B, N, out_dim)
         xg = self.q(xg)  # (B, out_dim, H, W)
-        out = xg.reshape(B, self.out_channels, -1).permute(0, 2, 1)
+        out = xg.reshape(
+            B, self.out_channels, -1).permute(0, 2, 1)
         return out
 
     def unstructured_geo(self, x, fx, T=None):
@@ -569,11 +608,13 @@ class Model(nn.Module):
         """
         B, N, _ = x.shape
 
-        feats = torch.cat([x, fx], dim=-1) if fx is not None else x
+        feats = torch.cat(
+            [x, fx], dim=-1) if fx is not None else x
         feats = self.preprocess(feats)  # (B, N, n_hidden)
 
         if (T is not None) and (self.time_fc is not None):
-            t_emb = timestep_embedding(T, self.args.n_hidden).repeat(1, N, 1)
+            t_emb = timestep_embedding(
+                T, self.args.n_hidden).repeat(1, N, 1)
             feats = feats + self.time_fc(t_emb)
 
         # 投影到规则网格: (B, C, H, W)

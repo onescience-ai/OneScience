@@ -19,11 +19,13 @@ class TransformerDecoder(Module):
         norm: str
             Layer normalization component.
     """
+
     __constants__ = ["norm"]
 
     def __init__(self, decoder_layer, num_layers, norm=None):
         super().__init__()
-        torch._C._log_api_usage_once(f"torch.nn.modules.{self.__class__.__name__}")
+        torch._C._log_api_usage_once(
+            f"torch.nn.modules.{self.__class__.__name__}")
         self.layers = _get_clones(decoder_layer, num_layers)
         self.num_layers = num_layers
         self.norm = norm
@@ -82,6 +84,7 @@ class DecoderOnlyLayer(Module):
             bias. Default: ``True``.
 
     """
+
     __constants__ = ["norm_first"]
 
     def __init__(
@@ -90,7 +93,8 @@ class DecoderOnlyLayer(Module):
         nhead: int,
         dim_feedforward: int = 2048,
         dropout: float = 0.1,
-        activation: Union[str, Callable[[Tensor], Tensor]] = F.relu,
+        activation: Union[str, Callable[[
+            Tensor], Tensor]] = F.relu,
         layer_norm_eps: float = 1e-5,
         batch_first: bool = False,
         norm_first: bool = False,
@@ -117,14 +121,19 @@ class DecoderOnlyLayer(Module):
             **factory_kwargs,
         )
         # Implementation of Feedforward model
-        self.linear1 = Linear(d_model, dim_feedforward, bias=bias, **factory_kwargs)
+        self.linear1 = Linear(
+            d_model, dim_feedforward, bias=bias, **factory_kwargs)
         self.dropout = Dropout(dropout)
-        self.linear2 = Linear(dim_feedforward, d_model, bias=bias, **factory_kwargs)
+        self.linear2 = Linear(
+            dim_feedforward, d_model, bias=bias, **factory_kwargs)
 
         self.norm_first = norm_first
-        self.norm1 = LayerNorm(d_model, eps=layer_norm_eps, bias=bias, **factory_kwargs)
-        self.norm2 = LayerNorm(d_model, eps=layer_norm_eps, bias=bias, **factory_kwargs)
-        self.norm3 = LayerNorm(d_model, eps=layer_norm_eps, bias=bias, **factory_kwargs)
+        self.norm1 = LayerNorm(
+            d_model, eps=layer_norm_eps, bias=bias, **factory_kwargs)
+        self.norm2 = LayerNorm(
+            d_model, eps=layer_norm_eps, bias=bias, **factory_kwargs)
+        self.norm3 = LayerNorm(
+            d_model, eps=layer_norm_eps, bias=bias, **factory_kwargs)
         self.dropout1 = Dropout(dropout)
         self.dropout2 = Dropout(dropout)
         self.dropout3 = Dropout(dropout)
@@ -154,18 +163,24 @@ class DecoderOnlyLayer(Module):
         x = tgt
         if self.norm_first:
             x = x + self._sa_block(
-                self.norm1(x), tgt_mask, tgt_key_padding_mask, tgt_is_causal
+                self.norm1(
+                    x), tgt_mask, tgt_key_padding_mask, tgt_is_causal
             )
             x = x + self._mha_block(
-                self.norm2(x), tgt_mask, tgt_key_padding_mask, tgt_is_causal
+                self.norm2(
+                    x), tgt_mask, tgt_key_padding_mask, tgt_is_causal
             )
             x = x + self._ff_block(self.norm3(x))
         else:
             x = self.norm1(
-                x + self._sa_block(x, tgt_mask, tgt_key_padding_mask, tgt_is_causal)
+                x +
+                self._sa_block(
+                    x, tgt_mask, tgt_key_padding_mask, tgt_is_causal)
             )
             x = self.norm2(
-                x + self._mha_block(x, tgt_mask, tgt_key_padding_mask, tgt_is_causal)
+                x +
+                self._mha_block(
+                    x, tgt_mask, tgt_key_padding_mask, tgt_is_causal)
             )
             x = self.norm3(x + self._ff_block(x))
 
@@ -211,7 +226,8 @@ class DecoderOnlyLayer(Module):
 
     # feed forward block
     def _ff_block(self, x: Tensor) -> Tensor:
-        x = self.linear2(self.dropout(self.activation(self.linear1(x))))
+        x = self.linear2(self.dropout(
+            self.activation(self.linear1(x))))
         return self.dropout3(x)
 
 
@@ -226,7 +242,8 @@ def _get_activation_fn(activation: str) -> Callable[[Tensor], Tensor]:
     elif activation == "gelu":
         return F.gelu
 
-    raise RuntimeError(f"activation should be relu/gelu, not {activation}")
+    raise RuntimeError(
+        f"activation should be relu/gelu, not {activation}")
 
 
 def _detect_is_causal_mask(
@@ -248,7 +265,8 @@ def _detect_is_causal_mask(
         # Do not use `torch.equal` so we handle batched masks by
         # broadcasting the comparison.
         if mask.size() == causal_comparison.size():
-            make_causal = bool((mask == causal_comparison).all())
+            make_causal = bool(
+                (mask == causal_comparison).all())
         else:
             make_causal = False
 

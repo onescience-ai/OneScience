@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch_geometric.nn as nng
+
 from onescience.models.layers.Basic import MLP
 
 
@@ -52,7 +53,8 @@ class Model(nn.Module):
             self.bn = nn.ModuleList()
             for n in range(self.nb_hidden_layers):
                 self.bn.append(
-                    nn.BatchNorm1d(self.size_hidden_layers, track_running_stats=False)
+                    nn.BatchNorm1d(
+                        self.size_hidden_layers, track_running_stats=False)
                 )
 
     def forward(self, x, fx, T=None, geo=None):
@@ -62,7 +64,8 @@ class Model(nn.Module):
         if fx is not None and fx.dim() == 3:
             fx = fx.squeeze(0)  # [1, N, C] → [N, C]
         if geo.dim() == 3:
-            edge_index = geo.squeeze(0)  # [1, 2, E] → [2, E]
+            edge_index = geo.squeeze(
+                0)  # [1, 2, E] → [2, E]
         else:
             edge_index = geo
 

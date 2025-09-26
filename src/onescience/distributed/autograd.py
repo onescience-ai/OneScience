@@ -38,7 +38,8 @@ class AllGatherVAutograd(torch.autograd.Function):
     ) -> torch.Tensor:  # pragma: no cover
         """forward pass of the Distributed AllGatherV primitive"""
 
-        gathered_tensor = all_gather_v_wrapper(tensor, sizes, dim=dim, group=group)
+        gathered_tensor = all_gather_v_wrapper(
+            tensor, sizes, dim=dim, group=group)
         ctx.sizes = sizes
         ctx.group = group
         ctx.dim = dim
@@ -89,7 +90,8 @@ class GatherVAutograd(torch.autograd.Function):
     ) -> torch.Tensor:  # pragma: no cover
         """forward pass of the distributed GatherV primitive"""
 
-        gathered_tensor = gather_v_wrapper(tensor, sizes, dim=dim, dst=dst, group=group)
+        gathered_tensor = gather_v_wrapper(
+            tensor, sizes, dim=dim, dst=dst, group=group)
 
         ctx.sizes = sizes
         ctx.dim = dim

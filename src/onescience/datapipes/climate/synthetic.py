@@ -111,8 +111,10 @@ class SyntheticWeatherDataset(Dataset):
         )  # Shape: (num_days, num_channels, latitudes, longitudes)
 
         # Create latitude variation and reshape
-        lat_variation = np.linspace(-amplitude, amplitude, latitudes)
-        lat_variation = lat_variation[:, np.newaxis]  # Shape: (latitudes, 1)
+        lat_variation = np.linspace(-amplitude,
+                                    amplitude, latitudes)
+        # Shape: (latitudes, 1)
+        lat_variation = lat_variation[:, np.newaxis]
         lat_variation = np.tile(
             lat_variation, (1, longitudes)
         )  # Shape: (latitudes, longitudes)
@@ -129,16 +131,19 @@ class SyntheticWeatherDataset(Dataset):
             :, np.newaxis, np.newaxis, np.newaxis
         ]  # Shape: (num_days, 1, 1, 1)
         time_effect = np.tile(
-            time_effect, (1, num_channels, latitudes, longitudes)
+            time_effect, (1, num_channels,
+                          latitudes, longitudes)
         )  # Shape: (num_days, num_channels, latitudes, longitudes)
 
         # Generate noise
         noise = np.random.normal(
-            scale=noise_level, size=(num_days, num_channels, latitudes, longitudes)
+            scale=noise_level, size=(
+                num_days, num_channels, latitudes, longitudes)
         )
 
         # Calculate daily temperatures
-        daily_temps = base_temp + altitude_effect + lat_variation + time_effect + noise
+        daily_temps = base_temp + altitude_effect + \
+            lat_variation + time_effect + noise
 
         return daily_temps
 
@@ -158,7 +163,8 @@ class SyntheticWeatherDataset(Dataset):
                     self.device
                 ),
                 "outvar": torch.tensor(
-                    self.temperatures[idx + 1 : idx + self.num_steps + 1],
+                    self.temperatures[idx +
+                                      1: idx + self.num_steps + 1],
                     dtype=torch.float32,
                 ).to(self.device),
             }

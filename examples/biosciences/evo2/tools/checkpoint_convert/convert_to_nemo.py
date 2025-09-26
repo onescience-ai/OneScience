@@ -41,7 +41,12 @@ def parse_args():
         help="Path to the Evo2 un-sharded (MP1) model checkpoint file, or a Hugging Face model name. Any model "
         "from the Savanna Evo2 family is supported such as 'hf://arcinstitute/savanna_evo2_1b_base'.",
     )
-    parser.add_argument("--output-dir", type=str, required=True, help="Output directory path for the converted model.")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        required=True,
+        help="Output directory path for the converted model.",
+    )
     parser.add_argument(
         "--model-size",
         type=str,
@@ -103,13 +108,16 @@ class HyenaOptimizerRemover(io.ModelConnector["HyenaModel", HyenaModel]):
         source = self.get_source_model()
 
         target = self.init()
-        trainer = self.nemo_setup(target, ckpt_async_save=False, save_ckpt_format=checkpoint_format)
+        trainer = self.nemo_setup(
+            target, ckpt_async_save=False, save_ckpt_format=checkpoint_format
+        )
         source.to(self.config.params_dtype)
         target.to(self.config.params_dtype)
         self.convert_state(source, target)
         self.nemo_save(output_path, trainer)
 
-        logging.info(f"Converted Hyena model to Nemo, model saved to {output_path}")
+        logging.info(
+            f"Converted Hyena model to Nemo, model saved to {output_path}")
 
         teardown(trainer, target)
         del trainer, target
@@ -126,7 +134,8 @@ class HyenaOptimizerRemover(io.ModelConnector["HyenaModel", HyenaModel]):
         Returns:
             Result of applying state transforms
         """
-        mapping = {k: k for k in source.module.state_dict().keys()}
+        mapping = {
+            k: k for k in source.module.state_dict().keys()}
         return io.apply_transforms(
             source,
             target,
@@ -140,7 +149,9 @@ class HyenaOptimizerRemover(io.ModelConnector["HyenaModel", HyenaModel]):
         Returns:
             Tokenizer instance
         """
-        from nemo.collections.nlp.modules.common.tokenizer_utils import get_nmt_tokenizer
+        from nemo.collections.nlp.modules.common.tokenizer_utils import (
+            get_nmt_tokenizer,
+        )
 
         tokenizer = get_nmt_tokenizer(
             library=self.model_config.tokenizer_library,
@@ -163,16 +174,22 @@ def main():
     args = parse_args()
 
     evo2_config = HYENA_MODEL_OPTIONS[args.model_size]()
-    
+
     if args.strip_optimizer:
-        importer = HyenaOptimizerRemover(args.model_path, model_config=evo2_config)
-        assert not args.model_path.startswith("hf://"), "Strip optimizer only works on local nemo2 format checkpoints."
+        importer = HyenaOptimizerRemover(
+            args.model_path, model_config=evo2_config)
+        assert not args.model_path.startswith(
+            "hf://"
+        ), "Strip optimizer only works on local nemo2 format checkpoints."
     elif args.model_path.startswith("hf://"):
-        importer = HuggingFaceSavannaHyenaImporter(args.model_path.lstrip("hf://"), model_config=evo2_config)
+        importer = HuggingFaceSavannaHyenaImporter(
+            args.model_path.lstrip("hf://"), model_config=evo2_config
+        )
     else:
-        import pdb; pdb.set_trace()
-        importer = PyTorchHyenaImporter(args.model_path, model_config=evo2_config)     
-    # import pdb; pdb.set_trace() 
+        # import pdb; pdb.set_trace()
+        importer = PyTorchHyenaImporter(
+            args.model_path, model_config=evo2_config)
+    # import pdb; pdb.set_trace()
     importer.apply(args.output_dir)
 
 

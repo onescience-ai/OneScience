@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import datetime
@@ -42,7 +41,8 @@ class UniqueKeyLoader(yaml.SafeLoader):
     def construct_mapping(self, node, deep=False):
         mapping = set()
         for key_node, _ in node.value:
-            each_key = self.construct_object(key_node, deep=deep)
+            each_key = self.construct_object(
+                key_node, deep=deep)
             if each_key in mapping:
                 raise ValueError(
                     f"Duplicate Key: {each_key!r} is found in YAML File.\n"
@@ -83,9 +83,11 @@ def _import_local_file(path: Path, *, project_root: Path) -> None:
     project_root = project_root.parent.absolute()
 
     module_name = ".".join(
-        path.absolute().relative_to(project_root.absolute()).with_suffix("").parts
+        path.absolute().relative_to(
+            project_root.absolute()).with_suffix("").parts
     )
-    logging.debug(f"Resolved module name of {path} to {module_name}")
+    logging.debug(
+        f"Resolved module name of {path} to {module_name}")
     importlib.import_module(module_name)
 
 
@@ -99,7 +101,8 @@ def setup_experimental_imports(project_root: Path) -> None:
 
     :param project_root: The root directory of the project (i.e., the "ocp" folder)
     """
-    experimental_dir = (project_root / "experimental").absolute()
+    experimental_dir = (
+        project_root / "experimental").absolute()
     if not experimental_dir.exists() or not experimental_dir.is_dir():
         return
 
@@ -108,7 +111,8 @@ def setup_experimental_imports(project_root: Path) -> None:
 
     if include_file.exists():
         with open(include_file) as f:
-            include_dirs = [line.rstrip("\n") for line in f.readlines() if line.strip()]
+            include_dirs = [line.rstrip(
+                "\n") for line in f.readlines() if line.strip()]
 
         for inc_dir in include_dirs:
             experimental_files.extend(
@@ -128,15 +132,21 @@ def _get_project_root() -> Path:
 
     # Automatically load all of the modules, so that
     # they register with registry
-    root_folder = registry.get("onescience_models_UMA_root", no_warning=True)
+    root_folder = registry.get(
+        "onescience_models_UMA_root", no_warning=True)
 
     if root_folder is not None:
-        assert isinstance(root_folder, str), "onescience_models_UMA_root must be a string"
+        assert isinstance(
+            root_folder, str
+        ), "onescience_models_UMA_root must be a string"
         root_folder = Path(root_folder).resolve().absolute()
-        assert root_folder.exists(), f"{root_folder} does not exist"
-        assert root_folder.is_dir(), f"{root_folder} is not a directory"
+        assert root_folder.exists(
+        ), f"{root_folder} does not exist"
+        assert root_folder.is_dir(
+        ), f"{root_folder} is not a directory"
     else:
-        root_folder = Path(__file__).resolve().absolute().parent.parent
+        root_folder = Path(
+            __file__).resolve().absolute().parent.parent
 
     # root_folder is the "ocpmodes" folder, so we need to go up one more level
     return root_folder.parent
@@ -146,22 +156,27 @@ def _get_project_root() -> Path:
 def setup_imports(config: dict | None = None) -> None:
     from onescience.models.UMA.common.registry import registry
 
-    skip_experimental_imports = (config or {}).get("skip_experimental_imports", False)
+    skip_experimental_imports = (config or {}).get(
+        "skip_experimental_imports", False)
 
     # First, check if imports are already setup
-    has_already_setup = registry.get("imports_setup", no_warning=True)
+    has_already_setup = registry.get(
+        "imports_setup", no_warning=True)
     if has_already_setup:
         return
 
     try:
         project_root = _get_project_root()
         logging.info(f"Project root: {project_root}")
-        importlib.import_module("onescience.models.UMA.common.logger")
+        importlib.import_module(
+            "onescience.models.UMA.common.logger")
 
-        import_keys = ["trainers", "datasets", "models", "tasks"]
+        import_keys = ["trainers",
+                       "datasets", "models", "tasks"]
         for key in import_keys:
             for f in (project_root / "core" / key).rglob("*.py"):
-                _import_local_file(f, project_root=project_root)
+                _import_local_file(
+                    f, project_root=project_root)
 
         if not skip_experimental_imports:
             setup_experimental_imports(project_root)
@@ -193,7 +208,8 @@ class SeverityLevelBetween(logging.Filter):
 def setup_logging() -> None:
     root = logging.getLogger()
     # Perform setup only if logging has not been configured
-    target_logging_level = getattr(logging, os.environ.get("LOGLEVEL", "INFO").upper())
+    target_logging_level = getattr(
+        logging, os.environ.get("LOGLEVEL", "INFO").upper())
     root.setLevel(target_logging_level)
     if not root.hasHandlers():
         log_formatter = logging.Formatter(
@@ -204,7 +220,8 @@ def setup_logging() -> None:
         # Send INFO (or target) to stdout
         handler_out = logging.StreamHandler(sys.stdout)
         handler_out.addFilter(
-            SeverityLevelBetween(target_logging_level, logging.WARNING)
+            SeverityLevelBetween(
+                target_logging_level, logging.WARNING)
         )
         handler_out.setFormatter(log_formatter)
         root.addHandler(handler_out)
@@ -243,7 +260,8 @@ def _report_incompat_keys(
     missing_keys: list[str] = []
     for full_key_name in keys.missing_keys:
         parent_module_name, _ = full_key_name.rsplit(".", 1)
-        scale_factor = _resolve_scale_factor_submodule(model, parent_module_name)
+        scale_factor = _resolve_scale_factor_submodule(
+            model, parent_module_name)
         if scale_factor is not None:
             continue
         missing_keys.append(full_key_name)
@@ -252,7 +270,8 @@ def _report_incompat_keys(
     unexpected_keys: list[str] = []
     for full_key_name in keys.unexpected_keys:
         parent_module_name, _ = full_key_name.rsplit(".", 1)
-        scale_factor = _resolve_scale_factor_submodule(model, parent_module_name)
+        scale_factor = _resolve_scale_factor_submodule(
+            model, parent_module_name)
         if scale_factor is not None:
             continue
         unexpected_keys.append(full_key_name)
@@ -275,7 +294,8 @@ def _report_incompat_keys(
 
     if len(error_msgs) > 0:
         error_msg = "Error(s) in loading state_dict for {}:\n\t{}".format(
-            model.__class__.__name__, "\n\t".join(error_msgs)
+            model.__class__.__name__, "\n\t".join(
+                error_msgs)
         )
         if strict:
             raise RuntimeError(error_msg)
@@ -295,8 +315,10 @@ def match_state_dict(
     # DataParallel model has 1 "module.",  DistributedDataParallel has 2 "module."
     # Not using either of the above two would have no "module."
 
-    ckpt_key_count = next(iter(checkpoint_state_dict)).count("module")
-    mod_key_count = next(iter(model_state_dict)).count("module")
+    ckpt_key_count = next(
+        iter(checkpoint_state_dict)).count("module")
+    mod_key_count = next(
+        iter(model_state_dict)).count("module")
     key_count_diff = mod_key_count - ckpt_key_count
 
     if key_count_diff > 0:
@@ -305,7 +327,7 @@ def match_state_dict(
         }
     elif key_count_diff < 0:
         new_dict = {
-            k[len("module.") * abs(key_count_diff) :]: v
+            k[len("module.") * abs(key_count_diff):]: v
             for k, v in checkpoint_state_dict.items()
         }
     else:
@@ -318,15 +340,19 @@ def load_state_dict(
     state_dict: Mapping[str, torch.Tensor],
     strict: bool = True,
 ) -> tuple[list[str], list[str]]:
-    incompat_keys = module.load_state_dict(state_dict, strict=False)  # type: ignore
+    incompat_keys = module.load_state_dict(
+        state_dict, strict=False)  # type: ignore
     return _report_incompat_keys(module, incompat_keys, strict=strict)
 
 
 def get_commit_hash() -> str:
-    core_hash = get_commit_hash_for_repo(onescience.models.UMA.__path__[0])
+    core_hash = get_commit_hash_for_repo(
+        onescience.models.UMA.__path__[0])
     experimental_hash = None
     try:
-        experimental_hash = get_commit_hash_for_repo(onescience.models.experimental.__path__[0])
+        experimental_hash = get_commit_hash_for_repo(
+            onescience.models.experimental.__path__[0]
+        )
         return f"UMA:{core_hash},experimental:{experimental_hash}"
     except (NameError, AttributeError):
         return f"UMA:{core_hash},experimental:NA"
@@ -338,7 +364,8 @@ def get_commit_hash_for_repo(
     try:
         commit_hash = (
             subprocess.check_output(
-                ["git", "-C", git_repo_path, "describe", "--always"],
+                ["git", "-C", git_repo_path,
+                    "describe", "--always"],
                 stderr=subprocess.DEVNULL,
             )
             .strip()
@@ -356,7 +383,8 @@ def load_model_and_weights_from_checkpoint(checkpoint_path: str) -> nn.Module:
         raise FileNotFoundError(
             errno.ENOENT, "Checkpoint file not found", checkpoint_path
         )
-    logging.info(f"Loading checkpoint from: {checkpoint_path}")
+    logging.info(
+        f"Loading checkpoint from: {checkpoint_path}")
     checkpoint = torch.load(
         checkpoint_path, map_location=torch.device("cpu"), weights_only=False
     )
@@ -365,7 +393,8 @@ def load_model_and_weights_from_checkpoint(checkpoint_path: str) -> nn.Module:
     config = checkpoint["config"]["model"]
     name = config.pop("name")
     model = registry.get_model_class(name)(**config)
-    matched_dict = match_state_dict(model.state_dict(), checkpoint["state_dict"])
+    matched_dict = match_state_dict(
+        model.state_dict(), checkpoint["state_dict"])
     load_state_dict(model, matched_dict, strict=True)
     return model
 
@@ -387,22 +416,28 @@ def tensor_stats(name: str, x: torch.Tensor) -> dict:
 
 
 def get_weight_table(model: torch.nn.Module) -> tuple[list, list]:
-    stat_names = list(tensor_stats("weight", torch.Tensor([1])).keys())
-    columns = ["ParamName", "shape"] + stat_names + ["grad." + n for n in stat_names]
+    stat_names = list(tensor_stats(
+        "weight", torch.Tensor([1])).keys())
+    columns = ["ParamName", "shape"] + \
+        stat_names + ["grad." + n for n in stat_names]
     data = []
     for param_name, params in model.named_parameters():
-        row_weight = list(tensor_stats(f"weights/{param_name}", params).values())
+        row_weight = list(tensor_stats(
+            f"weights/{param_name}", params).values())
         if params.grad is not None:
-            row_grad = list(tensor_stats(f"grad/{param_name}", params.grad).values())
+            row_grad = list(tensor_stats(
+                f"grad/{param_name}", params.grad).values())
         else:
             row_grad = [None] * len(row_weight)
-        data.append([param_name] + [params.shape] + row_weight + row_grad)
+        data.append([param_name] +
+                    [params.shape] + row_weight + row_grad)
     return columns, data
 
 
 def get_checkpoint_format(config: dict) -> str:
     # a temporary function to retrieve the checkpoint format from old configs
-    format = config.get("optim", {}).get("checkpoint_format", "pt")
+    format = config.get("optim", {}).get(
+        "checkpoint_format", "pt")
     assert format in (
         "pt",
         "dcp",
@@ -415,7 +450,8 @@ def get_deep(dictionary: dict, keys: str, default: str | None = None):
     # example:
     # get_deep(dictionary{"oc20":{"energy",1}}, keys="oc20.energy") -> 1
     return reduce(
-        lambda d, key: d.get(key, default) if isinstance(d, dict) else default,
+        lambda d, key: d.get(key, default) if isinstance(
+            d, dict) else default,
         keys.split("."),
         dictionary,
     )
@@ -434,6 +470,7 @@ def get_subdirectories_sorted_by_time(directory: str) -> list:
 
     directory = pathlib.Path(directory)
     return sorted(
-        ((str(d), d.stat().st_mtime) for d in directory.iterdir() if d.is_dir()),
+        ((str(d), d.stat().st_mtime)
+         for d in directory.iterdir() if d.is_dir()),
         key=lambda x: x[1],
     )

@@ -1,11 +1,13 @@
-import numpy as np
-import torch
-from torch.utils.data import Dataset
 # from torch.utils.data import DataLoader
 import os
+
 import h5py
+import numpy as np
+import torch
+
 # from omegaconf import DictConfig, OmegaConf
 import yaml
+from torch.utils.data import Dataset
 
 
 class PINNDataset1D(Dataset):
@@ -21,14 +23,17 @@ class PINNDataset1D(Dataset):
             seed_group = h5_file[seed]
 
             # extract config
-            self.config = yaml.load(seed_group.attrs["config"], Loader=yaml.SafeLoader)
+            self.config = yaml.load(
+                seed_group.attrs["config"], Loader=yaml.SafeLoader)
             print(self.config)
 
             # build input data from individual dimensions
             # dim x = [x]
-            self.data_grid_x = torch.tensor(seed_group["grid"]["x"], dtype=torch.float)
+            self.data_grid_x = torch.tensor(
+                seed_group["grid"]["x"], dtype=torch.float)
             # # dim t = [t]
-            self.data_grid_t = torch.tensor(seed_group["grid"]["t"], dtype=torch.float)
+            self.data_grid_t = torch.tensor(
+                seed_group["grid"]["t"], dtype=torch.float)
 
             self.tdim = self.data_grid_t.shape[0]
 
@@ -37,44 +42,54 @@ class PINNDataset1D(Dataset):
                 indexing="ij",
             )
 
-            self.data_input = torch.vstack([XX.ravel(), TT.ravel()]).T
+            self.data_input = torch.vstack(
+                [XX.ravel(), TT.ravel()]).T
 
             self.data_output = torch.tensor(
                 np.array(seed_group["data"]), dtype=torch.float
             )
 
             # permute from [t, x] -> [x, t]
-            permute_idx = list(range(1, len(self.data_output.shape) - 1))
+            permute_idx = list(
+                range(1, len(self.data_output.shape) - 1))
             permute_idx.extend(list([0, -1]))
-            self.data_output = self.data_output.permute(permute_idx)
+            self.data_output = self.data_output.permute(
+                permute_idx)
 
-            self.data_output = self.data_output.reshape(-1, 1)
+            self.data_output = self.data_output.reshape(
+                -1, 1)
 
     def get_test_data(self, n_last_time_steps, n_components=1):
         n_x = len(self.data_grid_x)
         n_t = len(self.data_grid_t)
 
         # start_idx = n_x * n_y * (n_t - n_last_time_steps)
-        test_input_x = self.data_input[:, 0].reshape((n_x, n_t))
-        test_input_t = self.data_input[:, 1].reshape((n_x, n_t))
-        test_output = self.data_output.reshape((n_x, n_t, n_components))
+        test_input_x = self.data_input[:, 0].reshape(
+            (n_x, n_t))
+        test_input_t = self.data_input[:, 1].reshape(
+            (n_x, n_t))
+        test_output = self.data_output.reshape(
+            (n_x, n_t, n_components))
 
         # extract last n time steps
         test_input_x = test_input_x[:, -n_last_time_steps:]
         test_input_t = test_input_t[:, -n_last_time_steps:]
         test_output = test_output[:, -n_last_time_steps:, :]
 
-        test_input = torch.vstack([test_input_x.ravel(), test_input_t.ravel()]).T
+        test_input = torch.vstack(
+            [test_input_x.ravel(), test_input_t.ravel()]).T
 
         # stack depending on number of output components
         test_output_stacked = test_output[..., 0].ravel()
         if n_components > 1:
             for i in range(1, n_components):
                 test_output_stacked = torch.vstack(
-                    [test_output_stacked, test_output[..., i].ravel()]
+                    [test_output_stacked,
+                        test_output[..., i].ravel()]
                 )
         else:
-            test_output_stacked = test_output_stacked.unsqueeze(1)
+            test_output_stacked = test_output_stacked.unsqueeze(
+                1)
 
         test_output = test_output_stacked.T
 
@@ -117,44 +132,56 @@ class PINNDataset2D(Dataset):
         # load data file
         root_path = os.path.abspath(root_path)
         data_path = os.path.join(root_path, filename)
-        
+
         with h5py.File(data_path, "r") as h5_file:
             # print(h5_file.keys())
             seed_group = h5_file[seed]
 
             # extract config
-            if len(filename)>=10 and filename[0:10] == '2D_Burgers':
-                self.config = yaml.load("work_dir: ${hydra:runtime.cwd}\ndata_dir: ${work_dir}/data/\noutput_path: /pfs/work7/workspace/scratch/st_ac131224-pde_test/data//Bgs/train_0000.h5\nname: null\nsim:\n  Du: 0.001\n  Dv: 0.005\n  k: 0.005\n  t: 1\n  tdim: 101\n  x_left: 0.0\n  x_right: 1.0\n  xdim: 128\n  y_bottom: 0.0\n  y_top: 1.0\n  ydim: 128\n  'n': 1\n  seed: 0\ndefault_mode: true\n", Loader=yaml.SafeLoader)
+            if len(filename) >= 10 and filename[0:10] == "2D_Burgers":
+                self.config = yaml.load(
+                    "work_dir: ${hydra:runtime.cwd}\ndata_dir: ${work_dir}/data/\noutput_path: /pfs/work7/workspace/scratch/st_ac131224-pde_test/data//Bgs/train_0000.h5\nname: null\nsim:\n  Du: 0.001\n  Dv: 0.005\n  k: 0.005\n  t: 1\n  tdim: 101\n  x_left: 0.0\n  x_right: 1.0\n  xdim: 128\n  y_bottom: 0.0\n  y_top: 1.0\n  ydim: 128\n  'n': 1\n  seed: 0\ndefault_mode: true\n",
+                    Loader=yaml.SafeLoader,
+                )
             else:
-                self.config = yaml.load(seed_group.attrs["config"], Loader=yaml.SafeLoader)
-                
+                self.config = yaml.load(
+                    seed_group.attrs["config"], Loader=yaml.SafeLoader
+                )
+
             # build input data from individual dimensions
             # dim x = [x]
-            self.data_grid_x = torch.tensor(seed_group["grid"]["x"], dtype=torch.float)
+            self.data_grid_x = torch.tensor(
+                seed_group["grid"]["x"], dtype=torch.float)
             # # dim y = [y]
-            self.data_grid_y = torch.tensor(seed_group["grid"]["y"], dtype=torch.float)
+            self.data_grid_y = torch.tensor(
+                seed_group["grid"]["y"], dtype=torch.float)
             # # dim t = [t]
-            self.data_grid_t = torch.tensor(seed_group["grid"]["t"], dtype=torch.float)
+            self.data_grid_t = torch.tensor(
+                seed_group["grid"]["t"], dtype=torch.float)
 
             self.xdim = self.data_grid_x.size(0)
             self.ydim = self.data_grid_y.size(0)
             self.tdim = self.data_grid_t.size(0)
 
             XX, YY, TT = torch.meshgrid(
-                [self.data_grid_x, self.data_grid_y, self.data_grid_t],
+                [self.data_grid_x, self.data_grid_y,
+                    self.data_grid_t],
                 indexing="ij",
             )
 
-            self.data_input = torch.vstack([XX.ravel(), YY.ravel(), TT.ravel()]).T
+            self.data_input = torch.vstack(
+                [XX.ravel(), YY.ravel(), TT.ravel()]).T
 
             self.data_output = torch.tensor(
                 np.array(seed_group["data"]), dtype=torch.float
             )
 
             # permute from [t, x, y] -> [x, y, t]
-            permute_idx = list(range(1, len(self.data_output.shape) - 1))
+            permute_idx = list(
+                range(1, len(self.data_output.shape) - 1))
             permute_idx.extend(list([0, -1]))
-            self.data_output = self.data_output.permute(permute_idx)
+            self.data_output = self.data_output.permute(
+                permute_idx)
 
     def generate_plot_input(self, time=1.0):
         x_space = np.linspace(
@@ -169,7 +196,8 @@ class PINNDataset2D(Dataset):
         )
         xx, yy = np.meshgrid(x_space, y_space)
         tt = np.ones_like(xx) * time
-        val_input = np.vstack((np.ravel(xx), np.ravel(yy), np.ravel(tt))).T
+        val_input = np.vstack(
+            (np.ravel(xx), np.ravel(yy), np.ravel(tt))).T
         return val_input
 
     def __len__(self):
@@ -187,19 +215,28 @@ class PINNDataset2D(Dataset):
         n_t = len(self.data_grid_t)
 
         # start_idx = n_x * n_y * (n_t - n_last_time_steps)
-        test_input_x = self.data_input[:, 0].reshape((n_x, n_y, n_t))
-        test_input_y = self.data_input[:, 1].reshape((n_x, n_y, n_t))
-        test_input_t = self.data_input[:, 2].reshape((n_x, n_y, n_t))
-        test_output = self.data_output.reshape((n_x, n_y, n_t, n_components))
+        test_input_x = self.data_input[:, 0].reshape(
+            (n_x, n_y, n_t))
+        test_input_y = self.data_input[:, 1].reshape(
+            (n_x, n_y, n_t))
+        test_input_t = self.data_input[:, 2].reshape(
+            (n_x, n_y, n_t))
+        test_output = self.data_output.reshape(
+            (n_x, n_y, n_t, n_components))
 
         # extract last n time steps
-        test_input_x = test_input_x[:, :, -n_last_time_steps:]
-        test_input_y = test_input_y[:, :, -n_last_time_steps:]
-        test_input_t = test_input_t[:, :, -n_last_time_steps:]
-        test_output = test_output[:, :, -n_last_time_steps:, :]
+        test_input_x = test_input_x[:,
+                                    :, -n_last_time_steps:]
+        test_input_y = test_input_y[:,
+                                    :, -n_last_time_steps:]
+        test_input_t = test_input_t[:,
+                                    :, -n_last_time_steps:]
+        test_output = test_output[:,
+                                  :, -n_last_time_steps:, :]
 
         test_input = torch.vstack(
-            [test_input_x.ravel(), test_input_y.ravel(), test_input_t.ravel()]
+            [test_input_x.ravel(), test_input_y.ravel(),
+             test_input_t.ravel()]
         ).T
 
         # stack depending on number of output components
@@ -207,10 +244,12 @@ class PINNDataset2D(Dataset):
         if n_components > 1:
             for i in range(1, n_components):
                 test_output_stacked = torch.vstack(
-                    [test_output_stacked, test_output[..., i].ravel()]
+                    [test_output_stacked,
+                        test_output[..., i].ravel()]
                 )
         else:
-            test_output_stacked = test_output_stacked.unsqueeze(1)
+            test_output_stacked = test_output_stacked.unsqueeze(
+                1)
 
         test_output = test_output_stacked.T
 
@@ -252,7 +291,8 @@ class PINNDatasetRadialDambreak(PINNDataset2D):
             dam_radius = self.config["sim"]["dam_radius"]
 
             h_initial = np.expand_dims(
-                h_in * (r <= dam_radius) + h_out * (r > dam_radius), 1
+                h_in * (r <= dam_radius) +
+                h_out * (r > dam_radius), 1
             )
 
             return h_initial
@@ -271,7 +311,7 @@ class PINNDatasetDiffReact(PINNDataset2D):
     def get_initial_condition(self):
         Nx = len(self.data_grid_x)
         Ny = len(self.data_grid_y)
-        Nt = len(self.data_grid_t)
+        len(self.data_grid_t)
 
         np.random.seed(self.config["sim"]["seed"])
 
@@ -291,9 +331,11 @@ class PINNDatasetDiffReact(PINNDataset2D):
             self.config["sim"]["y_top"],
             self.config["sim"]["ydim"],
         )
-        xx, yy = np.meshgrid(self.data_grid_x.cpu(), self.data_grid_y.cpu())
+        xx, yy = np.meshgrid(
+            self.data_grid_x.cpu(), self.data_grid_y.cpu())
         tt = np.zeros_like(xx)
-        ic_input = np.vstack((np.ravel(xx), np.ravel(yy), np.ravel(tt))).T
+        ic_input = np.vstack(
+            (np.ravel(xx), np.ravel(yy), np.ravel(tt))).T
 
         return (
             ic_input,
@@ -314,7 +356,7 @@ class PINNDatasetDiffSorption(PINNDataset1D):
         super().__init__(filename, root_path, seed)
 
         # ravel data
-        
+
         self.data_output = self.data_output.ravel()
 
     def get_initial_condition(self):
@@ -327,8 +369,9 @@ class PINNDatasetDiffSorption(PINNDataset1D):
 
         return (self.data_input[:Nx, :], np.expand_dims(u0, 1))
 
+
 class PINNDataset1Dpde(Dataset):
-    def __init__(self, filename, root_path='/', val_batch_idx=-1):
+    def __init__(self, filename, root_path="/", val_batch_idx=-1):
         """
         :param filename: filename that contains the dataset
         :type filename: STR
@@ -340,20 +383,23 @@ class PINNDataset1Dpde(Dataset):
 
         # build input data from individual dimensions
         # dim x = [x]
-        self.data_grid_x = torch.tensor(h5_file["x-coordinate"], dtype=torch.float)
+        self.data_grid_x = torch.tensor(
+            h5_file["x-coordinate"], dtype=torch.float)
         self.dx = self.data_grid_x[1] - self.data_grid_x[0]
         self.xL = self.data_grid_x[0] - 0.5 * self.dx
         self.xR = self.data_grid_x[-1] + 0.5 * self.dx
         self.xdim = self.data_grid_x.size(0)
         # # dim t = [t]
-        self.data_grid_t = torch.tensor(h5_file["t-coordinate"], dtype=torch.float)
+        self.data_grid_t = torch.tensor(
+            h5_file["t-coordinate"], dtype=torch.float)
 
         # main data
         keys = list(h5_file.keys())
         keys.sort()
-        if 'tensor' in keys:
-            self.data_output = torch.tensor(np.array(h5_file["tensor"][val_batch_idx]),
-                                            dtype=torch.float)
+        if "tensor" in keys:
+            self.data_output = torch.tensor(
+                np.array(h5_file["tensor"][val_batch_idx]), dtype=torch.float
+            )
             # permute from [t, x] -> [x, t]
             print(val_batch_idx)
             self.data_output = self.data_output.T
@@ -365,15 +411,21 @@ class PINNDataset1Dpde(Dataset):
 
         else:
             print(val_batch_idx)
-            _data1 = np.array(h5_file["density"][val_batch_idx])
+            _data1 = np.array(
+                h5_file["density"][val_batch_idx])
             _data2 = np.array(h5_file["Vx"][val_batch_idx])
-            _data3 = np.array(h5_file["pressure"][val_batch_idx])
-            _data = np.concatenate([_data1[...,None], _data2[...,None], _data3[...,None]], axis=-1)
+            _data3 = np.array(
+                h5_file["pressure"][val_batch_idx])
+            _data = np.concatenate(
+                [_data1[..., None], _data2[..., None],
+                    _data3[..., None]], axis=-1
+            )
             # permute from [t, x] -> [x, t]
             _data = np.transpose(_data, (1, 0, 2))
 
-            self.data_output = torch.tensor(_data, dtype=torch.float)
-            del(_data, _data1, _data2, _data3)
+            self.data_output = torch.tensor(
+                _data, dtype=torch.float)
+            del (_data, _data1, _data2, _data3)
 
             # for init/boundary conditions
             self.init_data = self.data_output[:, 0]
@@ -381,54 +433,63 @@ class PINNDataset1Dpde(Dataset):
             self.bd_data_R = self.data_output[-1]
 
         self.tdim = self.data_output.size(1)
-        self.data_grid_t = self.data_grid_t[:self.tdim]
+        self.data_grid_t = self.data_grid_t[: self.tdim]
 
         XX, TT = torch.meshgrid(
             [self.data_grid_x, self.data_grid_t],
             indexing="ij",
         )
 
-        self.data_input = torch.vstack([XX.ravel(), TT.ravel()]).T
+        self.data_input = torch.vstack(
+            [XX.ravel(), TT.ravel()]).T
 
         h5_file.close()
-        if 'tensor' in keys:
-            self.data_output = self.data_output.reshape(-1, 1)
+        if "tensor" in keys:
+            self.data_output = self.data_output.reshape(
+                -1, 1)
         else:
-            self.data_output = self.data_output.reshape(-1, 3)
+            self.data_output = self.data_output.reshape(
+                -1, 3)
 
     def get_initial_condition(self):
         # return (self.data_grid_x[:, None], self.init_data)
-        return (self.data_input[::self.tdim, :], self.init_data)
+        return (self.data_input[:: self.tdim, :], self.init_data)
 
     def get_boundary_condition(self):
         # return (self.data_grid_t[:self.nt, None], self.bd_data_L, self.bd_data_R)
-        return (self.data_input[:self.xdim, :], self.bd_data_L, self.bd_data_R)
+        return (self.data_input[: self.xdim, :], self.bd_data_L, self.bd_data_R)
 
     def get_test_data(self, n_last_time_steps, n_components=1):
         n_x = len(self.data_grid_x)
         n_t = len(self.data_grid_t)
 
         # start_idx = n_x * n_y * (n_t - n_last_time_steps)
-        test_input_x = self.data_input[:, 0].reshape((n_x, n_t))
-        test_input_t = self.data_input[:, 1].reshape((n_x, n_t))
-        test_output = self.data_output.reshape((n_x, n_t, n_components))
+        test_input_x = self.data_input[:, 0].reshape(
+            (n_x, n_t))
+        test_input_t = self.data_input[:, 1].reshape(
+            (n_x, n_t))
+        test_output = self.data_output.reshape(
+            (n_x, n_t, n_components))
 
         # extract last n time steps
         test_input_x = test_input_x[:, -n_last_time_steps:]
         test_input_t = test_input_t[:, -n_last_time_steps:]
         test_output = test_output[:, -n_last_time_steps:, :]
 
-        test_input = torch.vstack([test_input_x.ravel(), test_input_t.ravel()]).T
+        test_input = torch.vstack(
+            [test_input_x.ravel(), test_input_t.ravel()]).T
 
         # stack depending on number of output components
         test_output_stacked = test_output[..., 0].ravel()
         if n_components > 1:
             for i in range(1, n_components):
                 test_output_stacked = torch.vstack(
-                    [test_output_stacked, test_output[..., i].ravel()]
+                    [test_output_stacked,
+                        test_output[..., i].ravel()]
                 )
         else:
-            test_output_stacked = test_output_stacked.unsqueeze(1)
+            test_output_stacked = test_output_stacked.unsqueeze(
+                1)
 
         test_output = test_output_stacked.T
 
@@ -439,7 +500,8 @@ class PINNDataset1Dpde(Dataset):
         return raveled_tensor.reshape((1, n_x, n_last_time_steps, n_components))
 
     def generate_plot_input(self, time=1.0):
-        x_space = np.linspace(self.xL.cpu(), self.xR.cpu(), self.xdim)
+        x_space = np.linspace(
+            self.xL.cpu(), self.xR.cpu(), self.xdim)
         # xx, yy = np.meshgrid(x_space, y_space)
 
         tt = np.ones_like(x_space) * time
@@ -452,8 +514,9 @@ class PINNDataset1Dpde(Dataset):
     def __getitem__(self, idx):
         return self.data_input[idx, :], self.data_output[idx]
 
+
 class PINNDataset2Dpde(Dataset):
-    def __init__(self, filename, root_path='data', val_batch_idx=-1, rdc_x=2, rdc_y=2):
+    def __init__(self, filename, root_path="data", val_batch_idx=-1, rdc_x=2, rdc_y=2):
         """
         :param filename: filename that contains the dataset
         :type filename: STR
@@ -465,68 +528,82 @@ class PINNDataset2Dpde(Dataset):
 
         # build input data from individual dimensions
         # dim x = [x]
-        self.data_grid_x = torch.tensor(h5_file["x-coordinate"], dtype=torch.float)
+        self.data_grid_x = torch.tensor(
+            h5_file["x-coordinate"], dtype=torch.float)
         self.data_grid_x = self.data_grid_x[::rdc_x]
         self.dx = self.data_grid_x[1] - self.data_grid_x[0]
         self.xL = self.data_grid_x[0] - 0.5 * self.dx
         self.xR = self.data_grid_x[-1] + 0.5 * self.dx
         self.xdim = self.data_grid_x.size(0)
         # dim y = [y]
-        self.data_grid_y = torch.tensor(h5_file["y-coordinate"], dtype=torch.float)
+        self.data_grid_y = torch.tensor(
+            h5_file["y-coordinate"], dtype=torch.float)
         self.data_grid_y = self.data_grid_y[::rdc_y]
         self.dy = self.data_grid_y[1] - self.data_grid_y[0]
         self.yL = self.data_grid_y[0] - 0.5 * self.dy
         self.yR = self.data_grid_y[-1] + 0.5 * self.dy
         self.ydim = self.data_grid_y.size(0)
         # # dim t = [t]
-        self.data_grid_t = torch.tensor(h5_file["t-coordinate"], dtype=torch.float)
+        self.data_grid_t = torch.tensor(
+            h5_file["t-coordinate"], dtype=torch.float)
 
         # main data
         _data1 = np.array(h5_file["density"][val_batch_idx])
         _data2 = np.array(h5_file["Vx"][val_batch_idx])
         _data3 = np.array(h5_file["Vy"][val_batch_idx])
-        _data4 = np.array(h5_file["pressure"][val_batch_idx])
-        _data = np.concatenate([_data1[...,None], _data2[...,None], _data3[...,None], _data4[...,None]],
-                               axis=-1)
+        _data4 = np.array(
+            h5_file["pressure"][val_batch_idx])
+        _data = np.concatenate(
+            [
+                _data1[..., None],
+                _data2[..., None],
+                _data3[..., None],
+                _data4[..., None],
+            ],
+            axis=-1,
+        )
         # permute from [t, x, y, v] -> [x, y, t, v]
         _data = np.transpose(_data, (1, 2, 0, 3))
         _data = _data[::rdc_x, ::rdc_y]
 
-        self.data_output = torch.tensor(_data, dtype=torch.float)
-        del(_data, _data1, _data2, _data3, _data4)
+        self.data_output = torch.tensor(
+            _data, dtype=torch.float)
+        del (_data, _data1, _data2, _data3, _data4)
 
         # for init/boundary conditions
         self.init_data = self.data_output[..., 0, :]
         self.bd_data_xL = self.data_output[0]
         self.bd_data_xR = self.data_output[-1]
-        self.bd_data_yL = self.data_output[:,0]
-        self.bd_data_yR = self.data_output[:,-1]
+        self.bd_data_yL = self.data_output[:, 0]
+        self.bd_data_yR = self.data_output[:, -1]
 
         self.tdim = self.data_output.size(2)
-        self.data_grid_t = self.data_grid_t[:self.tdim]
+        self.data_grid_t = self.data_grid_t[: self.tdim]
 
         XX, YY, TT = torch.meshgrid(
             [self.data_grid_x, self.data_grid_y, self.data_grid_t],
             indexing="ij",
         )
 
-        self.data_input = torch.vstack([XX.ravel(), YY.ravel(), TT.ravel()]).T
+        self.data_input = torch.vstack(
+            [XX.ravel(), YY.ravel(), TT.ravel()]).T
 
         h5_file.close()
         self.data_output = self.data_output.reshape(-1, 4)
-        
-
 
     def get_initial_condition(self):
         # return (self.data_grid_x[:, None], self.init_data)
-        return (self.data_input[::self.tdim, :], self.init_data)
+        return (self.data_input[:: self.tdim, :], self.init_data)
 
     def get_boundary_condition(self):
         # return (self.data_grid_t[:self.nt, None], self.bd_data_L, self.bd_data_R)
-        return (self.data_input[:self.xdim*self.ydim, :],
-                self.bd_data_xL, self.bd_data_xR,
-                self.bd_data_yL, self.bd_data_yR
-                )
+        return (
+            self.data_input[: self.xdim * self.ydim, :],
+            self.bd_data_xL,
+            self.bd_data_xR,
+            self.bd_data_yL,
+            self.bd_data_yR,
+        )
 
     def get_test_data(self, n_last_time_steps, n_components=1):
         n_x = len(self.data_grid_x)
@@ -534,19 +611,28 @@ class PINNDataset2Dpde(Dataset):
         n_t = len(self.data_grid_t)
 
         # start_idx = n_x * n_y * (n_t - n_last_time_steps)
-        test_input_x = self.data_input[:, 0].reshape((n_x, n_y, n_t))
-        test_input_y = self.data_input[:, 1].reshape((n_x, n_y, n_t))
-        test_input_t = self.data_input[:, 2].reshape((n_x, n_y, n_t))
-        test_output = self.data_output.reshape((n_x, n_y, n_t, n_components))
+        test_input_x = self.data_input[:, 0].reshape(
+            (n_x, n_y, n_t))
+        test_input_y = self.data_input[:, 1].reshape(
+            (n_x, n_y, n_t))
+        test_input_t = self.data_input[:, 2].reshape(
+            (n_x, n_y, n_t))
+        test_output = self.data_output.reshape(
+            (n_x, n_y, n_t, n_components))
 
         # extract last n time steps
-        test_input_x = test_input_x[:, :, -n_last_time_steps:]
-        test_input_y = test_input_y[:, :, -n_last_time_steps:]
-        test_input_t = test_input_t[:, :, -n_last_time_steps:]
-        test_output = test_output[:, :, -n_last_time_steps:, :]
+        test_input_x = test_input_x[:,
+                                    :, -n_last_time_steps:]
+        test_input_y = test_input_y[:,
+                                    :, -n_last_time_steps:]
+        test_input_t = test_input_t[:,
+                                    :, -n_last_time_steps:]
+        test_output = test_output[:,
+                                  :, -n_last_time_steps:, :]
 
         test_input = torch.vstack(
-            [test_input_x.ravel(), test_input_y.ravel(), test_input_t.ravel()]
+            [test_input_x.ravel(), test_input_y.ravel(),
+             test_input_t.ravel()]
         ).T
 
         # stack depending on number of output components
@@ -554,10 +640,12 @@ class PINNDataset2Dpde(Dataset):
         if n_components > 1:
             for i in range(1, n_components):
                 test_output_stacked = torch.vstack(
-                    [test_output_stacked, test_output[..., i].ravel()]
+                    [test_output_stacked,
+                        test_output[..., i].ravel()]
                 )
         else:
-            test_output_stacked = test_output_stacked.unsqueeze(1)
+            test_output_stacked = test_output_stacked.unsqueeze(
+                1)
 
         test_output = test_output_stacked.T
 
@@ -577,8 +665,11 @@ class PINNDataset2Dpde(Dataset):
     def __getitem__(self, idx):
         return self.data_input[idx, :], self.data_output[idx].unsqueeze(1)
 
+
 class PINNDataset3Dpde(Dataset):
-    def __init__(self, filename, root_path='data', val_batch_idx=-1, rdc_x=11, rdc_y=11, rdc_z=11):
+    def __init__(
+        self, filename, root_path="data", val_batch_idx=-1, rdc_x=11, rdc_y=11, rdc_z=11
+    ):
         """
         :param filename: filename that contains the dataset
         :type filename: STR
@@ -588,80 +679,106 @@ class PINNDataset3Dpde(Dataset):
         data_path = os.path.join(root_path, filename)
         h5_file = h5py.File(data_path, "r")
 
-        
-        seed_group = h5_file['0900']
-        print(seed_group['global_maximums'][5])
+        seed_group = h5_file["0900"]
+        print(seed_group["global_maximums"][5])
 
         # build input data from individual dimensions
         # dim x = [x]
-        self.data_grid_x = torch.tensor(h5_file["x-coordinate"], dtype=torch.float)
+        self.data_grid_x = torch.tensor(
+            h5_file["x-coordinate"], dtype=torch.float)
         self.data_grid_x = self.data_grid_x[::rdc_x]
         self.dx = self.data_grid_x[1] - self.data_grid_x[0]
         self.xL = self.data_grid_x[0] - 0.5 * self.dx
         self.xR = self.data_grid_x[-1] + 0.5 * self.dx
         self.xdim = self.data_grid_x.size(0)
         # dim y = [y]
-        self.data_grid_y = torch.tensor(h5_file["y-coordinate"], dtype=torch.float)
+        self.data_grid_y = torch.tensor(
+            h5_file["y-coordinate"], dtype=torch.float)
         self.data_grid_y = self.data_grid_y[::rdc_y]
         self.dy = self.data_grid_y[1] - self.data_grid_y[0]
         self.yL = self.data_grid_y[0] - 0.5 * self.dy
         self.yR = self.data_grid_y[-1] + 0.5 * self.dy
         self.ydim = self.data_grid_y.size(0)
         # dim z = [z]
-        self.data_grid_z = torch.tensor(h5_file["z-coordinate"], dtype=torch.float)
+        self.data_grid_z = torch.tensor(
+            h5_file["z-coordinate"], dtype=torch.float)
         self.data_grid_z = self.data_grid_z[::rdc_z]
         self.dz = self.data_grid_z[1] - self.data_grid_z[0]
         self.zL = self.data_grid_z[0] - 0.5 * self.dz
         self.zR = self.data_grid_z[-1] + 0.5 * self.dz
         self.zdim = self.data_grid_z.size(0)
         # # dim t = [t]
-        self.data_grid_t = torch.tensor(h5_file["t-coordinate"], dtype=torch.float)
+        self.data_grid_t = torch.tensor(
+            h5_file["t-coordinate"], dtype=torch.float)
 
         # main data
         print(len(h5_file["density"].shape))
         if len(h5_file["density"].shape) == 5:
-            _data1 = np.array(h5_file["density"][val_batch_idx])
+            _data1 = np.array(
+                h5_file["density"][val_batch_idx])
             _data2 = np.array(h5_file["Vx"][val_batch_idx])
             _data3 = np.array(h5_file["Vy"][val_batch_idx])
             _data4 = np.array(h5_file["Vz"][val_batch_idx])
-            _data5 = np.array(h5_file["pressure"][val_batch_idx])
-            _data = np.concatenate([_data1[...,None], _data2[...,None], _data3[...,None], _data4[...,None], _data5[...,None]],
-                                axis=-1)
+            _data5 = np.array(
+                h5_file["pressure"][val_batch_idx])
+            _data = np.concatenate(
+                [
+                    _data1[..., None],
+                    _data2[..., None],
+                    _data3[..., None],
+                    _data4[..., None],
+                    _data5[..., None],
+                ],
+                axis=-1,
+            )
         else:
             _data1 = np.array(h5_file["density"])
             _data2 = np.array(h5_file["Vx"])
             _data3 = np.array(h5_file["Vy"])
             _data4 = np.array(h5_file["Vz"])
             _data5 = np.array(h5_file["pressure"])
-            _data = np.concatenate([_data1[...,None], _data2[...,None], _data3[...,None], _data4[...,None], _data5[...,None]],
-                                axis=-1)
+            _data = np.concatenate(
+                [
+                    _data1[..., None],
+                    _data2[..., None],
+                    _data3[..., None],
+                    _data4[..., None],
+                    _data5[..., None],
+                ],
+                axis=-1,
+            )
         # permute from [t, x, y, z, v] -> [x, y, z, t, v]
         print(_data.shape)
         _data = np.transpose(_data, (1, 2, 3, 0, 4))
         # print(_data.shape)
         _data = _data[::rdc_x, ::rdc_y, ::rdc_z]
 
-        self.data_output = torch.tensor(_data, dtype=torch.float)
-        del(_data, _data1, _data2, _data3, _data4, _data5)
+        self.data_output = torch.tensor(
+            _data, dtype=torch.float)
+        del (_data, _data1, _data2, _data3, _data4, _data5)
 
         # for init/boundary conditions
-        self.init_data = self.data_output[..., 0, :].reshape(-1, 5)
+        self.init_data = self.data_output[...,
+                                          0, :].reshape(-1, 5)
         self.bd_data_xL = self.data_output[0]
         self.bd_data_xR = self.data_output[-1]
-        self.bd_data_yL = self.data_output[:,0]
-        self.bd_data_yR = self.data_output[:,-1]
-        self.bd_data_zL = self.data_output[:,:,0]
-        self.bd_data_zR = self.data_output[:,:,-1]
+        self.bd_data_yL = self.data_output[:, 0]
+        self.bd_data_yR = self.data_output[:, -1]
+        self.bd_data_zL = self.data_output[:, :, 0]
+        self.bd_data_zR = self.data_output[:, :, -1]
 
         self.tdim = self.data_output.size(3)
-        self.data_grid_t = self.data_grid_t[:self.tdim]
+        self.data_grid_t = self.data_grid_t[: self.tdim]
 
         XX, YY, ZZ, TT = torch.meshgrid(
-            [self.data_grid_x, self.data_grid_y, self.data_grid_z, self.data_grid_t],
+            [self.data_grid_x, self.data_grid_y,
+                self.data_grid_z, self.data_grid_t],
             indexing="ij",
         )
 
-        self.data_input = torch.vstack([XX.ravel(), YY.ravel(), ZZ.ravel(), TT.ravel()]).T
+        self.data_input = torch.vstack(
+            [XX.ravel(), YY.ravel(), ZZ.ravel(), TT.ravel()]
+        ).T
 
         h5_file.close()
         self.data_output = self.data_output.reshape(-1, 5)
@@ -669,16 +786,22 @@ class PINNDataset3Dpde(Dataset):
 
     def get_initial_condition(self):
         # return (self.data_grid_x[:, None], self.init_data)
-        print(self.data_input[::self.tdim, :].shape, self.init_data.shape)
-        return (self.data_input[::self.tdim, :], self.init_data)
+        print(self.data_input[:: self.tdim,
+              :].shape, self.init_data.shape)
+        return (self.data_input[:: self.tdim, :], self.init_data)
 
     def get_boundary_condition(self):
         # return (self.data_grid_t[:self.nt, None], self.bd_data_L, self.bd_data_R)
-        return (self.data_input[:self.xdim*self.ydim*self.zdim, :],
-                self.bd_data_xL, self.bd_data_xR,
-                self.bd_data_yL, self.bd_data_yR,
-                self.bd_data_zL, self.bd_data_zR,
-                )
+        return (
+            self.data_input[: self.xdim *
+                            self.ydim * self.zdim, :],
+            self.bd_data_xL,
+            self.bd_data_xR,
+            self.bd_data_yL,
+            self.bd_data_yR,
+            self.bd_data_zL,
+            self.bd_data_zR,
+        )
 
     def get_test_data(self, n_last_time_steps, n_components=1):
         n_x = len(self.data_grid_x)
@@ -687,21 +810,36 @@ class PINNDataset3Dpde(Dataset):
         n_t = len(self.data_grid_t)
 
         # start_idx = n_x * n_y * (n_t - n_last_time_steps)
-        test_input_x = self.data_input[:, 0].reshape((n_x, n_y, n_z, n_t))
-        test_input_y = self.data_input[:, 1].reshape((n_x, n_y, n_z, n_t))
-        test_input_z = self.data_input[:, 2].reshape((n_x, n_y, n_z, n_t))
-        test_input_t = self.data_input[:, 3].reshape((n_x, n_y, n_z, n_t))
-        test_output = self.data_output.reshape((n_x, n_y, n_z, n_t, n_components))
+        test_input_x = self.data_input[:, 0].reshape(
+            (n_x, n_y, n_z, n_t))
+        test_input_y = self.data_input[:, 1].reshape(
+            (n_x, n_y, n_z, n_t))
+        test_input_z = self.data_input[:, 2].reshape(
+            (n_x, n_y, n_z, n_t))
+        test_input_t = self.data_input[:, 3].reshape(
+            (n_x, n_y, n_z, n_t))
+        test_output = self.data_output.reshape(
+            (n_x, n_y, n_z, n_t, n_components))
 
         # extract last n time steps
-        test_input_x = test_input_x[:, :, :, -n_last_time_steps:]
-        test_input_y = test_input_y[:, :, :, -n_last_time_steps:]
-        test_input_z = test_input_z[:, :, :, -n_last_time_steps:]
-        test_input_t = test_input_t[:, :, :, -n_last_time_steps:]
-        test_output = test_output[:, :, :, -n_last_time_steps:, :]
+        test_input_x = test_input_x[:,
+                                    :, :, -n_last_time_steps:]
+        test_input_y = test_input_y[:,
+                                    :, :, -n_last_time_steps:]
+        test_input_z = test_input_z[:,
+                                    :, :, -n_last_time_steps:]
+        test_input_t = test_input_t[:,
+                                    :, :, -n_last_time_steps:]
+        test_output = test_output[:,
+                                  :, :, -n_last_time_steps:, :]
 
         test_input = torch.vstack(
-            [test_input_x.ravel(), test_input_y.ravel(), test_input_z.ravel(), test_input_t.ravel()]
+            [
+                test_input_x.ravel(),
+                test_input_y.ravel(),
+                test_input_z.ravel(),
+                test_input_t.ravel(),
+            ]
         ).T
 
         # stack depending on number of output components
@@ -709,10 +847,12 @@ class PINNDataset3Dpde(Dataset):
         if n_components > 1:
             for i in range(1, n_components):
                 test_output_stacked = torch.vstack(
-                    [test_output_stacked, test_output[..., i].ravel()]
+                    [test_output_stacked,
+                        test_output[..., i].ravel()]
                 )
         else:
-            test_output_stacked = test_output_stacked.unsqueeze(1)
+            test_output_stacked = test_output_stacked.unsqueeze(
+                1)
 
         test_output = test_output_stacked.T
 
@@ -722,7 +862,9 @@ class PINNDataset3Dpde(Dataset):
         n_x = len(self.data_grid_x)
         n_y = len(self.data_grid_y)
         n_z = len(self.data_grid_z)
-        return raveled_tensor.reshape((1, n_x, n_y, n_z, n_last_time_steps, n_components))
+        return raveled_tensor.reshape(
+            (1, n_x, n_y, n_z, n_last_time_steps, n_components)
+        )
 
     def generate_plot_input(self, time=1.0):
         return None
@@ -732,7 +874,7 @@ class PINNDataset3Dpde(Dataset):
 
     def __getitem__(self, idx):
         return self.data_input[idx, :], self.data_output[idx, :]
-    
+
 
 class PINNDatasetBurgers(PINNDataset2D):
     def __init__(self, filename, root_path, seed):
@@ -745,7 +887,7 @@ class PINNDatasetBurgers(PINNDataset2D):
     def get_initial_condition(self):
         Nx = len(self.data_grid_x)
         Ny = len(self.data_grid_y)
-        Nt = len(self.data_grid_t)
+        len(self.data_grid_t)
 
         np.random.seed(self.config["sim"]["seed"])
 
@@ -765,9 +907,11 @@ class PINNDatasetBurgers(PINNDataset2D):
             self.config["sim"]["y_top"],
             self.config["sim"]["ydim"],
         )
-        xx, yy = np.meshgrid(self.data_grid_x.cpu(), self.data_grid_y.cpu())
+        xx, yy = np.meshgrid(
+            self.data_grid_x.cpu(), self.data_grid_y.cpu())
         tt = np.zeros_like(xx)
-        ic_input = np.vstack((np.ravel(xx), np.ravel(yy), np.ravel(tt))).T
+        ic_input = np.vstack(
+            (np.ravel(xx), np.ravel(yy), np.ravel(tt))).T
 
         return (
             ic_input,
@@ -782,6 +926,7 @@ class PINNDatasetBurgers(PINNDataset2D):
             self.data_v[idx].unsqueeze(1),
         )
 
+
 class PINNDatasetAC(Dataset):
     def __init__(self, filename, root_path, seed):
         self.seed = seed
@@ -789,34 +934,45 @@ class PINNDatasetAC(Dataset):
         # load data file
         root_path = os.path.abspath(root_path)
         data_path = os.path.join(root_path, filename)
-        
+
         with h5py.File(data_path, "r") as h5_file:
             # print(h5_file)
             seed_group = h5_file
 
             # extract config
             # self.config = yaml.load(seed_group.attrs["config"], Loader=yaml.SafeLoader)
-            self.config = yaml.load("work_dir: ${hydra:runtime.cwd}\ndata_dir: ${work_dir}/data/\noutput_path: /pfs/work7/workspace/scratch/st_ac131224-pde_test/data//Bgs/train_0000.h5\nname: null\nsim:\n  Du: 0.001\n  Dv: 0.005\n  k: 0.005\n  t: 1\n  tdim: 101\n  x_left: 0.0\n  x_right: 1.0\n  xdim: 128\n  y_bottom: 0.0\n  y_top: 1.0\n  ydim: 128\n  'n': 1\n  seed: 0\ndefault_mode: true\n", Loader=yaml.SafeLoader)
+            self.config = yaml.load(
+                "work_dir: ${hydra:runtime.cwd}\ndata_dir: ${work_dir}/data/\noutput_path: /pfs/work7/workspace/scratch/st_ac131224-pde_test/data//Bgs/train_0000.h5\nname: null\nsim:\n  Du: 0.001\n  Dv: 0.005\n  k: 0.005\n  t: 1\n  tdim: 101\n  x_left: 0.0\n  x_right: 1.0\n  xdim: 128\n  y_bottom: 0.0\n  y_top: 1.0\n  ydim: 128\n  'n': 1\n  seed: 0\ndefault_mode: true\n",
+                Loader=yaml.SafeLoader,
+            )
 
             # build input data from individual dimensions
             # dim x = [x]
             # self.tdim = self.config['sim']['tdim']
-            self.xdim = self.config['sim']['xdim']
-            self.ydim = self.config['sim']['ydim']
-            self.data_grid_x = torch.tensor(seed_group["x-coordinate"], dtype=torch.float)
+            self.xdim = self.config["sim"]["xdim"]
+            self.ydim = self.config["sim"]["ydim"]
+            self.data_grid_x = torch.tensor(
+                seed_group["x-coordinate"], dtype=torch.float
+            )
             # # dim y = [y]
-            self.data_grid_y = torch.tensor(seed_group["y-coordinate"], dtype=torch.float)
+            self.data_grid_y = torch.tensor(
+                seed_group["y-coordinate"], dtype=torch.float
+            )
             # # dim t = [t]
-            self.data_grid_t = torch.tensor(seed_group["t-coordinate"], dtype=torch.float)
+            self.data_grid_t = torch.tensor(
+                seed_group["t-coordinate"], dtype=torch.float
+            )
             self.tdim = self.data_grid_t.size(0)
             # print(self.tdim)
 
             XX, YY, TT = torch.meshgrid(
-                [self.data_grid_x, self.data_grid_y, self.data_grid_t],
+                [self.data_grid_x, self.data_grid_y,
+                    self.data_grid_t],
                 indexing="ij",
             )
 
-            self.data_input = torch.vstack([XX.ravel(), YY.ravel(), TT.ravel()]).T
+            self.data_input = torch.vstack(
+                [XX.ravel(), YY.ravel(), TT.ravel()]).T
 
             # print(seed)
 
@@ -829,17 +985,18 @@ class PINNDatasetAC(Dataset):
             print(self.init_data.shape)
 
             # permute from [t, x, y] -> [x, y, t]
-            permute_idx = list(range(1, len(self.data_output.shape)))
+            permute_idx = list(
+                range(1, len(self.data_output.shape)))
             permute_idx.extend(list([0]))
-            self.data_output = self.data_output.permute(permute_idx)
+            self.data_output = self.data_output.permute(
+                permute_idx)
             # print(self.data_grid_t[-1])
-            self.data_output = self.data_output.reshape(-1, 1)
+            self.data_output = self.data_output.reshape(
+                -1, 1)
 
         # TODO: find way to ravel multiple components in parent class
-        self.data_u = self.data_output[:,  0].ravel()
+        self.data_u = self.data_output[:, 0].ravel()
         # self.data_v = self.data_output[:, , :, 1].ravel()
-
-    
 
     # def get_initial_condition(self):
     #     Nx = len(self.data_grid_x)
@@ -877,27 +1034,36 @@ class PINNDatasetAC(Dataset):
     def get_initial_condition(self):
         # return (self.data_grid_x[:, None], self.init_data)
         print(self.init_data.shape)
-        return (self.data_input[::self.tdim, :], self.init_data.flatten())
-    
+        return (self.data_input[:: self.tdim, :], self.init_data.flatten())
+
     def get_test_data(self, n_last_time_steps, n_components=1):
         n_x = len(self.data_grid_x)
         n_y = len(self.data_grid_y)
         n_t = len(self.data_grid_t)
 
         # start_idx = n_x * n_y * (n_t - n_last_time_steps)
-        test_input_x = self.data_input[:, 0].reshape((n_x, n_y, n_t))
-        test_input_y = self.data_input[:, 1].reshape((n_x, n_y, n_t))
-        test_input_t = self.data_input[:, 2].reshape((n_x, n_y, n_t))
-        test_output = self.data_output.reshape((n_x, n_y, n_t, n_components))
+        test_input_x = self.data_input[:, 0].reshape(
+            (n_x, n_y, n_t))
+        test_input_y = self.data_input[:, 1].reshape(
+            (n_x, n_y, n_t))
+        test_input_t = self.data_input[:, 2].reshape(
+            (n_x, n_y, n_t))
+        test_output = self.data_output.reshape(
+            (n_x, n_y, n_t, n_components))
 
         # extract last n time steps
-        test_input_x = test_input_x[:, :, -n_last_time_steps:]
-        test_input_y = test_input_y[:, :, -n_last_time_steps:]
-        test_input_t = test_input_t[:, :, -n_last_time_steps:]
-        test_output = test_output[:, :, -n_last_time_steps:, :]
+        test_input_x = test_input_x[:,
+                                    :, -n_last_time_steps:]
+        test_input_y = test_input_y[:,
+                                    :, -n_last_time_steps:]
+        test_input_t = test_input_t[:,
+                                    :, -n_last_time_steps:]
+        test_output = test_output[:,
+                                  :, -n_last_time_steps:, :]
 
         test_input = torch.vstack(
-            [test_input_x.ravel(), test_input_y.ravel(), test_input_t.ravel()]
+            [test_input_x.ravel(), test_input_y.ravel(),
+             test_input_t.ravel()]
         ).T
 
         # stack depending on number of output components
@@ -905,20 +1071,22 @@ class PINNDatasetAC(Dataset):
         if n_components > 1:
             for i in range(1, n_components):
                 test_output_stacked = torch.vstack(
-                    [test_output_stacked, test_output[..., i].ravel()]
+                    [test_output_stacked,
+                        test_output[..., i].ravel()]
                 )
         else:
-            test_output_stacked = test_output_stacked.unsqueeze(1)
+            test_output_stacked = test_output_stacked.unsqueeze(
+                1)
 
         test_output = test_output_stacked.T
 
         return test_input, test_output
-    
+
     def unravel_tensor(self, raveled_tensor, n_last_time_steps, n_components=1):
         n_x = len(self.data_grid_x)
         n_y = len(self.data_grid_y)
         return raveled_tensor.reshape((1, n_x, n_y, n_last_time_steps, n_components))
-    
+
     def __len__(self):
         return len(self.data_output)
 
@@ -937,7 +1105,7 @@ class PINNDatasetDarcy(Dataset):
         # load data file
         root_path = os.path.abspath(root_path)
         data_path = os.path.join(root_path, filename)
-        
+
         with h5py.File(data_path, "r") as h5_file:
             # print(h5_file)
             seed_group = h5_file
@@ -946,29 +1114,41 @@ class PINNDatasetDarcy(Dataset):
 
             # extract config
             # self.config = yaml.load(seed_group.attrs["config"], Loader=yaml.SafeLoader)
-            self.config = yaml.load("work_dir: ${hydra:runtime.cwd}\ndata_dir: ${work_dir}/data/\noutput_path: /pfs/work7/workspace/scratch/st_ac131224-pde_test/data//Bgs/train_0000.h5\nname: null\nsim:\n  Du: 0.001\n  Dv: 0.005\n  k: 0.005\n  t: 1\n  tdim: 101\n  x_left: 0.0\n  x_right: 1.0\n  xdim: 128\n  y_bottom: 0.0\n  y_top: 1.0\n  ydim: 128\n  'n': 1\n  seed: 0\ndefault_mode: true\n", Loader=yaml.SafeLoader)
+            self.config = yaml.load(
+                "work_dir: ${hydra:runtime.cwd}\ndata_dir: ${work_dir}/data/\noutput_path: /pfs/work7/workspace/scratch/st_ac131224-pde_test/data//Bgs/train_0000.h5\nname: null\nsim:\n  Du: 0.001\n  Dv: 0.005\n  k: 0.005\n  t: 1\n  tdim: 101\n  x_left: 0.0\n  x_right: 1.0\n  xdim: 128\n  y_bottom: 0.0\n  y_top: 1.0\n  ydim: 128\n  'n': 1\n  seed: 0\ndefault_mode: true\n",
+                Loader=yaml.SafeLoader,
+            )
 
             # build input data from individual dimensions
             # dim x = [x]
             # self.tdim = self.config['sim']['tdim']
-            self.xdim = self.config['sim']['xdim']
-            self.ydim = self.config['sim']['ydim']
-            self.data_grid_x = torch.tensor(seed_group["x-coordinate"], dtype=torch.float)
+            self.xdim = self.config["sim"]["xdim"]
+            self.ydim = self.config["sim"]["ydim"]
+            self.data_grid_x = torch.tensor(
+                seed_group["x-coordinate"], dtype=torch.float
+            )
             # # dim y = [y]
-            self.data_grid_y = torch.tensor(seed_group["y-coordinate"], dtype=torch.float)
+            self.data_grid_y = torch.tensor(
+                seed_group["y-coordinate"], dtype=torch.float
+            )
             # # dim t = [t]
-            self.data_grid_t = torch.tensor(seed_group["t-coordinate"], dtype=torch.float)
+            self.data_grid_t = torch.tensor(
+                seed_group["t-coordinate"], dtype=torch.float
+            )
             self.tdim = self.data_grid_t.size(0)
 
             XX, YY, TT = torch.meshgrid(
-                [self.data_grid_x, self.data_grid_y, self.data_grid_t],
+                [self.data_grid_x, self.data_grid_y,
+                    self.data_grid_t],
                 indexing="ij",
             )
 
-            nu = torch.tensor(seed_group["nu"][int(seed)].reshape(1, -1), dtype=torch.float)
+            nu = torch.tensor(
+                seed_group["nu"][int(seed)].reshape(1, -1), dtype=torch.float
+            )
             nu_ = nu
 
-            while(len(nu_.ravel())<len(XX.ravel())):
+            while len(nu_.ravel()) < len(XX.ravel()):
                 nu_ = torch.vstack((nu_, nu))
 
             nu_ = nu_.T
@@ -980,8 +1160,10 @@ class PINNDatasetDarcy(Dataset):
 
             # x_input = tuple([self.data_grid_x[0], self.data_grid_y[0]])
             # print(self.nu_map[x_input])
-                
-            self.data_input = torch.vstack([XX.ravel(), YY.ravel(), TT.ravel(), nu_.ravel()]).T
+
+            self.data_input = torch.vstack(
+                [XX.ravel(), YY.ravel(), TT.ravel(), nu_.ravel()]
+            ).T
 
             print(self.data_input.shape)
 
@@ -989,28 +1171,30 @@ class PINNDatasetDarcy(Dataset):
                 np.array(seed_group["tensor"][int(seed)]), dtype=torch.float
             )
             # print(seed_group['nu'][int(seed)][seed_group['nu'][int(seed)] != 0.1])
-            
 
             self.init_data = self.data_output[..., 0, :, :]
             # print(self.init_data.shape)
 
             # permute from [t, x, y] -> [x, y, t]
-            permute_idx = list(range(1, len(self.data_output.shape)))
+            permute_idx = list(
+                range(1, len(self.data_output.shape)))
             permute_idx.extend(list([0]))
-            self.data_output = self.data_output.permute(permute_idx)
+            self.data_output = self.data_output.permute(
+                permute_idx)
             # print(self.data_output.shape)
-            self.data_output = self.data_output.reshape(1, -1)
+            self.data_output = self.data_output.reshape(
+                1, -1)
             d = self.data_output
-            while(len(self.data_output.ravel())<len(XX.ravel())):
-                self.data_output = torch.vstack((self.data_output, d))
-            self.data_output = self.data_output.T.reshape(-1, 1)
+            while len(self.data_output.ravel()) < len(XX.ravel()):
+                self.data_output = torch.vstack(
+                    (self.data_output, d))
+            self.data_output = self.data_output.T.reshape(
+                -1, 1)
             # self.data_output = torch.hstack((self.data_output, self.nu))
 
         # TODO: find way to ravel multiple components in parent class
-        self.data_u = self.data_output[:,  0].ravel()
+        self.data_u = self.data_output[:, 0].ravel()
         # self.data_v = self.data_output[:, , :, 1].ravel()
-
-    
 
     # def get_initial_condition(self):
     #     Nx = len(self.data_grid_x)
@@ -1048,29 +1232,44 @@ class PINNDatasetDarcy(Dataset):
     def get_initial_condition(self):
         # return (self.data_grid_x[:, None], self.init_data)
         print(self.init_data.shape)
-        return (self.data_input[::self.tdim, :], self.init_data.flatten())
-    
+        return (self.data_input[:: self.tdim, :], self.init_data.flatten())
+
     def get_test_data(self, n_last_time_steps, n_components=1):
         n_x = len(self.data_grid_x)
         n_y = len(self.data_grid_y)
         n_t = len(self.data_grid_t)
 
         # start_idx = n_x * n_y * (n_t - n_last_time_steps)
-        test_input_x = self.data_input[:, 0].reshape((n_x, n_y, n_t))
-        test_input_y = self.data_input[:, 1].reshape((n_x, n_y, n_t))
-        test_input_t = self.data_input[:, 2].reshape((n_x, n_y, n_t))
-        test_input_nu = self.data_input[:, 3].reshape((n_x, n_y, n_t))
-        test_output = self.data_output.reshape((n_x, n_y, n_t, n_components))
+        test_input_x = self.data_input[:, 0].reshape(
+            (n_x, n_y, n_t))
+        test_input_y = self.data_input[:, 1].reshape(
+            (n_x, n_y, n_t))
+        test_input_t = self.data_input[:, 2].reshape(
+            (n_x, n_y, n_t))
+        test_input_nu = self.data_input[:, 3].reshape(
+            (n_x, n_y, n_t))
+        test_output = self.data_output.reshape(
+            (n_x, n_y, n_t, n_components))
 
         # extract last n time steps
-        test_input_x = test_input_x[:, :, -n_last_time_steps:]
-        test_input_y = test_input_y[:, :, -n_last_time_steps:]
-        test_input_t = test_input_t[:, :, -n_last_time_steps:]
-        test_input_t = test_input_nu[:, :, -n_last_time_steps:]
-        test_output = test_output[:, :, -n_last_time_steps:, :]
+        test_input_x = test_input_x[:,
+                                    :, -n_last_time_steps:]
+        test_input_y = test_input_y[:,
+                                    :, -n_last_time_steps:]
+        test_input_t = test_input_t[:,
+                                    :, -n_last_time_steps:]
+        test_input_t = test_input_nu[:,
+                                     :, -n_last_time_steps:]
+        test_output = test_output[:,
+                                  :, -n_last_time_steps:, :]
 
         test_input = torch.vstack(
-            [test_input_x.ravel(), test_input_y.ravel(), test_input_t.ravel(), test_input_nu.ravel()]
+            [
+                test_input_x.ravel(),
+                test_input_y.ravel(),
+                test_input_t.ravel(),
+                test_input_nu.ravel(),
+            ]
         ).T
 
         # stack depending on number of output components
@@ -1078,20 +1277,22 @@ class PINNDatasetDarcy(Dataset):
         if n_components > 1:
             for i in range(1, n_components):
                 test_output_stacked = torch.vstack(
-                    [test_output_stacked, test_output[..., i].ravel()]
+                    [test_output_stacked,
+                        test_output[..., i].ravel()]
                 )
         else:
-            test_output_stacked = test_output_stacked.unsqueeze(1)
+            test_output_stacked = test_output_stacked.unsqueeze(
+                1)
 
         test_output = test_output_stacked.T
 
         return test_input, test_output
-    
+
     def unravel_tensor(self, raveled_tensor, n_last_time_steps, n_components=1):
         n_x = len(self.data_grid_x)
         n_y = len(self.data_grid_y)
         return raveled_tensor.reshape((1, n_x, n_y, n_last_time_steps, n_components))
-    
+
     def __len__(self):
         return len(self.data_output)
 
@@ -1101,7 +1302,7 @@ class PINNDatasetDarcy(Dataset):
             self.data_u[idx].unsqueeze(1),
             # self.data_v[idx].unsqueeze(1),
         )
-    
+
 
 class PINNDatasetMaxwell(Dataset):
     def __init__(self, filename, root_path, seed):
@@ -1110,36 +1311,54 @@ class PINNDatasetMaxwell(Dataset):
         # load data file
         root_path = os.path.abspath(root_path)
         data_path = os.path.join(root_path, filename)
-        
+
         with h5py.File(data_path, "r") as h5_file:
             # print(h5_file)
             seed_group = h5_file
 
             # extract config
             # self.config = yaml.load(seed_group.attrs["config"], Loader=yaml.SafeLoader)
-            self.config = yaml.load("work_dir: ${hydra:runtime.cwd}\ndata_dir: ${work_dir}/data/\noutput_path: /pfs/work7/workspace/scratch/st_ac131224-pde_test/data//Bgs/train_0000.h5\nname: null\nsim:\n  Du: 0.001\n  Dv: 0.005\n  k: 0.005\n  t: 1\n  tdim: 8\n  x_left: 0.0\n  x_right: 1.0\n  xdim: 32\n  y_bottom: 0.0\n  y_top: 1.0\n  ydim: 32\n zdim: 32\n  'n': 1\n  seed: 0\ndefault_mode: true\n", Loader=yaml.SafeLoader)
+            self.config = yaml.load(
+                "work_dir: ${hydra:runtime.cwd}\ndata_dir: ${work_dir}/data/\noutput_path: /pfs/work7/workspace/scratch/st_ac131224-pde_test/data//Bgs/train_0000.h5\nname: null\nsim:\n  Du: 0.001\n  Dv: 0.005\n  k: 0.005\n  t: 1\n  tdim: 8\n  x_left: 0.0\n  x_right: 1.0\n  xdim: 32\n  y_bottom: 0.0\n  y_top: 1.0\n  ydim: 32\n zdim: 32\n  'n': 1\n  seed: 0\ndefault_mode: true\n",
+                Loader=yaml.SafeLoader,
+            )
 
             # build input data from individual dimensions
             # dim x = [x]
             # self.tdim = self.config['sim']['tdim']
-            self.xdim = self.config['sim']['xdim']
-            self.ydim = self.config['sim']['ydim']
-            self.zdim = self.config['sim']['zdim']
-            self.data_grid_x = torch.tensor(seed_group["x-coordinate"], dtype=torch.float)
+            self.xdim = self.config["sim"]["xdim"]
+            self.ydim = self.config["sim"]["ydim"]
+            self.zdim = self.config["sim"]["zdim"]
+            self.data_grid_x = torch.tensor(
+                seed_group["x-coordinate"], dtype=torch.float
+            )
             # # dim y = [y]
-            self.data_grid_y = torch.tensor(seed_group["y-coordinate"], dtype=torch.float)
-            self.data_grid_z = torch.tensor(seed_group["z-coordinate"], dtype=torch.float)
+            self.data_grid_y = torch.tensor(
+                seed_group["y-coordinate"], dtype=torch.float
+            )
+            self.data_grid_z = torch.tensor(
+                seed_group["z-coordinate"], dtype=torch.float
+            )
             # # dim t = [t]
-            self.data_grid_t = torch.tensor(seed_group["t-coordinate"], dtype=torch.float)
+            self.data_grid_t = torch.tensor(
+                seed_group["t-coordinate"], dtype=torch.float
+            )
             self.tdim = self.data_grid_t.size(0)
             # print(self.tdim)
 
             XX, YY, ZZ, TT = torch.meshgrid(
-                [self.data_grid_x, self.data_grid_y, self.data_grid_z, self.data_grid_t],
+                [
+                    self.data_grid_x,
+                    self.data_grid_y,
+                    self.data_grid_z,
+                    self.data_grid_t,
+                ],
                 indexing="ij",
             )
 
-            self.data_input = torch.vstack([XX.ravel(), YY.ravel(), ZZ.ravel(), TT.ravel()]).T
+            self.data_input = torch.vstack(
+                [XX.ravel(), YY.ravel(), ZZ.ravel(), TT.ravel()]
+            ).T
 
             # print(seed)
 
@@ -1148,28 +1367,32 @@ class PINNDatasetMaxwell(Dataset):
             )
             # print(self.data_output.shape)
 
-            self.init_data = self.data_output[..., 0, :, :, :, :]
+            self.init_data = self.data_output[...,
+                                              0, :, :, :, :]
             print(self.init_data.shape)
 
             # permute from [t, x, y, z, c] -> [x, y, z, t, c]
-            permute_idx = list(range(1, len(self.data_output.shape)-1))
+            permute_idx = list(
+                range(1, len(self.data_output.shape) - 1))
             permute_idx.extend(list([0]))
-            permute_idx.append(len(self.data_output.shape)-1)
+            permute_idx.append(
+                len(self.data_output.shape) - 1)
             print(permute_idx)
-            self.data_output = self.data_output.permute(permute_idx)
+            self.data_output = self.data_output.permute(
+                permute_idx)
             # print(self.data_grid_t[-1])
-            self.data_output = self.data_output.reshape(-1, 1)
+            self.data_output = self.data_output.reshape(
+                -1, 1)
 
         # TODO: find way to ravel multiple components in parent class
-        self.data_u = self.data_output[:,  0].ravel()
+        self.data_u = self.data_output[:, 0].ravel()
         # self.data_v = self.data_output[:, , :, 1].ravel()
-
 
     def get_initial_condition(self):
         # return (self.data_grid_x[:, None], self.init_data)
         print(self.init_data.shape)
-        return (self.data_input[::self.tdim, :], self.init_data.flatten())
-    
+        return (self.data_input[:: self.tdim, :], self.init_data.flatten())
+
     def get_test_data(self, n_last_time_steps, n_components=1):
         n_x = len(self.data_grid_x)
         n_y = len(self.data_grid_y)
@@ -1177,21 +1400,36 @@ class PINNDatasetMaxwell(Dataset):
         n_t = len(self.data_grid_t)
 
         # start_idx = n_x * n_y * (n_t - n_last_time_steps)
-        test_input_x = self.data_input[:, 0].reshape((n_x, n_y, n_z, n_t))
-        test_input_y = self.data_input[:, 1].reshape((n_x, n_y, n_z, n_t))
-        test_input_z = self.data_input[:, 2].reshape((n_x, n_y, n_z, n_t))
-        test_input_t = self.data_input[:, 3].reshape((n_x, n_y, n_z, n_t))
-        test_output = self.data_output.reshape((n_x, n_y, n_z, n_t, n_components))
+        test_input_x = self.data_input[:, 0].reshape(
+            (n_x, n_y, n_z, n_t))
+        test_input_y = self.data_input[:, 1].reshape(
+            (n_x, n_y, n_z, n_t))
+        test_input_z = self.data_input[:, 2].reshape(
+            (n_x, n_y, n_z, n_t))
+        test_input_t = self.data_input[:, 3].reshape(
+            (n_x, n_y, n_z, n_t))
+        test_output = self.data_output.reshape(
+            (n_x, n_y, n_z, n_t, n_components))
 
         # extract last n time steps
-        test_input_x = test_input_x[:, :, -n_last_time_steps:]
-        test_input_y = test_input_y[:, :, -n_last_time_steps:]
-        test_input_z = test_input_z[:, :, -n_last_time_steps:]
-        test_input_t = test_input_t[:, :, -n_last_time_steps:]
-        test_output = test_output[:, :, -n_last_time_steps:, :]
+        test_input_x = test_input_x[:,
+                                    :, -n_last_time_steps:]
+        test_input_y = test_input_y[:,
+                                    :, -n_last_time_steps:]
+        test_input_z = test_input_z[:,
+                                    :, -n_last_time_steps:]
+        test_input_t = test_input_t[:,
+                                    :, -n_last_time_steps:]
+        test_output = test_output[:,
+                                  :, -n_last_time_steps:, :]
 
         test_input = torch.vstack(
-            [test_input_x.ravel(), test_input_y.ravel(), test_input_z.ravel(), test_input_t.ravel()]
+            [
+                test_input_x.ravel(),
+                test_input_y.ravel(),
+                test_input_z.ravel(),
+                test_input_t.ravel(),
+            ]
         ).T
 
         # stack depending on number of output components
@@ -1199,21 +1437,25 @@ class PINNDatasetMaxwell(Dataset):
         if n_components > 1:
             for i in range(1, n_components):
                 test_output_stacked = torch.vstack(
-                    [test_output_stacked, test_output[..., i].ravel()]
+                    [test_output_stacked,
+                        test_output[..., i].ravel()]
                 )
         else:
-            test_output_stacked = test_output_stacked.unsqueeze(1)
+            test_output_stacked = test_output_stacked.unsqueeze(
+                1)
 
         test_output = test_output_stacked.T
 
         return test_input, test_output
-    
+
     def unravel_tensor(self, raveled_tensor, n_last_time_steps, n_components=1):
         n_x = len(self.data_grid_x)
         n_y = len(self.data_grid_y)
         n_z = len(self.data_grid_z)
-        return raveled_tensor.reshape((1, n_x, n_y, n_z, n_last_time_steps, n_components))
-    
+        return raveled_tensor.reshape(
+            (1, n_x, n_y, n_z, n_last_time_steps, n_components)
+        )
+
     def __len__(self):
         return len(self.data_output)
 

@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import multiprocessing
@@ -56,10 +54,12 @@ def init_env_rank_and_launch_test(
 ) -> None:
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = pg_setup_params.port
-    os.environ["WORLD_SIZE"] = str(pg_setup_params.world_size)
+    os.environ["WORLD_SIZE"] = str(
+        pg_setup_params.world_size)
     os.environ["LOCAL_RANK"] = str(rank)
     os.environ["RANK"] = str(rank)
-    mp_output_dict[rank] = test_method(*args, **kwargs)  # pyre-fixme
+    mp_output_dict[rank] = test_method(
+        *args, **kwargs)  # pyre-fixme
 
 
 def init_pg_and_rank_and_launch_test(
@@ -72,14 +72,16 @@ def init_pg_and_rank_and_launch_test(
 ) -> None:
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = pg_setup_params.port
-    os.environ["WORLD_SIZE"] = str(pg_setup_params.world_size)
+    os.environ["WORLD_SIZE"] = str(
+        pg_setup_params.world_size)
     os.environ["LOCAL_RANK"] = str(rank)
     # setup default process group
     dist.init_process_group(
         rank=rank,
         world_size=pg_setup_params.world_size,
         backend=pg_setup_params.backend,
-        timeout=timedelta(seconds=10),  # setting up timeout for distributed collectives
+        # setting up timeout for distributed collectives
+        timeout=timedelta(seconds=10),
     )
     # setup gp
     if pg_setup_params.use_gp:
@@ -88,7 +90,8 @@ def init_pg_and_rank_and_launch_test(
             "distributed_backend": pg_setup_params.backend,
         }
         setup_gp(config)
-    mp_output_dict[rank] = test_method(*args, **kwargs)  # pyre-fixme
+    mp_output_dict[rank] = test_method(
+        *args, **kwargs)  # pyre-fixme
 
 
 def spawn_multi_process(
@@ -141,5 +144,6 @@ def init_local_distributed_process_group(backend="nccl"):
         rank=0,
         world_size=1,
         backend=backend,
-        timeout=timedelta(seconds=10),  # setting up timeout for distributed collectives
+        # setting up timeout for distributed collectives
+        timeout=timedelta(seconds=10),
     )

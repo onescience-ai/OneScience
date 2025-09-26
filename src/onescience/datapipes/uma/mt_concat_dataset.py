@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import bisect
@@ -41,16 +40,19 @@ class ConcatDataset(Dataset[T_co]):
             self.dataset_names.append(k)
 
         self.sample_ratios = self._dataset_sampling(
-            [len(d) for d in self.datasets], self.dataset_names, sampling
+            [len(d)
+             for d in self.datasets], self.dataset_names, sampling
         )
-        self.cumulative_sizes = self.cumsum(self.datasets, self.sample_ratios)
+        self.cumulative_sizes = self.cumsum(
+            self.datasets, self.sample_ratios)
         self.real_sizes = [len(d) for d in self.datasets]
 
     def __len__(self):
         return self.cumulative_sizes[-1]
 
     def __getitem__(self, idx):
-        dataset_idx, sample_idx = self._get_dataset_and_sample_index(idx)
+        dataset_idx, sample_idx = self._get_dataset_and_sample_index(
+            idx)
         data_object = self.datasets[dataset_idx][sample_idx]
 
         # Add additional attributes and cast to appropriate types
@@ -67,8 +69,10 @@ class ConcatDataset(Dataset[T_co]):
         sample_idxs = np.array(sample_idxs)
 
         # find out which dataset owns which sample_idx and what the internal idx is for each
-        dataset_idx_ownership = np.zeros(sample_idxs.shape[0], dtype=np.int64)
-        internal_sample_idxs = np.zeros(sample_idxs.shape[0], dtype=np.int64)
+        dataset_idx_ownership = np.zeros(
+            sample_idxs.shape[0], dtype=np.int64)
+        internal_sample_idxs = np.zeros(
+            sample_idxs.shape[0], dtype=np.int64)
         for dataset_idx in range(len(self.cumulative_sizes)):
             # find out what dataset owns this idx
             this_dataset_idx_ownership = np.where(
@@ -94,11 +98,13 @@ class ConcatDataset(Dataset[T_co]):
     # @functools.cache
     # B019 Use of `functools.lru_cache` or `functools.cache` on methods can lead to memory leaks
     def _get_dataset_and_sample_index(self, idx: int):
-        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
+        dataset_idx = bisect.bisect_right(
+            self.cumulative_sizes, idx)
         if dataset_idx == 0:
             sample_idx = idx
         else:
-            sample_idx = idx - self.cumulative_sizes[dataset_idx - 1]
+            sample_idx = idx - \
+                self.cumulative_sizes[dataset_idx - 1]
         sample_idx = sample_idx % self.real_sizes[dataset_idx]
         return dataset_idx, sample_idx
 
@@ -123,14 +129,17 @@ class ConcatDataset(Dataset[T_co]):
     def get_metadata(self, attr, sample_idxs_to_get_metadata_for):
         assert attr == "natoms"
         if isinstance(sample_idxs_to_get_metadata_for, list):
-            metadata = np.zeros(len(sample_idxs_to_get_metadata_for), dtype=np.int32)
+            metadata = np.zeros(
+                len(sample_idxs_to_get_metadata_for), dtype=np.int32)
             dataset_idxs, dataset_internal_sample_idx = (
-                self._get_dataset_and_sample_index_list(sample_idxs_to_get_metadata_for)
+                self._get_dataset_and_sample_index_list(
+                    sample_idxs_to_get_metadata_for)
             )
             for dataset_idx in range(len(self.cumulative_sizes)):
                 dataset_mask = dataset_idxs == dataset_idx
                 metadata[dataset_mask] = self.datasets[dataset_idx].get_metadata(
-                    "natoms", list(dataset_internal_sample_idx[dataset_mask])
+                    "natoms", list(
+                        dataset_internal_sample_idx[dataset_mask])
                 )[0]
             return metadata
         dataset_idx, sample_idx = self._get_dataset_and_sample_index(
@@ -164,22 +173,27 @@ class ConcatDataset(Dataset[T_co]):
             # calc the temperature sampling probabilities for each dataset
             # p_i = (D_i / D_total)^(1/T)
             temp_prob = [
-                (size / total_size) ** (1.0 / sampling["temperature"])
+                (size / total_size) ** (1.0 /
+                                        sampling["temperature"])
                 for size in dataset_sizes
             ]
             # normalize temp probabilities i.e. sum to 1
-            temp_prob = [r / sum(temp_prob) for r in temp_prob]
+            temp_prob = [r / sum(temp_prob)
+                         for r in temp_prob]
             # find the target dataset size with temp sampling
             # this assume largest dataset ratio is 1
             max_idx = np.argmax(dataset_sizes)
-            target_size = dataset_sizes[max_idx] / temp_prob[max_idx]
+            target_size = dataset_sizes[max_idx] / \
+                temp_prob[max_idx]
             # return expansion ratios
-            ratios = (target_size * np.array(temp_prob)) / np.array(dataset_sizes)
+            ratios = (target_size * np.array(temp_prob)
+                      ) / np.array(dataset_sizes)
             return ratios.tolist()
         elif sampling["type"] == "weighted":
             return sampling["ratios"]
         else:
-            raise NotImplementedError(f"{sampling} not implemented.")
+            raise NotImplementedError(
+                f"{sampling} not implemented.")
 
 
 # This version is used for the Hydra configs
@@ -201,6 +215,7 @@ def create_concat_dataset(
                     dataset_config, split=split
                 )
             except ValueError as e:
-                raise ValueError(f"Error creating dataset '{dataset_name}' {e}") from e
+                raise ValueError(
+                    f"Error creating dataset '{dataset_name}' {e}") from e
 
     return ConcatDataset(datasets, sampling=combined_dataset_config["sampling"])

@@ -1,20 +1,19 @@
 from pathlib import Path
 from typing import List, Optional, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch import Tensor, FloatTensor
-from torch.nn import functional as F
-import matplotlib.pyplot as plt
-
 from args import Args
-from utils import load_best_ckpt, get_output_dir, dump_json
 from dataset import get_auto_dataset
 from models.base_model import AutoCfdModel, CfdModel
-from utils_auto import init_model as init_auto_model
-from models.ffn import FfnModel
 from models.deeponet import DeepONet
+from models.ffn import FfnModel
 from models.loss import loss_name_to_fn
+from torch import FloatTensor, Tensor
+from torch.nn import functional as F
+from utils import dump_json, get_output_dir, load_best_ckpt
+from utils_auto import init_model as init_auto_model
 
 
 def init_model(args: Args) -> CfdModel:
@@ -25,7 +24,8 @@ def init_model(args: Args) -> CfdModel:
         # (density, viscosity, u_top, h, w, radius, center_x, center_y)
         n_case_params = 8
     else:
-        n_case_params = 5  # (density, viscosity, u_top, h, w)
+        # (density, viscosity, u_top, h, w)
+        n_case_params = 5
     if args.model == "deeponet":
         model = DeepONet(
             branch_dim=n_case_params,
@@ -40,16 +40,16 @@ def init_model(args: Args) -> CfdModel:
         ).cuda()
     elif args.model == "ffn":
         widths = (
-            [n_case_params + query_coord_dim]
-            + [args.ffn_width] * args.ffn_depth
-            + [1]
+            [n_case_params + query_coord_dim] +
+            [args.ffn_width] * args.ffn_depth + [1]
         )
         model = FfnModel(
             widths=widths,
             loss_fn=loss_fn,
         ).cuda()
     else:
-        raise ValueError(f"Invalid model name: {args.model}")
+        raise ValueError(
+            f"Invalid model name: {args.model}")
     num_params = sum(p.numel() for p in model.parameters())
     print(f"Model has {num_params} parameters")
     return model
@@ -72,7 +72,8 @@ def plot_metrics(metrics: List[dict], out_path: Optional[Path] = None):
 
 def get_metrics(preds: Tensor, labels: Tensor):
     assert preds.shape == labels.shape, f"{preds.shape}, {labels.shape}"
-    mse = ((preds - labels) ** 2).mean().detach().cpu().item()
+    mse = ((preds - labels) **
+           2).mean().detach().cpu().item()
     nmse = mse / ((labels**2).mean()).detach().cpu().item()
     mae = F.l1_loss(preds, labels).detach().cpu().item()
     return dict(
@@ -84,9 +85,8 @@ def get_metrics(preds: Tensor, labels: Tensor):
 
 def case_params_to_tensor(case_params_dict: dict):
     # Case params is a dict, turn it into a tensor
-    keys = [
-        x for x in case_params_dict.keys() if x not in ["rotated", "dx", "dy"]
-    ]
+    keys = [x for x in case_params_dict.keys() if x not in [
+        "rotated", "dx", "dy"]]
     case_params_vec = [case_params_dict[k] for k in keys]
     case_params = torch.tensor(case_params_vec)  # (b, 5)
     return case_params
@@ -119,7 +119,8 @@ def infer_case(
         elif isinstance(model, CfdModel):
             preds = []
             for step in range(infer_steps):
-                t = torch.tensor([step], dtype=torch.float32).to("cuda")
+                t = torch.tensor(
+                    [step], dtype=torch.float32).to("cuda")
                 pred = model.generate_one(
                     case_params=case_params,
                     t=t,
@@ -145,7 +146,8 @@ def infer(
         case_features = all_features[case_id]
         case_params = all_case_params[case_id]
         # (steps, c, h, w)
-        case_pred = infer_case(model, case_features, case_params, infer_steps)
+        case_pred = infer_case(
+            model, case_features, case_params, infer_steps)
         all_preds.append(case_pred)
 
     # Compute metrics
@@ -155,8 +157,10 @@ def infer(
         step_metrics = []
         for case_id in range(n_cases):
             # The last channel is mask
-            case_features = all_features[case_id][step]  # (c + 1, h, w)
-            case_pred = all_preds[case_id][step]  # (b, c, h, w)
+            # (c + 1, h, w)
+            case_features = all_features[case_id][step]
+            # (b, c, h, w)
+            case_pred = all_preds[case_id][step]
             # Assume `all_preds` has a batch size of 1
 
             preds = case_pred[0]  # (c, h, w)
@@ -206,33 +210,37 @@ def main():
         num_frames = case_features.shape[0]
         while num_frames < infer_steps:
             case_features = np.concatenate(
-                [case_features, case_features[-1:]], axis=0
-            )
+                [case_features, case_features[-1:]], axis=0)
             num_frames += 1
-        all_features[case_id] = FloatTensor(case_features).to("cuda")
+        all_features[case_id] = FloatTensor(
+            case_features).to("cuda")
 
     # Turn case params into tensors
     for case_id, case_params in enumerate(all_case_params):
-        all_case_params[case_id] = case_params_to_tensor(case_params).to(
-            "cuda"
-        )
+        all_case_params[case_id] = case_params_to_tensor(
+            case_params).to("cuda")
 
     # print("Number of cases:", len(all_features))
     # exit()
 
     # Load model
-    is_autoregressive = args.model not in ["deeponet", "ffn"]
+    is_autoregressive = args.model not in [
+        "deeponet", "ffn"]
     if args.model in ["deeponet", "ffn"]:
         model = init_model(args)
     else:
         model = init_auto_model(args)
-    output_dir = get_output_dir(args, is_auto=is_autoregressive)
+    output_dir = get_output_dir(
+        args, is_auto=is_autoregressive)
     load_best_ckpt(model, output_dir)
 
     print("====== Start inference ======")
-    all_metrics = infer(model, all_features, all_case_params, infer_steps)
-    dump_json(all_metrics, output_dir / "multistep_metrics.json")
-    plot_metrics(all_metrics, output_dir / "multistep_metrics.pdf")
+    all_metrics = infer(
+        model, all_features, all_case_params, infer_steps)
+    dump_json(all_metrics, output_dir /
+              "multistep_metrics.json")
+    plot_metrics(all_metrics, output_dir /
+                 "multistep_metrics.pdf")
 
 
 if __name__ == "__main__":

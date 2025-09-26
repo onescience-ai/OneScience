@@ -1,6 +1,8 @@
 from typing import Dict
+
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
+
 from agent.llm import ChatModel
 
 SYSTEM_TEMPLATE = """
@@ -19,15 +21,18 @@ SYSTEM_TEMPLATE = """
 class SummaryPreprocessor:
 
     def __init__(self, config: Dict):
-        self.llm = ChatModel[config["factory_name"]](**config["model"])
+        self.llm = ChatModel[config["factory_name"]](
+            **config["model"])
 
     def preprocess(self, doc: Document) -> Document:
         prompt = ChatPromptTemplate.from_messages(
-            [("system", SYSTEM_TEMPLATE), ("user", "内容：\n{content}\n")]
+            [("system", SYSTEM_TEMPLATE),
+             ("user", "内容：\n{content}\n")]
         )
         preprocess_chain = prompt | self.llm
         response = preprocess_chain.invoke(
-            {"content": "\n".join([doc.page_content, doc.metadata["title"]])}
+            {"content": "\n".join(
+                [doc.page_content, doc.metadata["title"]])}
         )
 
         doc.metadata["para_summary"] = response.content

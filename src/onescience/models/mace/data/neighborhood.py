@@ -17,7 +17,8 @@ def get_neighborhood(
     if cell is None or cell.any() == np.zeros((3, 3)).any():
         cell = np.identity(3, dtype=float)
 
-    assert len(pbc) == 3 and all(isinstance(i, (bool, np.bool_)) for i in pbc)
+    assert len(pbc) == 3 and all(
+        isinstance(i, (bool, np.bool_)) for i in pbc)
     assert cell.shape == (3, 3)
 
     pbc_x = pbc[0]
@@ -29,11 +30,14 @@ def get_neighborhood(
     # For models with more than 5 layers, the multiplicative constant needs to be increased.
     # temp_cell = np.copy(cell)
     if not pbc_x:
-        cell[0, :] = max_positions * 5 * cutoff * identity[0, :]
+        cell[0, :] = max_positions * \
+            5 * cutoff * identity[0, :]
     if not pbc_y:
-        cell[1, :] = max_positions * 5 * cutoff * identity[1, :]
+        cell[1, :] = max_positions * \
+            5 * cutoff * identity[1, :]
     if not pbc_z:
-        cell[2, :] = max_positions * 5 * cutoff * identity[2, :]
+        cell[2, :] = max_positions * \
+            5 * cutoff * identity[2, :]
 
     sender, receiver, unit_shifts = neighbour_list(
         quantities="ijS",
@@ -57,7 +61,8 @@ def get_neighborhood(
         unit_shifts = unit_shifts[keep_edge]
 
     # Build output
-    edge_index = np.stack((sender, receiver))  # [2, n_edges]
+    edge_index = np.stack(
+        (sender, receiver))  # [2, n_edges]
 
     # From the docs: With the shift vector S, the distances D between atoms can be computed from
     # D = positions[j]-positions[i]+S.dot(cell)

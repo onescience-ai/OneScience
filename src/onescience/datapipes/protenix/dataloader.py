@@ -12,7 +12,6 @@ from onescience.utils.protenix.logger import get_logger
 logger = get_logger(__name__)
 
 
-
 class WeightedSampler(Sampler):
     """
     A weighted sampler for single node.
@@ -32,7 +31,8 @@ class WeightedSampler(Sampler):
             replacement (bool): Whether sampling is done with replacement.
             seed (int): The seed for the random number generator.
         """
-        self.weights = torch.as_tensor(weights, dtype=torch.double)
+        self.weights = torch.as_tensor(
+            weights, dtype=torch.double)
         self.replacement = replacement
         self.seed = seed
         self.epoch = 0
@@ -87,8 +87,10 @@ class DistributedWeightedSampler(DistributedSampler):
             replacement (bool, optional): Whether to sample with replacement. Defaults to True.
             seed (int, optional): The random seed for reproducibility. Defaults to 0.
         """
-        super().__init__(dataset, num_replicas=num_replicas, rank=rank, shuffle=False)
-        self.weights = torch.as_tensor(weights, dtype=torch.double)
+        super().__init__(dataset, num_replicas=num_replicas,
+                         rank=rank, shuffle=False)
+        self.weights = torch.as_tensor(
+            weights, dtype=torch.double)
         self.replacement = replacement
         self.seed = seed
         self.epoch = 0
@@ -115,7 +117,7 @@ class DistributedWeightedSampler(DistributedSampler):
         indices = torch.multinomial(
             self.weights, self.num_samples, self.replacement, generator=g
         ).tolist()
-        indices = indices[self.rank : self.total_size : self.num_replicas]
+        indices = indices[self.rank: self.total_size: self.num_replicas]
         return iter(indices)
 
     def __len__(self) -> int:
@@ -166,13 +168,15 @@ class KeySumBalancedSampler(Sampler):
             # deterministically shuffle based on seed
             g = torch.Generator()
             g.manual_seed(self.seed)
-            indices = torch.randperm(len(self.dataset), generator=g).tolist()
+            indices = torch.randperm(
+                len(self.dataset), generator=g).tolist()
         else:
             indices = list(range(len(self.dataset)))
 
         # pad for len(dataset) to self.num_replicas if len(dataset) < self.num_replicas
         while len(indices) < self.num_replicas:
-            indices += indices[: (self.num_replicas - len(indices))]
+            indices += indices[: (self.num_replicas -
+                                  len(indices))]
 
         if isinstance(self.dataset.indices_list, list):
             # e.g. recentPDB test set
@@ -181,17 +185,22 @@ class KeySumBalancedSampler(Sampler):
             ]
         else:
             # e.g. posebuster test set
-            dataset_values = self.dataset.indices_list[self.key].astype(int).to_numpy()
+            dataset_values = self.dataset.indices_list[self.key].astype(
+                int).to_numpy()
 
         # Sort indices by key value
-        key_value_pairs = [(idx, dataset_values[idx]) for idx in indices]
-        key_value_pairs.sort(key=lambda x: x[1], reverse=True)
+        key_value_pairs = [(idx, dataset_values[idx])
+                           for idx in indices]
+        key_value_pairs.sort(
+            key=lambda x: x[1], reverse=True)
 
         # Calculate the target number of samples per worker
-        num_samples_per_worker = len(self.dataset) // self.num_replicas
+        num_samples_per_worker = len(
+            self.dataset) // self.num_replicas
 
         # Initialize containers for worker assignments and their current key sum
-        worker_assignments = [[] for _ in range(self.num_replicas)]
+        worker_assignments = [[]
+                              for _ in range(self.num_replicas)]
         worker_sums = [0] * self.num_replicas
         total_samples = num_samples_per_worker * self.num_replicas
 
@@ -235,7 +244,8 @@ class IterDataLoader(DataLoader):
     """
 
     def __init__(self, *args, **kwargs):
-        super(IterDataLoader, self).__init__(*args, **kwargs)
+        super(IterDataLoader, self).__init__(
+            *args, **kwargs)
         assert self.sampler is not None
         self.counter = 0
 
@@ -282,7 +292,8 @@ class DistributedDataLoader(DataLoader):
     def __iter__(self):
         self.sampler.set_epoch(self.counter)
         self.counter += 1
-        _iterator = super(DistributedDataLoader, self).__iter__()
+        _iterator = super(
+            DistributedDataLoader, self).__iter__()
         return _iterator
 
 
@@ -302,7 +313,8 @@ def get_dataloaders(
         tuple: A tuple containing the training data loader and a dictionary of testing data loaders.
 
     """
-    train_dataset, test_datasets = get_datasets(configs, error_dir)
+    train_dataset, test_datasets = get_datasets(
+        configs, error_dir)
     if world_size > 1:
         train_sampler = DistributedWeightedSampler(
             train_dataset,
@@ -341,7 +353,8 @@ def get_dataloaders(
     for test_name, test_dataset in test_datasets.items():
         test_dataset_sizes[test_name] = len(test_dataset)
         test_sampler = (
-            KeySumBalancedSampler(test_dataset, key="num_tokens", seed=configs.seed)
+            KeySumBalancedSampler(
+                test_dataset, key="num_tokens", seed=configs.seed)
             if world_size > 1
             else None
         )

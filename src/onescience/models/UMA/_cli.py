@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import argparse
 import logging
 import os
@@ -83,11 +84,13 @@ class SlurmConfig:
     partition: Optional[str] = (
         None  # omegaconf in python 3.9 does not backport annotations
     )
-    qos: Optional[str] = None  # omegaconf in python 3.9 does not backport annotations
+    # omegaconf in python 3.9 does not backport annotations
+    qos: Optional[str] = None
     account: Optional[str] = (
         None  # omegaconf in python 3.9 does not backport annotations
     )
-    additional_parameters: Optional[dict] = None  # 字典格式，用于存储环境变量和配置
+    # 字典格式，用于存储环境变量和配置
+    additional_parameters: Optional[dict] = None
 
 
 @dataclass
@@ -101,9 +104,11 @@ class SchedulerConfig:
     # 新增：仅 LOCAL+elastic 多节点时使用（也可不填，见下文）
     rdzv_backend: str = "c10d"
     rdzv_endpoint: Optional[str] = None
-    run_id: str = field(default_factory=lambda: f"run_{uuid.uuid4().hex[:8]}")
+    run_id: str = field(
+        default_factory=lambda: f"run_{uuid.uuid4().hex[:8]}")
 
-    slurm: SlurmConfig = field(default_factory=lambda: SlurmConfig)
+    slurm: SlurmConfig = field(
+        default_factory=lambda: SlurmConfig)
 
 
 @dataclass
@@ -141,19 +146,24 @@ class Metadata:
     preemption_checkpoint_dir: str
     cluster_name: str
     array_job_num: int = 0
-    slurm_env: SlurmEnv = field(default_factory=lambda: SlurmEnv())
+    slurm_env: SlurmEnv = field(
+        default_factory=lambda: SlurmEnv())
 
 
 @dataclass
 class JobConfig:
     run_name: str = field(
-        default_factory=lambda: get_timestamp_uid() + uuid.uuid4().hex.upper()[0:4]
+        default_factory=lambda: get_timestamp_uid() +
+        uuid.uuid4().hex.upper()[0:4]
     )
-    timestamp_id: str = field(default_factory=lambda: get_timestamp_uid())
-    run_dir: str = field(default_factory=lambda: tempfile.TemporaryDirectory().name)
+    timestamp_id: str = field(
+        default_factory=lambda: get_timestamp_uid())
+    run_dir: str = field(
+        default_factory=lambda: tempfile.TemporaryDirectory().name)
     device_type: DeviceType = DeviceType.CUDA
     debug: bool = False
-    scheduler: SchedulerConfig = field(default_factory=lambda: SchedulerConfig)
+    scheduler: SchedulerConfig = field(
+        default_factory=lambda: SchedulerConfig)
     logger: Optional[dict] = (
         None  # omegaconf in python 3.9 does not backport annotations
     )
@@ -176,12 +186,15 @@ class JobConfig:
             cluster = ""
         self.metadata = Metadata(
             commit=get_commit_hash(),
-            log_dir=os.path.join(self.run_dir, self.timestamp_id, LOG_DIR_NAME),
+            log_dir=os.path.join(
+                self.run_dir, self.timestamp_id, LOG_DIR_NAME),
             checkpoint_dir=os.path.join(
                 self.run_dir, self.timestamp_id, CHECKPOINT_DIR_NAME
             ),
-            results_dir=os.path.join(self.run_dir, self.timestamp_id, RESULTS_DIR),
-            config_path=os.path.join(self.run_dir, self.timestamp_id, CONFIG_FILE_NAME),
+            results_dir=os.path.join(
+                self.run_dir, self.timestamp_id, RESULTS_DIR),
+            config_path=os.path.join(
+                self.run_dir, self.timestamp_id, CONFIG_FILE_NAME),
             preemption_checkpoint_dir=os.path.join(
                 self.run_dir,
                 self.timestamp_id,
@@ -216,13 +229,16 @@ def _get_slurm_env() -> SlurmEnv:
             raw_job_id=slurm_job_env.raw_job_id,
             array_job_id=slurm_job_env.array_job_id,
             array_task_id=slurm_job_env.array_task_id,
-            restart_count=os.environ.get("SLURM_RESTART_COUNT"),
+            restart_count=os.environ.get(
+                "SLURM_RESTART_COUNT"),
         )
     except KeyError:
         # slurm environment variables are undefined, running locally
         slurm_env = SlurmEnv()
 
     return slurm_env
+
+
 def remove_runner_state_from_submission(log_folder: str, job_id: str) -> None:
     # (HACK) Decouple the job from the runner state by manually modifying it
     # this ensures the saved runner state is not re-submitted in the event of a node failure
@@ -230,9 +246,13 @@ def remove_runner_state_from_submission(log_folder: str, job_id: str) -> None:
     # starting at state t=T again without calling the checkpoint callback, losing all progress in between.
     job_path = JobPaths(folder=log_folder, job_id=job_id)
     if os.path.isfile(job_path.submitted_pickle):
-        submission_obj = DelayedSubmission.load(job_path.submitted_pickle)
+        submission_obj = DelayedSubmission.load(
+            job_path.submitted_pickle)
         submission_obj.args[0].job.runner_state_path = None
-        cloudpickle_dump(submission_obj, job_path.submitted_pickle)
+        cloudpickle_dump(
+            submission_obj, job_path.submitted_pickle)
+
+
 class Submitit(Checkpointable):
     def __init__(self) -> None:
         self.config = None
@@ -249,7 +269,8 @@ class Submitit(Checkpointable):
 
         setup_env_vars()
         setup_logging()
-        dist_config = map_job_config_to_dist_config(self.config.job)
+        dist_config = map_job_config_to_dist_config(
+            self.config.job)
         logging.info("Setting up distributed backend...")
         distutils.setup(dist_config)
         distutils.synchronize()
@@ -279,21 +300,26 @@ class Submitit(Checkpointable):
 
         if run_type == RunType.RUN:
             logging.info("Calling runner.run() ...")
-            self.runner: Runner = hydra.utils.instantiate(self.config.runner)
+            self.runner: Runner = hydra.utils.instantiate(
+                self.config.runner)
             self.runner.job_config = self.config.job
             # must call resume state AFTER the runner has been initialized
-            self.runner.load_state(self.config.job.runner_state_path)
+            self.runner.load_state(
+                self.config.job.runner_state_path)
             self.runner.run()
         elif run_type == RunType.REDUCE:
             logging.info("Calling reducer.reduce() ...")
-            self.reducer: Reducer = hydra.utils.instantiate(self.config.reducer)
+            self.reducer: Reducer = hydra.utils.instantiate(
+                self.config.reducer)
             self.reducer.job_config = self.config.job
             self.reducer.runner_config = self.config.runner
             # must call resume state AFTER the runner has been initialized
-            self.reducer.load_state(self.config.job.runner_state_path)
+            self.reducer.load_state(
+                self.config.job.runner_state_path)
             self.reducer.reduce()
         else:
-            raise ValueError(f"run type {run_type} is not recognized!")
+            raise ValueError(
+                f"run type {run_type} is not recognized!")
 
         distutils.cleanup()
 
@@ -306,7 +332,8 @@ class Submitit(Checkpointable):
         ):
             # get a partial function from the config and instantiate wandb with it
             # currently code assumes that we only use the WandBSingletonLogger
-            logger_initializer = hydra.utils.instantiate(self.config.job.logger)
+            logger_initializer = hydra.utils.instantiate(
+                self.config.job.logger)
             simple_config = OmegaConf.to_container(
                 self.config, resolve=True, throw_on_missing=True
             )
@@ -318,7 +345,8 @@ class Submitit(Checkpointable):
             )
 
     def checkpoint(self, *args, **kwargs) -> DelayedSubmission:
-        logging.error("Submitit checkpointing callback is triggered")
+        logging.error(
+            "Submitit checkpointing callback is triggered")
         save_path = self.config.job.metadata.preemption_checkpoint_dir
         cfg_copy = self.config.copy()
         # only assign if the save was successful
@@ -364,11 +392,13 @@ def get_canonical_config(config: DictConfig) -> DictConfig:
     config.job = job
     # check that each key other than the allowed top level keys are used in config
     # find all top level keys are not in the allowed set
-    all_keys = set(config.keys()).difference(ALLOWED_TOP_LEVEL_KEYS)
+    all_keys = set(config.keys()).difference(
+        ALLOWED_TOP_LEVEL_KEYS)
     used_keys = set()
     for key in all_keys:
         # make a copy of all keys except the key in question
-        copy_cfg = OmegaConf.create({k: v for k, v in config.items() if k != key})
+        copy_cfg = OmegaConf.create(
+            {k: v for k, v in config.items() if k != key})
         try:
             OmegaConf.resolve(copy_cfg)
         except InterpolationKeyError:
@@ -384,7 +414,8 @@ def get_canonical_config(config: DictConfig) -> DictConfig:
     # resolve the config to fully replace the variables and delete all top level keys except for the ALLOWED_TOP_LEVEL_KEYS
     OmegaConf.resolve(config)
     return OmegaConf.create(
-        {k: v for k, v in config.items() if k in ALLOWED_TOP_LEVEL_KEYS}
+        {k: v for k, v in config.items(
+        ) if k in ALLOWED_TOP_LEVEL_KEYS}
     )
 
 
@@ -393,12 +424,16 @@ def get_hydra_config_from_yaml(
 ) -> DictConfig:
     # Load the configuration from the file
     os.environ["HYDRA_FULL_ERROR"] = "1"
-    config_directory = os.path.dirname(os.path.abspath(config_yml))
+    config_directory = os.path.dirname(
+        os.path.abspath(config_yml))
     config_name = os.path.basename(config_yml)
-    hydra.initialize_config_dir(config_directory, version_base="1.1")
-    cfg = hydra.compose(config_name=config_name, overrides=overrides_args)
+    hydra.initialize_config_dir(
+        config_directory, version_base="1.1")
+    cfg = hydra.compose(
+        config_name=config_name, overrides=overrides_args)
     # merge default structured config with initialized job object
-    cfg = OmegaConf.merge({"job": OmegaConf.structured(JobConfig)}, cfg)
+    cfg = OmegaConf.merge(
+        {"job": OmegaConf.structured(JobConfig)}, cfg)
     # canonicalize config (remove top level keys that just used replacing variables)
     return get_canonical_config(cfg)
 
@@ -414,17 +449,20 @@ def main(
 ):
     if args is None:
         parser = argparse.ArgumentParser()
-        parser.add_argument("-c", "--config", type=str, required=True)
+        parser.add_argument(
+            "-c", "--config", type=str, required=True)
         args, override_args = parser.parse_known_args()
 
-    cfg = get_hydra_config_from_yaml(args.config, override_args)
+    cfg = get_hydra_config_from_yaml(
+        args.config, override_args)
 
     log_dir = cfg.job.metadata.log_dir
     os.makedirs(cfg.job.run_dir, exist_ok=True)
     os.makedirs(log_dir, exist_ok=True)
 
     OmegaConf.save(cfg, cfg.job.metadata.config_path)
-    logging.info(f"saved canonical config to {cfg.job.metadata.config_path}")
+    logging.info(
+        f"saved canonical config to {cfg.job.metadata.config_path}")
 
     scheduler_cfg = cfg.job.scheduler
     logging.info(f"Running fairchemv2 cli with {cfg}")
@@ -432,7 +470,8 @@ def main(
         assert (
             os.getenv("SLURM_SUBMIT_HOST") is None
         ), "SLURM DID NOT SUBMIT JOB!! Please do not submit jobs from an active slurm job (srun or otherwise)"
-        executor = AutoExecutor(folder=log_dir, slurm_max_num_timeout=3)
+        executor = AutoExecutor(
+            folder=log_dir, slurm_max_num_timeout=3)
         executor.update_parameters(
             name=cfg.job.run_name,
             mem_gb=scheduler_cfg.slurm.mem_gb,
@@ -468,7 +507,8 @@ def main(
                     _cfg.job.metadata.array_job_num = job_number
                     job = executor.submit(Submitit(), _cfg)
                     jobs.append(job)
-            logging.info(f"Submitted {len(jobs)} jobs: {jobs[0].job_id.split('_')[0]}")
+            logging.info(
+                f"Submitted {len(jobs)} jobs: {jobs[0].job_id.split('_')[0]}")
 
         if "reducer" in cfg:
             job_id = jobs[0].job_id.split("_")[0]
@@ -501,15 +541,19 @@ def main(
                 rdzv_backend="c10d",
                 max_restarts=0,
             )
-            elastic_launch(launch_config, _runner_wrapper)(cfg)
+            elastic_launch(
+                launch_config, _runner_wrapper)(cfg)
             if "reducer" in cfg:
-                elastic_launch(launch_config, _runner_wrapper)(cfg, RunType.REDUCE)
+                elastic_launch(launch_config, _runner_wrapper)(
+                    cfg, RunType.REDUCE)
         else:
-            logging.info("Running in local mode without elastic launch")
+            logging.info(
+                "Running in local mode without elastic launch")
             distutils.setup_env_local()
             Submitit()(cfg)
             if "reducer" in cfg:
                 Submitit()(cfg, RunType.REDUCE)
+
 
 if __name__ == "__main__":
     main()

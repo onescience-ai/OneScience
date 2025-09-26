@@ -33,10 +33,12 @@ class DnaRnaProteinEntityWidget(widgets.VBox):
 
         def handle_submit(sender):
             item = sender["owner"]
-            cleaned_value = re.sub(r"[^a-zA-Z]", "", item.value)
+            cleaned_value = re.sub(
+                r"[^a-zA-Z]", "", item.value)
             item.value = cleaned_value.upper()
 
-        self.sequence_text.observe(handle_submit, names="value")
+        self.sequence_text.observe(
+            handle_submit, names="value")
 
         self.add_modification = widgets.Button(
             description="modification",
@@ -49,7 +51,8 @@ class DnaRnaProteinEntityWidget(widgets.VBox):
         self.modifications_id = list()
         self.modifications_count = 0
 
-        self.add_modification.on_click(self.add_modification_callback)
+        self.add_modification.on_click(
+            self.add_modification_callback)
 
         self.update()
 
@@ -72,9 +75,11 @@ class DnaRnaProteinEntityWidget(widgets.VBox):
             item.value = item.value[0:10]
             if len(item.value) < 4:
                 item.value = "CCD_"
-            item.value = re.sub(r"[^A-Z0-9_]", "", item.value)
+            item.value = re.sub(
+                r"[^A-Z0-9_]", "", item.value)
 
-        modificationType.observe(handle_submit, names="value")
+        modificationType.observe(
+            handle_submit, names="value")
 
         ptmPosition = widgets.BoundedIntText(
             value=1, min=1, description="Position:", disabled=False
@@ -86,9 +91,11 @@ class DnaRnaProteinEntityWidget(widgets.VBox):
             tooltip="Click to delete this row",
             icon="trash",
         )
-        delete_button.on_click(lambda b: self.delete_ptm_row(index))
+        delete_button.on_click(
+            lambda b: self.delete_ptm_row(index))
         self.modifications.append(
-            widgets.HBox([modificationType, ptmPosition, delete_button])
+            widgets.HBox(
+                [modificationType, ptmPosition, delete_button])
         )
         self.modifications_id.append(index)
         self.update()
@@ -124,7 +131,8 @@ class DnaRnaProteinEntityWidget(widgets.VBox):
         result[recode_name] = dict()
         result[recode_name]["count"] = self.copies_int_text.value
         result[recode_name]["sequence"] = sequence
-        assert len(result[recode_name]["sequence"]) > 0, "sequence length must > 0"
+        assert len(result[recode_name]["sequence"]
+                   ) > 0, "sequence length must > 0"
         result[recode_name]["modifications"] = [
             {
                 "modificationType": item.children[0].value,
@@ -134,7 +142,8 @@ class DnaRnaProteinEntityWidget(widgets.VBox):
         ]
         for item in result[recode_name]["modifications"]:
             pos = item["Position"]
-            assert pos <= len(result[recode_name]["sequence"]), "position out of range"
+            assert pos <= len(
+                result[recode_name]["sequence"]), "position out of range"
 
         if sequence_type == "Protein":
             valid_chars = set("ARNDCQEGHILKMFPSTWYVX")
@@ -186,7 +195,8 @@ class LigandSmilesEntityWidget(widgets.VBox):
     def update(self):
         self.children = [
             widgets.HBox(
-                [self.molecule_type_dropdown, self.copies_int_text, self.smiles_text]
+                [self.molecule_type_dropdown,
+                    self.copies_int_text, self.smiles_text]
             )
         ]
 
@@ -195,7 +205,8 @@ class LigandSmilesEntityWidget(widgets.VBox):
         name = "ligand"
         result[name] = dict()
         result[name][name] = self.smiles_text.value
-        assert len(result[name][name]) > 0, "SMILES length must > 0"
+        assert len(result[name][name]
+                   ) > 0, "SMILES length must > 0"
         result[name]["count"] = self.copies_int_text.value
         return result
 
@@ -232,14 +243,16 @@ class LigandIonCCDEntityWidget(widgets.VBox):
             if len(item.value) < 4:
                 item.value = "CCD_"
 
-        self.sequence_text.observe(handle_submit, names="value")
+        self.sequence_text.observe(
+            handle_submit, names="value")
 
         self.update()
 
     def update(self):
         self.children = [
             widgets.HBox(
-                [self.molecule_type_dropdown, self.copies_int_text, self.sequence_text]
+                [self.molecule_type_dropdown,
+                    self.copies_int_text, self.sequence_text]
             )
         ]
 
@@ -277,7 +290,8 @@ class CovalentBondsWidget(widgets.VBox):
             icon="plus",
         )
 
-        self.add_convalent_bond_buttom.on_click(self.on_add_convalent_bond)
+        self.add_convalent_bond_buttom.on_click(
+            self.on_add_convalent_bond)
 
         self.update()
 
@@ -310,7 +324,8 @@ class CovalentBondsWidget(widgets.VBox):
             tooltip="Click to delete this row",
             icon="trash",
         )
-        delete_button.on_click(lambda b: self.delete_row(index))
+        delete_button.on_click(
+            lambda b: self.delete_row(index))
         self.convalent_bonds.append(
             widgets.HBox(
                 [
@@ -399,12 +414,14 @@ class ModelWidget(widgets.VBox):
 
     def update(self):
         self.children = [
-            widgets.HBox([self.sample, self.step, self.cycle, self.seeds, self.version])
+            widgets.HBox(
+                [self.sample, self.step, self.cycle, self.seeds, self.version])
         ]
 
     def get_result(self):
         results = dict()
-        results["model_seeds"] = [int(i) for i in self.seeds.value.split(",")]
+        results["model_seeds"] = [
+            int(i) for i in self.seeds.value.split(",")]
         results["model_version"] = self.version.value
         results["N_sample"] = self.sample.value
         results["N_step"] = self.step.value
@@ -425,7 +442,8 @@ class ProtenixInputViewer(widgets.VBox):
 
         def handle_submit(sender):
             item = sender["owner"]
-            cleaned_value = re.sub(r"[^a-zA-Z0-9_]", "", item.value)
+            cleaned_value = re.sub(
+                r"[^a-zA-Z0-9_]", "", item.value)
             item.value = cleaned_value
 
         self.name.observe(handle_submit, names="value")
@@ -470,9 +488,12 @@ class ProtenixInputViewer(widgets.VBox):
 
         self.model_parameter = ModelWidget()
 
-        self.add_ligand_smiles.on_click(self.add_ligand_smiles_callback)
-        self.add_ligand_ion_ccd.on_click(self.add_ligand_ion_ccd_callback)
-        self.add_dna_rna_protein.on_click(self.add_dna_rna_protein_callback)
+        self.add_ligand_smiles.on_click(
+            self.add_ligand_smiles_callback)
+        self.add_ligand_ion_ccd.on_click(
+            self.add_ligand_ion_ccd_callback)
+        self.add_dna_rna_protein.on_click(
+            self.add_dna_rna_protein_callback)
 
         self.update()
 
@@ -487,8 +508,10 @@ class ProtenixInputViewer(widgets.VBox):
             tooltip="Click to delete this row",
             icon="trash",
         )
-        delete_button.on_click(lambda b: self.delete_ligand_ion_ccd_row(index))
-        self.ligand_smiles_entities.append(widgets.HBox([item, delete_button]))
+        delete_button.on_click(
+            lambda b: self.delete_ligand_ion_ccd_row(index))
+        self.ligand_smiles_entities.append(
+            widgets.HBox([item, delete_button]))
         self.ligand_smiles_entities_id.append(index)
         self.update()
 
@@ -503,8 +526,10 @@ class ProtenixInputViewer(widgets.VBox):
             tooltip="Click to delete this row",
             icon="trash",
         )
-        delete_button.on_click(lambda b: self.delete_ligand_ion_ccd_row(index))
-        self.ligand_smiles_entities.append(widgets.HBox([item, delete_button]))
+        delete_button.on_click(
+            lambda b: self.delete_ligand_ion_ccd_row(index))
+        self.ligand_smiles_entities.append(
+            widgets.HBox([item, delete_button]))
         self.ligand_smiles_entities_id.append(index)
         self.update()
 
@@ -527,8 +552,10 @@ class ProtenixInputViewer(widgets.VBox):
             tooltip="Click to delete this row",
             icon="trash",
         )
-        delete_button.on_click(lambda b: self.delete_dna_rna_protein_row(index))
-        self.dna_rna_protein_entities.append(widgets.HBox([item, delete_button]))
+        delete_button.on_click(
+            lambda b: self.delete_dna_rna_protein_row(index))
+        self.dna_rna_protein_entities.append(
+            widgets.HBox([item, delete_button]))
         self.dna_rna_protein_entities_id.append(index)
         self.update()
 
@@ -542,7 +569,8 @@ class ProtenixInputViewer(widgets.VBox):
 
     def update(self):
         self.children = (
-            [widgets.HBox([self.name, self.use_msa, self.atom_confidence])]
+            [widgets.HBox(
+                [self.name, self.use_msa, self.atom_confidence])]
             + [item for item in self.dna_rna_protein_entities]
             + [item for item in self.ligand_smiles_entities]
             + [self.covalent_bonds]
@@ -583,19 +611,25 @@ class ProtenixInputViewer(widgets.VBox):
                 and covalent_bond["right_entity"] > 0
             ), "covalent bond index out of range"
 
-            assert len(covalent_bond["left_atom"]) != 0, "left atom is empty"
-            assert len(covalent_bond["right_atom"]) != 0, "right_atom atom is empty"
+            assert len(
+                covalent_bond["left_atom"]) != 0, "left atom is empty"
+            assert len(
+                covalent_bond["right_atom"]) != 0, "right_atom atom is empty"
 
             left_entiy = result["sequences"][covalent_bond["left_entity"] - 1]
-            left_entiy_seq = left_entiy[[item for item in left_entiy.keys()][0]]
+            left_entiy_seq = left_entiy[[
+                item for item in left_entiy.keys()][0]]
             right_entity = result["sequences"][covalent_bond["right_entity"] - 1]
-            right_entity_seq = right_entity[[item for item in right_entity.keys()][0]]
+            right_entity_seq = right_entity[[
+                item for item in right_entity.keys()][0]]
             assert (
-                covalent_bond["left_position"] <= len(left_entiy_seq)
+                covalent_bond["left_position"] <= len(
+                    left_entiy_seq)
                 and covalent_bond["left_position"] >= 1
             ), "left position out of range"
             assert (
-                covalent_bond["right_position"] <= len(right_entity_seq)
+                covalent_bond["right_position"] <= len(
+                    right_entity_seq)
                 and covalent_bond["right_position"] >= 1
             ), "right position out of range"
         return result

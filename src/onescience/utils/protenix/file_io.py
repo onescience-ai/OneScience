@@ -1,16 +1,16 @@
-
 import gzip
 import json
 import pickle
+import sys
 from pathlib import Path
 from typing import Any, Union
 
 import pandas as pd
 
-from onescience.utils.protenix.torch_utils import map_values_to_list
-import sys
 import onescience.datapipes.protenix
 import onescience.models.protenix
+from onescience.utils.protenix.torch_utils import map_values_to_list
+
 # 创建一个虚拟模块，指向新的模块路径
 sys.modules["protenix.data"] = onescience.datapipes.protenix
 sys.modules["protenix"] = onescience.models.protenix
@@ -47,7 +47,8 @@ def read_indices_csv(csv: Union[str, Path]) -> pd.DataFrame:
     Returns:
         pd.DataFrame : A pandas DataFrame.
     """
-    df = pd.read_csv(csv, na_values=PANDAS_NA_VALUES, keep_default_na=False, dtype=str)
+    df = pd.read_csv(csv, na_values=PANDAS_NA_VALUES,
+                     keep_default_na=False, dtype=str)
     return df
 
 

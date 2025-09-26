@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import argparse
@@ -20,13 +18,15 @@ def write_is2re_relaxations(path: str, filename: str, hybrid) -> None:
         energies = []
         systems = glob.glob(os.path.join(path, "*.traj"))
         for system in tqdm(systems):
-            sid, _ = os.path.splitext(os.path.basename(system))
+            sid, _ = os.path.splitext(
+                os.path.basename(system))
             ids.append(str(sid))
             traj = ase.io.read(system, "-1")
             energies.append(traj.get_potential_energy())
 
         submission_file["challenge_ids"] = np.array(ids)
-        submission_file["challenge_energy"] = np.array(energies)
+        submission_file["challenge_energy"] = np.array(
+            energies)
 
     else:
         preds = np.load(path)
@@ -37,7 +37,8 @@ def write_is2re_relaxations(path: str, filename: str, hybrid) -> None:
             energies.append(energy)
 
         submission_file["challenge_ids"] = np.array(ids)
-        submission_file["challenge_energy"] = np.array(energies)
+        submission_file["challenge_energy"] = np.array(
+            energies)
 
     np.savez_compressed(filename, **submission_file)
 
@@ -63,7 +64,8 @@ def main(args: argparse.Namespace) -> None:
     if not args.is2re_relaxations:
         write_predictions(path, filename=args.out_path)
     else:
-        write_is2re_relaxations(path, filename=args.out_path, hybrid=args.hybrid)
+        write_is2re_relaxations(
+            path, filename=args.out_path, hybrid=args.hybrid)
     print(f"Results saved to {args.out_path} successfully.")
 
 
@@ -92,7 +94,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--path", help="Path to results")
-    parser.add_argument("--out-path", help="Path to write predictions to.")
+    parser.add_argument(
+        "--out-path", help="Path to write predictions to.")
     parser.add_argument(
         "--is2re-relaxations",
         action="store_true",

@@ -1,23 +1,22 @@
 import os
-import argparse
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-import h5py
-import scipy.io as scio
-from .shapenet_utils import get_datalist
-from .shapenet_utils import GraphDataset, GraphDataset_mgn
-from torch.utils.data import Dataset, ConcatDataset
-from onescience.utils.cfd_benchmark.normalizer import (
-    UnitTransformer,
-    UnitGaussianNormalizer,
-)
-import dgl
-import hydra
-from omegaconf import DictConfig, OmegaConf, open_dict
-from pathlib import Path
 import random
+from pathlib import Path
+
+import dgl
+import h5py
+import hydra
+import numpy as np
+import scipy.io as scio
+import torch
 import torchvision.transforms.functional as TF
+from torch.utils.data import ConcatDataset, Dataset
+
+from onescience.utils.cfd_benchmark.normalizer import (
+    UnitGaussianNormalizer,
+    UnitTransformer,
+)
+
+from .shapenet_utils import GraphDataset, GraphDataset_mgn, get_datalist
 
 
 class plas(object):
@@ -64,10 +63,14 @@ class plas(object):
                 shuffled_u = u.unsqueeze(0)
                 shuffled_a = a.unsqueeze(0)
             else:
-                shuffled_pos = torch.cat((shuffled_pos, pos.unsqueeze(0)), 0)
-                shuffled_t = torch.cat((shuffled_t, t.unsqueeze(0)), 0)
-                shuffled_u = torch.cat((shuffled_u, u.unsqueeze(0)), 0)
-                shuffled_a = torch.cat((shuffled_a, a.unsqueeze(0)), 0)
+                shuffled_pos = torch.cat(
+                    (shuffled_pos, pos.unsqueeze(0)), 0)
+                shuffled_t = torch.cat(
+                    (shuffled_t, t.unsqueeze(0)), 0)
+                shuffled_u = torch.cat(
+                    (shuffled_u, u.unsqueeze(0)), 0)
+                shuffled_a = torch.cat(
+                    (shuffled_a, a.unsqueeze(0)), 0)
 
         shuffled_batch.append(shuffled_pos)
         shuffled_batch.append(shuffled_t)
@@ -83,30 +86,37 @@ class plas(object):
         s2 = int(((31 - 1) / r2) + 1)
 
         data = scio.loadmat(self.DATA_PATH)
-        input = torch.tensor(data["input"], dtype=torch.float)
-        output = torch.tensor(data["output"], dtype=torch.float)
+        input = torch.tensor(
+            data["input"], dtype=torch.float)
+        output = torch.tensor(
+            data["output"], dtype=torch.float)
         x_train = (
             input[: self.ntrain, ::r1][:, :s1]
             .reshape(self.ntrain, s1, 1)
             .repeat(1, 1, s2)
         )
         x_train = x_train.reshape(self.ntrain, -1, 1)
-        y_train = output[: self.ntrain, ::r1, ::r2][:, :s1, :s2]
-        y_train = y_train.reshape(self.ntrain, -1, self.T_out * self.out_dim)
+        y_train = output[: self.ntrain,
+                         ::r1, ::r2][:, :s1, :s2]
+        y_train = y_train.reshape(
+            self.ntrain, -1, self.T_out * self.out_dim)
         x_test = (
-            input[-self.ntest :, ::r1][:, :s1]
+            input[-self.ntest:, ::r1][:, :s1]
             .reshape(self.ntest, s1, 1)
             .repeat(1, 1, s2)
         )
         x_test = x_test.reshape(self.ntest, -1, 1)
-        y_test = output[-self.ntest :, ::r1, ::r2][:, :s1, :s2]
-        y_test = y_test.reshape(self.ntest, -1, self.T_out * self.out_dim)
+        y_test = output[-self.ntest:,
+                        ::r1, ::r2][:, :s1, :s2]
+        y_test = y_test.reshape(
+            self.ntest, -1, self.T_out * self.out_dim)
 
         # Use appropriate normalizer based on norm_type
         if self.norm_type == "UnitTransformer":
             self.x_normalizer = UnitTransformer(x_train)
         elif self.norm_type == "UnitGaussianNormalizer":
-            self.x_normalizer = UnitGaussianNormalizer(x_train)
+            self.x_normalizer = UnitGaussianNormalizer(
+                x_train)
 
         x_train = self.x_normalizer.encode(x_train)
         x_test = self.x_normalizer.encode(x_test)
@@ -116,7 +126,8 @@ class plas(object):
             if self.norm_type == "UnitTransformer":
                 self.y_normalizer = UnitTransformer(y_train)
             elif self.norm_type == "UnitGaussianNormalizer":
-                self.y_normalizer = UnitGaussianNormalizer(y_train)
+                self.y_normalizer = UnitGaussianNormalizer(
+                    y_train)
 
             y_train = self.y_normalizer.encode(y_train)
 
@@ -124,7 +135,8 @@ class plas(object):
         y = np.linspace(0, 1, s1)
         x, y = np.meshgrid(x, y)
         pos = np.c_[x.ravel(), y.ravel()]
-        pos = torch.tensor(pos, dtype=torch.float).unsqueeze(0)
+        pos = torch.tensor(
+            pos, dtype=torch.float).unsqueeze(0)
 
         pos_train = pos.repeat(self.ntrain, 1, 1)
         pos_test = pos.repeat(self.ntest, 1, 1)
@@ -135,13 +147,15 @@ class plas(object):
         t_test = t.repeat(self.ntest, 1)
 
         train_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(pos_train, t_train, x_train, y_train),
+            torch.utils.data.TensorDataset(
+                pos_train, t_train, x_train, y_train),
             batch_size=self.batch_size,
             shuffle=True,
             collate_fn=self.random_collate_fn,
         )
         test_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(pos_test, t_test, x_test, y_test),
+            torch.utils.data.TensorDataset(
+                pos_test, t_test, x_test, y_test),
             batch_size=self.batch_size,
             shuffle=False,
         )
@@ -152,8 +166,10 @@ class plas(object):
 
 class elas(object):
     def __init__(self, args, dist):
-        self.PATH_Sigma = args.data_path + "/Meshes/Random_UnitCell_sigma_10.npy"
-        self.PATH_XY = args.data_path + "/Meshes/Random_UnitCell_XY_10.npy"
+        self.PATH_Sigma = args.data_path + \
+            "/Meshes/Random_UnitCell_sigma_10.npy"
+        self.PATH_XY = args.data_path + \
+            "/Meshes/Random_UnitCell_XY_10.npy"
         self.downsamplex = args.downsamplex
         self.downsampley = args.downsampley
         self.batch_size = args.batch_size
@@ -170,31 +186,37 @@ class elas(object):
 
     def get_loader(self):
         input_s = np.load(self.PATH_Sigma)
-        input_s = torch.tensor(input_s, dtype=torch.float).permute(1, 0)
+        input_s = torch.tensor(
+            input_s, dtype=torch.float).permute(1, 0)
         input_xy = np.load(self.PATH_XY)
-        input_xy = torch.tensor(input_xy, dtype=torch.float).permute(2, 0, 1)
-        print(f"input_s:{input_s.shape},input_xy:{input_xy.shape}")
+        input_xy = torch.tensor(
+            input_xy, dtype=torch.float).permute(2, 0, 1)
+        print(
+            f"input_s:{input_s.shape},input_xy:{input_xy.shape}")
         train_s = input_s[: self.ntrain, :, None]
-        test_s = input_s[-self.ntest :, :, None]
+        test_s = input_s[-self.ntest:, :, None]
         train_xy = input_xy[: self.ntrain]
-        test_xy = input_xy[-self.ntest :]
+        test_xy = input_xy[-self.ntest:]
 
         if self.normalize:
             # Use appropriate normalizer based on norm_type
             if self.norm_type == "UnitTransformer":
                 self.y_normalizer = UnitTransformer(train_s)
             elif self.norm_type == "UnitGaussianNormalizer":
-                self.y_normalizer = UnitGaussianNormalizer(train_s)
+                self.y_normalizer = UnitGaussianNormalizer(
+                    train_s)
 
             train_s = self.y_normalizer.encode(train_s)
 
         train_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(train_xy, train_xy, train_s),
+            torch.utils.data.TensorDataset(
+                train_xy, train_xy, train_s),
             batch_size=self.batch_size,
             shuffle=True,
         )
         test_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(test_xy, test_xy, test_s),
+            torch.utils.data.TensorDataset(
+                test_xy, test_xy, test_s),
             batch_size=self.batch_size,
             shuffle=False,
         )
@@ -237,10 +259,14 @@ class pipe(object):
         output = np.load(self.OUTPUT_Sigma)[:, 0]
         output = torch.tensor(output, dtype=torch.float)
 
-        x_train = input[: self.ntrain, ::r1, ::r2][:, :s1, :s2]
-        y_train = output[: self.ntrain, ::r1, ::r2][:, :s1, :s2]
-        x_test = input[self.ntrain : self.ntrain + self.ntest, ::r1, ::r2][:, :s1, :s2]
-        y_test = output[self.ntrain : self.ntrain + self.ntest, ::r1, ::r2][:, :s1, :s2]
+        x_train = input[: self.ntrain,
+                        ::r1, ::r2][:, :s1, :s2]
+        y_train = output[: self.ntrain,
+                         ::r1, ::r2][:, :s1, :s2]
+        x_test = input[self.ntrain: self.ntrain +
+                       self.ntest, ::r1, ::r2][:, :s1, :s2]
+        y_test = output[self.ntrain: self.ntrain +
+                        self.ntest, ::r1, ::r2][:, :s1, :s2]
         x_train = x_train.reshape(self.ntrain, -1, 2)
         x_test = x_test.reshape(self.ntest, -1, 2)
         y_train = y_train.reshape(self.ntrain, -1, 1)
@@ -252,20 +278,24 @@ class pipe(object):
                 self.x_normalizer = UnitTransformer(x_train)
                 self.y_normalizer = UnitTransformer(y_train)
             elif self.norm_type == "UnitGaussianNormalizer":
-                self.x_normalizer = UnitGaussianNormalizer(x_train)
-                self.y_normalizer = UnitGaussianNormalizer(y_train)
+                self.x_normalizer = UnitGaussianNormalizer(
+                    x_train)
+                self.y_normalizer = UnitGaussianNormalizer(
+                    y_train)
 
             x_train = self.x_normalizer.encode(x_train)
             x_test = self.x_normalizer.encode(x_test)
             y_train = self.y_normalizer.encode(y_train)
 
         train_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(x_train, x_train, y_train),
+            torch.utils.data.TensorDataset(
+                x_train, x_train, y_train),
             batch_size=self.batch_size,
             shuffle=True,
         )
         test_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(x_test, x_test, y_test),
+            torch.utils.data.TensorDataset(
+                x_test, x_test, y_test),
             batch_size=self.batch_size,
             shuffle=False,
         )
@@ -307,10 +337,14 @@ class airfoil(object):
 
         output = np.load(self.OUTPUT_Sigma)[:, 4]
         output = torch.tensor(output, dtype=torch.float)
-        x_train = input[: self.ntrain, ::r1, ::r2][:, :s1, :s2]
-        y_train = output[: self.ntrain, ::r1, ::r2][:, :s1, :s2]
-        x_test = input[self.ntrain : self.ntrain + self.ntest, ::r1, ::r2][:, :s1, :s2]
-        y_test = output[self.ntrain : self.ntrain + self.ntest, ::r1, ::r2][:, :s1, :s2]
+        x_train = input[: self.ntrain,
+                        ::r1, ::r2][:, :s1, :s2]
+        y_train = output[: self.ntrain,
+                         ::r1, ::r2][:, :s1, :s2]
+        x_test = input[self.ntrain: self.ntrain +
+                       self.ntest, ::r1, ::r2][:, :s1, :s2]
+        y_test = output[self.ntrain: self.ntrain +
+                        self.ntest, ::r1, ::r2][:, :s1, :s2]
         x_train = x_train.reshape(self.ntrain, -1, 2)
         x_test = x_test.reshape(self.ntest, -1, 2)
         y_train = y_train.reshape(self.ntrain, -1, 1)
@@ -322,20 +356,24 @@ class airfoil(object):
                 self.x_normalizer = UnitTransformer(x_train)
                 self.y_normalizer = UnitTransformer(y_train)
             elif self.norm_type == "UnitGaussianNormalizer":
-                self.x_normalizer = UnitGaussianNormalizer(x_train)
-                self.y_normalizer = UnitGaussianNormalizer(y_train)
+                self.x_normalizer = UnitGaussianNormalizer(
+                    x_train)
+                self.y_normalizer = UnitGaussianNormalizer(
+                    y_train)
 
             x_train = self.x_normalizer.encode(x_train)
             x_test = self.x_normalizer.encode(x_test)
             y_train = self.y_normalizer.encode(y_train)
 
         train_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(x_train, x_train, y_train),
+            torch.utils.data.TensorDataset(
+                x_train, x_train, y_train),
             batch_size=self.batch_size,
             shuffle=True,
         )
         test_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(x_test, x_test, y_test),
+            torch.utils.data.TensorDataset(
+                x_test, x_test, y_test),
             batch_size=self.batch_size,
             shuffle=False,
         )
@@ -346,8 +384,10 @@ class airfoil(object):
 
 class darcy(object):
     def __init__(self, args, dist):
-        self.train_path = args.data_path + "/piececonst_r421_N1024_smooth1.mat"
-        self.test_path = args.data_path + "/piececonst_r421_N1024_smooth2.mat"
+        self.train_path = args.data_path + \
+            "/piececonst_r421_N1024_smooth1.mat"
+        self.test_path = args.data_path + \
+            "/piececonst_r421_N1024_smooth2.mat"
         self.downsamplex = args.downsamplex
         self.downsampley = args.downsampley
         self.batch_size = args.batch_size
@@ -369,18 +409,22 @@ class darcy(object):
         s2 = int(((421 - 1) / r2) + 1)
 
         train_data = scio.loadmat(self.train_path)
-        x_train = train_data["coeff"][: self.ntrain, ::r1, ::r2][:, :s1, :s2]
+        x_train = train_data["coeff"][: self.ntrain,
+                                      ::r1, ::r2][:, :s1, :s2]
         x_train = x_train.reshape(self.ntrain, -1, 1)
         x_train = torch.from_numpy(x_train).float()
-        y_train = train_data["sol"][: self.ntrain, ::r1, ::r2][:, :s1, :s2]
+        y_train = train_data["sol"][: self.ntrain,
+                                    ::r1, ::r2][:, :s1, :s2]
         y_train = y_train.reshape(self.ntrain, -1, 1)
         y_train = torch.from_numpy(y_train)
 
         test_data = scio.loadmat(self.test_path)
-        x_test = test_data["coeff"][: self.ntest, ::r1, ::r2][:, :s1, :s2]
+        x_test = test_data["coeff"][: self.ntest,
+                                    ::r1, ::r2][:, :s1, :s2]
         x_test = x_test.reshape(self.ntest, -1, 1)
         x_test = torch.from_numpy(x_test).float()
-        y_test = test_data["sol"][: self.ntest, ::r1, ::r2][:, :s1, :s2]
+        y_test = test_data["sol"][: self.ntest,
+                                  ::r1, ::r2][:, :s1, :s2]
         y_test = y_test.reshape(self.ntest, -1, 1)
         y_test = torch.from_numpy(y_test)
 
@@ -390,8 +434,10 @@ class darcy(object):
                 self.x_normalizer = UnitTransformer(x_train)
                 self.y_normalizer = UnitTransformer(y_train)
             elif self.norm_type == "UnitGaussianNormalizer":
-                self.x_normalizer = UnitGaussianNormalizer(x_train)
-                self.y_normalizer = UnitGaussianNormalizer(y_train)
+                self.x_normalizer = UnitGaussianNormalizer(
+                    x_train)
+                self.y_normalizer = UnitGaussianNormalizer(
+                    y_train)
 
             x_train = self.x_normalizer.encode(x_train)
             x_test = self.x_normalizer.encode(x_test)
@@ -401,18 +447,21 @@ class darcy(object):
         y = np.linspace(0, 1, s1)
         x, y = np.meshgrid(x, y)
         pos = np.c_[x.ravel(), y.ravel()]
-        pos = torch.tensor(pos, dtype=torch.float).unsqueeze(0)
+        pos = torch.tensor(
+            pos, dtype=torch.float).unsqueeze(0)
 
         pos_train = pos.repeat(self.ntrain, 1, 1)
         pos_test = pos.repeat(self.ntest, 1, 1)
 
         train_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(pos_train, x_train, y_train),
+            torch.utils.data.TensorDataset(
+                pos_train, x_train, y_train),
             batch_size=self.batch_size,
             shuffle=True,
         )
         test_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(pos_test, x_test, y_test),
+            torch.utils.data.TensorDataset(
+                pos_test, x_test, y_test),
             batch_size=self.batch_size,
             shuffle=False,
         )
@@ -423,7 +472,8 @@ class darcy(object):
 
 class ns(object):
     def __init__(self, args, dist):
-        self.data_path = args.data_path + "/NavierStokes_V1e-5_N1200_T20.mat"
+        self.data_path = args.data_path + \
+            "/NavierStokes_V1e-5_N1200_T20.mat"
         self.downsamplex = args.downsamplex
         self.downsampley = args.downsampley
         self.batch_size = args.batch_size
@@ -453,26 +503,30 @@ class ns(object):
             :, :s1, :s2, :, :
         ]
         train_a = train_a.reshape(
-            train_a.shape[0], -1, self.out_dim * train_a.shape[-1]
+            train_a.shape[0], -
+            1, self.out_dim * train_a.shape[-1]
         )
         train_a = torch.from_numpy(train_a)
         train_u = data["u"][
-            : self.ntrain, ::r1, ::r2, None, self.T_in : self.T_out + self.T_in
+            : self.ntrain, ::r1, ::r2, None, self.T_in: self.T_out + self.T_in
         ][:, :s1, :s2, :, :]
         train_u = train_u.reshape(
-            train_u.shape[0], -1, self.out_dim * train_u.shape[-1]
+            train_u.shape[0], -
+            1, self.out_dim * train_u.shape[-1]
         )
         train_u = torch.from_numpy(train_u)
 
-        test_a = data["u"][-self.ntest :, ::r1, ::r2, None, : self.T_in][
+        test_a = data["u"][-self.ntest:, ::r1, ::r2, None, : self.T_in][
             :, :s1, :s2, :, :
         ]
-        test_a = test_a.reshape(test_a.shape[0], -1, self.out_dim * test_a.shape[-1])
+        test_a = test_a.reshape(
+            test_a.shape[0], -1, self.out_dim * test_a.shape[-1])
         test_a = torch.from_numpy(test_a)
         test_u = data["u"][
-            -self.ntest :, ::r1, ::r2, None, self.T_in : self.T_out + self.T_in
+            -self.ntest:, ::r1, ::r2, None, self.T_in: self.T_out + self.T_in
         ][:, :s1, :s2, :, :]
-        test_u = test_u.reshape(test_u.shape[0], -1, self.out_dim * test_u.shape[-1])
+        test_u = test_u.reshape(
+            test_u.shape[0], -1, self.out_dim * test_u.shape[-1])
         test_u = torch.from_numpy(test_u)
 
         if self.normalize:
@@ -481,8 +535,10 @@ class ns(object):
                 self.x_normalizer = UnitTransformer(train_a)
                 self.y_normalizer = UnitTransformer(train_u)
             elif self.norm_type == "UnitGaussianNormalizer":
-                self.x_normalizer = UnitGaussianNormalizer(train_a)
-                self.y_normalizer = UnitGaussianNormalizer(train_u)
+                self.x_normalizer = UnitGaussianNormalizer(
+                    train_a)
+                self.y_normalizer = UnitGaussianNormalizer(
+                    train_u)
 
             train_a = self.x_normalizer.encode(train_a)
             test_a = self.x_normalizer.encode(test_a)
@@ -492,17 +548,20 @@ class ns(object):
         y = np.linspace(0, 1, s1)
         x, y = np.meshgrid(x, y)
         pos = np.c_[x.ravel(), y.ravel()]
-        pos = torch.tensor(pos, dtype=torch.float).unsqueeze(0)
+        pos = torch.tensor(
+            pos, dtype=torch.float).unsqueeze(0)
         pos_train = pos.repeat(self.ntrain, 1, 1)
         pos_test = pos.repeat(self.ntest, 1, 1)
 
         train_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(pos_train, train_a, train_u),
+            torch.utils.data.TensorDataset(
+                pos_train, train_a, train_u),
             batch_size=self.batch_size,
             shuffle=True,
         )
         test_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(pos_test, test_a, test_u),
+            torch.utils.data.TensorDataset(
+                pos_test, test_a, test_u),
             batch_size=self.batch_size,
             shuffle=False,
         )
@@ -570,7 +629,7 @@ class pdebench_dataset_autoregressive(Dataset):
         if not self.test:
             self.data_list = data_list[: self.ntrain]
         else:
-            self.data_list = data_list[self.ntrain :]
+            self.data_list = data_list[self.ntrain:]
         self.T_in = T_in
         self.T_out = T_out
         self.out_dim = out_dim
@@ -597,30 +656,38 @@ class pdebench_dataset_autoregressive(Dataset):
             # x, y and z are 1-D arrays
             # Convert the spatial coordinates to meshgrid
             if dim == 1:
-                grid = np.array(data_group["grid"]["x"], dtype="f")
-                grid = torch.tensor(grid, dtype=torch.float).unsqueeze(-1)
+                grid = np.array(
+                    data_group["grid"]["x"], dtype="f")
+                grid = torch.tensor(
+                    grid, dtype=torch.float).unsqueeze(-1)
             elif dim == 2:
-                x = np.array(data_group["grid"]["x"], dtype="f")
-                y = np.array(data_group["grid"]["y"], dtype="f")
+                x = np.array(
+                    data_group["grid"]["x"], dtype="f")
+                y = np.array(
+                    data_group["grid"]["y"], dtype="f")
                 x = torch.tensor(x, dtype=torch.float)
                 y = torch.tensor(y, dtype=torch.float)
                 X, Y = torch.meshgrid(x, y, indexing="ij")
                 grid = torch.stack((X, Y), axis=-1)
             elif dim == 3:
-                x = np.array(data_group["grid"]["x"], dtype="f")
-                y = np.array(data_group["grid"]["y"], dtype="f")
-                z = np.array(data_group["grid"]["z"], dtype="f")
+                x = np.array(
+                    data_group["grid"]["x"], dtype="f")
+                y = np.array(
+                    data_group["grid"]["y"], dtype="f")
+                z = np.array(
+                    data_group["grid"]["z"], dtype="f")
                 x = torch.tensor(x, dtype=torch.float)
                 y = torch.tensor(y, dtype=torch.float)
                 z = torch.tensor(z, dtype=torch.float)
-                X, Y, Z = torch.meshgrid(x, y, z, indexing="ij")
+                X, Y, Z = torch.meshgrid(
+                    x, y, z, indexing="ij")
                 grid = torch.stack((X, Y, Z), axis=-1)
 
         return (
             grid,
             data[:, : self.T_in * self.out_dim],
             data[
-                :, (self.T_in) * self.out_dim : (self.T_in + self.T_out) * self.out_dim
+                :, (self.T_in) * self.out_dim: (self.T_in + self.T_out) * self.out_dim
             ],
         )
 
@@ -640,7 +707,8 @@ class pdebench_steady_darcy(object):
         s1 = int(((128 - 1) / r1) + 1)
         s2 = int(((128 - 1) / r2) + 1)
         with h5py.File(self.file_path, "r") as h5_file:
-            data_nu = np.array(h5_file["nu"], dtype="f")[:, ::r1, ::r2][:, :s1, :s2]
+            data_nu = np.array(h5_file["nu"], dtype="f")[
+                :, ::r1, ::r2][:, :s1, :s2]
             data_solution = np.array(h5_file["tensor"], dtype="f")[:, :, ::r1, ::r2][
                 :, :, :s1, :s2
             ]
@@ -651,33 +719,38 @@ class pdebench_steady_darcy(object):
             x = torch.tensor(x, dtype=torch.float)
             y = torch.tensor(y, dtype=torch.float)
             X, Y = torch.meshgrid(x, y, indexing="ij")
-            grid = torch.stack((X, Y), axis=-1)[None, ::r1, ::r2, :][:, :s1, :s2, :]
+            grid = torch.stack(
+                (X, Y), axis=-1)[None, ::r1, ::r2, :][:, :s1, :s2, :]
 
         grid = grid.repeat(data_nu.shape[0], 1, 1, 1)
 
-        pos_train = grid[: self.ntrain, :, :, :].reshape(self.ntrain, -1, 2)
-        x_train = data_nu[: self.ntrain, :, :].reshape(self.ntrain, -1, 1)
+        pos_train = grid[: self.ntrain, :,
+                         :, :].reshape(self.ntrain, -1, 2)
+        x_train = data_nu[: self.ntrain, :, :].reshape(
+            self.ntrain, -1, 1)
         y_train = data_solution[: self.ntrain, 0, :, :].reshape(
             self.ntrain, -1, 1
         )  # solutions only have 1 channel
 
-        pos_test = grid[self.ntrain :, :, :, :].reshape(
+        pos_test = grid[self.ntrain:, :, :, :].reshape(
             data_nu.shape[0] - self.ntrain, -1, 2
         )
-        x_test = data_nu[self.ntrain :, :, :].reshape(
+        x_test = data_nu[self.ntrain:, :, :].reshape(
             data_nu.shape[0] - self.ntrain, -1, 1
         )
-        y_test = data_solution[self.ntrain :, 0, :, :].reshape(
+        y_test = data_solution[self.ntrain:, 0, :, :].reshape(
             data_nu.shape[0] - self.ntrain, -1, 1
         )  # solutions only have 1 channel
 
         train_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(pos_train, x_train, y_train),
+            torch.utils.data.TensorDataset(
+                pos_train, x_train, y_train),
             batch_size=self.batch_size,
             shuffle=True,
         )
         test_loader = torch.utils.data.DataLoader(
-            torch.utils.data.TensorDataset(pos_test, x_test, y_test),
+            torch.utils.data.TensorDataset(
+                pos_test, x_test, y_test),
             batch_size=self.batch_size,
             shuffle=False,
         )
@@ -702,14 +775,18 @@ class car_design(object):
             fold_samples = []
             files = os.listdir(os.path.join(obj_path, fold))
             for file in files:
-                path = os.path.join(obj_path, os.path.join(fold, file))
+                path = os.path.join(
+                    obj_path, os.path.join(fold, file))
                 if os.path.isdir(path):
-                    fold_samples.append(os.path.join(fold, file))
+                    fold_samples.append(
+                        os.path.join(fold, file))
             samples.append(fold_samples)
-        return samples  # 100 + 99 + 97 + 100 + 100 + 96 + 100 + 98 + 99 = 889 samples
+        # 100 + 99 + 97 + 100 + 100 + 96 + 100 + 98 + 99 = 889 samples
+        return samples
 
     def load_train_val_fold(self):
-        samples = self.get_samples(os.path.join(self.file_path, "training_data"))
+        samples = self.get_samples(
+            os.path.join(self.file_path, "training_data"))
         trainlst = []
         for i in range(len(samples)):
             if i == self.test_fold_id:
@@ -733,14 +810,16 @@ class car_design(object):
             self.file_path,
             trainlst,
             norm=True,
-            savedir=os.path.join(self.file_path, "preprocessed_data"),
+            savedir=os.path.join(
+                self.file_path, "preprocessed_data"),
             preprocessed=preprocessed,
         )
         test_dataset = get_datalist(
             self.file_path,
             vallst,
             coef_norm=coef_norm,
-            savedir=os.path.join(self.file_path, "preprocessed_data"),
+            savedir=os.path.join(
+                self.file_path, "preprocessed_data"),
             preprocessed=preprocessed,
         )
         return train_dataset, test_dataset, coef_norm, vallst
@@ -756,12 +835,14 @@ class car_design(object):
         for data in batch:
             # 创建DGL图
             g = dgl.graph(
-                (data.edge_index[0], data.edge_index[1]), num_nodes=data.x.shape[0]
+                (data.edge_index[0], data.edge_index[1]
+                 ), num_nodes=data.x.shape[0]
             )
             graphs.append(g)
             edge_features.append(data.edge_attr)
             all_data.append(
-                {"x": data.x, "y": data.y, "surf": data.surf, "pos": data.pos}
+                {"x": data.x, "y": data.y,
+                    "surf": data.surf, "pos": data.pos}
             )
             obj_files.append(data.obj_file)
         batched_graph = dgl.batch(graphs)
@@ -856,9 +937,12 @@ class cfd_3d_dataset(Dataset):
         self.s3 = int(((128 - 1) / self.r3) + 1)
         # Create position grid once (reused for all samples)
         with h5py.File(data_path, "r") as h5_file:
-            x_coords = np.array(h5_file["x-coordinate"][:: self.r1])[: self.s1]
-            y_coords = np.array(h5_file["y-coordinate"][:: self.r2])[: self.s2]
-            z_coords = np.array(h5_file["z-coordinate"][:: self.r3])[: self.s3]
+            x_coords = np.array(
+                h5_file["x-coordinate"][:: self.r1])[: self.s1]
+            y_coords = np.array(
+                h5_file["y-coordinate"][:: self.r2])[: self.s2]
+            z_coords = np.array(
+                h5_file["z-coordinate"][:: self.r3])[: self.s3]
 
             # Create grid
             x = torch.tensor(x_coords, dtype=torch.float)
@@ -875,8 +959,10 @@ class cfd_3d_dataset(Dataset):
             if self.is_train:
                 self.indices = np.arange(self.ntrain)
             else:
-                self.indices = np.arange(self.ntrain, num_samples)
-        self.fields = ["Vx", "Vy", "Vz", "pressure", "density"]
+                self.indices = np.arange(
+                    self.ntrain, num_samples)
+        self.fields = ["Vx", "Vy",
+                       "Vz", "pressure", "density"]
 
     def __len__(self):
         return len(self.indices)
@@ -885,8 +971,10 @@ class cfd_3d_dataset(Dataset):
         sample_idx = self.indices[idx]
 
         # Initialize data arrays for this sample only (much smaller memory footprint)
-        a_data = np.zeros((self.grid_flat.shape[0], self.T_in * self.out_dim))
-        u_data = np.zeros((self.grid_flat.shape[0], self.T_out * self.out_dim))
+        a_data = np.zeros(
+            (self.grid_flat.shape[0], self.T_in * self.out_dim))
+        u_data = np.zeros(
+            (self.grid_flat.shape[0], self.T_out * self.out_dim))
         # import pdb; pdb.set_trace()
 
         with h5py.File(self.data_path, "r") as h5_file:
@@ -897,7 +985,8 @@ class cfd_3d_dataset(Dataset):
                         sample_idx, t_in, :: self.r1, :: self.r2, :: self.r3
                     ][: self.s1, : self.s2, : self.s3]
                     var_data_flat = var_data.reshape(-1)
-                    a_data[:, t_in * self.out_dim + f_idx] = var_data_flat
+                    a_data[:, t_in * self.out_dim +
+                           f_idx] = var_data_flat
 
             # Load output timesteps
             for t_out in range(self.T_out):
@@ -910,7 +999,8 @@ class cfd_3d_dataset(Dataset):
                         :: self.r3,
                     ][: self.s1, : self.s2, : self.s3]
                     var_data_flat = var_data.reshape(-1)
-                    u_data[:, t_out * self.out_dim + f_idx] = var_data_flat
+                    u_data[:, t_out * self.out_dim +
+                           f_idx] = var_data_flat
 
         # Convert to tensors
         a_data = torch.tensor(a_data, dtype=torch.float)
@@ -1057,21 +1147,25 @@ class HDF5Dataset(Dataset):
                 """应用下采样到数据"""
                 # 选择时间步和空间维度
                 return data[
-                    self.steady_time :, :: self.downsamplex, :: self.downsampley
+                    self.steady_time:, :: self.downsamplex, :: self.downsampley
                 ][:, : self.s1, : self.s2]
                 # 读取并下采样数据
 
             self._data["temp"] = torch.nan_to_num(
-                torch.from_numpy(downsample_data(f["temperature"][:]))
+                torch.from_numpy(
+                    downsample_data(f["temperature"][:]))
             )
             self._data["velx"] = torch.nan_to_num(
-                torch.from_numpy(downsample_data(f["velx"][:]))
+                torch.from_numpy(
+                    downsample_data(f["velx"][:]))
             )
             self._data["vely"] = torch.nan_to_num(
-                torch.from_numpy(downsample_data(f["vely"][:]))
+                torch.from_numpy(
+                    downsample_data(f["vely"][:]))
             )
             self._data["dfun"] = torch.nan_to_num(
-                torch.from_numpy(downsample_data(f["dfun"][:]))
+                torch.from_numpy(
+                    downsample_data(f["dfun"][:]))
             )
 
             # 读取坐标数据（只取第一个时间步，假设网格不变）
@@ -1087,10 +1181,12 @@ class HDF5Dataset(Dataset):
             # 创建网格坐标张量（重复所有时间步）
             num_timesteps = self._data["temp"].shape[0]
             self._data["x"] = (
-                torch.tensor(x_coords).unsqueeze(0).repeat(num_timesteps, 1, 1)
+                torch.tensor(x_coords).unsqueeze(
+                    0).repeat(num_timesteps, 1, 1)
             )
             self._data["y"] = (
-                torch.tensor(y_coords).unsqueeze(0).repeat(num_timesteps, 1, 1)
+                torch.tensor(y_coords).unsqueeze(
+                    0).repeat(num_timesteps, 1, 1)
             )
 
         # 更新网格尺寸
@@ -1113,10 +1209,9 @@ class HDF5Dataset(Dataset):
         this is ONLY DONE WHEN THE FILENAME INCLUDES Twall-
         """
         filename = Path(filename).stem
-        wall_temp = None
         TWALL = "Twall-"
         if TWALL in filename:
-            self._data["temp"] *= int(filename[len(TWALL) :])
+            self._data["temp"] *= int(filename[len(TWALL):])
             print("wall temp", self._data["temp"].max())
 
     def absmax_temp(self):
@@ -1126,7 +1221,8 @@ class HDF5Dataset(Dataset):
         return max(self._data["velx"].abs().max(), self._data["vely"].abs().max())
 
     def normalize_temp_(self, scale):
-        self._data["temp"] = 2 * (self._data["temp"] / scale) - 1
+        self._data["temp"] = 2 * \
+            (self._data["temp"] / scale) - 1
         self.temp_scale = scale
 
     def normalize_vel_(self, scale):
@@ -1135,14 +1231,14 @@ class HDF5Dataset(Dataset):
         self.vel_scale = scale
 
     def get_x(self):
-        return self._data["x"][self.time_window :]
+        return self._data["x"][self.time_window:]
 
     def get_dy(self):
         r"""dy is the grid spacing in the y direction."""
         return self._data["y"][0, 0, 0]
 
     def get_dfun(self):
-        return self._data["dfun"][self.time_window :]
+        return self._data["dfun"][self.time_window:]
 
     def _get_temp(self, timestep):
         return self._data["temp"][timestep]
@@ -1177,13 +1273,15 @@ class HDF5Dataset(Dataset):
         return (
             self._data["temp"].size(0)
             - self.time_window
-            - (self.future_window * self.push_forward_steps - 1)
+            - (self.future_window *
+               self.push_forward_steps - 1)
         )
 
     def _transform(self, *args):
         if self.transform:
             if random.random() > 0.5:
-                args = tuple([TF.hflip(arg) for arg in args])
+                args = tuple([TF.hflip(arg)
+                             for arg in args])
         return args
 
     def __getitem__(self, timestep):
@@ -1221,7 +1319,8 @@ class TempInputDataset(HDF5Dataset):
             push_forward_steps=push_forward_steps,
         )
         coords_dim = 2 if use_coords else 0
-        self.in_channels = 3 * self.time_window + coords_dim + 2 * self.future_window
+        self.in_channels = 3 * self.time_window + \
+            coords_dim + 2 * self.future_window
         self.out_channels = self.future_window
 
     def __getitem__(self, timestep):
@@ -1246,7 +1345,8 @@ class TempInputDataset(HDF5Dataset):
         if temp.dim() == 2:
             temp.unsqueeze_(-1)
         base_time = timestep + self.time_window
-        self._data["temp"][base_time : base_time + self.future_window] = temp
+        self._data["temp"][base_time: base_time +
+                           self.future_window] = temp
 
 
 class BubbleTemp(object):
@@ -1254,7 +1354,8 @@ class BubbleTemp(object):
         # 用 args.data_path 替换 config 的变量
         with hydra.initialize(config_path="../data/conf", version_base=None):
             # 使用默认配置文件名或根据 args 动态确定
-            config_name = getattr(args, "config_name", "config")  # 默认 'config'
+            config_name = getattr(
+                args, "config_name", "config")  # 默认 'config'
             cfg = hydra.compose(config_name=config_name)
 
         if hasattr(args, "data_path") and args.data_path is not None:
@@ -1370,7 +1471,8 @@ class TempVelDataset(HDF5Dataset):
         self.dfun_channels = self.time_window
 
         self.in_channels = (
-            coords_dim + self.temp_channels + self.vel_channels + self.dfun_channels
+            coords_dim + self.temp_channels +
+            self.vel_channels + self.dfun_channels
         )
         self.out_channels = 3 * self.future_window
 
@@ -1396,7 +1498,8 @@ class TempVelDataset(HDF5Dataset):
             [self._get_temp(base_time + k) for k in range(self.future_window)], dim=0
         )
         vel_label = torch.cat(
-            [self._get_vel_stack(base_time + k) for k in range(self.future_window)],
+            [self._get_vel_stack(base_time + k)
+             for k in range(self.future_window)],
             dim=0,
         )
         return self._transform(coords, temp, vel, dfun, temp_label, vel_label)
@@ -1409,7 +1512,8 @@ class TempVelDataset(HDF5Dataset):
         args = list(
             zip(
                 *[
-                    self._get_timestep(timestep + k * self.future_window)
+                    self._get_timestep(
+                        timestep + k * self.future_window)
                     for k in range(self.push_forward_steps)
                 ]
             )
@@ -1418,14 +1522,17 @@ class TempVelDataset(HDF5Dataset):
 
     def write_vel(self, vel, timestep):
         base_time = timestep + self.time_window
-        self._data["velx"][base_time : base_time + self.future_window] = vel[0::2]
-        self._data["vely"][base_time : base_time + self.future_window] = vel[1::2]
+        self._data["velx"][base_time: base_time +
+                           self.future_window] = vel[0::2]
+        self._data["vely"][base_time: base_time +
+                           self.future_window] = vel[1::2]
 
     def write_temp(self, temp, timestep):
         if temp.dim() == 2:
             temp.unsqueeze_(-1)
         base_time = timestep + self.time_window
-        self._data["temp"][base_time : base_time + self.future_window] = temp
+        self._data["temp"][base_time: base_time +
+                           self.future_window] = temp
 
 
 class BubbleTempVel(object):
@@ -1433,7 +1540,8 @@ class BubbleTempVel(object):
         # 用 args.data_path 替换 config 的变量
         with hydra.initialize(config_path="../data/conf", version_base=None):
             # 使用默认配置文件名或根据 args 动态确定
-            config_name = getattr(args, "config_name", "config")  # 默认 'config'
+            config_name = getattr(
+                args, "config_name", "config")  # 默认 'config'
             cfg = hydra.compose(config_name=config_name)
 
         if hasattr(args, "data_path") and args.data_path is not None:

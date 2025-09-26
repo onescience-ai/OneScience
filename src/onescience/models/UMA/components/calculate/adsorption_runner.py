@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import os
@@ -11,9 +9,7 @@ from ase.optimize import LBFGS
 from tqdm import tqdm
 
 from onescience.models.UMA.components.calculate import CalculateRunner
-from onescience.models.UMA.components.calculate.recipes.adsorption import (
-    adsorb_atoms,
-)
+from onescience.models.UMA.components.calculate.recipes.adsorption import adsorb_atoms
 
 if TYPE_CHECKING:
     from ase.calculators.calculator import Calculator
@@ -85,7 +81,8 @@ class AdsorptionRunner(CalculateRunner):
             list[dict[str, Any]] - List of dictionaries containing calculation results
         """
         all_results = []
-        chunk_indices = np.array_split(range(len(self.input_data)), num_jobs)[job_num]
+        chunk_indices = np.array_split(
+            range(len(self.input_data)), num_jobs)[job_num]
         for i in tqdm(chunk_indices, desc="Running relaxations"):
             atoms = self.input_data.get_atoms(i)
             results = adsorb_atoms(
@@ -118,7 +115,8 @@ class AdsorptionRunner(CalculateRunner):
         """
         results_df = pd.DataFrame(results)
         results_df.to_json(
-            os.path.join(results_dir, f"adsorption_{num_jobs}-{job_num}.json.gz")
+            os.path.join(
+                results_dir, f"adsorption_{num_jobs}-{job_num}.json.gz")
         )
 
     def save_state(self, checkpoint_location: str, is_preemption: bool = False) -> bool:

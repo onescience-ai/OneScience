@@ -78,7 +78,8 @@ def calc_energy_from_e_refs(
         comp = struct_or_entry.composition
     else:  # Structure/Composition/formula case
         if total_energy is None:
-            raise ValueError("total_energy can't be None when 1st arg is not an Entry")
+            raise ValueError(
+                "total_energy can't be None when 1st arg is not an Entry")
         energy = total_energy
 
         if isinstance(struct_or_entry, str):
@@ -96,9 +97,11 @@ def calc_energy_from_e_refs(
 
     # Check that we have all needed reference energies
     if missing_refs := set(map(str, comp)) - set(ref_energies):
-        raise ValueError(f"Missing reference energies for elements: {missing_refs}")
+        raise ValueError(
+            f"Missing reference energies for elements: {missing_refs}")
 
     # Calculate reference energy
-    e_ref = sum(ref_energies[str(el)] * amt for el, amt in comp.items())
+    e_ref = sum(ref_energies[str(el)]
+                * amt for el, amt in comp.items())
 
     return (energy - e_ref) / comp.num_atoms

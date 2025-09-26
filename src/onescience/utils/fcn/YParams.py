@@ -1,7 +1,8 @@
-from ruamel.yaml import YAML
 import logging
-import re
 import os
+import re
+
+from ruamel.yaml import YAML
 
 
 def parse_env_vars(data):
@@ -11,7 +12,8 @@ def parse_env_vars(data):
         env_var_pattern = r"\$\{(\w+)\}|\$(\w+)"
         return re.sub(
             env_var_pattern,
-            lambda m: os.environ.get(m.group(1) or m.group(2), ""),
+            lambda m: os.environ.get(
+                m.group(1) or m.group(2), ""),
             data,
         )
     elif isinstance(data, dict):
@@ -30,7 +32,8 @@ class YParams:
         self.params = {}
 
         if print_params:
-            print("------------------ Configuration ------------------")
+            print(
+                "------------------ Configuration ------------------")
 
         with open(yaml_filename) as _file:
             data = YAML().load(_file)
@@ -47,7 +50,8 @@ class YParams:
                 self.__setattr__(key, val)
 
         if print_params:
-            print("---------------------------------------------------")
+            print(
+                "---------------------------------------------------")
 
     def __getitem__(self, key):
         return self.params[key]
@@ -65,9 +69,13 @@ class YParams:
             self.__setattr__(key, val)
 
     def log(self):
-        logging.info("------------------ Configuration ------------------")
-        logging.info("Configuration file: " + str(self._yaml_filename))
-        logging.info("Configuration name: " + str(self._config_name))
+        logging.info(
+            "------------------ Configuration ------------------")
+        logging.info("Configuration file: " +
+                     str(self._yaml_filename))
+        logging.info("Configuration name: " +
+                     str(self._config_name))
         for key, val in self.params.items():
             logging.info(str(key) + " " + str(val))
-        logging.info("---------------------------------------------------")
+        logging.info(
+            "---------------------------------------------------")

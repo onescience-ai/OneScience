@@ -1,5 +1,4 @@
-from torch import nn
-from torch import Tensor
+from torch import Tensor, nn
 
 
 def get_act_fn(name: str, norm: bool = False) -> nn.Module:
@@ -12,7 +11,8 @@ def get_act_fn(name: str, norm: bool = False) -> nn.Module:
     elif name == "swish":
         fn = nn.SiLU()
     else:
-        raise ValueError(f"Unknown activation function: {name}")
+        raise ValueError(
+            f"Unknown activation function: {name}")
     if norm:
         fn = NormAct(fn)
     return fn
@@ -26,14 +26,15 @@ class NormAct(nn.Module):
     before applying the activation function, and then transforms the
     output back to the original scale.
     """
+
     def __init__(self, act_fn: nn.Module):
         super().__init__()
         self.act_fn = act_fn
 
     def forward(self, x: Tensor) -> Tensor:
-        '''
+        """
         x: (b, h, w)
-        '''
+        """
         num_dims = len(x.shape)
         dims = tuple(range(1, num_dims))
         # find the mean and std of each example in the batch

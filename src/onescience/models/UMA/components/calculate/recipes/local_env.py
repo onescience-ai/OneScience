@@ -45,8 +45,10 @@ def construct_bond_matrix(
     )
 
     nn_info = nn_finder.get_all_nn_info(structure)
-    nn_matrix = np.zeros((len(nn_info), len(nn_info)), dtype=int)
+    nn_matrix = np.zeros(
+        (len(nn_info), len(nn_info)), dtype=int)
     for i, ii in enumerate(site_permutations):
         for j in range(len(nn_info[i])):
-            nn_matrix[ii, site_permutations[nn_info[i][j]["site_index"]]] = 1
+            nn_matrix[ii, site_permutations[nn_info[i]
+                                            [j]["site_index"]]] = 1
     return nn_matrix

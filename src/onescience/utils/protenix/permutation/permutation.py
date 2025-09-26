@@ -1,4 +1,3 @@
-
 import os
 
 import torch
@@ -18,8 +17,10 @@ class SymmetricPermutation(object):
     def __init__(self, configs, error_dir: str = None):
         self.configs = configs
         if error_dir is not None:
-            self.chain_error_dir = os.path.join(error_dir, "chain_permutation")
-            self.atom_error_dir = os.path.join(error_dir, "atom_permutation")
+            self.chain_error_dir = os.path.join(
+                error_dir, "chain_permutation")
+            self.atom_error_dir = os.path.join(
+                error_dir, "atom_permutation")
         else:
             self.chain_error_dir = None
             self.atom_error_dir = None
@@ -47,7 +48,8 @@ class SymmetricPermutation(object):
         log_dict = {}
         # 1. ChainPermutation: permute ground-truth chains to match mini-rollout prediction
         permuted_label_dict, chain_perm_log_dict, _, _ = chain_permutation.run(
-            mini_coord[0],  # Only accepts a single structure
+            # Only accepts a single structure
+            mini_coord[0],
             input_feature_dict,
             label_full_dict,
             permute_label=True,
@@ -86,7 +88,8 @@ class SymmetricPermutation(object):
         if self.configs.atom_permutation.train.mini_rollout:
             label_dict.update(permuted_label_dict)
             log_dict.update(
-                {f"minirollout_perm/Atom-{k}": v for k, v in atom_perm_log_dict.items()}
+                {f"minirollout_perm/Atom-{k}": v for k,
+                    v in atom_perm_log_dict.items()}
             )
         else:
             # Log only, not update the label_dict
@@ -189,7 +192,8 @@ class SymmetricPermutation(object):
             atom_permutation.run(
                 pred_coord=pred_dict["coordinate"],
                 true_coord=label_dict["coordinate"],
-                true_coord_mask=label_dict["coordinate_mask"] * chain_mask,
+                true_coord_mask=label_dict["coordinate_mask"] *
+                chain_mask,
                 ref_space_uid=input_feature_dict["ref_space_uid"],
                 atom_perm_list=input_feature_dict["atom_perm_list"],
                 permute_label=False,
@@ -201,7 +205,8 @@ class SymmetricPermutation(object):
         if permute_pred_indices:
             # Update `permute_pred_indices' according to the results of atom permutation
             updated_permute_pred_indices = []
-            assert len(permute_pred_indices) == len(atom_perm_pred_indices)
+            assert len(permute_pred_indices) == len(
+                atom_perm_pred_indices)
             for chain_perm_indices, atom_perm_indices in zip(
                 permute_pred_indices, atom_perm_pred_indices
             ):
@@ -217,12 +222,14 @@ class SymmetricPermutation(object):
         if self.configs.atom_permutation.get(stage).diffusion_sample:
             pred_dict.update(permuted_pred_dict)
             log_dict.update(
-                {f"sample_perm/Atom-{k}": v for k, v in atom_perm_log_dict.items()}
+                {f"sample_perm/Atom-{k}": v for k,
+                    v in atom_perm_log_dict.items()}
             )
         else:
             # Log only, not update the pred_dict.
             log_dict.update(
-                {f"sample_perm/Atom.F-{k}": v for k, v in atom_perm_log_dict.items()}
+                {f"sample_perm/Atom.F-{k}": v for k,
+                    v in atom_perm_log_dict.items()}
             )
 
         return pred_dict, log_dict, permute_pred_indices, permute_label_indices
@@ -248,9 +255,11 @@ class SymmetricPermutation(object):
 
         """
 
-        atom_asym_id = token_asym_id[atom_to_token_idx.long()].long()
+        atom_asym_id = token_asym_id[atom_to_token_idx.long()].long(
+        )
         assert atom_asym_id.size(0) == atom_mask.size(0)
-        masked_asym_id = torch.unique(atom_asym_id[atom_mask.bool()])
+        masked_asym_id = torch.unique(
+            atom_asym_id[atom_mask.bool()])
         return torch.isin(atom_asym_id, masked_asym_id)
 
     @staticmethod
@@ -280,7 +289,8 @@ class SymmetricPermutation(object):
 
         # Permute these IDs using the provided indices
         permuted_atom_asym_id = original_atom_asym_id[permute_indices]
-        unique_asym_ids = torch.unique(original_atom_asym_id)
+        unique_asym_ids = torch.unique(
+            original_atom_asym_id)
 
         asym_id_match = {}
         for ori_aid in unique_asym_ids:
@@ -299,10 +309,16 @@ class SymmetricPermutation(object):
     @staticmethod
     def permute_summary_confidence(
         summary_confidence_list: list[dict],
-        permute_pred_indices: list[torch.Tensor],  # [N_atom]
+        # [N_atom]
+        permute_pred_indices: list[torch.Tensor],
         atom_to_token_idx: torch.Tensor,  # [N_atom]
         token_asym_id: torch.Tensor,  # [N_token]
-        chain_keys: list[str] = ["chain_ptm", "chain_iptm", "chain_plddt","chain_gpde",],
+        chain_keys: list[str] = [
+            "chain_ptm",
+            "chain_iptm",
+            "chain_plddt",
+            "chain_gpde",
+        ],
         chain_pair_keys: list[str] = [
             "chain_pair_iptm",
             "chain_pair_iptm_global",
@@ -322,7 +338,8 @@ class SymmetricPermutation(object):
             chain_pair_keys (list[str], optional): Keys for chain pair-level confidence metrics. Defaults to ["chain_pair_iptm", "chain_pair_iptm_global", "chain_pair_plddt"].
         """
 
-        assert len(summary_confidence_list) == len(permute_pred_indices)
+        assert len(summary_confidence_list) == len(
+            permute_pred_indices)
 
         def _permute_one_sample(summary_confidence, permute_indices):
             # asym_id_match : {ori_asym_id: permuted_asym_id}
@@ -331,7 +348,8 @@ class SymmetricPermutation(object):
                 atom_to_token_idx=atom_to_token_idx,
                 token_asym_id=token_asym_id,
             )
-            id_indices = torch.arange(len(asym_id_match), device=permute_indices.device)
+            id_indices = torch.arange(
+                len(asym_id_match), device=permute_indices.device)
             for i, j in asym_id_match.items():
                 id_indices[j] = i
 
@@ -348,12 +366,14 @@ class SymmetricPermutation(object):
         asym_id_match_list = []
         permuted_summary_confidence_list = []
         for i, (summary_confidence, perm_indices) in enumerate(
-            zip(summary_confidence_list, permute_pred_indices)
+            zip(summary_confidence_list,
+                permute_pred_indices)
         ):
             summary_confidence, asym_id_match = _permute_one_sample(
                 summary_confidence, perm_indices
             )
-            permuted_summary_confidence_list.append(summary_confidence)
+            permuted_summary_confidence_list.append(
+                summary_confidence)
             asym_id_match_list.append(asym_id_match)
 
         return permuted_summary_confidence_list, asym_id_match_list
@@ -383,7 +403,8 @@ class SymmetricPermutation(object):
             # permute atoms at dim=-2
             for key in ["plddt", "resolved"]:
                 if key in pred_dict:
-                    assert pred_dict[key].size(-2) == len(perm_indices)
+                    assert pred_dict[key].size(
+                        -2) == len(perm_indices)
                     pred_dict[key][..., i, :, :] = pred_dict[key][
                         ..., i, perm_indices, :
                     ]
@@ -399,7 +420,8 @@ class SymmetricPermutation(object):
                         == pred_dict[key].size(-3)
                         == len(perm_token_indices)
                     )
-                    pred_dict[key] = pred_dict[key].to(perm_token_indices.device)
+                    pred_dict[key] = pred_dict[key].to(
+                        perm_token_indices.device)
                     assert pred_dict[key].device == perm_token_indices.device
                     pred_dict[key][..., i, :, :, :] = pred_dict[key][
                         ..., i, perm_token_indices, :, :
@@ -410,7 +432,8 @@ class SymmetricPermutation(object):
 
             # contact_probs
             if "contact_probs" in pred_dict:
-                contact_probs_i = pred_dict["contact_probs"].clone()
+                contact_probs_i = pred_dict["contact_probs"].clone(
+                )
                 assert (
                     contact_probs_i.size(-1)
                     == contact_probs_i.size(-2)
@@ -463,7 +486,8 @@ class SymmetricPermutation(object):
                 pred_dict,
                 permute_pred_indices=permute_pred_indices,
                 atom_to_token_idx=input_feature_dict["atom_to_token_idx"],
-                rep_atom_mask=input_feature_dict["pae_rep_atom_mask"].bool(),
+                rep_atom_mask=input_feature_dict["pae_rep_atom_mask"].bool(
+                ),
             )
 
         return pred_dict, log_dict

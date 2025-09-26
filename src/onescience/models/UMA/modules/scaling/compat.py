@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -26,12 +25,14 @@ def _load_scale_dict(scale_file: str | ScaleDict | None):
 
     if isinstance(scale_file, dict):
         if not scale_file:
-            logging.warning("Empty scale dictionary provided to model.")
+            logging.warning(
+                "Empty scale dictionary provided to model.")
         return scale_file
 
     path = Path(scale_file)
     if not path.exists():
-        raise ValueError(f"Scale file {path} does not exist.")
+        raise ValueError(
+            f"Scale file {path} does not exist.")
 
     scale_dict: ScaleDict | None = None
     if path.suffix == ".pt":
@@ -44,7 +45,8 @@ def _load_scale_dict(scale_file: str | ScaleDict | None):
             # old json scale factors have a comment field that has the model name
             scale_dict.pop("comment", None)
     else:
-        raise ValueError(f"Unsupported scale file extension: {path.suffix}")
+        raise ValueError(
+            f"Unsupported scale file extension: {path.suffix}")
 
     if not scale_dict:
         return None
@@ -65,7 +67,8 @@ def load_scales_compat(module: nn.Module, scale_file: str | ScaleDict | None) ->
     logging.debug(
         f"Found the following scale factors: {[(k, name) for k, (_, name) in scale_factors.items()]}"
     )
-    missing_keys = set(scale_factors.keys()) - set(scale_dict.keys())
+    missing_keys = set(
+        scale_factors.keys()) - set(scale_dict.keys())
     if len(missing_keys) > 0:
         raise ValueError(
             "Failed to load scaling values. Missing entries for,",
@@ -75,8 +78,10 @@ def load_scales_compat(module: nn.Module, scale_file: str | ScaleDict | None) ->
         )
     for name, scale in scale_dict.items():
         if name not in scale_factors:
-            logging.warning(f"Scale factor {name} not found in model")
+            logging.warning(
+                f"Scale factor {name} not found in model")
             continue
         scale_module, module_name = scale_factors[name]
-        logging.debug(f"Loading scale factor {scale} for ({name} => {module_name})")
+        logging.debug(
+            f"Loading scale factor {scale} for ({name} => {module_name})")
         scale_module.set_(scale)

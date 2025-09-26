@@ -110,9 +110,11 @@ class GraphCastLossFunction(nn.Module):
     def __init__(self, area, channels_list, dataset_metadata_path, time_diff_std_path):
         super().__init__()
         self.area = area
-        self.channel_dict = self.get_channel_dict(dataset_metadata_path, channels_list)
+        self.channel_dict = self.get_channel_dict(
+            dataset_metadata_path, channels_list)
         self.variable_weights = self.assign_variable_weights()
-        self.time_diff_std = self.get_time_diff_std(time_diff_std_path, channels_list)
+        self.time_diff_std = self.get_time_diff_std(
+            time_diff_std_path, channels_list)
 
     def forward(self, invar, outvar):
         """
@@ -135,7 +137,8 @@ class GraphCastLossFunction(nn.Module):
             / torch.square(self.time_diff_std.view(1, -1, 1, 1).to(loss.device))
         )
         # weighted by variables
-        variable_weights = self.variable_weights.view(1, -1, 1, 1).to(loss.device)
+        variable_weights = self.variable_weights.view(
+            1, -1, 1, 1).to(loss.device)
         loss = loss * variable_weights  # [T,C,H,W]
         # weighted by area
         loss = loss.mean(dim=(0, 1))
@@ -147,7 +150,8 @@ class GraphCastLossFunction(nn.Module):
         """Gets the time difference standard deviation"""
         if time_diff_std_path is not None:
             time_diff_np = np.load(time_diff_std_path)
-            time_diff_np = time_diff_np[:, channels_list, ...]
+            time_diff_np = time_diff_np[:,
+                                        channels_list, ...]
             return torch.FloatTensor(time_diff_np)
         else:
             return torch.tensor([1.0], dtype=torch.float)
@@ -156,15 +160,19 @@ class GraphCastLossFunction(nn.Module):
         """Gets lists of surface and atmospheric channels"""
         with open(dataset_metadata_path, "r") as f:
             data_json = json.load(f)
-            channel_list = [data_json["coords"]["channel"][str(c)] for c in channels_list]
+            channel_list = [
+                data_json["coords"]["channel"][str(c)] for c in channels_list
+            ]
 
             # separate atmosphere and surface variables
             channel_dict = {"surface": [], "atmosphere": []}
             for each_channel in channel_list:
                 if each_channel[-1].isdigit():
-                    channel_dict["atmosphere"].append(each_channel)
+                    channel_dict["atmosphere"].append(
+                        each_channel)
                 else:
-                    channel_dict["surface"].append(each_channel)
+                    channel_dict["surface"].append(
+                        each_channel)
             return channel_dict
 
     def parse_variable(self, variable_list):
@@ -191,7 +199,8 @@ class GraphCastLossFunction(nn.Module):
 
     def assign_surface_weights(self):
         """Assigns weights to surface variables"""
-        surface_weights = {i: 0.1 for i in self.channel_dict["surface"]}
+        surface_weights = {
+            i: 0.1 for i in self.channel_dict["surface"]}
         if "t2m" in surface_weights:
             surface_weights["t2m"] = 1
         return surface_weights
@@ -204,9 +213,12 @@ class GraphCastLossFunction(nn.Module):
         """assigns per-variable per-pressure level weights"""
         surface_weights_dict = self.assign_surface_weights()
         atmosphere_weights_dict = self.assign_atmosphere_weights()
-        surface_weights = list(surface_weights_dict.values())
-        atmosphere_weights = list(atmosphere_weights_dict.values())
+        surface_weights = list(
+            surface_weights_dict.values())
+        atmosphere_weights = list(
+            atmosphere_weights_dict.values())
         variable_weights = torch.cat(
-            (torch.FloatTensor(surface_weights), torch.FloatTensor(atmosphere_weights))
+            (torch.FloatTensor(surface_weights),
+             torch.FloatTensor(atmosphere_weights))
         )  # [num_channel]
         return variable_weights

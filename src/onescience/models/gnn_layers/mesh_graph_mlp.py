@@ -14,7 +14,7 @@ from .utils import CuGraphCSC, concat_efeat, sum_efeat
 
 #     te_imported = True
 # except ImportError:
-    # te_imported = False
+# te_imported = False
 te_imported = False
 
 
@@ -38,9 +38,11 @@ class CustomSiLuLinearAutogradFunction(torch.autograd.Function):
 
     @staticmethod
     @once_differentiable
-    def backward(
-        ctx, grad_output: torch.Tensor
-    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor], Optional[torch.Tensor],]:
+    def backward(ctx, grad_output: torch.Tensor) -> Tuple[
+        Optional[torch.Tensor],
+        Optional[torch.Tensor],
+        Optional[torch.Tensor],
+    ]:
         """backward pass of the SiLU + Linear function"""
 
         # from nvfuser import FusionDefinition
@@ -123,10 +125,12 @@ class MeshGraphMLP(nn.Module):
         super().__init__()
 
         if hidden_layers is not None:
-            layers = [nn.Linear(input_dim, hidden_dim), activation_fn]
+            layers = [
+                nn.Linear(input_dim, hidden_dim), activation_fn]
             self.hidden_layers = hidden_layers
             for _ in range(hidden_layers - 1):
-                layers += [nn.Linear(hidden_dim, hidden_dim), activation_fn]
+                layers += [nn.Linear(hidden_dim,
+                                     hidden_dim), activation_fn]
             layers.append(nn.Linear(hidden_dim, output_dim))
 
             self.norm_type = norm_type
@@ -315,11 +319,13 @@ class MeshGraphEdgeMLPSum(nn.Module):
 
         # this should ensure the same sequence of initializations
         # as the original MLP-Layer in combination with a concat operation
-        tmp_lin = nn.Linear(efeat_dim + src_dim + dst_dim, hidden_dim, bias=bias)
+        tmp_lin = nn.Linear(
+            efeat_dim + src_dim + dst_dim, hidden_dim, bias=bias)
         # orig_weight has shape (hidden_dim, efeat_dim + src_dim + dst_dim)
         orig_weight = tmp_lin.weight
         w_efeat, w_src, w_dst = torch.split(
-            orig_weight, [efeat_dim, src_dim, dst_dim], dim=1
+            orig_weight, [efeat_dim,
+                          src_dim, dst_dim], dim=1
         )
         self.lin_efeat = nn.Parameter(w_efeat)
         self.lin_src = nn.Parameter(w_src)
@@ -333,7 +339,8 @@ class MeshGraphEdgeMLPSum(nn.Module):
         layers = [activation_fn]
         self.hidden_layers = hidden_layers
         for _ in range(hidden_layers - 1):
-            layers += [nn.Linear(hidden_dim, hidden_dim), activation_fn]
+            layers += [nn.Linear(hidden_dim,
+                                 hidden_dim), activation_fn]
         layers.append(nn.Linear(hidden_dim, output_dim))
 
         self.norm_type = norm_type
@@ -381,8 +388,10 @@ class MeshGraphEdgeMLPSum(nn.Module):
             src_feat, dst_feat = nfeat
         mlp_efeat = F.linear(efeat, self.lin_efeat, None)
         mlp_src = F.linear(src_feat, self.lin_src, None)
-        mlp_dst = F.linear(dst_feat, self.lin_dst, self.bias)
-        mlp_sum = sum_efeat(mlp_efeat, (mlp_src, mlp_dst), graph)
+        mlp_dst = F.linear(
+            dst_feat, self.lin_dst, self.bias)
+        mlp_sum = sum_efeat(
+            mlp_efeat, (mlp_src, mlp_dst), graph)
         return mlp_sum
 
     def default_forward(
@@ -412,7 +421,8 @@ class MeshGraphEdgeMLPSum(nn.Module):
             graph,
         )
         lin = self.model[1]
-        hidden = CustomSiLuLinearAutogradFunction.apply(mlp_sum, lin.weight, lin.bias)
+        hidden = CustomSiLuLinearAutogradFunction.apply(
+            mlp_sum, lin.weight, lin.bias)
         for i in range(2, self.hidden_layers + 1):
             lin = self.model[2 * i - 1]
             hidden = CustomSiLuLinearAutogradFunction.apply(

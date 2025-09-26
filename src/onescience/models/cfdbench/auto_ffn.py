@@ -4,9 +4,9 @@ from typing import List, Optional
 import torch
 from torch import Tensor
 
-from .ffn import Ffn
-from .base_model import AutoCfdModel
 from .act_fn import get_act_fn
+from .base_model import AutoCfdModel
+from .ffn import Ffn
 from .loss import MseLoss
 
 
@@ -79,10 +79,10 @@ class AutoFfn(AutoCfdModel):
         # Only use the u channel
         inputs = inputs[:, 0]  # (B, h, w)
         # Flatten
-        flat_inputs = inputs.view(batch_size, -1)  # (B, h * w)
+        flat_inputs = inputs.view(
+            batch_size, -1)  # (B, h * w)
         flat_inputs = torch.cat(
-            [flat_inputs, case_params], dim=1
-        )  # (B, h * w + 2)
+            [flat_inputs, case_params], dim=1)  # (B, h * w + 2)
 
         if query_idxs is None:
             query_idxs = torch.tensor(
@@ -96,36 +96,42 @@ class AutoFfn(AutoCfdModel):
         # For each combination of (input, query_point), we have a sample.
         # Repeat tensors such that we get (b * k) samples
         # (b, k, h * w)
-        flat_inputs = flat_inputs.repeat(n_queries, 1)  # (b * k, h * w)
-        batch_query_idxs = query_idxs.repeat(batch_size, 1)  # (b * k, 2)
+        flat_inputs = flat_inputs.repeat(
+            n_queries, 1)  # (b * k, h * w)
+        batch_query_idxs = query_idxs.repeat(
+            batch_size, 1)  # (b * k, 2)
 
         # (b * k, h * w + 2)
-        flat_inputs = torch.cat([flat_inputs, batch_query_idxs.float()], dim=1)
+        flat_inputs = torch.cat(
+            [flat_inputs, batch_query_idxs.float()], dim=1)
 
         preds = self.ffn(flat_inputs)  # (b * k, 1)
         preds = preds.view(batch_size, -1)  # (b, k)
 
         # Use values of the input field at query points as residuals
-        residuals = inputs[:, query_idxs[:, 0], query_idxs[:, 1]]  # (b, k)
+        residuals = inputs[:, query_idxs[:,
+                                         0], query_idxs[:, 1]]  # (b, k)
         preds += residuals
 
         if label is not None:
-            label = label[:, 0]  # (B, 1, h, w)  # Predict only u
+            # (B, 1, h, w)  # Predict only u
+            label = label[:, 0]
             # we have labels[i, j] = label[
             #     i, query_points[i, j, 0], query_points[i, j, 1]]
-            labels = label[:, query_idxs[:, 0], query_idxs[:, 1]]  # (b, k)
-            loss = self.loss_fn(labels=labels, preds=preds)  # (b, k)
+            labels = label[:, query_idxs[:, 0],
+                           query_idxs[:, 1]]  # (b, k)
+            loss = self.loss_fn(
+                labels=labels, preds=preds)  # (b, k)
             return dict(
                 preds=preds,
                 loss=loss,
             )
 
-        preds = preds.view(-1, 1, height, width)  # (b, 1, h, w)
+        # (b, 1, h, w)
+        preds = preds.view(-1, 1, height, width)
         return dict(preds=preds)
 
-    def generate(
-        self, inputs: Tensor, case_params: Tensor, mask: Tensor
-    ) -> Tensor:
+    def generate(self, inputs: Tensor, case_params: Tensor, mask: Tensor) -> Tensor:
         """
         x: (c, h, w) or (B, c, h, w)
 
@@ -145,7 +151,8 @@ class AutoFfn(AutoCfdModel):
         preds = self.forward(
             inputs, query_idxs=query_idxs, case_params=case_params, mask=mask
         )["preds"]
-        preds = preds.view(-1, 1, height, width)  # (b, 1, h, w)
+        # (b, 1, h, w)
+        preds = preds.view(-1, 1, height, width)
         return preds
 
     def generate_many(
@@ -172,7 +179,6 @@ class AutoFfn(AutoCfdModel):
         for _ in range(steps):
             # (b, c, h, w)
             cur_frame = self.generate(
-                cur_frame, case_params=case_params, mask=mask
-            )
+                cur_frame, case_params=case_params, mask=mask)
             preds.append(cur_frame)
         return preds

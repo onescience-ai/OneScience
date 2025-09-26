@@ -9,15 +9,15 @@
 @Usage   : Callback in mol_pipline.py
 """
 
-import os
-os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".90"
+from unit_sup import constraint_function, reward_function, update_unique
 import numpy as np
 import jax.tree_util as jtu
-from unit_sup import constraint_function, reward_function, update_unique
+import os
+
+os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = ".90"
 
 
-def reward_f (decode_molecules, cached, config):
-    
+def reward_f(decode_molecules, cached, config):
     """
     Computes reward scores and constraints for a set of decoded molecules, updates the cache, and returns the results.
 
@@ -32,24 +32,35 @@ def reward_f (decode_molecules, cached, config):
             - "constraints": Concatenated array of constraint values for the current and previous populations.
             - "decode_molecules": Concatenated set of decoded molecules including previous and current populations.
             - "cached": Updated cache dictionary with new scores, constraints, and molecules.
-        """
+    """
 
     re_dict = dict()
 
-    scores, cached = reward_function(decode_molecules, cached) # (dbs * r, m)
+    scores, cached = reward_function(
+        decode_molecules, cached)  # (dbs * r, m)
     # breakpoint() ## check here
-    constraints = constraint_function(decode_molecules, cached, config,)
+    constraints = constraint_function(
+        decode_molecules,
+        cached,
+        config,
+    )
     # breakpoint() ## check here
-    cached = update_unique(cached,)
+    cached = update_unique(
+        cached,
+    )
 
-    ### concat father populations
+    # concat father populations
     scores = np.concatenate(
-        [cached['scores'][-1], scores], axis = 0) # (dbs * r + dbs, m)
+        [cached["scores"][-1], scores], axis=0
+    )  # (dbs * r + dbs, m)
     constraints = np.concatenate(
-        [cached['constraints'][-1], constraints], axis = 0) # (dbs * r + dbs, c)
+        [cached["constraints"][-1], constraints], axis=0
+    )  # (dbs * r + dbs, c)
     decode_molecules = jtu.tree_map(
-        lambda x, y: np.concatenate([x, y], axis = 0), 
-        cached['molecules'][-1], decode_molecules)
+        lambda x, y: np.concatenate([x, y], axis=0),
+        cached["molecules"][-1],
+        decode_molecules,
+    )
 
     re_dict["scores"] = scores
     re_dict["constraints"] = constraints

@@ -91,7 +91,8 @@ def adsorb_ml_pipeline(
 
     # only run slab relaxation if total energy model or placing on relaxed slab
     if place_on_relaxed_slab or reference_ml_energies:
-        ml_relaxed_slab_result = ml_slab_adslab_relax_job(slab.atoms)
+        ml_relaxed_slab_result = ml_slab_adslab_relax_job(
+            slab.atoms)
 
     unrelaxed_adslab_configurations = ocp_adslab_generator(
         ml_relaxed_slab_result["atoms"] if place_on_relaxed_slab else slab.atoms,
@@ -119,9 +120,11 @@ def adsorb_ml_pipeline(
         detect_anomaly(
             relaxed_result["input_atoms"]["atoms"],
             relaxed_result["atoms"],
-            ml_relaxed_slab_result["atoms"]
-            if reference_ml_energies
-            else relaxed_slab_atoms,
+            (
+                ml_relaxed_slab_result["atoms"]
+                if reference_ml_energies
+                else relaxed_slab_atoms
+            ),
         )
         for relaxed_result in ml_relaxed_configurations
     ]
@@ -141,7 +144,8 @@ def adsorb_ml_pipeline(
 def ocp_adslab_generator(
     slab: Slab | Atoms,
     adsorbates_kwargs: list[dict[str, Any]] | None = None,
-    multiple_adsorbate_slab_config_kwargs: dict[str, Any] | None = None,
+    multiple_adsorbate_slab_config_kwargs: dict[str,
+                                                Any] | None = None,
 ) -> list[Atoms]:
     """
     Generate adsorbate-slab configurations.
@@ -214,7 +218,8 @@ def reference_adslab_energies(
                 [
                     atomic_energies[atom.symbol]
                     for atom in adslab_result["atoms"][
-                        adslab_result["atoms"].get_tags() == 2
+                        adslab_result["atoms"].get_tags(
+                        ) == 2
                     ]  # all adsorbate tagged with tag=2!
                 ]
             ),
@@ -224,7 +229,8 @@ def reference_adslab_energies(
                 [
                     atomic_energies[atom.symbol]
                     for atom in adslab_result["atoms"][
-                        adslab_result["atoms"].get_tags() == 2
+                        adslab_result["atoms"].get_tags(
+                        ) == 2
                     ]  # all adsorbate tagged with tag=2!
                 ]
             ),
@@ -368,8 +374,10 @@ def run_adsorbml(
 
     outputs = adsorb_ml_pipeline(
         slab=slab,
-        adsorbates_kwargs=[{"adsorbate_smiles_from_db": adsorbate}],
-        multiple_adsorbate_slab_config_kwargs={"num_configurations": num_placements},
+        adsorbates_kwargs=[
+            {"adsorbate_smiles_from_db": adsorbate}],
+        multiple_adsorbate_slab_config_kwargs={
+            "num_configurations": num_placements},
         ml_slab_adslab_relax_job=ml_relax_job,
         reference_ml_energies=reference_ml_energies,
         atomic_reference_energies=atomic_reference_energies,

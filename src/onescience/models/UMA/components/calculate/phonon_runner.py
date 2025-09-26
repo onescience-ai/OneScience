@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import os
@@ -23,7 +21,8 @@ def get_mdr_phonon_data_list(index_df_path, phonon_file_path, debug=False):
     if debug:
         ref_df = ref_df[ref_df["nsites"] <= 5].head(10)
     all_ids = list(ref_df["mp_id"])
-    phonon_yamls = [Path(phonon_file_path) / f"{mpid}.yaml.bz2" for mpid in all_ids]
+    phonon_yamls = [Path(
+        phonon_file_path) / f"{mpid}.yaml.bz2" for mpid in all_ids]
     return phonon_yamls
 
 
@@ -50,7 +49,8 @@ class MDRPhononRunner(CalculateRunner):
     # TODO continue if unfinished
     def calculate(self, job_num: int = 0, num_jobs: int = 1) -> list[dict[str, Any]]:
         all_results = []
-        chunk_indices = np.array_split(range(len(self.input_data)), num_jobs)[job_num]
+        chunk_indices = np.array_split(
+            range(len(self.input_data)), num_jobs)[job_num]
         for i in tqdm(chunk_indices, desc="Running phonon calculations."):
             try:
                 phonon_file_name = self.input_data[i]

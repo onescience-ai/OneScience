@@ -27,7 +27,8 @@ def angle_3p(a, b, c):
     norm_ab = np.linalg.norm(ab)
     norm_bc = np.linalg.norm(bc)
 
-    cos_theta = np.clip(dot_product / (norm_ab * norm_bc + 1e-4), -1, 1)
+    cos_theta = np.clip(
+        dot_product / (norm_ab * norm_bc + 1e-4), -1, 1)
     theta_radians = np.arccos(cos_theta)
     theta_degrees = np.degrees(theta_radians)
     return theta_degrees
@@ -51,7 +52,8 @@ def random_transform(
         points = points - points.mean(axis=0)
     if not apply_augmentation:
         return points
-    translation = np.random.uniform(-max_translation, max_translation, size=3)
+    translation = np.random.uniform(
+        -max_translation, max_translation, size=3)
     R = Rotation.random().as_matrix()
     transformed_points = np.dot(points + translation, R.T)
     return transformed_points

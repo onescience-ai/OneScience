@@ -1,16 +1,13 @@
-
-
 from __future__ import annotations
-import os
+
 import json
+import os
 from dataclasses import dataclass
-from importlib import resources
 from typing import TYPE_CHECKING, Literal
 
 from huggingface_hub import hf_hub_download
 from omegaconf import OmegaConf
 
-from onescience.models.UMA import calculate
 from onescience.models.UMA._config import CACHE_DIR
 from onescience.models.UMA.units.mlip_unit import MLIPPredictUnit, load_predict_unit
 
@@ -23,16 +20,20 @@ class HuggingFaceCheckpoint:
     filename: str
     repo_id: Literal["facebook/UMA"]
     subfolder: str | None = None  # specify a hf repo subfolder
-    revision: str | None = None  # specify a version tag, branch, commit hash
-    atom_refs: dict | None = None  # specify an isolated atomic reference
+    # specify a version tag, branch, commit hash
+    revision: str | None = None
+    # specify an isolated atomic reference
+    atom_refs: dict | None = None
 
 
 @dataclass
 class PretrainedModels:
     checkpoints: dict[str, HuggingFaceCheckpoint]
 
+
 # 这里指定新的路径
-pretrained_model_path = os.path.join(os.getcwd(), "models", "pretrained_models.json")
+pretrained_model_path = os.path.join(
+    os.getcwd(), "models", "pretrained_models.json")
 
 # 加载 pretrained_models.json
 with open(pretrained_model_path, "rb") as f:
@@ -89,7 +90,8 @@ def get_predict_unit(
         revision=model_checkpoint.revision,
         cache_dir=cache_dir,
     )
-    atom_refs = get_isolated_atomic_energies(model_name, cache_dir)
+    atom_refs = get_isolated_atomic_energies(
+        model_name, cache_dir)
     return load_predict_unit(
         checkpoint_path, inference_settings, overrides, device, atom_refs
     )

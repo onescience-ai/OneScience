@@ -1,9 +1,10 @@
 import copy
+
 import torch
-from onescience.utils.deepcfd.pytorchtools import EarlyStopping
 from torch.utils.data import DistributedSampler
+
 from onescience.distributed.manager import DistributedManager
-from torch.nn.parallel import DistributedDataParallel
+from onescience.utils.deepcfd.pytorchtools import EarlyStopping
 
 
 def generate_metrics_list(metrics_def):
@@ -35,7 +36,8 @@ def epoch(scope, loader, on_batch=None, training=False):
         if "process_batch" in scope and scope["process_batch"] is not None:
             tensors = scope["process_batch"](tensors)
         if "device" in scope and scope["device"] is not None:
-            tensors = [tensor.to(scope["device"]) for tensor in tensors]
+            tensors = [tensor.to(scope["device"])
+                       for tensor in tensors]
         loss, output = loss_func(model, tensors)
         if training:
             optimizer.zero_grad()
@@ -59,7 +61,8 @@ def epoch(scope, loader, on_batch=None, training=False):
     if dist.rank == 0:
         for name in metrics_def.keys():
             scope["list"] = scope["metrics_list"][name]
-            metrics[name] = metrics_def[name]["on_epoch"](scope)
+            metrics[name] = metrics_def[name]["on_epoch"](
+                scope)
     return total_loss, metrics
 
 
@@ -99,7 +102,8 @@ def train(
 
     # 创建分布式采样器
     train_sampler = (
-        DistributedSampler(train_dataset) if scope.get("ddp", False) else None
+        DistributedSampler(train_dataset) if scope.get(
+            "ddp", False) else None
     )
     val_sampler = (
         DistributedSampler(val_dataset, shuffle=False)
@@ -123,7 +127,8 @@ def train(
         if scope.get("ddp", False) and train_sampler is not None:
             train_loader.sampler.set_epoch(epoch_id)
         if dist.rank == 0:
-            print_function("Epoch #" + str(epoch_id), flush=True)
+            print_function(
+                "Epoch #" + str(epoch_id), flush=True)
 
         # Training
         scope["dataset"] = train_dataset
@@ -133,7 +138,8 @@ def train(
         if dist.rank == 0:
             scope["train_loss"] = train_loss
             scope["train_metrics"] = train_metrics
-            print_function("\tTrain Loss = " + str(train_loss), flush=True)
+            print_function(
+                "\tTrain Loss = " + str(train_loss), flush=True)
             for name in metrics_def.keys():
                 print_function(
                     "\tTrain "
@@ -155,7 +161,8 @@ def train(
         if dist.rank == 0:
             scope["val_loss"] = val_loss
             scope["val_metrics"] = val_metrics
-            print_function("\tValidation Loss = " + str(val_loss), flush=True)
+            print_function(
+                "\tValidation Loss = " + str(val_loss), flush=True)
             for name in metrics_def.keys():
                 print_function(
                     "\tValidation "
@@ -198,7 +205,8 @@ def train(
         # 广播停止标志 - 仅当在分布式环境中
         if dist.world_size > 1:
             # 确保所有进程知道是否停止
-            stop_tensor = torch.tensor([stop_flag], dtype=torch.bool, device=device)
+            stop_tensor = torch.tensor(
+                [stop_flag], dtype=torch.bool, device=device)
             torch.distributed.broadcast(stop_tensor, src=0)
             stop_flag = stop_tensor.item()
 
@@ -279,7 +287,8 @@ def train_model(
                 "on_epoch": kwargs["m_" + name + "_on_epoch"],
             }
         else:
-            print("Warning: " + name + " metric is incomplete!")
+            print("Warning: " + name +
+                  " metric is incomplete!")
     scope["metrics_def"] = metrics_def
     return train(
         scope,

@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -13,7 +11,9 @@ from omegaconf import DictConfig
 from onescience.models.UMA.common.utils import load_state_dict, match_state_dict
 
 if TYPE_CHECKING:
-    from onescience.models.UMA.units.mlip_unit.api.inference import MLIPInferenceCheckpoint
+    from onescience.models.UMA.units.mlip_unit.api.inference import (
+        MLIPInferenceCheckpoint,
+    )
 
 
 def load_inference_model(
@@ -27,7 +27,8 @@ def load_inference_model(
     )
 
     if overrides is not None:
-        checkpoint.model_config = update_configs(checkpoint.model_config, overrides)
+        checkpoint.model_config = update_configs(
+            checkpoint.model_config, overrides)
 
     model = hydra.utils.instantiate(checkpoint.model_config)
     if use_ema:
@@ -39,13 +40,15 @@ def load_inference_model(
         del model_dict["n_averaged"]
         del ema_state_dict["n_averaged"]
 
-        matched_dict = match_state_dict(model_dict, ema_state_dict)
+        matched_dict = match_state_dict(
+            model_dict, ema_state_dict)
 
         matched_dict["n_averaged"] = n_averaged
 
         load_state_dict(model, matched_dict, strict=True)
     else:
-        load_state_dict(model, checkpoint.model_state_dict, strict=True)
+        load_state_dict(
+            model, checkpoint.model_state_dict, strict=True)
 
     return (model, checkpoint) if return_checkpoint is True else model
 
@@ -66,17 +69,20 @@ def tf32_context_manager():
         # Revert to the original settings
         torch.backends.cuda.matmul.allow_tf32 = original_allow_tf32_matmul
         torch.backends.cudnn.allow_tf32 = original_allow_tf32_cudnn
-        torch.set_float32_matmul_precision(original_float32_matmul_precision)
+        torch.set_float32_matmul_precision(
+            original_float32_matmul_precision)
 
 
 def update_configs(original_config, new_config):
     updated_config = deepcopy(original_config)
     for k, v in new_config.items():
         is_dict_config = (isinstance(v, (dict, DictConfig))) and (
-            isinstance(updated_config[k], (dict, DictConfig))
+            isinstance(
+                updated_config[k], (dict, DictConfig))
         )
         if is_dict_config and k in updated_config:
-            updated_config[k] = update_configs(updated_config[k], v)
+            updated_config[k] = update_configs(
+                updated_config[k], v)
         else:
             updated_config[k] = v
     return updated_config

@@ -28,10 +28,12 @@ def create_ddp_group_tag(group_name: str = None) -> str:
             return int(datetime.now().strftime(f"%{x}"))
 
         time_index = torch.IntTensor(
-            [tint(x) for x in ["m", "d", "y", "H", "M", "S"]]
+            [tint(x)
+             for x in ["m", "d", "y", "H", "M", "S"]]
         ).to(dist.device)
     else:
-        time_index = torch.IntTensor([0, 0, 0, 0, 0, 0]).to(dist.device)
+        time_index = torch.IntTensor(
+            [0, 0, 0, 0, 0, 0]).to(dist.device)
 
     if torch.distributed.is_available():
         # Broadcast group ID to all processes

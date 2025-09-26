@@ -125,7 +125,8 @@ class Pangu(Module):
             img_size, patch_size[1:], 2 * embed_dim, 4
         )
         self.patchrecovery3d = PatchRecovery3D(
-            (13, img_size[0], img_size[1]), patch_size, 2 * embed_dim, 5
+            (13, img_size[0], img_size[1]
+             ), patch_size, 2 * embed_dim, 5
         )
 
     def prepare_input(self, surface, surface_mask, upper_air):
@@ -136,9 +137,11 @@ class Pangu(Module):
             upper_air (torch.Tensor): 3D n_pl=13, n_lat=721, n_lon=1440, chans=5.
         """
         upper_air = upper_air.reshape(
-            upper_air.shape[0], -1, upper_air.shape[3], upper_air.shape[4]
+            upper_air.shape[0], -
+            1, upper_air.shape[3], upper_air.shape[4]
         )
-        surface_mask = surface_mask.unsqueeze(0).repeat(surface.shape[0], 1, 1, 1)
+        surface_mask = surface_mask.unsqueeze(
+            0).repeat(surface.shape[0], 1, 1, 1)
         return torch.concat([surface, surface_mask, upper_air], dim=1)
 
     def forward(self, x):
@@ -147,11 +150,13 @@ class Pangu(Module):
             x (torch.Tensor): [batch, 4+3+5*13, lat, lon]
         """
         surface = x[:, :7, :, :]
-        upper_air = x[:, 7:, :, :].reshape(x.shape[0], 5, 13, x.shape[2], x.shape[3])
+        upper_air = x[:, 7:, :, :].reshape(
+            x.shape[0], 5, 13, x.shape[2], x.shape[3])
         surface = self.patchembed2d(surface)
         upper_air = self.patchembed3d(upper_air)
 
-        x = torch.concat([surface.unsqueeze(2), upper_air], dim=2)
+        x = torch.concat(
+            [surface.unsqueeze(2), upper_air], dim=2)
         B, C, Pl, Lat, Lon = x.shape
         x = x.reshape(B, C, -1).transpose(1, 2)
 
@@ -166,10 +171,13 @@ class Pangu(Module):
         x = self.layer4(x)
 
         output = torch.concat([x, skip], dim=-1)
-        output = output.transpose(1, 2).reshape(B, -1, Pl, Lat, Lon)
+        output = output.transpose(
+            1, 2).reshape(B, -1, Pl, Lat, Lon)
         output_surface = output[:, :, 0, :, :]
         output_upper_air = output[:, :, 1:, :, :]
 
-        output_surface = self.patchrecovery2d(output_surface)
-        output_upper_air = self.patchrecovery3d(output_upper_air)
+        output_surface = self.patchrecovery2d(
+            output_surface)
+        output_upper_air = self.patchrecovery3d(
+            output_upper_air)
         return output_surface, output_upper_air

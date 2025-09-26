@@ -46,11 +46,12 @@ default_weighted_pdb_configs = {
     "shuffle_sym_ids": GlobalConfigValue("train_shuffle_sym_ids"),
 }
 
-#DATA_ROOT_DIR = "/af3-dev/release_data/"
+# DATA_ROOT_DIR = "/af3-dev/release_data/"
 DATA_ROOT_DIR = os.environ["DATA_ROOT_DIR"]
 # Use CCD cache created by scripts/gen_ccd_cache.py priority. (without date in filename)
 # See: docs/prepare_data.md
-CCD_COMPONENTS_FILE_PATH = os.path.join(DATA_ROOT_DIR, "components.cif")
+CCD_COMPONENTS_FILE_PATH = os.path.join(
+    DATA_ROOT_DIR, "components.cif")
 CCD_COMPONENTS_RDKIT_MOL_FILE_PATH = os.path.join(
     DATA_ROOT_DIR, "components.cif.rdkit_mol.pkl"
 )
@@ -58,7 +59,8 @@ CCD_COMPONENTS_RDKIT_MOL_FILE_PATH = os.path.join(
 if (not os.path.exists(CCD_COMPONENTS_FILE_PATH)) or (
     not os.path.exists(CCD_COMPONENTS_RDKIT_MOL_FILE_PATH)
 ):
-    CCD_COMPONENTS_FILE_PATH = os.path.join(DATA_ROOT_DIR, "components.v20240608.cif")
+    CCD_COMPONENTS_FILE_PATH = os.path.join(
+        DATA_ROOT_DIR, "components.v20240608.cif")
     CCD_COMPONENTS_RDKIT_MOL_FILE_PATH = os.path.join(
         DATA_ROOT_DIR, "components.v20240608.cif.rdkit_mol.pkl"
     )
@@ -82,13 +84,16 @@ if (not os.path.exists(CCD_COMPONENTS_FILE_PATH)) or (
     current_directory = os.path.dirname(current_file_path)
     code_directory = os.path.dirname(current_directory)
 
-    data_cache_dir = os.path.join(code_directory, "release_data/ccd_cache")
-    CCD_COMPONENTS_FILE_PATH = os.path.join(data_cache_dir, "components.cif")
+    data_cache_dir = os.path.join(
+        code_directory, "release_data/ccd_cache")
+    CCD_COMPONENTS_FILE_PATH = os.path.join(
+        data_cache_dir, "components.cif")
     CCD_COMPONENTS_RDKIT_MOL_FILE_PATH = os.path.join(
         data_cache_dir, "components.cif.rdkit_mol.pkl"
     )
     if (not os.path.exists(CCD_COMPONENTS_FILE_PATH)) or (
-        not os.path.exists(CCD_COMPONENTS_RDKIT_MOL_FILE_PATH)
+        not os.path.exists(
+            CCD_COMPONENTS_RDKIT_MOL_FILE_PATH)
     ):
 
         CCD_COMPONENTS_FILE_PATH = os.path.join(
@@ -120,7 +125,8 @@ data_configs = {
             ),
             "pdb_list": "",
             "random_sample_if_failed": True,
-            "max_n_token": -1,  # can be used for removing data with too many tokens.
+            # can be used for removing data with too many tokens.
+            "max_n_token": -1,
             "use_reference_chains_only": False,
             "exclusion": {  # do not sample the data based on ions.
                 "mol_1_type": ListValue(["ions"]),
@@ -142,7 +148,8 @@ data_configs = {
                 DATA_ROOT_DIR,
                 "indices/recentPDB_low_homology_maxtoken1024_sample384_pdb_id.txt",
             ),
-            "max_n_token": GlobalConfigValue("test_max_n_token"),  # filter data
+            # filter data
+            "max_n_token": GlobalConfigValue("test_max_n_token"),
             "sort_by_n_token": False,
             "group_by_pdb_id": True,
             "find_eval_chain_interface": True,
@@ -161,7 +168,8 @@ data_configs = {
             "pdb_list": "",
             "find_pocket": True,
             "find_all_pockets": False,
-            "max_n_token": GlobalConfigValue("test_max_n_token"),  # filter data
+            # filter data
+            "max_n_token": GlobalConfigValue("test_max_n_token"),
         },
         **deepcopy(default_test_configs),
     },
@@ -200,5 +208,6 @@ data_configs = {
     },
     "ccd_components_file": os.path.join(DATA_ROOT_DIR, "components.v20240608.cif"),
     "ccd_components_rdkit_mol_file": os.path.join(
-        DATA_ROOT_DIR, "components.v20240608.cif.rdkit_mol.pkl"),
+        DATA_ROOT_DIR, "components.v20240608.cif.rdkit_mol.pkl"
+    ),
 }

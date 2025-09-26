@@ -1,30 +1,29 @@
-from pathlib import Path
-from shutil import copyfile
-from typing import Any, Dict
 import time
+from pathlib import Path
+from typing import Any, Dict
 
-from torch.utils.data import DataLoader
 import numpy as np
 import torch
+from args import Args
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Adam, lr_scheduler
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
-from onescience.utils.cfdbench.dataset import get_dataset, CfdDataset
+from onescience.distributed.manager import DistributedManager
 from onescience.models.cfdbench.base_model import CfdModel
 from onescience.models.cfdbench.deeponet import DeepONet
 from onescience.models.cfdbench.ffn import FfnModel
 from onescience.models.cfdbench.loss import loss_name_to_fn
-from onescience.distributed.manager import DistributedManager
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data.distributed import DistributedSampler
+from onescience.utils.cfdbench.dataset import CfdDataset, get_dataset
 from onescience.utils.cfdbench.utils import (
     dump_json,
-    plot_loss,
     get_output_dir,
     load_best_ckpt,
+    plot_loss,
     plot_predictions,
 )
-from args import Args
 
 
 def collate_fn(batch: list):
@@ -51,9 +50,10 @@ def evaluate(
     dist = DistributedManager()
     if dist.world_size > 1 and dist.rank != 0:
         return {"scores": {}, "preds": []}
-    
+
     # Unwrap DDP model if necessary
-    model_eval = model.module if hasattr(model, "module") else model
+    model_eval = model.module if hasattr(
+        model, "module") else model
     model_eval.eval()
 
     if measure_time:
@@ -62,7 +62,8 @@ def evaluate(
     loader = DataLoader(
         data, batch_size=batch_size, shuffle=False, collate_fn=collate_fn
     )
-    scores = {name: [] for name in model_eval.loss_fn.get_score_names()}
+    scores = {name: []
+              for name in model_eval.loss_fn.get_score_names()}
     all_preds = []
 
     print(f"=== Evaluating (rank {dist.rank}) ===")
@@ -83,7 +84,8 @@ def evaluate(
             preds = model_eval.generate_one(
                 case_params=case_params, t=t, height=height, width=width
             )
-            loss: dict = model_eval.loss_fn(labels=label[:, :1], preds=preds)
+            loss: dict = model_eval.loss_fn(
+                labels=label[:, :1], preds=preds)
             for key in scores:
                 scores[key].append(loss[key].item())
 
@@ -105,11 +107,13 @@ def evaluate(
         print("Memory usage:")
         print(torch.cuda.memory_summary("cuda"))
         print("Time usage:")
-        time_per_step = 1000 * (time.time() - start_time) / len(loader)
+        time_per_step = 1000 * \
+            (time.time() - start_time) / len(loader)
         print(f"Time per step: {time_per_step:.3f} ms")
         exit()
 
-    avg_scores = {key: np.mean(vals) for key, vals in scores.items()}
+    avg_scores = {key: np.mean(vals)
+                  for key, vals in scores.items()}
     for key, vals in scores.items():
         print(f"{key}: {np.mean(vals)}")
 
@@ -138,7 +142,7 @@ def test(
     dist = DistributedManager()
     if dist.world_size > 1 and dist.rank != 0:
         return
-    
+
     assert plot_interval > 0
     if dist.rank == 0:
         output_dir.mkdir(exist_ok=True, parents=True)
@@ -176,9 +180,10 @@ def train(
     measure_time: bool = False,
 ):
     dist = DistributedManager()
-    
+
     # Create distributed sampler and data loader
-    sampler = DistributedSampler(train_data) if dist.world_size > 1 else None
+    sampler = DistributedSampler(
+        train_data) if dist.world_size > 1 else None
     loader = DataLoader(
         train_data,
         batch_size=batch_size,
@@ -186,7 +191,7 @@ def train(
         sampler=sampler,
         shuffle=(sampler is None),
     )
-    
+
     if dist.rank == 0:
         output_dir.mkdir(exist_ok=True, parents=True)
         print("==== Training ====")
@@ -200,8 +205,7 @@ def train(
 
     optimizer = Adam(model.parameters(), lr=lr)
     scheduler = lr_scheduler.StepLR(
-        optimizer, step_size=lr_step_size, gamma=lr_gamma
-    )
+        optimizer, step_size=lr_step_size, gamma=lr_gamma)
 
     start_time = time.time()
     global_step = 0
@@ -213,7 +217,7 @@ def train(
         ep_start_time = time.time()
         ep_train_losses = []
         model.train()
-        
+
         for step, batch in enumerate(loader):
             # Forward
             outputs = model(**batch)
@@ -228,10 +232,11 @@ def train(
             # Log
             ep_train_losses.append(loss.item())
             global_step += 1
-            
+
             # Only log from rank 0
             if dist.rank == 0 and global_step % log_interval == 0 and not measure_time:
-                avg_loss = np.mean(ep_train_losses[-log_interval:])
+                avg_loss = np.mean(
+                    ep_train_losses[-log_interval:])
                 log_info = {
                     "ep": ep,
                     "step": step,
@@ -257,20 +262,25 @@ def train(
             ckpt_dir.mkdir(exist_ok=True, parents=True)
             dev_result = evaluate(model, dev_data, ckpt_dir)
             dev_scores = dev_result["scores"]
-            dump_json(dev_scores, ckpt_dir / "dev_loss.json")
-            dump_json(ep_train_losses, ckpt_dir / "train_loss.json")
+            dump_json(dev_scores, ckpt_dir /
+                      "dev_loss.json")
+            dump_json(ep_train_losses,
+                      ckpt_dir / "train_loss.json")
 
             # Save checkpoint - unwrap DDP model
-            model_to_save = model.module if hasattr(model, "module") else model
+            model_to_save = model.module if hasattr(
+                model, "module") else model
             ckpt_path = ckpt_dir / "model.pt"
             print(f"Saving checkpoint to {ckpt_path}")
-            torch.save(model_to_save.state_dict(), ckpt_path)
+            torch.save(
+                model_to_save.state_dict(), ckpt_path)
 
             # Save average scores
             ep_scores = dict(
                 ep=ep,
                 train_loss=np.mean(ep_train_losses),
-                dev_loss=np.mean(dev_scores["mean"]["nmse"]),
+                dev_loss=np.mean(
+                    dev_scores["mean"]["nmse"]),
                 time=time.time() - ep_start_time,
             )
             dump_json(ep_scores, ckpt_dir / "scores.json")
@@ -278,14 +288,16 @@ def train(
         # All processes wait for evaluation to finish
         if dist.world_size > 1:
             torch.distributed.barrier()
-        
+
         all_train_losses.append(ep_train_losses)
 
     # Only save from rank 0
     if dist.rank == 0:
         all_train_losses = sum(all_train_losses, [])
-        dump_json(all_train_losses, output_dir / "train_losses.json")
-        plot_loss(all_train_losses, output_dir / "train_losses.png")
+        dump_json(all_train_losses, output_dir /
+                  "train_losses.json")
+        plot_loss(all_train_losses, output_dir /
+                  "train_losses.png")
 
 
 def init_model(args: Args) -> CfdModel:
@@ -298,7 +310,8 @@ def init_model(args: Args) -> CfdModel:
         # (density, viscosity, u_top, h, w, radius, center_x, center_y)
         n_case_params = 8
     else:
-        n_case_params = 5  # (density, viscosity, u_top, h, w)
+        # (density, viscosity, u_top, h, w)
+        n_case_params = 5
     if args.model == "deeponet":
         model = DeepONet(
             branch_dim=n_case_params,
@@ -313,17 +326,17 @@ def init_model(args: Args) -> CfdModel:
         )
     elif args.model == "ffn":
         widths = (
-            [n_case_params + query_coord_dim]
-            + [args.ffn_width] * args.ffn_depth
-            + [1]
+            [n_case_params + query_coord_dim] +
+            [args.ffn_width] * args.ffn_depth + [1]
         )
         model = FfnModel(
             widths=widths,
             loss_fn=loss_fn,
         )
     else:
-        raise ValueError(f"Invalid model name: {args.model}")
-    num_params = sum(p.numel() for p in model.parameters())
+        raise ValueError(
+            f"Invalid model name: {args.model}")
+    sum(p.numel() for p in model.parameters())
     return model
 
 
@@ -331,8 +344,9 @@ def main():
     # Initialize distributed environment
     DistributedManager.initialize()
     dist = DistributedManager()
-    print(f"Initialized process group: rank {dist.rank}, world size {dist.world_size}")
-    
+    print(
+        f"Initialized process group: rank {dist.rank}, world size {dist.world_size}")
+
     args = Args().parse_args()
     if dist.rank == 0:
         print(args)
@@ -363,7 +377,7 @@ def main():
         print("Loading model")
     model = init_model(args)
     model = model.to(dist.device)
-    
+
     # Wrap model with DDP for training
     if "train" in args.mode and dist.world_size > 1:
         model = DDP(model, device_ids=[dist.device])
@@ -388,7 +402,8 @@ def main():
     if "test" in args.mode and dist.rank == 0:
         args.save(str(output_dir / "test_args.json"))
         # Test - if model is DDP, we need to unwrap it first
-        model_to_test = model.module if hasattr(model, "module") else model
+        model_to_test = model.module if hasattr(
+            model, "module") else model
         load_best_ckpt(model_to_test, output_dir)
         test_dir = output_dir / "test"
         test_dir.mkdir(exist_ok=True)

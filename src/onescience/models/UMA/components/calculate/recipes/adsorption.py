@@ -9,11 +9,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from fairchem.core.components.calculate.recipes.relax import relax_atoms
 from pymatgen.io.ase import MSONAtoms
-
-from fairchem.core.components.calculate.recipes.relax import (
-    relax_atoms,
-)
 
 if TYPE_CHECKING:
     from ase import Atoms
@@ -51,7 +48,8 @@ def adsorb_atoms(
     dft_relaxed_adslab_energy = adslab_atoms.info["dft_relaxed_adslab_energy"]
     dft_relaxed_slab_energy = adslab_atoms.info["dft_relaxed_slab_energy"]
     dft_adsorption_energy = (
-        dft_relaxed_adslab_energy - dft_relaxed_slab_energy - gas_reference_energy
+        dft_relaxed_adslab_energy -
+        dft_relaxed_slab_energy - gas_reference_energy
     )
 
     # Relax provided adslab system
@@ -72,7 +70,8 @@ def adsorb_atoms(
 
     # Compute adsorption energy using DFT slab energies
     hybrid_adsorption_energy = (
-        relaxed_adslab_atoms_energy - dft_relaxed_slab_energy - gas_reference_energy
+        relaxed_adslab_atoms_energy -
+        dft_relaxed_slab_energy - gas_reference_energy
     )
     results["hybrid"] = hybrid_adsorption_energy
 
@@ -94,8 +93,10 @@ def adsorb_atoms(
         results["full"] = pred_adsorption_energy
 
     if save_relaxed_atoms:
-        results["relaxed_adslab_atoms"] = MSONAtoms(relaxed_adslab_atoms).as_dict()
+        results["relaxed_adslab_atoms"] = MSONAtoms(
+            relaxed_adslab_atoms).as_dict()
         if relax_surface:
-            results["relaxed_slab_atoms"] = MSONAtoms(relaxed_slab_atoms).as_dict()
+            results["relaxed_slab_atoms"] = MSONAtoms(
+                relaxed_slab_atoms).as_dict()
 
     return results

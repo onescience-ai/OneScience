@@ -24,22 +24,23 @@ variables:
 
 
 """
-# %%
-import sys
-import os
-import dask.diagnostics
-import dask
-import multiprocessing
-import tqdm
+
 import argparse
+import multiprocessing
 from functools import partial
 
+import dask
+
+# %%
+import dask.diagnostics
+import tqdm
 import xarray as xr
 
 try:
     import xskillscore
 except ImportError:
-    raise ImportError("xskillscore not installed. Try `pip install xskillscore`")
+    raise ImportError(
+        "xskillscore not installed. Try `pip install xskillscore`")
 
 
 def open_samples(f):
@@ -69,12 +70,15 @@ def process(i, path, n_ensemble):
     truth, pred, root = open_samples(path)
     truth = truth.isel(time=slice(i, i + 1)).load()
     if n_ensemble > 0:
-        pred = pred.isel(time=slice(i, i + 1), ensemble=slice(0, n_ensemble))
+        pred = pred.isel(time=slice(
+            i, i + 1), ensemble=slice(0, n_ensemble))
     pred = pred.load()
     dim = ["x", "y"]
 
-    a = xskillscore.rmse(truth, pred.mean("ensemble"), dim=dim)
-    b = xskillscore.crps_ensemble(truth, pred, member_dim="ensemble", dim=dim)
+    a = xskillscore.rmse(
+        truth, pred.mean("ensemble"), dim=dim)
+    b = xskillscore.crps_ensemble(
+        truth, pred, member_dim="ensemble", dim=dim)
 
     c = pred.std("ensemble").mean(dim)
     crps_mean = xskillscore.crps_ensemble(
@@ -100,7 +104,8 @@ def main(path: str, output: str, n_ensemble: int == -1):
         metrics = []
         for metric in tqdm.tqdm(
             pool.imap(
-                partial(process, path=path, n_ensemble=n_ensemble),
+                partial(process, path=path,
+                        n_ensemble=n_ensemble),
                 range(truth.sizes["time"]),
             ),
             total=truth.sizes["time"],
@@ -119,7 +124,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("path", type=str)
     parser.add_argument("output", type=str)
-    parser.add_argument("--n-ensemble", type=int, default=-1)
+    parser.add_argument(
+        "--n-ensemble", type=int, default=-1)
     args = parser.parse_args()
 
     main(args.path, args.output, args.n_ensemble)

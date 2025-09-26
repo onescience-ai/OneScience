@@ -1,4 +1,5 @@
 """Common utilities for data pipeline tools."""
+
 import contextlib
 import datetime
 import logging
@@ -24,7 +25,8 @@ def timing(msg: str):
     tic = time.perf_counter()
     yield
     toc = time.perf_counter()
-    logging.info("Finished %s in %.3f seconds", msg, toc - tic)
+    logging.info("Finished %s in %.3f seconds",
+                 msg, toc - tic)
 
 
 def to_date(s: str):

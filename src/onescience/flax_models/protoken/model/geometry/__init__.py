@@ -13,10 +13,7 @@
 # limitations under the License.
 """Geometry Module."""
 
-from . import rigid_matrix_vector
-from . import rotation_matrix
-from . import struct_of_array
-from . import vector
+from . import rigid_matrix_vector, rotation_matrix, struct_of_array, vector
 
 Rot3Array = rotation_matrix.Rot3Array
 Rigid3Array = rigid_matrix_vector.Rigid3Array

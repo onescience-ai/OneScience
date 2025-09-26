@@ -1,10 +1,6 @@
 import torch
 import torch.nn as nn
-from timm.layers import trunc_normal_
-from .Embedding import timestep_embedding, unified_pos_embedding
-import numpy as np
 import torch.nn.functional as F
-
 
 ################################################################
 # Multiscale modules 1D
@@ -36,12 +32,14 @@ class DoubleConv1D(nn.Module):
                 nn.Conv1d(
                     in_channels, mid_channels, kernel_size=3, padding=1, bias=False
                 ),
-                nn.InstanceNorm1d(mid_channels, affine=True),
+                nn.InstanceNorm1d(
+                    mid_channels, affine=True),
                 nn.ReLU(inplace=True),
                 nn.Conv1d(
                     mid_channels, out_channels, kernel_size=3, padding=1, bias=False
                 ),
-                nn.InstanceNorm1d(out_channels, affine=True),
+                nn.InstanceNorm1d(
+                    out_channels, affine=True),
                 nn.ReLU(inplace=True),
             )
         else:
@@ -66,7 +64,8 @@ class Down1D(nn.Module):
     def __init__(self, in_channels, out_channels, normtype="bn"):
         super().__init__()
         self.maxpool_conv = nn.Sequential(
-            nn.MaxPool1d(2), DoubleConv1D(in_channels, out_channels, normtype=normtype)
+            nn.MaxPool1d(2), DoubleConv1D(
+                in_channels, out_channels, normtype=normtype)
         )
 
     def forward(self, x):
@@ -81,7 +80,8 @@ class Up1D(nn.Module):
 
         # if bilinear, use the normal convolutions to reduce the number of channels
         if bilinear:
-            self.up = nn.Upsample(scale_factor=2, mode="linear", align_corners=True)
+            self.up = nn.Upsample(
+                scale_factor=2, mode="linear", align_corners=True)
             self.conv = DoubleConv1D(
                 in_channels, out_channels, in_channels // 2, normtype=normtype
             )
@@ -89,7 +89,8 @@ class Up1D(nn.Module):
             self.up = nn.ConvTranspose1d(
                 in_channels, in_channels // 2, kernel_size=2, stride=2
             )
-            self.conv = DoubleConv1D(in_channels, out_channels, normtype=normtype)
+            self.conv = DoubleConv1D(
+                in_channels, out_channels, normtype=normtype)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
@@ -100,7 +101,8 @@ class Up1D(nn.Module):
 class OutConv1D(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(OutConv1D, self).__init__()
-        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size=1)
+        self.conv = nn.Conv1d(
+            in_channels, out_channels, kernel_size=1)
 
     def forward(self, x):
         return self.conv(x)
@@ -134,12 +136,14 @@ class DoubleConv2D(nn.Module):
                 nn.Conv2d(
                     in_channels, mid_channels, kernel_size=3, padding=1, bias=False
                 ),
-                nn.InstanceNorm2d(mid_channels, affine=True),
+                nn.InstanceNorm2d(
+                    mid_channels, affine=True),
                 nn.ReLU(inplace=True),
                 nn.Conv2d(
                     mid_channels, out_channels, kernel_size=3, padding=1, bias=False
                 ),
-                nn.InstanceNorm2d(out_channels, affine=True),
+                nn.InstanceNorm2d(
+                    out_channels, affine=True),
                 nn.ReLU(inplace=True),
             )
         else:
@@ -164,7 +168,8 @@ class Down2D(nn.Module):
     def __init__(self, in_channels, out_channels, normtype="bn"):
         super().__init__()
         self.maxpool_conv = nn.Sequential(
-            nn.MaxPool2d(2), DoubleConv2D(in_channels, out_channels, normtype=normtype)
+            nn.MaxPool2d(2), DoubleConv2D(
+                in_channels, out_channels, normtype=normtype)
         )
 
     def forward(self, x):
@@ -179,7 +184,8 @@ class Up2D(nn.Module):
 
         # if bilinear, use the normal convolutions to reduce the number of channels
         if bilinear:
-            self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
+            self.up = nn.Upsample(
+                scale_factor=2, mode="bilinear", align_corners=True)
             self.conv = DoubleConv2D(
                 in_channels, out_channels, in_channels // 2, normtype=normtype
             )
@@ -187,7 +193,8 @@ class Up2D(nn.Module):
             self.up = nn.ConvTranspose2d(
                 in_channels, in_channels // 2, kernel_size=2, stride=2
             )
-            self.conv = DoubleConv2D(in_channels, out_channels, normtype=normtype)
+            self.conv = DoubleConv2D(
+                in_channels, out_channels, normtype=normtype)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
@@ -195,7 +202,8 @@ class Up2D(nn.Module):
         diffY = x2.size()[2] - x1.size()[2]
         diffX = x2.size()[3] - x1.size()[3]
 
-        x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
+        x1 = F.pad(x1, [diffX // 2, diffX - diffX //
+                   2, diffY // 2, diffY - diffY // 2])
         # if you have padding issues, see
         # https://github.com/HaiyongJiang/U-Net-Pytorch-Unstructured-Buggy/commit/0e854509c2cea854e247a9c615f175f76fbb2e3a
         # https://github.com/xiaopeng-liao/Pytorch-UNet/commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd
@@ -206,7 +214,8 @@ class Up2D(nn.Module):
 class OutConv2D(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(OutConv2D, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.conv = nn.Conv2d(
+            in_channels, out_channels, kernel_size=1)
 
     def forward(self, x):
         return self.conv(x)
@@ -242,12 +251,14 @@ class DoubleConv3D(nn.Module):
                 nn.Conv3d(
                     in_channels, mid_channels, kernel_size=3, padding=1, bias=False
                 ),
-                nn.InstanceNorm3d(mid_channels, affine=True),
+                nn.InstanceNorm3d(
+                    mid_channels, affine=True),
                 nn.ReLU(inplace=True),
                 nn.Conv3d(
                     mid_channels, out_channels, kernel_size=3, padding=1, bias=False
                 ),
-                nn.InstanceNorm3d(out_channels, affine=True),
+                nn.InstanceNorm3d(
+                    out_channels, affine=True),
                 nn.ReLU(inplace=True),
             )
         else:
@@ -272,7 +283,8 @@ class Down3D(nn.Module):
     def __init__(self, in_channels, out_channels, normtype="bn"):
         super().__init__()
         self.maxpool_conv = nn.Sequential(
-            nn.MaxPool3d(2), DoubleConv3D(in_channels, out_channels, normtype=normtype)
+            nn.MaxPool3d(2), DoubleConv3D(
+                in_channels, out_channels, normtype=normtype)
         )
 
     def forward(self, x):
@@ -287,7 +299,8 @@ class Up3D(nn.Module):
 
         # if bilinear, use the normal convolutions to reduce the number of channels
         if bilinear:
-            self.up = nn.Upsample(scale_factor=2, mode="trilinear", align_corners=True)
+            self.up = nn.Upsample(
+                scale_factor=2, mode="trilinear", align_corners=True)
             self.conv = DoubleConv3D(
                 in_channels, out_channels, in_channels // 2, normtype=normtype
             )
@@ -295,7 +308,8 @@ class Up3D(nn.Module):
             self.up = nn.ConvTranspose3d(
                 in_channels, in_channels // 2, kernel_size=2, stride=2
             )
-            self.conv = DoubleConv3D(in_channels, out_channels, normtype=normtype)
+            self.conv = DoubleConv3D(
+                in_channels, out_channels, normtype=normtype)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
@@ -306,7 +320,8 @@ class Up3D(nn.Module):
 class OutConv3D(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(OutConv3D, self).__init__()
-        self.conv = nn.Conv3d(in_channels, out_channels, kernel_size=1)
+        self.conv = nn.Conv3d(
+            in_channels, out_channels, kernel_size=1)
 
     def forward(self, x):
         return self.conv(x)

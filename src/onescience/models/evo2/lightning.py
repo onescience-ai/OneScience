@@ -13,24 +13,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Callable, Generic, Iterable, Iterator, List, Literal, Optional, Sequence, Tuple, TypeVar, Union, Protocol, Type
 from abc import ABC, abstractmethod
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    Iterable,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import lightning.pytorch as pl
 import torch.distributed
-from megatron.core import parallel_state
-from megatron.core.optimizer.optimizer_config import OptimizerConfig
-from nemo.lightning import io as nlio
-from nemo.lightning.megatron_parallel import (
-    DataT,
-    MegatronLossReduction,
-    ReductionT,
-)
-from nemo.lightning.pytorch.optim import MegatronOptimizerModule
-from torch import Tensor
 
 # from bionemo.core.model.config import BionemoTrainableModelConfig
 from bionemo.evo2.api import MegatronLossType, MegatronModelType
+from megatron.core import parallel_state
+from megatron.core.optimizer.optimizer_config import OptimizerConfig
+from nemo.lightning import io as nlio
+from nemo.lightning.megatron_parallel import DataT, MegatronLossReduction, ReductionT
+from nemo.lightning.pytorch.optim import MegatronOptimizerModule
+from torch import Tensor
+
 # from bionemo.llm.api import MegatronLossType, MegatronModelType
 
 __all__: Sequence[str] = (
@@ -47,7 +59,14 @@ T = TypeVar("T")
 BatchT = TypeVar("BatchT")
 
 
-ModelOutput = TypeVar("ModelOutput", Tensor, list[Tensor], tuple[Tensor], dict[str, Tensor], covariant=True)
+ModelOutput = TypeVar(
+    "ModelOutput",
+    Tensor,
+    list[Tensor],
+    tuple[Tensor],
+    dict[str, Tensor],
+    covariant=True,
+)
 """A Model's forward pass may produce a tensor, multiple tensors, or named tensors.
 """
 
@@ -78,15 +97,15 @@ class BionemoModelConfig(Generic[ModelType], ABC):
         raise NotImplementedError()
 
 
-class BionemoTrainableModelConfig(Generic[ModelType, LossType], BionemoModelConfig[ModelType]):
+class BionemoTrainableModelConfig(
+    Generic[ModelType, LossType], BionemoModelConfig[ModelType]
+):
     """An abstract class for trainable model configuration."""
 
     @abstractmethod
     def get_loss_reduction_class(self) -> Type[LossType]:
         """Returns the loss reduction class."""
         raise NotImplementedError()
-
-
 
 
 def some_first(seq: Iterable[Optional[T]]) -> T:
@@ -100,16 +119,20 @@ def some_first(seq: Iterable[Optional[T]]) -> T:
 def get_dtype_device(torch_object) -> Tuple[torch.dtype, torch.device]:  # noqa: D103
     match torch_object:
         case []:
-            raise ValueError("Looking up dtype on an empty list")
+            raise ValueError(
+                "Looking up dtype on an empty list")
         case {**data} if not data:
-            raise ValueError("Looking up dtype on an empty dict")
+            raise ValueError(
+                "Looking up dtype on an empty dict")
         case Tensor(dtype=dtype, device=device):
             return dtype, device
         case torch.nn.Module() as m:
             try:
                 p = next(m.parameters())
             except StopIteration as e:
-                raise ValueError("Cannot get dtype on a torch module with no parameters.") from e
+                raise ValueError(
+                    "Cannot get dtype on a torch module with no parameters."
+                ) from e
             return p.dtype, p.device
         case dict(keys=_, values=values):
             val = some_first(values())
@@ -126,8 +149,10 @@ def batch_collator(
     batches: Optional[Union[Tuple[ReductionT], List[ReductionT]]],
     batch_dim: int = 0,
     seq_dim: int = 1,
-    batch_dim_key_defaults: dict[str, int] = {"token_logits": 1},
-    seq_dim_key_defaults: dict[str, int] = {"token_logits": 0},
+    batch_dim_key_defaults: dict[str, int] = {
+        "token_logits": 1},
+    seq_dim_key_defaults: dict[str, int] = {
+        "token_logits": 0},
     preferred_gpu: int = 0,
 ) -> Optional[ReductionT]:
     """Takes a sequence of batches and collates them into a single batch.
@@ -172,13 +197,19 @@ def batch_collator(
         case [Tensor(), *_]:
             # If any tensor is on a GPU, move all to preferred GPU
             if any(t.is_cuda for t in batches):
-                device = torch.device(f"cuda:{preferred_gpu}")
+                device = torch.device(
+                    f"cuda:{preferred_gpu}")
                 batches = [t.to(device) for t in batches]
             # First shortcut if all tensors are 1D (they have at least one batch dim, and it must be at 0)
-            if len(batches) > 0 and isinstance(batches[0], Tensor) and batches[0].ndim == 1:
+            if (
+                len(batches) > 0
+                and isinstance(batches[0], Tensor)
+                and batches[0].ndim == 1
+            ):
                 return torch.cat(batches, dim=0)
             # Find max sequence length across all tensors
-            max_seq_len = max(batch.size(seq_dim) for batch in batches)
+            max_seq_len = max(batch.size(seq_dim)
+                              for batch in batches)
             # Pad each tensor to max length along seq_dim
             padded_batches = []
             for batch in batches:
@@ -186,13 +217,17 @@ def batch_collator(
                 # e.g. for 3D tensor: [left_pad_dim2, right_pad_dim2, left_pad_dim1, right_pad_dim1, left_pad_dim0, right_pad_dim0]
                 pad_size = [0] * (2 * batch.ndim)
                 # Calculate padding needed at end of sequence dimension
-                pad_amount = max_seq_len - batch.size(seq_dim)
+                pad_amount = max_seq_len - \
+                    batch.size(seq_dim)
                 # Pad end of sequence dimension by putting padding amount in correct position
                 # For seq_dim=1 in 3D tensor: [0, 0, 0, pad_amount, 0, 0]
-                pad_size[2 * (batch.ndim - 1 - seq_dim) + 1] = pad_amount
-                padded_batch = torch.nn.functional.pad(batch, tuple(pad_size))
+                pad_size[2 * (batch.ndim - 1 -
+                              seq_dim) + 1] = pad_amount
+                padded_batch = torch.nn.functional.pad(
+                    batch, tuple(pad_size))
                 padded_batches.append(padded_batch)
-            padded_batch = torch.cat(padded_batches, dim=batch_dim)
+            padded_batch = torch.cat(
+                padded_batches, dim=batch_dim)
             assert padded_batch.size(seq_dim) == max_seq_len
             return padded_batch
         # Next 3 calls are the recursive calls into the sub-structures of the batch. We handle dictionaries, tuples, and lists
@@ -200,8 +235,10 @@ def batch_collator(
             return {
                 key: batch_collator(
                     [batch[key] for batch in batches],
-                    batch_dim=batch_dim_key_defaults.get(key, batch_dim),
-                    seq_dim=seq_dim_key_defaults.get(key, seq_dim),
+                    batch_dim=batch_dim_key_defaults.get(
+                        key, batch_dim),
+                    seq_dim=seq_dim_key_defaults.get(
+                        key, seq_dim),
                     batch_dim_key_defaults=batch_dim_key_defaults,
                     seq_dim_key_defaults=seq_dim_key_defaults,
                     preferred_gpu=preferred_gpu,
@@ -234,9 +271,11 @@ def batch_collator(
             ]
         # Final cases shouldn't happen, an empty sequence (no batches), or "other".
         case []:
-            raise ValueError("Cannot process an empty sequence")
+            raise ValueError(
+                "Cannot process an empty sequence")
         case _:
-            raise ValueError("Unsupported input structure in batch_collator")
+            raise ValueError(
+                "Unsupported input structure in batch_collator")
 
 
 # TODO(@jstjohn): Properly use the Generic for DataT and ReductionT usage. Define our own batch/output types.
@@ -309,7 +348,9 @@ class BionemoLightningModule(
         forward_step: ForwardStep,
         data_step: DataStep,
         optimizer: MegatronOptimizerModule,
-        model_transform: Optional[Callable[[MegatronModelType], MegatronModelType]] = None,
+        model_transform: Optional[
+            Callable[[MegatronModelType], MegatronModelType]
+        ] = None,
         configure_init_model_parallel: bool = False,
         **model_construct_args,
     ) -> None:
@@ -332,20 +373,32 @@ class BionemoLightningModule(
         """
         super().__init__()
         self.config = config
-        self.module_construct_args: Optional[dict[str, Any]] = model_construct_args
+        self.module_construct_args: Optional[dict[str,
+                                                  Any]] = model_construct_args
         # ***must** be set up in configure_model() -- megatron constraint
         # also, must be called `module`: nemo expects the actual model to be stored this way
         self.module: Optional[MegatronModelType] = None
-        self.loss_reduction_class: type[MegatronLossType] = config.get_loss_reduction_class()
+        self.loss_reduction_class: type[MegatronLossType] = (
+            config.get_loss_reduction_class()
+        )
         self.optim = optimizer
-        self.optim.connect(self)  # This will bind the `configure_optimizers` method
+        # This will bind the `configure_optimizers` method
+        self.optim.connect(self)
         self._data_step = data_step
         self._forward_step = forward_step
         self.model_transform = model_transform
         self.configure_init_model_parallel = configure_init_model_parallel
         # configure metrics
-        self.train_metric = self.config.train_metric.get_instance() if self.config.train_metric else None
-        self.valid_metric = self.config.valid_metric.get_instance() if self.config.valid_metric else None
+        self.train_metric = (
+            self.config.train_metric.get_instance()
+            if self.config.train_metric
+            else None
+        )
+        self.valid_metric = (
+            self.config.valid_metric.get_instance()
+            if self.config.valid_metric
+            else None
+        )
 
     def configure_model(self) -> None:
         """Updates internal state: instantiates the model from the object's config, assigns to `model` attribute.
@@ -362,25 +415,38 @@ class BionemoLightningModule(
                 module_construct_args = {}
             elif "model_construct_args" in self.module_construct_args:
                 # Not sure why this is needed, but it seems "model_construct_args" ends up as a key inside this dict.
-                module_construct_args = self.module_construct_args["model_construct_args"]
+                module_construct_args = self.module_construct_args[
+                    "model_construct_args"
+                ]
             else:
                 module_construct_args = self.module_construct_args
 
-            model: MegatronModelType = self.config.configure_model(**module_construct_args)
+            model: MegatronModelType = self.config.configure_model(
+                **module_construct_args
+            )
             self.module = model
         if self.module is None:
-            raise ValueError("Invalid semantics: configure_model method **MUST** initialize the model.")
+            raise ValueError(
+                "Invalid semantics: configure_model method **MUST** initialize the model."
+            )
 
     def is_on_logging_device(self):
         """Return True if last stage of pipeline parallel and first tensor parallel rank."""
-        return parallel_state.is_pipeline_last_stage() and parallel_state.get_tensor_model_parallel_rank() == 0
+        return (
+            parallel_state.is_pipeline_last_stage()
+            and parallel_state.get_tensor_model_parallel_rank() == 0
+        )
 
     def forward(self, *args, **kwargs) -> DataT:
         """Call the forward method of the underlying model, and return whatever it outputs."""
         # safe to do because configure_model is idempotent
         self.configure_model()
-        assert self.module is not None, "ERROR: configure_model() method has been incorrectly overridden!"
-        prediction = self.module(*args, **kwargs)  # for now just pass through to the underlying model
+        assert (
+            self.module is not None
+        ), "ERROR: configure_model() method has been incorrectly overridden!"
+        prediction = self.module(
+            *args, **kwargs
+        )  # for now just pass through to the underlying model
         return prediction
 
     def data_step(self, dataloader_iter: Iterator[DataT]) -> DataT:  # noqa: D102
@@ -402,40 +468,54 @@ class BionemoLightningModule(
         return self._forward_step(self.module, batch)
 
     def update_metric(
-        self, batch, outputs, metric, task: Literal["pretraining", "classification", "regression"]
+        self,
+        batch,
+        outputs,
+        metric,
+        task: Literal["pretraining", "classification", "regression"],
     ) -> None:
         """Update metric for logging."""
         match task:
             case "pretraining":
-                logits = outputs["token_logits"].detach().transpose(0, 1)  #  [s, b, v] -> [b, s, v]
+                logits = (
+                    outputs["token_logits"].detach(
+                    ).transpose(0, 1)
+                )  # [s, b, v] -> [b, s, v]
                 metric(logits, batch["labels"])
             case "classification":
                 classification_output = outputs["classification_output"]
                 num_classes = classification_output.shape[-1]
                 labels = batch["labels"]
                 if classification_output.ndim == 3:  # token-level classification
-                    classification_output = classification_output.reshape(-1, num_classes)[
+                    classification_output = classification_output.reshape(
+                        -1, num_classes
+                    )[
                         batch["loss_mask"].view(-1)
                     ]  # shape [-1, num_classes]
                     assert classification_output.ndim == 2
 
-                    labels = batch["labels"].reshape(-1)[batch["loss_mask"].view(-1)]
+                    labels = batch["labels"].reshape(
+                        -1)[batch["loss_mask"].view(-1)]
                 metric(
-                    classification_output.reshape(-1, num_classes),
+                    classification_output.reshape(
+                        -1, num_classes),
                     labels.reshape(-1),
                 )
             case "regression":
                 regression_output = outputs["regression_output"]
                 metric(regression_output, batch["labels"])
             case _:
-                raise NotImplementedError(f"unrecognized task {task}")
+                raise NotImplementedError(
+                    f"unrecognized task {task}")
 
     def training_step(self, batch, batch_idx: Optional[int] = None) -> Tensor:
         """In mcore the loss-function is part of the forward-pass when labels are provided."""
         outputs = self.forward_step(batch)
         if self.train_metric is not None:
             if self.is_on_logging_device():
-                self.update_metric(batch, outputs, self.train_metric, self.config.train_metric.task)
+                self.update_metric(
+                    batch, outputs, self.train_metric, self.config.train_metric.task
+                )
 
             self.log(
                 self.config.train_metric.metric_name,
@@ -451,7 +531,9 @@ class BionemoLightningModule(
         """In mcore the loss-function is part of the forward-pass when labels are provided."""
         outputs = self.forward_step(batch)
         if self.valid_metric is not None and self.is_on_logging_device():
-            self.update_metric(batch, outputs, self.valid_metric, self.config.valid_metric.task)
+            self.update_metric(
+                batch, outputs, self.valid_metric, self.config.valid_metric.task
+            )
 
         return outputs
 
@@ -491,5 +573,7 @@ class BionemoLightningModule(
 def default_megatron_optimizer() -> MegatronOptimizerModule:
     """Default distributed optimizer uses Adam with a 1e-4 learning rate."""
     return MegatronOptimizerModule(
-        config=OptimizerConfig(lr=1e-4, optimizer="adam", use_distributed_optimizer=True),
+        config=OptimizerConfig(
+            lr=1e-4, optimizer="adam", use_distributed_optimizer=True
+        ),
     )

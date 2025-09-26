@@ -16,7 +16,8 @@ def main():
         "-o",
         help="name for output model, defaults to model_file.target_device",
     )
-    parser.add_argument("model_file", help="input model file path")
+    parser.add_argument(
+        "model_file", help="input model file path")
     args = parser.parse_args()
 
     if args.output_file is None:

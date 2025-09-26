@@ -1,8 +1,8 @@
+import math
+
 import torch
 import torch.nn.functional as F
 from einops import rearrange
-
-import math
 
 
 class LpLoss(object):
@@ -20,7 +20,8 @@ class LpLoss(object):
         if self.reduce_dims is not None:
             if isinstance(reductions, str):
                 assert reductions == "sum" or reductions == "mean"
-                self.reductions = [reductions] * len(self.reduce_dims)
+                self.reductions = [
+                    reductions] * len(self.reduce_dims)
             else:
                 for j in range(len(reductions)):
                     assert reductions[j] == "sum" or reductions[j] == "mean"
@@ -41,15 +42,18 @@ class LpLoss(object):
     def reduce_all(self, x):
         for j in range(len(self.reduce_dims)):
             if self.reductions[j] == "sum":
-                x = torch.sum(x, dim=self.reduce_dims[j], keepdim=True)
+                x = torch.sum(
+                    x, dim=self.reduce_dims[j], keepdim=True)
             else:
-                x = torch.mean(x, dim=self.reduce_dims[j], keepdim=True)
+                x = torch.mean(
+                    x, dim=self.reduce_dims[j], keepdim=True)
 
         return x
 
     def rel(self, x, y):
         diff = torch.norm(
-            torch.flatten(x, start_dim=-self.d) - torch.flatten(y, start_dim=-self.d),
+            torch.flatten(x, start_dim=-self.d) -
+            torch.flatten(y, start_dim=-self.d),
             p=self.p,
             dim=-1,
             keepdim=False,
@@ -86,7 +90,8 @@ class L2Loss(object):
         h = 1.0 / (x.size()[1] - 1.0)
 
         all_norms = (h ** (self.d / self.p)) * torch.norm(
-            x.view(num_examples, -1) - y.view(num_examples, -1), self.p, 1
+            x.view(num_examples, -1) -
+            y.view(num_examples, -1), self.p, 1
         )
 
         if self.reduction:
@@ -101,9 +106,11 @@ class L2Loss(object):
         num_examples = x.size()[0]
 
         diff_norms = torch.norm(
-            x.reshape(num_examples, -1) - y.reshape(num_examples, -1), self.p, 1
+            x.reshape(num_examples, -1) -
+            y.reshape(num_examples, -1), self.p, 1
         )
-        y_norms = torch.norm(y.reshape(num_examples, -1), self.p, 1)
+        y_norms = torch.norm(
+            y.reshape(num_examples, -1), self.p, 1)
         if self.reduction:
             if self.size_average:
                 return torch.mean(diff_norms / y_norms)
@@ -117,8 +124,10 @@ class L2Loss(object):
         Mean Squared Error
         """
         num_examples = x.size()[0]
-        diff = (x.reshape(num_examples, -1) - y.reshape(num_examples, -1)) ** 2
-        mse_per_sample = torch.mean(diff, dim=1)  # 每个样本的均方误差
+        diff = (x.reshape(num_examples, -1) -
+                y.reshape(num_examples, -1)) ** 2
+        mse_per_sample = torch.mean(
+            diff, dim=1)  # 每个样本的均方误差
         if self.reduction:
             if self.size_average:
                 return torch.mean(mse_per_sample)
@@ -131,8 +140,10 @@ class L2Loss(object):
         Mean Absolute Error
         """
         num_examples = x.size()[0]
-        diff = torch.abs(x.view(num_examples, -1) - y.view(num_examples, -1))
-        mae_per_sample = torch.mean(diff, dim=1)  # 每个样本的平均绝对误差
+        diff = torch.abs(
+            x.view(num_examples, -1) - y.view(num_examples, -1))
+        mae_per_sample = torch.mean(
+            diff, dim=1)  # 每个样本的平均绝对误差
         if self.reduction:
             if self.size_average:
                 return torch.mean(mae_per_sample)
@@ -145,8 +156,10 @@ class L2Loss(object):
         Maximum Absolute Error
         """
         num_examples = x.size()[0]
-        diff = torch.abs(x.view(num_examples, -1) - y.view(num_examples, -1))
-        maxae_per_sample = torch.max(diff, dim=1)[0]  # 每个样本的最大绝对误差
+        diff = torch.abs(
+            x.view(num_examples, -1) - y.view(num_examples, -1))
+        maxae_per_sample = torch.max(diff, dim=1)[
+            0]  # 每个样本的最大绝对误差
         if self.reduction:
             if self.size_average:
                 return torch.mean(maxae_per_sample)
@@ -165,10 +178,13 @@ class L2Loss(object):
             y_flat, dim=1, keepdim=True
         )  # 每个样本真实值的均值，shape (num_examples, 1)
 
-        ss_res = torch.sum((y_flat - x_flat) ** 2, dim=1)  # 残差平方和
-        ss_tot = torch.sum((y_flat - y_mean) ** 2, dim=1)  # 总体平方和
+        ss_res = torch.sum(
+            (y_flat - x_flat) ** 2, dim=1)  # 残差平方和
+        ss_tot = torch.sum(
+            (y_flat - y_mean) ** 2, dim=1)  # 总体平方和
 
-        r2_per_sample = 1 - ss_res / (ss_tot + 1e-8)  # 为避免除零加小常数
+        r2_per_sample = 1 - ss_res / \
+            (ss_tot + 1e-8)  # 为避免除零加小常数
 
         if self.reduction:
             if self.size_average:
@@ -187,14 +203,18 @@ class DerivLoss(object):
 
         assert d > 0 and p > 0
         self.shapelist = shapelist
-        self.de_x = L2Loss(d=d, p=p, size_average=size_average, reduction=reduction)
-        self.de_y = L2Loss(d=d, p=p, size_average=size_average, reduction=reduction)
+        self.de_x = L2Loss(
+            d=d, p=p, size_average=size_average, reduction=reduction)
+        self.de_y = L2Loss(
+            d=d, p=p, size_average=size_average, reduction=reduction)
 
     def central_diff(self, x, h1, h2, s1, s2):
         # assuming PBC
         # x: (batch, n, feats), h is the step size, assuming n = h*w
         x = rearrange(x, "b (h w) c -> b h w c", h=s1, w=s2)
-        x = F.pad(x, (0, 0, 1, 1, 1, 1), mode="constant", value=0.0)  # [b c t h+2 w+2]
+        # [b c t h+2 w+2]
+        x = F.pad(x, (0, 0, 1, 1, 1, 1),
+                  mode="constant", value=0.0)
         grad_x = (x[:, 1:-1, 2:, :] - x[:, 1:-1, :-2, :]) / (
             2 * h1
         )  # f(x+h) - f(x-h) / 2h

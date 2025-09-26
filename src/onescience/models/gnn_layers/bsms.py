@@ -26,7 +26,8 @@ class BistrideGraphMessagePassing(nn.Module):
         """
         super().__init__()
 
-        self.bottom_gmp = GraphMessagePassing(latent_dim, hidden_layer, pos_dim)
+        self.bottom_gmp = GraphMessagePassing(
+            latent_dim, hidden_layer, pos_dim)
         self.down_gmps = nn.ModuleList()
         self.up_gmps = nn.ModuleList()
         self.unpools = nn.ModuleList()
@@ -34,9 +35,11 @@ class BistrideGraphMessagePassing(nn.Module):
         self.edge_conv = WeightedEdgeConv()
         for _ in range(self.unet_depth):
             self.down_gmps.append(
-                GraphMessagePassing(latent_dim, hidden_layer, pos_dim)
+                GraphMessagePassing(
+                    latent_dim, hidden_layer, pos_dim)
             )
-            self.up_gmps.append(GraphMessagePassing(latent_dim, hidden_layer, pos_dim))
+            self.up_gmps.append(GraphMessagePassing(
+                latent_dim, hidden_layer, pos_dim))
             self.unpools.append(Unpool())
 
     def forward(self, h, m_ids, m_gs, pos):
@@ -66,11 +69,14 @@ class BistrideGraphMessagePassing(nn.Module):
         # print(len(m_gs))
         # print(self.unet_depth)
 
-        down_outs = []  # to store output features at each level during down pass
-        down_ps = []  # to store positional information at each level during down pass
+        # to store output features at each level during down pass
+        down_outs = []
+        # to store positional information at each level during down pass
+        down_ps = []
         cts = []  # to store edge weights for convolution at each level
 
-        w = pos.new_ones((pos.shape[-2], 1))  # Initialize weights
+        # Initialize weights
+        w = pos.new_ones((pos.shape[-2], 1))
 
         # Down pass
         for i in range(self.unet_depth):
@@ -104,9 +110,11 @@ class BistrideGraphMessagePassing(nn.Module):
         for i in range(self.unet_depth):
             depth_idx = self.unet_depth - i - 1
             g, idx = m_gs[depth_idx], m_ids[depth_idx]
-            h = self.unpools[i](h, down_outs[depth_idx].shape[-2], idx)
+            h = self.unpools[i](
+                h, down_outs[depth_idx].shape[-2], idx)
             # aggregate is False as we are returning the information to previous out degrees.
-            h = self.edge_conv(h, g, cts[depth_idx], aggragating=False)
+            h = self.edge_conv(
+                h, g, cts[depth_idx], aggragating=False)
             h = self.up_gmps[i](h, g, down_ps[depth_idx])
             h = h.add(down_outs[depth_idx])
 
@@ -165,14 +173,16 @@ class GraphMessagePassing(nn.Module):
         elif len(x.shape) == 2:
             x_i, x_j = x[i], x[j]
         else:
-            raise ValueError(f"Only implemented for dim 2 and 3, got {x.shape}")
+            raise ValueError(
+                f"Only implemented for dim 2 and 3, got {x.shape}")
 
         if len(pos.shape) == 3:
             pi, pj = pos[:, i], pos[:, j]
         elif len(pos.shape) == 2:
             pi, pj = pos[i], pos[j]
         else:
-            raise ValueError(f"Only implemented for dim 2 and 3, got {x.shape}")
+            raise ValueError(
+                f"Only implemented for dim 2 and 3, got {x.shape}")
 
         # Here is the biggest difference between BSMS's GMP and that of MeshGraphNet.
         # In MGN, the edge information is:
@@ -183,17 +193,21 @@ class GraphMessagePassing(nn.Module):
         # it then does not make any sense to use 2) above
         # so we just use the fiber to cat with the in/out node features
         dir = pi - pj  # (B, N, pos_dim) or (N, pos_dim)
-        norm = torch.norm(dir, dim=-1, keepdim=True)  # (B, N, 1) or (N, 1)
-        fiber = torch.cat([dir, norm], dim=-1)  # (B, N, pos_dim+1) or (N, pos_dim+1)
+        # (B, N, 1) or (N, 1)
+        norm = torch.norm(dir, dim=-1, keepdim=True)
+        # (B, N, pos_dim+1) or (N, pos_dim+1)
+        fiber = torch.cat([dir, norm], dim=-1)
         # below is the cat between fiber and node latent features
         if len(x.shape) == 3 and len(pos.shape) == 2:
-            tmp = torch.cat([fiber.unsqueeze(0).repeat(B, 1, 1), x_i, x_j], dim=-1)
+            tmp = torch.cat(
+                [fiber.unsqueeze(0).repeat(B, 1, 1), x_i, x_j], dim=-1)
         else:
             tmp = torch.cat([fiber, x_i, x_j], dim=-1)
         # get the information flow on the edge
         edge_embedding = self.mlp_edge(tmp)
         # sum the edge information to the in node
-        aggr_out = scatter_sum(edge_embedding, j, dim=-2, dim_size=x.shape[-2])
+        aggr_out = scatter_sum(
+            edge_embedding, j, dim=-2, dim_size=x.shape[-2])
 
         # MLP take input as the cat between x and the aggregated edge information flow
         tmp = torch.cat([x, aggr_out], dim=-1)
@@ -229,11 +243,13 @@ class WeightedEdgeConv(nn.Module):
         i, j = g[0], g[1]
 
         if len(x.shape) == 3:
-            weighted_info = x[:, i] if aggragating else x[:, j]
+            weighted_info = x[:,
+                              i] if aggragating else x[:, j]
         elif len(x.shape) == 2:
             weighted_info = x[i] if aggragating else x[j]
         else:
-            raise NotImplementedError("Only implemented for dim 2 and 3")
+            raise NotImplementedError(
+                "Only implemented for dim 2 and 3")
 
         weighted_info *= ew.unsqueeze(-1)
         target_index = j if aggragating else i
@@ -260,12 +276,14 @@ class WeightedEdgeConv(nn.Module):
         tuple
             Edge weights for convolution and aggregated node weights (used for iteratively calculating this in the next layer).
         """
-        deg = degree(g[0], dtype=torch.float, num_nodes=w.shape[0])
+        deg = degree(g[0], dtype=torch.float,
+                     num_nodes=w.shape[0])
         normed_w = w.squeeze(-1) / deg
         i, j = g[0], g[1]
         w_to_send = normed_w[i]
         eps = 1e-12
-        aggr_w = scatter_sum(w_to_send, j, dim=-1, dim_size=normed_w.size(0)) + eps
+        aggr_w = scatter_sum(
+            w_to_send, j, dim=-1, dim_size=normed_w.size(0)) + eps
         ec = w_to_send / aggr_w[j]
 
         return ec, aggr_w
@@ -299,7 +317,8 @@ class Unpool(nn.Module):
             new_h = h.new_zeros([pre_node_num, h.shape[-1]])
             new_h[idx] = h
         elif len(h.shape) == 3:
-            new_h = h.new_zeros([h.shape[0], pre_node_num, h.shape[-1]])
+            new_h = h.new_zeros(
+                [h.shape[0], pre_node_num, h.shape[-1]])
             new_h[:, idx] = h
 
         return new_h
@@ -328,8 +347,10 @@ def degree(
     """
     N = torch.max(index) + 1
     N = int(N)
-    out = torch.zeros((N,), dtype=dtype, device=index.device)
-    one = torch.ones((index.size(0),), dtype=out.dtype, device=out.device)
+    out = torch.zeros((N,), dtype=dtype,
+                      device=index.device)
+    one = torch.ones((index.size(0),),
+                     dtype=out.dtype, device=out.device)
     return out.scatter_add_(0, index, one)
 
 
@@ -361,7 +382,8 @@ def scatter_sum(
             size[dim] = 0
         else:
             size[dim] = int(index.max()) + 1
-        out = torch.zeros(size, dtype=src.dtype, device=src.device)
+        out = torch.zeros(
+            size, dtype=src.dtype, device=src.device)
         return out.scatter_add_(dim, index, src)
     else:
         return out.scatter_add_(dim, index, src)

@@ -2,14 +2,14 @@
 A mlp module from haiku.
 """
 
+from typing import Any, Callable, Iterable, Optional, Union
+
+import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import flax.linen as nn
-
-from ml_collections.config_dict import ConfigDict
-from typing import Any, Callable, Iterable, Optional, Union, Tuple
 
 from ..utils import get_activation
+
 
 class MLP(nn.Module):
     """A multi-layer perceptron module."""
@@ -26,9 +26,10 @@ class MLP(nn.Module):
     dropout_flag: bool = False
 
     @nn.compact
-    def __call__(self,
-                 inputs: jax.Array,
-                 ) -> jax.Array:
+    def __call__(
+        self,
+        inputs: jax.Array,
+    ) -> jax.Array:
         """Connects the module to some inputs.
 
         ## Args:
@@ -41,13 +42,17 @@ class MLP(nn.Module):
         layers = []
         output_sizes = tuple(self.output_sizes)
         for index, output_size in enumerate(output_sizes):
-            layers.append(nn.Dense(features=output_size,
-                                   kernel_init=self.w_init,
-                                   bias_init=self.b_init,
-                                   use_bias=self.with_bias,
-                                   dtype=self.dtype,
-                                   param_dtype=self.param_dtype,
-                                   name=f"linear_{index}"))
+            layers.append(
+                nn.Dense(
+                    features=output_size,
+                    kernel_init=self.w_init,
+                    bias_init=self.b_init,
+                    use_bias=self.with_bias,
+                    dtype=self.dtype,
+                    param_dtype=self.param_dtype,
+                    name=f"linear_{index}",
+                )
+            )
         layers = tuple(layers)
         output_size = output_sizes[-1] if output_sizes else None
 
@@ -58,10 +63,12 @@ class MLP(nn.Module):
             if i < (num_layers - 1) or self.activate_final:
                 if self.dropout_flag:
                     out = nn.Dropout(
-                        rate = self.dropout_rate, deterministic = not self.dropout_flag)(out)
+                        rate=self.dropout_rate, deterministic=not self.dropout_flag
+                    )(out)
                 out = get_activation(self.activation)(out)
-        
+
         return out
+
 
 class ResMLP(nn.Module):
     """A multi-layer perceptron module."""
@@ -77,9 +84,10 @@ class ResMLP(nn.Module):
     dropout_rate: Optional[float] = None
 
     @nn.compact
-    def __call__(self,
-                 inputs: jax.Array,
-                 ) -> jax.Array:
+    def __call__(
+        self,
+        inputs: jax.Array,
+    ) -> jax.Array:
         """Connects the module to some inputs.
 
         ## Args:
@@ -92,13 +100,17 @@ class ResMLP(nn.Module):
         layers = []
         output_sizes = tuple(self.output_sizes)
         for index, output_size in enumerate(output_sizes):
-            layers.append(nn.Dense(features=output_size,
-                                   kernel_init=self.w_init,
-                                   bias_init=self.b_init,
-                                   use_bias=self.with_bias,
-                                   dtype=self.dtype,
-                                   param_dtype=self.param_dtype,
-                                   name=f"linear_{index}"))
+            layers.append(
+                nn.Dense(
+                    features=output_size,
+                    kernel_init=self.w_init,
+                    bias_init=self.b_init,
+                    use_bias=self.with_bias,
+                    dtype=self.dtype,
+                    param_dtype=self.param_dtype,
+                    name=f"linear_{index}",
+                )
+            )
         layers = tuple(layers)
         output_size = output_sizes[-1] if output_sizes else None
 
@@ -106,16 +118,18 @@ class ResMLP(nn.Module):
         out = nn.LayerNorm(
             dtype=self.dtype,
             param_dtype=self.param_dtype,
-            )(inputs)
+        )(inputs)
         for i, layer in enumerate(layers):
             if i < (num_layers - 1):
-                out += layer(out) ## res connection
+                out += layer(out)  # res connection
                 if self.dropout_rate is not None:
-                    out = nn.Dropout(rate=self.dropout_rate)(out)
+                    out = nn.Dropout(
+                        rate=self.dropout_rate)(out)
                 out = get_activation(self.activation)(out)
-            else: ## final layer
+            else:  # final layer
                 out = layer(out)
                 if self.activate_final:
-                    out = get_activation(self.activation)(out)
-        
+                    out = get_activation(
+                        self.activation)(out)
+
         return out

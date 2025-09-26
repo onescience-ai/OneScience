@@ -6,7 +6,8 @@ import torch
 from onescience.models.meta import ModelMetaData
 from onescience.models.module import Module
 
-network_module = importlib.import_module("onescience.models.diffusion")
+network_module = importlib.import_module(
+    "onescience.models.diffusion")
 
 
 @dataclass

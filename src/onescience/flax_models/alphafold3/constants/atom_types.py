@@ -1,85 +1,84 @@
-
-
 """List of atom types with reverse look-up."""
 
-from collections.abc import Mapping, Sequence, Set
 import itertools
 import sys
+from collections.abc import Mapping, Sequence, Set
 from typing import Final
+
 from onescience.flax_models.alphafold3.constants import residue_names
 
 # Note:
 # `sys.intern` places the values in the Python internal db for fast lookup.
 
 # 37 common residue atoms.
-N = sys.intern('N')
-CA = sys.intern('CA')
-C = sys.intern('C')
-CB = sys.intern('CB')
-O = sys.intern('O')
-CG = sys.intern('CG')
-CG1 = sys.intern('CG1')
-CG2 = sys.intern('CG2')
-OG = sys.intern('OG')
-OG1 = sys.intern('OG1')
-SG = sys.intern('SG')
-CD = sys.intern('CD')
-CD1 = sys.intern('CD1')
-CD2 = sys.intern('CD2')
-ND1 = sys.intern('ND1')
-ND2 = sys.intern('ND2')
-OD1 = sys.intern('OD1')
-OD2 = sys.intern('OD2')
-SD = sys.intern('SD')
-CE = sys.intern('CE')
-CE1 = sys.intern('CE1')
-CE2 = sys.intern('CE2')
-CE3 = sys.intern('CE3')
-NE = sys.intern('NE')
-NE1 = sys.intern('NE1')
-NE2 = sys.intern('NE2')
-OE1 = sys.intern('OE1')
-OE2 = sys.intern('OE2')
-CH2 = sys.intern('CH2')
-NH1 = sys.intern('NH1')
-NH2 = sys.intern('NH2')
-OH = sys.intern('OH')
-CZ = sys.intern('CZ')
-CZ2 = sys.intern('CZ2')
-CZ3 = sys.intern('CZ3')
-NZ = sys.intern('NZ')
-OXT = sys.intern('OXT')
+N = sys.intern("N")
+CA = sys.intern("CA")
+C = sys.intern("C")
+CB = sys.intern("CB")
+O = sys.intern("O")
+CG = sys.intern("CG")
+CG1 = sys.intern("CG1")
+CG2 = sys.intern("CG2")
+OG = sys.intern("OG")
+OG1 = sys.intern("OG1")
+SG = sys.intern("SG")
+CD = sys.intern("CD")
+CD1 = sys.intern("CD1")
+CD2 = sys.intern("CD2")
+ND1 = sys.intern("ND1")
+ND2 = sys.intern("ND2")
+OD1 = sys.intern("OD1")
+OD2 = sys.intern("OD2")
+SD = sys.intern("SD")
+CE = sys.intern("CE")
+CE1 = sys.intern("CE1")
+CE2 = sys.intern("CE2")
+CE3 = sys.intern("CE3")
+NE = sys.intern("NE")
+NE1 = sys.intern("NE1")
+NE2 = sys.intern("NE2")
+OE1 = sys.intern("OE1")
+OE2 = sys.intern("OE2")
+CH2 = sys.intern("CH2")
+NH1 = sys.intern("NH1")
+NH2 = sys.intern("NH2")
+OH = sys.intern("OH")
+CZ = sys.intern("CZ")
+CZ2 = sys.intern("CZ2")
+CZ3 = sys.intern("CZ3")
+NZ = sys.intern("NZ")
+OXT = sys.intern("OXT")
 
 # 29 common nucleic acid atoms.
 C1PRIME = sys.intern("C1'")
-C2 = sys.intern('C2')
+C2 = sys.intern("C2")
 C2PRIME = sys.intern("C2'")
 C3PRIME = sys.intern("C3'")
-C4 = sys.intern('C4')
+C4 = sys.intern("C4")
 C4PRIME = sys.intern("C4'")
-C5 = sys.intern('C5')
+C5 = sys.intern("C5")
 C5PRIME = sys.intern("C5'")
-C6 = sys.intern('C6')
-C7 = sys.intern('C7')
-C8 = sys.intern('C8')
-N1 = sys.intern('N1')
-N2 = sys.intern('N2')
-N3 = sys.intern('N3')
-N4 = sys.intern('N4')
-N6 = sys.intern('N6')
-N7 = sys.intern('N7')
-N9 = sys.intern('N9')
-O2 = sys.intern('O2')
+C6 = sys.intern("C6")
+C7 = sys.intern("C7")
+C8 = sys.intern("C8")
+N1 = sys.intern("N1")
+N2 = sys.intern("N2")
+N3 = sys.intern("N3")
+N4 = sys.intern("N4")
+N6 = sys.intern("N6")
+N7 = sys.intern("N7")
+N9 = sys.intern("N9")
+O2 = sys.intern("O2")
 O2PRIME = sys.intern("O2'")
 O3PRIME = sys.intern("O3'")
-O4 = sys.intern('O4')
+O4 = sys.intern("O4")
 O4PRIME = sys.intern("O4'")
 O5PRIME = sys.intern("O5'")
-O6 = sys.intern('O6')
-OP1 = sys.intern('OP1')
-OP2 = sys.intern('OP2')
-OP3 = sys.intern('OP3')
-P = sys.intern('P')
+O6 = sys.intern("O6")
+OP1 = sys.intern("OP1")
+OP2 = sys.intern("OP2")
+OP3 = sys.intern("OP3")
+P = sys.intern("P")
 
 # A list of atoms (excluding hydrogen) for each AA type. PDB naming convention.
 RESIDUE_ATOMS: Mapping[str, tuple[str, ...]] = {
@@ -100,8 +99,7 @@ RESIDUE_ATOMS: Mapping[str, tuple[str, ...]] = {
     residue_names.PRO: (C, CA, CB, CG, CD, N, O),
     residue_names.SER: (C, CA, CB, N, O, OG),
     residue_names.THR: (C, CA, CB, CG2, N, O, OG1),
-    residue_names.TRP:
-        (C, CA, CB, CG, CD1, CD2, CE2, CE3, CZ2, CZ3, CH2, N, NE1, O),
+    residue_names.TRP: (C, CA, CB, CG, CD1, CD2, CE2, CE3, CZ2, CZ3, CH2, N, NE1, O),
     residue_names.TYR: (C, CA, CB, CG, CD1, CD2, CE1, CE2, CZ, N, O, OH),
     residue_names.VAL: (C, CA, CB, CG1, CG2, N, O),
 }  # pyformat: disable
@@ -124,10 +122,46 @@ AMBIGUOUS_ATOM_NAMES: Mapping[str, Mapping[str, str]] = {
 # Used when we need to store atom data in a format that requires fixed atom data
 # size for every protein residue (e.g. a numpy array).
 ATOM37: tuple[str, ...] = (
-    N, CA, C, CB, O, CG, CG1, CG2, OG, OG1, SG, CD, CD1, CD2, ND1, ND2, OD1,
-    OD2, SD, CE, CE1, CE2, CE3, NE, NE1, NE2, OE1, OE2, CH2, NH1, NH2, OH, CZ,
-    CZ2, CZ3, NZ, OXT)  # pyformat: disable
-ATOM37_ORDER: Mapping[str, int] = {name: i for i, name in enumerate(ATOM37)}
+    N,
+    CA,
+    C,
+    CB,
+    O,
+    CG,
+    CG1,
+    CG2,
+    OG,
+    OG1,
+    SG,
+    CD,
+    CD1,
+    CD2,
+    ND1,
+    ND2,
+    OD1,
+    OD2,
+    SD,
+    CE,
+    CE1,
+    CE2,
+    CE3,
+    NE,
+    NE1,
+    NE2,
+    OE1,
+    OE2,
+    CH2,
+    NH1,
+    NH2,
+    OH,
+    CZ,
+    CZ2,
+    CZ3,
+    NZ,
+    OXT,
+)  # pyformat: disable
+ATOM37_ORDER: Mapping[str, int] = {
+    name: i for i, name in enumerate(ATOM37)}
 ATOM37_NUM: Final[int] = len(ATOM37)  # := 37.
 
 # Used when we need to store protein atom data in a format that requires fixed
@@ -152,8 +186,7 @@ ATOM14: Mapping[str, tuple[str, ...]] = {
     residue_names.PRO: (N, CA, C, O, CB, CG, CD),
     residue_names.SER: (N, CA, C, O, CB, OG),
     residue_names.THR: (N, CA, C, O, CB, OG1, CG2),
-    residue_names.TRP:
-        (N, CA, C, O, CB, CG, CD1, CD2, NE1, CE2, CE3, CZ2, CZ3, CH2),
+    residue_names.TRP: (N, CA, C, O, CB, CG, CD1, CD2, NE1, CE2, CE3, CZ2, CZ3, CH2),
     residue_names.TYR: (N, CA, C, O, CB, CG, CD1, CD2, CE1, CE2, CZ, OH),
     residue_names.VAL: (N, CA, C, O, CB, CG1, CG2),
     residue_names.UNK: (),
@@ -161,14 +194,16 @@ ATOM14: Mapping[str, tuple[str, ...]] = {
 
 # A compact atom encoding with 14 columns, padded with '' in empty slots.
 ATOM14_PADDED: Mapping[str, Sequence[str]] = {
-    k: [v for _, v in itertools.zip_longest(range(14), values, fillvalue='')]
+    k: [v for _, v in itertools.zip_longest(
+        range(14), values, fillvalue="")]
     for k, values in ATOM14.items()
 }
 
 ATOM14_ORDER: Mapping[str, Mapping[str, int]] = {
     k: {name: i for i, name in enumerate(v)} for k, v in ATOM14.items()
 }
-ATOM14_NUM: Final[int] = max(len(v) for v in ATOM14.values())
+ATOM14_NUM: Final[int] = max(len(v)
+                             for v in ATOM14.values())
 
 # Used when we need to store protein and nucleic atom library.
 DENSE_ATOM: Mapping[str, tuple[str, ...]] = {
@@ -190,38 +225,204 @@ DENSE_ATOM: Mapping[str, tuple[str, ...]] = {
     residue_names.PRO: (N, CA, C, O, CB, CG, CD),
     residue_names.SER: (N, CA, C, O, CB, OG),
     residue_names.THR: (N, CA, C, O, CB, OG1, CG2),
-    residue_names.TRP:
-        (N, CA, C, O, CB, CG, CD1, CD2, NE1, CE2, CE3, CZ2, CZ3, CH2),
+    residue_names.TRP: (N, CA, C, O, CB, CG, CD1, CD2, NE1, CE2, CE3, CZ2, CZ3, CH2),
     residue_names.TYR: (N, CA, C, O, CB, CG, CD1, CD2, CE1, CE2, CZ, OH),
     residue_names.VAL: (N, CA, C, O, CB, CG1, CG2),
     residue_names.UNK: (),
     # RNA.
-    residue_names.A:
-        (OP3, P, OP1, OP2, O5PRIME, C5PRIME, C4PRIME, O4PRIME, C3PRIME, O3PRIME,
-         C2PRIME, O2PRIME, C1PRIME, N9, C8, N7, C5, C6, N6, N1, C2, N3, C4),
-    residue_names.C:
-        (OP3, P, OP1, OP2, O5PRIME, C5PRIME, C4PRIME, O4PRIME, C3PRIME, O3PRIME,
-         C2PRIME, O2PRIME, C1PRIME, N1, C2, O2, N3, C4, N4, C5, C6),
-    residue_names.G:
-        (OP3, P, OP1, OP2, O5PRIME, C5PRIME, C4PRIME, O4PRIME, C3PRIME, O3PRIME,
-         C2PRIME, O2PRIME, C1PRIME, N9, C8, N7, C5, C6, O6, N1, C2, N2, N3, C4),
-    residue_names.U:
-        (OP3, P, OP1, OP2, O5PRIME, C5PRIME, C4PRIME, O4PRIME, C3PRIME, O3PRIME,
-         C2PRIME, O2PRIME, C1PRIME, N1, C2, O2, N3, C4, O4, C5, C6),
+    residue_names.A: (
+        OP3,
+        P,
+        OP1,
+        OP2,
+        O5PRIME,
+        C5PRIME,
+        C4PRIME,
+        O4PRIME,
+        C3PRIME,
+        O3PRIME,
+        C2PRIME,
+        O2PRIME,
+        C1PRIME,
+        N9,
+        C8,
+        N7,
+        C5,
+        C6,
+        N6,
+        N1,
+        C2,
+        N3,
+        C4,
+    ),
+    residue_names.C: (
+        OP3,
+        P,
+        OP1,
+        OP2,
+        O5PRIME,
+        C5PRIME,
+        C4PRIME,
+        O4PRIME,
+        C3PRIME,
+        O3PRIME,
+        C2PRIME,
+        O2PRIME,
+        C1PRIME,
+        N1,
+        C2,
+        O2,
+        N3,
+        C4,
+        N4,
+        C5,
+        C6,
+    ),
+    residue_names.G: (
+        OP3,
+        P,
+        OP1,
+        OP2,
+        O5PRIME,
+        C5PRIME,
+        C4PRIME,
+        O4PRIME,
+        C3PRIME,
+        O3PRIME,
+        C2PRIME,
+        O2PRIME,
+        C1PRIME,
+        N9,
+        C8,
+        N7,
+        C5,
+        C6,
+        O6,
+        N1,
+        C2,
+        N2,
+        N3,
+        C4,
+    ),
+    residue_names.U: (
+        OP3,
+        P,
+        OP1,
+        OP2,
+        O5PRIME,
+        C5PRIME,
+        C4PRIME,
+        O4PRIME,
+        C3PRIME,
+        O3PRIME,
+        C2PRIME,
+        O2PRIME,
+        C1PRIME,
+        N1,
+        C2,
+        O2,
+        N3,
+        C4,
+        O4,
+        C5,
+        C6,
+    ),
     residue_names.UNK_RNA: (),
     # DNA.
-    residue_names.DA:
-        (OP3, P, OP1, OP2, O5PRIME, C5PRIME, C4PRIME, O4PRIME, C3PRIME, O3PRIME,
-         C2PRIME, C1PRIME, N9, C8, N7, C5, C6, N6, N1, C2, N3, C4),
-    residue_names.DC:
-        (OP3, P, OP1, OP2, O5PRIME, C5PRIME, C4PRIME, O4PRIME, C3PRIME, O3PRIME,
-         C2PRIME, C1PRIME, N1, C2, O2, N3, C4, N4, C5, C6),
-    residue_names.DG:
-        (OP3, P, OP1, OP2, O5PRIME, C5PRIME, C4PRIME, O4PRIME, C3PRIME, O3PRIME,
-         C2PRIME, C1PRIME, N9, C8, N7, C5, C6, O6, N1, C2, N2, N3, C4),
-    residue_names.DT:
-        (OP3, P, OP1, OP2, O5PRIME, C5PRIME, C4PRIME, O4PRIME, C3PRIME, O3PRIME,
-         C2PRIME, C1PRIME, N1, C2, O2, N3, C4, O4, C5, C7, C6),
+    residue_names.DA: (
+        OP3,
+        P,
+        OP1,
+        OP2,
+        O5PRIME,
+        C5PRIME,
+        C4PRIME,
+        O4PRIME,
+        C3PRIME,
+        O3PRIME,
+        C2PRIME,
+        C1PRIME,
+        N9,
+        C8,
+        N7,
+        C5,
+        C6,
+        N6,
+        N1,
+        C2,
+        N3,
+        C4,
+    ),
+    residue_names.DC: (
+        OP3,
+        P,
+        OP1,
+        OP2,
+        O5PRIME,
+        C5PRIME,
+        C4PRIME,
+        O4PRIME,
+        C3PRIME,
+        O3PRIME,
+        C2PRIME,
+        C1PRIME,
+        N1,
+        C2,
+        O2,
+        N3,
+        C4,
+        N4,
+        C5,
+        C6,
+    ),
+    residue_names.DG: (
+        OP3,
+        P,
+        OP1,
+        OP2,
+        O5PRIME,
+        C5PRIME,
+        C4PRIME,
+        O4PRIME,
+        C3PRIME,
+        O3PRIME,
+        C2PRIME,
+        C1PRIME,
+        N9,
+        C8,
+        N7,
+        C5,
+        C6,
+        O6,
+        N1,
+        C2,
+        N2,
+        N3,
+        C4,
+    ),
+    residue_names.DT: (
+        OP3,
+        P,
+        OP1,
+        OP2,
+        O5PRIME,
+        C5PRIME,
+        C4PRIME,
+        O4PRIME,
+        C3PRIME,
+        O3PRIME,
+        C2PRIME,
+        C1PRIME,
+        N1,
+        C2,
+        O2,
+        N3,
+        C4,
+        O4,
+        C5,
+        C7,
+        C6,
+    ),
     # Unknown nucleic.
     residue_names.UNK_DNA: (),
 }  # pyformat: disable
@@ -229,25 +430,52 @@ DENSE_ATOM: Mapping[str, tuple[str, ...]] = {
 DENSE_ATOM_ORDER: Mapping[str, Mapping[str, int]] = {
     k: {name: i for i, name in enumerate(v)} for k, v in DENSE_ATOM.items()
 }
-DENSE_ATOM_NUM: Final[int] = max(len(v) for v in DENSE_ATOM.values())
+DENSE_ATOM_NUM: Final[int] = max(
+    len(v) for v in DENSE_ATOM.values())
 
 # Used when we need to store atom data in a format that requires fixed atom data
 # size for every nucleic molecule (e.g. a numpy array).
 ATOM29: tuple[str, ...] = (
-    "C1'", 'C2', "C2'", "C3'", 'C4', "C4'", 'C5', "C5'", 'C6', 'C7', 'C8', 'N1',
-    'N2', 'N3', 'N4', 'N6', 'N7', 'N9', 'OP3', 'O2', "O2'", "O3'", 'O4', "O4'",
-    "O5'", 'O6', 'OP1', 'OP2', 'P')  # pyformat: disable
+    "C1'",
+    "C2",
+    "C2'",
+    "C3'",
+    "C4",
+    "C4'",
+    "C5",
+    "C5'",
+    "C6",
+    "C7",
+    "C8",
+    "N1",
+    "N2",
+    "N3",
+    "N4",
+    "N6",
+    "N7",
+    "N9",
+    "OP3",
+    "O2",
+    "O2'",
+    "O3'",
+    "O4",
+    "O4'",
+    "O5'",
+    "O6",
+    "OP1",
+    "OP2",
+    "P",
+)  # pyformat: disable
 ATOM29_ORDER: Mapping[str, int] = {
-    atom_type: i for i, atom_type in enumerate(ATOM29)
-}
+    atom_type: i for i, atom_type in enumerate(ATOM29)}
 ATOM29_NUM: Final[int] = len(ATOM29)  # := 29
 
 # Hydrogens that exist depending on the protonation state of the residue.
 # Extracted from third_party/py/openmm/app/data/hydrogens.xml
 PROTONATION_HYDROGENS: Mapping[str, Set[str]] = {
-    'ASP': {'HD2'},
-    'CYS': {'HG'},
-    'GLU': {'HE2'},
-    'HIS': {'HD1', 'HE2'},
-    'LYS': {'HZ3'},
+    "ASP": {"HD2"},
+    "CYS": {"HG"},
+    "GLU": {"HE2"},
+    "HIS": {"HD1", "HE2"},
+    "LYS": {"HZ3"},
 }

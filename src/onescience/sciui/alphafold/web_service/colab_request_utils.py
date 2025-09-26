@@ -1,6 +1,5 @@
 import logging
 import os
-import random
 import tarfile
 import time
 from typing import List, Tuple
@@ -57,7 +56,8 @@ def run_mmseqs2_service(
                     auth=HTTPBasicAuth(username, password),
                 )
             except requests.exceptions.Timeout:
-                logger.warning("Timeout while submitting to MSA server. Retrying...")
+                logger.warning(
+                    "Timeout while submitting to MSA server. Retrying...")
                 continue
             except Exception as e:
                 error_count += 1
@@ -74,7 +74,8 @@ def run_mmseqs2_service(
         try:
             out = res.json()
         except ValueError:
-            logger.error(f"Server didn't reply with json: {res.text}")
+            logger.error(
+                f"Server didn't reply with json: {res.text}")
             out = {"status": "ERROR"}
         return out
 
@@ -107,7 +108,8 @@ def run_mmseqs2_service(
         try:
             out = res.json()
         except ValueError:
-            logger.error(f"Server didn't reply with json: {res.text}")
+            logger.error(
+                f"Server didn't reply with json: {res.text}")
             out = {"status": "ERROR"}
         return out
 
@@ -154,7 +156,6 @@ def run_mmseqs2_service(
         mode = "env-nofilter" if use_env else "nofilter"
 
     if use_pairing:
-        use_templates = False
         use_env = False
         mode = ""
         # greedy is default, complete was the previous behavior
@@ -175,8 +176,9 @@ def run_mmseqs2_service(
     # deduplicate and keep track of order
     seqs_unique = []
     # TODO this might be slow for large sets
-    [seqs_unique.append(x) for x in seqs if x not in seqs_unique]
-    Ms = [N + seqs_unique.index(seq) for seq in seqs]
+    [seqs_unique.append(x)
+     for x in seqs if x not in seqs_unique]
+    [N + seqs_unique.index(seq) for seq in seqs]
     # lets do it!
     logger.error("Msa server is running.")
     if not os.path.isfile(tar_gz_file):
@@ -189,7 +191,8 @@ def run_mmseqs2_service(
                 out = submit(seqs_unique, mode, N)
                 while out["status"] in ["UNKNOWN", "RATELIMIT"]:
                     sleep_time = 60
-                    logger.error(f"Sleeping for {sleep_time}s. Reason: {out['status']}")
+                    logger.error(
+                        f"Sleeping for {sleep_time}s. Reason: {out['status']}")
                     # resubmit
                     time.sleep(sleep_time)
                     out = submit(seqs_unique, mode, N)
@@ -209,13 +212,15 @@ def run_mmseqs2_service(
                 pbar.set_description(out["status"])
                 while out["status"] in ["UNKNOWN", "RUNNING", "PENDING"]:
                     t = 60
-                    logger.error(f"Sleeping for {t}s. Reason: {out['status']}")
+                    logger.error(
+                        f"Sleeping for {t}s. Reason: {out['status']}")
                     time.sleep(t)
                     out = status(ID)
                     pbar.set_description(out["status"])
                     if out["status"] == "RUNNING":
                         TIME += t
-                    pbar.n = min(99, int(100 * TIME / (30.0 * 60)))
+                    pbar.n = min(
+                        99, int(100 * TIME / (30.0 * 60)))
                     pbar.refresh()
                 if out["status"] == "COMPLETE":
                     pbar.n = 100
@@ -231,7 +236,8 @@ def run_mmseqs2_service(
             # Download results
             download(ID, tar_gz_file)
             with tarfile.open(tar_gz_file) as tar_gz:
-                tar_gz.extractall(os.path.dirname(tar_gz_file))
+                tar_gz.extractall(
+                    os.path.dirname(tar_gz_file))
             files = os.listdir(os.path.dirname(tar_gz_file))
             if (
                 "0.a3m" not in files
@@ -242,4 +248,5 @@ def run_mmseqs2_service(
                     f"Files 0.a3m, pdb70_220313_db.m8, and uniref_tax.m8 not found in the directory."
                 )
             else:
-                print("Files downloaded and extracted successfully.")
+                print(
+                    "Files downloaded and extracted successfully.")

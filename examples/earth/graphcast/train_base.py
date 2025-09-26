@@ -1,8 +1,6 @@
 import torch
-from torch.profiler import profile, record_function, ProfilerActivity
 from torch.cuda.amp import autocast
-
-import sys
+from torch.profiler import ProfilerActivity, profile, record_function
 
 
 class BaseTrainer:
@@ -28,7 +26,8 @@ class BaseTrainer:
         torch.cuda.nvtx.range_push("Loss computation")
         if self.pyt_profiler:
             with profile(
-                activities=[ProfilerActivity.CUDA], record_shapes=True
+                activities=[
+                    ProfilerActivity.CUDA], record_shapes=True
             ) as prof:
                 with record_function("training_step"):
                     loss = self.rollout(grid_nfeat, y)
@@ -51,12 +50,14 @@ class BaseTrainer:
             self.scaler.scale(loss).backward()
             torch.cuda.nvtx.range_pop()
             self.scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), self.grad_clip_norm)
             self.scaler.step(self.optimizer)
             self.scaler.update()
         else:
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip_norm)
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), self.grad_clip_norm)
             torch.cuda.nvtx.range_pop()
             self.optimizer.step()
 

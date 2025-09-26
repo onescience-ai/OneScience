@@ -1,4 +1,3 @@
-
 # Checkpointing
 
 
@@ -35,9 +34,12 @@ class CheckpointBuilder:
     def load_checkpoint(
         state: CheckpointState, checkpoint: Checkpoint, strict: bool
     ) -> None:
-        state.model.load_state_dict(checkpoint["model"], strict=strict)  # type: ignore
-        state.optimizer.load_state_dict(checkpoint["optimizer"])
-        state.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
+        state.model.load_state_dict(
+            checkpoint["model"], strict=strict)  # type: ignore
+        state.optimizer.load_state_dict(
+            checkpoint["optimizer"])
+        state.lr_scheduler.load_state_dict(
+            checkpoint["lr_scheduler"])
 
 
 @dataclasses.dataclass
@@ -131,9 +133,11 @@ class CheckpointIO:
 
         for ckp in selected_checkpoint_info_list:
             if ckp.swa:
-                selected_checkpoint_info_list_swa.append(ckp)
+                selected_checkpoint_info_list_swa.append(
+                    ckp)
             else:
-                selected_checkpoint_info_list_no_swa.append(ckp)
+                selected_checkpoint_info_list_no_swa.append(
+                    ckp)
         if swa:
             try:
                 latest_checkpoint_info = max(
@@ -153,10 +157,12 @@ class CheckpointIO:
         self, checkpoint: Checkpoint, epochs: int, keep_last: bool = False
     ) -> None:
         if not self.keep and self.old_path and not keep_last:
-            logging.debug(f"Deleting old checkpoint file: {self.old_path}")
+            logging.debug(
+                f"Deleting old checkpoint file: {self.old_path}")
             os.remove(self.old_path)
 
-        filename = self._get_checkpoint_filename(epochs, self.swa_start)
+        filename = self._get_checkpoint_filename(
+            epochs, self.swa_start)
         path = os.path.join(self.directory, filename)
         logging.debug(f"Saving checkpoint: {path}")
         os.makedirs(self.directory, exist_ok=True)
@@ -180,9 +186,11 @@ class CheckpointIO:
         if checkpoint_info is None:
             raise RuntimeError(f"Cannot find path '{path}'")
 
-        logging.info(f"Loading checkpoint: {checkpoint_info.path}")
+        logging.info(
+            f"Loading checkpoint: {checkpoint_info.path}")
         return (
-            torch.load(f=checkpoint_info.path, map_location=device),
+            torch.load(f=checkpoint_info.path,
+                       map_location=device),
             checkpoint_info.epochs,
         )
 
@@ -210,7 +218,8 @@ class CheckpointHandler:
             return None
 
         checkpoint, epochs = result
-        self.builder.load_checkpoint(state=state, checkpoint=checkpoint, strict=strict)
+        self.builder.load_checkpoint(
+            state=state, checkpoint=checkpoint, strict=strict)
         return epochs
 
     def load(
@@ -220,6 +229,8 @@ class CheckpointHandler:
         strict=False,
         device: Optional[torch.device] = None,
     ) -> int:
-        checkpoint, epochs = self.io.load(path, device=device)
-        self.builder.load_checkpoint(state=state, checkpoint=checkpoint, strict=strict)
+        checkpoint, epochs = self.io.load(
+            path, device=device)
+        self.builder.load_checkpoint(
+            state=state, checkpoint=checkpoint, strict=strict)
         return epochs

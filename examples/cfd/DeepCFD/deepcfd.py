@@ -1,23 +1,23 @@
+import getopt
 import os
-import json
-import torch
 import pickle
 import random
-import getopt
 import sys
-from train import *
-from onescience.utils.deepcfd.functions import *
-import torch.optim as optim
+
+import torch
 from torch.utils.data import TensorDataset
-from torch.autograd import Variable
+from train import *
+
 from onescience.distributed.manager import DistributedManager
+from onescience.utils.deepcfd.functions import *
 
 # 控制使用卡的数量
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
 
 def parseOpts(argv):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cuda" if torch.cuda.is_available() else "cpu")
     net = "UNetEx"
     kernel_size = 5
     filters = [8, 16, 32, 32]
@@ -80,7 +80,8 @@ def parseOpts(argv):
                 device = arg
             else:
                 print(
-                    "Unkown device " + str(arg) + ", only 'cpu', 'cuda'"
+                    "Unkown device " +
+                    str(arg) + ", only 'cpu', 'cuda'"
                     "'cuda:index', or comma-separated list of 'cuda:index'"
                     "are supported"
                 )
@@ -100,7 +101,8 @@ def parseOpts(argv):
                 net = AutoEncoder
             else:
                 print(
-                    "Unkown network " + str(arg) + ", only UNet, UNetEx"
+                    "Unkown network " +
+                    str(arg) + ", only UNet, UNetEx"
                     "and AutoEncoder are supported"
                 )
                 exit(0)
@@ -172,13 +174,15 @@ def main():
 
     channels_weights = (
         torch.sqrt(
-            torch.mean(y.permute(0, 2, 3, 1).reshape((batch * nx * ny, 3)) ** 2, dim=0)
+            torch.mean(y.permute(0, 2, 3, 1).reshape(
+                (batch * nx * ny, 3)) ** 2, dim=0)
         )
         .view(1, -1, 1, 1)
         .to(options["device"])
     )
     if dist.rank == 0:
-        dirname = os.path.dirname(os.path.abspath(options["output"]))
+        dirname = os.path.dirname(
+            os.path.abspath(options["output"]))
         print(f"Output directory: {dirname}")
         if dirname and not os.path.exists(dirname):
             os.makedirs(dirname, exist_ok=True)
@@ -186,7 +190,8 @@ def main():
     # Spliting dataset into 70% train and 30% test
     train_data, test_data = split_tensors(x, y, ratio=0.7)
 
-    train_dataset, test_dataset = TensorDataset(*train_data), TensorDataset(*test_data)
+    train_dataset, test_dataset = TensorDataset(
+        *train_data), TensorDataset(*test_data)
     test_x, test_y = test_dataset[:]
 
     torch.manual_seed(0)
@@ -194,7 +199,8 @@ def main():
     if dist.world_size > 1:
         # 多卡分布式训练，使用 local_rank 对应的 GPU
         device = torch.device(
-            f"cuda:{dist.local_rank}" if torch.cuda.is_available() else "cpu"
+            f"cuda:{dist.local_rank}" if torch.cuda.is_available(
+            ) else "cpu"
         )
     else:
         # 单卡训练
@@ -213,7 +219,6 @@ def main():
         model.parameters(), lr=options["learning_rate"], weight_decay=0.005
     )
     if dist.rank == 0:
-        config = {}
         train_loss_curve = []
         test_loss_curve = []
         train_mse_curve = []
@@ -230,7 +235,8 @@ def main():
             return
         train_loss_curve.append(scope["train_loss"])
         test_loss_curve.append(scope["val_loss"])
-        train_mse_curve.append(scope["train_metrics"]["mse"])
+        train_mse_curve.append(
+            scope["train_metrics"]["mse"])
         test_mse_curve.append(scope["val_metrics"]["mse"])
         train_ux_curve.append(scope["train_metrics"]["ux"])
         test_ux_curve.append(scope["val_metrics"]["ux"])
@@ -243,13 +249,16 @@ def main():
         x, y = batch
         output = model(x)
         lossu = ((output[:, 0, :, :] - y[:, 0, :, :]) ** 2).reshape(
-            (output.shape[0], 1, output.shape[2], output.shape[3])
+            (output.shape[0], 1,
+             output.shape[2], output.shape[3])
         )
         lossv = ((output[:, 1, :, :] - y[:, 1, :, :]) ** 2).reshape(
-            (output.shape[0], 1, output.shape[2], output.shape[3])
+            (output.shape[0], 1,
+             output.shape[2], output.shape[3])
         )
         lossp = torch.abs((output[:, 2, :, :] - y[:, 2, :, :])).reshape(
-            (output.shape[0], 1, output.shape[2], output.shape[3])
+            (output.shape[0], 1,
+             output.shape[2], output.shape[3])
         )
         loss = (lossu + lossv + lossp) / channels_weights
 
@@ -269,30 +278,38 @@ def main():
         device=device,
         m_mse_name="Total MSE",
         m_mse_on_batch=lambda scope: float(
-            torch.sum((scope["output"] - scope["batch"][1]) ** 2)
+            torch.sum(
+                (scope["output"] - scope["batch"][1]) ** 2)
         ),
-        m_mse_on_epoch=lambda scope: sum(scope["list"]) / len(scope["dataset"]),
+        m_mse_on_epoch=lambda scope: sum(
+            scope["list"]) / len(scope["dataset"]),
         m_ux_name="Ux MSE",
         m_ux_on_batch=lambda scope: float(
             torch.sum(
-                (scope["output"][:, 0, :, :] - scope["batch"][1][:, 0, :, :]) ** 2
+                (scope["output"][:, 0, :, :] -
+                 scope["batch"][1][:, 0, :, :]) ** 2
             )
         ),
-        m_ux_on_epoch=lambda scope: sum(scope["list"]) / len(scope["dataset"]),
+        m_ux_on_epoch=lambda scope: sum(
+            scope["list"]) / len(scope["dataset"]),
         m_uy_name="Uy MSE",
         m_uy_on_batch=lambda scope: float(
             torch.sum(
-                (scope["output"][:, 1, :, :] - scope["batch"][1][:, 1, :, :]) ** 2
+                (scope["output"][:, 1, :, :] -
+                 scope["batch"][1][:, 1, :, :]) ** 2
             )
         ),
-        m_uy_on_epoch=lambda scope: sum(scope["list"]) / len(scope["dataset"]),
+        m_uy_on_epoch=lambda scope: sum(
+            scope["list"]) / len(scope["dataset"]),
         m_p_name="p MSE",
         m_p_on_batch=lambda scope: float(
             torch.sum(
-                (scope["output"][:, 2, :, :] - scope["batch"][1][:, 2, :, :]) ** 2
+                (scope["output"][:, 2, :, :] -
+                 scope["batch"][1][:, 2, :, :]) ** 2
             )
         ),
-        m_p_on_epoch=lambda scope: sum(scope["list"]) / len(scope["dataset"]),
+        m_p_on_epoch=lambda scope: sum(
+            scope["list"]) / len(scope["dataset"]),
         patience=options["patience"],
         after_epoch=after_epoch,
     )
@@ -302,7 +319,8 @@ def main():
         os.makedirs(model_dir, exist_ok=True)
 
         # 修改输出路径为目录下的文件
-        model_path = os.path.join(model_dir, options["output"])
+        model_path = os.path.join(
+            model_dir, options["output"])
         checkpoint = {
             "model_state": (
                 DeepCFD.module.state_dict()

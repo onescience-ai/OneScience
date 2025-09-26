@@ -1,17 +1,18 @@
 # Code for bessel radial basis function.
 
+from typing import Union
+
+import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import numpy as np
-import flax.linen as nn
-
-from typing import Optional, Union
 from flax.linen.initializers import constant
 from ml_collections import ConfigDict
+
 from onescience.flax_models.Pt_DiT.common.config import Config
 
+
 class BesselBasis(nn.Module):
-    
+
     config: Union[Config, ConfigDict]
     global_config: Union[Config, ConfigDict]
     name: str = "bessel_basis"
@@ -29,13 +30,19 @@ class BesselBasis(nn.Module):
         assert r_max != 0, "[utils/rbf/BesselBasis] r_max should not be 0!"
         prefactor = 2.0 / r_max
 
-        bessel_weights = jnp.linspace(1.0, num_basis, num_basis) * jnp.pi
-        bessel_weights = self.param("bessel_weights", constant(bessel_weights), (num_basis,), param_dtype)
-        if not trainable:   
-            bessel_weights = jax.lax.stop_gradient(bessel_weights)
-        
+        bessel_weights = jnp.linspace(
+            1.0, num_basis, num_basis) * jnp.pi
+        bessel_weights = self.param(
+            "bessel_weights", constant(
+                bessel_weights), (num_basis,), param_dtype
+        )
+        if not trainable:
+            bessel_weights = jax.lax.stop_gradient(
+                bessel_weights)
+
         # cast dtypes
-        distance, bessel_weights = jax.tree_map(dtype, (distance, bessel_weights))
+        distance, bessel_weights = jax.tree_map(
+            dtype, (distance, bessel_weights))
         # (..., ) -> (..., 1)
         distance = jnp.expand_dims(distance, axis=-1)
         # (..., 1) -> (..., num_basis)
@@ -45,7 +52,8 @@ class BesselBasis(nn.Module):
         ret = prefactor * (numerator / distance)
 
         return ret
-    
+
+
 class NormBesselBasis(BesselBasis):
 
     config: Union[Config, ConfigDict]
@@ -60,7 +68,8 @@ class NormBesselBasis(BesselBasis):
 
         dtype = jnp.bfloat16 if self.global_config.bf16_flag else jnp.float32
 
-        rs = jnp.linspace(0, r_max, norm_num + 1, dtype=dtype)
+        rs = jnp.linspace(
+            0, r_max, norm_num + 1, dtype=dtype)
         bs = super().__call__(rs)
         basis_mean = jnp.mean(bs, axis=0)
         basis_std = jnp.std(bs, axis=0)

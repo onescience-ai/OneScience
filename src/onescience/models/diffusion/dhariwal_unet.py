@@ -1,5 +1,5 @@
 """
-Model architectures used in the paper "Elucidating the Design Space of 
+Model architectures used in the paper "Elucidating the Design Space of
 Diffusion-Based Generative Models".
 """
 
@@ -118,7 +118,8 @@ class DhariwalUNet(Module):
             init_weight=np.sqrt(1 / 3),
             init_bias=np.sqrt(1 / 3),
         )
-        init_zero = dict(init_mode="kaiming_uniform", init_weight=0, init_bias=0)
+        init_zero = dict(
+            init_mode="kaiming_uniform", init_weight=0, init_bias=0)
         block_kwargs = dict(
             emb_channels=emb_channels,
             channels_per_head=64,
@@ -128,7 +129,8 @@ class DhariwalUNet(Module):
         )
 
         # Mapping.
-        self.map_noise = PositionalEmbedding(num_channels=model_channels)
+        self.map_noise = PositionalEmbedding(
+            num_channels=model_channels)
         self.map_augment = (
             Linear(
                 in_features=augment_dim,
@@ -181,7 +183,8 @@ class DhariwalUNet(Module):
                     attention=(res in attn_resolutions),
                     **block_kwargs,
                 )
-        skips = [block.out_channels for block in self.enc.values()]
+        skips = [
+            block.out_channels for block in self.enc.values()]
 
         # Decoder.
         self.dec = torch.nn.ModuleDict()
@@ -223,7 +226,8 @@ class DhariwalUNet(Module):
             tmp = class_labels
             if self.training and self.label_dropout:
                 tmp = tmp * (
-                    torch.rand([x.shape[0], 1], device=x.device) >= self.label_dropout
+                    torch.rand(
+                        [x.shape[0], 1], device=x.device) >= self.label_dropout
                 ).to(tmp.dtype)
             emb = emb + self.map_label(tmp)
         emb = silu(emb)
@@ -231,7 +235,8 @@ class DhariwalUNet(Module):
         # Encoder.
         skips = []
         for block in self.enc.values():
-            x = block(x, emb) if isinstance(block, UNetBlock) else block(x)
+            x = block(x, emb) if isinstance(
+                block, UNetBlock) else block(x)
             skips.append(x)
 
         # Decoder.

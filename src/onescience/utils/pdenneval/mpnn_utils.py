@@ -1,139 +1,217 @@
+import os
+import random
+import time
+from functools import reduce, wraps
+from typing import Tuple
+
 import h5py
 import numpy as np
-import os
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
-from torch_geometric.data import Data
+from torch.utils.data import DataLoader, Dataset
 from torch_cluster import radius_graph
-from typing import Tuple
-import random
+from torch_geometric.data import Data
 
-import time
-from functools import wraps, reduce
 
 class PDE(object):
-    def __init__(self, 
-                 name: str,
-                 variables: dict,
-                 temporal_domain: Tuple,
-                 resolution_t: int,
-                 spatial_domain: list,
-                 resolution: list,
-                 reduced_resolution_t: int=1,
-                 reduced_resolution: int=1):
+    def __init__(
+        self,
+        name: str,
+        variables: dict,
+        temporal_domain: Tuple,
+        resolution_t: int,
+        spatial_domain: list,
+        resolution: list,
+        reduced_resolution_t: int = 1,
+        reduced_resolution: int = 1,
+    ):
         super().__init__()
         self.name = name
         self.tmin = temporal_domain[0]
         self.tmax = temporal_domain[1]
         self.resolution_t = resolution_t // reduced_resolution_t
         self.spatial_domain = spatial_domain
-        self.resolution = [res // reduced_resolution for res in resolution]
+        self.resolution = [
+            res // reduced_resolution for res in resolution]
         self.spatial_dim = len(spatial_domain)
         self.variables = variables
 
     def __repr__(self):
         return self.name
-    
+
 
 class MPNNDatasetSingle(Dataset):
-    def __init__(self, 
-                 file_name: str,
-                 saved_folder: str,
-                 reduced_resolution: int=1,
-                 reduced_resolution_t: int=1,
-                 reduced_batch: int=1,
-                 if_test: bool=False,
-                 test_ratio: float=0.1,
-                 num_samples_max: int=-1,
-                 variables: dict={}) -> None:
+    def __init__(
+        self,
+        file_name: str,
+        saved_folder: str,
+        reduced_resolution: int = 1,
+        reduced_resolution_t: int = 1,
+        reduced_batch: int = 1,
+        if_test: bool = False,
+        test_ratio: float = 0.1,
+        num_samples_max: int = -1,
+        variables: dict = {},
+    ) -> None:
 
         super().__init__()
 
         # file path
-        file_path = os.path.abspath(saved_folder + file_name)
+        file_path = os.path.abspath(
+            saved_folder + file_name)
 
         # read data and coordinates from HDF5 file
-        with h5py.File(file_path, 'r') as f:
-            if "tensor" not in f.keys(): # TODO CFD datasets
+        with h5py.File(file_path, "r") as f:
+            if "tensor" not in f.keys():  # TODO CFD datasets
                 spatial_dim = len(f["density"].shape) - 2
                 self.data = None
                 if spatial_dim == 1:
-                    self.coordinates = torch.from_numpy(f["x-coordinate"][::reduced_resolution][:, None])
+                    self.coordinates = torch.from_numpy(
+                        f["x-coordinate"][::reduced_resolution][:, None]
+                    )
                     for i, key in enumerate(["density", "pressure", "Vx"]):
-                        _data = np.array(f[key], dtype=np.float32)
-                        _data = _data[::reduced_batch, ::reduced_resolution_t, ::reduced_resolution]
+                        _data = np.array(
+                            f[key], dtype=np.float32)
+                        _data = _data[
+                            ::reduced_batch,
+                            ::reduced_resolution_t,
+                            ::reduced_resolution,
+                        ]
                         if i == 0:
                             data_shape = list(_data.shape)
                             data_shape.append(3)
-                            self.data = np.empty(data_shape, dtype=np.float32)
+                            self.data = np.empty(
+                                data_shape, dtype=np.float32)
                         self.data[..., i] = _data
                 elif spatial_dim == 2:
                     # coordinates: (x*y, 2)
-                    x = torch.from_numpy(f["x-coordinate"][::reduced_resolution])
-                    y = torch.from_numpy(f["y-coordinate"][::reduced_resolution])
-                    X, Y = torch.meshgrid(x, y, indexing="ij")
-                    self.coordinates = torch.stack([X.ravel(), Y.ravel()], dim=-1)
+                    x = torch.from_numpy(
+                        f["x-coordinate"][::reduced_resolution])
+                    y = torch.from_numpy(
+                        f["y-coordinate"][::reduced_resolution])
+                    X, Y = torch.meshgrid(
+                        x, y, indexing="ij")
+                    self.coordinates = torch.stack(
+                        [X.ravel(), Y.ravel()], dim=-1)
                     for i, key in enumerate(["density", "pressure", "Vx", "Vy"]):
-                        _data = np.array(f[key], dtype=np.float32)
-                        _data = _data[::reduced_batch, ::reduced_resolution_t, ::reduced_resolution, ::reduced_resolution]
+                        _data = np.array(
+                            f[key], dtype=np.float32)
+                        _data = _data[
+                            ::reduced_batch,
+                            ::reduced_resolution_t,
+                            ::reduced_resolution,
+                            ::reduced_resolution,
+                        ]
                         if i == 0:
                             data_shape = list(_data.shape)
                             data_shape.append(4)
-                            self.data = np.empty(data_shape, dtype=np.float32)
+                            self.data = np.empty(
+                                data_shape, dtype=np.float32)
                         self.data[..., i] = _data
                 else:
                     # coordinates: (x*y, 3)
-                    x = torch.from_numpy(f["x-coordinate"][::reduced_resolution])
-                    y = torch.from_numpy(f["y-coordinate"][::reduced_resolution])
-                    z = torch.from_numpy(f["z-coordinate"][::reduced_resolution])
-                    X, Y, Z = torch.meshgrid(x, y, z, indexing="ij")
-                    self.coordinates = torch.stack([X.ravel(), Y.ravel(), Z.ravel()], dim=-1)
+                    x = torch.from_numpy(
+                        f["x-coordinate"][::reduced_resolution])
+                    y = torch.from_numpy(
+                        f["y-coordinate"][::reduced_resolution])
+                    z = torch.from_numpy(
+                        f["z-coordinate"][::reduced_resolution])
+                    X, Y, Z = torch.meshgrid(
+                        x, y, z, indexing="ij")
+                    self.coordinates = torch.stack(
+                        [X.ravel(), Y.ravel(), Z.ravel()], dim=-1
+                    )
                     for i, key in enumerate(["density", "pressure", "Vx", "Vy", "Vz"]):
-                        _data = np.array(f[key], dtype=np.float32)
-                        _data = _data[::reduced_batch, ::reduced_resolution_t, ::reduced_resolution, ::reduced_resolution, ::reduced_resolution]
+                        _data = np.array(
+                            f[key], dtype=np.float32)
+                        _data = _data[
+                            ::reduced_batch,
+                            ::reduced_resolution_t,
+                            ::reduced_resolution,
+                            ::reduced_resolution,
+                            ::reduced_resolution,
+                        ]
                         if i == 0:
                             data_shape = list(_data.shape)
                             data_shape.append(5)
-                            self.data = np.empty(data_shape, dtype=np.float32)
+                            self.data = np.empty(
+                                data_shape, dtype=np.float32)
                         self.data[..., i] = _data
             else:
-                _data = np.array(f["tensor"], dtype=np.float32) # (num_samples, t, x1, ..., xd)
+                _data = np.array(
+                    f["tensor"], dtype=np.float32
+                )  # (num_samples, t, x1, ..., xd)
                 if len(_data.shape) == 3:  # 1D
                     # coordinates: (x, 1)
-                    self.coordinates = torch.from_numpy(f["x-coordinate"][::reduced_resolution][:, None])
+                    self.coordinates = torch.from_numpy(
+                        f["x-coordinate"][::reduced_resolution][:, None]
+                    )
                     # data: (num_sample, t, x, 1)
-                    self.data = _data[::reduced_batch, ::reduced_resolution_t, ::reduced_resolution, None] # (num_samples, t, x1, ..., xd, 1)
-                elif len(_data.shape) == 4: # 2D (ignore darcy flow)
+                    self.data = _data[
+                        ::reduced_batch,
+                        ::reduced_resolution_t,
+                        ::reduced_resolution,
+                        None,
+                    ]  # (num_samples, t, x1, ..., xd, 1)
+                elif len(_data.shape) == 4:  # 2D (ignore darcy flow)
                     # coordinates: (x*y, 2)
-                    x = torch.from_numpy(f["x-coordinate"][::reduced_resolution])
-                    y = torch.from_numpy(f["y-coordinate"][::reduced_resolution])
-                    X, Y = torch.meshgrid(x, y, indexing="ij")
-                    self.coordinates = torch.stack([X.ravel(), Y.ravel()], dim=-1)
+                    x = torch.from_numpy(
+                        f["x-coordinate"][::reduced_resolution])
+                    y = torch.from_numpy(
+                        f["y-coordinate"][::reduced_resolution])
+                    X, Y = torch.meshgrid(
+                        x, y, indexing="ij")
+                    self.coordinates = torch.stack(
+                        [X.ravel(), Y.ravel()], dim=-1)
                     # data: (num_sample, t, x, y, 1)
-                    self.data = _data[::reduced_batch, ::reduced_resolution_t, ::reduced_resolution, ::reduced_resolution, None]
+                    self.data = _data[
+                        ::reduced_batch,
+                        ::reduced_resolution_t,
+                        ::reduced_resolution,
+                        ::reduced_resolution,
+                        None,
+                    ]
                 else:
-                    self.data = _data[::reduced_batch, ::reduced_resolution_t, ::reduced_resolution, None] # (num_samples, t, x1, ..., xd, 1)
+                    self.data = _data[
+                        ::reduced_batch,
+                        ::reduced_resolution_t,
+                        ::reduced_resolution,
+                        None,
+                    ]  # (num_samples, t, x1, ..., xd, 1)
                     # coordinates: (x*y, 3)
-                    x = torch.from_numpy(f["x-coordinate"][::reduced_resolution])
-                    y = torch.from_numpy(f["y-coordinate"][::reduced_resolution])
-                    z = torch.from_numpy(f["z-coordinate"][::reduced_resolution])
-                    X, Y, Z = torch.meshgrid(x, y, z, indexing="ij")
-                    self.coordinates = torch.stack([X.ravel(), Y.ravel(), Z.ravel()], dim=-1)
+                    x = torch.from_numpy(
+                        f["x-coordinate"][::reduced_resolution])
+                    y = torch.from_numpy(
+                        f["y-coordinate"][::reduced_resolution])
+                    z = torch.from_numpy(
+                        f["z-coordinate"][::reduced_resolution])
+                    X, Y, Z = torch.meshgrid(
+                        x, y, z, indexing="ij")
+                    self.coordinates = torch.stack(
+                        [X.ravel(), Y.ravel(), Z.ravel()], dim=-1
+                    )
                     # data: (num_sample, t, x, y, z, 1)
-                    self.data = _data[::reduced_batch, ::reduced_resolution_t, ::reduced_resolution, ::reduced_resolution, ::reduced_resolution, None]
-        
+                    self.data = _data[
+                        ::reduced_batch,
+                        ::reduced_resolution_t,
+                        ::reduced_resolution,
+                        ::reduced_resolution,
+                        ::reduced_resolution,
+                        None,
+                    ]
+
         # PDE parameters
         self.variables = variables
 
         # Define the max number of samples
         if num_samples_max > 0:
-            num_samples_max = min(num_samples_max, self.data.shape[0])
+            num_samples_max = min(
+                num_samples_max, self.data.shape[0])
         else:
             num_samples_max = self.data.shape[0]
 
         # Construct train/test dataset
-        test_idx = int(num_samples_max * (1-test_ratio))
+        test_idx = int(num_samples_max * (1 - test_ratio))
         if if_test:
             self.data = self.data[test_idx:num_samples_max]
         else:
@@ -144,82 +222,109 @@ class MPNNDatasetSingle(Dataset):
 
     def __len__(self):
         return self.data.shape[0]
-    
+
     def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor, dict]:
         # data: (bs, t, num_points, v) coordinates: (bs, num_points, spatial_dim) variables: {parm1: (bs), parm2: (bs), ...}
-        return torch.flatten(self.data[idx], start_dim=1, end_dim=-2), self.coordinates, self.variables
-    
+        return (
+            torch.flatten(
+                self.data[idx], start_dim=1, end_dim=-2),
+            self.coordinates,
+            self.variables,
+        )
 
 
 class MPNNDatasetMult(Dataset):
-    def __init__(self, 
-                 file_name: str, 
-                 saved_folder: str,
-                 reduced_resolution: int=1,
-                 reduced_resolution_t: int=1,
-                 reduced_batch: int=1,
-                 if_test: bool=False,
-                 test_ratio: float=0.1,
-                 num_samples_max: int=-1,
-                 variables: dict={}
-                ):
+    def __init__(
+        self,
+        file_name: str,
+        saved_folder: str,
+        reduced_resolution: int = 1,
+        reduced_resolution_t: int = 1,
+        reduced_batch: int = 1,
+        if_test: bool = False,
+        test_ratio: float = 0.1,
+        num_samples_max: int = -1,
+        variables: dict = {},
+    ):
         # file path, HDF5 file is assumed
-        file_path = os.path.abspath(saved_folder + file_name)
+        file_path = os.path.abspath(
+            saved_folder + file_name)
         self.reduced_resolution = reduced_resolution
         self.reduced_resolution_t = reduced_resolution_t
         self.variables = variables
 
         # Extract list of seeds
-        self.file_handle = h5py.File(file_path, 'r')
+        self.file_handle = h5py.File(file_path, "r")
         seed_list = sorted(self.file_handle.keys())
         seed_list = seed_list[::reduced_batch]
 
         # Define the max number of samples
         if num_samples_max > 0:
-            num_samples_max = min(num_samples_max, len(seed_list))
+            num_samples_max = min(
+                num_samples_max, len(seed_list))
         else:
             num_samples_max = len(seed_list)
 
         # Construct test dataset
-        test_idx = int(num_samples_max * (1-test_ratio))
+        test_idx = int(num_samples_max * (1 - test_ratio))
         if if_test:
-            self.seed_list = np.array(seed_list[test_idx:num_samples_max])
+            self.seed_list = np.array(
+                seed_list[test_idx:num_samples_max])
         else:
             self.seed_list = np.array(seed_list[:test_idx])
 
     def __len__(self):
         return len(self.seed_list)
-    
+
     def __getitem__(self, idx) -> Tuple[torch.Tensor, torch.Tensor, dict]:
         seed_group = self.file_handle[self.seed_list[idx]]
-        data = np.array(seed_group["data"], dtype=np.float32) # (t, x1, .., xd, v)
-        if len(data.shape) == 3: # 1D
-            coordinates = torch.from_numpy(seed_group["grid"]["x"][::self.reduced_resolution][:, None]) # (x, 1)
-            data = data[::self.reduced_resolution_t, ::self.reduced_resolution, :]
-        elif len(data.shape) == 4: # 2D
-            x = torch.from_numpy(seed_group["grid"]["x"][::self.reduced_resolution])
-            y = torch.from_numpy(seed_group["grid"]["y"][::self.reduced_resolution])
+        # (t, x1, .., xd, v)
+        data = np.array(
+            seed_group["data"], dtype=np.float32)
+        if len(data.shape) == 3:  # 1D
+            coordinates = torch.from_numpy(
+                seed_group["grid"]["x"][:: self.reduced_resolution][:, None]
+            )  # (x, 1)
+            data = data[:: self.reduced_resolution_t,
+                        :: self.reduced_resolution, :]
+        elif len(data.shape) == 4:  # 2D
+            x = torch.from_numpy(
+                seed_group["grid"]["x"][:: self.reduced_resolution])
+            y = torch.from_numpy(
+                seed_group["grid"]["y"][:: self.reduced_resolution])
             X, Y = torch.meshgrid(x, y, indexing="ij")
-            coordinates = torch.stack([X.ravel(), Y.ravel()], dim=-1)
-            data = data[::self.reduced_resolution_t, ::self.reduced_resolution, ::self.reduced_resolution, :]
+            coordinates = torch.stack(
+                [X.ravel(), Y.ravel()], dim=-1)
+            data = data[
+                :: self.reduced_resolution_t,
+                :: self.reduced_resolution,
+                :: self.reduced_resolution,
+                :,
+            ]
         else:
-            x = torch.from_numpy(seed_group["grid"]["x"][::self.reduced_resolution])
-            y = torch.from_numpy(seed_group["grid"]["y"][::self.reduced_resolution])
-            z = torch.from_numpy(seed_group["grid"]["z"][::self.reduced_resolution])
+            x = torch.from_numpy(
+                seed_group["grid"]["x"][:: self.reduced_resolution])
+            y = torch.from_numpy(
+                seed_group["grid"]["y"][:: self.reduced_resolution])
+            z = torch.from_numpy(
+                seed_group["grid"]["z"][:: self.reduced_resolution])
             X, Y, Z = torch.meshgrid(x, y, z, indexing="ij")
-            coordinates = torch.stack([X.ravel(), Y.ravel(), Z.ravel()], dim=-1)
-            data = data[::self.reduced_resolution_t, ::self.reduced_resolution, ::self.reduced_resolution, ::self.reduced_resolution, :]
+            coordinates = torch.stack(
+                [X.ravel(), Y.ravel(), Z.ravel()], dim=-1)
+            data = data[
+                :: self.reduced_resolution_t,
+                :: self.reduced_resolution,
+                :: self.reduced_resolution,
+                :: self.reduced_resolution,
+                :,
+            ]
         data = torch.tensor(data)
         # data: (bs, t, num_points, v) coordinates: (bs, num_points, spatial_dim) variables: {parm1: (bs), parm2: (bs), ...}
         return torch.flatten(data, start_dim=1, end_dim=-2), coordinates, self.variables
 
 
-
 class GraphCreator(nn.Module):
-    def __init__(self,
-                 pde: PDE,
-                 neighbors: int = 2,
-                 time_window: int = 25) -> None:
+    def __init__(self, pde: PDE, neighbors: int = 2, time_window: int = 25) -> None:
         """
         Initialize GraphCreator class
         Args:
@@ -234,10 +339,13 @@ class GraphCreator(nn.Module):
         self.n = neighbors
         self.tw = time_window
         self.nt = pde.resolution_t
-        self.nx = reduce(lambda x, y: x*y, self.pde.resolution)
+        self.nx = reduce(lambda x, y: x * y,
+                         self.pde.resolution)
         print("nt:", self.nt, "nx:", self.nx)
 
-    def create_data(self, datapoints: torch.Tensor, steps: list) -> Tuple[torch.Tensor, torch.Tensor]:
+    def create_data(
+        self, datapoints: torch.Tensor, steps: list
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Getting data for PDE training at different time steps
         Args:
@@ -248,35 +356,41 @@ class GraphCreator(nn.Module):
         """
         data = torch.Tensor()
         labels = torch.Tensor()
-        for (dp, step) in zip(datapoints, steps):
+        for dp, step in zip(datapoints, steps):
             # 确保起始索引不小于0
             start_idx = max(0, step - self.tw)
-            d = dp[start_idx: step]  # 形状 [?, ...]
-            
+            d = dp[start_idx:step]  # 形状 [?, ...]
+
             # 如果长度不足，进行填充
             if d.size(0) < self.tw:
-                padding = torch.zeros((self.tw - d.size(0), *d.shape[1:]), dtype=d.dtype)
+                padding = torch.zeros(
+                    (self.tw - d.size(0), *d.shape[1:]), dtype=d.dtype
+                )
                 d = torch.cat([padding, d], dim=0)  # 在前面填充
-            
+
             # 获取标签数据（保持原有逻辑）
             end_index = min(step + self.tw, dp.size(0))
-            l = dp[step: end_index]
+            l = dp[step:end_index]
             if l.size(0) < self.tw:
-                padding = torch.zeros((self.tw - l.size(0), *l.shape[1:]), dtype=l.dtype)
+                padding = torch.zeros(
+                    (self.tw - l.size(0), *l.shape[1:]), dtype=l.dtype
+                )
                 l = torch.cat([l, padding], dim=0)
-            
+
             # 拼接到批次
             data = torch.cat((data, d[None, :]), dim=0)
             labels = torch.cat((labels, l[None, :]), dim=0)
 
         return data, labels  # (bs, tw, x1, ..., xd, v)
-    
-    def create_graph(self,
-                     data: torch.Tensor,
-                     labels: torch.Tensor,
-                     x: torch.Tensor,
-                     variables: dict,
-                     steps: list) -> Data:
+
+    def create_graph(
+        self,
+        data: torch.Tensor,
+        labels: torch.Tensor,
+        x: torch.Tensor,
+        variables: dict,
+        steps: list,
+    ) -> Data:
         """
         Getting graph structure out of data sample
         previous timesteps are combined in one node
@@ -289,20 +403,40 @@ class GraphCreator(nn.Module):
         Returns:
             Data: Pytorch Geometric data graph
         """
-        t = torch.linspace(self.pde.tmin, self.pde.tmax, self.nt)
-        u, x_pos, t_pos, y, batch, pde_variables = torch.Tensor(), torch.Tensor(), torch.Tensor(), torch.Tensor(), torch.Tensor(), torch.Tensor()
+        t = torch.linspace(
+            self.pde.tmin, self.pde.tmax, self.nt)
+        u, x_pos, t_pos, y, batch, pde_variables = (
+            torch.Tensor(),
+            torch.Tensor(),
+            torch.Tensor(),
+            torch.Tensor(),
+            torch.Tensor(),
+            torch.Tensor(),
+        )
         for b, (data_batch, labels_batch, step) in enumerate(zip(data, labels, steps)):
             # data_batch: [tw, nx, v] , labels_batch: [tw, nx, v]
-            u = torch.cat((u, torch.transpose(data_batch, 0, 1)), dim=0) # u: [bs*nx, tw, v]
-            y = torch.cat((y, torch.transpose(labels_batch, 0, 1)), dim=0) # y: [bs*nx, tw, v]
+            u = torch.cat(
+                (u, torch.transpose(data_batch, 0, 1)), dim=0
+            )  # u: [bs*nx, tw, v]
+            y = torch.cat(
+                (y, torch.transpose(labels_batch, 0, 1)), dim=0
+            )  # y: [bs*nx, tw, v]
             x_pos = torch.cat((x_pos, x[0]), dim=0)
-            t_pos = torch.cat((t_pos, torch.ones(self.nx) * t[step]), dim=0)
-            batch = torch.cat((batch, torch.ones(self.nx) * b), dim=0)
+            t_pos = torch.cat(
+                (t_pos, torch.ones(self.nx) * t[step]), dim=0)
+            batch = torch.cat(
+                (batch, torch.ones(self.nx) * b), dim=0)
             # pde variables
-            batch_variables = torch.tensor([variables[k][b] for k in variables]).unsqueeze(0).repeat(self.nx, 1) # [num_variables] -> [1, num_variables] -> [bs*nx, num_variables]
-            pde_variables = torch.cat((pde_variables, batch_variables), dim=0)
+            batch_variables = (
+                torch.tensor([variables[k][b]
+                             for k in variables])
+                .unsqueeze(0)
+                .repeat(self.nx, 1)
+            )  # [num_variables] -> [1, num_variables] -> [bs*nx, num_variables]
+            pde_variables = torch.cat(
+                (pde_variables, batch_variables), dim=0)
         # print(f"u: {u.shape}, y: {y.shape}, x_pos: {x_pos.shape}, t_pos:{t_pos.shape}, batch: {batch.shape}, pde_variables: {pde_variables.shape}")
-        
+
         # edge index
         x_min, x_max = self.pde.spatial_domain[0]
         res = self.pde.resolution[0]
@@ -311,9 +445,10 @@ class GraphCreator(nn.Module):
             radius = self.n * dx + dx / 10
         elif self.pde.spatial_dim == 2:
             radius = self.n * dx * np.sqrt(2) + dx / 10
-        else: # TODO 3D
+        else:  # TODO 3D
             pass
-        edge_index = radius_graph(x_pos, r=radius, batch=batch.long(), loop=False)
+        edge_index = radius_graph(
+            x_pos, r=radius, batch=batch.long(), loop=False)
         # print(f"edge index: {edge_index.shape}")
 
         # build graph data
@@ -324,16 +459,14 @@ class GraphCreator(nn.Module):
         graph.batch = batch.long()
         graph.variables = pde_variables.float()
 
-        graph.validate(raise_on_error=True) # validate graph data
+        # validate graph data
+        graph.validate(raise_on_error=True)
 
         return graph
-    
 
-    def create_next_graph(self,
-                          graph: Data,
-                          pred: torch.Tensor,
-                          labels: torch.Tensor,
-                          steps: list) -> Data:
+    def create_next_graph(
+        self, graph: Data, pred: torch.Tensor, labels: torch.Tensor, steps: list
+    ) -> Data:
         """
         Getting new graph for the next timestep
         Method is used for unrolling and when applying the pushforward trick during training
@@ -345,21 +478,25 @@ class GraphCreator(nn.Module):
         Returns:
             Data: Pytorch Geometric data graph
         """
-        graph.x = pred # pred: [bs*nx, tw]
+        graph.x = pred  # pred: [bs*nx, tw]
 
         # update labels and timesteps
-        t = torch.linspace(self.pde.tmin, self.pde.tmax, self.nt)
+        t = torch.linspace(
+            self.pde.tmin, self.pde.tmax, self.nt)
         y, t_pos = torch.Tensor(), torch.Tensor()
-        for (labels_batch, step) in zip(labels, steps):
-            y = torch.cat((y, torch.transpose(labels_batch, 0, 1)), dim=0)
-            t_pos = torch.cat((t_pos, torch.ones(self.nx) * t[step]), dim=0)
+        for labels_batch, step in zip(labels, steps):
+            y = torch.cat(
+                (y, torch.transpose(labels_batch, 0, 1)), dim=0)
+            t_pos = torch.cat(
+                (t_pos, torch.ones(self.nx) * t[step]), dim=0)
         graph.y = y
         graph.t_pos = t_pos
 
-        graph.validate(raise_on_error=True) # validate graph data
+        # validate graph data
+        graph.validate(raise_on_error=True)
 
         return graph
-    
+
 
 def setup_seed(seed):
     torch.manual_seed(seed)  # CPU
@@ -373,12 +510,14 @@ def timer(func):
     @wraps(func)
     def func_wrapper(*args, **kwargs):
         from time import time
+
         start_time = time()
         result = func(*args, **kwargs)
         end_time = time()
         cost_time = end_time - start_time
-        print(f'{func.__name__} cost time: {cost_time:.4f} s')
+        print(f"{func.__name__} cost time: {cost_time:.4f} s")
         return result
+
     return func_wrapper
 
 
@@ -391,12 +530,17 @@ def timeit(runs=1):
                 start_time = time.time()
                 result = func(*args, **kwargs)
                 end_time = time.time()
-                total_time += (end_time - start_time)
-                print(f"cost time: {end_time - start_time:.4f} s")
+                total_time += end_time - start_time
+                print(
+                    f"cost time: {end_time - start_time:.4f} s")
             average_time = total_time / runs
-            print(f"total cost time: {total_time:.4f} s, average cost time: {average_time:.4f} s")
+            print(
+                f"total cost time: {total_time:.4f} s, average cost time: {average_time:.4f} s"
+            )
             return result
+
         return wrapper
+
     return decorator
 
 
@@ -407,13 +551,13 @@ def to_PDEBench_format(graph_data: torch.Tensor, batch_size: int, pde: PDE):
         batch_size (int): batch size
         pde (PDE): PDE to solve
     """
-    assert (len(graph_data.shape) == 3)
+    assert len(graph_data.shape) == 3
     output_shape = [batch_size]
     for v in pde.resolution:
         output_shape.append(v)
     output_shape.append(graph_data.shape[-2])
     output_shape.append(graph_data.shape[-1])
-    
+
     return graph_data.reshape(output_shape)
 
 
@@ -427,16 +571,19 @@ if __name__ == "__main__":
     variables = {"c1": 0.0001, "c2": 1}
 
     tic = time.time()
-    dataset = MPNNDatasetSingle(file_name, saved_folder, variables=variables)
-    dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
+    dataset = MPNNDatasetSingle(
+        file_name, saved_folder, variables=variables)
+    dataloader = DataLoader(
+        dataset, batch_size=8, shuffle=False)
     toc = time.time()
-    wait_time = toc-tic
+    wait_time = toc - tic
 
     tic = time.time()
     for u, x, variables in dataloader:
         print(u.shape, x.shape, variables)
     toc = time.time()
-    print(f"Time for waiting: {wait_time}s, Time for one epoch: {toc-tic}s")
+    print(
+        f"Time for waiting: {wait_time}s, Time for one epoch: {toc-tic}s")
 
     # launch quickly but iter slowly
     # file_name = "2D_diff-react_NA_NA.h5"

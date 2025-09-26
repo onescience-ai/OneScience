@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import contextlib
@@ -49,21 +47,25 @@ def setup_graph_parallel_groups(
         logging.info(
             f"> initializing graph parallel with size {graph_parallel_group_size}"
         )
-        logging.info(f"> initializing ddp with size {dp_size}")
+        logging.info(
+            f"> initializing ddp with size {dp_size}")
 
-    groups = torch.arange(world_size).reshape(dp_size, graph_parallel_group_size)
+    groups = torch.arange(world_size).reshape(
+        dp_size, graph_parallel_group_size)
     found = [x.item() for x in torch.where(groups == rank)]
 
     global _DATA_PARALLEL_GROUP
     assert _DATA_PARALLEL_GROUP is None, "data parallel group is already initialized"
     for j in range(graph_parallel_group_size):
-        group = dist.new_group(groups[:, j].tolist(), backend=distributed_backend)
+        group = dist.new_group(
+            groups[:, j].tolist(), backend=distributed_backend)
         if j == found[1]:
             _DATA_PARALLEL_GROUP = group
     global _GRAPH_PARALLEL_GROUP
     assert _GRAPH_PARALLEL_GROUP is None, "graph parallel group is already initialized"
     for i in range(dp_size):
-        group = dist.new_group(groups[i, :].tolist(), backend=distributed_backend)
+        group = dist.new_group(
+            groups[i, :].tolist(), backend=distributed_backend)
         if i == found[0]:
             _GRAPH_PARALLEL_GROUP = group
 
@@ -80,22 +82,27 @@ def setup_gp(config) -> None:
     rank = dist.get_rank()
 
     if rank == 0:
-        logging.info(f"> initializing graph parallel with size {gp_size}")
-        logging.info(f"> initializing ddp with size {dp_size}")
+        logging.info(
+            f"> initializing graph parallel with size {gp_size}")
+        logging.info(
+            f"> initializing ddp with size {dp_size}")
 
-    groups = torch.arange(world_size).reshape(dp_size, gp_size)
+    groups = torch.arange(
+        world_size).reshape(dp_size, gp_size)
     found = [x.item() for x in torch.where(groups == rank)]
 
     global _DATA_PARALLEL_GROUP
     assert _DATA_PARALLEL_GROUP is None, "data parallel group is already initialized"
     for j in range(gp_size):
-        group = dist.new_group(groups[:, j].tolist(), backend=backend)
+        group = dist.new_group(
+            groups[:, j].tolist(), backend=backend)
         if j == found[1]:
             _DATA_PARALLEL_GROUP = group
     global _GRAPH_PARALLEL_GROUP
     assert _GRAPH_PARALLEL_GROUP is None, "graph parallel group is already initialized"
     for i in range(dp_size):
-        group = dist.new_group(groups[i, :].tolist(), backend=backend)
+        group = dist.new_group(
+            groups[i, :].tolist(), backend=backend)
         if i == found[0]:
             _GRAPH_PARALLEL_GROUP = group
 
@@ -150,14 +157,16 @@ def pad_tensor(
     size = tensor.size(dim)
     if target_size is None:
         world_size = get_gp_world_size()
-        pad_size = 0 if size % world_size == 0 else world_size - size % world_size
+        pad_size = 0 if size % world_size == 0 else world_size - \
+            size % world_size
     else:
         pad_size = target_size - size
     if pad_size == 0:
         return tensor
     pad_shape = list(tensor.shape)
     pad_shape[dim] = pad_size
-    padding = torch.empty(pad_shape, device=tensor.device, dtype=tensor.dtype)
+    padding = torch.empty(
+        pad_shape, device=tensor.device, dtype=tensor.dtype)
     return torch.cat([tensor, padding], dim=dim)
 
 
@@ -189,7 +198,8 @@ def _split_tensor(
     dim: int = -1,
     contiguous_chunks: bool = False,
 ):
-    tensor_list = torch.split(tensor, _tensor_to_split_partitions(tensor, dim), dim=dim)
+    tensor_list = torch.split(
+        tensor, _tensor_to_split_partitions(tensor, dim), dim=dim)
     if contiguous_chunks:
         return tuple(chunk.contiguous() for chunk in tensor_list)
     return tensor_list
@@ -215,7 +225,8 @@ def _gather(input: torch.Tensor, dim: int = -1) -> torch.Tensor:
     world_size = dist.get_world_size(group=group)
     if world_size == 1:
         return input
-    tensor_list = [torch.empty_like(input) for _ in range(world_size)]
+    tensor_list = [torch.empty_like(
+        input) for _ in range(world_size)]
     tensor_list[rank] = input
     dist.all_gather(tensor_list, input, group=group)
     return torch.cat(tensor_list, dim=dim).contiguous()
@@ -232,7 +243,8 @@ def _gather_with_padding(input: torch.Tensor, dim: int = -1) -> torch.Tensor:
     size_list = [
         torch.empty(1, device=input.device, dtype=torch.long) for _ in range(world_size)
     ]
-    size = torch.tensor([input.size(dim)], device=input.device, dtype=torch.long)
+    size = torch.tensor(
+        [input.size(dim)], device=input.device, dtype=torch.long)
     size_list[rank] = size
     dist.all_gather(size_list, size, group=group)
 
@@ -242,16 +254,19 @@ def _gather_with_padding(input: torch.Tensor, dim: int = -1) -> torch.Tensor:
     shape = list(input.shape)
     shape[dim] = max_size
     tensor_list = [
-        torch.empty(shape, device=input.device, dtype=input.dtype)
+        torch.empty(shape, device=input.device,
+                    dtype=input.dtype)
         for _ in range(world_size)
     ]
 
     dist.all_gather(tensor_list, input, group=group)
-    tensor_list[rank] = input  # pop back in our local copy (requires grad)
+    # pop back in our local copy (requires grad)
+    tensor_list[rank] = input
 
     # Trim and cat
     return torch.cat(
-        [tensor.narrow(dim, 0, size) for tensor, size in zip(tensor_list, size_list)],
+        [tensor.narrow(dim, 0, size) for tensor,
+         size in zip(tensor_list, size_list)],
         dim=dim,
     ).contiguous()
 
@@ -270,7 +285,8 @@ class ReduceFromModelParallelRegion(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input: torch.Tensor) -> torch.Tensor:
         # return _reduce(ctx, input) # this operates in place
-        return all_reduce(input, group=get_gp_group())  # this operats out of place
+        # this operats out of place
+        return all_reduce(input, group=get_gp_group())
 
     @staticmethod
     def backward(ctx, grad_output: torch.Tensor) -> torch.Tensor:
@@ -348,36 +364,48 @@ class ScaleBackwardGrad(torch.autograd.Function):
 
 
 def copy_to_model_parallel_region(input: torch.Tensor) -> torch.Tensor:
-    assert initialized(), "Cannot use graph parallel with initializing gp group, must call setup_gp from gp_utils.py!"
+    assert (
+        initialized()
+    ), "Cannot use graph parallel with initializing gp group, must call setup_gp from gp_utils.py!"
     return CopyToModelParallelRegion.apply(input)
 
 
 def reduce_from_model_parallel_region(input: torch.Tensor) -> torch.Tensor:
-    assert initialized(), "Cannot use graph parallel with initializing gp group, must call setup_gp from gp_utils.py!"
+    assert (
+        initialized()
+    ), "Cannot use graph parallel with initializing gp group, must call setup_gp from gp_utils.py!"
     return ReduceFromModelParallelRegion.apply(input)
 
 
 def scatter_to_model_parallel_region(
     input: torch.Tensor, dim: int = -1
 ) -> torch.Tensor:
-    assert initialized(), "Cannot use graph parallel with initializing gp group, must call setup_gp from gp_utils.py!"
+    assert (
+        initialized()
+    ), "Cannot use graph parallel with initializing gp group, must call setup_gp from gp_utils.py!"
     return ScatterToModelParallelRegion.apply(input, dim)
 
 
 def gather_from_model_parallel_region(
     input: torch.Tensor, dim: int = -1
 ) -> torch.Tensor:
-    assert initialized(), "Cannot use graph parallel with initializing gp group, must call setup_gp from gp_utils.py!"
+    assert (
+        initialized()
+    ), "Cannot use graph parallel with initializing gp group, must call setup_gp from gp_utils.py!"
     return GatherFromModelParallelRegion.apply(input, dim)
 
 
 def gather_from_model_parallel_region_sum_grad(
     input: torch.Tensor, dim: int = -1
 ) -> torch.Tensor:
-    assert initialized(), "Cannot use graph parallel with initializing gp group, must call setup_gp from gp_utils.py!"
+    assert (
+        initialized()
+    ), "Cannot use graph parallel with initializing gp group, must call setup_gp from gp_utils.py!"
     return GatherFromModelParallelRegionSumGrad.apply(input, dim)
 
 
 def scale_backward_grad(input: torch.Tensor) -> torch.Tensor:
-    assert initialized(), "Cannot use graph parallel with initializing gp group, must call setup_gp from gp_utils.py!"
+    assert (
+        initialized()
+    ), "Cannot use graph parallel with initializing gp group, must call setup_gp from gp_utils.py!"
     return ScaleBackwardGrad.apply(input)

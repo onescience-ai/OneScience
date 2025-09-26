@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import argparse
@@ -19,7 +18,8 @@ def convert_fine_tune_checkpoint(
     )
 
     if "config" not in fine_tune_checkpoint:
-        raise KeyError("Finetune checkpoint does not have a valid 'config' field")
+        raise KeyError(
+            "Finetune checkpoint does not have a valid 'config' field")
 
     try:
         starting_checkpoint_fn = fine_tune_checkpoint["config"]["model"][
@@ -46,7 +46,8 @@ def convert_fine_tune_checkpoint(
             start_checkpoint_model_config["heads"]
         )
 
-    fine_tune_checkpoint["config"]["model"].pop("finetune_config")
+    fine_tune_checkpoint["config"]["model"].pop(
+        "finetune_config")
 
     torch.save(fine_tune_checkpoint, output_checkpoint_fn)
 

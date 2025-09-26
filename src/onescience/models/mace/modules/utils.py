@@ -1,4 +1,3 @@
-
 # Utilities
 
 import logging
@@ -19,12 +18,14 @@ from .blocks import AtomicEnergiesBlock
 def compute_forces(
     energy: torch.Tensor, positions: torch.Tensor, training: bool = True
 ) -> torch.Tensor:
-    grad_outputs: List[Optional[torch.Tensor]] = [torch.ones_like(energy)]
+    grad_outputs: List[Optional[torch.Tensor]] = [
+        torch.ones_like(energy)]
     gradient = torch.autograd.grad(
         outputs=[energy],  # [n_graphs, ]
         inputs=[positions],  # [n_nodes, 3]
         grad_outputs=grad_outputs,
-        retain_graph=training,  # Make sure the graph is not destroyed during training
+        # Make sure the graph is not destroyed during training
+        retain_graph=training,
         create_graph=training,  # Create graph for second derivative
         allow_unused=True,  # For complete dissociation turn to true
     )[
@@ -43,12 +44,14 @@ def compute_forces_virials(
     training: bool = True,
     compute_stress: bool = False,
 ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
-    grad_outputs: List[Optional[torch.Tensor]] = [torch.ones_like(energy)]
+    grad_outputs: List[Optional[torch.Tensor]] = [
+        torch.ones_like(energy)]
     forces, virials = torch.autograd.grad(
         outputs=[energy],  # [n_graphs, ]
         inputs=[positions, displacement],  # [n_nodes, 3]
         grad_outputs=grad_outputs,
-        retain_graph=training,  # Make sure the graph is not destroyed during training
+        # Make sure the graph is not destroyed during training
+        retain_graph=training,
         create_graph=training,  # Create graph for second derivative
         allow_unused=True,
     )
@@ -57,7 +60,8 @@ def compute_forces_virials(
         cell = cell.view(-1, 3, 3)
         volume = torch.linalg.det(cell).abs().unsqueeze(-1)
         stress = virials / volume.view(-1, 1, 1)
-        stress = torch.where(torch.abs(stress) < 1e10, stress, torch.zeros_like(stress))
+        stress = torch.where(
+            torch.abs(stress) < 1e10, stress, torch.zeros_like(stress))
     if forces is None:
         forces = torch.zeros_like(positions)
     if virials is None:
@@ -150,7 +154,8 @@ def compute_hessians_loop(
             create_graph=False,
             allow_unused=False,
         )[0]
-        hess_row = hess_row.detach()  # this makes it very slow? but needs less memory
+        # this makes it very slow? but needs less memory
+        hess_row = hess_row.detach()
         if hess_row is None:
             hessian.append(torch.zeros_like(positions))
         else:
@@ -185,14 +190,16 @@ def get_outputs(
             displacement=displacement,
             cell=cell,
             compute_stress=compute_stress,
-            training=(training or compute_hessian or compute_edge_forces),
+            training=(
+                training or compute_hessian or compute_edge_forces),
         )
     elif compute_force:
         forces, virials, stress = (
             compute_forces(
                 energy=energy,
                 positions=positions,
-                training=(training or compute_hessian or compute_edge_forces),
+                training=(
+                    training or compute_hessian or compute_edge_forces),
             ),
             None,
             None,
@@ -211,7 +218,8 @@ def get_outputs(
             training=(training or compute_hessian),
         )
         if edge_forces is not None:
-            edge_forces = -1 * edge_forces  # Match LAMMPS sign convention
+            # Match LAMMPS sign convention
+            edge_forces = -1 * edge_forces
     else:
         edge_forces = None
     return forces, virials, stress, hessian, edge_forces
@@ -233,22 +241,26 @@ def get_atomic_virials_stresses(
             - Atomic virials [num_atoms, 3, 3]
             - Atomic stresses [num_atoms, 3, 3] (None if not computed)
     """
-    edge_virial = torch.einsum("zi,zj->zij", edge_forces, vectors)
+    edge_virial = torch.einsum(
+        "zi,zj->zij", edge_forces, vectors)
     atom_virial_sender = scatter_sum(
         src=edge_virial, index=edge_index[0], dim=0, dim_size=num_atoms
     )
     atom_virial_receiver = scatter_sum(
         src=edge_virial, index=edge_index[1], dim=0, dim_size=num_atoms
     )
-    atom_virial = (atom_virial_sender + atom_virial_receiver) / 2
-    atom_virial = (atom_virial + atom_virial.transpose(-1, -2)) / 2
+    atom_virial = (atom_virial_sender +
+                   atom_virial_receiver) / 2
+    atom_virial = (
+        atom_virial + atom_virial.transpose(-1, -2)) / 2
     atom_stress = None
     cell = cell.view(-1, 3, 3)
     volume = torch.linalg.det(cell).abs().unsqueeze(-1)
     atom_volume = volume[batch].view(-1, 1, 1)
     atom_stress = atom_virial / atom_volume
     atom_stress = torch.where(
-        torch.abs(atom_stress) < 1e10, atom_stress, torch.zeros_like(atom_stress)
+        torch.abs(atom_stress) < 1e10, atom_stress, torch.zeros_like(
+            atom_stress)
     )
     return -1 * atom_virial, atom_stress
 
@@ -262,8 +274,10 @@ def get_edge_vectors_and_lengths(
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     sender = edge_index[0]
     receiver = edge_index[1]
-    vectors = positions[receiver] - positions[sender] + shifts  # [n_edges, 3]
-    lengths = torch.linalg.norm(vectors, dim=-1, keepdim=True)  # [n_edges, 1]
+    vectors = positions[receiver] - \
+        positions[sender] + shifts  # [n_edges, 3]
+    lengths = torch.linalg.norm(
+        vectors, dim=-1, keepdim=True)  # [n_edges, 1]
     if normalize:
         vectors_normed = vectors / (lengths + eps)
         return vectors_normed, lengths
@@ -289,7 +303,7 @@ def extract_invariant(x: torch.Tensor, num_layers: int, num_features: int, l_max
                 :,
                 i
                 * (l_max + 1) ** 2
-                * num_features : (i * (l_max + 1) ** 2 + 1)
+                * num_features: (i * (l_max + 1) ** 2 + 1)
                 * num_features,
             ]
         )
@@ -300,7 +314,8 @@ def compute_mean_std_atomic_inter_energy(
     data_loader: torch.utils.data.DataLoader,
     atomic_energies: np.ndarray,
 ) -> Tuple[float, float]:
-    atomic_energies_fn = AtomicEnergiesBlock(atomic_energies=atomic_energies)
+    atomic_energies_fn = AtomicEnergiesBlock(
+        atomic_energies=atomic_energies)
 
     avg_atom_inter_es_list = []
     head_list = []
@@ -316,12 +331,15 @@ def compute_mean_std_atomic_inter_energy(
         )  # {[n_graphs], }
         head_list.append(batch.head)
 
-    avg_atom_inter_es = torch.cat(avg_atom_inter_es_list)  # [total_n_graphs]
+    avg_atom_inter_es = torch.cat(
+        avg_atom_inter_es_list)  # [total_n_graphs]
     head = torch.cat(head_list, dim=0)  # [total_n_graphs]
     # mean = to_numpy(torch.mean(avg_atom_inter_es)).item()
     # std = to_numpy(torch.std(avg_atom_inter_es)).item()
-    mean = to_numpy(scatter_mean(src=avg_atom_inter_es, index=head, dim=0).squeeze(-1))
-    std = to_numpy(scatter_std(src=avg_atom_inter_es, index=head, dim=0).squeeze(-1))
+    mean = to_numpy(scatter_mean(
+        src=avg_atom_inter_es, index=head, dim=0).squeeze(-1))
+    std = to_numpy(scatter_std(
+        src=avg_atom_inter_es, index=head, dim=0).squeeze(-1))
     std = _check_non_zero(std)
 
     return mean, std
@@ -345,7 +363,8 @@ def compute_mean_rms_energy_forces(
     data_loader: torch.utils.data.DataLoader,
     atomic_energies: np.ndarray,
 ) -> Tuple[float, float]:
-    atomic_energies_fn = AtomicEnergiesBlock(atomic_energies=atomic_energies)
+    atomic_energies_fn = AtomicEnergiesBlock(
+        atomic_energies=atomic_energies)
 
     atom_energy_list = []
     forces_list = []
@@ -362,21 +381,27 @@ def compute_mean_rms_energy_forces(
         atom_energy_list.append(
             (batch.energy - graph_e0s) / graph_sizes
         )  # {[n_graphs], }
-        forces_list.append(batch.forces)  # {[n_graphs*n_atoms,3], }
+        # {[n_graphs*n_atoms,3], }
+        forces_list.append(batch.forces)
         head_list.append(head)
         head_batch.append(head[batch.batch])
 
-    atom_energies = torch.cat(atom_energy_list, dim=0)  # [total_n_graphs]
-    forces = torch.cat(forces_list, dim=0)  # {[total_n_graphs*n_atoms,3], }
+    atom_energies = torch.cat(
+        atom_energy_list, dim=0)  # [total_n_graphs]
+    # {[total_n_graphs*n_atoms,3], }
+    forces = torch.cat(forces_list, dim=0)
     head = torch.cat(head_list, dim=0)  # [total_n_graphs]
-    head_batch = torch.cat(head_batch, dim=0)  # [total_n_graphs]
+    head_batch = torch.cat(
+        head_batch, dim=0)  # [total_n_graphs]
 
     # mean = to_numpy(torch.mean(atom_energies)).item()
     # rms = to_numpy(torch.sqrt(torch.mean(torch.square(forces)))).item()
-    mean = to_numpy(scatter_mean(src=atom_energies, index=head, dim=0).squeeze(-1))
+    mean = to_numpy(scatter_mean(
+        src=atom_energies, index=head, dim=0).squeeze(-1))
     rms = to_numpy(
         torch.sqrt(
-            scatter_mean(src=torch.square(forces), index=head_batch, dim=0).mean(-1)
+            scatter_mean(src=torch.square(
+                forces), index=head_batch, dim=0).mean(-1)
         )
     )
     rms = _check_non_zero(rms)
@@ -394,7 +419,8 @@ def _compute_mean_rms_energy_forces(
         src=node_e0, index=batch.batch, dim=0, dim_size=batch.num_graphs
     )[torch.arange(batch.num_graphs), head]
     graph_sizes = batch.ptr[1:] - batch.ptr[:-1]
-    atom_energies = (batch.energy - graph_e0s) / graph_sizes  # {[n_graphs], }
+    atom_energies = (batch.energy - graph_e0s) / \
+        graph_sizes  # {[n_graphs], }
     forces = batch.forces  # {[n_graphs*n_atoms,3], }
 
     return atom_energies, forces
@@ -404,11 +430,13 @@ def compute_avg_num_neighbors(data_loader: torch.utils.data.DataLoader) -> float
     num_neighbors = []
     for batch in data_loader:
         _, receivers = batch.edge_index
-        _, counts = torch.unique(receivers, return_counts=True)
+        _, counts = torch.unique(
+            receivers, return_counts=True)
         num_neighbors.append(counts)
 
     avg_num_neighbors = torch.mean(
-        torch.cat(num_neighbors, dim=0).type(torch.get_default_dtype())
+        torch.cat(num_neighbors, dim=0).type(
+            torch.get_default_dtype())
     )
     return to_numpy(avg_num_neighbors).item()
 
@@ -417,7 +445,8 @@ def compute_statistics(
     data_loader: torch.utils.data.DataLoader,
     atomic_energies: np.ndarray,
 ) -> Tuple[float, float, float, float]:
-    atomic_energies_fn = AtomicEnergiesBlock(atomic_energies=atomic_energies)
+    atomic_energies_fn = AtomicEnergiesBlock(
+        atomic_energies=atomic_energies)
 
     atom_energy_list = []
     forces_list = []
@@ -435,28 +464,36 @@ def compute_statistics(
         atom_energy_list.append(
             (batch.energy - graph_e0s) / graph_sizes
         )  # {[n_graphs], }
-        forces_list.append(batch.forces)  # {[n_graphs*n_atoms,3], }
+        # {[n_graphs*n_atoms,3], }
+        forces_list.append(batch.forces)
         head_list.append(head)  # {[n_graphs], }
         head_batch.append(head[batch.batch])
         _, receivers = batch.edge_index
-        _, counts = torch.unique(receivers, return_counts=True)
+        _, counts = torch.unique(
+            receivers, return_counts=True)
         num_neighbors.append(counts)
 
-    atom_energies = torch.cat(atom_energy_list, dim=0)  # [total_n_graphs]
-    forces = torch.cat(forces_list, dim=0)  # {[total_n_graphs*n_atoms,3], }
+    atom_energies = torch.cat(
+        atom_energy_list, dim=0)  # [total_n_graphs]
+    # {[total_n_graphs*n_atoms,3], }
+    forces = torch.cat(forces_list, dim=0)
     head = torch.cat(head_list, dim=0)  # [total_n_graphs]
-    head_batch = torch.cat(head_batch, dim=0)  # [total_n_graphs]
+    head_batch = torch.cat(
+        head_batch, dim=0)  # [total_n_graphs]
 
     # mean = to_numpy(torch.mean(atom_energies)).item()
-    mean = to_numpy(scatter_mean(src=atom_energies, index=head, dim=0).squeeze(-1))
+    mean = to_numpy(scatter_mean(
+        src=atom_energies, index=head, dim=0).squeeze(-1))
     rms = to_numpy(
         torch.sqrt(
-            scatter_mean(src=torch.square(forces), index=head_batch, dim=0).mean(-1)
+            scatter_mean(src=torch.square(
+                forces), index=head_batch, dim=0).mean(-1)
         )
     )
 
     avg_num_neighbors = torch.mean(
-        torch.cat(num_neighbors, dim=0).type(torch.get_default_dtype())
+        torch.cat(num_neighbors, dim=0).type(
+            torch.get_default_dtype())
     )
 
     return to_numpy(avg_num_neighbors).item(), mean, rms
@@ -467,10 +504,13 @@ def compute_rms_dipoles(
 ) -> Tuple[float, float]:
     dipoles_list = []
     for batch in data_loader:
-        dipoles_list.append(batch.dipole)  # {[n_graphs,3], }
+        # {[n_graphs,3], }
+        dipoles_list.append(batch.dipole)
 
-    dipoles = torch.cat(dipoles_list, dim=0)  # {[total_n_graphs,3], }
-    rms = to_numpy(torch.sqrt(torch.mean(torch.square(dipoles)))).item()
+    # {[total_n_graphs,3], }
+    dipoles = torch.cat(dipoles_list, dim=0)
+    rms = to_numpy(torch.sqrt(
+        torch.mean(torch.square(dipoles)))).item()
     rms = _check_non_zero(rms)
     return rms
 
@@ -481,7 +521,9 @@ def compute_fixed_charge_dipole(
     batch: torch.Tensor,
     num_graphs: int,
 ) -> torch.Tensor:
-    mu = positions * charges.unsqueeze(-1) / (1e-11 / c / e)  # [N_atoms,3]
+    mu = positions * \
+        charges.unsqueeze(-1) / \
+        (1e-11 / c / e)  # [N_atoms,3]
     return scatter_sum(
         src=mu, index=batch.unsqueeze(-1), dim=0, dim_size=num_graphs
     )  # [N_graphs,3]
@@ -524,7 +566,8 @@ def prepare_graph(
     if lammps_mliap:
         n_real, n_total = data["natoms"][0], data["natoms"][1]
         num_graphs = 2
-        num_atoms_arange = torch.arange(n_real, device=data["node_attrs"].device)
+        num_atoms_arange = torch.arange(
+            n_real, device=data["node_attrs"].device)
         displacement = None
         positions = torch.zeros(
             (int(n_real), 3),
@@ -537,13 +580,16 @@ def prepare_graph(
             device=data["vectors"].device,
         )
         vectors = data["vectors"].requires_grad_(True)
-        lengths = torch.linalg.vector_norm(vectors, dim=1, keepdim=True)
-        ikw = InteractionKwargs(data["lammps_class"], (n_real, n_total))
+        lengths = torch.linalg.vector_norm(
+            vectors, dim=1, keepdim=True)
+        ikw = InteractionKwargs(
+            data["lammps_class"], (n_real, n_total))
     else:
         data["positions"].requires_grad_(True)
         positions = data["positions"]
         cell = data["cell"]
-        num_atoms_arange = torch.arange(positions.shape[0], device=positions.device)
+        num_atoms_arange = torch.arange(
+            positions.shape[0], device=positions.device)
         num_graphs = int(data["ptr"].numel() - 1)
         displacement = torch.zeros(
             (num_graphs, 3, 3), dtype=positions.dtype, device=positions.device

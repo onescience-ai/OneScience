@@ -1,7 +1,5 @@
-import math
-from typing import Dict, Union
+from typing import Union
 
-import numpy as np
 import torch
 import torch.nn as nn
 
@@ -16,7 +14,8 @@ def pseudo_beta_fn(aatype, all_atom_positions, all_atom_masks):
     ca_idx = rc.atom_order["CA"]
     cb_idx = rc.atom_order["CB"]
     pseudo_beta = torch.where(
-        is_gly[..., None].expand(*((-1,) * len(is_gly.shape)), 3),
+        is_gly[..., None].expand(
+            *((-1,) * len(is_gly.shape)), 3),
         all_atom_positions[..., ca_idx, :],
         all_atom_positions[..., cb_idx, :],
     )
@@ -40,7 +39,8 @@ def atom14_to_atom37(atom14, batch):
         no_batch_dims=len(atom14.shape[:-2]),
     )
 
-    atom37_data = atom37_data * batch["atom37_atom_exists"][..., None]
+    atom37_data = atom37_data * \
+        batch["atom37_atom_exists"][..., None]
 
     return atom37_data
 
@@ -53,7 +53,8 @@ def build_template_angle_feat(template_feats):
     template_angle_feat = torch.cat(
         [
             nn.functional.one_hot(template_aatype, 22),
-            torsion_angles_sin_cos.reshape(*torsion_angles_sin_cos.shape[:-2], 14),
+            torsion_angles_sin_cos.reshape(
+                *torsion_angles_sin_cos.shape[:-2], 14),
             alt_torsion_angles_sin_cos.reshape(
                 *alt_torsion_angles_sin_cos.shape[:-2], 14
             ),
@@ -75,9 +76,12 @@ def dgram_from_positions(
     dgram = torch.sum(
         (pos[..., None, :] - pos[..., None, :, :]) ** 2, dim=-1, keepdim=True
     )
-    lower = torch.linspace(min_bin, max_bin, no_bins, device=pos.device) ** 2
-    upper = torch.cat([lower[1:], lower.new_tensor([inf])], dim=-1)
-    dgram = ((dgram > lower) * (dgram < upper)).type(dgram.dtype)
+    lower = torch.linspace(
+        min_bin, max_bin, no_bins, device=pos.device) ** 2
+    upper = torch.cat(
+        [lower[1:], lower.new_tensor([inf])], dim=-1)
+    dgram = ((dgram > lower) * (dgram < upper)
+             ).type(dgram.dtype)
 
     return dgram
 
@@ -86,11 +90,13 @@ def build_template_pair_feat(
     batch, min_bin, max_bin, no_bins, use_unit_vector=False, eps=1e-20, inf=1e8
 ):
     template_mask = batch["template_pseudo_beta_mask"]
-    template_mask_2d = template_mask[..., None] * template_mask[..., None, :]
+    template_mask_2d = template_mask[...,
+                                     None] * template_mask[..., None, :]
 
     # Compute distogram (this seems to differ slightly from Alg. 5)
     tpb = batch["template_pseudo_beta"]
-    dgram = dgram_from_positions(tpb, min_bin, max_bin, no_bins, inf)
+    dgram = dgram_from_positions(
+        tpb, min_bin, max_bin, no_bins, inf)
 
     to_concat = [dgram, template_mask_2d[..., None]]
 
@@ -106,7 +112,8 @@ def build_template_pair_feat(
         )
     )
     to_concat.append(
-        aatype_one_hot[..., None, :].expand(*aatype_one_hot.shape[:-2], -1, n_res, -1)
+        aatype_one_hot[..., None, :].expand(
+            *aatype_one_hot.shape[:-2], -1, n_res, -1)
     )
 
     n, ca, c = [rc.atom_order[a] for a in ["N", "CA", "C"]]
@@ -119,11 +126,14 @@ def build_template_pair_feat(
     points = rigids.get_trans()[..., None, :, :]
     rigid_vec = rigids[..., None].invert_apply(points)
 
-    inv_distance_scalar = torch.rsqrt(eps + torch.sum(rigid_vec**2, dim=-1))
+    inv_distance_scalar = torch.rsqrt(
+        eps + torch.sum(rigid_vec**2, dim=-1))
 
     t_aa_masks = batch["template_all_atom_mask"]
-    template_mask = t_aa_masks[..., n] * t_aa_masks[..., ca] * t_aa_masks[..., c]
-    template_mask_2d = template_mask[..., None] * template_mask[..., None, :]
+    template_mask = t_aa_masks[..., n] * \
+        t_aa_masks[..., ca] * t_aa_masks[..., c]
+    template_mask_2d = template_mask[...,
+                                     None] * template_mask[..., None, :]
 
     inv_distance_scalar = inv_distance_scalar * template_mask_2d
     unit_vector = rigid_vec * inv_distance_scalar[..., None]
@@ -131,7 +141,8 @@ def build_template_pair_feat(
     if not use_unit_vector:
         unit_vector = unit_vector * 0.0
 
-    to_concat.extend(torch.unbind(unit_vector[..., None, :], dim=-1))
+    to_concat.extend(torch.unbind(
+        unit_vector[..., None, :], dim=-1))
     to_concat.append(template_mask_2d[..., None])
 
     act = torch.cat(to_concat, dim=-1)
@@ -167,11 +178,13 @@ def torsion_angles_to_frames(
     #   One [*, N, 8, 3]    translation matrix
     default_r = rigid_type.from_tensor_4x4(default_4x4)
 
-    bb_rot = alpha.new_zeros((*((1,) * len(alpha.shape[:-1])), 2))
+    bb_rot = alpha.new_zeros(
+        (*((1,) * len(alpha.shape[:-1])), 2))
     bb_rot[..., 1] = 1
 
     # [*, N, 8, 2]
-    alpha = torch.cat([bb_rot.expand(*alpha.shape[:-2], -1, -1), alpha], dim=-2)
+    alpha = torch.cat(
+        [bb_rot.expand(*alpha.shape[:-2], -1, -1), alpha], dim=-2)
 
     # [*, N, 8, 3, 3]
     # Produces rotation matrices of the form:
@@ -197,9 +210,12 @@ def torsion_angles_to_frames(
     chi4_frame_to_frame = all_frames[..., 7]
 
     chi1_frame_to_bb = all_frames[..., 4]
-    chi2_frame_to_bb = chi1_frame_to_bb.compose(chi2_frame_to_frame)
-    chi3_frame_to_bb = chi2_frame_to_bb.compose(chi3_frame_to_frame)
-    chi4_frame_to_bb = chi3_frame_to_bb.compose(chi4_frame_to_frame)
+    chi2_frame_to_bb = chi1_frame_to_bb.compose(
+        chi2_frame_to_frame)
+    chi3_frame_to_bb = chi2_frame_to_bb.compose(
+        chi3_frame_to_frame)
+    chi4_frame_to_bb = chi3_frame_to_bb.compose(
+        chi4_frame_to_frame)
 
     all_frames_to_bb = rigid_type.cat(
         [
@@ -211,7 +227,8 @@ def torsion_angles_to_frames(
         dim=-1,
     )
 
-    all_frames_to_global = r[..., None].compose(all_frames_to_bb)
+    all_frames_to_global = r[..., None].compose(
+        all_frames_to_bb)
 
     return all_frames_to_global
 
@@ -225,7 +242,7 @@ def frames_and_literature_positions_to_atom14_pos(
     lit_positions,
 ):
     # [*, N, 14, 4, 4]
-    default_4x4 = default_frames[aatype, ...]
+    default_frames[aatype, ...]
 
     # [*, N, 14]
     group_mask = group_idx[aatype, ...]
@@ -240,7 +257,8 @@ def frames_and_literature_positions_to_atom14_pos(
     t_atoms_to_global = r[..., None, :] * group_mask
 
     # [*, N, 14]
-    t_atoms_to_global = t_atoms_to_global.map_tensor_fn(lambda x: torch.sum(x, dim=-1))
+    t_atoms_to_global = t_atoms_to_global.map_tensor_fn(
+        lambda x: torch.sum(x, dim=-1))
 
     # [*, N, 14]
     atom_mask = atom_mask[aatype, ...].unsqueeze(-1)

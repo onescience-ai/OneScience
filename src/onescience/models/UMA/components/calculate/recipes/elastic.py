@@ -15,12 +15,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from fairchem.core.components.calculate.recipes.relax import relax_atoms
 from pymatgen.analysis.elasticity import DeformedStructureSet, ElasticTensor, Strain
 from pymatgen.io.ase import AseAtomsAdaptor
-
-from fairchem.core.components.calculate.recipes.relax import (
-    relax_atoms,
-)
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -32,8 +29,10 @@ if TYPE_CHECKING:
 def calculate_elasticity(
     atoms: Atoms,
     calculator: Calculator,
-    norm_strains: Sequence[float] | float = (-0.01, -0.005, 0.005, 0.01),
-    shear_strains: Sequence[float] | float = (-0.06, -0.03, 0.03, 0.06),
+    norm_strains: Sequence[float] | float = (
+        -0.01, -0.005, 0.005, 0.01),
+    shear_strains: Sequence[float] | float = (
+        -0.06, -0.03, 0.03, 0.06),
     relax_initial: bool = True,
     relax_strained: bool = True,
     use_equilibrium_stress: bool = True,
@@ -60,7 +59,8 @@ def calculate_elasticity(
     if relax_initial:
         atoms = relax_atoms(atoms, **relax_kwargs)
 
-    eq_stress = atoms.get_stress(voigt=False) if use_equilibrium_stress else None
+    eq_stress = atoms.get_stress(
+        voigt=False) if use_equilibrium_stress else None
 
     deformed_structure_set = DeformedStructureSet(
         AseAtomsAdaptor.get_structure(atoms),

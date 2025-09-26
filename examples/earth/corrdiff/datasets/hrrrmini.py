@@ -4,8 +4,8 @@ import math
 from typing import List, Tuple, Union
 
 import numpy as np
-from numba import jit, prange
 import xarray as xr
+from numba import jit, prange
 
 from onescience.utils.generative import convert_datetime_to_cftime
 
@@ -21,7 +21,8 @@ class HRRRMiniDataset(DownscalingDataset):
         stats_path: str,
         input_variables: Union[List[str], None] = None,
         output_variables: Union[List[str], None] = None,
-        invariant_variables: Union[List[str], None] = ("elev_mean", "lsm_mean"),
+        invariant_variables: Union[List[str], None] = (
+            "elev_mean", "lsm_mean"),
     ):
         # load data
         (self.input, self.input_variables) = _load_dataset(
@@ -45,10 +46,14 @@ class HRRRMiniDataset(DownscalingDataset):
         # load normalization stats
         with open(stats_path, "r") as f:
             stats = json.load(f)
-        (input_mean, input_std) = _load_stats(stats, self.input_variables, "input")
-        (inv_mean, inv_std) = _load_stats(stats, self.invariant_variables, "invariant")
-        self.input_mean = np.concatenate([input_mean, inv_mean], axis=0)
-        self.input_std = np.concatenate([input_std, inv_std], axis=0)
+        (input_mean, input_std) = _load_stats(
+            stats, self.input_variables, "input")
+        (inv_mean, inv_std) = _load_stats(
+            stats, self.invariant_variables, "invariant")
+        self.input_mean = np.concatenate(
+            [input_mean, inv_mean], axis=0)
+        self.input_std = np.concatenate(
+            [input_std, inv_std], axis=0)
         (self.output_mean, self.output_std) = _load_stats(
             stats, self.output_variables, "output"
         )
@@ -59,7 +64,8 @@ class HRRRMiniDataset(DownscalingDataset):
 
         # add invariants to input
         (i, j) = self.coords[idx]
-        inv = self.invariants[:, i : i + self.img_shape[0], j : j + self.img_shape[1]]
+        inv = self.invariants[:, i: i +
+                              self.img_shape[0], j: j + self.img_shape[1]]
         x = np.concatenate([x, inv], axis=0)
 
         y = self.output[idx]
@@ -81,7 +87,8 @@ class HRRRMiniDataset(DownscalingDataset):
 
     def input_channels(self) -> List[ChannelMetadata]:
         """Metadata for the input channels. A list of ChannelMetadata, one for each channel"""
-        inputs = [ChannelMetadata(name=v) for v in self.input_variables]
+        inputs = [ChannelMetadata(name=v)
+                  for v in self.input_variables]
         invariants = [
             ChannelMetadata(name=v, auxiliary=True) for v in self.invariant_variables
         ]
@@ -134,7 +141,8 @@ def _load_dataset(data_path, group, variables=None, stack_axis=1):
     with xr.open_dataset(data_path, group=group) as ds:
         if variables is None:
             variables = list(ds.keys())
-        data = np.stack([ds[v] for v in variables], axis=stack_axis)
+        data = np.stack([ds[v]
+                        for v in variables], axis=stack_axis)
     return (data, variables)
 
 

@@ -2,12 +2,11 @@ import datetime
 
 import numpy as np
 import pytz
-
 import torch
 
-
 RAD_PER_DEG = torch.tensor(np.pi / 180.0)
-DATETIME_2000 = datetime.datetime(2000, 1, 1, 12, 0, 0, tzinfo=pytz.utc).timestamp()
+DATETIME_2000 = datetime.datetime(
+    2000, 1, 1, 12, 0, 0, tzinfo=pytz.utc).timestamp()
 
 
 def _dali_mod(a, b):
@@ -34,8 +33,10 @@ def cos_zenith_angle(
         Cosine of sun-zenith angle. Shape `(seq_length, 1, nr_lat, nr_lon)`.
     """
     # print(type(latlon))
-    lat = latlon[0:1, :, :].unsqueeze(0) * RAD_PER_DEG  # 形状：(1, 1, nr_lat, nr_lon)
-    lon = latlon[1:2, :, :].unsqueeze(0) * RAD_PER_DEG  # 形状：(1, 1, nr_lat, nr_lon)
+    lat = latlon[0:1, :, :].unsqueeze(
+        0) * RAD_PER_DEG  # 形状：(1, 1, nr_lat, nr_lon)
+    lon = latlon[1:2, :, :].unsqueeze(
+        0) * RAD_PER_DEG  # 形状：(1, 1, nr_lat, nr_lon)
     time = time.unsqueeze(1).unsqueeze(2).unsqueeze(3)
     return _star_cos_zenith(time, lat, lon)
 
@@ -56,10 +57,12 @@ def _greenwich_mean_sidereal_time(model_time):
     theta = 67310.54841 + jul_centuries * (
         876600 * 3600
         + 8640184.812866
-        + jul_centuries * (0.093104 - jul_centuries * 6.2 * 10e-6)
+        + jul_centuries *
+        (0.093104 - jul_centuries * 6.2 * 10e-6)
     )
 
-    theta_radians = _dali_mod((theta / 240.0) * RAD_PER_DEG, 2 * np.pi)
+    theta_radians = _dali_mod(
+        (theta / 240.0) * RAD_PER_DEG, 2 * np.pi)
     return theta_radians
 
 
@@ -85,18 +88,22 @@ def _sun_ecliptic_longitude(model_time):
         357.52910
         + 35999.05030 * julian_centuries
         - 0.0001559 * julian_centuries * julian_centuries
-        - 0.00000048 * julian_centuries * julian_centuries * julian_centuries
+        - 0.00000048 * julian_centuries *
+        julian_centuries * julian_centuries
     ) * RAD_PER_DEG
 
     # mean longitude
     mean_longitude = (
-        280.46645 + 36000.76983 * julian_centuries + 0.0003032 * (julian_centuries**2)
+        280.46645 + 36000.76983 * julian_centuries +
+        0.0003032 * (julian_centuries**2)
     ) * RAD_PER_DEG
 
     d_l = (
-        (1.914600 - 0.004817 * julian_centuries - 0.000014 * (julian_centuries**2))
+        (1.914600 - 0.004817 * julian_centuries -
+         0.000014 * (julian_centuries**2))
         * torch.sin(mean_anomaly)
-        + (0.019993 - 0.000101 * julian_centuries) * torch.sin(2 * mean_anomaly)
+        + (0.019993 - 0.000101 * julian_centuries) *
+        torch.sin(2 * mean_anomaly)
         + 0.000290 * torch.sin(3 * mean_anomaly)
     ) * RAD_PER_DEG
 
@@ -168,7 +175,7 @@ def _star_cos_zenith(model_time, lat, lon):
     ra, dec = _right_ascension_declination(model_time)
     h_angle = _local_hour_angle(model_time, lon, ra)
 
-    cosine_zenith = torch.sin(lat) * torch.sin(dec) + torch.cos(
-        lat
-    ) * torch.cos(dec) * torch.cos(h_angle)
+    cosine_zenith = torch.sin(lat) * torch.sin(dec) + torch.cos(lat) * torch.cos(
+        dec
+    ) * torch.cos(h_angle)
     return cosine_zenith

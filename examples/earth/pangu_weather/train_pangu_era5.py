@@ -1,17 +1,18 @@
-import torch
+import logging
 import os
 import sys
-import numpy as np
-import torch.distributed as dist
-import logging
 import time
 
-from torch.nn.parallel import DistributedDataParallel
-from onescience.models.pangu import Pangu
-from onescience.datapipes.climate import ERA5HDF5Datapipe
-from onescience.utils.fcn.YParams import YParams
-from onescience.memory.checkpoint import replace_function
+import numpy as np
+import torch
+import torch.distributed as dist
 from apex import optimizers
+from torch.nn.parallel import DistributedDataParallel
+
+from onescience.datapipes.climate import ERA5HDF5Datapipe
+from onescience.memory.checkpoint import replace_function
+from onescience.models.pangu import Pangu
+from onescience.utils.fcn.YParams import YParams
 
 
 def loss_func(x, y):
@@ -25,7 +26,8 @@ def main():
     )
     logger = logging.getLogger()
 
-    config_file_path = os.path.join(current_path, "conf/config.yaml")
+    config_file_path = os.path.join(
+        current_path, "conf/config.yaml")
     cfg = YParams(config_file_path, "pangu")
     cfg.world_size = 1
     if "WORLD_SIZE" in os.environ:
@@ -34,29 +36,37 @@ def main():
     local_rank = 0
 
     if cfg.world_size > 1:
-        dist.init_process_group(backend="nccl", init_method="env://")
+        dist.init_process_group(
+            backend="nccl", init_method="env://")
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
 
     land_mask = torch.from_numpy(
-        np.load(os.path.join(cfg.mask_dir, "land_mask.npy")).astype(np.float32)
+        np.load(os.path.join(cfg.mask_dir, "land_mask.npy")).astype(
+            np.float32)
     )
     soil_type = torch.from_numpy(
-        np.load(os.path.join(cfg.mask_dir, "soil_type.npy")).astype(np.float32)
+        np.load(os.path.join(cfg.mask_dir, "soil_type.npy")).astype(
+            np.float32)
     )
     topography = torch.from_numpy(
-        np.load(os.path.join(cfg.mask_dir, "topography.npy")).astype(np.float32)
+        np.load(os.path.join(cfg.mask_dir, "topography.npy")).astype(
+            np.float32)
     )
-    surface_mask = torch.stack([land_mask, soil_type, topography], dim=0).to(local_rank)
-    surface_mask = surface_mask.unsqueeze(0).repeat(cfg.batch_size, 1, 1, 1)
+    surface_mask = torch.stack(
+        [land_mask, soil_type, topography], dim=0).to(local_rank)
+    surface_mask = surface_mask.unsqueeze(
+        0).repeat(cfg.batch_size, 1, 1, 1)
 
-    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
+    train_dataset = ERA5HDF5Datapipe(
+        params=cfg, distributed=dist.is_initialized())
     train_dataloader, train_sampler = train_dataset.train_dataloader()
     world_rank == 0 and logger.info(
         f"Loaded train_dataloader of size {len(train_dataloader)}"
     )
 
-    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
+    val_dataset = ERA5HDF5Datapipe(
+        params=cfg, distributed=dist.is_initialized())
     val_dataloader, val_sampler = val_dataset.val_dataloader()
     world_rank == 0 and logger.info(
         f"Loaded val_dataloader of size {len(val_dataloader)}"
@@ -72,13 +82,15 @@ def main():
 
     if cfg.world_size > 1:
         pangu_model = DistributedDataParallel(
-            pangu_model, device_ids=[local_rank], output_device=local_rank
+            pangu_model, device_ids=[
+                local_rank], output_device=local_rank
         )
 
     optimizer = optimizers.FusedAdam(
         pangu_model.parameters(), betas=(0.9, 0.999), lr=5e-4, weight_decay=3e-6
     )
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=100)
 
     os.makedirs(cfg.checkpoint_dir, exist_ok=True)
     train_loss_file = f"{cfg.checkpoint_dir}/trloss.npy"
@@ -105,21 +117,28 @@ def main():
         for j, data in enumerate(train_dataloader):
             invar = data[0]
             outvar = data[1]
-            invar_surface = invar[:, :4, :, :].to(local_rank, dtype=torch.float32)
-            invar_upper_air = invar[:, 4:, :, :].to(local_rank, dtype=torch.float32)
-            invar = torch.concat([invar_surface, surface_mask, invar_upper_air], dim=1)
+            invar_surface = invar[:, :4, :, :].to(
+                local_rank, dtype=torch.float32)
+            invar_upper_air = invar[:, 4:, :, :].to(
+                local_rank, dtype=torch.float32)
+            invar = torch.concat(
+                [invar_surface, surface_mask, invar_upper_air], dim=1)
 
-            tar_surface = outvar[:, :4, :, :].to(local_rank, dtype=torch.float32)
-            tar_upper_air = outvar[:, 4:, :, :].to(local_rank, dtype=torch.float32)
+            tar_surface = outvar[:, :4, :, :].to(
+                local_rank, dtype=torch.float32)
+            tar_upper_air = outvar[:, 4:, :, :].to(
+                local_rank, dtype=torch.float32)
 
             with replace_function(
                 pangu_model,
                 ["layer1", "layer2", "layer3", "layer4"],
                 cfg.world_size > 1,
             ):
-                out_surface, out_upper_air = pangu_model(invar)
+                out_surface, out_upper_air = pangu_model(
+                    invar)
 
-            out_upper_air = out_upper_air.reshape(tar_upper_air.shape)
+            out_upper_air = out_upper_air.reshape(
+                tar_upper_air.shape)
 
             loss1 = loss_func(tar_surface, out_surface)
             loss2 = loss_func(tar_upper_air, out_upper_air)
@@ -147,24 +166,34 @@ def main():
             for j, data in enumerate(val_dataloader):
                 invar = data[0]
                 outvar = data[1]
-                invar_surface = invar[:, :4, :, :].to(local_rank, dtype=torch.float32)
-                invar_upper_air = invar[:, 4:, :, :].to(local_rank, dtype=torch.float32)
+                invar_surface = invar[:, :4, :, :].to(
+                    local_rank, dtype=torch.float32)
+                invar_upper_air = invar[:, 4:, :, :].to(
+                    local_rank, dtype=torch.float32)
                 invar = torch.concat(
-                    [invar_surface, surface_mask, invar_upper_air], dim=1
+                    [invar_surface, surface_mask,
+                        invar_upper_air], dim=1
                 )
 
-                tar_surface = outvar[:, :4, :, :].to(local_rank, dtype=torch.float32)
-                tar_upper_air = outvar[:, 4:, :, :].to(local_rank, dtype=torch.float32)
+                tar_surface = outvar[:, :4, :, :].to(
+                    local_rank, dtype=torch.float32)
+                tar_upper_air = outvar[:, 4:, :, :].to(
+                    local_rank, dtype=torch.float32)
 
-                out_surface, out_upper_air = pangu_model(invar)
-                out_upper_air = out_upper_air.reshape(tar_upper_air.shape)
+                out_surface, out_upper_air = pangu_model(
+                    invar)
+                out_upper_air = out_upper_air.reshape(
+                    tar_upper_air.shape)
 
-                loss1 = loss_func(tar_surface, out_surface).item()
-                loss2 = loss_func(tar_upper_air, out_upper_air).item()
+                loss1 = loss_func(
+                    tar_surface, out_surface).item()
+                loss2 = loss_func(
+                    tar_upper_air, out_upper_air).item()
                 loss = loss1 * 0.25 + loss2
 
                 if cfg.world_size > 1:
-                    loss_tensor = torch.tensor(loss, device=local_rank)
+                    loss_tensor = torch.tensor(
+                        loss, device=local_rank)
                     dist.all_reduce(loss_tensor)
                     loss = loss_tensor.item() / cfg.world_size
                 valid_loss += loss
@@ -203,8 +232,10 @@ def main():
                 f"Best loss at Epoch: {best_loss_epoch + 1}"
                 + (", saving checkpoint" if is_save_ckp else "")
             )
-            train_losses = np.append(train_losses, train_loss)
-            valid_losses = np.append(valid_losses, valid_loss)
+            train_losses = np.append(
+                train_losses, train_loss)
+            valid_losses = np.append(
+                valid_losses, valid_loss)
 
             np.save(train_loss_file, train_losses)
             np.save(valid_loss_file, valid_losses)
@@ -218,7 +249,8 @@ def main():
 def save_checkpoint(
     model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path
 ):
-    model_to_save = model.module if hasattr(model, "module") else model
+    model_to_save = model.module if hasattr(
+        model, "module") else model
     state = {
         "model_state_dict": model_to_save.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),

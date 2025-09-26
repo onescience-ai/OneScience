@@ -68,19 +68,23 @@ def run_mdr_phonon_benchmark(
 
     if run_relax:
         # relax the primitive cell instead of the unitcell for efficiency
-        primcell = get_pmg_structure(mdr_phonon.primitive).to_ase_atoms()
+        primcell = get_pmg_structure(
+            mdr_phonon.primitive).to_ase_atoms()
 
         if fix_symm_relax:
             primcell.set_constraint(FixSymmetry(primcell))
 
         primcell.calc = calculator
-        opt = FIRE(FrechetCellFilter(primcell), logfile=None)
+        opt = FIRE(FrechetCellFilter(
+            primcell), logfile=None)
         opt.run(fmax=0.005, steps=500)
         natoms = len(primcell.positions)
-        final_energy_per_atom = primcell.get_potential_energy() / natoms
+        final_energy_per_atom = primcell.get_potential_energy() / \
+            natoms
         final_volume_per_atom = primcell.get_volume() / natoms
         if mdr_phonon.primitive_matrix is not None:
-            P = np.asarray(np.linalg.inv(mdr_phonon.primitive_matrix.T), dtype=np.intc)
+            P = np.asarray(np.linalg.inv(
+                mdr_phonon.primitive_matrix.T), dtype=np.intc)
             unitcell = make_supercell(primcell, P)
         else:  # assume prim is the same as unit
             # can always check for good measure
@@ -98,7 +102,8 @@ def run_mdr_phonon_benchmark(
         primitive_matrix=mdr_phonon.primitive_matrix,
         symprec=symprec,
     )
-    produce_force_constants(phonon, calculator, symmetrize=symmetrize_fc)
+    produce_force_constants(
+        phonon, calculator, symmetrize=symmetrize_fc)
 
     results = {
         "frequencies": calculate_phonon_frequencies(phonon) * THz_to_K,
@@ -113,7 +118,8 @@ def run_mdr_phonon_benchmark(
 def get_phonopy_object(
     atoms: PhonopyAtoms | Atoms | Structure,
     displacement: float = 0.01,
-    supercell_matrix: ArrayLike = ((2, 0, 0), (0, 2, 0), (0, 0, 2)),
+    supercell_matrix: ArrayLike = (
+        (2, 0, 0), (0, 2, 0), (0, 0, 2)),
     primitive_matrix: ArrayLike | None = None,
     symprec: int = 1e-5,
     **phonopy_kwargs,
@@ -136,7 +142,8 @@ def get_phonopy_object(
     if isinstance(atoms, Structure):
         atoms = get_phonopy_structure(atoms)
 
-    supercell_matrix = np.ascontiguousarray(supercell_matrix, dtype=int)
+    supercell_matrix = np.ascontiguousarray(
+        supercell_matrix, dtype=int)
     phonon = Phonopy(
         atoms,
         supercell_matrix,
@@ -160,7 +167,8 @@ def produce_force_constants(
     """
 
     phonon.forces = [
-        calculator.get_forces(get_pmg_structure(supercell).to_ase_atoms())
+        calculator.get_forces(
+            get_pmg_structure(supercell).to_ase_atoms())
         for supercell in phonon.supercells_with_displacements
     ]
     phonon.produce_force_constants()
@@ -184,9 +192,11 @@ def calculate_phonon_frequencies(
         NDArray: ndarray of phonon frequencies in THz, (qpoints, frequencies)
     """
     if qpoints is None:
-        qpoints = get_commensurate_points(phonon.supercell_matrix)
+        qpoints = get_commensurate_points(
+            phonon.supercell_matrix)
 
-    frequencies = np.stack([phonon.get_frequencies(q) for q in qpoints])
+    frequencies = np.stack(
+        [phonon.get_frequencies(q) for q in qpoints])
 
     return frequencies
 
@@ -210,5 +220,6 @@ def calculate_thermal_properties(
     """
 
     phonon.run_mesh(mesh)
-    phonon.run_thermal_properties(t_min=t_min, t_max=t_max, t_step=t_step)
+    phonon.run_thermal_properties(
+        t_min=t_min, t_max=t_max, t_step=t_step)
     return phonon.get_thermal_properties_dict()

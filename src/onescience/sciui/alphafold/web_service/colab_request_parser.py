@@ -7,14 +7,16 @@ from copy import deepcopy
 from os.path import exists as opexists
 from os.path import join as opjoin
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Sequence, Tuple
 
 import numpy as np
 import requests
 
 import onescience.datapipes.protenix.ccd as ccd
 from onescience.datapipes.protenix.json_to_feature import SampleDictToFeatures
-from onescience.sciui.alphafold.web_service.colab_request_utils import run_mmseqs2_service
+from onescience.sciui.alphafold.web_service.colab_request_utils import (
+    run_mmseqs2_service,
+)
 from onescience.sciui.alphafold.web_service.dependency_url import URL
 
 MMSEQS_SERVICE_HOST_URL = "http://101.126.11.40:80"
@@ -32,7 +34,8 @@ def download_tos_url(tos_url, local_file_path):
             with open(local_file_path, "wb") as file:
                 for chunk in response.iter_content(chunk_size=8192):
                     file.write(chunk)
-            print(f"Succeeded downloading from {tos_url}.\nSaved to {local_file_path}.")
+            print(
+                f"Succeeded downloading from {tos_url}.\nSaved to {local_file_path}.")
         else:
             print(
                 f"Failed downloading from {tos_url}.\nStatus code: {response.status_code}"
@@ -74,20 +77,23 @@ class RequestParser(object):
         cache_paths = {}
         for cache_name, fname in [
             ("ccd_components_file", "components.v20240608.cif"),
-            ("ccd_components_rdkit_mol_file", "components.v20240608.cif.rdkit_mol.pkl"),
+            ("ccd_components_rdkit_mol_file",
+             "components.v20240608.cif.rdkit_mol.pkl"),
         ]:
             if not opexists(
                 cache_path := os.path.abspath(opjoin(data_cache_dir, fname))
             ):
                 tos_url = URL[cache_name]
-                print(f"Downloading data cache from\n {tos_url}...")
+                print(
+                    f"Downloading data cache from\n {tos_url}...")
                 download_tos_url(tos_url, cache_path)
             cache_paths[cache_name] = cache_path
         return cache_paths
 
     def download_model(self, model_version: str, checkpoint_local_path: str) -> None:
         tos_url = URL[f"model_{model_version}"]
-        print(f"Downloading model checkpoing from\n {tos_url}...")
+        print(
+            f"Downloading model checkpoing from\n {tos_url}...")
         download_tos_url(tos_url, checkpoint_local_path)
 
     def get_model(self) -> str:
@@ -97,18 +103,21 @@ class RequestParser(object):
         if not opexists(
             checkpoint_path := opjoin(checkpoint_dir, f"model_{model_version}.pt")
         ):
-            self.download_model(model_version, checkpoint_local_path=checkpoint_path)
+            self.download_model(
+                model_version, checkpoint_local_path=checkpoint_path)
         if opexists(checkpoint_path):
             return checkpoint_path
         else:
-            raise ValueError("Failed in finding model checkpoint.")
+            raise ValueError(
+                "Failed in finding model checkpoint.")
 
     def get_data_json(self) -> str:
         input_json_dict = {
             "name": (self.request["name"]),
             "covalent_bonds": self.request["covalent_bonds"],
         }
-        input_json_path = opjoin(self.request_dir, f"inputs.json")
+        input_json_path = opjoin(
+            self.request_dir, f"inputs.json")
 
         sequences = []
         entity_pending_msa = {}
@@ -117,7 +126,8 @@ class RequestParser(object):
             entity_info_wrapper: Dict[str, Dict[Any]]
             assert len(entity_info_wrapper) == 1
 
-            seq_type, seq_info = next(iter(entity_info_wrapper.items()))
+            seq_type, seq_info = next(
+                iter(entity_info_wrapper.items()))
 
             if seq_type == "proteinChain":
                 if self.request["use_msa"]:
@@ -138,7 +148,8 @@ class RequestParser(object):
 
         cache_paths = self.download_data_cache()
         ccd.COMPONENTS_FILE = cache_paths["ccd_components_file"]
-        ccd.RKDIT_MOL_PKL = Path(cache_paths["ccd_components_rdkit_mol_file"])
+        ccd.RKDIT_MOL_PKL = Path(
+            cache_paths["ccd_components_rdkit_mol_file"])
         sample2feat = SampleDictToFeatures(
             tmp_json_dict,
         )
@@ -148,7 +159,8 @@ class RequestParser(object):
         if num_atoms > MAX_ATOM_NUM:
             raise TooLargeComplexError(num_atoms=num_atoms)
         if num_tokens > MAX_TOKEN_NUM:
-            raise TooLargeComplexError(num_tokens=num_tokens)
+            raise TooLargeComplexError(
+                num_tokens=num_tokens)
         del tmp_json_dict
 
         if len(entity_pending_msa) > 0:
@@ -156,11 +168,14 @@ class RequestParser(object):
             for entity_id, seq in entity_pending_msa.items():
                 seq_to_entity_id[seq].append(entity_id)
             seq_to_entity_id = dict(seq_to_entity_id)
-            seqs_pending_msa = sorted(list(seq_to_entity_id.keys()))
+            seqs_pending_msa = sorted(
+                list(seq_to_entity_id.keys()))
 
-            os.makedirs(msa_res_dir := opjoin(self.request_dir, "msa"), exist_ok=True)
+            os.makedirs(msa_res_dir := opjoin(
+                self.request_dir, "msa"), exist_ok=True)
 
-            tmp_fasta_fpath = opjoin(msa_res_dir, "msa_input.fasta")
+            tmp_fasta_fpath = opjoin(
+                msa_res_dir, "msa_input.fasta")
             RequestParser.msa_search(
                 seqs_pending_msa=seqs_pending_msa,
                 tmp_fasta_fpath=tmp_fasta_fpath,
@@ -213,7 +228,7 @@ class RequestParser(object):
                 host_url=MMSEQS_SERVICE_HOST_URL,
                 user_agent="colabfold/1.5.5",
             )
-        except Exception as e:
+        except Exception:
             error_message = f"MMSEQS2 failed with the following error message:\n{traceback.format_exc()}"
             print(error_message)
 
@@ -223,7 +238,8 @@ class RequestParser(object):
             uniref_to_ncbi_taxid = {}
             with open(m8_file, "r") as infile:
                 for line in infile:
-                    line_list = line.replace("\n", "").split("\t")
+                    line_list = line.replace(
+                        "\n", "").split("\t")
                     hit_name = line_list[1]
                     ncbi_taxid = line_list[2]
                     uniref_to_ncbi_taxid[hit_name] = ncbi_taxid
@@ -257,9 +273,11 @@ class RequestParser(object):
 
                 if "UniRef" in head:
                     uniref_id = head.split("\t")[0][1:]
-                    ncbi_taxid = uniref_to_ncbi_taxid.get(uniref_id, None)
+                    ncbi_taxid = uniref_to_ncbi_taxid.get(
+                        uniref_id, None)
                     if ncbi_taxid is not None:
-                        head = head.replace(uniref_id, f"{uniref_id}_{ncbi_taxid}/")
+                        head = head.replace(
+                            uniref_id, f"{uniref_id}_{ncbi_taxid}/")
                     uniref100_lines.extend([head, msa_seq])
                 else:
                     other_lines.extend([head, msa_seq])
@@ -331,7 +349,8 @@ class RequestParser(object):
                 print(
                     f"Failed in searching MSA for \n{query_seq}\nusing the sequence itself as MSA."
                 )
-                make_dummy_msa(query_seq=query_seq, seq_dir=seq_dir)
+                make_dummy_msa(
+                    query_seq=query_seq, seq_dir=seq_dir)
             msa_res_subdirs.append(seq_dir)
 
         return msa_res_subdirs
@@ -341,7 +360,8 @@ class RequestParser(object):
         checkpoint_path = self.get_model()
 
         entry_path = os.path.abspath(
-            opjoin(os.path.dirname(self.fpath), "../../runner/inference.py")
+            opjoin(os.path.dirname(self.fpath),
+                   "../../runner/inference.py")
         )
         command_parts = [
             "export LAYERNORM_TYPE=fast_layernorm;",
@@ -358,15 +378,19 @@ class RequestParser(object):
         ]
 
         if "model_seeds" in self.request:
-            seeds = ",".join([str(seed) for seed in self.request["model_seeds"]])
+            seeds = ",".join(
+                [str(seed) for seed in self.request["model_seeds"]])
             command_parts.extend([f'--seeds "{seeds}"'])
         for key in ["N_sample", "N_step"]:
             if key in self.request:
-                command_parts.extend([f"--sample_diffusion.{key} {self.request[key]}"])
+                command_parts.extend(
+                    [f"--sample_diffusion.{key} {self.request[key]}"])
         if "N_cycle" in self.request:
-            command_parts.extend([f"--model.N_cycle {self.request['N_cycle']}"])
+            command_parts.extend(
+                [f"--model.N_cycle {self.request['N_cycle']}"])
         command = " ".join(command_parts)
-        print(f"Launching inference process with the command below:\n{command}")
+        print(
+            f"Launching inference process with the command below:\n{command}")
         subprocess.call(command, shell=True)
 
 

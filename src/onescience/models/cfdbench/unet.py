@@ -1,9 +1,10 @@
-""" Parts of the U-Net model """
-from typing import Optional, List
+"""Parts of the U-Net model"""
+
+from typing import List, Optional
 
 import torch
-from torch import nn, Tensor
 import torch.nn.functional as F
+from torch import Tensor, nn
 
 from .base_model import AutoCfdModel
 
@@ -11,9 +12,7 @@ from .base_model import AutoCfdModel
 class DoubleConv(nn.Module):
     """(convolution => [BN] => ReLU) * 2"""
 
-    def __init__(
-        self, in_chan: int, out_chan: int, mid_chan: Optional[int] = None
-    ):
+    def __init__(self, in_chan: int, out_chan: int, mid_chan: Optional[int] = None):
         super().__init__()
         if mid_chan is None:
             mid_chan = out_chan
@@ -56,7 +55,8 @@ class Down(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.maxpool_conv = nn.Sequential(
-            nn.MaxPool2d(2), DoubleConv(in_channels, out_channels)
+            nn.MaxPool2d(2), DoubleConv(
+                in_channels, out_channels)
         )
 
     def forward(self, x):
@@ -73,14 +73,15 @@ class Up(nn.Module):
         # of channels
         if bilinear:
             self.up = nn.Upsample(
-                scale_factor=2, mode="bilinear", align_corners=True
-            )
-            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
+                scale_factor=2, mode="bilinear", align_corners=True)
+            self.conv = DoubleConv(
+                in_channels, out_channels, in_channels // 2)
         else:
             self.up = nn.ConvTranspose2d(
                 in_channels, in_channels // 2, kernel_size=2, stride=2
             )
-            self.conv = DoubleConv(in_channels, out_channels)
+            self.conv = DoubleConv(
+                in_channels, out_channels)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
@@ -90,7 +91,8 @@ class Up(nn.Module):
 
         x1 = F.pad(
             x1,
-            [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2],
+            [diffX // 2, diffX - diffX // 2,
+                diffY // 2, diffY - diffY // 2],
         )
         # if you have padding issues, see
         # https://github.com/HaiyongJiang/U-Net-Pytorch-Unstructured-Buggy/commit/0e854509c2cea854e247a9c615f175f76fbb2e3a
@@ -102,7 +104,8 @@ class Up(nn.Module):
 class OutConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.conv = nn.Conv2d(
+            in_channels, out_channels, kernel_size=1)
 
     def forward(self, x: Tensor) -> Tensor:
         return self.conv(x)
@@ -130,14 +133,15 @@ class UNet(AutoCfdModel):
         self.dim = dim
 
         if insert_case_params_at == "hidden":
-            self.case_params_fc = nn.Linear(n_case_params, dim * 16)
+            self.case_params_fc = nn.Linear(
+                n_case_params, dim * 16)
 
         if insert_case_params_at == "input":
             self.in_conv = DoubleConv(
-                in_chan + 1 + n_case_params, dim   # + 1 for mask
-            )
+                in_chan + 1 + n_case_params, dim)  # + 1 for mask
         else:
-            self.in_conv = DoubleConv(in_chan + 1, dim)  # + 1 for mask
+            self.in_conv = DoubleConv(
+                in_chan + 1, dim)  # + 1 for mask
         self.down1 = Down(dim, dim * 2)
         self.down2 = Down(dim * 2, dim * 4)
         self.down3 = Down(dim * 4, dim * 8)
@@ -167,25 +171,24 @@ class UNet(AutoCfdModel):
 
         # Add mask to input as additional channels
         if mask is None:
-            mask = torch.ones((batch_size, height, width)).to(inputs.device)
+            mask = torch.ones(
+                (batch_size, height, width)).to(inputs.device)
         else:
             if mask.dim() == 3:
                 mask = mask.unsqueeze(1)  # (B, 1, h, w)
-        inputs = torch.cat([inputs, mask], dim=1)  # (B, c + 1, h, w)
+        # (B, c + 1, h, w)
+        inputs = torch.cat([inputs, mask], dim=1)
 
         # Add case_params to input as additional channels
         if self.insert_case_params_at == "input":
             assert case_params is not None
-            case_params = case_params.unsqueeze(2).unsqueeze(
-                3
-            )  # (B, n_params, 1, 1)
+            case_params = case_params.unsqueeze(
+                2).unsqueeze(3)  # (B, n_params, 1, 1)
             # (B, n_params, h, w)
             case_params = case_params.expand(
-                -1, -1, inputs.shape[2], inputs.shape[3]
-            )
-            inputs = torch.cat(
-                [inputs, case_params], dim=1
-            )  # (B, c + 1, h, w)
+                -1, -1, inputs.shape[2], inputs.shape[3])
+            # (B, c + 1, h, w)
+            inputs = torch.cat([inputs, case_params], dim=1)
 
         x1 = self.in_conv(inputs)  # (B, dim, h, w)
         x2 = self.down1(x1)  # (B, dim * 2, h/2, w/2)
@@ -197,14 +200,18 @@ class UNet(AutoCfdModel):
         if self.insert_case_params_at == "hidden":
             assert case_params is not None
             assert self.case_params_fc is not None
-            conds = self.case_params_fc(case_params)  # (B, dim * 16)
+            conds = self.case_params_fc(
+                case_params)  # (B, dim * 16)
             assert conds is not None
-            conds = conds.unsqueeze(2).unsqueeze(3)  # (B, dim * 16, 1, 1)
+            conds = conds.unsqueeze(2).unsqueeze(
+                3)  # (B, dim * 16, 1, 1)
             x5 = x5 + conds
 
         inputs = self.up1(x5, x4)  # (B, dim * 8, h/8, w/8)
-        inputs = self.up2(inputs, x3)  # (B, dim * 4, h/4, w/4)
-        inputs = self.up3(inputs, x2)  # (B, dim * 2, h/2, w/2)
+        # (B, dim * 4, h/4, w/4)
+        inputs = self.up2(inputs, x3)
+        # (B, dim * 2, h/2, w/2)
+        inputs = self.up3(inputs, x2)
         inputs = self.up4(inputs, x1)  # (B, dim, h, w)
         preds = self.out_conv(inputs)  # (B, out_chan, h, w)
         preds += residual
@@ -214,7 +221,8 @@ class UNet(AutoCfdModel):
         if label is not None:
             label = label * mask
 
-            loss: dict = self.loss_fn(labels=label, preds=preds)
+            loss: dict = self.loss_fn(
+                labels=label, preds=preds)
             return dict(
                 preds=preds,
                 loss=loss,
@@ -245,8 +253,7 @@ class UNet(AutoCfdModel):
         for _ in range(steps):
             # (b, c, h, w)
             cur_frame = self.generate(
-                cur_frame, case_params=case_params, mask=mask
-            )
+                cur_frame, case_params=case_params, mask=mask)
             preds.append(cur_frame)
         return preds
 
@@ -256,6 +263,7 @@ class UNet(AutoCfdModel):
         case_params: Tensor,
         mask: Optional[Tensor] = None,
     ) -> Tensor:
-        outputs = self.forward(inputs, case_params=case_params, mask=mask)
+        outputs = self.forward(
+            inputs, case_params=case_params, mask=mask)
         preds = outputs["preds"]
         return preds

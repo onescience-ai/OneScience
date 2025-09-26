@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Any
 
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
-from enum import Enum
 
 
 class VectorType(Enum):
@@ -62,14 +62,19 @@ class BaseVector(ABC):
         for text in texts.copy():
             if text.metadata and "doc_id" in text.metadata:
                 doc_id = text.metadata["doc_id"]
-                exists_duplicate_node = self.text_exists(doc_id)
+                exists_duplicate_node = self.text_exists(
+                    doc_id)
                 if exists_duplicate_node:
                     texts.remove(text)
 
         return texts
 
     def _get_uuids(self, texts: list[Document]) -> list[str]:
-        return [text.metadata["doc_id"] for text in texts if text.metadata and "doc_id" in text.metadata]
+        return [
+            text.metadata["doc_id"]
+            for text in texts
+            if text.metadata and "doc_id" in text.metadata
+        ]
 
     @property
     def collection_name(self):

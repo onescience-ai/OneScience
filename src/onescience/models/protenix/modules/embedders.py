@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import torch
 import torch.nn as nn
@@ -36,7 +36,8 @@ class InputFeatureEmbedder(nn.Module):
             has_coords=False,
         )
         # Line2
-        self.input_feature = {"restype": 32, "profile": 32, "deletion_mean": 1}
+        self.input_feature = {
+            "restype": 32, "profile": 32, "deletion_mean": 1}
 
     def forward(
         self,
@@ -65,7 +66,8 @@ class InputFeatureEmbedder(nn.Module):
         s_inputs = torch.cat(
             [a]
             + [
-                input_feature_dict[name].reshape(*batch_shape, d)
+                input_feature_dict[name].reshape(
+                    *batch_shape, d)
                 for name, d in self.input_feature.items()
             ],
             dim=-1,
@@ -131,7 +133,8 @@ class RelativePositionEncoding(nn.Module):
         ) * b_same_chain + (1 - b_same_chain) * (
             2 * self.r_max + 1
         )  # [..., N_token, N_token]
-        a_rel_pos = F.one_hot(d_residue, 2 * (self.r_max + 1))
+        a_rel_pos = F.one_hot(
+            d_residue, 2 * (self.r_max + 1))
         d_token = torch.clip(
             input=input_feature_dict["token_index"][..., :, None]
             - input_feature_dict["token_index"][..., None, :]
@@ -141,7 +144,8 @@ class RelativePositionEncoding(nn.Module):
         ) * b_same_chain * b_same_residue + (1 - b_same_chain * b_same_residue) * (
             2 * self.r_max + 1
         )  # [..., N_token, N_token]
-        a_rel_token = F.one_hot(d_token, 2 * (self.r_max + 1))
+        a_rel_token = F.one_hot(
+            d_token, 2 * (self.r_max + 1))
         d_chain = torch.clip(
             input=input_feature_dict["sym_id"][..., :, None]
             - input_feature_dict["sym_id"][..., None, :]
@@ -151,12 +155,14 @@ class RelativePositionEncoding(nn.Module):
         ) * b_same_entity + (1 - b_same_entity) * (
             2 * self.s_max + 1
         )  # [..., N_token, N_token]
-        a_rel_chain = F.one_hot(d_chain, 2 * (self.s_max + 1))
+        a_rel_chain = F.one_hot(
+            d_chain, 2 * (self.s_max + 1))
 
         if self.training:
             p = self.linear_no_bias(
                 torch.cat(
-                    [a_rel_pos, a_rel_token, b_same_entity[..., None], a_rel_chain],
+                    [a_rel_pos, a_rel_token,
+                        b_same_entity[..., None], a_rel_chain],
                     dim=-1,
                 ).float()
             )  # [..., N_token, N_token, 2 * (self.r_max + 1)+ 2 * (self.r_max + 1)+ 1 + 2 * (self.s_max + 1)] -> [..., N_token, N_token, c_z]
@@ -165,7 +171,8 @@ class RelativePositionEncoding(nn.Module):
             del d_chain, d_token, d_residue, b_same_chain, b_same_residue
             origin_shape = a_rel_pos.shape[:-1]
             Ntoken = a_rel_pos.shape[-2]
-            a_rel_pos = a_rel_pos.reshape(-1, a_rel_pos.shape[-1])
+            a_rel_pos = a_rel_pos.reshape(-1,
+                                          a_rel_pos.shape[-1])
             chunk_num = 1 if Ntoken < 3200 else 8
             a_rel_pos_chunks = torch.chunk(
                 a_rel_pos.reshape(-1, a_rel_pos.shape[-1]), chunk_num, dim=-2
@@ -199,7 +206,7 @@ class RelativePositionEncoding(nn.Module):
                         device=a_rel_pos.device,
                         dtype=result.dtype,
                     )
-                p[start : start + result.shape[0]] = result
+                p[start: start + result.shape[0]] = result
                 start += result.shape[0]
                 del result
             del a_rel_pos, a_rel_token, b_same_entity, a_rel_chain
@@ -222,9 +229,11 @@ class FourierEmbedding(nn.Module):
         self.seed = seed
         generator = torch.Generator()
         generator.manual_seed(seed)
-        w_value = torch.randn(size=(c,), generator=generator)
+        w_value = torch.randn(
+            size=(c,), generator=generator)
         self.w = nn.Parameter(w_value, requires_grad=False)
-        b_value = torch.randn(size=(c,), generator=generator)
+        b_value = torch.randn(
+            size=(c,), generator=generator)
         self.b = nn.Parameter(b_value, requires_grad=False)
 
     def forward(self, t_hat_noise_level: torch.Tensor) -> torch.Tensor:
@@ -238,5 +247,7 @@ class FourierEmbedding(nn.Module):
                 [..., N_sample, c]
         """
         return torch.cos(
-            input=2 * torch.pi * (t_hat_noise_level.unsqueeze(dim=-1) * self.w + self.b)
+            input=2 * torch.pi *
+            (t_hat_noise_level.unsqueeze(
+                dim=-1) * self.w + self.b)
         )

@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import copy
@@ -52,15 +50,18 @@ class EdgeDegreeEmbedding(torch.nn.Module):
         self.activation_checkpoint_chunk_size = activation_checkpoint_chunk_size
 
         self.m_0_num_coefficients: int = self.mappingReduced.m_size[0]
-        self.m_all_num_coefficents: int = len(self.mappingReduced.l_harmonic)
+        self.m_all_num_coefficents: int = len(
+            self.mappingReduced.l_harmonic)
 
         # Create edge scalar (invariant to rotations) features
         # Embedding function of the atomic numbers
         self.max_num_elements = max_num_elements
-        self.edge_channels_list = copy.deepcopy(edge_channels_list)
+        self.edge_channels_list = copy.deepcopy(
+            edge_channels_list)
 
         # Embedding function of distance
-        self.edge_channels_list.append(self.m_0_num_coefficients * self.sphere_channels)
+        self.edge_channels_list.append(
+            self.m_0_num_coefficients * self.sphere_channels)
         self.rad_func = RadialMLP(self.edge_channels_list)
 
         self.rescale_factor = rescale_factor
@@ -84,25 +85,30 @@ class EdgeDegreeEmbedding(torch.nn.Module):
         x_edge_m_pad = torch.zeros(
             (
                 x_edge_m_0.shape[0],
-                (self.m_all_num_coefficents - self.m_0_num_coefficients),
+                (self.m_all_num_coefficents -
+                 self.m_0_num_coefficients),
                 self.sphere_channels,
             ),
             device=x_edge_m_0.device,
             dtype=x_edge_m_0.dtype,
         )
-        x_edge_embedding = torch.cat((x_edge_m_0, x_edge_m_pad), dim=1)
-        x_edge_embedding = torch.bmm(wigner_and_M_mapping_inv, x_edge_embedding)
+        x_edge_embedding = torch.cat(
+            (x_edge_m_0, x_edge_m_pad), dim=1)
+        x_edge_embedding = torch.bmm(
+            wigner_and_M_mapping_inv, x_edge_embedding)
 
         # envelope
         dist_scaled = edge_distance / self.cutoff
         env = self.envelope(dist_scaled)
-        x_edge_embedding = x_edge_embedding * env.view(-1, 1, 1)
+        x_edge_embedding = x_edge_embedding * \
+            env.view(-1, 1, 1)
 
         # TODO is this needed?
         x_edge_embedding = x_edge_embedding.to(x.dtype)
 
         return x.index_add(
-            0, edge_index[1] - node_offset, x_edge_embedding / self.rescale_factor
+            0, edge_index[1] - node_offset, x_edge_embedding /
+            self.rescale_factor
         )
 
     def forward(
@@ -133,7 +139,8 @@ class EdgeDegreeEmbedding(torch.nn.Module):
         edge_distance_parititons = edge_distance.split(
             self.activation_checkpoint_chunk_size, dim=0
         )
-        x_edge_partitions = x_edge.split(self.activation_checkpoint_chunk_size, dim=0)
+        x_edge_partitions = x_edge.split(
+            self.activation_checkpoint_chunk_size, dim=0)
 
         for idx in range(len(edge_index_partitions)):
             x = torch.utils.checkpoint.checkpoint(
@@ -160,17 +167,20 @@ class ChgSpinEmbedding(nn.Module):
         scale=1.0,
     ):
         super().__init__()
-        assert embedding_type in ["pos_emb", "lin_emb", "rand_emb"]
+        assert embedding_type in [
+            "pos_emb", "lin_emb", "rand_emb"]
         self.embedding_type = embedding_type
         assert embedding_target in ["charge", "spin"]
         self.embedding_target = embedding_target
 
         if self.embedding_target == "charge":
             # 100 is a conservative upper bound
-            self.target_dict = {str(x): x + 100 for x in range(-100, 101)}
+            self.target_dict = {
+                str(x): x + 100 for x in range(-100, 101)}
         elif self.embedding_target == "spin":
             # 100 is a conservative upper bound
-            self.target_dict = {str(x): x for x in range(101)}
+            self.target_dict = {
+                str(x): x for x in range(101)}
 
         if self.embedding_type == "pos_emb":
             # dividing by 2 because x_proj multiplies by 2
@@ -183,29 +193,34 @@ class ChgSpinEmbedding(nn.Module):
                     torch.randn(embedding_size // 2) * scale, requires_grad=True
                 )
         elif self.embedding_type == "lin_emb":
-            self.lin_emb = nn.Linear(in_features=1, out_features=embedding_size)
+            self.lin_emb = nn.Linear(
+                in_features=1, out_features=embedding_size)
             if not grad:
                 for param in self.lin_emb.parameters():
                     param.requires_grad = False
         elif self.embedding_type == "rand_emb":
-            self.rand_emb = nn.Embedding(len(self.target_dict), embedding_size)
+            self.rand_emb = nn.Embedding(
+                len(self.target_dict), embedding_size)
             if not grad:
                 for param in self.rand_emb.parameters():
                     param.requires_grad = False
 
         else:
-            raise ValueError(f"embedding type {self.embedding_type} not implemented")
+            raise ValueError(
+                f"embedding type {self.embedding_type} not implemented")
 
     def forward(self, x):
         # null token for spin is 0
         # charge is default 0
         if self.embedding_type == "pos_emb":
-            x_proj = x[:, None] * self.W[None, :] * 2 * torch.pi
+            x_proj = x[:, None] * \
+                self.W[None, :] * 2 * torch.pi
             if self.embedding_target == "charge":
                 return torch.cat([torch.sin(x_proj), torch.cos(x_proj)], dim=-1)
             elif self.embedding_target == "spin":
                 zero_idxs = torch.where(x == 0)[0]
-                emb = torch.cat([torch.sin(x_proj), torch.cos(x_proj)], dim=-1)
+                emb = torch.cat(
+                    [torch.sin(x_proj), torch.cos(x_proj)], dim=-1)
                 # this sets the null spin embedding to zero
                 emb[zero_idxs] = 0
                 return emb
@@ -216,12 +231,14 @@ class ChgSpinEmbedding(nn.Module):
         elif self.embedding_type == "rand_emb":
             return self.rand_emb(
                 torch.tensor(
-                    [self.target_dict[str(i)] for i in x.tolist()],
+                    [self.target_dict[str(i)]
+                     for i in x.tolist()],
                     device=x.device,
                     dtype=torch.long,
                 )
             )
-        raise ValueError(f"embedding type {self.embedding_type} not implemented")
+        raise ValueError(
+            f"embedding type {self.embedding_type} not implemented")
 
 
 class DatasetEmbedding(nn.Module):
@@ -231,23 +248,27 @@ class DatasetEmbedding(nn.Module):
         self.dataset_emb_dict = nn.ModuleDict({})
         for dataset in dataset_list:
             if dataset not in self.dataset_emb_dict:
-                self.dataset_emb_dict[dataset] = nn.Embedding(1, embedding_size)
+                self.dataset_emb_dict[dataset] = nn.Embedding(
+                    1, embedding_size)
             if not grad:
                 for param in self.dataset_emb_dict[dataset].parameters():
                     param.requires_grad = False
 
     def forward(self, dataset_list):
         device = list(self.parameters())[0].device
-        emb_idx = torch.tensor(0, device=device, dtype=torch.long)
+        emb_idx = torch.tensor(
+            0, device=device, dtype=torch.long)
 
         # TODO: this is a hack to accomodate the MPA finetuning
         # emb_for_datasets = [
         #     self.dataset_emb_dict[dataset](emb_idx) for dataset in dataset_list
         # ]
         emb_for_datasets = [
-            self.dataset_emb_dict["omat"](emb_idx)
-            if dataset in ["mptrj", "salex"]
-            else self.dataset_emb_dict[dataset](emb_idx)
+            (
+                self.dataset_emb_dict["omat"](emb_idx)
+                if dataset in ["mptrj", "salex"]
+                else self.dataset_emb_dict[dataset](emb_idx)
+            )
             for dataset in dataset_list
         ]
 

@@ -42,7 +42,8 @@ def scatter_sum(
             size[dim] = 0
         else:
             size[dim] = int(index.max()) + 1
-        out = torch.zeros(size, dtype=src.dtype, device=src.device)
+        out = torch.zeros(
+            size, dtype=src.dtype, device=src.device)
         return out.scatter_add_(dim, index, src)
     else:
         return out.scatter_add_(dim, index, src)
@@ -66,8 +67,10 @@ def scatter_std(
     if index.dim() <= dim:
         count_dim = index.dim() - 1
 
-    ones = torch.ones(index.size(), dtype=src.dtype, device=src.device)
-    count = scatter_sum(ones, index, count_dim, dim_size=dim_size)
+    ones = torch.ones(
+        index.size(), dtype=src.dtype, device=src.device)
+    count = scatter_sum(
+        ones, index, count_dim, dim_size=dim_size)
 
     index = _broadcast(index, src, dim)
     tmp = scatter_sum(src, index, dim, dim_size=dim_size)
@@ -101,8 +104,10 @@ def scatter_mean(
     if index.dim() <= index_dim:
         index_dim = index.dim() - 1
 
-    ones = torch.ones(index.size(), dtype=src.dtype, device=src.device)
-    count = scatter_sum(ones, index, index_dim, None, dim_size)
+    ones = torch.ones(
+        index.size(), dtype=src.dtype, device=src.device)
+    count = scatter_sum(
+        ones, index, index_dim, None, dim_size)
     count[count < 1] = 1
     count = _broadcast(count, out, dim)
     if out.is_floating_point():

@@ -55,7 +55,8 @@ class LaunchLogger(object):
             return cls._instances[name_space]
 
         # Otherwise create new singleton instance for this namespace
-        self = super().__new__(cls)  # don't pass remaining parameters to object.__new__
+        # don't pass remaining parameters to object.__new__
+        self = super().__new__(cls)
         cls._instances[name_space] = self
 
         # Constructor set up to only be ran once by a logger
@@ -70,8 +71,10 @@ class LaunchLogger(object):
             self.profiler = torch.autograd.profiler.emit_nvtx(
                 enabled=cls.enable_profiling
             )
-            self.start_event = torch.cuda.Event(enable_timing=True)
-            self.end_event = torch.cuda.Event(enable_timing=True)
+            self.start_event = torch.cuda.Event(
+                enable_timing=True)
+            self.end_event = torch.cuda.Event(
+                enable_timing=True)
         else:
             self.profiler = None
 
@@ -99,14 +102,17 @@ class LaunchLogger(object):
         # Init initial iteration based on current epoch
         if self.total_iteration_index is None:
             if num_mini_batch is not None:
-                self.total_iteration_index = (epoch - 1) * num_mini_batch
+                self.total_iteration_index = (
+                    epoch - 1) * num_mini_batch
             else:
                 self.total_iteration_index = 0
 
         # Set x axis metric to epoch for this namespace
         if self.wandb_backend:
-            wandb.define_metric(name_space + "/mini_batch_*", step_metric="iter")
-            wandb.define_metric(name_space + "/*", step_metric="epoch")
+            wandb.define_metric(
+                name_space + "/mini_batch_*", step_metric="iter")
+            wandb.define_metric(
+                name_space + "/*", step_metric="epoch")
 
     def log_minibatch(self, losses: Dict[str, float]):
         """Logs metrics for a mini-batch epoch
@@ -134,7 +140,8 @@ class LaunchLogger(object):
             for name, value in losses.items():
                 mini_batch_metrics[f"{self.name_space}/mini_batch_{name}"] = value
             self._log_backends(
-                mini_batch_metrics, step=("iter", self.total_iteration_index)
+                mini_batch_metrics, step=(
+                    "iter", self.total_iteration_index)
             )
 
             # Console
@@ -145,7 +152,9 @@ class LaunchLogger(object):
                 message = message[:-1]
                 # If we have datapipe length we can get a percent complete
                 if self.num_mini_batch:
-                    mbp = 100 * (float(self.mini_batch_index) / self.num_mini_batch)
+                    mbp = 100 * \
+                        (float(self.mini_batch_index) /
+                         self.num_mini_batch)
                     message = f"[{mbp:.02f}%] " + message
 
                 self.pyLogger.log(message)
@@ -168,7 +177,8 @@ class LaunchLogger(object):
 
         # Trigger profiling
         if self.profile and self.profiler:
-            self.logger.warning(f"Starting profile for epoch {self.epoch}")
+            self.logger.warning(
+                f"Starting profile for epoch {self.epoch}")
             self.profiler.__enter__()
             profiler.start()
 
@@ -179,7 +189,8 @@ class LaunchLogger(object):
             self.start_event = time.time()
 
         if self.mlflow_backend:
-            self.mlflow_client.update_run(self.mlflow_run.info.run_id, "RUNNING")
+            self.mlflow_client.update_run(
+                self.mlflow_run.info.run_id, "RUNNING")
 
         return self
 
@@ -197,7 +208,8 @@ class LaunchLogger(object):
             self.epoch_losses[name] = process_loss
             # Compute global loss
             if DistributedManager.is_initialized() and DistributedManager().distributed:
-                self.epoch_losses[name] = reduce_loss(process_loss)
+                self.epoch_losses[name] = reduce_loss(
+                    process_loss)
 
         if self.root:
             # Console printing
@@ -225,13 +237,15 @@ class LaunchLogger(object):
             torch.cuda.synchronize()
             # Returns milliseconds
             # https://pytorch.org/docs/stable/generated/torch.cuda.Event.html#torch.cuda.Event.elapsed_time
-            epoch_time = self.start_event.elapsed_time(self.end_event) / 1000.0
+            epoch_time = self.start_event.elapsed_time(
+                self.end_event) / 1000.0
         else:
             end_event = time.time()
             epoch_time = end_event - self.start_event
 
         # Return MS for time / iter
-        time_per_iter = 1000 * epoch_time / max([1, self.mini_batch_index])
+        time_per_iter = 1000 * epoch_time / \
+            max([1, self.mini_batch_index])
 
         if self.root:
             message = f"Epoch Execution Time: {epoch_time:10.3e}s"
@@ -241,7 +255,8 @@ class LaunchLogger(object):
         metrics[f"{self.name_space}/Epoch Time (s)"] = epoch_time
         metrics[f"{self.name_space}/Time per iter (ms)"] = time_per_iter
 
-        self._log_backends(metrics, step=("epoch", self.epoch))
+        self._log_backends(
+            metrics, step=("epoch", self.epoch))
 
         # TODO this should be in some on delete method / clean up
         if self.mlflow_backend:
@@ -286,7 +301,8 @@ class LaunchLogger(object):
                 if value is None:
                     continue
                 # Keys only allow alpha numeric, ., -, /, _ and spaces
-                key = re.sub("[^a-zA-Z0-9\.\-\s\/\_]+", "", key)
+                key = re.sub(
+                    "[^a-zA-Z0-9\.\-\s\/\_]+", "", key)
                 self.mlflow_client.log_metric(
                     self.mlflow_run.info.run_id, key, value, step=step[1]
                 )

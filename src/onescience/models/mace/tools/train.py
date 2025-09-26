@@ -1,4 +1,3 @@
-
 # Training script
 
 import dataclasses
@@ -171,11 +170,13 @@ def train(
         import wandb
 
     if max_grad_norm is not None:
-        logging.info(f"Using gradient clipping with tolerance={max_grad_norm:.3f}")
+        logging.info(
+            f"Using gradient clipping with tolerance={max_grad_norm:.3f}")
 
     logging.info("")
     logging.info("===========TRAINING===========")
-    logging.info("Started training, reporting errors on validation set")
+    logging.info(
+        "Started training, reporting errors on validation set")
     logging.info("Loss metrics on validation set")
     epoch = start_epoch
 
@@ -191,7 +192,8 @@ def train(
         valid_err_log(
             valid_loss_head, eval_metrics, logger, log_errors, None, valid_loader_name
         )
-    valid_loss = valid_loss_head  # consider only the last head for the checkpoint
+    # consider only the last head for the checkpoint
+    valid_loss = valid_loss_head
 
     while epoch < max_num_epochs:
         # LR scheduler and SWA update
@@ -202,7 +204,8 @@ def train(
                 )  # Can break if exponential LR, TODO fix that!
         else:
             if swa_start:
-                logging.info("Changing loss based on Stage Two Weights")
+                logging.info(
+                    "Changing loss based on Stage Two Weights")
                 lowest_loss = np.inf
                 swa_start = False
                 keep_last = True
@@ -274,9 +277,11 @@ def train(
                             }
                 if plotter and epoch % plotter.plot_frequency == 0:
                     try:
-                        plotter.plot(epoch, model_to_evaluate, rank)
+                        plotter.plot(
+                            epoch, model_to_evaluate, rank)
                     except Exception as e:  # pylint: disable=broad-except
-                        logging.debug(f"Plotting failed: {e}")
+                        logging.debug(
+                            f"Plotting failed: {e}")
                 valid_loss = (
                     valid_loss_head  # consider only the last head for the checkpoint
                 )
@@ -304,7 +309,8 @@ def train(
                         )
                         with param_context:
                             checkpoint_handler.save(
-                                state=CheckpointState(model, optimizer, lr_scheduler),
+                                state=CheckpointState(
+                                    model, optimizer, lr_scheduler),
                                 epochs=epoch,
                                 keep_last=True,
                             )
@@ -316,7 +322,8 @@ def train(
                     )
                     with param_context:
                         checkpoint_handler.save(
-                            state=CheckpointState(model, optimizer, lr_scheduler),
+                            state=CheckpointState(
+                                model, optimizer, lr_scheduler),
                             epochs=epoch,
                             keep_last=keep_last,
                         )
@@ -406,7 +413,8 @@ def take_step(
         loss = loss_fn(pred=output, ref=batch)
         loss.backward()
         if max_grad_norm is not None:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_grad_norm)
+            torch.nn.utils.clip_grad_norm_(
+                model.parameters(), max_norm=max_grad_norm)
 
         return loss
 
@@ -446,13 +454,15 @@ def take_step_lbfgs(
         total_sample_count += batch.num_graphs
 
     if distributed:
-        global_sample_count = torch.tensor(total_sample_count, device=device)
+        global_sample_count = torch.tensor(
+            total_sample_count, device=device)
         torch.distributed.all_reduce(
             global_sample_count, op=torch.distributed.ReduceOp.SUM
         )
         total_sample_count = global_sample_count.item()
 
-    signal = torch.zeros(1, device=device) if distributed else None
+    signal = torch.zeros(
+        1, device=device) if distributed else None
 
     def closure():
         if distributed:
@@ -461,7 +471,8 @@ def take_step_lbfgs(
                 torch.distributed.broadcast(signal, src=0)
 
             for param in model.parameters():
-                torch.distributed.broadcast(param.data, src=0)
+                torch.distributed.broadcast(
+                    param.data, src=0)
 
         optimizer.zero_grad(set_to_none=True)
         total_loss = torch.tensor(0.0, device=device)
@@ -478,16 +489,19 @@ def take_step_lbfgs(
                 compute_stress=output_args["stress"],
             )
             batch_loss = loss_fn(pred=output, ref=batch)
-            batch_loss = batch_loss * (batch.num_graphs / total_sample_count)
+            batch_loss = batch_loss * \
+                (batch.num_graphs / total_sample_count)
 
             batch_loss.backward()
             total_loss += batch_loss
 
         if max_grad_norm is not None:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=max_grad_norm)
+            torch.nn.utils.clip_grad_norm_(
+                model.parameters(), max_norm=max_grad_norm)
 
         if distributed:
-            torch.distributed.all_reduce(total_loss, op=torch.distributed.ReduceOp.SUM)
+            torch.distributed.all_reduce(
+                total_loss, op=torch.distributed.ReduceOp.SUM)
         return total_loss
 
     if distributed:
@@ -559,27 +573,42 @@ class MACELoss(Metric):
     def __init__(self, loss_fn: torch.nn.Module):
         super().__init__()
         self.loss_fn = loss_fn
-        self.add_state("total_loss", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("num_data", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("E_computed", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("delta_es", default=[], dist_reduce_fx="cat")
-        self.add_state("delta_es_per_atom", default=[], dist_reduce_fx="cat")
-        self.add_state("Fs_computed", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("fs", default=[], dist_reduce_fx="cat")
-        self.add_state("delta_fs", default=[], dist_reduce_fx="cat")
+        self.add_state("total_loss", default=torch.tensor(
+            0.0), dist_reduce_fx="sum")
+        self.add_state("num_data", default=torch.tensor(
+            0.0), dist_reduce_fx="sum")
+        self.add_state("E_computed", default=torch.tensor(
+            0.0), dist_reduce_fx="sum")
+        self.add_state("delta_es", default=[],
+                       dist_reduce_fx="cat")
+        self.add_state("delta_es_per_atom",
+                       default=[], dist_reduce_fx="cat")
+        self.add_state("Fs_computed", default=torch.tensor(
+            0.0), dist_reduce_fx="sum")
+        self.add_state("fs", default=[],
+                       dist_reduce_fx="cat")
+        self.add_state("delta_fs", default=[],
+                       dist_reduce_fx="cat")
         self.add_state(
             "stress_computed", default=torch.tensor(0.0), dist_reduce_fx="sum"
         )
-        self.add_state("delta_stress", default=[], dist_reduce_fx="cat")
+        self.add_state(
+            "delta_stress", default=[], dist_reduce_fx="cat")
         self.add_state(
             "virials_computed", default=torch.tensor(0.0), dist_reduce_fx="sum"
         )
-        self.add_state("delta_virials", default=[], dist_reduce_fx="cat")
-        self.add_state("delta_virials_per_atom", default=[], dist_reduce_fx="cat")
-        self.add_state("Mus_computed", default=torch.tensor(0.0), dist_reduce_fx="sum")
-        self.add_state("mus", default=[], dist_reduce_fx="cat")
-        self.add_state("delta_mus", default=[], dist_reduce_fx="cat")
-        self.add_state("delta_mus_per_atom", default=[], dist_reduce_fx="cat")
+        self.add_state("delta_virials",
+                       default=[], dist_reduce_fx="cat")
+        self.add_state("delta_virials_per_atom",
+                       default=[], dist_reduce_fx="cat")
+        self.add_state("Mus_computed", default=torch.tensor(
+            0.0), dist_reduce_fx="sum")
+        self.add_state("mus", default=[],
+                       dist_reduce_fx="cat")
+        self.add_state("delta_mus", default=[],
+                       dist_reduce_fx="cat")
+        self.add_state("delta_mus_per_atom",
+                       default=[], dist_reduce_fx="cat")
 
     def update(self, batch, output):  # pylint: disable=arguments-differ
         loss = self.loss_fn(pred=output, ref=batch)
@@ -588,20 +617,25 @@ class MACELoss(Metric):
 
         if output.get("energy") is not None and batch.energy is not None:
             self.E_computed += 1.0
-            self.delta_es.append(batch.energy - output["energy"])
+            self.delta_es.append(
+                batch.energy - output["energy"])
             self.delta_es_per_atom.append(
-                (batch.energy - output["energy"]) / (batch.ptr[1:] - batch.ptr[:-1])
+                (batch.energy - output["energy"]) /
+                (batch.ptr[1:] - batch.ptr[:-1])
             )
         if output.get("forces") is not None and batch.forces is not None:
             self.Fs_computed += 1.0
             self.fs.append(batch.forces)
-            self.delta_fs.append(batch.forces - output["forces"])
+            self.delta_fs.append(
+                batch.forces - output["forces"])
         if output.get("stress") is not None and batch.stress is not None:
             self.stress_computed += 1.0
-            self.delta_stress.append(batch.stress - output["stress"])
+            self.delta_stress.append(
+                batch.stress - output["stress"])
         if output.get("virials") is not None and batch.virials is not None:
             self.virials_computed += 1.0
-            self.delta_virials.append(batch.virials - output["virials"])
+            self.delta_virials.append(
+                batch.virials - output["virials"])
             self.delta_virials_per_atom.append(
                 (batch.virials - output["virials"])
                 / (batch.ptr[1:] - batch.ptr[:-1]).view(-1, 1, 1)
@@ -609,7 +643,8 @@ class MACELoss(Metric):
         if output.get("dipole") is not None and batch.dipole is not None:
             self.Mus_computed += 1.0
             self.mus.append(batch.dipole)
-            self.delta_mus.append(batch.dipole - output["dipole"])
+            self.delta_mus.append(
+                batch.dipole - output["dipole"])
             self.delta_mus_per_atom.append(
                 (batch.dipole - output["dipole"])
                 / (batch.ptr[1:] - batch.ptr[:-1]).unsqueeze(-1)
@@ -622,14 +657,18 @@ class MACELoss(Metric):
 
     def compute(self):
         aux = {}
-        aux["loss"] = to_numpy(self.total_loss / self.num_data).item()
+        aux["loss"] = to_numpy(
+            self.total_loss / self.num_data).item()
         if self.E_computed:
             delta_es = self.convert(self.delta_es)
-            delta_es_per_atom = self.convert(self.delta_es_per_atom)
+            delta_es_per_atom = self.convert(
+                self.delta_es_per_atom)
             aux["mae_e"] = compute_mae(delta_es)
-            aux["mae_e_per_atom"] = compute_mae(delta_es_per_atom)
+            aux["mae_e_per_atom"] = compute_mae(
+                delta_es_per_atom)
             aux["rmse_e"] = compute_rmse(delta_es)
-            aux["rmse_e_per_atom"] = compute_rmse(delta_es_per_atom)
+            aux["rmse_e_per_atom"] = compute_rmse(
+                delta_es_per_atom)
             aux["q95_e"] = compute_q95(delta_es)
         if self.Fs_computed:
             fs = self.convert(self.fs)
@@ -637,7 +676,8 @@ class MACELoss(Metric):
             aux["mae_f"] = compute_mae(delta_fs)
             aux["rel_mae_f"] = compute_rel_mae(delta_fs, fs)
             aux["rmse_f"] = compute_rmse(delta_fs)
-            aux["rel_rmse_f"] = compute_rel_rmse(delta_fs, fs)
+            aux["rel_rmse_f"] = compute_rel_rmse(
+                delta_fs, fs)
             aux["q95_f"] = compute_q95(delta_fs)
         if self.stress_computed:
             delta_stress = self.convert(self.delta_stress)
@@ -646,21 +686,29 @@ class MACELoss(Metric):
             aux["q95_stress"] = compute_q95(delta_stress)
         if self.virials_computed:
             delta_virials = self.convert(self.delta_virials)
-            delta_virials_per_atom = self.convert(self.delta_virials_per_atom)
+            delta_virials_per_atom = self.convert(
+                self.delta_virials_per_atom)
             aux["mae_virials"] = compute_mae(delta_virials)
-            aux["rmse_virials"] = compute_rmse(delta_virials)
-            aux["rmse_virials_per_atom"] = compute_rmse(delta_virials_per_atom)
+            aux["rmse_virials"] = compute_rmse(
+                delta_virials)
+            aux["rmse_virials_per_atom"] = compute_rmse(
+                delta_virials_per_atom)
             aux["q95_virials"] = compute_q95(delta_virials)
         if self.Mus_computed:
             mus = self.convert(self.mus)
             delta_mus = self.convert(self.delta_mus)
-            delta_mus_per_atom = self.convert(self.delta_mus_per_atom)
+            delta_mus_per_atom = self.convert(
+                self.delta_mus_per_atom)
             aux["mae_mu"] = compute_mae(delta_mus)
-            aux["mae_mu_per_atom"] = compute_mae(delta_mus_per_atom)
-            aux["rel_mae_mu"] = compute_rel_mae(delta_mus, mus)
+            aux["mae_mu_per_atom"] = compute_mae(
+                delta_mus_per_atom)
+            aux["rel_mae_mu"] = compute_rel_mae(
+                delta_mus, mus)
             aux["rmse_mu"] = compute_rmse(delta_mus)
-            aux["rmse_mu_per_atom"] = compute_rmse(delta_mus_per_atom)
-            aux["rel_rmse_mu"] = compute_rel_rmse(delta_mus, mus)
+            aux["rmse_mu_per_atom"] = compute_rmse(
+                delta_mus_per_atom)
+            aux["rel_rmse_mu"] = compute_rel_rmse(
+                delta_mus, mus)
             aux["q95_mu"] = compute_q95(delta_mus)
 
         return aux["loss"], aux

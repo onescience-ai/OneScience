@@ -1,12 +1,12 @@
-from typing import Optional, Dict, List
 from itertools import product
+from typing import Dict, List, Optional
 
-from torch import nn, Tensor
 import torch
+from torch import Tensor, nn
 
+from .act_fn import get_act_fn
 from .base_model import CfdModel
 from .loss import MseLoss
-from .act_fn import get_act_fn
 
 
 class Ffn(nn.Module):
@@ -14,9 +14,7 @@ class Ffn(nn.Module):
     A general fully connected multi-layer neural network.
     """
 
-    def __init__(
-        self, dims: list, act_fn: nn.Module, act_on_output: bool = False
-    ):
+    def __init__(self, dims: list, act_fn: nn.Module, act_on_output: bool = False):
         super().__init__()
         self.dims = dims
 
@@ -66,9 +64,8 @@ class FfnModel(CfdModel):
         self.num_label_samples = num_label_samples
 
         act_fn = get_act_fn(act_name, act_norm)
-        self.ffn = Ffn(
-            self.widths, act_fn=act_fn, act_on_output=self.act_on_output
-        )
+        self.ffn = Ffn(self.widths, act_fn=act_fn,
+                       act_on_output=self.act_on_output)
 
     def forward(
         self,
@@ -115,7 +112,8 @@ class FfnModel(CfdModel):
 
         # Concatenate query spatial coordinates with time coordinate
         coords = query_idxs.unsqueeze(0)  # (1, k, 2)
-        coords = coords.repeat(batch_size, 1, 1)  # (b, k, 2)
+        coords = coords.repeat(
+            batch_size, 1, 1)  # (b, k, 2)
         num_queries = coords.shape[1]
         t = t.unsqueeze(-1)  # (b, 1)
         t = t.repeat(1, num_queries, 1)  # (b, k)
@@ -123,20 +121,24 @@ class FfnModel(CfdModel):
 
         # Concatenate case params with queries
         case_params = case_params.unsqueeze(1)  # (b, 1, p)
-        case_params = case_params.repeat(1, num_queries, 1)  # (b, k, p)
-        inp = torch.cat([case_params, coords], dim=-1)  # (b, k, p + 3)
-        inp = inp.view(batch_size * num_queries, -1)  # (bk, p + 3)
+        case_params = case_params.repeat(
+            1, num_queries, 1)  # (b, k, p)
+        # (b, k, p + 3)
+        inp = torch.cat([case_params, coords], dim=-1)
+        # (bk, p + 3)
+        inp = inp.view(batch_size * num_queries, -1)
         preds = self.ffn(inp)  # (bk, out_dim)
-        preds = preds.view(batch_size, num_queries)  # (b, k)
+        preds = preds.view(
+            batch_size, num_queries)  # (b, k)
 
         if label is not None:
             # Use only the u channel
             label = label[:, 0]  # (B, w, h)
-            labels = label[:, query_idxs[:, 0], query_idxs[:, 1]]  # (b, k)
-            assert (
-                preds.shape == labels.shape
-            ), f"{preds.shape}, {labels.shape}"
-            loss = self.loss_fn(preds=preds, labels=labels)  # (b, k)
+            labels = label[:, query_idxs[:, 0],
+                           query_idxs[:, 1]]  # (b, k)
+            assert preds.shape == labels.shape, f"{preds.shape}, {labels.shape}"
+            loss = self.loss_fn(
+                preds=preds, labels=labels)  # (b, k)
             return dict(
                 preds=preds,
                 loss=loss,
@@ -176,6 +178,8 @@ class FfnModel(CfdModel):
 
         # query_points = query_points / 100
         # (b, 1, h * w)
-        output = self.forward(case_params, t=t, query_idxs=query_idxs)["preds"]
-        output = output.view(-1, 1, height, width)  # (b, 1, h, w)
+        output = self.forward(
+            case_params, t=t, query_idxs=query_idxs)["preds"]
+        # (b, 1, h, w)
+        output = output.view(-1, 1, height, width)
         return output

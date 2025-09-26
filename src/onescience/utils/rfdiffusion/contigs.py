@@ -1,6 +1,7 @@
-import sys
-import numpy as np
 import random
+import sys
+
+import numpy as np
 
 
 class ContigMap:
@@ -29,11 +30,12 @@ class ContigMap:
         provide_seq=None,
         inpaint_str_strand=None,
         inpaint_str_helix=None,
-        inpaint_str_loop=None
+        inpaint_str_loop=None,
     ):
         # sanity checks
         if contigs is None and ref_idx is None:
-            sys.exit("Must either specify a contig string or precise mapping")
+            sys.exit(
+                "Must either specify a contig string or precise mapping")
         if idx_rf is not None or hal_idx is not None or ref_idx is not None:
             if idx_rf is None or hal_idx is None or ref_idx is None:
                 sys.exit(
@@ -45,20 +47,25 @@ class ContigMap:
             if "-" not in length:
                 self.length = [int(length), int(length) + 1]
             else:
-                self.length = [int(length.split("-")[0]), int(length.split("-")[1]) + 1]
+                self.length = [
+                    int(length.split("-")[0]), int(length.split("-")[1]) + 1]
         else:
             self.length = None
         self.ref_idx = ref_idx
         self.hal_idx = hal_idx
         self.idx_rf = idx_rf
 
-        parse_inpaint = lambda x: "/".join(x).split("/") if x is not None else None
+        def parse_inpaint(
+            x): return "/".join(x).split("/") if x is not None else None
         self.inpaint_seq = parse_inpaint(inpaint_seq)
         self.inpaint_str = parse_inpaint(inpaint_str)
 
-        self.inpaint_str_helix=parse_inpaint(inpaint_str_helix)
-        self.inpaint_str_strand=parse_inpaint(inpaint_str_strand)
-        self.inpaint_str_loop=parse_inpaint(inpaint_str_loop)
+        self.inpaint_str_helix = parse_inpaint(
+            inpaint_str_helix)
+        self.inpaint_str_strand = parse_inpaint(
+            inpaint_str_strand)
+        self.inpaint_str_loop = parse_inpaint(
+            inpaint_str_loop)
 
         self.inpaint_seq_tensor = inpaint_seq_tensor
         self.inpaint_str_tensor = inpaint_str_tensor
@@ -89,24 +96,29 @@ class ContigMap:
             self.ref = ref_idx
             self.hal = hal_idx
             self.rf = idx_rf
-        self.mask_1d = [False if i == ("_", "_") else True for i in self.ref]
+        self.mask_1d = [False if i == (
+            "_", "_") else True for i in self.ref]
         # take care of sequence and structure masking
         if self.inpaint_seq_tensor is None:
             if self.inpaint_seq is not None:
-                self.inpaint_seq = self.get_inpaint_seq_str(self.inpaint_seq)
+                self.inpaint_seq = self.get_inpaint_seq_str(
+                    self.inpaint_seq)
             else:
                 self.inpaint_seq = np.array(
-                    [True if i != ("_", "_") else False for i in self.ref]
+                    [True if i != (
+                        "_", "_") else False for i in self.ref]
                 )
         else:
             self.inpaint_seq = self.inpaint_seq_tensor
 
         if self.inpaint_str_tensor is None:
             if self.inpaint_str is not None:
-                self.inpaint_str = self.get_inpaint_seq_str(self.inpaint_str)
+                self.inpaint_str = self.get_inpaint_seq_str(
+                    self.inpaint_str)
             else:
                 self.inpaint_str = np.array(
-                    [True if i != ("_", "_") else False for i in self.ref]
+                    [True if i != (
+                        "_", "_") else False for i in self.ref]
                 )
         else:
             self.inpaint_str = self.inpaint_str_tensor
@@ -119,14 +131,15 @@ class ContigMap:
             self.ref_idx0_receptor,
             self.hal_idx0_receptor,
         ) = self.get_idx0()
-        self.con_ref_pdb_idx = [i for i in self.ref if i != ("_", "_")]
+        self.con_ref_pdb_idx = [
+            i for i in self.ref if i != ("_", "_")]
 
         # Handle provide seq. This is zero-indexed, and used only for partial diffusion
         if provide_seq is not None:
             for i in provide_seq:
                 if "-" in i:
                     self.inpaint_seq[
-                        int(i.split("-")[0]) : int(i.split("-")[1]) + 1
+                        int(i.split("-")[0]): int(i.split("-")[1]) + 1
                     ] = True
                 else:
                     self.inpaint_seq[int(i)] = True
@@ -150,19 +163,33 @@ class ContigMap:
         However, you can't specify the secondary structure of a region you're not applying inpaint_str to, as this doesn't make sense.
         """
 
-        if any(x is not None for x in (inpaint_str_helix, inpaint_str_strand, inpaint_str_loop)):
-            self.ss_spec={}
-            order=['helix','strand','loop']
-            for idx, i in enumerate([inpaint_str_helix, inpaint_str_strand, inpaint_str_loop]):
+        if any(
+            x is not None
+            for x in (inpaint_str_helix, inpaint_str_strand, inpaint_str_loop)
+        ):
+            self.ss_spec = {}
+            order = ["helix", "strand", "loop"]
+            for idx, i in enumerate(
+                [inpaint_str_helix, inpaint_str_strand,
+                    inpaint_str_loop]
+            ):
                 if i is not None:
-                    self.ss_spec[order[idx]] = ~self.get_inpaint_seq_str(i, ss=True)
+                    self.ss_spec[order[idx]] = ~self.get_inpaint_seq_str(
+                        i, ss=True)
                 else:
-                    self.ss_spec[order[idx]] = np.zeros(len(self.inpaint_seq), dtype=bool)
+                    self.ss_spec[order[idx]] = np.zeros(
+                        len(self.inpaint_seq), dtype=bool
+                    )
             # some sensible checks
             for key, mask in self.ss_spec.items():
-                assert sum(mask*self.inpaint_str) == 0, f"You've specified {key} residues that are not structure-masked with inpaint_str. This doesn't really make sense."
-            stack=np.vstack([mask for mask in self.ss_spec.values()])
-            assert np.max(np.sum(stack, axis=0)) == 1, "You've given multiple secondary structure assignations to an input residue. This doesn't make sense."
+                assert (
+                    sum(mask * self.inpaint_str) == 0
+                ), f"You've specified {key} residues that are not structure-masked with inpaint_str. This doesn't really make sense."
+            stack = np.vstack(
+                [mask for mask in self.ss_spec.values()])
+            assert (
+                np.max(np.sum(stack, axis=0)) == 1
+            ), "You've given multiple secondary structure assignations to an input residue. This doesn't make sense."
 
     def get_sampled_mask(self):
         """
@@ -180,7 +207,8 @@ class ContigMap:
                 contig_list[-1] = f"{contig_list[-1]}/0"
             for con in contig_list:
                 if (
-                    all([i[0].isalpha() for i in con.split("/")[:-1]])
+                    all([i[0].isalpha()
+                        for i in con.split("/")[:-1]])
                     and con.split("/")[-1] == "0"
                 ) or self.topo is True:
                     # receptor chain
@@ -195,7 +223,8 @@ class ContigMap:
                             subcon_out.append(subcon)
                             if "-" in subcon:
                                 sampled_mask_length += (
-                                    int(subcon.split("-")[1])
+                                    int(subcon.split(
+                                        "-")[1])
                                     - int(subcon.split("-")[0][1:])
                                     + 1
                                 )
@@ -205,17 +234,22 @@ class ContigMap:
                         else:
                             if "-" in subcon:
                                 length_inpaint = random.randint(
-                                    int(subcon.split("-")[0]), int(subcon.split("-")[1])
+                                    int(subcon.split(
+                                        "-")[0]), int(subcon.split("-")[1])
                                 )
-                                subcon_out.append(f"{length_inpaint}-{length_inpaint}")
+                                subcon_out.append(
+                                    f"{length_inpaint}-{length_inpaint}")
                                 sampled_mask_length += length_inpaint
                             elif subcon == "0":
                                 subcon_out.append("0")
                             else:
                                 length_inpaint = int(subcon)
-                                subcon_out.append(f"{length_inpaint}-{length_inpaint}")
-                                sampled_mask_length += int(subcon)
-                    sampled_mask.append("/".join(subcon_out))
+                                subcon_out.append(
+                                    f"{length_inpaint}-{length_inpaint}")
+                                sampled_mask_length += int(
+                                    subcon)
+                    sampled_mask.append(
+                        "/".join(subcon_out))
             # check length is compatible
             if self.length is not None:
                 if (
@@ -227,7 +261,8 @@ class ContigMap:
                 length_compatible = True
             count += 1
             if count == 100000:  # contig string incompatible with this length
-                sys.exit("Contig string incompatible with --length range")
+                sys.exit(
+                    "Contig string incompatible with --length range")
         return sampled_mask, sampled_mask_length, inpaint_chains
 
     def expand_sampled_mask(self):
@@ -243,7 +278,8 @@ class ContigMap:
         inpaint_chain_break = []
         for con in self.sampled_mask:
             if (
-                all([i[0].isalpha() for i in con.split("/")[:-1]])
+                all([i[0].isalpha()
+                    for i in con.split("/")[:-1]])
                 and con.split("/")[-1] == "0"
             ) or self.topo is True:
                 # receptor chain
@@ -260,7 +296,8 @@ class ContigMap:
                     ref_to_add = [
                         (subcon[0], i)
                         for i in np.arange(
-                            int(subcon.split("-")[0][1:]), int(subcon.split("-")[1]) + 1
+                            int(subcon.split(
+                                "-")[0][1:]), int(subcon.split("-")[1]) + 1
                         )
                     ]
                     receptor.extend(ref_to_add)
@@ -268,14 +305,16 @@ class ContigMap:
                         [
                             (self.receptor_chain, i)
                             for i in np.arange(
-                                receptor_idx, receptor_idx + len(ref_to_add)
+                                receptor_idx, receptor_idx +
+                                len(ref_to_add)
                             )
                         ]
                     )
                     receptor_idx += len(ref_to_add)
                     if idx != len(subcons) - 1:
                         idx_jump = (
-                            int(subcons[idx + 1].split("-")[0][1:])
+                            int(subcons[idx +
+                                1].split("-")[0][1:])
                             - int(subcon.split("-")[1])
                             - 1
                         )
@@ -293,8 +332,10 @@ class ContigMap:
                         ref_to_add = [
                             (subcon[0], i)
                             for i in np.arange(
-                                int(subcon.split("-")[0][1:]),
-                                int(subcon.split("-")[1]) + 1,
+                                int(subcon.split(
+                                    "-")[0][1:]),
+                                int(subcon.split(
+                                    "-")[1]) + 1,
                             )
                         ]
                         inpaint.extend(ref_to_add)
@@ -302,39 +343,47 @@ class ContigMap:
                             [
                                 (chain_order[inpaint_chain_idx], i)
                                 for i in np.arange(
-                                    inpaint_idx, inpaint_idx + len(ref_to_add)
+                                    inpaint_idx, inpaint_idx +
+                                    len(ref_to_add)
                                 )
                             ]
                         )
                         inpaint_idx += len(ref_to_add)
 
                     else:
-                        inpaint.extend([("_", "_")] * int(subcon.split("-")[0]))
+                        inpaint.extend(
+                            [("_", "_")] * int(subcon.split("-")[0]))
                         inpaint_hal.extend(
                             [
                                 (chain_order[inpaint_chain_idx], i)
                                 for i in np.arange(
-                                    inpaint_idx, inpaint_idx + int(subcon.split("-")[0])
+                                    inpaint_idx, inpaint_idx +
+                                    int(subcon.split(
+                                        "-")[0])
                                 )
                             ]
                         )
-                        inpaint_idx += int(subcon.split("-")[0])
-                inpaint_chain_break.append((inpaint_idx - 1, 200))
+                        inpaint_idx += int(
+                            subcon.split("-")[0])
+                inpaint_chain_break.append(
+                    (inpaint_idx - 1, 200))
 
         if self.topo is True or inpaint_hal == []:
-            receptor_hal = [(i[0], i[1]) for i in receptor_hal]
+            receptor_hal = [(i[0], i[1])
+                            for i in receptor_hal]
         else:
             receptor_hal = [
                 (i[0], i[1] + inpaint_hal[-1][1]) for i in receptor_hal
             ]  # rosetta-like numbering
         # get rf indexes, with chain breaks
         inpaint_rf = np.arange(0, len(inpaint))
-        receptor_rf = np.arange(len(inpaint) + 200, len(inpaint) + len(receptor) + 200)
+        receptor_rf = np.arange(
+            len(inpaint) + 200, len(inpaint) + len(receptor) + 200)
         for ch_break in inpaint_chain_break[:-1]:
             receptor_rf[:] += 200
-            inpaint_rf[ch_break[0] :] += ch_break[1]
+            inpaint_rf[ch_break[0]:] += ch_break[1]
         for ch_break in receptor_chain_break[:-1]:
-            receptor_rf[ch_break[0] :] += ch_break[1]
+            receptor_rf[ch_break[0]:] += ch_break[1]
 
         return (
             receptor,
@@ -346,13 +395,13 @@ class ContigMap:
         )
 
     def get_inpaint_seq_str(self, inpaint_s, ss=False):
-        '''
+        """
         function to generate inpaint_str or inpaint_seq masks specific to this contig
-        '''
+        """
         if not ss:
             s_mask = np.copy(self.mask_1d)
         else:
-            s_mask= np.ones(len(self.mask_1d), dtype=bool)
+            s_mask = np.ones(len(self.mask_1d), dtype=bool)
         inpaint_s_list = []
         for i in inpaint_s:
             if "-" in i:
@@ -360,7 +409,8 @@ class ContigMap:
                     [
                         (i[0], p)
                         for p in range(
-                            int(i.split("-")[0][1:]), int(i.split("-")[1]) + 1
+                            int(i.split(
+                                "-")[0][1:]), int(i.split("-")[1]) + 1
                         )
                     ]
                 )
@@ -368,7 +418,8 @@ class ContigMap:
                 inpaint_s_list.append((i[0], int(i[1:])))
         for res in inpaint_s_list:
             if res in self.ref:
-                s_mask[self.ref.index(res)] = False  # mask this residue
+                # mask this residue
+                s_mask[self.ref.index(res)] = False
 
         return np.array(s_mask)
 
@@ -383,15 +434,18 @@ class ContigMap:
             if val != ("_", "_"):
                 assert val in self.parsed_pdb["pdb_idx"], f"{val} is not in pdb file!"
                 hal_idx0.append(idx)
-                ref_idx0.append(self.parsed_pdb["pdb_idx"].index(val))
+                ref_idx0.append(
+                    self.parsed_pdb["pdb_idx"].index(val))
         for idx, val in enumerate(self.inpaint):
             if val != ("_", "_"):
                 hal_idx0_inpaint.append(idx)
-                ref_idx0_inpaint.append(self.parsed_pdb["pdb_idx"].index(val))
+                ref_idx0_inpaint.append(
+                    self.parsed_pdb["pdb_idx"].index(val))
         for idx, val in enumerate(self.receptor):
             if val != ("_", "_"):
                 hal_idx0_receptor.append(idx)
-                ref_idx0_receptor.append(self.parsed_pdb["pdb_idx"].index(val))
+                ref_idx0_receptor.append(
+                    self.parsed_pdb["pdb_idx"].index(val))
 
         return (
             ref_idx0,
@@ -404,14 +458,17 @@ class ContigMap:
 
     def get_mappings(self):
         mappings = {}
-        mappings["con_ref_pdb_idx"] = [i for i in self.inpaint if i != ("_", "_")]
+        mappings["con_ref_pdb_idx"] = [
+            i for i in self.inpaint if i != ("_", "_")]
         mappings["con_hal_pdb_idx"] = [
             self.inpaint_hal[i]
             for i in range(len(self.inpaint_hal))
             if self.inpaint[i] != ("_", "_")
         ]
-        mappings["con_ref_idx0"] = np.array(self.ref_idx0_inpaint)
-        mappings["con_hal_idx0"] = np.array(self.hal_idx0_inpaint)
+        mappings["con_ref_idx0"] = np.array(
+            self.ref_idx0_inpaint)
+        mappings["con_hal_idx0"] = np.array(
+            self.hal_idx0_inpaint)
         if self.inpaint != self.ref:
             mappings["complex_con_ref_pdb_idx"] = [
                 i for i in self.ref if i != ("_", "_")
@@ -427,10 +484,14 @@ class ContigMap:
                 for i in range(len(self.receptor_hal))
                 if self.receptor[i] != ("_", "_")
             ]
-            mappings["complex_con_ref_idx0"] = np.array(self.ref_idx0)
-            mappings["complex_con_hal_idx0"] = np.array(self.hal_idx0)
-            mappings["receptor_con_ref_idx0"] = np.array(self.ref_idx0_receptor)
-            mappings["receptor_con_hal_idx0"] = np.array(self.hal_idx0_receptor)
+            mappings["complex_con_ref_idx0"] = np.array(
+                self.ref_idx0)
+            mappings["complex_con_hal_idx0"] = np.array(
+                self.hal_idx0)
+            mappings["receptor_con_ref_idx0"] = np.array(
+                self.ref_idx0_receptor)
+            mappings["receptor_con_hal_idx0"] = np.array(
+                self.hal_idx0_receptor)
         mappings["inpaint_str"] = self.inpaint_str
         mappings["inpaint_seq"] = self.inpaint_seq
         mappings["sampled_mask"] = self.sampled_mask

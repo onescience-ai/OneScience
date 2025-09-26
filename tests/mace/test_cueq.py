@@ -1,19 +1,18 @@
 # pylint: disable=wrong-import-position
+from onescience.models.mace.tools import torch_geometric
+from onescience.models.mace.cli.convert_e3nn_cueq import run as run_e3nn_to_cueq
+from onescience.models.mace.cli.convert_cueq_e3nn import run as run_cueq_to_e3nn
+from onescience.models.mace import data, modules, tools
+from e3nn import o3
+import torch.nn.functional as F
+import torch
+import pytest
 import os
 from copy import deepcopy
 from typing import Any, Dict
 
 os.environ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD"] = "1"
 
-import pytest
-import torch
-import torch.nn.functional as F
-from e3nn import o3
-
-from onescience.models.mace import data, modules, tools
-from onescience.models.mace.cli.convert_cueq_e3nn import run as run_cueq_to_e3nn
-from onescience.models.mace.cli.convert_e3nn_cueq import run as run_e3nn_to_cueq
-from onescience.models.mace.tools import torch_geometric
 
 try:
     import cuequivariance as cue  # pylint: disable=unused-import
@@ -61,17 +60,21 @@ class TestCueq:
 
         table = tools.AtomicNumberTable([6])
 
-        atoms = build.bulk("C", "diamond", a=3.567, cubic=True)
+        atoms = build.bulk(
+            "C", "diamond", a=3.567, cubic=True)
         import numpy as np
 
-        displacement = np.random.uniform(-0.1, 0.1, size=atoms.positions.shape)
+        displacement = np.random.uniform(
+            -0.1, 0.1, size=atoms.positions.shape)
         atoms.positions += displacement
         atoms_list = [atoms.repeat((2, 2, 2))]
 
-        configs = [data.config_from_atoms(atoms) for atoms in atoms_list]
+        configs = [data.config_from_atoms(
+            atoms) for atoms in atoms_list]
         data_loader = torch_geometric.dataloader.DataLoader(
             dataset=[
-                data.AtomicData.from_config(config, z_table=table, cutoff=5.0)
+                data.AtomicData.from_config(
+                    config, z_table=table, cutoff=5.0)
                 for config in configs
             ],
             batch_size=1,
@@ -114,28 +117,38 @@ class TestCueq:
         torch.manual_seed(42)
 
         # Create original E3nn model
-        model_e3nn = modules.ScaleShiftMACE(**model_config).to(device)
+        model_e3nn = modules.ScaleShiftMACE(
+            **model_config).to(device)
 
         # Convert E3nn to CuEq
         model_cueq = run_e3nn_to_cueq(model_e3nn).to(device)
 
         # Convert CuEq back to E3nn
-        model_e3nn_back = run_cueq_to_e3nn(model_cueq).to(device)
+        model_e3nn_back = run_cueq_to_e3nn(
+            model_cueq).to(device)
 
         # Test forward pass equivalence
-        out_e3nn = model_e3nn(deepcopy(batch), training=True, compute_stress=True)
-        out_cueq = model_cueq(deepcopy(batch), training=True, compute_stress=True)
+        out_e3nn = model_e3nn(
+            deepcopy(batch), training=True, compute_stress=True)
+        out_cueq = model_cueq(
+            deepcopy(batch), training=True, compute_stress=True)
         out_e3nn_back = model_e3nn_back(
             deepcopy(batch), training=True, compute_stress=True
         )
 
         # Check outputs match for both conversions
-        torch.testing.assert_close(out_e3nn["energy"], out_cueq["energy"])
-        torch.testing.assert_close(out_cueq["energy"], out_e3nn_back["energy"])
-        torch.testing.assert_close(out_e3nn["forces"], out_cueq["forces"])
-        torch.testing.assert_close(out_cueq["forces"], out_e3nn_back["forces"])
-        torch.testing.assert_close(out_e3nn["stress"], out_cueq["stress"])
-        torch.testing.assert_close(out_cueq["stress"], out_e3nn_back["stress"])
+        torch.testing.assert_close(
+            out_e3nn["energy"], out_cueq["energy"])
+        torch.testing.assert_close(
+            out_cueq["energy"], out_e3nn_back["energy"])
+        torch.testing.assert_close(
+            out_e3nn["forces"], out_cueq["forces"])
+        torch.testing.assert_close(
+            out_cueq["forces"], out_e3nn_back["forces"])
+        torch.testing.assert_close(
+            out_e3nn["stress"], out_cueq["stress"])
+        torch.testing.assert_close(
+            out_cueq["stress"], out_e3nn_back["stress"])
 
         # Test backward pass equivalence
         loss_e3nn = out_e3nn["energy"].sum()
@@ -156,13 +169,15 @@ class TestCueq:
                     print(
                         f"{conv_type} - Parameter {name1}/{name2}, Max error: {error.max()}"
                     )
-                    torch.testing.assert_close(p1.grad, p2.grad, atol=tol, rtol=tol)
+                    torch.testing.assert_close(
+                        p1.grad, p2.grad, atol=tol, rtol=tol)
 
         # E3nn to CuEq gradients
         for (name_e3nn, p_e3nn), (name_cueq, p_cueq) in zip(
             model_e3nn.named_parameters(), model_cueq.named_parameters()
         ):
-            print_gradient_diff(name_e3nn, p_e3nn, name_cueq, p_cueq, "E3nn->CuEq")
+            print_gradient_diff(
+                name_e3nn, p_e3nn, name_cueq, p_cueq, "E3nn->CuEq")
 
         # CuEq to E3nn gradients
         for (name_cueq, p_cueq), (name_e3nn_back, p_e3nn_back) in zip(

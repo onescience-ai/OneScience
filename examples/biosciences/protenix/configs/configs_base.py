@@ -31,7 +31,8 @@ basic_configs = {
     "deterministic": False,
     "deterministic_seed": False,
     "ema_decay": -1.0,
-    "eval_ema_only": False,  # whether wandb only tracking ema checkpoint metrics
+    # whether wandb only tracking ema checkpoint metrics
+    "eval_ema_only": False,
     "ema_mutable_param_keywords": [""],
 }
 data_configs = {
@@ -83,7 +84,8 @@ model_configs = {
     "no_bins": 64,
     "sigma_data": 16.0,
     "diffusion_batch_size": 48,
-    "diffusion_chunk_size": ValueMaybeNone(4),  # chunksize of diffusion_batch_size
+    # chunksize of diffusion_batch_size
+    "diffusion_chunk_size": ValueMaybeNone(4),
     "blocks_per_ckpt": ValueMaybeNone(
         1
     ),  # NOTE: Number of blocks in each activation checkpoint, if None, no checkpointing is performed.
@@ -95,7 +97,8 @@ model_configs = {
     "use_xformer": False,
     "find_unused_parameters": False,
     "dtype": "bf16",  # default training dtype: bf16
-    "loss_metrics_sparse_enable": True,  # the swicth for both sparse lddt metrics and sparse bond/smooth lddt loss
+    # the swicth for both sparse lddt metrics and sparse bond/smooth lddt loss
+    "loss_metrics_sparse_enable": True,
     "skip_amp": {
         "sample_diffusion": True,
         "confidence_head": True,
@@ -254,7 +257,8 @@ loss_configs = {
         "diffusion_bond_chunk_size": ValueMaybeNone(1),
         "diffusion_chunk_size_outer": ValueMaybeNone(-1),
         "diffusion_sparse_loss_enable": GlobalConfigValue("loss_metrics_sparse_enable"),
-        "diffusion_lddt_loss_dense": True,  # only set true in initial training for training speed
+        # only set true in initial training for training speed
+        "diffusion_lddt_loss_dense": True,
         "resolution": {"min": 0.1, "max": 4.0},
         "weight": {
             "alpha_confidence": 1e-4,
@@ -316,7 +320,8 @@ loss_configs = {
         "complex_ranker_keys": ListValue(["plddt", "gpde", "ranking_score"]),
         "chain_ranker_keys": ListValue(["chain_ptm", "chain_plddt"]),
         "interface_ranker_keys": ListValue(
-            ["chain_pair_iptm", "chain_pair_iptm_global", "chain_pair_plddt"]
+            ["chain_pair_iptm", "chain_pair_iptm_global",
+                "chain_pair_plddt"]
         ),
         "clash": {"af3_clash_threshold": 1.1, "vdw_clash_threshold": 0.75},
     },

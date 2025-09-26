@@ -1,17 +1,12 @@
+import warnings
+
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
 from timm.layers import trunc_normal_
-from onescience.models.layers.Basic import (
-    MLP,
-    LinearAttention,
-    FlashAttention,
-    SelfAttention as LinearSelfAttention,
-)
+
+from onescience.models.layers.Basic import MLP, LinearAttention
+from onescience.models.layers.Basic import SelfAttention as LinearSelfAttention
 from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
-from einops import rearrange, repeat
-import warnings
 
 
 def psd_safe_cholesky(A, upper=False, out=None, jitter=None):
@@ -45,10 +40,12 @@ def psd_safe_cholesky(A, upper=False, out=None, jitter=None):
         jitter_prev = 0
         for i in range(10):
             jitter_new = jitter * (10**i)
-            Aprime.diagonal(dim1=-2, dim2=-1).add_(jitter_new - jitter_prev)
+            Aprime.diagonal(
+                dim1=-2, dim2=-1).add_(jitter_new - jitter_prev)
             jitter_prev = jitter_new
             try:
-                L = torch.linalg.cholesky(Aprime, upper=upper, out=out)
+                L = torch.linalg.cholesky(
+                    Aprime, upper=upper, out=out)
                 warnings.warn(
                     f"A not p.d., added jitter of {jitter_new} to the diagonal",
                     RuntimeWarning,
@@ -79,8 +76,10 @@ class ONOBlock(nn.Module):
         self.momentum = momentum
         self.psi_dim = psi_dim
 
-        self.register_buffer("feature_cov", torch.zeros(psi_dim, psi_dim))
-        self.register_parameter("mu", nn.Parameter(torch.zeros(psi_dim)))
+        self.register_buffer(
+            "feature_cov", torch.zeros(psi_dim, psi_dim))
+        self.register_parameter(
+            "mu", nn.Parameter(torch.zeros(psi_dim)))
         self.ln_1 = nn.LayerNorm(hidden_dim)
         if attn_type == "nystrom":
             from nystrom_attention import NystromAttention
@@ -107,7 +106,8 @@ class ONOBlock(nn.Module):
                 dropout=dropout,
             )
         else:
-            raise ValueError("Attn type only supports nystrom or linear")
+            raise ValueError(
+                "Attn type only supports nystrom or linear")
         self.ln_2 = nn.LayerNorm(hidden_dim)
         self.mlp = MLP(
             hidden_dim,
@@ -137,7 +137,8 @@ class ONOBlock(nn.Module):
         x = self.mlp(self.ln_2(x)) + x
         x_ = self.proj(x)
         if self.training:
-            batch_cov = torch.einsum("blc, bld->cd", x_, x_) / x_.shape[0] / x_.shape[1]
+            batch_cov = torch.einsum(
+                "blc, bld->cd", x_, x_) / x_.shape[0] / x_.shape[1]
             with torch.no_grad():
                 self.feature_cov.mul_(self.momentum).add_(
                     batch_cov, alpha=1 - self.momentum
@@ -157,16 +158,17 @@ class ONOBlock(nn.Module):
 
 
 class Model(nn.Module):
-    ## speed up with flash attention
+    # speed up with flash attention
     def __init__(self, args, device):
         super(Model, self).__init__()
         self.__name__ = "ONO"
         self.args = args
-        ## embedding
+        # embedding
         if (
             args.unified_pos and args.geotype != "unstructured"
         ):  # only for structured mesh
-            self.pos = unified_pos_embedding(args.shapelist, args.ref, device=device)
+            self.pos = unified_pos_embedding(
+                args.shapelist, args.ref, device=device)
             self.preprocess_x = MLP(
                 args.ref ** len(args.shapelist),
                 args.n_hidden * 2,
@@ -176,7 +178,8 @@ class Model(nn.Module):
                 act=args.act,
             )
             self.preprocess_z = MLP(
-                args.fun_dim + args.ref ** len(args.shapelist),
+                args.fun_dim +
+                args.ref ** len(args.shapelist),
                 args.n_hidden * 2,
                 args.n_hidden,
                 n_layers=0,
@@ -207,7 +210,7 @@ class Model(nn.Module):
                 nn.Linear(args.n_hidden, args.n_hidden),
             )
 
-        ## models
+        # models
         self.blocks = nn.ModuleList(
             [
                 ONOBlock(
@@ -225,7 +228,8 @@ class Model(nn.Module):
             ]
         )
         self.placeholder = nn.Parameter(
-            (1 / (args.n_hidden)) * torch.rand(args.n_hidden, dtype=torch.float)
+            (1 / (args.n_hidden)) *
+            torch.rand(args.n_hidden, dtype=torch.float)
         )
         self.initialize_weights()
 

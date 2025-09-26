@@ -36,10 +36,12 @@ class CubeEmbedding(nn.Module):
 
     def forward(self, x: torch.Tensor):
         B, C, T, Lat, Lon = x.shape
-        x = self.proj(x).reshape(B, self.embed_dim, -1).transpose(1, 2)  # B T*Lat*Lon C
+        x = self.proj(x).reshape(
+            B, self.embed_dim, -1).transpose(1, 2)  # B T*Lat*Lon C
         if self.norm is not None:
             x = self.norm(x)
-        x = x.transpose(1, 2).reshape(B, self.embed_dim, *self.patches_resolution)
+        x = x.transpose(1, 2).reshape(
+            B, self.embed_dim, *self.patches_resolution)
         return x
 
 
@@ -57,7 +59,8 @@ class ConvBlock(nn.Module):
     def __init__(self, in_chans, out_chans, num_groups, num_residuals=2, upsample=0):
         super().__init__()
         if upsample == 1:
-            self.conv = nn.ConvTranspose2d(in_chans, out_chans, kernel_size=2, stride=2)
+            self.conv = nn.ConvTranspose2d(
+                in_chans, out_chans, kernel_size=2, stride=2)
         elif upsample == -1:
             self.conv = nn.Conv2d(
                 in_chans, out_chans, kernel_size=(3, 3), stride=2, padding=1
@@ -70,7 +73,8 @@ class ConvBlock(nn.Module):
         blk = []
         for i in range(num_residuals):
             blk.append(
-                nn.Conv2d(out_chans, out_chans, kernel_size=3, stride=1, padding=1)
+                nn.Conv2d(out_chans, out_chans,
+                          kernel_size=3, stride=1, padding=1)
             )
             blk.append(nn.GroupNorm(num_groups, out_chans))
             blk.append(nn.SiLU())

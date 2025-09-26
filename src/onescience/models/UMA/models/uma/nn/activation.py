@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import torch
@@ -29,14 +27,16 @@ class ScaledSwiGLU(nn.Module):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.w = torch.nn.Linear(in_channels, 2 * out_channels, bias=bias)
+        self.w = torch.nn.Linear(
+            in_channels, 2 * out_channels, bias=bias)
         self.act = ScaledSiLU()
 
     def forward(self, inputs):
         w = self.w(inputs)
         w_1 = w.narrow(-1, 0, self.out_channels)
         w_1 = self.act(w_1)
-        w_2 = w.narrow(-1, self.out_channels, self.out_channels)
+        w_2 = w.narrow(-1, self.out_channels,
+                       self.out_channels)
         return w_1 * w_2
 
 
@@ -46,14 +46,16 @@ class SwiGLU(nn.Module):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.w = torch.nn.Linear(in_channels, 2 * out_channels, bias=bias)
+        self.w = torch.nn.Linear(
+            in_channels, 2 * out_channels, bias=bias)
         self.act = torch.nn.SiLU()
 
     def forward(self, inputs):
         w = self.w(inputs)
         w_1 = w.narrow(-1, 0, self.out_channels)
         w_1 = self.act(w_1)
-        w_2 = w.narrow(-1, self.out_channels, self.out_channels)
+        w_2 = w.narrow(-1, self.out_channels,
+                       self.out_channels)
         return w_1 * w_2
 
 
@@ -64,7 +66,8 @@ class SmoothLeakyReLU(torch.nn.Module):
 
     def forward(self, x):
         x1 = ((1 + self.alpha) / 2) * x
-        x2 = ((1 - self.alpha) / 2) * x * (2 * torch.sigmoid(x) - 1)
+        x2 = ((1 - self.alpha) / 2) * x * \
+            (2 * torch.sigmoid(x) - 1)
         return x1 + x2
 
     def extra_repr(self):
@@ -104,7 +107,8 @@ class GateActivation(torch.nn.Module):
         # compute `expand_index` based on `lmax` and `mmax`
         num_components = 0
         for lval in range(1, self.lmax + 1):
-            num_m_components = min((2 * lval + 1), (2 * self.mmax + 1))
+            num_m_components = min(
+                (2 * lval + 1), (2 * self.mmax + 1))
             num_components = num_components + num_m_components
         expand_index = torch.zeros([num_components]).long()
 
@@ -112,11 +116,12 @@ class GateActivation(torch.nn.Module):
         if self.m_prime:
             start_idx = 0
             length = self.lmax
-            expand_index[start_idx : (start_idx + length)] = torch.arange(self.lmax)
+            expand_index[start_idx: (
+                start_idx + length)] = torch.arange(self.lmax)
             start_idx = start_idx + length
             for mval in range(1, self.mmax + 1):
                 length = 2 * (self.lmax + 1 - mval)
-                expand_index[start_idx : (start_idx + length)] = torch.cat(
+                expand_index[start_idx: (start_idx + length)] = torch.cat(
                     [
                         torch.arange(mval - 1, self.lmax),
                         torch.arange(mval - 1, self.lmax),
@@ -126,10 +131,13 @@ class GateActivation(torch.nn.Module):
         else:
             start_idx = 0
             for lval in range(1, self.lmax + 1):
-                length = min((2 * lval + 1), (2 * self.mmax + 1))
-                expand_index[start_idx : (start_idx + length)] = lval - 1
+                length = min((2 * lval + 1),
+                             (2 * self.mmax + 1))
+                expand_index[start_idx: (
+                    start_idx + length)] = lval - 1
                 start_idx = start_idx + length
-        self.register_buffer("expand_index", expand_index, persistent=False)
+        self.register_buffer(
+            "expand_index", expand_index, persistent=False)
 
         self.scalar_act = (
             torch.nn.SiLU()
@@ -152,7 +160,8 @@ class GateActivation(torch.nn.Module):
             (1, input_tensors.shape[1] - 1), 1
         )
 
-        input_tensors_scalars = self.scalar_act(input_tensors_scalars)
+        input_tensors_scalars = self.scalar_act(
+            input_tensors_scalars)
         input_tensors_vectors = input_tensors_vectors * gating_scalars
 
         return torch.cat((input_tensors_scalars, input_tensors_vectors), dim=1)
@@ -171,9 +180,12 @@ class S2Activation(torch.nn.Module):
         self.SO3_grid = SO3_grid
 
     def forward(self, inputs):
-        to_grid_mat = self.SO3_grid["lmax_mmax"].get_to_grid_mat()
-        from_grid_mat = self.SO3_grid["lmax_mmax"].get_from_grid_mat()
-        x_grid = torch.einsum("bai, zic -> zbac", to_grid_mat, inputs)
+        to_grid_mat = self.SO3_grid["lmax_mmax"].get_to_grid_mat(
+        )
+        from_grid_mat = self.SO3_grid["lmax_mmax"].get_from_grid_mat(
+        )
+        x_grid = torch.einsum(
+            "bai, zic -> zbac", to_grid_mat, inputs)
         x_grid = self.act(x_grid)
         return torch.einsum("bai, zbac -> zic", from_grid_mat, x_grid)
 
@@ -184,7 +196,8 @@ class SeparableS2Activation(torch.nn.Module):
         self.lmax = lmax
         self.mmax = mmax
         self.scalar_act = torch.nn.SiLU()
-        self.s2_act = S2Activation(self.lmax, self.mmax, SO3_grid)
+        self.s2_act = S2Activation(
+            self.lmax, self.mmax, SO3_grid)
 
     def forward(self, input_scalars, input_tensors):
         output_scalars = self.scalar_act(input_scalars)
@@ -195,7 +208,8 @@ class SeparableS2Activation(torch.nn.Module):
         return torch.cat(
             (
                 output_scalars,
-                output_tensors.narrow(1, 1, output_tensors.shape[1] - 1),
+                output_tensors.narrow(
+                    1, 1, output_tensors.shape[1] - 1),
             ),
             dim=1,
         )
@@ -212,15 +226,22 @@ class S2Activation_M(torch.nn.Module):
         self.mmax = mmax
         self.act = torch.nn.SiLU()
         self.SO3_grid = SO3_grid
-        to_grid_mat = self.SO3_grid["lmax_mmax"].get_to_grid_mat()
-        to_grid_mat_m = torch.einsum("ji,bai->jba", to_m, to_grid_mat)
-        self.register_buffer("to_grid_mat_m", to_grid_mat_m, persistent=False)
-        from_grid_mat = self.SO3_grid["lmax_mmax"].get_from_grid_mat()
-        from_grid_mat_m = torch.einsum("ji,bai->baj", to_m, from_grid_mat)
-        self.register_buffer("from_grid_mat_m", from_grid_mat_m, persistent=False)
+        to_grid_mat = self.SO3_grid["lmax_mmax"].get_to_grid_mat(
+        )
+        to_grid_mat_m = torch.einsum(
+            "ji,bai->jba", to_m, to_grid_mat)
+        self.register_buffer(
+            "to_grid_mat_m", to_grid_mat_m, persistent=False)
+        from_grid_mat = self.SO3_grid["lmax_mmax"].get_from_grid_mat(
+        )
+        from_grid_mat_m = torch.einsum(
+            "ji,bai->baj", to_m, from_grid_mat)
+        self.register_buffer(
+            "from_grid_mat_m", from_grid_mat_m, persistent=False)
 
     def forward(self, inputs):
-        x_grid = torch.einsum("iba, zic -> zbac", self.to_grid_mat_m, inputs)
+        x_grid = torch.einsum(
+            "iba, zic -> zbac", self.to_grid_mat_m, inputs)
         x_grid = self.act(x_grid)
         return torch.einsum("bai, zbac -> zic", self.from_grid_mat_m, x_grid)
 
@@ -231,7 +252,8 @@ class SeparableS2Activation_M(torch.nn.Module):
         self.lmax = lmax
         self.mmax = mmax
         self.scalar_act = torch.nn.SiLU()
-        self.s2_act = S2Activation_M(self.lmax, self.mmax, SO3_grid, to_m)
+        self.s2_act = S2Activation_M(
+            self.lmax, self.mmax, SO3_grid, to_m)
 
     def forward(self, input_scalars, input_tensors):
         output_scalars = self.scalar_act(input_scalars)
@@ -242,7 +264,8 @@ class SeparableS2Activation_M(torch.nn.Module):
         return torch.cat(
             (
                 output_scalars,
-                output_tensors.narrow(1, 1, output_tensors.shape[1] - 1),
+                output_tensors.narrow(
+                    1, 1, output_tensors.shape[1] - 1),
             ),
             dim=1,
         )

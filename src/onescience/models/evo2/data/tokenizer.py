@@ -30,11 +30,21 @@ class Evo2Tokenizer:
     def __init__(self, params: Evo2PreprocessingConfig | None = None):
         """Initialize the Evo2Tokenizer."""
         # Pass all NeMo2/Megatron-compliant parameters associated with config.Evo2PreprocessingConfig.
-        self.params: Evo2PreprocessingConfig = params if params is not None else Evo2PreprocessingConfig()
+        self.params: Evo2PreprocessingConfig = (
+            params if params is not None else Evo2PreprocessingConfig()
+        )
         self.tokenizer: TokenizerSpec = get_nmt_tokenizer(
             library=self.params.tokenizer_type.lower(),
-            vocab_file=str(self.params.vocab_file) if self.params.vocab_file is not None else None,
-            merges_file=str(self.params.merges_file) if self.params.merges_file is not None else None,
+            vocab_file=(
+                str(self.params.vocab_file)
+                if self.params.vocab_file is not None
+                else None
+            ),
+            merges_file=(
+                str(self.params.merges_file)
+                if self.params.merges_file is not None
+                else None
+            ),
             model_name=self.params.tokenizer_model_name,
             tokenizer_model=self.params.pretrained_tokenizer_model,
             special_tokens=self.params.special_tokens,
@@ -62,7 +72,8 @@ class Evo2Tokenizer:
             if drop_empty_sequences and len(text_ids) == 0:
                 continue
             # Append EOD token (EOD ID: 0) if appropriate.
-            eod_length = int(append_eod and l == len(text) - 1)
+            eod_length = int(
+                append_eod and l == len(text) - 1)
             token_length = len(text_ids) + eod_length
             text_ids += [0] * eod_length
             if enforce_sample_length is not None:
@@ -73,7 +84,8 @@ class Evo2Tokenizer:
                         f"possible sample length of {enforce_sample_length}.)"
                     )
                 else:
-                    text_ids += [1] * (enforce_sample_length - token_length)
+                    text_ids += [1] * \
+                        (enforce_sample_length - token_length)
             # Append to document.
             doc_ids.append(text_ids)
         return doc_ids

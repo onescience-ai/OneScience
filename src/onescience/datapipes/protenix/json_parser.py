@@ -80,7 +80,8 @@ def add_reference_features(atom_array: AtomArray) -> AtomArray:
     ref_charge = np.zeros(atom_count, dtype=int)
     ref_mask = np.zeros(atom_count, dtype=int)
 
-    starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    starts = struc.get_residue_starts(
+        atom_array, add_exclusive_stop=True)
     for start, stop in zip(starts[:-1], starts[1:]):
         res_name = atom_array.res_name[start]
         if res_name == "UNL":
@@ -99,7 +100,8 @@ def add_reference_features(atom_array: AtomArray) -> AtomArray:
             ref_charge[start:stop] = ref_info["charge"][atom_sub_idx]
             ref_mask[start:stop] = ref_info["mask"][atom_sub_idx]
         else:
-            logging.warning(f"no reference info for {res_name}")
+            logging.warning(
+                f"no reference info for {res_name}")
 
     atom_array.set_annotation("ref_pos", ref_pos)
     atom_array.set_annotation("ref_charge", ref_charge)
@@ -120,7 +122,8 @@ def _remove_non_std_ccd_leaving_atoms(atom_array: AtomArray) -> AtomArray:
     connected = np.zeros(atom_array.res_id[-1], dtype=bool)
     for i, j, t in atom_array.bonds._bonds:
         if abs(atom_array.res_id[i] - atom_array.res_id[j]) == 1:
-            connected[atom_array.res_id[[i, j]].min()] = True
+            connected[atom_array.res_id[[i, j]].min()
+                      ] = True
 
     leaving_atoms = np.zeros(len(atom_array), dtype=bool)
     for res_id, conn in enumerate(connected):
@@ -129,7 +132,8 @@ def _remove_non_std_ccd_leaving_atoms(atom_array: AtomArray) -> AtomArray:
 
         # Res_id start from 1
         res_name_i = atom_array.res_name[atom_array.res_id == res_id][0]
-        res_name_j = atom_array.res_name[atom_array.res_id == res_id + 1][0]
+        res_name_j = atom_array.res_name[atom_array.res_id ==
+                                         res_id + 1][0]
         warnings.warn(
             f"No C-N or O3'-P bond between residue {res_name_i}({res_id}) and residue {res_name_j}({res_id+1}). \n"
             f"all leaving atoms will be removed for both residues."
@@ -139,11 +143,14 @@ def _remove_non_std_ccd_leaving_atoms(atom_array: AtomArray) -> AtomArray:
                 res_name, keep_leaving_atoms=False, keep_hydrogens=False
             ).atom_name
             if idx == 1 and ccd.get_mol_type(res_name) in ("dna", "rna"):
-                staying_atoms = np.append(staying_atoms, ["OP3"])
+                staying_atoms = np.append(
+                    staying_atoms, ["OP3"])
             if idx == atom_array.res_id[-1] and ccd.get_mol_type(res_name) == "protein":
-                staying_atoms = np.append(staying_atoms, ["OXT"])
+                staying_atoms = np.append(
+                    staying_atoms, ["OXT"])
             leaving_atoms |= (atom_array.res_id == idx) & (
-                ~np.isin(atom_array.atom_name, staying_atoms)
+                ~np.isin(atom_array.atom_name,
+                         staying_atoms)
             )
     return atom_array[~leaving_atoms]
 
@@ -162,7 +169,8 @@ def find_range_by_index(starts: np.ndarray, atom_index: int) -> tuple[int, int]:
     for start, stop in zip(starts[:-1], starts[1:]):
         if start <= atom_index < stop:
             return start, stop
-    raise ValueError(f"atom_index {atom_index} not found in starts {starts}")
+    raise ValueError(
+        f"atom_index {atom_index} not found in starts {starts}")
 
 
 def remove_leaving_atoms(atom_array: AtomArray, bond_count: dict) -> AtomArray:
@@ -177,7 +185,8 @@ def remove_leaving_atoms(atom_array: AtomArray, bond_count: dict) -> AtomArray:
         AtomArray: Biotite Atom array with leaving atoms removed.
     """
     remove_indices = []
-    res_starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
+    res_starts = struc.get_residue_starts(
+        atom_array, add_exclusive_stop=True)
     for centre_idx, b_count in bond_count.items():
         res_name = atom_array.res_name[centre_idx]
         centre_name = atom_array.atom_name[centre_idx]
@@ -188,7 +197,8 @@ def remove_leaving_atoms(atom_array: AtomArray, bond_count: dict) -> AtomArray:
         if comp is None:
             continue
 
-        leaving_groups = comp.central_to_leaving_groups.get(centre_name)
+        leaving_groups = comp.central_to_leaving_groups.get(
+            centre_name)
         if leaving_groups is None:
             continue
 
@@ -199,19 +209,24 @@ def remove_leaving_atoms(atom_array: AtomArray, bond_count: dict) -> AtomArray:
             )
             remove_groups = leaving_groups
         else:
-            remove_groups = random.sample(leaving_groups, b_count)
+            remove_groups = random.sample(
+                leaving_groups, b_count)
 
-        start, stop = find_range_by_index(res_starts, centre_idx)
+        start, stop = find_range_by_index(
+            res_starts, centre_idx)
 
         # Find leaving atom indices
         for group in remove_groups:
             for atom_name in group:
-                leaving_idx = np.where(atom_array.atom_name[start:stop] == atom_name)[0]
+                leaving_idx = np.where(
+                    atom_array.atom_name[start:stop] == atom_name)[0]
                 if len(leaving_idx) == 0:
-                    logging.info(f"{atom_name=} not found in residue {res_name}, ")
+                    logging.info(
+                        f"{atom_name=} not found in residue {res_name}, ")
                     continue
 
-                remove_indices.append(leaving_idx[0] + start)
+                remove_indices.append(
+                    leaving_idx[0] + start)
 
     if not remove_indices:
         return atom_array
@@ -236,25 +251,31 @@ def _add_bonds_to_terminal_residues(atom_array: AtomArray) -> AtomArray:
         term_res_idx = atom_array.res_id[0]
         next_res_idx = term_res_idx + 1
         term_atom_idx = np.where(
-            (atom_array.res_id == term_res_idx) & (atom_array.atom_name == "C")
+            (atom_array.res_id == term_res_idx) & (
+                atom_array.atom_name == "C")
         )[0]
         next_atom_idx = np.where(
-            (atom_array.res_id == next_res_idx) & (atom_array.atom_name == "N")
+            (atom_array.res_id == next_res_idx) & (
+                atom_array.atom_name == "N")
         )[0]
         if len(term_atom_idx) > 0 and len(next_atom_idx) > 0:
-            atom_array.bonds.add_bond(term_atom_idx[0], next_atom_idx[0], 1)
+            atom_array.bonds.add_bond(
+                term_atom_idx[0], next_atom_idx[0], 1)
 
     if atom_array.res_name[-1] == "NME":
         term_res_idx = atom_array.res_id[-1]
         prev_res_idx = term_res_idx - 1
         term_atom_idx = np.where(
-            (atom_array.res_id == term_res_idx) & (atom_array.atom_name == "N")
+            (atom_array.res_id == term_res_idx) & (
+                atom_array.atom_name == "N")
         )[0]
         prev_atom_idx = np.where(
-            (atom_array.res_id == prev_res_idx) & (atom_array.atom_name == "C")
+            (atom_array.res_id == prev_res_idx) & (
+                atom_array.atom_name == "C")
         )[0]
         if len(prev_atom_idx) > 0 and len(term_atom_idx) > 0:
-            atom_array.bonds.add_bond(prev_atom_idx[0], term_atom_idx[0], 1)
+            atom_array.bonds.add_bond(
+                prev_atom_idx[0], term_atom_idx[0], 1)
 
     return atom_array
 
@@ -278,8 +299,10 @@ def _build_polymer_atom_array(ccd_seqs: list[str]) -> tuple[AtomArray, struc.Bon
         )
         residue.res_id[:] = res_id + 1
         chain += residue
-    res_starts = struc.get_residue_starts(chain, add_exclusive_stop=True)
-    polymer_bonds = ccd._connect_inter_residue(chain, res_starts)
+    res_starts = struc.get_residue_starts(
+        chain, add_exclusive_stop=True)
+    polymer_bonds = ccd._connect_inter_residue(
+        chain, res_starts)
 
     if chain.bonds is None:
         chain.bonds = polymer_bonds
@@ -317,7 +340,8 @@ def build_polymer(entity_info: dict) -> dict:
     """
     poly_type, info = list(entity_info.items())[0]
     if poly_type == "proteinChain":
-        ccd_seqs = [PROTEIN_1to3[x] for x in info["sequence"]]
+        ccd_seqs = [PROTEIN_1to3[x]
+                    for x in info["sequence"]]
         if modifications := info.get("modifications"):
             for m in modifications:
                 index = m["ptmPosition"] - 1
@@ -325,9 +349,11 @@ def build_polymer(entity_info: dict) -> dict:
                 if mtype.startswith("CCD_"):
                     ccd_seqs[index] = mtype[4:]
                 else:
-                    raise ValueError(f"unknown modification type: {mtype}")
+                    raise ValueError(
+                        f"unknown modification type: {mtype}")
         if glycans := info.get("glycans"):
-            logging.warning(f"glycans not supported: {glycans}")
+            logging.warning(
+                f"glycans not supported: {glycans}")
         chain_array = _build_polymer_atom_array(ccd_seqs)
 
     elif poly_type in ("dnaSequence", "rnaSequence"):
@@ -340,7 +366,8 @@ def build_polymer(entity_info: dict) -> dict:
                 if mtype.startswith("CCD_"):
                     ccd_seqs[index] = mtype[4:]
                 else:
-                    raise ValueError(f"unknown modification type: {mtype}")
+                    raise ValueError(
+                        f"unknown modification type: {mtype}")
         chain_array = _build_polymer_atom_array(ccd_seqs)
 
     else:
@@ -386,8 +413,10 @@ def rdkit_mol_to_atom_array(mol: Chem.Mol, removeHs: bool = True) -> AtomArray:
 
     bonds = []
     for bond in mol.GetBonds():
-        bonds.append([bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()])
-    atom_array.bonds = struc.BondList(atom_count, np.array(bonds))
+        bonds.append(
+            [bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()])
+    atom_array.bonds = struc.BondList(
+        atom_count, np.array(bonds))
     if removeHs:
         atom_array = atom_array[atom_array.element != "H"]
     return atom_array
@@ -418,7 +447,8 @@ def rdkit_mol_to_atom_info(mol: Chem.Mol) -> dict[str, Any]:
         atom_name = f"{element}{element_count[element]}"
         atom.SetProp("name", atom_name)
         if atom.GetAtomMapNum() != 0:
-            atom_map_to_atom_name[atom.GetAtomMapNum()] = atom_name
+            atom_map_to_atom_name[atom.GetAtomMapNum(
+            )] = atom_name
         atom_idx_to_atom_name[atom.GetIdx()] = atom_name
 
     if atom_map_to_atom_name:
@@ -429,7 +459,8 @@ def rdkit_mol_to_atom_info(mol: Chem.Mol) -> dict[str, Any]:
         atom_info["atom_map_to_atom_name"] = atom_idx_to_atom_name
 
     # Atom_array without hydrogens
-    atom_info["atom_array"] = rdkit_mol_to_atom_array(mol, removeHs=True)
+    atom_info["atom_array"] = rdkit_mol_to_atom_array(
+        mol, removeHs=True)
     return atom_info
 
 
@@ -457,7 +488,8 @@ def lig_file_to_atom_info(lig_file_path: str) -> dict[str, Any]:
     elif lig_file_path.endswith(".mol2"):
         mol = Chem.MolFromMol2File(lig_file_path)
     else:
-        raise ValueError(f"Invalid ligand file type: .{lig_file_path.split('.')[-1]}")
+        raise ValueError(
+            f"Invalid ligand file type: .{lig_file_path.split('.')[-1]}")
     assert (
         mol is not None
     ), f"Failed to retrieve molecule from file, invalid ligand file: {lig_file_path}. \
@@ -501,7 +533,8 @@ def smiles_to_atom_info(smiles: str) -> dict:
 
     if ret_code != 0:
         # retry with random coords
-        ret_code = AllChem.EmbedMolecule(mol, useRandomCoords=True)
+        ret_code = AllChem.EmbedMolecule(
+            mol, useRandomCoords=True)
 
     assert ret_code == 0, f"Conformer generation failed for input SMILES: {smiles}"
     atom_info = rdkit_mol_to_atom_info(mol)
@@ -569,7 +602,8 @@ def build_ligand(entity_info: dict) -> dict:
         else:
             atom_info = smiles_to_atom_info(ligand_str)
         atom_info["atom_array"].res_id[:] = 1
-    atom_info["atom_array"] = add_reference_features(atom_info["atom_array"])
+    atom_info["atom_array"] = add_reference_features(
+        atom_info["atom_array"])
     return atom_info
 
 
@@ -599,7 +633,8 @@ def add_entity_atom_array(single_job_dict: dict) -> dict:
                 smiles_ligand_count += 1
                 assert smiles_ligand_count <= 99, "too many smiles ligands"
                 # use lower case res_name (l01, l02, ..., l99) to avoid conflict with CCD code
-                atom_info["atom_array"].res_name[:] = f"l{smiles_ligand_count:02d}"
+                atom_info["atom_array"].res_name[:
+                                                 ] = f"l{smiles_ligand_count:02d}"
         elif info := entity_info.get("ion"):
             atom_info = build_ligand(entity_info)
         else:

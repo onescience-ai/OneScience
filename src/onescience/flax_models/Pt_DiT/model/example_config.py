@@ -1,8 +1,4 @@
-"""Example configuration file for transformer blocks.
-"""
-
-import jax
-import jax.numpy as jnp
+"""Example configuration file for transformer blocks."""
 
 from ml_collections.config_dict import ConfigDict
 
@@ -21,28 +17,24 @@ transformer_config = {
         "n_head": 4,
         "embedding_pair_flag": True,
     },
-    
-    ## hyper attention
+    # hyper attention
     "hyper_attention_flag": True,
     "hyper_attention_embedding": {
         "dim_r": 2,
         "kernel_type": "hak",
     },
-
-    ## attention kernel
+    # attention kernel
     "attention_kernel": {
         "flash_attention_flag": False,
         "has_bias": False,
         "causal_flag": False,
     },
-
-    ## post attention
+    # post attention
     "post_attention": {
         "out_dim": 128,
         "gating_flag": True,
     },
-
-    ## transition
+    # transition
     "transition": {
         "method": "ffn",
         "transition_factor": 4,

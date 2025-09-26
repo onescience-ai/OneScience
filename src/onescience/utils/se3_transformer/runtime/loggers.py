@@ -24,7 +24,7 @@
 import pathlib
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Dict, Any, Callable, Optional
+from typing import Any, Callable, Dict, Optional
 
 import dllogger
 import torch.distributed as dist
@@ -88,7 +88,13 @@ class DLLogger(Logger):
         if not dist.is_initialized() or dist.get_rank() == 0:
             save_dir.mkdir(parents=True, exist_ok=True)
             dllogger.init(
-                backends=[dllogger.JSONStreamBackend(Verbosity.DEFAULT, str(save_dir / filename))])
+                backends=[
+                    dllogger.JSONStreamBackend(
+                        Verbosity.DEFAULT, str(
+                            save_dir / filename)
+                    )
+                ]
+            )
 
     @rank_zero_only
     def log_hyperparams(self, params):
@@ -105,30 +111,35 @@ class DLLogger(Logger):
 
 class WandbLogger(Logger):
     def __init__(
-            self,
-            name: str,
-            save_dir: pathlib.Path,
-            id: Optional[str] = None,
-            project: Optional[str] = None
+        self,
+        name: str,
+        save_dir: pathlib.Path,
+        id: Optional[str] = None,
+        project: Optional[str] = None,
     ):
         super().__init__()
         if not dist.is_initialized() or dist.get_rank() == 0:
             save_dir.mkdir(parents=True, exist_ok=True)
-            self.experiment = wandb.init(name=name,
-                                         project=project,
-                                         id=id,
-                                         dir=str(save_dir),
-                                         resume='allow',
-                                         anonymous='must')
+            self.experiment = wandb.init(
+                name=name,
+                project=project,
+                id=id,
+                dir=str(save_dir),
+                resume="allow",
+                anonymous="must",
+            )
 
     @rank_zero_only
     def log_hyperparams(self, params: Dict[str, Any]) -> None:
         params = self._sanitize_params(params)
-        self.experiment.config.update(params, allow_val_change=True)
+        self.experiment.config.update(
+            params, allow_val_change=True)
 
     @rank_zero_only
-    def log_metrics(self, metrics: Dict[str, float], step: Optional[int] = None) -> None:
+    def log_metrics(
+        self, metrics: Dict[str, float], step: Optional[int] = None
+    ) -> None:
         if step is not None:
-            self.experiment.log({**metrics, 'epoch': step})
+            self.experiment.log({**metrics, "epoch": step})
         else:
             self.experiment.log(metrics)

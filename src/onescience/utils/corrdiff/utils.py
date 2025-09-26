@@ -31,8 +31,10 @@ def regression_step(
         torch.Tensor: Predicted output at the next time step.
     """
     # Create a tensor of zeros with the given shape and move it to the appropriate device
-    x_hat = torch.zeros(latents_shape, dtype=torch.float64, device=net.device)
-    t_hat = torch.tensor(1.0, dtype=torch.float64, device=net.device)
+    x_hat = torch.zeros(
+        latents_shape, dtype=torch.float64, device=net.device)
+    t_hat = torch.tensor(
+        1.0, dtype=torch.float64, device=net.device)
 
     # Perform regression on a single batch element
     with torch.inference_mode():
@@ -40,7 +42,8 @@ def regression_step(
 
     # If the batch size is greater than 1, repeat the prediction
     if x_hat.shape[0] > 1:
-        x = x.repeat([d if i == 0 else 1 for i, d in enumerate(x_hat.shape)])
+        x = x.repeat(
+            [d if i == 0 else 1 for i, d in enumerate(x_hat.shape)])
 
     return x
 
@@ -57,7 +60,6 @@ def diffusion_step(  # TODO generalize the module and add defaults
     device: torch.device,
     hr_mean: torch.Tensor = None,
 ) -> torch.Tensor:
-
     """
     Generate images using diffusion techniques as described in the relevant paper.
 
@@ -93,7 +95,8 @@ def diffusion_step(  # TODO generalize the module and add defaults
                 continue
 
             # Initialize random generator, and generate latents
-            rnd = StackedRandomGenerator(device, batch_seeds)
+            rnd = StackedRandomGenerator(
+                device, batch_seeds)
             latents = rnd.randn(
                 [
                     seed_batch_size,
@@ -128,20 +131,23 @@ class NetCDFWriter:
         f.createDimension("ensemble")
 
         if lat.shape != lon.shape:
-            raise ValueError("lat and lon must have the same shape")
+            raise ValueError(
+                "lat and lon must have the same shape")
         ny, nx = lat.shape
 
         # create lat/lon grid
         f.createDimension("x", nx)
         f.createDimension("y", ny)
 
-        v = f.createVariable("lat", "f", dimensions=("y", "x"))
+        v = f.createVariable(
+            "lat", "f", dimensions=("y", "x"))
         # NOTE rethink this for datasets whose samples don't have constant lat-lon.
         v[:] = lat
         v.standard_name = "latitude"
         v.units = "degrees_north"
 
-        v = f.createVariable("lon", "f", dimensions=("y", "x"))
+        v = f.createVariable(
+            "lon", "f", dimensions=("y", "x"))
         v[:] = lon
         v.standard_name = "longitude"
         v.units = "degrees_east"
@@ -157,7 +163,8 @@ class NetCDFWriter:
 
         for variable in output_channels:
             name = variable.name + variable.level
-            self.truth_group.createVariable(name, "f", dimensions=("time", "y", "x"))
+            self.truth_group.createVariable(
+                name, "f", dimensions=("time", "y", "x"))
             self.prediction_group.createVariable(
                 name, "f", dimensions=("ensemble", "time", "y", "x")
             )
@@ -166,7 +173,8 @@ class NetCDFWriter:
 
         for variable in input_channels:
             name = variable.name + variable.level
-            self.input_group.createVariable(name, "f", dimensions=("time", "y", "x"))
+            self.input_group.createVariable(
+                name, "f", dimensions=("time", "y", "x"))
 
     def write_input(self, channel_name, time_index, val):
         """Write input data to NetCDF file."""
@@ -178,7 +186,8 @@ class NetCDFWriter:
 
     def write_prediction(self, channel_name, time_index, ensemble_index, val):
         """Write prediction data to NetCDF file."""
-        self.prediction_group[channel_name][ensemble_index, time_index] = val
+        self.prediction_group[channel_name][ensemble_index,
+                                            time_index] = val
 
     def write_time(self, time_index, time):
         """Write time information to NetCDF file."""
@@ -204,8 +213,10 @@ def get_time_from_range(times_range, time_format="%Y-%m-%dT%H:%M:%S"):
         A list of times within the specified range.
     """
 
-    start_time = datetime.datetime.strptime(times_range[0], time_format)
-    end_time = datetime.datetime.strptime(times_range[1], time_format)
+    start_time = datetime.datetime.strptime(
+        times_range[0], time_format)
+    end_time = datetime.datetime.strptime(
+        times_range[1], time_format)
     interval = (
         datetime.timedelta(hours=times_range[2])
         if len(times_range) > 2

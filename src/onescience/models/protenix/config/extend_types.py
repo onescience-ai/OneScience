@@ -37,4 +37,5 @@ def get_bool_value(bool_str: str):
     elif bool_str_lower in ("true", "t", "yes", "y", "1"):
         return True
     else:
-        raise ValueError(f"Cannot interpret {bool_str} as bool")
+        raise ValueError(
+            f"Cannot interpret {bool_str} as bool")

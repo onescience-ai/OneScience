@@ -1,34 +1,29 @@
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+
 import hydra
-from omegaconf import OmegaConf, DictConfig
+import netCDF4 as nc
+import numpy as np
+import nvtx
 import torch
 import torch._dynamo
-import nvtx
-import numpy as np
-import netCDF4 as nc
+from einops import rearrange
+from helpers.generate_helpers import get_dataset_and_sampler, save_images
+from helpers.train_helpers import set_patch_shape
+from hydra.utils import to_absolute_path
+from omegaconf import DictConfig, OmegaConf
+from torch.distributed import gather
+
 from onescience.distributed import DistributedManager
 from onescience.launch.logging import PythonLogger, RankZeroLoggingWrapper
 from onescience.models import Module
-from concurrent.futures import ThreadPoolExecutor
-from functools import partial
-from einops import rearrange
-from torch.distributed import gather
-
-
-from hydra.utils import to_absolute_path
-from onescience.utils.generative import deterministic_sampler, stochastic_sampler
 from onescience.utils.corrdiff import (
     NetCDFWriter,
+    diffusion_step,
     get_time_from_range,
     regression_step,
-    diffusion_step,
 )
-
-
-from helpers.generate_helpers import (
-    get_dataset_and_sampler,
-    save_images,
-)
-from helpers.train_helpers import set_patch_shape
+from onescience.utils.generative import deterministic_sampler, stochastic_sampler
 
 
 @hydra.main(version_base="1.2", config_path="conf", config_name="config_generate")
@@ -43,17 +38,20 @@ def main(cfg: DictConfig) -> None:
     device = dist.device
 
     # Initialize logger
-    logger = PythonLogger("generate")  # General python logger
+    # General python logger
+    logger = PythonLogger("generate")
     logger0 = RankZeroLoggingWrapper(logger, dist)
     logger.file_logging("generate.log")
 
     # Handle the batch size
     seeds = list(np.arange(cfg.generation.num_ensembles))
     num_batches = (
-        (len(seeds) - 1) // (cfg.generation.seed_batch_size * dist.world_size) + 1
+        (len(seeds) - 1) // (cfg.generation.seed_batch_size *
+                             dist.world_size) + 1
     ) * dist.world_size
-    all_batches = torch.as_tensor(seeds).tensor_split(num_batches)
-    rank_batches = all_batches[dist.rank :: dist.world_size]
+    all_batches = torch.as_tensor(
+        seeds).tensor_split(num_batches)
+    rank_batches = all_batches[dist.rank:: dist.world_size]
 
     # Synchronize
     if dist.world_size > 1:
@@ -61,15 +59,18 @@ def main(cfg: DictConfig) -> None:
 
     # Parse the inference input times
     if cfg.generation.times_range and cfg.generation.times:
-        raise ValueError("Either times_range or times must be provided, but not both")
+        raise ValueError(
+            "Either times_range or times must be provided, but not both")
     if cfg.generation.times_range:
-        times = get_time_from_range(cfg.generation.times_range)
+        times = get_time_from_range(
+            cfg.generation.times_range)
     else:
         times = cfg.generation.times
 
     # Create dataset object
     dataset_cfg = OmegaConf.to_container(cfg.dataset)
-    dataset, sampler = get_dataset_and_sampler(dataset_cfg=dataset_cfg, times=times)
+    dataset, sampler = get_dataset_and_sampler(
+        dataset_cfg=dataset_cfg, times=times)
     img_shape = dataset.image_shape()
     img_out_channels = len(dataset.output_channels())
 
@@ -83,7 +84,8 @@ def main(cfg: DictConfig) -> None:
     else:
         patch_shape_y = None
     patch_shape = (patch_shape_y, patch_shape_x)
-    img_shape, patch_shape = set_patch_shape(img_shape, patch_shape)
+    img_shape, patch_shape = set_patch_shape(
+        img_shape, patch_shape)
     if patch_shape != img_shape:
         logger0.info("Patch-based training enabled")
     else:
@@ -97,14 +99,18 @@ def main(cfg: DictConfig) -> None:
     elif cfg.generation.inference_mode == "all":
         load_net_reg, load_net_res = True, True
     else:
-        raise ValueError(f"Invalid inference mode {cfg.generation.inference_mode}")
+        raise ValueError(
+            f"Invalid inference mode {cfg.generation.inference_mode}")
 
     # Load diffusion network, move to device, change precision
     if load_net_res:
         res_ckpt_filename = cfg.generation.io.res_ckpt_filename
-        logger0.info(f'Loading residual network from "{res_ckpt_filename}"...')
-        net_res = Module.from_checkpoint(to_absolute_path(res_ckpt_filename))
-        net_res = net_res.eval().to(device).to(memory_format=torch.channels_last)
+        logger0.info(
+            f'Loading residual network from "{res_ckpt_filename}"...')
+        net_res = Module.from_checkpoint(
+            to_absolute_path(res_ckpt_filename))
+        net_res = net_res.eval().to(device).to(
+            memory_format=torch.channels_last)
         if cfg.generation.perf.force_fp16:
             net_res.use_fp16 = True
     else:
@@ -113,9 +119,12 @@ def main(cfg: DictConfig) -> None:
     # load regression network, move to device, change precision
     if load_net_reg:
         reg_ckpt_filename = cfg.generation.io.reg_ckpt_filename
-        logger0.info(f'Loading network from "{reg_ckpt_filename}"...')
-        net_reg = Module.from_checkpoint(to_absolute_path(reg_ckpt_filename))
-        net_reg = net_reg.eval().to(device).to(memory_format=torch.channels_last)
+        logger0.info(
+            f'Loading network from "{reg_ckpt_filename}"...')
+        net_reg = Module.from_checkpoint(
+            to_absolute_path(reg_ckpt_filename))
+        net_reg = net_reg.eval().to(device).to(
+            memory_format=torch.channels_last)
         if cfg.generation.perf.force_fp16:
             net_reg.use_fp16 = True
     else:
@@ -127,7 +136,8 @@ def main(cfg: DictConfig) -> None:
         # Only compile residual network
         # Overhead of compiling regression network outweights any benefits
         if net_res:
-            net_res = torch.compile(net_res, mode="reduce-overhead")
+            net_res = torch.compile(
+                net_res, mode="reduce-overhead")
 
     # Partially instantiate the sampler based on the configs
     if cfg.sampler.type == "deterministic":
@@ -150,7 +160,8 @@ def main(cfg: DictConfig) -> None:
             overlap_pix=cfg.sampler.overlap_pix,
         )
     else:
-        raise ValueError(f"Unknown sampling method {cfg.sampling.type}")
+        raise ValueError(
+            f"Unknown sampling method {cfg.sampling.type}")
 
     # Main generation definition
     def generate_fn():
@@ -167,7 +178,8 @@ def main(cfg: DictConfig) -> None:
                     w1=img_shape_x // patch_shape[1],
                 )
                 torch.cuda.nvtx.range_pop()
-            image_lr_patch = image_lr_patch.to(memory_format=torch.channels_last)
+            image_lr_patch = image_lr_patch.to(
+                memory_format=torch.channels_last)
 
             if net_reg:
                 with nvtx.annotate("regression_model", color="yellow"):
@@ -243,8 +255,10 @@ def main(cfg: DictConfig) -> None:
                 return image_out
 
     # generate images
-    output_path = getattr(cfg.generation.io, "output_filename", "corrdiff_output.nc")
-    logger0.info(f"Generating images, saving results to {output_path}...")
+    output_path = getattr(
+        cfg.generation.io, "output_filename", "corrdiff_output.nc")
+    logger0.info(
+        f"Generating images, saving results to {output_path}...")
     batch_size = 1
     warmup_steps = min(len(times) - 1, 2)
     # Generates model predictions from the input data using the specified
@@ -285,7 +299,8 @@ def main(cfg: DictConfig) -> None:
             for image_tar, image_lr, index in iter(data_loader):
                 time_index += 1
                 if dist.rank == 0:
-                    logger0.info(f"starting index: {time_index}")
+                    logger0.info(
+                        f"starting index: {time_index}")
 
                 if time_index == warmup_steps:
                     start.record()
@@ -296,7 +311,8 @@ def main(cfg: DictConfig) -> None:
                     .to(torch.float32)
                     .to(memory_format=torch.channels_last)
                 )
-                image_tar = image_tar.to(device=device).to(torch.float32)
+                image_tar = image_tar.to(
+                    device=device).to(torch.float32)
                 image_out = generate_fn()
 
                 if dist.rank == 0:
@@ -317,10 +333,12 @@ def main(cfg: DictConfig) -> None:
                     )
             end.record()
             end.synchronize()
-            elapsed_time = start.elapsed_time(end) / 1000.0  # Convert ms to s
+            elapsed_time = start.elapsed_time(
+                end) / 1000.0  # Convert ms to s
             timed_steps = time_index + 1 - warmup_steps
             if dist.rank == 0:
-                average_time_per_batch_element = elapsed_time / timed_steps / batch_size
+                average_time_per_batch_element = elapsed_time / \
+                    timed_steps / batch_size
                 logger.info(
                     f"Total time to run {timed_steps} steps and {batch_size} members = {elapsed_time} s"
                 )

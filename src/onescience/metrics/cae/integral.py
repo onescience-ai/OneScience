@@ -1,4 +1,4 @@
-#from typing import Dict, List, Optional, Union
+# from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pyvista as pv
@@ -41,7 +41,8 @@ def line_integral(
     # integrate the results
     if len(field.shape) == 2:
         # Vector quantity
-        integral = np.sum(np.sum(field * tangents, axis=1) * lengths)
+        integral = np.sum(
+            np.sum(field * tangents, axis=1) * lengths)
     else:
         # Scalar quantity
         integral = np.sum(field * lengths)
@@ -102,13 +103,15 @@ def surface_integral(
             data[f"integral_{arr}"] = data[arr]
         elif len(data[arr].shape) == 2:
             # Vector quantity
-            data[f"integral_{arr}"] = np.sum(data[arr] * data["Normals"], axis=1)
+            data[f"integral_{arr}"] = np.sum(
+                data[arr] * data["Normals"], axis=1)
 
     # integrate the results
     integrated = mesh.integrate_data()
 
     results = {}
     for arr in data_arr:
-        results[f"integral_{arr}"] = np.array(integrated[f"integral_{arr}"])
+        results[f"integral_{arr}"] = np.array(
+            integrated[f"integral_{arr}"])
 
     return results

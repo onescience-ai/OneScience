@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import argparse
@@ -46,12 +44,14 @@ def main(args: argparse.Namespace) -> None:
     ip_op_pairs: list[tuple[str, str]] = []
     for filename in filelist:
         fname_base = os.path.basename(filename)
-        ip_op_pairs.append((filename, os.path.join(args.opdir, fname_base[:-3])))
+        ip_op_pairs.append(
+            (filename, os.path.join(args.opdir, fname_base[:-3])))
 
     pool = mp.Pool(args.num_workers)
     list(
         tqdm(
-            pool.imap(decompress_list_of_files, ip_op_pairs),
+            pool.imap(decompress_list_of_files,
+                      ip_op_pairs),
             total=len(ip_op_pairs),
             desc=f"Uncompressing {args.ipdir}",
         )

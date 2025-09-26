@@ -83,7 +83,8 @@ class ProcessGroupConfig:
         self.root = node
         self.root_id = node.name
         self.tree = Tree()
-        self.tree.create_node(node.name, node.name, data=node)
+        self.tree.create_node(
+            node.name, node.name, data=node)
 
     def add_node(self, node: ProcessGroupNode, parent=Union[str, ProcessGroupNode]):
         """
@@ -100,7 +101,8 @@ class ProcessGroupConfig:
         """
         if isinstance(parent, ProcessGroupNode):
             parent = parent.name
-        self.tree.create_node(node.name, node.name, data=node, parent=parent)
+        self.tree.create_node(
+            node.name, node.name, data=node, parent=parent)
 
     def get_node(self, name: str) -> ProcessGroupNode:
         """
@@ -166,7 +168,8 @@ class ProcessGroupConfig:
                 )
             node = self.tree.get_node(id)
             if not node.is_leaf():
-                raise AssertionError(f"Process group {id} is not a leaf group")
+                raise AssertionError(
+                    f"Process group {id} is not a leaf group")
             node.data.size = size
 
         if update_parent_sizes:
@@ -182,13 +185,15 @@ def _tree_product_reduction(tree, node_id, verbose=False):
     node = tree.get_node(node_id)
     if not children:
         if node.data.size is None:
-            raise AssertionError("Leaf nodes should have a valid size set")
+            raise AssertionError(
+                "Leaf nodes should have a valid size set")
         return node.data.size
 
     product = 1
 
     for child in children:
-        product *= _tree_product_reduction(tree, child.identifier)
+        product *= _tree_product_reduction(
+            tree, child.identifier)
 
     if node.data.size != product:
         if verbose:

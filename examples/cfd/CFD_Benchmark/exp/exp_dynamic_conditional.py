@@ -1,14 +1,11 @@
 import os
+
 import torch
 from exp.exp_basic import Exp_Basic
-from onescience.models.cfd_benchmark.model_factory import get_model
-from onescience.datapipes.cfd_benchmark.data_factory import get_data
-from onescience.utils.cfd_benchmark.loss import L2Loss
-import matplotlib.pyplot as plt
-from onescience.utils.cfd_benchmark.visual import visual
-import numpy as np
-from onescience.distributed.manager import DistributedManager
+
 from onescience.memory.checkpoint import replace_function
+from onescience.utils.cfd_benchmark.loss import L2Loss
+from onescience.utils.cfd_benchmark.visual import visual
 
 
 class Exp_Dynamic_Conditional(Exp_Basic):
@@ -33,7 +30,8 @@ class Exp_Dynamic_Conditional(Exp_Basic):
                     yy.to(self.device),
                 )
                 for t in range(self.args.T_out):
-                    input_T = time[:, t : t + 1].reshape(x.shape[0], 1)
+                    input_T = time[:, t: t +
+                                   1].reshape(x.shape[0], 1)
                     if self.args.fun_dim == 0:
                         fx = None
                     im = self.model(x, fx=fx, T=input_T)
@@ -42,9 +40,11 @@ class Exp_Dynamic_Conditional(Exp_Basic):
                     else:
                         pred = torch.cat((pred, im), -1)
                 if self.args.normalize:
-                    pred = self.dataset.y_normalizer.decode(pred)
+                    pred = self.dataset.y_normalizer.decode(
+                        pred)
                 test_l2_full += myloss(
-                    pred.reshape(x.shape[0], -1), yy.reshape(x.shape[0], -1)
+                    pred.reshape(
+                        x.shape[0], -1), yy.reshape(x.shape[0], -1)
                 ).item()
         test_loss_full = test_l2_full / (self.args.ntest)
         return test_loss_full
@@ -83,27 +83,34 @@ class Exp_Dynamic_Conditional(Exp_Basic):
         checkpoint_path = f"./checkpoints/{self.args.save_name}.pt"
         # 如果启用继续训练且检查点存在
         if self.args.resume and os.path.exists(checkpoint_path):
-            print(f"Loading checkpoint from {checkpoint_path}")
-            checkpoint = torch.load(checkpoint_path, map_location=self.device)
+            print(
+                f"Loading checkpoint from {checkpoint_path}")
+            checkpoint = torch.load(
+                checkpoint_path, map_location=self.device)
 
             # 加载模型状态
             if isinstance(self.model, torch.nn.parallel.DistributedDataParallel):
-                self.model.module.load_state_dict(checkpoint["model_state"])
+                self.model.module.load_state_dict(
+                    checkpoint["model_state"])
             else:
-                self.model.load_state_dict(checkpoint["model_state"])
+                self.model.load_state_dict(
+                    checkpoint["model_state"])
 
             # 加载优化器和调度器状态
             if "optimizer_state" in checkpoint:
-                optimizer.load_state_dict(checkpoint["optimizer_state"])
+                optimizer.load_state_dict(
+                    checkpoint["optimizer_state"])
             if "scheduler_state" in checkpoint and scheduler is not None:
-                scheduler.load_state_dict(checkpoint["scheduler_state"])
+                scheduler.load_state_dict(
+                    checkpoint["scheduler_state"])
 
             # 加载训练状态
             self.start_epoch = checkpoint["epoch"] + 1
             self.best_test_loss = checkpoint["best_test_loss"]
             self.best_epoch = checkpoint["best_epoch"]
 
-            print(f"Resuming training from epoch {self.start_epoch}")
+            print(
+                f"Resuming training from epoch {self.start_epoch}")
             print(
                 f"Previous best test loss: {self.best_test_loss:.5f} at epoch {self.best_epoch}"
             )
@@ -119,7 +126,8 @@ class Exp_Dynamic_Conditional(Exp_Basic):
             checkpoint_layers = []
         myloss = L2Loss(size_average=False)
 
-        start_epoch = getattr(self, "start_epoch", 0)  # 若没resume则为0
+        start_epoch = getattr(
+            self, "start_epoch", 0)  # 若没resume则为0
         for ep in range(start_epoch, self.args.epochs):
             if self.dist.world_size > 1:
                 self.train_sampler.set_epoch(ep)
@@ -136,16 +144,20 @@ class Exp_Dynamic_Conditional(Exp_Basic):
                 with replace_function(
                     module=self.model,
                     replace_layers_list=checkpoint_layers,
-                    ddp_flag=(self.dist.world_size > 1),  # 自动处理DDP
+                    # 自动处理DDP
+                    ddp_flag=(self.dist.world_size > 1),
                 ):
                     for t in range(self.args.T_out):
-                        y = yy[..., self.args.out_dim * t : self.args.out_dim * (t + 1)]
-                        input_T = time[:, t : t + 1].reshape(x.shape[0], 1)
+                        y = yy[..., self.args.out_dim *
+                               t: self.args.out_dim * (t + 1)]
+                        input_T = time[:, t: t +
+                                       1].reshape(x.shape[0], 1)
                         if self.args.fun_dim == 0:
                             fx = None
                         im = self.model(x, fx=fx, T=input_T)
                         loss = myloss(
-                            im.reshape(x.shape[0], -1), y.reshape(x.shape[0], -1)
+                            im.reshape(
+                                x.shape[0], -1), y.reshape(x.shape[0], -1)
                         )
                         train_l2_step += loss.item()
                         optimizer.zero_grad()
@@ -192,13 +204,16 @@ class Exp_Dynamic_Conditional(Exp_Basic):
                         "best_epoch": self.best_epoch,
                         "args": self.args,  # 保存参数以便后续参考
                     }
-                    torch.save(checkpoint, f"./checkpoints/{self.args.save_name}.pt")
+                    torch.save(
+                        checkpoint, f"./checkpoints/{self.args.save_name}.pt")
 
                 if ep % 10 == 0:
                     print(
-                        "Epoch {} Train loss step : {:.5f} ".format(ep, train_loss_step)
+                        "Epoch {} Train loss step : {:.5f} ".format(
+                            ep, train_loss_step)
                     )
-                    print("Epoch {} Test loss full : {:.5f}".format(ep, test_loss_full))
+                    print("Epoch {} Test loss full : {:.5f}".format(
+                        ep, test_loss_full))
 
         # 训练结束后保存最终模型
         if self.dist.rank == 0:
@@ -210,7 +225,8 @@ class Exp_Dynamic_Conditional(Exp_Basic):
 
     def test(self):
         checkpoint_path = f"./checkpoints/{self.args.save_name}.pt"
-        state_dict = torch.load(checkpoint_path, map_location=self.device)
+        state_dict = torch.load(
+            checkpoint_path, map_location=self.device)
         # 兼容新旧模型格式的加载逻辑
         if isinstance(state_dict, dict) and "model_state" in state_dict:
             # 新格式：包含多个组件的字典
@@ -233,7 +249,8 @@ class Exp_Dynamic_Conditional(Exp_Basic):
             self.model.load_state_dict(model_state)
         self.model.eval()
         if not os.path.exists("./results/" + self.args.save_name + "/"):
-            os.makedirs("./results/" + self.args.save_name + "/")
+            os.makedirs("./results/" +
+                        self.args.save_name + "/")
 
         total_rel_err = 0.0
         total_abs_err = 0.0
@@ -256,7 +273,8 @@ class Exp_Dynamic_Conditional(Exp_Basic):
                 )
                 # 处理时间步预测
                 for t in range(self.args.T_out):
-                    input_T = time[:, t : t + 1].reshape(x.shape[0], 1)
+                    input_T = time[:, t: t +
+                                   1].reshape(x.shape[0], 1)
                     if self.args.fun_dim == 0:
                         fx = None
                     im = self.model(x, fx=fx, T=input_T)
@@ -266,25 +284,34 @@ class Exp_Dynamic_Conditional(Exp_Basic):
                         pred = torch.cat((pred, im), -1)
 
                 if self.args.normalize:
-                    pred = self.dataset.y_normalizer.decode(pred)
+                    pred = self.dataset.y_normalizer.decode(
+                        pred)
 
                 pred_flat = pred.reshape(x.shape[0], -1)
                 yy_flat = yy.reshape(x.shape[0], -1)
 
                 # 计算所有指标
-                total_rel_err += loss_func.rel(pred_flat, yy_flat).item()
-                total_abs_err += loss_func.abs(pred_flat, yy_flat).item()
-                total_mse += loss_func.MSE(pred_flat, yy_flat).item()
-                total_mae += loss_func.MAE(pred_flat, yy_flat).item()
-                total_maxae += loss_func.MaxAE(pred_flat, yy_flat).item()
-                total_r2 += loss_func.R2Score(pred_flat, yy_flat).item()
+                total_rel_err += loss_func.rel(
+                    pred_flat, yy_flat).item()
+                total_abs_err += loss_func.abs(
+                    pred_flat, yy_flat).item()
+                total_mse += loss_func.MSE(
+                    pred_flat, yy_flat).item()
+                total_mae += loss_func.MAE(
+                    pred_flat, yy_flat).item()
+                total_maxae += loss_func.MaxAE(
+                    pred_flat, yy_flat).item()
+                total_r2 += loss_func.R2Score(
+                    pred_flat, yy_flat).item()
 
                 if id < self.args.vis_num:
                     print("visual: ", id)
                     visual(
                         yy[:, :, -4:-2],
-                        torch.sqrt(yy[:, :, -1:] ** 2 + yy[:, :, -2:-1] ** 2),
-                        torch.sqrt(pred[:, :, -1:] ** 2 + pred[:, :, -2:-1] ** 2),
+                        torch.sqrt(
+                            yy[:, :, -1:] ** 2 + yy[:, :, -2:-1] ** 2),
+                        torch.sqrt(
+                            pred[:, :, -1:] ** 2 + pred[:, :, -2:-1] ** 2),
                         self.args,
                         id,
                     )

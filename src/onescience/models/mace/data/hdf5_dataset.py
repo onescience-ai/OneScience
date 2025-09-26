@@ -13,17 +13,20 @@ class HDF5Dataset(Dataset):
     def __init__(
         self, file_path, r_max, z_table, atomic_dataclass=AtomicData, **kwargs
     ):
-        super(HDF5Dataset, self).__init__()  # pylint: disable=super-with-arguments
+        super(HDF5Dataset, self).__init__(
+        )  # pylint: disable=super-with-arguments
         self.file_path = file_path
         self._file = None
         batch_key = list(self.file.keys())[0]
         self.batch_size = len(self.file[batch_key].keys())
-        self.length = len(self.file.keys()) * self.batch_size
+        self.length = len(
+            self.file.keys()) * self.batch_size
         self.r_max = r_max
         self.z_table = z_table
         self.atomic_dataclass = atomic_dataclass
         try:
-            self.drop_last = bool(self.file.attrs["drop_last"])
+            self.drop_last = bool(
+                self.file.attrs["drop_last"])
         except KeyError:
             self.drop_last = False
         self.kwargs = kwargs
@@ -55,9 +58,11 @@ class HDF5Dataset(Dataset):
         properties = {}
         property_weights = {}
         for key in subgrp["properties"]:
-            properties[key] = unpack_value(subgrp["properties"][key][()])
+            properties[key] = unpack_value(
+                subgrp["properties"][key][()])
         for key in subgrp["property_weights"]:
-            property_weights[key] = unpack_value(subgrp["property_weights"][key][()])
+            property_weights[key] = unpack_value(
+                subgrp["property_weights"][key][()])
 
         config = Configuration(
             atomic_numbers=subgrp["atomic_numbers"][()],
@@ -65,7 +70,8 @@ class HDF5Dataset(Dataset):
             properties=properties,
             weight=unpack_value(subgrp["weight"][()]),
             property_weights=property_weights,
-            config_type=unpack_value(subgrp["config_type"][()]),
+            config_type=unpack_value(
+                subgrp["config_type"][()]),
             pbc=unpack_value(subgrp["pbc"][()]),
             cell=unpack_value(subgrp["cell"][()]),
         )
@@ -87,11 +93,13 @@ def dataset_from_sharded_hdf5(
     files = glob(files + "/*")
     datasets = []
     for file in files:
-        datasets.append(HDF5Dataset(file, z_table=z_table, r_max=r_max, **kwargs))
+        datasets.append(HDF5Dataset(
+            file, z_table=z_table, r_max=r_max, **kwargs))
     full_dataset = ConcatDataset(datasets)
     return full_dataset
 
 
 def unpack_value(value):
-    value = value.decode("utf-8") if isinstance(value, bytes) else value
+    value = value.decode(
+        "utf-8") if isinstance(value, bytes) else value
     return None if str(value) == "None" else value

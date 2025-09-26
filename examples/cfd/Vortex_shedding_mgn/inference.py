@@ -1,21 +1,20 @@
 import os
 
 import hydra
-from hydra.utils import to_absolute_path
-
-from dgl.dataloading import GraphDataLoader
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from dgl.dataloading import GraphDataLoader
+from hydra.utils import to_absolute_path
 from matplotlib import animation
 from matplotlib import tri as mtri
 from matplotlib.patches import Rectangle
-import numpy as np
 from omegaconf import DictConfig
-import torch
 
-from onescience.models.meshgraphnet import MeshGraphNet
 from onescience.datapipes.gnn.vortex_shedding_dataset import VortexSheddingDataset
 from onescience.launch.logging import PythonLogger
 from onescience.launch.utils import load_checkpoint
+from onescience.models.meshgraphnet import MeshGraphNet
 
 
 class MGNRollout:
@@ -55,7 +54,8 @@ class MGNRollout:
             recompute_activation=cfg.recompute_activation,
         )
         if cfg.jit:
-            self.model = torch.jit.script(self.model).to(self.device)
+            self.model = torch.jit.script(
+                self.model).to(self.device)
         else:
             self.model = self.model.to(self.device)
 
@@ -80,7 +80,8 @@ class MGNRollout:
             graph = graph.to(self.device)
             # denormalize data
             graph.ndata["x"][:, 0:2] = self.dataset.denormalize(
-                graph.ndata["x"][:, 0:2], stats["velocity_mean"], stats["velocity_std"]
+                graph.ndata["x"][:,
+                                 0:2], stats["velocity_mean"], stats["velocity_std"]
             )
             graph.ndata["y"][:, 0:2] = self.dataset.denormalize(
                 graph.ndata["y"][:, 0:2],
@@ -97,12 +98,14 @@ class MGNRollout:
             invar = graph.ndata["x"].clone()
 
             if i % (self.num_test_time_steps - 1) != 0:
-                invar[:, 0:2] = self.pred[i - 1][:, 0:2].clone()
+                invar[:, 0:2] = self.pred[i -
+                                          1][:, 0:2].clone()
                 i += 1
             invar[:, 0:2] = self.dataset.normalize_node(
                 invar[:, 0:2], stats["velocity_mean"], stats["velocity_std"]
             )
-            pred_i = self.model(invar, graph.edata["x"], graph).detach()  # predict
+            pred_i = self.model(
+                invar, graph.edata["x"], graph).detach()  # predict
 
             # denormalize prediction
             pred_i[:, 0:2] = self.dataset.denormalize(
@@ -116,9 +119,11 @@ class MGNRollout:
             )
 
             # do not update the "wall_boundary" & "outflow" nodes
-            mask = torch.cat((mask, mask), dim=-1).to(self.device)
+            mask = torch.cat(
+                (mask, mask), dim=-1).to(self.device)
             pred_i[:, 0:2] = torch.where(
-                mask, pred_i[:, 0:2], torch.zeros_like(pred_i[:, 0:2])
+                mask, pred_i[:, 0:2], torch.zeros_like(
+                    pred_i[:, 0:2])
             )
 
             # integration
@@ -130,7 +135,8 @@ class MGNRollout:
             self.exact.append(
                 torch.cat(
                     (
-                        (graph.ndata["y"][:, 0:2] + graph.ndata["x"][:, 0:2]),
+                        (graph.ndata["y"][:, 0:2] +
+                         graph.ndata["x"][:, 0:2]),
                         graph.ndata["y"][:, [2]],
                     ),
                     dim=-1,
@@ -152,7 +158,8 @@ class MGNRollout:
 
         # fig configs
         plt.rcParams["image.cmap"] = "inferno"
-        self.fig, self.ax = plt.subplots(2, 1, figsize=(16, 9))
+        self.fig, self.ax = plt.subplots(
+            2, 1, figsize=(16, 9))
 
         # Set background color to black
         self.fig.set_facecolor("black")
@@ -176,16 +183,22 @@ class MGNRollout:
         self.ax[0].cla()
         self.ax[0].set_aspect("equal")
         self.ax[0].set_axis_off()
-        navy_box = Rectangle((0, 0), 1.4, 0.4, facecolor="navy")
-        self.ax[0].add_patch(navy_box)  # Add a navy box to the first subplot
-        self.ax[0].tripcolor(triang, y_star, vmin=np.min(y_star), vmax=np.max(y_star))
+        navy_box = Rectangle(
+            (0, 0), 1.4, 0.4, facecolor="navy")
+        # Add a navy box to the first subplot
+        self.ax[0].add_patch(navy_box)
+        self.ax[0].tripcolor(triang, y_star, vmin=np.min(
+            y_star), vmax=np.max(y_star))
         self.ax[0].triplot(triang, "ko-", ms=0.5, lw=0.3)
-        self.ax[0].set_title("onescience MeshGraphNet Prediction", color="white")
+        self.ax[0].set_title(
+            "onescience MeshGraphNet Prediction", color="white")
         self.ax[1].cla()
         self.ax[1].set_aspect("equal")
         self.ax[1].set_axis_off()
-        navy_box = Rectangle((0, 0), 1.4, 0.4, facecolor="navy")
-        self.ax[1].add_patch(navy_box)  # Add a navy box to the second subplot
+        navy_box = Rectangle(
+            (0, 0), 1.4, 0.4, facecolor="navy")
+        # Add a navy box to the second subplot
+        self.ax[1].add_patch(navy_box)
         self.ax[1].tripcolor(
             triang, y_exact, vmin=np.min(y_exact), vmax=np.max(y_exact)
         )
@@ -220,8 +233,10 @@ def main(cfg: DictConfig) -> None:
             frames=len(rollout.graphs) // cfg.frame_skip,
             interval=cfg.frame_interval,
         )
-        ani.save("animations/animation_" + cfg.viz_vars[i] + ".gif")
-        logger.info(f"Created animation for {cfg.viz_vars[i]}")
+        ani.save("animations/animation_" +
+                 cfg.viz_vars[i] + ".gif")
+        logger.info(
+            f"Created animation for {cfg.viz_vars[i]}")
 
 
 if __name__ == "__main__":

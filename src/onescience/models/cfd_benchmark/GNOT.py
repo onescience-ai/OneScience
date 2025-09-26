@@ -1,11 +1,9 @@
-import math
-import numpy as np
 import torch
 import torch.nn as nn
 from timm.layers import trunc_normal_
-from einops import repeat, rearrange
 from torch.nn import functional as F
-from onescience.models.layers.Basic import MLP, LinearAttention, ACTIVATION
+
+from onescience.models.layers.Basic import ACTIVATION, MLP, LinearAttention
 from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
 
 
@@ -44,16 +42,18 @@ class GNOT_block(nn.Module):
         self.resid_drop1 = nn.Dropout(dropout)
         self.resid_drop2 = nn.Dropout(dropout)
 
-        ## MLP in MOE
+        # MLP in MOE
         self.n_experts = n_experts
         if act in ACTIVATION.keys():
             self.act = ACTIVATION[act]
         self.moe_mlp1 = nn.ModuleList(
             [
                 nn.Sequential(
-                    nn.Linear(hidden_dim, hidden_dim * mlp_ratio),
+                    nn.Linear(
+                        hidden_dim, hidden_dim * mlp_ratio),
                     self.act(),
-                    nn.Linear(hidden_dim * mlp_ratio, hidden_dim),
+                    nn.Linear(
+                        hidden_dim * mlp_ratio, hidden_dim),
                 )
                 for _ in range(self.n_experts)
             ]
@@ -62,9 +62,11 @@ class GNOT_block(nn.Module):
         self.moe_mlp2 = nn.ModuleList(
             [
                 nn.Sequential(
-                    nn.Linear(hidden_dim, hidden_dim * mlp_ratio),
+                    nn.Linear(
+                        hidden_dim, hidden_dim * mlp_ratio),
                     self.act(),
-                    nn.Linear(hidden_dim * mlp_ratio, hidden_dim),
+                    nn.Linear(
+                        hidden_dim * mlp_ratio, hidden_dim),
                 )
                 for _ in range(self.n_experts)
             ]
@@ -73,44 +75,52 @@ class GNOT_block(nn.Module):
         self.gatenet = nn.Sequential(
             nn.Linear(space_dim, hidden_dim * mlp_ratio),
             self.act(),
-            nn.Linear(hidden_dim * mlp_ratio, hidden_dim * mlp_ratio),
+            nn.Linear(hidden_dim * mlp_ratio,
+                      hidden_dim * mlp_ratio),
             self.act(),
-            nn.Linear(hidden_dim * mlp_ratio, self.n_experts),
+            nn.Linear(hidden_dim * mlp_ratio,
+                      self.n_experts),
         )
 
     def forward(self, x, y, pos):
-        ## point-wise gate for moe
-        gate_score = F.softmax(self.gatenet(pos), dim=-1).unsqueeze(2)
-        ## cross attention between geo and physics observation
-        x = x + self.resid_drop1(self.crossattn(self.ln1(x), self.ln2(y)))
-        ## moe mlp
+        # point-wise gate for moe
+        gate_score = F.softmax(
+            self.gatenet(pos), dim=-1).unsqueeze(2)
+        # cross attention between geo and physics observation
+        x = x + \
+            self.resid_drop1(self.crossattn(
+                self.ln1(x), self.ln2(y)))
+        # moe mlp
         x_moe1 = torch.stack(
             [self.moe_mlp1[i](x) for i in range(self.n_experts)], dim=-1
         )
-        x_moe1 = (gate_score * x_moe1).sum(dim=-1, keepdim=False)
+        x_moe1 = (gate_score * x_moe1).sum(dim=-
+                                           1, keepdim=False)
         x = x + self.ln3(x_moe1)
-        ## self attention among geo
+        # self attention among geo
         x = x + self.resid_drop2(self.selfattn(self.ln4(x)))
-        ## moe mlp
+        # moe mlp
         x_moe2 = torch.stack(
             [self.moe_mlp2[i](x) for i in range(self.n_experts)], dim=-1
         )
-        x_moe2 = (gate_score * x_moe2).sum(dim=-1, keepdim=False)
+        x_moe2 = (gate_score * x_moe2).sum(dim=-
+                                           1, keepdim=False)
         x = x + self.ln5(x_moe2)
         return x
 
 
 class Model(nn.Module):
-    ## GNOT: Transformer in MOE style
+    # GNOT: Transformer in MOE style
     def __init__(self, args, device, n_experts=3):
         super(Model, self).__init__()
         self.__name__ = "GNOT"
         self.args = args
-        ## embedding
+        # embedding
         if (
             args.unified_pos and args.geotype != "unstructured"
         ):  # only for structured mesh
-            self.pos = unified_pos_embedding(args.shapelist, args.ref, device=device)
+            self.pos = unified_pos_embedding(
+                args.shapelist, args.ref, device=device)
             self.preprocess_x = MLP(
                 args.ref ** len(args.shapelist),
                 args.n_hidden * 2,
@@ -120,7 +130,8 @@ class Model(nn.Module):
                 act=args.act,
             )
             self.preprocess_z = MLP(
-                args.fun_dim + args.ref ** len(args.shapelist),
+                args.fun_dim +
+                args.ref ** len(args.shapelist),
                 args.n_hidden * 2,
                 args.n_hidden,
                 n_layers=0,
@@ -151,7 +162,7 @@ class Model(nn.Module):
                 nn.Linear(args.n_hidden, args.n_hidden),
             )
 
-        ## models
+        # models
         self.blocks = nn.ModuleList(
             [
                 GNOT_block(
@@ -167,11 +178,14 @@ class Model(nn.Module):
             ]
         )
         self.placeholder = nn.Parameter(
-            (1 / (args.n_hidden)) * torch.rand(args.n_hidden, dtype=torch.float)
+            (1 / (args.n_hidden)) *
+            torch.rand(args.n_hidden, dtype=torch.float)
         )
         # projectors
-        self.fc1 = nn.Linear(args.n_hidden, args.n_hidden * 2)
-        self.fc2 = nn.Linear(args.n_hidden * 2, args.out_dim)
+        self.fc1 = nn.Linear(
+            args.n_hidden, args.n_hidden * 2)
+        self.fc2 = nn.Linear(
+            args.n_hidden * 2, args.out_dim)
         self.initialize_weights()
 
     def initialize_weights(self):

@@ -64,8 +64,9 @@ def export_to_onnx_stream(
     if isinstance(invars, Tensor):
         invars = (invars.detach().cpu(),)
     else:
-        invars = tuple([invar.detach().cpu() for invar in invars])
-    # Use model's device if provided 
+        invars = tuple([invar.detach().cpu()
+                       for invar in invars])
+    # Use model's device if provided
     if hasattr(model, "device"):
         model_device = model.device
     elif len(list(model.parameters())) > 0:
@@ -112,7 +113,8 @@ def get_ort_session(
         providers = ["CUDAExecutionProvider"] + providers
 
     # Must run on GPU as Rfft is currently implemented only for GPU.
-    ort_sess = ort.InferenceSession(model, providers=providers)
+    ort_sess = ort.InferenceSession(
+        model, providers=providers)
     return ort_sess
 
 

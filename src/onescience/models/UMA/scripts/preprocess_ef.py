@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import argparse
@@ -35,8 +33,10 @@ def write_images_to_lmdb(mp_arg):
     for sample in samples:
         with open(sample) as fp:
             traj_logs = fp.read().splitlines()
-        xyz_idx = os.path.splitext(os.path.basename(sample))[0]
-        traj_path = os.path.join(args.data_path, f"{xyz_idx}.extxyz")
+        xyz_idx = os.path.splitext(
+            os.path.basename(sample))[0]
+        traj_path = os.path.join(
+            args.data_path, f"{xyz_idx}.extxyz")
         traj_frames = ase.io.read(traj_path, ":")
 
         for i, frame in enumerate(traj_frames):
@@ -45,7 +45,8 @@ def write_images_to_lmdb(mp_arg):
             fid = int(frame_log[1].split("frame")[1])
             data_object = a2g.convert(frame)
             # add atom tags
-            data_object.tags = torch.LongTensor(frame.get_tags())
+            data_object.tags = torch.LongTensor(
+                frame.get_tags())
             data_object.sid = sid
             data_object.fid = fid
             # subtract off reference energy
@@ -60,12 +61,14 @@ def write_images_to_lmdb(mp_arg):
             )
             txn.commit()
             idx += 1
-            sampled_ids.append(",".join(frame_log[:2]) + "\n")
+            sampled_ids.append(
+                ",".join(frame_log[:2]) + "\n")
             pbar.update(1)
 
     # Save count of objects in lmdb.
     txn = db.begin(write=True)
-    txn.put("length".encode("ascii"), pickle.dumps(idx, protocol=-1))
+    txn.put("length".encode("ascii"),
+            pickle.dumps(idx, protocol=-1))
     txn.commit()
 
     db.sync()
@@ -75,9 +78,11 @@ def write_images_to_lmdb(mp_arg):
 
 
 def main(args: argparse.Namespace) -> None:
-    xyz_logs = glob.glob(os.path.join(args.data_path, "*.txt"))
+    xyz_logs = glob.glob(
+        os.path.join(args.data_path, "*.txt"))
     if not xyz_logs:
-        raise RuntimeError("No *.txt files found. Did you uncompress?")
+        raise RuntimeError(
+            "No *.txt files found. Did you uncompress?")
     if args.num_workers > len(xyz_logs):
         args.num_workers = len(xyz_logs)
 
@@ -102,10 +107,12 @@ def main(args: argparse.Namespace) -> None:
     ]
 
     # Chunk the trajectories into args.num_workers splits
-    chunked_txt_files = np.array_split(xyz_logs, args.num_workers)
+    chunked_txt_files = np.array_split(
+        xyz_logs, args.num_workers)
 
     # Extract features
-    sampled_ids, idx = [[]] * args.num_workers, [0] * args.num_workers
+    sampled_ids, idx = [
+        []] * args.num_workers, [0] * args.num_workers
 
     pool = mp.Pool(args.num_workers)
     mp_args = [
@@ -120,7 +127,8 @@ def main(args: argparse.Namespace) -> None:
         )
         for i in range(args.num_workers)
     ]
-    op = list(zip(*pool.imap(write_images_to_lmdb, mp_args)))
+    op = list(
+        zip(*pool.imap(write_images_to_lmdb, mp_args)))
     sampled_ids, idx = list(op[0]), list(op[1])
 
     # Log sampled image, trajectory trace

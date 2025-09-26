@@ -78,8 +78,10 @@ class CappedLeakyReLU(torch.nn.Module):
              Keyword arguments to be passed to the `torch.nn.LeakyReLU` function
         """
         super().__init__()
-        self.add_module("leaky_relu", torch.nn.LeakyReLU(**kwargs))
-        self.register_buffer("cap", torch.tensor(cap_value, dtype=torch.float32))
+        self.add_module(
+            "leaky_relu", torch.nn.LeakyReLU(**kwargs))
+        self.register_buffer("cap", torch.tensor(
+            cap_value, dtype=torch.float32))
 
     def forward(self, inputs):
         x = self.leaky_relu(inputs)
@@ -105,7 +107,8 @@ class CappedGELU(torch.nn.Module):
 
         super().__init__()
         self.add_module("gelu", torch.nn.GELU(**kwargs))
-        self.register_buffer("cap", torch.tensor(cap_value, dtype=torch.float32))
+        self.register_buffer("cap", torch.tensor(
+            cap_value, dtype=torch.float32))
 
     def forward(self, inputs):
         x = self.gelu(inputs)

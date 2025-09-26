@@ -1,4 +1,3 @@
-
 import copy
 import random
 from collections import defaultdict
@@ -37,12 +36,16 @@ def identify_mol_type(
         ref_space_uid.shape == atom_sums.shape
     ), "ref_space_uid and atom_sums must have the same shape."
     # Initialize masks
-    is_metal = torch.zeros_like(ref_space_uid, dtype=torch.bool)
-    first_indices = torch.zeros_like(ref_space_uid, dtype=torch.long)
-    last_indices = torch.zeros_like(ref_space_uid, dtype=torch.long)
+    is_metal = torch.zeros_like(
+        ref_space_uid, dtype=torch.bool)
+    first_indices = torch.zeros_like(
+        ref_space_uid, dtype=torch.long)
+    last_indices = torch.zeros_like(
+        ref_space_uid, dtype=torch.long)
 
     # Count occurrences of each ref_space_uid
-    unique_ids, counts = torch.unique(ref_space_uid, return_counts=True)
+    unique_ids, counts = torch.unique(
+        ref_space_uid, return_counts=True)
     for unique_id, count in zip(unique_ids, counts):
         mask = ref_space_uid == unique_id
         first_index = mask.nonzero(as_tuple=False)[0].item()
@@ -80,7 +83,8 @@ def get_interface_token(
         interface_token_indices: indices of tokens of interface
     """
     # expand reference_chain_id to chain_id shape
-    expand_reference_chain_id = torch.zeros(chain_id.size(), dtype=torch.int)
+    expand_reference_chain_id = torch.zeros(
+        chain_id.size(), dtype=torch.int)
     for _chain_id in reference_chain_id:
         expand_reference_chain_id += chain_id == _chain_id
 
@@ -92,7 +96,8 @@ def get_interface_token(
 
     mask = mask_distance * mask_diff_chain * token_distance_mask
     mask_interface = torch.sum(mask, dim=-1)
-    interface_token_indices = torch.nonzero(mask_interface, as_tuple=True)[0]
+    interface_token_indices = torch.nonzero(
+        mask_interface, as_tuple=True)[0]
     return interface_token_indices
 
 
@@ -144,39 +149,48 @@ def get_spatial_crop_index(
         )[0]
 
     # random select one token from reference_token_indices
-    assert len(reference_token_indices) > 0, "No resolved atoms in reference tokens!"
+    assert len(
+        reference_token_indices) > 0, "No resolved atoms in reference tokens!"
 
-    random_idx = torch.randint(0, reference_token_indices.shape[0], (1,)).item()
-    reference_token_idx = reference_token_indices[random_idx].item()
+    random_idx = torch.randint(
+        0, reference_token_indices.shape[0], (1,)).item()
+    reference_token_idx = reference_token_indices[random_idx].item(
+    )
 
     assert (
-        token_distance_mask[reference_token_idx].bool().any()
+        token_distance_mask[reference_token_idx].bool(
+        ).any()
     ), "Select a unresolved reference token"
     distance_to_reference = token_distance[reference_token_idx]
     # add noise to break tie
-    noise_break_tie = torch.arange(0, distance_to_reference.shape[0]).float() * 1e-3
+    noise_break_tie = torch.arange(
+        0, distance_to_reference.shape[0]).float() * 1e-3
 
     distance_to_reference_mask = token_distance_mask[reference_token_idx]
     distance_to_reference = torch.where(
-        distance_to_reference_mask.bool(), distance_to_reference, torch.inf
+        distance_to_reference_mask.bool(
+        ), distance_to_reference, torch.inf
     )
 
     # find k nearest tokens
     nearest_k = min(crop_size, tokens.shape[0])
     selected_token_indices = (
-        torch.topk(distance_to_reference + noise_break_tie, nearest_k, largest=False)
+        torch.topk(distance_to_reference +
+                   noise_break_tie, nearest_k, largest=False)
         .indices.sort()
         .values
     )
 
     def drop_uncompleted_mol(selected_token_indices):
         selected_uid = ref_space_uid_token[selected_token_indices]
-        mask = torch.ones_like(ref_space_uid_token, dtype=torch.bool)
+        mask = torch.ones_like(
+            ref_space_uid_token, dtype=torch.bool)
         mask[selected_token_indices] = False
         unselected_uid = ref_space_uid_token[mask]
 
         # Find overlap elements
-        overlap_uid = torch.Tensor(np.intersect1d(selected_uid, unselected_uid))
+        overlap_uid = torch.Tensor(
+            np.intersect1d(selected_uid, unselected_uid))
 
         # Remove overlap elements from elements_B
         remain_indices = selected_token_indices[
@@ -184,9 +198,11 @@ def get_spatial_crop_index(
         ].long()
         return remain_indices
 
-    selected_token_indices = torch.flatten(selected_token_indices)
+    selected_token_indices = torch.flatten(
+        selected_token_indices)
     if crop_complete_ligand_unstdRes is True:
-        selected_token_indices = drop_uncompleted_mol(selected_token_indices)
+        selected_token_indices = drop_uncompleted_mol(
+            selected_token_indices)
     assert (
         selected_token_indices.shape[0] <= crop_size
     ), f"Spatial cropping crop {selected_token_indices.shape[0]}, more than {crop_size} tokens!!"
@@ -223,7 +239,8 @@ def get_continues_crop_index(
     unique_chain_id = torch.unique(chain_id)
     chain_lengths = torch.bincount(chain_id.long())
     chain_offset_list = torch.tensor(
-        [torch.where(chain_id == chain_idx)[0][0] for chain_idx in unique_chain_id],
+        [torch.where(chain_id == chain_idx)[0][0]
+         for chain_idx in unique_chain_id],
     )
 
     # identify the mol type
@@ -275,8 +292,10 @@ def get_continues_crop_index(
             # need to determine: use left end or right end
             left_crop_size = left_end_point - start_idx
             right_crop_size = right_end_point - start_idx
-            is_left_ok = _qualify_crop_size(left_crop_size, crop_size_min, N_added)
-            is_right_ok = _qualify_crop_size(right_crop_size, crop_size_min, N_added)
+            is_left_ok = _qualify_crop_size(
+                left_crop_size, crop_size_min, N_added)
+            is_right_ok = _qualify_crop_size(
+                right_crop_size, crop_size_min, N_added)
             if is_left_ok and is_right_ok:
                 end_idx = (
                     left_end_point
@@ -297,14 +316,17 @@ def get_continues_crop_index(
                         break
                 return start_idx, end_point
             else:
-                cur_crop_size = min(end_idx - start_idx, crop_size - N_added)
+                cur_crop_size = min(
+                    end_idx - start_idx, crop_size - N_added)
                 return start_idx, start_idx + cur_crop_size
         elif start_in_middle is True and end_in_middle is False:
             # need to determine: use left start or right start
             left_crop_size = end_idx - left_start_point
             right_crop_size = end_idx - right_start_point
-            is_left_ok = _qualify_crop_size(left_crop_size, crop_size_min, N_added)
-            is_right_ok = _qualify_crop_size(right_crop_size, crop_size_min, N_added)
+            is_left_ok = _qualify_crop_size(
+                left_crop_size, crop_size_min, N_added)
+            is_right_ok = _qualify_crop_size(
+                right_crop_size, crop_size_min, N_added)
             if is_left_ok and is_right_ok:
                 start_idx = (
                     left_start_point
@@ -322,12 +344,14 @@ def get_continues_crop_index(
                 return start_idx, end_idx
 
     # shuffle the list of chains
-    chain_shuffle_index = torch.randperm(len(unique_chain_id))
+    chain_shuffle_index = torch.randperm(
+        len(unique_chain_id))
 
     # crop over chains iteratively
     selected_token_indices = []
     N_added = 0  # number of tokens already selected
-    N_remaining = len(tokens)  # number of tokens in remaining chains
+    # number of tokens in remaining chains
+    N_remaining = len(tokens)
     if remove_metal is True:
         N_remaining -= sum(is_metal).item()
     for idx in chain_shuffle_index:
@@ -341,14 +365,18 @@ def get_continues_crop_index(
             # skip if it is metal/ions
             continue
 
-        chain_length = chain_lengths[unique_chain_id[idx].int()]
+        chain_length = chain_lengths[unique_chain_id[idx].int(
+        )]
         N_remaining -= chain_length
 
         # determine the crop size
-        crop_size_min = min(chain_length, max(0, crop_size - (N_added + N_remaining)))
-        crop_size_max = min(crop_size - N_added, chain_length)
+        crop_size_min = min(chain_length, max(
+            0, crop_size - (N_added + N_remaining)))
+        crop_size_max = min(
+            crop_size - N_added, chain_length)
         if crop_size_min > crop_size_max:
-            print(f"error crop_size: {crop_size_min} > {crop_size_max}")
+            print(
+                f"error crop_size: {crop_size_min} > {crop_size_max}")
 
         chain_crop_size = torch.randint(
             low=crop_size_min,
@@ -366,7 +394,8 @@ def get_continues_crop_index(
 
         chain_offset = chain_offset_list[idx]
         start_token_index = chain_offset + chain_crop_start
-        end_token_index = chain_offset + chain_crop_start + chain_crop_size
+        end_token_index = chain_offset + \
+            chain_crop_start + chain_crop_size
         if crop_complete_ligand_unstdRes is True:
             start_token_index, end_token_index = _determine_start_end_point(
                 start_token_index, end_token_index, crop_size_min, N_added
@@ -386,10 +415,13 @@ def get_continues_crop_index(
         if crop_complete_ligand_unstdRes is True and drop_last is True:
             if start_token_index < end_token_index:
                 assert uid_first_indices[start_token_index] == start_token_index
-                assert uid_last_indices[end_token_index - 1] == end_token_index - 1
+                assert uid_last_indices[end_token_index -
+                                        1] == end_token_index - 1
 
-    selected_token_indices = torch.concat(selected_token_indices).sort().values
-    selected_token_indices = torch.flatten(selected_token_indices)
+    selected_token_indices = torch.concat(
+        selected_token_indices).sort().values
+    selected_token_indices = torch.flatten(
+        selected_token_indices)
     if drop_last is True:
         assert (
             selected_token_indices.shape[0] <= crop_size
@@ -462,7 +494,8 @@ class CropData(object):
             numpy.ndarray: The distance matrix of the tokens in the reference chain,
                            shape=(len(tokens_in_ref_chain), len(tokens)).
         """
-        centre_atom_indices = self.token_array.get_annotation("centre_atom_index")
+        centre_atom_indices = self.token_array.get_annotation(
+            "centre_atom_index")
         centre_atom_coords = self.atom_array.coord[centre_atom_indices]
 
         partial_token_dist_matrix = cdist(
@@ -496,18 +529,21 @@ class CropData(object):
         token_dist_mask_1d = []
         token_indices_in_ref = []
 
-        token_centre_atom_indices = self.token_array.get_annotation("centre_atom_index")
+        token_centre_atom_indices = self.token_array.get_annotation(
+            "centre_atom_index")
         centre_atoms = self.atom_array[token_centre_atom_indices]
         chain_id = centre_atoms.asym_id_int
         token_dist_mask_1d = centre_atoms.is_resolved
         token_indices_in_ref = np.where(
-            np.isin(centre_atoms.asym_id_int, self.ref_chain_indices)
+            np.isin(centre_atoms.asym_id_int,
+                    self.ref_chain_indices)
         )[0]
         is_ligand = centre_atoms.is_ligand
 
         tokens = torch.Tensor(tokens)
         chain_id = torch.Tensor(chain_id)
-        token_dist_mask_1d = torch.Tensor(token_dist_mask_1d)
+        token_dist_mask_1d = torch.Tensor(
+            token_dist_mask_1d)
         is_ligand = torch.Tensor(is_ligand)
         return tokens, chain_id, token_dist_mask_1d, token_indices_in_ref, is_ligand
 
@@ -552,7 +588,8 @@ class CropData(object):
             cropped_msa_features (dict[str, np.ndarray]): The cropped msa features.
             cropped_template_features (dict[str, np.ndarray]): The cropped template features.
         """
-        cropped_token_array = copy.deepcopy(token_array[selected_token_indices])
+        cropped_token_array = copy.deepcopy(
+            token_array[selected_token_indices])
 
         cropped_atom_indices = []
         totol_atom_num = 0
@@ -563,13 +600,16 @@ class CropData(object):
             )
             token_atom_num = len(token.atom_indices)
             token.atom_indices = list(
-                range(totol_atom_num, totol_atom_num + token_atom_num)
+                range(totol_atom_num,
+                      totol_atom_num + token_atom_num)
             )
             token.centre_atom_index = token.atom_indices[centre_idx_in_token_atoms]
             totol_atom_num += token_atom_num
 
-        cropped_atom_array = copy.deepcopy(atom_array[cropped_atom_indices])
-        assert len(cropped_token_array) == selected_token_indices.shape[0]
+        cropped_atom_array = copy.deepcopy(
+            atom_array[cropped_atom_indices])
+        assert len(
+            cropped_token_array) == selected_token_indices.shape[0]
 
         _selected_token_indices = selected_token_indices.tolist()
         # crop msa
@@ -579,7 +619,8 @@ class CropData(object):
                 if k in ["profile", "deletion_mean"]:
                     cropped_msa_features[k] = v[_selected_token_indices]
                 elif k in ["msa", "has_deletion", "deletion_value"]:
-                    cropped_msa_features[k] = v[:, selected_token_indices]
+                    cropped_msa_features[k] = v[:,
+                                                selected_token_indices]
                 elif k in [
                     "prot_pair_num_alignments",
                     "prot_unpair_num_alignments",
@@ -593,13 +634,17 @@ class CropData(object):
         if template_features is not None:
             for k, v in template_features.items():
                 if k == "template_restype":
-                    cropped_template_features[k] = v[:, _selected_token_indices]
+                    cropped_template_features[k] = v[:,
+                                                     _selected_token_indices]
                 elif k == "template_all_atom_mask":
-                    cropped_template_features[k] = v[:, _selected_token_indices, :]
+                    cropped_template_features[k] = v[:,
+                                                     _selected_token_indices, :]
                 elif k == "template_all_atom_positions":
-                    cropped_template_features[k] = v[:, _selected_token_indices, :, :]
+                    cropped_template_features[k] = v[:,
+                                                     _selected_token_indices, :, :]
                 else:
-                    raise ValueError(f"Cropping for {k} has not been implemented yet")
+                    raise ValueError(
+                        f"Cropping for {k} has not been implemented yet")
 
         return (
             cropped_token_array,
@@ -627,22 +672,26 @@ class CropData(object):
 
         # add token level ref_space_uid
         ref_space_uid_token = self.atom_array.ref_space_uid[
-            self.token_array.get_annotation("centre_atom_index")
+            self.token_array.get_annotation(
+                "centre_atom_index")
         ]
 
         atom_num_in_tokens = []
         for token in self.token_array:
-            atom_num_in_tokens.append(len(token.atom_indices))
+            atom_num_in_tokens.append(
+                len(token.atom_indices))
 
         uid_num_dict = defaultdict(int)
         for idx, uid in enumerate(ref_space_uid_token):
             uid_num_dict[uid] += atom_num_in_tokens[idx]
         atom_sums = torch.tensor(
-            [uid_num_dict[uid] for idx, uid in enumerate(ref_space_uid_token)]
+            [uid_num_dict[uid]
+                for idx, uid in enumerate(ref_space_uid_token)]
         )
         assert (atom_sums > 0).all().item(), "zero atoms"
 
-        ref_space_uid_token = torch.Tensor(ref_space_uid_token)
+        ref_space_uid_token = torch.Tensor(
+            ref_space_uid_token)
 
         if crop_method == "ContiguousCropping":
             selected_token_indices = get_continues_crop_index(
@@ -672,7 +721,8 @@ class CropData(object):
                 tokens=tokens,
                 chain_id=chain_id,
                 token_distance=torch.Tensor(token_distance),
-                token_distance_mask=torch.Tensor(token_distance_mask),
+                token_distance_mask=torch.Tensor(
+                    token_distance_mask),
                 reference_chain_id=self.ref_chain_indices,
                 ref_space_uid_token=ref_space_uid_token,
                 crop_size=self.crop_size,
@@ -681,5 +731,6 @@ class CropData(object):
             )
         return (
             selected_token_indices,
-            token_indices_in_ref[reference_token_index].item(),
+            token_indices_in_ref[reference_token_index].item(
+            ),
         )

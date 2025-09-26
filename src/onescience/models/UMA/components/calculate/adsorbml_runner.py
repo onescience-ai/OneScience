@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import os
@@ -8,11 +7,10 @@ from typing import TYPE_CHECKING, Any, ClassVar
 import numpy as np
 import pandas as pd
 from ase.optimize import LBFGS
-from pymatgen.io.ase import MSONAtoms
-from tqdm import tqdm
-
 from fairchem.core.components.calculate import CalculateRunner
 from fairchem.core.components.calculate.recipes.adsorbml import run_adsorbml
+from pymatgen.io.ase import MSONAtoms
+from tqdm import tqdm
 
 if TYPE_CHECKING:
     from ase.calculators.calculator import Calculator
@@ -82,7 +80,8 @@ class AdsorbMLRunner(CalculateRunner):
         """
         all_results = []
         sysids = list(self.input_data.keys())
-        chunk_indices = np.array_split(sysids, num_jobs)[job_num]
+        chunk_indices = np.array_split(
+            sysids, num_jobs)[job_num]
         for sysid in tqdm(chunk_indices, desc="Running AdsorbML"):
             initial_slab = self.input_data[sysid]["slab_initial"]
             relaxed_slab = self.input_data[sysid]["slab_relax"]
@@ -98,9 +97,12 @@ class AdsorbMLRunner(CalculateRunner):
                 steps=self.steps,
                 num_placements=self.num_placements,
                 reference_ml_energies=not self.adsorption_energy_model,
-                relaxed_slab_atoms=relaxed_slab.atoms  # In the case of adsorption energy model, use the DFT relaxed slab
-                if self.adsorption_energy_model
-                else None,
+                relaxed_slab_atoms=(
+                    # In the case of adsorption energy model, use the DFT relaxed slab
+                    relaxed_slab.atoms
+                    if self.adsorption_energy_model
+                    else None
+                ),
                 place_on_relaxed_slab=self.place_on_relaxed_slab,
             )
             top_candidates = outputs["adslabs"]
@@ -120,7 +122,8 @@ class AdsorbMLRunner(CalculateRunner):
                 "anomaly_count": sum([len(x) for x in outputs["adslab_anomalies"]]),
             }
             if self._save_relaxed_atoms and len(top_candidates) > 0:
-                results["atoms"] = MSONAtoms(top_candidates[0]["atoms"]).as_dict()
+                results["atoms"] = MSONAtoms(
+                    top_candidates[0]["atoms"]).as_dict()
 
             all_results.append(results)
 
@@ -143,7 +146,8 @@ class AdsorbMLRunner(CalculateRunner):
         """
         results_df = pd.DataFrame(results)
         results_df.to_json(
-            os.path.join(results_dir, f"adsorbml_{num_jobs}-{job_num}.json.gz")
+            os.path.join(
+                results_dir, f"adsorbml_{num_jobs}-{job_num}.json.gz")
         )
 
     def save_state(self, checkpoint_location: str, is_preemption: bool = False) -> bool:

@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from langchain_core.documents import Document
+
 from agent.rag.docparser.helpers import detect_file_encodings
 
 
@@ -30,10 +31,12 @@ class TextParser:
         """Load from file path."""
         text = ""
         try:
-            text = Path(self._file_path).read_text(encoding=self._encoding)
+            text = Path(self._file_path).read_text(
+                encoding=self._encoding)
         except UnicodeDecodeError as e:
             if self._autodetect_encoding:
-                detected_encodings = detect_file_encodings(self._file_path)
+                detected_encodings = detect_file_encodings(
+                    self._file_path)
                 for encoding in detected_encodings:
                     try:
                         text = Path(self._file_path).read_text(
@@ -51,7 +54,8 @@ class TextParser:
                     f"Decode failed: {self._file_path}, specified encoding failed. Original error: {e}"
                 )
         except Exception as e:
-            raise RuntimeError(f"Error loading {self._file_path}") from e
+            raise RuntimeError(
+                f"Error loading {self._file_path}") from e
 
         metadata = {"source": self._file_path}
         return [Document(page_content=text, metadata=metadata)]

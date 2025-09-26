@@ -21,7 +21,8 @@ def expressCoordinatesInFrame(
             [..., N_frame, N_atom, 3]
     """
     # Extract frame atoms
-    a, b, c = torch.unbind(frames, dim=-2)  # a, b, c shape: [..., N_frame, 3]
+    # a, b, c shape: [..., N_frame, 3]
+    a, b, c = torch.unbind(frames, dim=-2)
     w1 = F.normalize(a - b, dim=-1, eps=eps)
     w2 = F.normalize(c - b, dim=-1, eps=eps)
     # Build orthonormal basis
@@ -29,12 +30,16 @@ def expressCoordinatesInFrame(
     e2 = F.normalize(w2 - w1, dim=-1, eps=eps)
     e3 = torch.cross(e1, e2, dim=-1)  # [..., N_frame, 3]
     # Project onto frame basis
-    d = coordinate[..., None, :, :] - b[..., None, :]  #  [..., N_frame, N_atom, 3]
+    d = coordinate[..., None, :, :] - b[...,
+                                        None, :]  # [..., N_frame, N_atom, 3]
     x_transformed = torch.cat(
         [
-            torch.sum(d * e1[..., None, :], dim=-1, keepdim=True),
-            torch.sum(d * e2[..., None, :], dim=-1, keepdim=True),
-            torch.sum(d * e3[..., None, :], dim=-1, keepdim=True),
+            torch.sum(d * e1[..., None, :],
+                      dim=-1, keepdim=True),
+            torch.sum(d * e2[..., None, :],
+                      dim=-1, keepdim=True),
+            torch.sum(d * e3[..., None, :],
+                      dim=-1, keepdim=True),
         ],
         dim=-1,
     )  # [..., N_frame, N_atom, 3]

@@ -1,5 +1,5 @@
 from collections.abc import Mapping, Sequence
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import torch.utils.data
 from torch.utils.data.dataloader import default_collate
@@ -37,7 +37,8 @@ class Collater:
         elif isinstance(elem, Sequence) and not isinstance(elem, str):
             return [self(s) for s in zip(*batch)]
 
-        raise TypeError(f"DataLoader found invalid type: {type(elem)}")
+        raise TypeError(
+            f"DataLoader found invalid type: {type(elem)}")
 
     def collate(self, batch):  # Deprecated...
         return self(batch)

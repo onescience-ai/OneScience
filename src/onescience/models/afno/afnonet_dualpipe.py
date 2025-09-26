@@ -1,16 +1,18 @@
-from typing import List, Tuple
-import os
 import torch
 import torch.nn as nn
-from onescience.models.afno.afnonet_ocean import AFNONet
-from onescience.distributed.dualpipev import DualPipeV
-import onescience.distributed.comm as comm
 from einops import rearrange
-import torch.distributed as dist
+
+import onescience.distributed.comm as comm
+from onescience.distributed.dualpipev import DualPipeV
+from onescience.models.afno.afnonet_ocean import AFNONet
 
 
 def set_p2p_tensor_shapes(tensors):
-    comm.TENSOR_SHAPES = [tuple(t.shape) for t in (tensors if isinstance(tensors, (list, tuple)) else [tensors])]
+    comm.TENSOR_SHAPES = [
+        tuple(t.shape)
+        for t in (tensors if isinstance(tensors, (list, tuple)) else [tensors])
+    ]
+
 
 def set_p2p_tensor_dtype(tensor):
     comm.TENSOR_DTYPE = tensor.dtype
@@ -34,7 +36,8 @@ def extract_stage_modules(model, block_partition, stage_index):
             x = self.pos_drop(x)
             # x = x.reshape(B, self.h, self.w, self.embed_dim).contiguous()
             # return x
-            out = x.reshape(B, self.h, self.w, self.embed_dim).clone()
+            out = x.reshape(
+                B, self.h, self.w, self.embed_dim).clone()
             return out
 
     class HeadWrap(nn.Module):
@@ -61,15 +64,28 @@ def extract_stage_modules(model, block_partition, stage_index):
     assert sum(block_partition) == total_blocks
 
     all_stages = []
-    all_stages.append(PatchStage(model.patch_embed, model.pos_embed, model.pos_drop, model.h, model.w, model.embed_dim))
+    all_stages.append(
+        PatchStage(
+            model.patch_embed,
+            model.pos_embed,
+            model.pos_drop,
+            model.h,
+            model.w,
+            model.embed_dim,
+        )
+    )
 
     start = 0
     for count in block_partition:
         end = start + count
-        all_stages.append(nn.Sequential(*model.blocks[start:end]))
+        all_stages.append(nn.Sequential(
+            *model.blocks[start:end]))
         start = end
 
-    all_stages.append(HeadWrap(model.head, model.img_size, model.patch_size, model.out_chans))
+    all_stages.append(
+        HeadWrap(model.head, model.img_size,
+                 model.patch_size, model.out_chans)
+    )
     return all_stages[stage_index]
 
 
@@ -79,19 +95,30 @@ def build_dualpipe_model(params, rank, world_size, existing_model=None):
     device = torch.device(f"{backend}:{rank}")
     # print(f"[Rank {rank}] Using device: {device}")
 
-    model = existing_model if existing_model is not None else AFNONet(params)
-    block_partition = getattr(params, "block_partition", None)
+    model = existing_model if existing_model is not None else AFNONet(
+        params)
+    block_partition = getattr(
+        params, "block_partition", None)
     assert block_partition is not None, "Missing block_partition in params"
 
     total_stages = len(block_partition) + 2
-    assert total_stages == world_size * 2, "DualPipe expects total_stages = world_size * 2"
+    assert (
+        total_stages == world_size * 2
+    ), "DualPipe expects total_stages = world_size * 2"
 
-    stage_map = list(range(world_size)) + list(reversed(range(world_size)))
-    assigned_stages = [i for i, r in enumerate(stage_map) if r == rank]
-    assert len(assigned_stages) == 2, "Each rank must be assigned exactly two stages"
+    stage_map = list(range(world_size)) + \
+        list(reversed(range(world_size)))
+    assigned_stages = [
+        i for i, r in enumerate(stage_map) if r == rank]
+    assert len(
+        assigned_stages) == 2, "Each rank must be assigned exactly two stages"
 
-    phase0 = extract_stage_modules(model, block_partition, assigned_stages[0]).to(device)
-    phase1 = extract_stage_modules(model, block_partition, assigned_stages[1]).to(device)
+    phase0 = extract_stage_modules(model, block_partition, assigned_stages[0]).to(
+        device
+    )
+    phase1 = extract_stage_modules(model, block_partition, assigned_stages[1]).to(
+        device
+    )
 
     module = DualPipeV((phase0, phase1))
 

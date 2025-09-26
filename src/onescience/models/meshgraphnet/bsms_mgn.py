@@ -140,12 +140,15 @@ class BiStrideMeshGraphNet(MeshGraphNet):
     ) -> Tensor:
         edge_features = self.edge_encoder(edge_features)
         node_features = self.node_encoder(node_features)
-        x = self.processor(node_features, edge_features, graph)
+        x = self.processor(
+            node_features, edge_features, graph)
 
         node_pos = graph.ndata["pos"]
-        ms_edges = [es.to(node_pos.device).squeeze(0) for es in ms_edges]
+        ms_edges = [es.to(node_pos.device).squeeze(0)
+                    for es in ms_edges]
         ms_ids = [ids.squeeze(0) for ids in ms_ids]
         for _ in range(self.bistride_unet_levels):
-            x = self.bistride_processor(x, ms_ids, ms_edges, node_pos)
+            x = self.bistride_processor(
+                x, ms_ids, ms_edges, node_pos)
         x = self.node_decoder(x)
         return x

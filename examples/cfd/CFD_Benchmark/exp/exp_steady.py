@@ -1,11 +1,11 @@
 import os
+
 import torch
 from exp.exp_basic import Exp_Basic
-from onescience.utils.cfd_benchmark.loss import L2Loss, DerivLoss
-import matplotlib.pyplot as plt
-from onescience.utils.cfd_benchmark.visual import visual
-import numpy as np
+
 from onescience.memory.checkpoint import replace_function
+from onescience.utils.cfd_benchmark.loss import DerivLoss, L2Loss
+from onescience.utils.cfd_benchmark.visual import visual
 
 
 class Exp_Steady(Exp_Basic):
@@ -23,12 +23,14 @@ class Exp_Steady(Exp_Basic):
         rel_err = 0.0
         with torch.no_grad():
             for pos, fx, y in self.test_loader:
-                x, fx, y = pos.to(self.device), fx.to(self.device), y.to(self.device)
+                x, fx, y = pos.to(self.device), fx.to(
+                    self.device), y.to(self.device)
                 if self.args.fun_dim == 0:
                     fx = None
                 out = self.model(x, fx)
                 if self.args.normalize:
-                    out = self.dataset.y_normalizer.decode(out)
+                    out = self.dataset.y_normalizer.decode(
+                        out)
 
                 tl = myloss(out, y).item()
                 rel_err += tl
@@ -71,27 +73,34 @@ class Exp_Steady(Exp_Basic):
         checkpoint_path = f"./checkpoints/{self.args.save_name}.pt"
         # 如果启用继续训练且检查点存在
         if self.args.resume and os.path.exists(checkpoint_path):
-            print(f"Loading checkpoint from {checkpoint_path}")
-            checkpoint = torch.load(checkpoint_path, map_location=self.device)
+            print(
+                f"Loading checkpoint from {checkpoint_path}")
+            checkpoint = torch.load(
+                checkpoint_path, map_location=self.device)
 
             # 加载模型状态
             if isinstance(self.model, torch.nn.parallel.DistributedDataParallel):
-                self.model.module.load_state_dict(checkpoint["model_state"])
+                self.model.module.load_state_dict(
+                    checkpoint["model_state"])
             else:
-                self.model.load_state_dict(checkpoint["model_state"])
+                self.model.load_state_dict(
+                    checkpoint["model_state"])
 
             # 加载优化器和调度器状态
             if "optimizer_state" in checkpoint:
-                optimizer.load_state_dict(checkpoint["optimizer_state"])
+                optimizer.load_state_dict(
+                    checkpoint["optimizer_state"])
             if "scheduler_state" in checkpoint and scheduler is not None:
-                scheduler.load_state_dict(checkpoint["scheduler_state"])
+                scheduler.load_state_dict(
+                    checkpoint["scheduler_state"])
 
             # 加载训练状态
             self.start_epoch = checkpoint["epoch"] + 1
             self.best_test_loss = checkpoint["best_test_loss"]
             self.best_epoch = checkpoint["best_epoch"]
 
-            print(f"Resuming training from epoch {self.start_epoch}")
+            print(
+                f"Resuming training from epoch {self.start_epoch}")
             print(
                 f"Previous best test loss: {self.best_test_loss:.5f} at epoch {self.best_epoch}"
             )
@@ -107,30 +116,36 @@ class Exp_Steady(Exp_Basic):
             checkpoint_layers = []
         myloss = L2Loss(size_average=False)
         if self.args.derivloss:
-            regloss = DerivLoss(size_average=False, shapelist=self.args.shapelist)
+            regloss = DerivLoss(
+                size_average=False, shapelist=self.args.shapelist)
 
-        start_epoch = getattr(self, "start_epoch", 0)  # 若没resume则为0
+        start_epoch = getattr(
+            self, "start_epoch", 0)  # 若没resume则为0
         for ep in range(start_epoch, self.args.epochs):
             if self.dist.world_size > 1:
                 self.train_sampler.set_epoch(ep)
             self.model.train()
             train_loss = 0
             for pos, fx, y in self.train_loader:
-                x, fx, y = pos.to(self.device), fx.to(self.device), y.to(self.device)
+                x, fx, y = pos.to(self.device), fx.to(
+                    self.device), y.to(self.device)
                 if self.args.fun_dim == 0:
                     fx = None
                 with replace_function(
                     module=self.model,
                     replace_layers_list=checkpoint_layers,
-                    ddp_flag=(self.dist.world_size > 1),  # 自动处理DDP
+                    # 自动处理DDP
+                    ddp_flag=(self.dist.world_size > 1),
                 ):
                     out = self.model(x, fx)
                 if self.args.normalize:
-                    out = self.dataset.y_normalizer.decode(out)
+                    out = self.dataset.y_normalizer.decode(
+                        out)
                     y = self.dataset.y_normalizer.decode(y)
 
                 if self.args.derivloss:
-                    loss = myloss(out, y) + 0.1 * regloss(out, y)
+                    loss = myloss(out, y) + \
+                        0.1 * regloss(out, y)
                 else:
                     loss = myloss(out, y)
 
@@ -177,7 +192,8 @@ class Exp_Steady(Exp_Basic):
                     # torch.save(checkpoint, f"./checkpoints/{self.args.save_name}.pt")
 
                 if ep % 10 == 0:
-                    print("Epoch {} Train loss : {:.5f}".format(ep, train_loss))
+                    print("Epoch {} Train loss : {:.5f}".format(
+                        ep, train_loss))
                     print("rel_err:{}".format(rel_err))
 
         # 训练结束后保存最终模型
@@ -190,7 +206,8 @@ class Exp_Steady(Exp_Basic):
 
     def test(self):
         checkpoint_path = f"./checkpoints/{self.args.save_name}.pt"
-        state_dict = torch.load(checkpoint_path, map_location=self.device)
+        state_dict = torch.load(
+            checkpoint_path, map_location=self.device)
         # 兼容新旧模型格式的加载逻辑
         if isinstance(state_dict, dict) and "model_state" in state_dict:
             # 新格式：包含多个组件的字典
@@ -213,7 +230,8 @@ class Exp_Steady(Exp_Basic):
             self.model.load_state_dict(model_state)
         self.model.eval()
         if not os.path.exists("./results/" + self.args.save_name + "/"):
-            os.makedirs("./results/" + self.args.save_name + "/")
+            os.makedirs("./results/" +
+                        self.args.save_name + "/")
 
         # 初始化损失函数对象
         loss_func = L2Loss(size_average=False)
@@ -230,12 +248,14 @@ class Exp_Steady(Exp_Basic):
 
         with torch.no_grad():
             for pos, fx, y in self.test_loader:
-                x, fx, y = pos.to(self.device), fx.to(self.device), y.to(self.device)
+                x, fx, y = pos.to(self.device), fx.to(
+                    self.device), y.to(self.device)
                 if self.args.fun_dim == 0:
                     fx = None
                 out = self.model(x, fx)
                 if self.args.normalize:
-                    out = self.dataset.y_normalizer.decode(out)
+                    out = self.dataset.y_normalizer.decode(
+                        out)
 
                 # 计算所有指标
                 batch_rel_err = loss_func.rel(out, y).item()

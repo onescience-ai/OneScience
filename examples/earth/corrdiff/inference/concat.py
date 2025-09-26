@@ -16,10 +16,12 @@ with dask.diagnostics.ProgressBar():
     )
     t.to_zarr(out, group="prediction")
 
-    t = xarray.open_dataset(base[0], group="input", chunks={"time": 1})
+    t = xarray.open_dataset(
+        base[0], group="input", chunks={"time": 1})
     t.to_zarr(out, group="input", mode="a")
 
-    t = xarray.open_dataset(base[0], group="truth", chunks={"time": 1})
+    t = xarray.open_dataset(
+        base[0], group="truth", chunks={"time": 1})
     t.to_zarr(out, group="truth", mode="a")
 
     t = xarray.open_dataset(base[0])

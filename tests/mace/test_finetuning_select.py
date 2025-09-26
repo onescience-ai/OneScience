@@ -40,7 +40,8 @@ def train_atom_descriptors(train_atoms_fixture):
     "filtering_type, passes_filter, element_sublist",
     [
         (FilteringType.NONE, [True] * 6, []),
-        (FilteringType.NONE, [True] * 6, ["C", "U", "Anything really"]),
+        (FilteringType.NONE, [True] * 6,
+         ["C", "U", "Anything really"]),
         (
             FilteringType.COMBINATIONS,
             [False, False, True, False, False, True],
@@ -69,7 +70,8 @@ def test_filter_data(
 
 
 @pytest.mark.parametrize(
-    "passes_filter", [[True] * 6, [False, True, False, True, False, True]]
+    "passes_filter", [
+        [True] * 6, [False, True, False, True, False, True]]
 )
 def test_load_descriptors(
     train_atoms_fixture, train_atom_descriptors_fixture, passes_filter, tmp_path
@@ -77,12 +79,15 @@ def test_load_descriptors(
     for i, atoms in enumerate(train_atoms_fixture):
         atoms.info["mace_descriptors"] = train_atom_descriptors_fixture[i]
     save_path = tmp_path / "test.xyz"
-    _maybe_save_descriptors(train_atoms_fixture, save_path.as_posix())
-    assert all(not "mace_descriptors" in atoms.info for atoms in train_atoms_fixture)
+    _maybe_save_descriptors(
+        train_atoms_fixture, save_path.as_posix())
+    assert all(
+        not "mace_descriptors" in atoms.info for atoms in train_atoms_fixture)
     filtered_atoms = [
         x for x, passes in zip(train_atoms_fixture, passes_filter) if passes
     ]
-    descriptors_path = save_path.as_posix().replace(".xyz", "_descriptors.npy")
+    descriptors_path = save_path.as_posix().replace(
+        ".xyz", "_descriptors.npy")
 
     _load_descriptors(
         filtered_atoms,
@@ -99,12 +104,14 @@ def test_load_descriptors(
     for i, atoms in enumerate(filtered_atoms):
         assert "mace_descriptors" in atoms.info
         for key, value in expected_descriptors[i].items():
-            assert np.allclose(atoms.info["mace_descriptors"][key], value)
+            assert np.allclose(
+                atoms.info["mace_descriptors"][key], value)
 
 
 def test_select_samples_random(train_atoms_fixture, tmp_path):
     input_file_path = tmp_path / "input.xyz"
-    aio.write(input_file_path, train_atoms_fixture, format="extxyz")
+    aio.write(input_file_path,
+              train_atoms_fixture, format="extxyz")
     output_file_path = tmp_path / "output.xyz"
 
     settings = SelectionSettings(
@@ -125,7 +132,8 @@ def test_select_samples_random(train_atoms_fixture, tmp_path):
     assert isinstance(output_atoms, list)
     assert len(output_atoms) == 2
 
-    combined_output_atoms = aio.read(combined_output_file_path, index=":")
+    combined_output_atoms = aio.read(
+        combined_output_file_path, index=":")
     assert isinstance(combined_output_atoms, list)
     assert (
         len(combined_output_atoms) == 2
@@ -134,11 +142,13 @@ def test_select_samples_random(train_atoms_fixture, tmp_path):
 
 def test_select_samples_ft_provided(train_atoms_fixture, tmp_path):
     input_file_path = tmp_path / "input.xyz"
-    aio.write(input_file_path, train_atoms_fixture, format="extxyz")
+    aio.write(input_file_path,
+              train_atoms_fixture, format="extxyz")
     output_file_path = tmp_path / "output.xyz"
     ft_file_path = tmp_path / "ft_data.xyz"
     ft_data = [Atoms("FeO")]
-    aio.write(ft_file_path.as_posix(), ft_data, format="extxyz")
+    aio.write(ft_file_path.as_posix(),
+              ft_data, format="extxyz")
 
     settings = SelectionSettings(
         configs_pt=input_file_path.as_posix(),
@@ -157,8 +167,11 @@ def test_select_samples_ft_provided(train_atoms_fixture, tmp_path):
     output_atoms = aio.read(output_file_path, index=":")
     assert isinstance(output_atoms, list)
     assert len(output_atoms) == 2
-    assert all(filter_atoms(x, ["Fe", "O"]) for x in output_atoms)
+    assert all(filter_atoms(x, ["Fe", "O"])
+               for x in output_atoms)
 
-    combined_atoms = aio.read(combined_output_file_path, index=":")
+    combined_atoms = aio.read(
+        combined_output_file_path, index=":")
     assert isinstance(combined_atoms, list)
-    assert len(combined_atoms) == len(output_atoms) + len(ft_data)
+    assert len(combined_atoms) == len(
+        output_atoms) + len(ft_data)

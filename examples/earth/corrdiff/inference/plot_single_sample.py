@@ -1,5 +1,6 @@
-import os
 import argparse
+import os
+
 import cftime
 import matplotlib.pyplot as plt
 import netCDF4 as nc
@@ -47,7 +48,8 @@ def plot_channels(group, time_idx: int):
 def channel_eq(a, b):
     """Check if two channels are equal in variable and pressure."""
     variable_equal = a["variable"] == b["variable"]
-    pressure_is_nan = np.isnan(a["pressure"]) and np.isnan(b["pressure"])
+    pressure_is_nan = np.isnan(
+        a["pressure"]) and np.isnan(b["pressure"])
     pressure_equal = a["pressure"] == b["pressure"]
     return variable_equal and (pressure_equal or pressure_is_nan)
 
@@ -81,7 +83,8 @@ def main(file, output_dir, sample):
     # for c in f.time:
     output_channels = list(f["prediction"].variables)
     v = f["time"]
-    times = cftime.num2date(v, units=v.units, calendar=v.calendar)
+    times = cftime.num2date(
+        v, units=v.units, calendar=v.calendar)
 
     def plot_panel(ax, data, **kwargs):
         return ax.pcolormesh(f["lon"], f["lat"], data, cmap="RdBu_r", **kwargs)
@@ -146,7 +149,8 @@ def main(file, output_dir, sample):
                 plot_panel(row[0], x)
                 pc_x = pattern_correlation(x, truth)
                 label_x = pc_x
-                row[0].set_title(f"Input, Pattern correlation: {label_x:.2f}")
+                row[0].set_title(
+                    f"Input, Pattern correlation: {label_x:.2f}")
 
             im = plot_panel(row[1], y)
             plot_panel(row[2], truth)
@@ -156,7 +160,8 @@ def main(file, output_dir, sample):
 
             pc_y = pattern_correlation(y, truth)
             label_y = pc_y
-            row[1].set_title(f"Generated, Pattern correlation: {label_y:.2f}")
+            row[1].set_title(
+                f"Generated, Pattern correlation: {label_y:.2f}")
 
         for ax in axs[-1]:
             ax.set_xlabel("longitude [deg E]")
@@ -166,20 +171,25 @@ def main(file, output_dir, sample):
 
         time = times[idx]
         plt.suptitle(f"Time {time.isoformat()}")
-        plt.savefig(f"{output_dir}/{time.isoformat()}.sample.png")
+        plt.savefig(
+            f"{output_dir}/{time.isoformat()}.sample.png")
 
         plot_channels(f["input"], idx)
-        plt.savefig(f"{output_dir}/{time.isoformat()}.input.png")
+        plt.savefig(
+            f"{output_dir}/{time.isoformat()}.input.png")
 
 
 if __name__ == "__main__":
     # Create the parser
     parser = argparse.ArgumentParser()
     # Add the positional arguments
-    parser.add_argument("--netcdf_file", help="Path to the NetCDF file")
-    parser.add_argument("--output_dir", help="Path to the output directory")
+    parser.add_argument(
+        "--netcdf_file", help="Path to the NetCDF file")
+    parser.add_argument(
+        "--output_dir", help="Path to the output directory")
     # Add the optional argument
-    parser.add_argument("--sample", help="Sample to plot", default=0, type=int)
+    parser.add_argument(
+        "--sample", help="Sample to plot", default=0, type=int)
     # Parse the arguments
     args = parser.parse_args()
     main(args.netcdf_file, args.output_dir, args.sample)

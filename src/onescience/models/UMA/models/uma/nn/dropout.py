@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import torch
@@ -23,7 +22,8 @@ def drop_path(
     shape = (x.shape[0],) + (1,) * (
         x.ndim - 1
     )  # work with diff dim tensors, not just 2D ConvNets
-    random_tensor = keep_prob + torch.rand(shape, dtype=x.dtype, device=x.device)
+    random_tensor = keep_prob + \
+        torch.rand(shape, dtype=x.dtype, device=x.device)
     random_tensor.floor_()  # binarize
     return x.div(keep_prob) * random_tensor
 
@@ -56,8 +56,10 @@ class GraphDropPath(nn.Module):
         shape = (batch_size,) + (1,) * (
             x.ndim - 1
         )  # work with diff dim tensors, not just 2D ConvNets
-        ones = torch.ones(shape, dtype=x.dtype, device=x.device)
-        drop = drop_path(ones, self.drop_prob, self.training)
+        ones = torch.ones(
+            shape, dtype=x.dtype, device=x.device)
+        drop = drop_path(
+            ones, self.drop_prob, self.training)
         return x * drop[batch]
 
     def extra_repr(self) -> str:
@@ -79,7 +81,8 @@ class EquivariantDropout(nn.Module):
         if not self.training or self.drop_prob == 0.0:
             return x
         shape = (x.shape[0], self.num_irreps)
-        mask = torch.ones(shape, dtype=x.dtype, device=x.device)
+        mask = torch.ones(
+            shape, dtype=x.dtype, device=x.device)
         mask = self.drop(mask)
         return self.mul(x, mask)
 
@@ -99,7 +102,8 @@ class EquivariantScalarsDropout(nn.Module):
             temp = x.narrow(-1, start_idx, mul * ir.dim)
             start_idx += mul * ir.dim
             if ir.is_scalar():
-                temp = F.dropout(temp, p=self.drop_prob, training=self.training)
+                temp = F.dropout(
+                    temp, p=self.drop_prob, training=self.training)
             out.append(temp)
         return torch.cat(out, dim=-1)
 
@@ -123,12 +127,14 @@ class EquivariantDropoutArraySphericalHarmonics(nn.Module):
             assert batch is not None
             batch_size = batch.max() + 1
             shape = (batch_size, 1, x.shape[2])
-            mask = torch.ones(shape, dtype=x.dtype, device=x.device)
+            mask = torch.ones(
+                shape, dtype=x.dtype, device=x.device)
             mask = self.drop(mask)
             out = x * mask[batch]
         else:
             shape = (x.shape[0], 1, x.shape[2])
-            mask = torch.ones(shape, dtype=x.dtype, device=x.device)
+            mask = torch.ones(
+                shape, dtype=x.dtype, device=x.device)
             mask = self.drop(mask)
             out = x * mask
 

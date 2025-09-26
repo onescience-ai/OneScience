@@ -1,3 +1,4 @@
+from typing import List, Union
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
@@ -81,7 +82,8 @@ class FullyConnected(Module):
             activation_fn = activation_fn + [activation_fn[-1]] * (
                 num_layers - len(activation_fn)
             )
-        activation_fn = [get_activation(a) for a in activation_fn]
+        activation_fn = [get_activation(
+            a) for a in activation_fn]
 
         self.layers = nn.ModuleList()
 
@@ -121,7 +123,6 @@ class FullyConnected(Module):
         x = self.final_layer(x)
         return x
 
-from typing import Union, List
 
 class FullyConnectedNet(Module):
     def __init__(
@@ -152,16 +153,20 @@ class FullyConnectedNet(Module):
             activation_fn = activation_fn + [activation_fn[-1]] * (
                 num_layers - len(activation_fn)
             )
-        activation_fn = [get_activation(a) for a in activation_fn]
+        activation_fn = [get_activation(
+            a) for a in activation_fn]
 
         # 处理layer_size，允许int或list[int]
         if isinstance(layer_size, int):
             layer_sizes = [layer_size] * num_layers
         elif isinstance(layer_size, list):
-            assert len(layer_size) == num_layers, "layer_size list length must match num_layers"
+            assert (
+                len(layer_size) == num_layers
+            ), "layer_size list length must match num_layers"
             layer_sizes = layer_size
         else:
-            raise TypeError("layer_size must be int or list of ints")
+            raise TypeError(
+                "layer_size must be int or list of ints")
 
         self.layers = nn.ModuleList()
 

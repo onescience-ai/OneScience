@@ -138,19 +138,24 @@ class CuGraphCSC:
         # DGL changed their APIs w.r.t. how sparse formats can be accessed
         # this here is done to support both versions
         if hasattr(graph, "adj_tensors"):
-            offsets, indices, edge_perm = graph.adj_tensors("csc")
+            offsets, indices, edge_perm = graph.adj_tensors(
+                "csc")
         elif hasattr(graph, "adj_sparse"):
-            offsets, indices, edge_perm = graph.adj_sparse("csc")
+            offsets, indices, edge_perm = graph.adj_sparse(
+                "csc")
         else:
-            raise ValueError("Passed graph object doesn't support conversion to CSC.")
+            raise ValueError(
+                "Passed graph object doesn't support conversion to CSC.")
 
-        n_src_nodes, n_dst_nodes = (graph.num_src_nodes(), graph.num_dst_nodes())
+        n_src_nodes, n_dst_nodes = (
+            graph.num_src_nodes(), graph.num_dst_nodes())
 
         graph_partition = None
 
         if partition_by_bbox and partition_size > 1:
             dist_manager = DistributedManager()
-            partition_rank = dist_manager.group_rank(name=partition_group_name)
+            partition_rank = dist_manager.group_rank(
+                name=partition_group_name)
 
             graph_partition = partition_graph_by_coordinate_bbox(
                 offsets.to(dtype=torch.int64),
@@ -312,7 +317,8 @@ class CuGraphCSC:
         NodeBlockCUGO
             The updated object after moving to the specified device, dtype, or format.
         """
-        device, dtype, _, _ = torch._C._nn._parse_to(*args, **kwargs)
+        device, dtype, _, _ = torch._C._nn._parse_to(
+            *args, **kwargs)
         if dtype not in (
             None,
             torch.int32,
@@ -321,10 +327,13 @@ class CuGraphCSC:
             raise TypeError(
                 f"Invalid dtype, expected torch.int32 or torch.int64, got {dtype}."
             )
-        self.offsets = self.offsets.to(device=device, dtype=dtype)
-        self.indices = self.indices.to(device=device, dtype=dtype)
+        self.offsets = self.offsets.to(
+            device=device, dtype=dtype)
+        self.indices = self.indices.to(
+            device=device, dtype=dtype)
         if self.ef_indices is not None:
-            self.ef_indices = self.ef_indices.to(device=device, dtype=dtype)
+            self.ef_indices = self.ef_indices.to(
+                device=device, dtype=dtype)
 
         return self
 
@@ -347,7 +356,8 @@ class CuGraphCSC:
                 "Conversion failed, expected cugraph-ops to be installed."
             )
         if not self.offsets.is_cuda:
-            raise RuntimeError("Expected the graph structures to reside on GPU.")
+            raise RuntimeError(
+                "Expected the graph structures to reside on GPU.")
 
         if self.bipartite_csc is None or not self.cache_graph:
             # Occassionally, we have to watch out for the IdxT type
@@ -366,7 +376,8 @@ class CuGraphCSC:
                 graph_offsets = self.offsets.to(dtype=dtype)
                 graph_indices = self.indices.to(dtype=dtype)
                 if self.ef_indices is not None:
-                    graph_ef_indices = self.ef_indices.to(dtype=dtype)
+                    graph_ef_indices = self.ef_indices.to(
+                        dtype=dtype)
 
             graph = BipartiteCSC(
                 graph_offsets,
@@ -398,7 +409,8 @@ class CuGraphCSC:
                 "Conversion failed, expected cugraph-ops to be installed."
             )
         if not self.offsets.is_cuda:
-            raise RuntimeError("Expected the graph structures to reside on GPU.")
+            raise RuntimeError(
+                "Expected the graph structures to reside on GPU.")
 
         if self.static_csc is None or not self.cache_graph:
             # Occassionally, we have to watch out for the IdxT type
@@ -417,7 +429,8 @@ class CuGraphCSC:
                 graph_offsets = self.offsets.to(dtype=dtype)
                 graph_indices = self.indices.to(dtype=dtype)
                 if self.ef_indices is not None:
-                    graph_ef_indices = self.ef_indices.to(dtype=dtype)
+                    graph_ef_indices = self.ef_indices.to(
+                        dtype=dtype)
 
             graph = StaticCSC(
                 graph_offsets,
@@ -442,9 +455,11 @@ class CuGraphCSC:
 
         if self.dgl_graph is None or not self.cache_graph:
             if self.ef_indices is not None:
-                raise AssertionError("ef_indices is not supported.")
+                raise AssertionError(
+                    "ef_indices is not supported.")
             graph_offsets = self.offsets
-            dst_degree = graph_offsets[1:] - graph_offsets[:-1]
+            dst_degree = graph_offsets[1:] - \
+                graph_offsets[:-1]
             src_indices = self.indices
             dst_indices = torch.arange(
                 0,
@@ -452,11 +467,13 @@ class CuGraphCSC:
                 dtype=graph_offsets.dtype,
                 device=graph_offsets.device,
             )
-            dst_indices = torch.repeat_interleave(dst_indices, dst_degree, dim=0)
+            dst_indices = torch.repeat_interleave(
+                dst_indices, dst_degree, dim=0)
 
             # labels not important here
             self.dgl_graph = dgl.heterograph(
-                {("src", "src2dst", "dst"): ("coo", (src_indices, dst_indices))},
+                {("src", "src2dst", "dst"): (
+                    "coo", (src_indices, dst_indices))},
                 idtype=torch.int32,
             )
 

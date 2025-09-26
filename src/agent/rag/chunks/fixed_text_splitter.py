@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Set
 from typing import Any, Optional
 
-from collections.abc import Set
-
 from langchain_core.documents import Document
-from langchain_text_splitters.base import TS, Collection, Literal, Union
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.embeddings import Embeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters.base import TS, Collection, Literal, Union
 
 
 class EnhanceRecursiveCharacterTextSplitter(RecursiveCharacterTextSplitter):
@@ -19,11 +18,13 @@ class EnhanceRecursiveCharacterTextSplitter(RecursiveCharacterTextSplitter):
 
     @classmethod
     def from_encoder(
-            cls: type[TS],
-            embedding_model_instance: Embeddings,
-            allowed_special: Union[Literal["all"], Set[str]] = set(),  # noqa: UP037
-            disallowed_special: Union[Literal["all"], Collection[str]] = "all",  # noqa: UP037
-            **kwargs: Any,
+        cls: type[TS],
+        embedding_model_instance: Embeddings,
+        allowed_special: Union[Literal["all"], Set[str]] = set(),  # noqa: UP037
+        disallowed_special: Union[
+            Literal["all"], Collection[str]
+        ] = "all",  # noqa: UP037
+        **kwargs: Any,
     ):
         def _token_encoder(texts: list[str]) -> list[int]:
             if not texts:
@@ -41,11 +42,17 @@ class EnhanceRecursiveCharacterTextSplitter(RecursiveCharacterTextSplitter):
 
 
 class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter):
-    def __init__(self, fixed_separator: str = "\n\n", separators: Optional[list[str]] = None, **kwargs: Any):
+    def __init__(
+        self,
+        fixed_separator: str = "\n\n",
+        separators: Optional[list[str]] = None,
+        **kwargs: Any,
+    ):
         """Create a new TextSplitter."""
         super().__init__(**kwargs)
         self._fixed_separator = fixed_separator
-        self._separators = separators or ["\n\n", "\n", " ", ""]
+        self._separators = separators or [
+            "\n\n", "\n", " ", ""]
 
     def split_text(self, text: str) -> list[str]:
         """Split incoming text and return chunks."""
@@ -58,7 +65,8 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
         chunks_lengths = self._length_function(chunks)
         for chunk, chunk_length in zip(chunks, chunks_lengths):
             if chunk_length > self._chunk_size:
-                final_chunks.extend(self.recursive_split_text(chunk))
+                final_chunks.extend(
+                    self.recursive_split_text(chunk))
             else:
                 final_chunks.append(chunk)
 
@@ -86,10 +94,15 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
                 splits = text.split()
             else:
                 splits = text.split(separator)
-                splits = [item + separator if i < len(splits) else item for i, item in enumerate(splits)]
+                splits = [
+                    item +
+                    separator if i < len(splits) else item
+                    for i, item in enumerate(splits)
+                ]
         else:
             splits = list(text)
-        splits = [s for s in splits if (s not in {"", "\n"})]
+        splits = [s for s in splits if (
+            s not in {"", "\n"})]
         _good_splits = []
         _good_splits_lengths = []  # cache the lengths of the splits
         _separator = "" if self._keep_separator else separator
@@ -101,18 +114,23 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
                     _good_splits_lengths.append(s_len)
                 else:
                     if _good_splits:
-                        merged_text = self._merge_splits(_good_splits, _separator, _good_splits_lengths)
+                        merged_text = self._merge_splits(
+                            _good_splits, _separator, _good_splits_lengths
+                        )
                         final_chunks.extend(merged_text)
                         _good_splits = []
                         _good_splits_lengths = []
                     if not new_separators:
                         final_chunks.append(s)
                     else:
-                        other_info = self._split_text(s, new_separators)
+                        other_info = self._split_text(
+                            s, new_separators)
                         final_chunks.extend(other_info)
 
             if _good_splits:
-                merged_text = self._merge_splits(_good_splits, _separator, _good_splits_lengths)
+                merged_text = self._merge_splits(
+                    _good_splits, _separator, _good_splits_lengths
+                )
                 final_chunks.extend(merged_text)
         else:
             current_part = ""
@@ -140,7 +158,7 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
         return final_chunks
 
     def create_documents(
-            self, texts: list[str], metadatas: Optional[list[dict[Any, Any]]] = None
+        self, texts: list[str], metadatas: Optional[list[dict[Any, Any]]] = None
     ) -> list[Document]:
         documents = super().create_documents(texts, metadatas)
         return documents

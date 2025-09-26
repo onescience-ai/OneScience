@@ -2,8 +2,10 @@
 
 import re
 from pathlib import Path
-from typing import NamedTuple, Optional, cast
+from typing import Optional, cast
+
 from langchain_core.documents import Document
+
 from agent.rag.docparser.helpers import detect_file_encodings
 
 
@@ -55,7 +57,8 @@ class MarkdownParser:
             else:
                 if header is None:
                     documents.append(
-                        Document(page_content=value, metadata={"title": title})
+                        Document(page_content=value,
+                                 metadata={"title": title})
                     )
                 else:
                     documents.append(
@@ -91,7 +94,8 @@ class MarkdownParser:
             header_match = re.match(r"^#+\s", line)
             if header_match:
                 if current_header is not None and current_text != "":
-                    markdown_tups.append((current_header, current_text))
+                    markdown_tups.append(
+                        (current_header, current_text))
                 current_header = line
                 current_text = ""
             else:
@@ -109,17 +113,21 @@ class MarkdownParser:
             header_match = re.match(r"^#+\s", header)
             cur_level = len(title_dict)
             if header_match:
-                cur_level = len(header_match.group(0).strip())
-                header = re.sub(r"#", "", cast(str, header)).strip()
+                cur_level = len(
+                    header_match.group(0).strip())
+                header = re.sub(
+                    r"#", "", cast(str, header)).strip()
                 title_dict[cur_level] = header
 
             full_path_title = ""
             while cur_level > 0:
-                full_path_title = title_dict[cur_level] + "\n" + full_path_title
+                full_path_title = title_dict[cur_level] + \
+                    "\n" + full_path_title
                 cur_level -= 1
             full_path_title = full_path_title.strip()
 
-            tups.append((header, full_path_title, re.sub(r"<.*?>", "", value)))
+            tups.append(
+                (header, full_path_title, re.sub(r"<.*?>", "", value)))
 
         return tups
 
@@ -139,20 +147,25 @@ class MarkdownParser:
         """Parse file into tuples."""
         content = ""
         try:
-            content = Path(filepath).read_text(encoding=self._encoding)
+            content = Path(filepath).read_text(
+                encoding=self._encoding)
         except UnicodeDecodeError as e:
             if self._autodetect_encoding:
-                detected_encodings = detect_file_encodings(filepath)
+                detected_encodings = detect_file_encodings(
+                    filepath)
                 for encoding in detected_encodings:
                     try:
-                        content = Path(filepath).read_text(encoding=encoding.encoding)
+                        content = Path(filepath).read_text(
+                            encoding=encoding.encoding)
                         break
                     except UnicodeDecodeError:
                         continue
             else:
-                raise RuntimeError(f"Error loading {filepath}") from e
+                raise RuntimeError(
+                    f"Error loading {filepath}") from e
         except Exception as e:
-            raise RuntimeError(f"Error loading {filepath}") from e
+            raise RuntimeError(
+                f"Error loading {filepath}") from e
 
         if self._remove_hyperlinks:
             content = self.remove_hyperlinks(content)

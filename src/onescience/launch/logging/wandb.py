@@ -1,4 +1,4 @@
-#"""Weights and Biases Routines and Utilities"""
+# """Weights and Biases Routines and Utilities"""
 
 import logging
 import os
@@ -28,7 +28,8 @@ def initialize_wandb(
     save_code: bool = False,
     resume: str = None,
     config=None,
-    mode: Literal["offline", "online", "disabled"] = "offline",
+    mode: Literal["offline", "online",
+                  "disabled"] = "offline",
     results_dir: str = None,
 ):
     """Function to initialize wandb client with the weights and biases server.
@@ -70,11 +71,13 @@ def initialize_wandb(
         if group is None:
             group = create_ddp_group_tag()
         start_time = datetime.now().astimezone()
-        time_string = start_time.strftime("%m/%d/%y_%H:%M:%S")
+        time_string = start_time.strftime(
+            "%m/%d/%y_%H:%M:%S")
         wandb_name = f"{name}_Process_{DistributedManager().rank}_{time_string}"
     else:
         start_time = datetime.now().astimezone()
-        time_string = start_time.strftime("%m/%d/%y_%H:%M:%S")
+        time_string = start_time.strftime(
+            "%m/%d/%y_%H:%M:%S")
         wandb_name = f"{name}_{time_string}"
 
     if not os.path.exists(wandb_dir):
@@ -96,7 +99,8 @@ def initialize_wandb(
 
 def alert(title, text, duration=300, level=0, is_master=True):
     """Send alert."""
-    alert_levels = {0: AlertLevel.INFO, 1: AlertLevel.WARN, 2: AlertLevel.ERROR}
+    alert_levels = {0: AlertLevel.INFO,
+                    1: AlertLevel.WARN, 2: AlertLevel.ERROR}
     if is_wandb_initialized() and is_master:
         wandb.alert(
             title=title, text=text, level=alert_levels[level], wait_duration=duration

@@ -15,7 +15,12 @@ from onescience.models.mace.modules import (
     compute_mean_rms_energy_forces,
     compute_statistics,
 )
-from onescience.models.mace.tools import AtomicNumberTable, scatter, to_numpy, torch_geometric
+from onescience.models.mace.tools import (
+    AtomicNumberTable,
+    scatter,
+    to_numpy,
+    torch_geometric,
+)
 from onescience.models.mace.tools.scripts_utils import dict_to_array
 
 
@@ -148,9 +153,12 @@ def _set_torch_default_dtype():
 
 
 def test_weighted_loss(config, table):
-    loss1 = WeightedEnergyForcesLoss(energy_weight=1, forces_weight=10)
-    loss2 = WeightedHuberEnergyForcesStressLoss(energy_weight=1, forces_weight=10)
-    data = AtomicData.from_config(config, z_table=table, cutoff=3.0)
+    loss1 = WeightedEnergyForcesLoss(
+        energy_weight=1, forces_weight=10)
+    loss2 = WeightedHuberEnergyForcesStressLoss(
+        energy_weight=1, forces_weight=10)
+    data = AtomicData.from_config(
+        config, z_table=table, cutoff=3.0)
     data_loader = torch_geometric.dataloader.DataLoader(
         dataset=[data, data],
         batch_size=2,
@@ -183,7 +191,8 @@ def test_symmetric_contraction():
     )
     out = operation(features, one_hots)
     assert out.shape == (30, 64)
-    assert operation.contractions[0].weights_max.shape == (2, 11, 16)
+    assert operation.contractions[0].weights_max.shape == (
+        2, 11, 16)
 
 
 def test_bessel_basis():
@@ -201,8 +210,10 @@ def test_polynomial_cutoff():
 
 
 def test_atomic_energies(config, table):
-    energies_block = AtomicEnergiesBlock(atomic_energies=np.array([1.0, 3.0]))
-    data = AtomicData.from_config(config, z_table=table, cutoff=3.0)
+    energies_block = AtomicEnergiesBlock(
+        atomic_energies=np.array([1.0, 3.0]))
+    data = AtomicData.from_config(
+        config, z_table=table, cutoff=3.0)
     data_loader = torch_geometric.dataloader.DataLoader(
         dataset=[data, data],
         batch_size=2,
@@ -211,7 +222,8 @@ def test_atomic_energies(config, table):
     )
     batch = next(iter(data_loader))
     energies = energies_block(batch.node_attrs).squeeze(-1)
-    out = scatter.scatter_sum(src=energies, index=batch.batch, dim=-1, reduce="sum")
+    out = scatter.scatter_sum(
+        src=energies, index=batch.batch, dim=-1, reduce="sum")
     out = to_numpy(out)
     assert np.allclose(out, np.array([5.0, 5.0]))
 
@@ -231,7 +243,8 @@ def test_atomic_energies_multireference(config, table):
         drop_last=False,
     )
     batch = next(iter(data_loader))
-    num_atoms_arange = torch.arange(batch["positions"].shape[0])
+    num_atoms_arange = torch.arange(
+        batch["positions"].shape[0])
     node_heads = (
         batch["head"][batch["batch"]]
         if "head" in batch
@@ -239,13 +252,15 @@ def test_atomic_energies_multireference(config, table):
     )
     energies = energies_block(batch.node_attrs).squeeze(-1)
     energies = energies[num_atoms_arange, node_heads]
-    out = scatter.scatter_sum(src=energies, index=batch.batch, dim=-1, reduce="sum")
+    out = scatter.scatter_sum(
+        src=energies, index=batch.batch, dim=-1, reduce="sum")
     out = to_numpy(out)
     assert np.allclose(out, np.array([8.0, 8.0]))
 
 
 def test_compute_mean_rms_energy_forces_multi_head(data_loader, atomic_energies):
-    mean, rms = compute_mean_rms_energy_forces(data_loader, atomic_energies)
+    mean, rms = compute_mean_rms_energy_forces(
+        data_loader, atomic_energies)
     assert isinstance(mean, np.ndarray)
     assert isinstance(rms, np.ndarray)
     assert mean.shape == (2,)
@@ -255,7 +270,8 @@ def test_compute_mean_rms_energy_forces_multi_head(data_loader, atomic_energies)
 
 
 def test_compute_statistics(data_loader, atomic_energies):
-    avg_num_neighbors, mean, std = compute_statistics(data_loader, atomic_energies)
+    avg_num_neighbors, mean, std = compute_statistics(
+        data_loader, atomic_energies)
     assert isinstance(avg_num_neighbors, float)
     assert isinstance(mean, np.ndarray)
     assert isinstance(std, np.ndarray)

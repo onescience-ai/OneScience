@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import argparse
@@ -54,7 +52,8 @@ def get_data(datadir: str, task: str, split: str | None, del_intmd_files: bool) 
     os.makedirs(datadir, exist_ok=True)
 
     if task == "s2ef" and split is None:
-        raise NotImplementedError("S2EF requires a split to be defined.")
+        raise NotImplementedError(
+            "S2EF requires a split to be defined.")
 
     download_link: str | None = None
     if task == "s2ef":
@@ -70,7 +69,8 @@ def get_data(datadir: str, task: str, split: str | None, del_intmd_files: bool) 
     assert download_link is not None
 
     os.system(f"wget {download_link} -P {datadir}")
-    filename = os.path.join(datadir, os.path.basename(download_link))
+    filename = os.path.join(
+        datadir, os.path.basename(download_link))
     logging.info("Extracting contents...")
     os.system(f"tar -xvf {filename} -C {datadir}")
     dirname = os.path.join(
@@ -79,17 +79,21 @@ def get_data(datadir: str, task: str, split: str | None, del_intmd_files: bool) 
     )
     if task == "s2ef" and split != "test":
         assert split is not None, "Split must be defined for the s2ef dataset task"
-        compressed_dir = os.path.join(dirname, os.path.basename(dirname))
+        compressed_dir = os.path.join(
+            dirname, os.path.basename(dirname))
         if split in ["200k", "2M", "20M", "all", "rattled", "md"]:
-            output_path = os.path.join(datadir, task, split, "train")
+            output_path = os.path.join(
+                datadir, task, split, "train")
         else:
-            output_path = os.path.join(datadir, task, "all", split)
+            output_path = os.path.join(
+                datadir, task, "all", split)
         uncompressed_dir = uncompress_data(compressed_dir)
         preprocess_data(uncompressed_dir, output_path)
 
         verify_count(output_path, task, split)
     if task == "s2ef" and split == "test":
-        os.system(f"mv {dirname}/test_data/s2ef/all/test_* {datadir}/s2ef/all")
+        os.system(
+            f"mv {dirname}/test_data/s2ef/all/test_* {datadir}/s2ef/all")
     elif task == "is2re":
         os.system(f"mv {dirname}/data/is2re {datadir}")
 
@@ -103,7 +107,8 @@ def uncompress_data(compressed_dir: str) -> str:
     parser = uncompress.get_parser()
     args, _ = parser.parse_known_args()
     args.ipdir = compressed_dir
-    args.opdir = os.path.dirname(compressed_dir) + "_uncompressed"
+    args.opdir = os.path.dirname(
+        compressed_dir) + "_uncompressed"
     uncompress.main(args)
     return args.opdir
 
@@ -143,7 +148,8 @@ def cleanup(filename: str, dirname: str) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", type=str, help="Task to download")
+    parser.add_argument(
+        "--task", type=str, help="Task to download")
     parser.add_argument(
         "--split", type=str, help="Corresponding data split to download"
     )
@@ -170,7 +176,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--data-path",
         type=str,
-        default=os.path.join(os.path.dirname(onescience.models.UMA.__path__[0]), "data"),
+        default=os.path.join(
+            os.path.dirname(
+                onescience.models.UMA.__path__[0]), "data"
+        ),
         help="Specify path to save dataset. Defaults to 'onescience.models.UMA/data'",
     )
 

@@ -50,14 +50,17 @@ def sdf_to_stl(
             import skimage  # noqa: F401 for docs
             from skimage import measure
         except ImportError:
-            raise ImportError("Install `scikit-image` to use `skimage` backend.")
+            raise ImportError(
+                "Install `scikit-image` to use `skimage` backend.")
 
         verts, faces, _, _ = measure.marching_cubes(
-            field, threshold, spacing=[field.shape[0], field.shape[1], field.shape[2]]
+            field, threshold, spacing=[
+                field.shape[0], field.shape[1], field.shape[2]]
         )
 
     # save stl file
-    mesh_data = np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype)
+    mesh_data = np.zeros(
+        faces.shape[0], dtype=mesh.Mesh.dtype)
 
     for i, f in enumerate(faces):
         for j in range(3):

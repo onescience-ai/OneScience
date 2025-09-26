@@ -38,12 +38,15 @@ def get_kmax_pairs(
 ) -> List[Tuple[int, int]]:
     """Determine kmax pairs based on max_L and correlation"""
     if correlation == 2:
-        raise NotImplementedError("Correlation 2 not supported yet")
+        raise NotImplementedError(
+            "Correlation 2 not supported yet")
     if correlation == 3:
-        kmax_pairs = [[i, max_L] for i in range(num_layers - 1)]
+        kmax_pairs = [[i, max_L]
+                      for i in range(num_layers - 1)]
         kmax_pairs = kmax_pairs + [[num_layers - 1, 0]]
         return kmax_pairs
-    raise NotImplementedError(f"Correlation {correlation} not supported")
+    raise NotImplementedError(
+        f"Correlation {correlation} not supported")
 
 
 def transfer_symmetric_contractions(
@@ -54,7 +57,8 @@ def transfer_symmetric_contractions(
     num_layers: int,
 ):
     """Transfer symmetric contraction weights"""
-    kmax_pairs = get_kmax_pairs(max_L, correlation, num_layers)
+    kmax_pairs = get_kmax_pairs(
+        max_L, correlation, num_layers)
 
     for i, kmax in kmax_pairs:
         wm = torch.concatenate(
@@ -88,7 +92,8 @@ def transfer_weights(
         if key in source_dict:  # Check if key exists
             target_dict[key] = source_dict[key]
         else:
-            logging.warning(f"Key {key} not found in source model")
+            logging.warning(
+                f"Key {key} not found in source model")
 
     # Transfer symmetric contractions
     transfer_symmetric_contractions(
@@ -102,13 +107,16 @@ def transfer_weights(
 
     transferred_keys = set(transfer_keys)
     remaining_keys = (
-        set(source_dict.keys()) & set(target_dict.keys()) - transferred_keys
+        set(source_dict.keys()) & set(
+            target_dict.keys()) - transferred_keys
     )
-    remaining_keys = {k for k in remaining_keys if "symmetric_contraction" not in k}
+    remaining_keys = {
+        k for k in remaining_keys if "symmetric_contraction" not in k}
     if remaining_keys:
         for key in remaining_keys:
             if source_dict[key].shape == target_dict[key].shape:
-                logging.debug(f"Transferring additional key: {key}")
+                logging.debug(
+                    f"Transferring additional key: {key}")
                 target_dict[key] = source_dict[key]
             else:
                 logging.warning(
@@ -137,7 +145,8 @@ def run(
     # logging.warning(f"Loading model")
     # check if input_model is a path or a model
     if isinstance(input_model, str):
-        source_model = torch.load(input_model, map_location=device)
+        source_model = torch.load(
+            input_model, map_location=device)
     else:
         source_model = input_model
     default_dtype = next(source_model.parameters()).dtype
@@ -158,12 +167,15 @@ def run(
     )
 
     # Create new model with cuequivariance config
-    logging.info("Creating new model with cuequivariance settings")
-    target_model = source_model.__class__(**config).to(device)
+    logging.info(
+        "Creating new model with cuequivariance settings")
+    target_model = source_model.__class__(
+        **config).to(device)
 
     # Transfer weights with proper remapping
     num_layers = config["num_interactions"]
-    transfer_weights(source_model, target_model, max_L, correlation, num_layers)
+    transfer_weights(source_model, target_model,
+                     max_L, correlation, num_layers)
 
     if return_model:
         return target_model
@@ -178,13 +190,15 @@ def run(
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_model", help="Path to input MACE model")
+    parser.add_argument(
+        "input_model", help="Path to input MACE model")
     parser.add_argument(
         "--output_model",
         help="Path to output cuequivariance model",
         default="cueq_model.pt",
     )
-    parser.add_argument("--device", default="cpu", help="Device to use")
+    parser.add_argument(
+        "--device", default="cpu", help="Device to use")
     parser.add_argument(
         "--return_model",
         action="store_false",

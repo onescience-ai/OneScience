@@ -19,6 +19,7 @@
 import argparse
 from pathlib import Path
 from typing import List, Optional
+
 # TODO add back support for slurm resilience.
 # import nvidia_resiliency_ext.ptl_resiliency as res_module
 import torch
@@ -29,7 +30,10 @@ from nemo import lightning as nl
 from nemo.collections import llm
 from nemo.collections.llm.gpt.data import MockDataModule, PreTrainingDataModule
 from nemo.collections.llm.gpt.data.megatron.hyena.config import parse_dataset_config
-from nemo.collections.llm.gpt.data.megatron.hyena.evo2_dataset import Evo2Dataset, Evo2DatasetPadEodLossMask
+from nemo.collections.llm.gpt.data.megatron.hyena.evo2_dataset import (
+    Evo2Dataset,
+    Evo2DatasetPadEodLossMask,
+)
 from nemo.collections.llm.gpt.model.hyena import HYENA_MODEL_OPTIONS
 from nemo.collections.llm.recipes.tp_overlap_configs.userbuffers import (
     userbuffers_bf16_h100_h8192_tp4_mbs1_seqlen8192,
@@ -38,17 +42,19 @@ from nemo.collections.llm.recipes.tp_overlap_configs.userbuffers import (
 from nemo.collections.nlp.modules.common.tokenizer_utils import get_nmt_tokenizer
 from nemo.lightning.pytorch import callbacks as nl_callbacks
 from nemo.lightning.pytorch.callbacks.flops_callback import FLOPsMeasurementCallback
-from nemo.lightning.pytorch.callbacks.megatron_comm_overlap import MegatronCommOverlapCallback
+from nemo.lightning.pytorch.callbacks.megatron_comm_overlap import (
+    MegatronCommOverlapCallback,
+)
 from nemo.lightning.pytorch.optim import CosineAnnealingScheduler
 from nemo.lightning.pytorch.optim.megatron import MegatronOptimizerModule
 from nemo.lightning.pytorch.strategies.utils import RestoreConfig
 from nemo.utils.exp_manager import TimingCallback
 
 from onescience.models.evo2.utils.datamodule_utils import infer_global_batch_size
-from onescience.models.evo2.utils.logger_utils import WandbConfig, setup_nemo_lightning_logger
-# from bionemo.llm.utils.datamodule_utils import infer_global_batch_size
-# from bionemo.llm.utils.logger_utils import WandbConfig, setup_nemo_lightning_logger
-
+from onescience.models.evo2.utils.logger_utils import (
+    WandbConfig,
+    setup_nemo_lightning_logger,
+)
 
 torch._dynamo.config.suppress_errors = True
 
@@ -59,7 +65,8 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         description="Train a Hyena model using NeMo 2.0.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    data_group = parser.add_mutually_exclusive_group(required=True)
+    data_group = parser.add_mutually_exclusive_group(
+        required=True)
 
     data_group.add_argument(
         "-d",
@@ -79,26 +86,63 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         help="Absolute path to the dataset directory. Defaults to using the absolute or relative paths (dataset_prefix) specified in the dataset config YAML.",
     )
 
-    parser.add_argument("--num-nodes", type=int, default=1, help="Number of nodes to use for training, defaults to 1.")
-    parser.add_argument("--devices", type=int, default=1, help="Number of devices to use for training, defaults to 1.")
-    parser.add_argument("--seq-length", type=int, default=8192, help="Training sequence length")
     parser.add_argument(
-        "--tensor-parallel-size", type=int, default=1, help="Order of tensor parallelism. Defaults to 1."
+        "--num-nodes",
+        type=int,
+        default=1,
+        help="Number of nodes to use for training, defaults to 1.",
     )
     parser.add_argument(
-        "--pipeline-model-parallel-size", type=int, default=1, help="Order of pipeline parallelism. Defaults to 1."
+        "--devices",
+        type=int,
+        default=1,
+        help="Number of devices to use for training, defaults to 1.",
     )
     parser.add_argument(
-        "--context-parallel-size", type=int, default=1, help="Order of context parallelism. Defaults to 1."
+        "--seq-length", type=int, default=8192, help="Training sequence length"
     )
     parser.add_argument(
-        "--create-tensorboard-logger", action="store_true", default=False, help="Create a tensorboard logger."
+        "--tensor-parallel-size",
+        type=int,
+        default=1,
+        help="Order of tensor parallelism. Defaults to 1.",
     )
-    parser.add_argument("--wandb-entity", type=str, default=None, help="The team posting this run")
-    parser.add_argument("--wandb-project", type=str, default=None, help="Wandb project name ")
-    parser.add_argument("--wandb-tags", nargs="+", type=str, default=None, help="Tags associated with this run")
     parser.add_argument(
-        "--wandb-group", type=str, default=None, help="A unique string shared by all runs in a given group"
+        "--pipeline-model-parallel-size",
+        type=int,
+        default=1,
+        help="Order of pipeline parallelism. Defaults to 1.",
+    )
+    parser.add_argument(
+        "--context-parallel-size",
+        type=int,
+        default=1,
+        help="Order of context parallelism. Defaults to 1.",
+    )
+    parser.add_argument(
+        "--create-tensorboard-logger",
+        action="store_true",
+        default=False,
+        help="Create a tensorboard logger.",
+    )
+    parser.add_argument(
+        "--wandb-entity", type=str, default=None, help="The team posting this run"
+    )
+    parser.add_argument(
+        "--wandb-project", type=str, default=None, help="Wandb project name "
+    )
+    parser.add_argument(
+        "--wandb-tags",
+        nargs="+",
+        type=str,
+        default=None,
+        help="Tags associated with this run",
+    )
+    parser.add_argument(
+        "--wandb-group",
+        type=str,
+        default=None,
+        help="A unique string shared by all runs in a given group",
     )
     parser.add_argument(
         "--wandb-job-type",
@@ -114,18 +158,37 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--wandb-id", type=str, default=None, help="Sets the version, mainly used to resume a previous run"
+        "--wandb-id",
+        type=str,
+        default=None,
+        help="Sets the version, mainly used to resume a previous run",
     )
     parser.add_argument(
-        "--wandb-anonymous", action="store_true", help="Enable or explicitly disable anonymous logging"
+        "--wandb-anonymous",
+        action="store_true",
+        help="Enable or explicitly disable anonymous logging",
     )
     parser.add_argument(
-        "--wandb-log-model", action="store_true", help="Save checkpoints in wandb dir to upload on W&B servers"
+        "--wandb-log-model",
+        action="store_true",
+        help="Save checkpoints in wandb dir to upload on W&B servers",
     )
-    parser.add_argument("--wandb-offline", action="store_true", help="Use wandb in offline mode")
-    parser.add_argument("--sequence-parallel", action="store_true", help="Set to enable sequence parallelism.")
-    parser.add_argument("--fp8", action="store_true", help="Set to enable FP8")
-    parser.add_argument("--micro-batch-size", type=int, default=1, help="Micro-batch size for data-parallel training.")
+    parser.add_argument(
+        "--wandb-offline", action="store_true", help="Use wandb in offline mode"
+    )
+    parser.add_argument(
+        "--sequence-parallel",
+        action="store_true",
+        help="Set to enable sequence parallelism.",
+    )
+    parser.add_argument(
+        "--fp8", action="store_true", help="Set to enable FP8")
+    parser.add_argument(
+        "--micro-batch-size",
+        type=int,
+        default=1,
+        help="Micro-batch size for data-parallel training.",
+    )
     parser.add_argument(
         "--global-batch-size",
         type=int,
@@ -133,7 +196,10 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         help="Global batch size for training. If set to None, infer it from the TP, CP, and PP parameters.",
     )
     parser.add_argument(
-        "--grad-acc-batches", type=int, default=1, help="Number of batches to accumulate gradients over."
+        "--grad-acc-batches",
+        type=int,
+        default=1,
+        help="Number of batches to accumulate gradients over.",
     )
     parser.add_argument(
         "--max-steps",
@@ -155,16 +221,25 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         help="Stop training on this step, if set. This may be useful for testing or debugging purposes.",
     )
     parser.add_argument(
-        "--val-check-interval", type=int, help="Number of steps between validation measurements and model checkpoints."
+        "--val-check-interval",
+        type=int,
+        help="Number of steps between validation measurements and model checkpoints.",
     )
-    parser.add_argument("--grad-reduce-in-fp32", action="store_true", default=False, help="Gradient reduce in FP32.")
+    parser.add_argument(
+        "--grad-reduce-in-fp32",
+        action="store_true",
+        default=False,
+        help="Gradient reduce in FP32.",
+    )
     parser.add_argument(
         "--fp8-wgrad",
         action="store_true",
         default=False,
         help="Faster option that is maybe less accurate (TBD) when using fp8.",
     )
-    parser.add_argument("--use-megatron-comm-overlap-llama3-8k", action="store_true", default=False)
+    parser.add_argument(
+        "--use-megatron-comm-overlap-llama3-8k", action="store_true", default=False
+    )
     parser.add_argument(
         "--tp-comm-overlap-backend",
         type=str,
@@ -172,7 +247,8 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         default="nccl",
         help="TP communication backend to use. Defaults to 'nccl'.",
     )
-    parser.add_argument("--align-param-gather", action="store_true", default=False)
+    parser.add_argument(
+        "--align-param-gather", action="store_true", default=False)
     # parser.add_argument("--straggler-detection", action="store_true", default=False)
     parser.add_argument(
         "--model-size",
@@ -190,9 +266,19 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         help="Add bias to the output layer to enable learning a simple prior.",
     )
     parser.add_argument(
-        "--result-dir", type=Path, required=False, default=Path("./results"), help="Path to the result directory."
+        "--result-dir",
+        type=Path,
+        required=False,
+        default=Path("./results"),
+        help="Path to the result directory.",
     )
-    parser.add_argument("--experiment-name", type=str, required=False, default="evo2", help="Name of the experiment.")
+    parser.add_argument(
+        "--experiment-name",
+        type=str,
+        required=False,
+        default="evo2",
+        help="Name of the experiment.",
+    )
 
     parser.add_argument(
         "--limit-val-batches",
@@ -213,7 +299,9 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         default=None,
         help="Directory to restore an initial checkpoint from. Use this for supervised fine-tuning.",
     )
-    parser.add_argument("--wd", type=float, default=0.01, help="Weight decay for optimizer.")
+    parser.add_argument(
+        "--wd", type=float, default=0.01, help="Weight decay for optimizer."
+    )
     parser.add_argument(
         "--restore-optimizer-from-ckpt",
         action="store_true",
@@ -225,8 +313,15 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         default=False,
         help="Avaerage optimizer state in collective rather than dividing by dp size and summing.",
     )
-    parser.add_argument("--seed", type=int, default=1234, help="Set random seed for training.")
-    parser.add_argument("--workers", type=int, default=8, help="Number of workers to use for data loading.")
+    parser.add_argument(
+        "--seed", type=int, default=1234, help="Set random seed for training."
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=8,
+        help="Number of workers to use for data loading.",
+    )
     parser.add_argument(
         "--gc-interval",
         type=int,
@@ -283,7 +378,9 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         help="Override the hybrid override pattern in the config (specifies hyena layer ordering and type).",
     )
     parser.add_argument(
-        "--num-layers", type=int, help="If set, override the number of layers specified in the requested config."
+        "--num-layers",
+        type=int,
+        help="If set, override the number of layers specified in the requested config.",
     )
     parser.add_argument(
         "--create-tflops-callback",
@@ -297,9 +394,20 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         default=False,
         help="Log training parameters shapes and dtypes for debugging.",
     )
-    parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate.")
-    parser.add_argument("--min-lr", type=float, default=3e-5, help="Min learning rate in cosine annealing.")
-    parser.add_argument("--warmup-steps", type=int, default=2500, help="Number of warmup steps in cosine annealing")
+    parser.add_argument(
+        "--lr", type=float, default=3e-4, help="Learning rate.")
+    parser.add_argument(
+        "--min-lr",
+        type=float,
+        default=3e-5,
+        help="Min learning rate in cosine annealing.",
+    )
+    parser.add_argument(
+        "--warmup-steps",
+        type=int,
+        default=2500,
+        help="Number of warmup steps in cosine annealing",
+    )
     # NSYS profiling/tooling arguments
     parser.add_argument(
         "--nsys-profiling",
@@ -414,17 +522,20 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         default=True,
         help="Disable saving the last checkpoint.",
     )
-    recompute_group = parser.add_mutually_exclusive_group(required=False)
-    recompute_group.add_argument("--no-activation-checkpointing", action="store_true", default=False)
-    recompute_group.add_argument("--selective-activation-checkpointing", action="store_true", default=False)
+    recompute_group = parser.add_mutually_exclusive_group(
+        required=False)
+    recompute_group.add_argument(
+        "--no-activation-checkpointing", action="store_true", default=False
+    )
+    recompute_group.add_argument(
+        "--selective-activation-checkpointing", action="store_true", default=False
+    )
     return parser.parse_args(args=args)
 
 
 def train(args: argparse.Namespace) -> nl.Trainer:
     """Main function to run Evo2 training."""
     # Instantiate tokenizer.
-    # import ipdb
-    # ipdb.set_trace()
     tokenizer = get_nmt_tokenizer(
         "byte-level",
     )
@@ -432,7 +543,7 @@ def train(args: argparse.Namespace) -> nl.Trainer:
     # Infer global batch size.
     global_batch_size = args.global_batch_size
     if global_batch_size is None:
-        global_batch_size = infer_global_batch_size( # batch : 8
+        global_batch_size = infer_global_batch_size(  # batch : 8
             micro_batch_size=args.micro_batch_size,
             num_nodes=args.num_nodes,
             devices=args.devices,
@@ -453,16 +564,16 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         blended_dataset_config = parse_dataset_config(
             dataset_config_path=args.dataset_config, dataset_path=args.dataset_dir
         )
-        dataset_cls = Evo2DatasetPadEodLossMask if args.eod_pad_in_loss_mask else Evo2Dataset
-        # Instantiate pre-training module.       
+        Evo2DatasetPadEodLossMask if args.eod_pad_in_loss_mask else Evo2Dataset
+        # Instantiate pre-training module.
         data_module = PreTrainingDataModule(
             paths=blended_dataset_config,
             # dataset_cls=dataset_cls, # 不注释能跑吗？
             seq_length=args.seq_length,
             micro_batch_size=args.micro_batch_size,
             global_batch_size=global_batch_size,
-            seed=args.seed, # 1234
-            num_workers=args.workers, # 数据记载用的workers默认是8
+            seed=args.seed,  # 1234
+            num_workers=args.workers,  # 数据记载用的workers默认是8
             tokenizer=tokenizer,
             eod_mask_loss=args.eod_pad_in_loss_mask,
         )
@@ -506,23 +617,29 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         config_modifiers_init["num_layers"] = args.num_layers
 
     if args.model_size not in HYENA_MODEL_OPTIONS:
-        raise ValueError(f"Invalid model size: {args.model_size}")
-    evo2_config = HYENA_MODEL_OPTIONS[args.model_size](**config_modifiers_init)
+        raise ValueError(
+            f"Invalid model size: {args.model_size}")
+    evo2_config = HYENA_MODEL_OPTIONS[args.model_size](
+        **config_modifiers_init)
 
     # Instantiate model.
-    model = llm.HyenaModel(evo2_config, tokenizer=data_module.tokenizer)
+    model = llm.HyenaModel(
+        evo2_config, tokenizer=data_module.tokenizer)
 
     # Setup callbacks.
     callbacks = [
-        RichModelSummary(max_depth=4), # 打印模型结构
-        LearningRateMonitor(), # 记录学习率变化
-        TimingCallback(), # 记录训练耗时
+        RichModelSummary(max_depth=4),  # 打印模型结构
+        LearningRateMonitor(),  # 记录学习率变化
+        TimingCallback(),  # 记录训练耗时
     ]
 
     if args.enable_preemption:
         callbacks.append(nl_callbacks.PreemptionCallback())
     if args.debug_ddp_parity_freq > 0:
-        callbacks.append(nl_callbacks.DdpParityChecker(interval=args.debug_ddp_parity_freq))
+        callbacks.append(
+            nl_callbacks.DdpParityChecker(
+                interval=args.debug_ddp_parity_freq)
+        )
     if args.log_parameters_and_shapes:
         callbacks.append(nl_callbacks.ParameterDebugger())
     if args.create_tflops_callback:
@@ -560,7 +677,8 @@ def train(args: argparse.Namespace) -> nl.Trainer:
                 tp_comm_overlap_cfg=tp_comm_overlap_cfg,
                 tp_comm_bootstrap_backend=args.tp_comm_overlap_backend,
                 wgrad_deferral_limit=22,  # default from NeMo
-                overlap_param_gather_with_optimizer_step=False,  # Currently disabled due to an issue with checkpointing.
+                # Currently disabled due to an issue with checkpointing.
+                overlap_param_gather_with_optimizer_step=False,
                 align_param_gather=args.align_param_gather,
             )
         )
@@ -578,7 +696,10 @@ def train(args: argparse.Namespace) -> nl.Trainer:
             nsys_end_step = args.nsys_end_step
         callbacks.append(
             nl_callbacks.NsysCallback(
-                start_step=args.nsys_start_step, end_step=nsys_end_step, ranks=args.nsys_ranks, gen_shape=True
+                start_step=args.nsys_start_step,
+                end_step=nsys_end_step,
+                ranks=args.nsys_ranks,
+                gen_shape=True,
             )
         )
 
@@ -609,7 +730,11 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         else WandbConfig(
             offline=args.wandb_offline,
             project=args.wandb_project,
-            name=args.wandb_run_name if args.wandb_run_name is not None else wandb_run_name,
+            name=(
+                args.wandb_run_name
+                if args.wandb_run_name is not None
+                else wandb_run_name
+            ),
             entity=args.wandb_entity,
             tags=args.wandb_tags,
             group=args.wandb_group,
@@ -619,16 +744,17 @@ def train(args: argparse.Namespace) -> nl.Trainer:
             log_model=args.wandb_log_model,
         )
     )
-    # import pdb;pdb.set_trace()
+
     nemo_logger = setup_nemo_lightning_logger(
         root_dir=args.result_dir,
         name=args.experiment_name,
         initialize_tensorboard_logger=args.create_tensorboard_logger,
         wandb_config=wandb_config,
     )
-    # import pdb;pdb.set_trace()
+
     if args.create_checkpoint_callback:
-        checkpoint_path = str(Path(nemo_logger.save_dir) / "checkpoints")
+        checkpoint_path = str(
+            Path(nemo_logger.save_dir) / "checkpoints")
         checkpoint_callback = nl_callbacks.ModelCheckpoint(
             dirpath=checkpoint_path,
             save_last=args.save_last_checkpoint,
@@ -664,12 +790,13 @@ def train(args: argparse.Namespace) -> nl.Trainer:
     ddp: DistributedDataParallelConfig = DistributedDataParallelConfig(
         check_for_nan_in_grad=True,
         overlap_grad_reduce=args.overlap_grad_reduce,
-        overlap_param_gather=args.overlap_param_gather,  # Verify that this works using
+        # Verify that this works using
+        overlap_param_gather=args.overlap_param_gather,
         grad_reduce_in_fp32=args.grad_reduce_in_fp32,
         align_param_gather=args.align_param_gather,
         average_in_collective=not args.no_average_in_collective,
     )
-    # import pdb;pdb.set_trace()
+
     # Initialize Megatron Strategy and Trainer.
     strategy = nl.MegatronStrategy(
         ddp=ddp,
@@ -682,14 +809,19 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         ckpt_save_optimizer=True,
         ckpt_async_save=args.ckpt_async_save,
         save_ckpt_format=args.ckpt_format,
-        ckpt_load_strictness="log_all",  # or rebasing to https://github.com/NVIDIA/NeMo/pull/11988/files#diff-7667eae242a8ef776bff78cd08e79bc81df4896a450f0a781f6ed317a3dfb7ffR139
+        # or rebasing to https://github.com/NVIDIA/NeMo/pull/11988/files#diff-7667eae242a8ef776bff78cd08e79bc81df4896a450f0a781f6ed317a3dfb7ffR139
+        ckpt_load_strictness="log_all",
     )
     from lightning.fabric.plugins.environments import LightningEnvironment
-    # import pdb;pdb.set_trace()
+
     trainer = nl.Trainer(
         devices=args.devices,
         num_nodes=args.num_nodes,
-        max_steps=args.max_steps if args.early_stop_on_step is None else args.early_stop_on_step,
+        max_steps=(
+            args.max_steps
+            if args.early_stop_on_step is None
+            else args.early_stop_on_step
+        ),
         accelerator="gpu",
         strategy=strategy,
         callbacks=callbacks,
@@ -697,17 +829,18 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         limit_val_batches=args.limit_val_batches,
         num_sanity_val_steps=0,
         use_distributed_sampler=False,
-        plugins=[nl.MegatronMixedPrecision(
-            precision="bf16-mixed",
-            params_dtype=torch.bfloat16,
-            grad_reduce_in_fp32=args.grad_reduce_in_fp32,
-            fp8="hybrid" if args.fp8 else None,
-            fp8_amax_history_len=16 if args.fp8 else 1,
-            fp8_amax_compute_algo="max" if args.fp8 else "most_recent",
-            fp8_wgrad=args.fp8
-            and (
-                args.fp8_wgrad or args.use_megatron_comm_overlap_llama3_8k
-            ),  # faster and less accurate when set to True, and MUST be True if using TP communication overlap
+        plugins=[
+            nl.MegatronMixedPrecision(
+                precision="bf16-mixed",
+                params_dtype=torch.bfloat16,
+                grad_reduce_in_fp32=args.grad_reduce_in_fp32,
+                fp8="hybrid" if args.fp8 else None,
+                fp8_amax_history_len=16 if args.fp8 else 1,
+                fp8_amax_compute_algo="max" if args.fp8 else "most_recent",
+                fp8_wgrad=args.fp8
+                and (
+                    args.fp8_wgrad or args.use_megatron_comm_overlap_llama3_8k
+                ),  # faster and less accurate when set to True, and MUST be True if using TP communication overlap
             ),
             LightningEnvironment(),  # 关键：强制使用通用环境
         ],
@@ -726,7 +859,7 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         val_check_interval=args.val_check_interval,
         enable_checkpointing=args.create_checkpoint_callback,
     )
-    
+
     # Logger setup
     nemo_logger.setup(
         trainer,
@@ -755,12 +888,15 @@ def train(args: argparse.Namespace) -> nl.Trainer:
         constant_steps=args.constant_steps,
     )
     # 优化器调度器设置
-    opt = MegatronOptimizerModule(opt_config, sched, no_weight_decay_cond=evo2_config.hyena_no_weight_decay_cond_fn)
+    opt = MegatronOptimizerModule(
+        opt_config,
+        sched,
+        no_weight_decay_cond=evo2_config.hyena_no_weight_decay_cond_fn,
+    )
     opt.connect(model)
 
     # Start training
-    # import pdb;pdb.set_trace()
-    trainer.fit(model, data_module) # 启动训练
+    trainer.fit(model, data_module)  # 启动训练
     return trainer
 
 

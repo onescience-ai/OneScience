@@ -14,7 +14,8 @@ from onescience.models.mace.cli.run_train import run as run_mace_train
 from onescience.models.mace.data.utils import KeySpecification
 from onescience.models.mace.tools import build_default_arg_parser
 
-run_train = Path(__file__).parent.parent / "mace" / "cli" / "run_train.py"
+run_train = Path(__file__).parent.parent / \
+    "mace" / "cli" / "run_train.py"
 
 
 _mace_params = {
@@ -91,7 +92,8 @@ def configs_numbered_keys():
 
 def trial_yamls_and_and_expected():
     yamls = {}
-    command_line_kwargs = {"energy_key": "2_energy", "forces_key": "2_forces"}
+    command_line_kwargs = {
+        "energy_key": "2_energy", "forces_key": "2_forces"}
 
     yamls["no_heads"] = {}
 
@@ -335,7 +337,8 @@ def trial_yamls_and_and_expected():
     for key, value in all_arg_sets.items():
         for key2, value2 in value.items():
             list_of_all.append(
-                (value2, (key, key2), np.asarray(all_expected_outputs[key][key2]))
+                (value2, (key, key2), np.asarray(
+                    all_expected_outputs[key][key2]))
             )
 
     return list_of_all
@@ -346,7 +349,8 @@ def dict_to_yaml_str(data, indent=0):
     for key, value in data.items():
         yaml_str += " " * indent + str(key) + ":"
         if isinstance(value, dict):
-            yaml_str += "\n" + dict_to_yaml_str(value, indent + 2)
+            yaml_str += "\n" + \
+                dict_to_yaml_str(value, indent + 2)
         else:
             yaml_str += " " + str(value) + "\n"
     return yaml_str
@@ -361,9 +365,12 @@ _trial_yamls_and_and_expected = trial_yamls_and_and_expected()
 def test_key_specification_methods(tmp_path, yaml_contents, name, expected_value):
     fitting_configs = configs_numbered_keys()
 
-    ase.io.write(tmp_path / "fit_multihead_dft.xyz", fitting_configs)
-    ase.io.write(tmp_path / "fit_multihead_mp2.xyz", fitting_configs)
-    ase.io.write(tmp_path / "duplicated_fit_multihead_dft.xyz", fitting_configs)
+    ase.io.write(
+        tmp_path / "fit_multihead_dft.xyz", fitting_configs)
+    ase.io.write(
+        tmp_path / "fit_multihead_mp2.xyz", fitting_configs)
+    ase.io.write(
+        tmp_path / "duplicated_fit_multihead_dft.xyz", fitting_configs)
 
     mace_params = _mace_params.copy()
     mace_params["valid_fraction"] = 0.1
@@ -384,12 +391,14 @@ def test_key_specification_methods(tmp_path, yaml_contents, name, expected_value
     with open(filename, "w", encoding="utf-8") as file:
         file.write(dict_to_yaml_str(yaml_contents))
     if len(yaml_contents) > 0:
-        mace_params["config"] = str(tmp_path / "config.yaml")
+        mace_params["config"] = str(
+            tmp_path / "config.yaml")
 
     run_env = os.environ.copy()
     sys.path.insert(0, str(Path(__file__).parent.parent))
     run_env["PYTHONPATH"] = ":".join(sys.path)
-    print("DEBUG subprocess PYTHONPATH", run_env["PYTHONPATH"])
+    print("DEBUG subprocess PYTHONPATH",
+          run_env["PYTHONPATH"])
 
     cmd = (
         sys.executable
@@ -404,7 +413,8 @@ def test_key_specification_methods(tmp_path, yaml_contents, name, expected_value
         )
     )
 
-    p = subprocess.run(cmd.split(), env=run_env, cwd=tmp_path, check=True)
+    p = subprocess.run(
+        cmd.split(), env=run_env, cwd=tmp_path, check=True)
     assert p.returncode == 0
 
     if "heads" in yaml_contents:
@@ -431,7 +441,8 @@ def test_key_specification_methods(tmp_path, yaml_contents, name, expected_value
 
 def test_multihead_finetuning_does_not_modify_default_keyspec(tmp_path):
     fitting_configs = configs_numbered_keys()
-    ase.io.write(tmp_path / "fit_multihead_dft.xyz", fitting_configs)
+    ase.io.write(
+        tmp_path / "fit_multihead_dft.xyz", fitting_configs)
 
     args = build_default_arg_parser().parse_args(
         [
@@ -454,6 +465,7 @@ def test_multihead_finetuning_does_not_modify_default_keyspec(tmp_path):
     default_key_spec.info_keys["energy"] = "2_energy"
     run_mace_train(args)
     assert args.key_specification == default_key_spec
+
 
 # for creating values
 def make_output():

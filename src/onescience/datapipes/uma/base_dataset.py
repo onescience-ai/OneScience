@@ -1,16 +1,10 @@
-
-
 from __future__ import annotations
 
 import logging
 from abc import ABCMeta
 from functools import cached_property
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import numpy as np
 import torch
@@ -49,7 +43,8 @@ class BaseDataset(Dataset[T_co], metaclass=ABCMeta):
             if isinstance(config["src"], str):
                 self.paths = [Path(self.config["src"])]
             else:
-                self.paths = tuple(Path(path) for path in sorted(config["src"]))
+                self.paths = tuple(
+                    Path(path) for path in sorted(config["src"]))
 
     def __len__(self) -> int:
         return self.num_samples
@@ -67,7 +62,8 @@ class BaseDataset(Dataset[T_co], metaclass=ABCMeta):
         metadata_npzs = []
         if self.config.get("metadata_path", None) is not None:
             metadata_npzs.append(
-                np.load(self.config["metadata_path"], allow_pickle=True)
+                np.load(
+                    self.config["metadata_path"], allow_pickle=True)
             )
 
         else:
@@ -77,7 +73,8 @@ class BaseDataset(Dataset[T_co], metaclass=ABCMeta):
                 else:
                     metadata_file = path / "metadata.npz"
                 if metadata_file.is_file():
-                    metadata_npzs.append(np.load(metadata_file, allow_pickle=True))
+                    metadata_npzs.append(
+                        np.load(metadata_file, allow_pickle=True))
 
         if len(metadata_npzs) == 0:
             logging.warning(
@@ -86,15 +83,16 @@ class BaseDataset(Dataset[T_co], metaclass=ABCMeta):
             return {}
 
         metadata = {
-            field: np.concatenate([metadata[field] for metadata in metadata_npzs])
+            field: np.concatenate(
+                [metadata[field] for metadata in metadata_npzs])
             for field in metadata_npzs[0]
         }
 
         assert np.issubdtype(
             metadata["natoms"].dtype, np.integer
         ), f"Metadata natoms must be an integer type! not {metadata['natoms'].dtype}"
-        assert (
-            metadata["natoms"].shape[0] == len(self)
+        assert metadata["natoms"].shape[0] == len(
+            self
         ), f"Loaded metadata size {metadata['natoms'].shape[0]} and dataset size {len(self)} mismatch."
 
         return metadata
@@ -144,8 +142,10 @@ def create_dataset(config: dict[str, Any], split: str) -> Subset:
         Subset: dataset subset class
     """
     # Initialize the dataset
-    dataset_cls = registry.get_dataset_class(config.get("format", "lmdb"))
-    assert issubclass(dataset_cls, Dataset), f"{dataset_cls} is not a Dataset"
+    dataset_cls = registry.get_dataset_class(
+        config.get("format", "lmdb"))
+    assert issubclass(
+        dataset_cls, Dataset), f"{dataset_cls} is not a Dataset"
 
     # remove information about other splits, only keep specified split
     # this may only work with the mt config not main config
@@ -170,8 +170,10 @@ def create_dataset(config: dict[str, Any], split: str) -> Subset:
     max_atoms = current_split_config.get("max_atoms", None)
     if max_atoms is not None:
         if not dataset.metadata_hasattr("natoms"):
-            raise ValueError("Cannot use max_atoms without dataset metadata")
-        indices = indices[dataset.get_metadata("natoms", indices) <= max_atoms]
+            raise ValueError(
+                "Cannot use max_atoms without dataset metadata")
+        indices = indices[dataset.get_metadata(
+            "natoms", indices) <= max_atoms]
 
     for subset_to in current_split_config.get("subset_to", []):
         if not dataset.metadata_hasattr(subset_to["metadata_key"]):
@@ -185,11 +187,13 @@ def create_dataset(config: dict[str, Any], split: str) -> Subset:
                 rhv = [int(x) for x in rhv]
         if subset_to["op"] == "abs_le":
             indices = indices[
-                np.abs(dataset.get_metadata(subset_to["metadata_key"], indices)) <= rhv
+                np.abs(dataset.get_metadata(
+                    subset_to["metadata_key"], indices)) <= rhv
             ]
         elif subset_to["op"] == "in":
             indices = indices[
-                np.isin(dataset.get_metadata(subset_to["metadata_key"], indices), rhv)
+                np.isin(dataset.get_metadata(
+                    subset_to["metadata_key"], indices), rhv)
             ]
 
     # Apply dataset level transforms
@@ -228,7 +232,8 @@ def create_dataset(config: dict[str, Any], split: str) -> Subset:
             f"Make sure to set first_n or sample_n to a number =< the total samples in dataset."
         )
         if max_atoms is not None:
-            msg = msg[:-1] + f"that are smaller than the given max_atoms {max_atoms}."
+            msg = msg[:-1] + \
+                f"that are smaller than the given max_atoms {max_atoms}."
         raise ValueError(msg)
 
     indices = indices[:max_index]

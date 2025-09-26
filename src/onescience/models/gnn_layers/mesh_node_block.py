@@ -70,7 +70,8 @@ class MeshNodeBlock(nn.Module):
         graph: Union[DGLGraph, CuGraphCSC],
     ) -> Tuple[Tensor, Tensor]:
         # update edge features
-        cat_feat = aggregate_and_concat(efeat, nfeat, graph, self.aggregation)
+        cat_feat = aggregate_and_concat(
+            efeat, nfeat, graph, self.aggregation)
         # update node features + residual connection
         nfeat_new = self.node_mlp(cat_feat) + nfeat
         return efeat, nfeat_new

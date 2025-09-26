@@ -30,10 +30,12 @@ def main():
         "-o",
         help="name for output model, defaults to model.head_name, followed by .target_device if specified",
     )
-    parser.add_argument("model_file", help="input model file path")
+    parser.add_argument(
+        "model_file", help="input model file path")
     args = parser.parse_args()
 
-    model = torch.load(args.model_file, map_location=args.target_device)
+    model = torch.load(
+        args.model_file, map_location=args.target_device)
     torch.set_default_dtype(next(model.parameters()).dtype)
 
     if args.list_heads:
@@ -51,7 +53,8 @@ def main():
 
         model_single = remove_pt_head(model, args.head_name)
         if args.target_device is not None:
-            target_device = str(next(model.parameters()).device)
+            target_device = str(
+                next(model.parameters()).device)
             model_single.to(target_device)
         torch.save(model_single, args.output_file)
 

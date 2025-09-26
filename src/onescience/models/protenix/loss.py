@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import torch
 import torch.nn as nn
@@ -61,7 +61,8 @@ class SmoothLDDTLoss(nn.Module):
         # For save cuda memory we use inplace op
         dist_diff_epsilon = 0
         for threshold in [0.5, 1, 2, 4]:
-            dist_diff_epsilon += 0.25 * torch.sigmoid(threshold - dist_diff)
+            dist_diff_epsilon += 0.25 * \
+                torch.sigmoid(threshold - dist_diff)
 
         # Compute mean
         if c_lm is not None:
@@ -98,7 +99,8 @@ class SmoothLDDTLoss(nn.Module):
             torch.Tensor: the smooth lddt loss
                 [...] if reduction is None else []
         """
-        c_lm = lddt_mask.bool().unsqueeze(dim=-3).detach()  # [..., 1, N_atom, N_atom]
+        c_lm = lddt_mask.bool().unsqueeze(
+            dim=-3).detach()  # [..., 1, N_atom, N_atom]
         # Compute distance error
         # [...,  N_sample , N_atom, N_atom]
         if diffusion_chunk_size is None:
@@ -118,7 +120,7 @@ class SmoothLDDTLoss(nn.Module):
                     self._chunk_forward,
                     pred_distance[
                         ...,
-                        i * diffusion_chunk_size : (i + 1) * diffusion_chunk_size,
+                        i * diffusion_chunk_size: (i + 1) * diffusion_chunk_size,
                         :,
                         :,
                     ],
@@ -153,13 +155,19 @@ class SmoothLDDTLoss(nn.Module):
             torch.Tensor: the smooth lddt loss
                 [...] if reduction is None else []
         """
-        lddt_indices = torch.nonzero(lddt_mask, as_tuple=True)
-        true_coords_l = true_coordinate.index_select(-2, lddt_indices[0])
-        true_coords_m = true_coordinate.index_select(-2, lddt_indices[1])
-        true_distance_sparse_lm = torch.norm(true_coords_l - true_coords_m, p=2, dim=-1)
+        lddt_indices = torch.nonzero(
+            lddt_mask, as_tuple=True)
+        true_coords_l = true_coordinate.index_select(
+            -2, lddt_indices[0])
+        true_coords_m = true_coordinate.index_select(
+            -2, lddt_indices[1])
+        true_distance_sparse_lm = torch.norm(
+            true_coords_l - true_coords_m, p=2, dim=-1)
         if diffusion_chunk_size is None:
-            pred_coords_l = pred_coordinate.index_select(-2, lddt_indices[0])
-            pred_coords_m = pred_coordinate.index_select(-2, lddt_indices[1])
+            pred_coords_l = pred_coordinate.index_select(
+                -2, lddt_indices[0])
+            pred_coords_m = pred_coordinate.index_select(
+                -2, lddt_indices[1])
             # \delta x_{lm} and \delta x_{lm}^{GT} in the Algorithm 27
             pred_distance_sparse_lm = torch.norm(
                 pred_coords_l - pred_coords_m, p=2, dim=-1
@@ -176,10 +184,10 @@ class SmoothLDDTLoss(nn.Module):
             )
             for i in range(no_chunks):
                 pred_coords_i_l = pred_coordinate[
-                    i * diffusion_chunk_size : (i + 1) * diffusion_chunk_size, :, :
+                    i * diffusion_chunk_size: (i + 1) * diffusion_chunk_size, :, :
                 ].index_select(-2, lddt_indices[0])
                 pred_coords_i_m = pred_coordinate[
-                    i * diffusion_chunk_size : (i + 1) * diffusion_chunk_size, :, :
+                    i * diffusion_chunk_size: (i + 1) * diffusion_chunk_size, :, :
                 ].index_select(-2, lddt_indices[1])
 
                 # \delta x_{lm} and \delta x_{lm}^{GT} in the Algorithm 27
@@ -219,12 +227,15 @@ class SmoothLDDTLoss(nn.Module):
             torch.Tensor: the smooth lddt loss
                 [...] if reduction is None else []
         """
-        c_lm = lddt_mask.bool().unsqueeze(dim=-3).detach()  # [..., 1, N_atom, N_atom]
+        c_lm = lddt_mask.bool().unsqueeze(
+            dim=-3).detach()  # [..., 1, N_atom, N_atom]
         # Compute distance error
         # [...,  N_sample , N_atom, N_atom]
-        true_distance = torch.cdist(true_coordinate, true_coordinate)
+        true_distance = torch.cdist(
+            true_coordinate, true_coordinate)
         if diffusion_chunk_size is None:
-            pred_distance = torch.cdist(pred_coordinate, pred_coordinate)
+            pred_distance = torch.cdist(
+                pred_coordinate, pred_coordinate)
             lddt = self._chunk_forward(
                 pred_distance=pred_distance, true_distance=true_distance, c_lm=c_lm
             )
@@ -238,12 +249,12 @@ class SmoothLDDTLoss(nn.Module):
             for i in range(no_chunks):
                 pred_distance_i = torch.cdist(
                     pred_coordinate[
-                        i * diffusion_chunk_size : (i + 1) * diffusion_chunk_size,
+                        i * diffusion_chunk_size: (i + 1) * diffusion_chunk_size,
                         :,
                         :,
                     ],
                     pred_coordinate[
-                        i * diffusion_chunk_size : (i + 1) * diffusion_chunk_size,
+                        i * diffusion_chunk_size: (i + 1) * diffusion_chunk_size,
                         :,
                         :,
                     ],
@@ -280,7 +291,8 @@ class BondLoss(nn.Module):
     def _chunk_forward(self, pred_distance, true_distance, bond_mask):
         # Distance squared error
         # [...,  N_sample , N_atom, N_atom]
-        dist_squared_err = (pred_distance - true_distance.unsqueeze(dim=-3)) ** 2
+        dist_squared_err = (
+            pred_distance - true_distance.unsqueeze(dim=-3)) ** 2
         bond_loss = torch.sum(dist_squared_err * bond_mask, dim=(-1, -2)) / torch.sum(
             bond_mask + self.eps, dim=(-1, -2)
         )  # [..., N_sample]
@@ -337,7 +349,7 @@ class BondLoss(nn.Module):
                     self._chunk_forward,
                     pred_distance[
                         ...,
-                        i * diffusion_chunk_size : (i + 1) * diffusion_chunk_size,
+                        i * diffusion_chunk_size: (i + 1) * diffusion_chunk_size,
                         :,
                         :,
                     ],
@@ -379,21 +391,30 @@ class BondLoss(nn.Module):
         """
 
         bond_mask = bond_mask * distance_mask
-        bond_indices = torch.nonzero(bond_mask, as_tuple=True)
-        pred_coords_i = pred_coordinate.index_select(-2, bond_indices[0])
-        pred_coords_j = pred_coordinate.index_select(-2, bond_indices[1])
-        true_coords_i = true_coordinate.index_select(-2, bond_indices[0])
-        true_coords_j = true_coordinate.index_select(-2, bond_indices[1])
+        bond_indices = torch.nonzero(
+            bond_mask, as_tuple=True)
+        pred_coords_i = pred_coordinate.index_select(
+            -2, bond_indices[0])
+        pred_coords_j = pred_coordinate.index_select(
+            -2, bond_indices[1])
+        true_coords_i = true_coordinate.index_select(
+            -2, bond_indices[0])
+        true_coords_j = true_coordinate.index_select(
+            -2, bond_indices[1])
 
-        pred_distance_sparse = torch.norm(pred_coords_i - pred_coords_j, p=2, dim=-1)
-        true_distance_sparse = torch.norm(true_coords_i - true_coords_j, p=2, dim=-1)
-        dist_squared_err_sparse = (pred_distance_sparse - true_distance_sparse) ** 2
+        pred_distance_sparse = torch.norm(
+            pred_coords_i - pred_coords_j, p=2, dim=-1)
+        true_distance_sparse = torch.norm(
+            true_coords_i - true_coords_j, p=2, dim=-1)
+        dist_squared_err_sparse = (
+            pred_distance_sparse - true_distance_sparse) ** 2
         # Protecting special data that has size: tensor([], size=(x, 0), grad_fn=<PowBackward0>)
         if dist_squared_err_sparse.numel() == 0:
             return torch.tensor(
                 0.0, device=dist_squared_err_sparse.device, requires_grad=True
             )
-        bond_loss = torch.mean(dist_squared_err_sparse, dim=-1)  # [..., N_sample]
+        bond_loss = torch.mean(
+            dist_squared_err_sparse, dim=-1)  # [..., N_sample]
         if per_sample_scale is not None:
             bond_loss = bond_loss * per_sample_scale
 
@@ -434,7 +455,8 @@ def compute_lddt_mask(
 
     # Zero-out diagonals of c_lm and cast to float
     c_lm = c_lm * (
-        1 - torch.eye(n=c_lm.size(-1), device=c_lm.device, dtype=true_distance.dtype)
+        1 - torch.eye(n=c_lm.size(-1), device=c_lm.device,
+                      dtype=true_distance.dtype)
     )
     # Zero-out atom pairs without true coordinates
     # Note: the sparsity of c_lm is ~10% in 5000 atom-pairs,
@@ -530,8 +552,11 @@ class DistogramLoss(nn.Module):
         # Compute label: the true bins
         # True distance
         rep_atom_mask = rep_atom_mask.bool()
-        true_coordinate = true_coordinate[..., rep_atom_mask, :]  # [..., N_token, 3]
-        gt_dist = cdist(true_coordinate, true_coordinate)  # [..., N_token, N_token]
+        # [..., N_token, 3]
+        true_coordinate = true_coordinate[...,
+                                          rep_atom_mask, :]
+        # [..., N_token, N_token]
+        gt_dist = cdist(true_coordinate, true_coordinate)
         # Assign distance to bins
         true_bins = torch.sum(
             gt_dist.unsqueeze(dim=-1) > boundaries, dim=-1
@@ -539,7 +564,8 @@ class DistogramLoss(nn.Module):
 
         # Mask
         token_mask = coordinate_mask[..., rep_atom_mask]
-        pair_mask = token_mask[..., None] * token_mask[..., None, :]
+        pair_mask = token_mask[...,
+                               None] * token_mask[..., None, :]
 
         return F.one_hot(true_bins, self.no_bins), pair_mask
 
@@ -579,7 +605,8 @@ class DistogramLoss(nn.Module):
             labels=true_bins,
         )  # [..., N_token, N_token]
 
-        denom = self.eps + torch.sum(pair_mask, dim=(-1, -2))
+        denom = self.eps + \
+            torch.sum(pair_mask, dim=(-1, -2))
         loss = torch.sum(errors * pair_mask, dim=(-1, -2))
         loss = loss / denom
 
@@ -652,15 +679,20 @@ class PDELoss(nn.Module):
         # Compute label: the true bins
         # True distance
         rep_atom_mask = rep_atom_mask.bool()
-        true_coordinate = true_coordinate[..., rep_atom_mask, :]  # [..., N_token, 3]
-        gt_dist = cdist(true_coordinate, true_coordinate)  # [..., N_token, N_token]
+        # [..., N_token, 3]
+        true_coordinate = true_coordinate[...,
+                                          rep_atom_mask, :]
+        # [..., N_token, N_token]
+        gt_dist = cdist(true_coordinate, true_coordinate)
         # Predicted distance
-        pred_coordinate = pred_coordinate[..., rep_atom_mask, :]
+        pred_coordinate = pred_coordinate[...,
+                                          rep_atom_mask, :]
         pred_dist = cdist(
             pred_coordinate, pred_coordinate
         )  # [..., N_sample, N_token, N_token]
         # Distance error
-        dist_error = torch.abs(pred_dist - gt_dist.unsqueeze(dim=-3))
+        dist_error = torch.abs(
+            pred_dist - gt_dist.unsqueeze(dim=-3))
 
         # Assign distance error to bins
         true_bins = torch.sum(
@@ -672,7 +704,8 @@ class PDELoss(nn.Module):
 
         # Mask
         token_mask = coordinate_mask[..., rep_atom_mask]
-        pair_mask = token_mask[..., None] * token_mask[..., None, :]
+        pair_mask = token_mask[...,
+                               None] * token_mask[..., None, :]
 
         return F.one_hot(true_bins - 1, self.no_bins).detach(), pair_mask.detach()
 
@@ -716,10 +749,14 @@ class PDELoss(nn.Module):
             labels=true_bins,
         )  # [..., N_sample, N_token, N_token]
 
-        denom = self.eps + torch.sum(pair_mask, dim=(-1, -2))  # [...]
-        loss = errors * pair_mask.unsqueeze(dim=-3)  # [..., N_sample, N_token, N_token]
-        loss = torch.sum(loss, dim=(-1, -2))  # [..., N_sample]
-        loss = loss / denom.unsqueeze(dim=-1)  # [..., N_sample]
+        denom = self.eps + \
+            torch.sum(pair_mask, dim=(-1, -2))  # [...]
+        # [..., N_sample, N_token, N_token]
+        loss = errors * pair_mask.unsqueeze(dim=-3)
+        # [..., N_sample]
+        loss = torch.sum(loss, dim=(-1, -2))
+        # [..., N_sample]
+        loss = loss / denom.unsqueeze(dim=-1)
         loss = loss.mean(dim=-1)  # [...]
 
         return loss_reduction(loss, method=self.reduction)
@@ -831,7 +868,8 @@ class PAELoss(nn.Module):
         assert len(frame_atom_index.shape) == 2
 
         # Take valid frames: N_token -> N_frame
-        frame_atom_index = frame_atom_index[has_frame, :]  # [N_frame, 3[three atom]]
+        # [N_frame, 3[three atom]]
+        frame_atom_index = frame_atom_index[has_frame, :]
 
         # Get predicted frames and true frames
         pred_frames = gather_frame_atom_by_indices(
@@ -848,15 +886,19 @@ class PAELoss(nn.Module):
         true_frame_coord_mask = (
             true_frame_coord_mask.sum(dim=-1) >= 3
         )  # [N_frame] whether all atoms in the frame has coordinates
-        token_mask = coordinate_mask[rep_atom_mask]  # [N_token]
+        # [N_token]
+        token_mask = coordinate_mask[rep_atom_mask]
         frame_token_pair_mask = (
-            true_frame_coord_mask[..., None] * token_mask[..., None, :]
+            true_frame_coord_mask[..., None] *
+            token_mask[..., None, :]
         )  # [N_frame, N_token]
 
         squared_pae = (
             compute_alignment_error_squared(
-                pred_coordinate=pred_coordinate[..., rep_atom_mask, :],
-                true_coordinate=true_coordinate[..., rep_atom_mask, :],
+                pred_coordinate=pred_coordinate[...,
+                                                rep_atom_mask, :],
+                true_coordinate=true_coordinate[...,
+                                                rep_atom_mask, :],
                 pred_frames=pred_frames,
                 true_frames=true_frames,
             )
@@ -947,10 +989,14 @@ class PAELoss(nn.Module):
             labels=true_bins,
         )  # [..., N_sample, N_frame, N_token]
 
-        denom = self.eps + torch.sum(pair_mask, dim=(-1, -2))  # []
-        loss = loss * pair_mask.unsqueeze(dim=-3)  # [..., N_sample, N_token, N_token]
-        loss = torch.sum(loss, dim=(-1, -2))  # [..., N_sample]
-        loss = loss / denom.unsqueeze(dim=-1)  # [..., N_sample]
+        denom = self.eps + \
+            torch.sum(pair_mask, dim=(-1, -2))  # []
+        # [..., N_sample, N_token, N_token]
+        loss = loss * pair_mask.unsqueeze(dim=-3)
+        # [..., N_sample]
+        loss = torch.sum(loss, dim=(-1, -2))
+        # [..., N_sample]
+        loss = loss / denom.unsqueeze(dim=-1)
         loss = loss.mean(dim=-1)  # [...]
 
         return loss_reduction(loss, self.reduction)
@@ -991,7 +1037,8 @@ class ExperimentallyResolvedLoss(nn.Module):
             coordinate_mask.long(), 2
         )  # [..., N_atom, 2] or [N_atom, 2]
         errors = softmax_cross_entropy(
-            logits=logits, labels=is_resolved.unsqueeze(dim=-3)
+            logits=logits, labels=is_resolved.unsqueeze(
+                dim=-3)
         )  # [..., N_sample, N_atom]
         if atom_mask is None:
             loss = errors.mean(dim=-1)  # [..., N_sample]
@@ -1000,7 +1047,8 @@ class ExperimentallyResolvedLoss(nn.Module):
                 errors * atom_mask[..., None, :], dim=-1
             )  # [..., N_sample]
             loss = loss / (
-                self.eps + torch.sum(atom_mask[..., None, :], dim=-1)
+                self.eps +
+                torch.sum(atom_mask[..., None, :], dim=-1)
             )  # [..., N_sample]
 
         loss = loss.mean(dim=-1)  # [...]
@@ -1065,9 +1113,12 @@ class MSELoss(nn.Module):
         )  # [N_atom] or [..., N_atom]
 
         # Apply coordinate_mask
-        weight = weight * coordinate_mask  # [N_atom] or [..., N_atom]
-        true_coordinate = true_coordinate * coordinate_mask.unsqueeze(dim=-1)
-        pred_coordinate = pred_coordinate * coordinate_mask[..., None, :, None]
+        # [N_atom] or [..., N_atom]
+        weight = weight * coordinate_mask
+        true_coordinate = true_coordinate * \
+            coordinate_mask.unsqueeze(dim=-1)
+        pred_coordinate = pred_coordinate * \
+            coordinate_mask[..., None, :, None]
 
         # Reshape to add "N_sample" dimension
         true_coordinate = expand_at_dim(
@@ -1083,7 +1134,8 @@ class MSELoss(nn.Module):
         # Some ops in weighted_rigid_align do not support BFloat16 training
         with torch.cuda.amp.autocast(enabled=False):
             true_coordinate_aligned = weighted_rigid_align(
-                x=true_coordinate.to(torch.float32),  # [..., N_sample, N_atom, 3]
+                # [..., N_sample, N_atom, 3]
+                x=true_coordinate.to(torch.float32),
                 x_target=pred_coordinate.to(
                     torch.float32
                 ),  # [..., N_sample, N_atom, 3]
@@ -1092,7 +1144,8 @@ class MSELoss(nn.Module):
                 ),  # [N_atom] or [..., N_sample, N_atom]
                 stop_gradient=True,
             )  # [..., N_sample, N_atom, 3]
-            true_coordinate_aligned = true_coordinate_aligned.to(d)
+            true_coordinate_aligned = true_coordinate_aligned.to(
+                d)
 
         return (true_coordinate_aligned.detach(), weight.detach())
 
@@ -1141,7 +1194,8 @@ class MSELoss(nn.Module):
             dim=-1
         )  # [..., N_sample, N_atom]
         per_sample_weighted_mse = (weight * per_atom_se).sum(dim=-1) / (
-            coordinate_mask.sum(dim=-1, keepdim=True) + self.eps
+            coordinate_mask.sum(
+                dim=-1, keepdim=True) + self.eps
         )  # [..., N_sample]
 
         if per_sample_scale is not None:
@@ -1151,7 +1205,8 @@ class MSELoss(nn.Module):
             dim=-1
         )  # [...]
 
-        loss = loss_reduction(weighted_align_mse_loss, method=self.reduction)
+        loss = loss_reduction(
+            weighted_align_mse_loss, method=self.reduction)
 
         return loss
 
@@ -1185,13 +1240,16 @@ def calculate_atom_bespoke_lddt(
     """
 
     N_atom = true_coordinate.size(-2)
-    atom_m_mask = (rep_atom_mask * is_polymer).bool()  # [N_atom]
+    atom_m_mask = (rep_atom_mask *
+                   is_polymer).bool()  # [N_atom]
     # Distance: d_lm
     pred_d_lm = torch.cdist(
-        pred_coordinate, pred_coordinate[..., atom_m_mask, :]
+        pred_coordinate, pred_coordinate[...,
+                                         atom_m_mask, :]
     )  # [..., N_sample, N_atom, N_atom(m)]
     true_d_lm = torch.cdist(
-        true_coordinate, true_coordinate[..., atom_m_mask, :]
+        true_coordinate, true_coordinate[...,
+                                         atom_m_mask, :]
     )  # [..., N_atom, N_atom(m)]
     delta_d_lm = torch.abs(
         pred_d_lm - true_d_lm.unsqueeze(dim=-3)
@@ -1199,7 +1257,8 @@ def calculate_atom_bespoke_lddt(
     # Pair-wise lddt
     thresholds = [0.5, 1, 2, 4]
     lddt_lm = (
-        torch.stack([delta_d_lm < t for t in thresholds], dim=-1)
+        torch.stack(
+            [delta_d_lm < t for t in thresholds], dim=-1)
         .to(dtype=delta_d_lm.dtype)
         .mean(dim=-1)
     )  # [..., N_sample, N_atom, N_atom(m)]
@@ -1223,7 +1282,8 @@ def calculate_atom_bespoke_lddt(
     per_atom_lddt = torch.sum(
         lddt_lm * pair_mask, dim=-1, keepdim=True
     )  # [...,  N_sample, N_atom, 1]
-    per_atom_weight = torch.sum(pair_mask.to(dtype=lddt_lm.dtype), dim=-1, keepdim=True)
+    per_atom_weight = torch.sum(pair_mask.to(
+        dtype=lddt_lm.dtype), dim=-1, keepdim=True)
     return per_atom_lddt, per_atom_weight
 
 
@@ -1274,7 +1334,8 @@ class PLDDTLoss(nn.Module):
         per_atom_weight: torch.Tensor,
     ):
         if self.normalize:
-            per_atom_lddt = per_atom_lddt / (per_atom_weight + self.eps)
+            per_atom_lddt = per_atom_lddt / \
+                (per_atom_weight + self.eps)
         # Distribute into bins
         boundaries = torch.linspace(
             start=self.min_bin,
@@ -1312,13 +1373,15 @@ class PLDDTLoss(nn.Module):
                 [..., N_sample, N_atom, N_bins]
         """
         with torch.no_grad():
-            true_bins = self.bins_from_lddt(per_atom_lddt, per_atom_weight).detach()
+            true_bins = self.bins_from_lddt(
+                per_atom_lddt, per_atom_weight).detach()
         plddt_loss = softmax_cross_entropy(
             logits=logits,
             labels=true_bins,
         )  # [..., N_sample, N_atom_with_coords]
         # Average over atoms
-        plddt_loss = plddt_loss.mean(dim=-1)  # [..., N_sample]
+        plddt_loss = plddt_loss.mean(
+            dim=-1)  # [..., N_sample]
         # Average over samples
         plddt_loss = plddt_loss.mean(dim=-1)  # [...]
         return loss_reduction(plddt_loss, method=self.reduction)
@@ -1370,8 +1433,10 @@ class PLDDTLoss(nn.Module):
 
         with torch.no_grad():
             per_atom_lddt, per_atom_weight = calculate_atom_bespoke_lddt(
-                pred_coordinate=pred_coordinate[..., coordinate_mask, :],
-                true_coordinate=true_coordinate[..., coordinate_mask, :],
+                pred_coordinate=pred_coordinate[...,
+                                                coordinate_mask, :],
+                true_coordinate=true_coordinate[...,
+                                                coordinate_mask, :],
                 is_nucleotide=is_nucleotide[coordinate_mask],
                 is_polymer=is_polymer[coordinate_mask],
                 rep_atom_mask=rep_atom_mask[coordinate_mask],
@@ -1418,20 +1483,27 @@ class ProtenixLoss(nn.Module):
             "mse_loss": self.alpha_diffusion,
             "bond_loss": self.alpha_diffusion * self.alpha_bond,
             "smooth_lddt_loss": self.alpha_diffusion
-            * self.weight_smooth_lddt,  # Different from AF3 appendix eq(6), where smooth_lddt has no weight
+            # Different from AF3 appendix eq(6), where smooth_lddt has no weight
+            * self.weight_smooth_lddt,
             # distogram
             "distogram_loss": self.alpha_distogram,
         }
 
         # Loss
-        self.plddt_loss = PLDDTLoss(**configs.loss.plddt, **self.lddt_radius)
+        self.plddt_loss = PLDDTLoss(
+            **configs.loss.plddt, **self.lddt_radius)
         self.pde_loss = PDELoss(**configs.loss.pde)
-        self.resolved_loss = ExperimentallyResolvedLoss(**configs.loss.resolved)
+        self.resolved_loss = ExperimentallyResolvedLoss(
+            **configs.loss.resolved)
         self.pae_loss = PAELoss(**configs.loss.pae)
-        self.mse_loss = MSELoss(**configs.loss.diffusion.mse)
-        self.bond_loss = BondLoss(**configs.loss.diffusion.bond)
-        self.smooth_lddt_loss = SmoothLDDTLoss(**configs.loss.diffusion.smooth_lddt)
-        self.distogram_loss = DistogramLoss(**configs.loss.distogram)
+        self.mse_loss = MSELoss(
+            **configs.loss.diffusion.mse)
+        self.bond_loss = BondLoss(
+            **configs.loss.diffusion.bond)
+        self.smooth_lddt_loss = SmoothLDDTLoss(
+            **configs.loss.diffusion.smooth_lddt)
+        self.distogram_loss = DistogramLoss(
+            **configs.loss.distogram)
 
     def calculate_label(
         self,
@@ -1459,7 +1531,8 @@ class ProtenixLoss(nn.Module):
         # Distances for all atom pairs
         # Note: we convert to bf16 for saving cuda memory, if performance drops, do not convert it
         distance = (
-            cdist(label_dict["coordinate"], label_dict["coordinate"]) * distance_mask
+            cdist(label_dict["coordinate"],
+                  label_dict["coordinate"]) * distance_mask
         ).to(
             label_dict["coordinate"].dtype
         )  # [..., N_atom, N_atom]
@@ -1467,7 +1540,8 @@ class ProtenixLoss(nn.Module):
         lddt_mask = compute_lddt_mask(
             true_distance=distance,
             distance_mask=distance_mask,
-            is_nucleotide=feat_dict["is_rna"].bool() + feat_dict["is_dna"].bool(),
+            is_nucleotide=feat_dict["is_rna"].bool(
+            ) + feat_dict["is_dna"].bool(),
             **self.lddt_radius,
         )
 
@@ -1521,25 +1595,31 @@ class ProtenixLoss(nn.Module):
             if isinstance(loss_outputs, tuple):
                 loss, metrics = loss_outputs
             else:
-                assert isinstance(loss_outputs, torch.Tensor)
+                assert isinstance(
+                    loss_outputs, torch.Tensor)
                 loss, metrics = loss_outputs, {}
 
             all_metrics.update(
-                {f"{loss_name}/{key}": val for key, val in metrics.items()}
+                {f"{loss_name}/{key}": val for key,
+                    val in metrics.items()}
             )
             if torch.isnan(loss) or torch.isinf(loss):
-                logging.warning(f"{loss_name} loss is NaN. Skipping...")
+                logging.warning(
+                    f"{loss_name} loss is NaN. Skipping...")
             if (
                 (has_valid_resolution is not None)
                 and (has_valid_resolution.sum() == 0)
                 and (
-                    loss_name in ["plddt_loss", "pde_loss", "resolved_loss", "pae_loss"]
+                    loss_name in [
+                        "plddt_loss", "pde_loss", "resolved_loss", "pae_loss"]
                 )
             ):
                 loss = 0.0 * loss
             else:
-                all_metrics[loss_name] = loss.detach().clone()
-                all_metrics[f"weighted_{loss_name}"] = weight * loss.detach().clone()
+                all_metrics[loss_name] = loss.detach(
+                ).clone()
+                all_metrics[f"weighted_{loss_name}"] = weight * \
+                    loss.detach().clone()
 
             cum_loss = cum_loss + weight * loss
         all_metrics["loss"] = cum_loss.detach().clone()
@@ -1574,7 +1654,8 @@ class ProtenixLoss(nn.Module):
             if not self.configs.train_confidence_only:
                 # Scale diffusion loss with noise-level
                 diffusion_per_sample_scale = (
-                    pred_dict["noise_level"] ** 2 + self.configs.sigma_data**2
+                    pred_dict["noise_level"] ** 2 +
+                    self.configs.sigma_data**2
                 ) / (self.configs.sigma_data * pred_dict["noise_level"]) ** 2
 
         else:
@@ -1690,29 +1771,35 @@ class ProtenixLoss(nn.Module):
 
         if all(x in pred_dict for x in ["plddt", "pde", "pae", "resolved"]):
             with torch.no_grad():
-                coord_mask = label_dict["coordinate_mask"].bool()
+                coord_mask = label_dict["coordinate_mask"].bool(
+                )
                 per_atom_lddt, per_atom_weight = calculate_atom_bespoke_lddt(
                     pred_coordinate=pred_dict[confidence_coordinate][
                         ..., coord_mask, :
                     ].detach(),
-                    true_coordinate=label_dict["coordinate"][..., coord_mask, :],
+                    true_coordinate=label_dict["coordinate"][...,
+                                                             coord_mask, :],
                     is_nucleotide=(feat_dict["is_rna"] + feat_dict["is_dna"])[
                         coord_mask
                     ].bool(),
-                    is_polymer=1 - feat_dict["is_ligand"][coord_mask],
-                    rep_atom_mask=feat_dict["plddt_m_rep_atom_mask"][coord_mask].bool(),
+                    is_polymer=1 -
+                    feat_dict["is_ligand"][coord_mask],
+                    rep_atom_mask=feat_dict["plddt_m_rep_atom_mask"][coord_mask].bool(
+                    ),
                     **self.lddt_radius,
                 )
             loss_fns.update(
                 {
                     "plddt_loss": lambda: self.plddt_loss.forward_given_atom_lddt(
-                        logits=pred_dict["plddt"][..., coord_mask, :],
+                        logits=pred_dict["plddt"][...,
+                                                  coord_mask, :],
                         per_atom_lddt=per_atom_lddt,
                         per_atom_weight=per_atom_weight,
                     ),
                     "pde_loss": lambda: self.pde_loss(
                         logits=pred_dict["pde"],
-                        pred_coordinate=pred_dict[confidence_coordinate].detach(),
+                        pred_coordinate=pred_dict[confidence_coordinate].detach(
+                        ),
                         true_coordinate=label_dict["coordinate"],
                         coordinate_mask=label_dict["coordinate_mask"],
                         rep_atom_mask=feat_dict["distogram_rep_atom_mask"],
@@ -1723,7 +1810,8 @@ class ProtenixLoss(nn.Module):
                     ),
                     "pae_loss": lambda: self.pae_loss(
                         logits=pred_dict["pae"],
-                        pred_coordinate=pred_dict[confidence_coordinate].detach(),
+                        pred_coordinate=pred_dict[confidence_coordinate].detach(
+                        ),
                         true_coordinate=label_dict["coordinate"],
                         coordinate_mask=label_dict["coordinate_mask"],
                         frame_atom_index=feat_dict["frame_atom_index"],
@@ -1733,7 +1821,8 @@ class ProtenixLoss(nn.Module):
                 }
             )
 
-        cum_loss, metrics = self.aggregate_losses(loss_fns, has_valid_resolution)
+        cum_loss, metrics = self.aggregate_losses(
+            loss_fns, has_valid_resolution)
         return cum_loss, metrics
 
     def forward(
@@ -1761,7 +1850,8 @@ class ProtenixLoss(nn.Module):
         assert mode in ["train", "eval", "inference"]
         # Pre-computations
         with torch.no_grad():
-            label_dict = self.calculate_label(feat_dict, label_dict)
+            label_dict = self.calculate_label(
+                feat_dict, label_dict)
 
         pred_dict = self.calculate_prediction(pred_dict)
 
@@ -1779,7 +1869,8 @@ class ProtenixLoss(nn.Module):
             elif self.configs.train_confidence_only:
                 N_sample = pred_dict["coordinate_mini"].shape[-3]
             else:
-                raise KeyError("Missing key: coordinate (in pred_dict).")
+                raise KeyError(
+                    "Missing key: coordinate (in pred_dict).")
             no_chunks = N_sample // diffusion_chunk_size + (
                 N_sample % diffusion_chunk_size != 0
             )
@@ -1793,26 +1884,28 @@ class ProtenixLoss(nn.Module):
                 for key, value in pred_dict.items():
                     if key in ["coordinate"] and mode == "train":
                         pred_dict_i[key] = value[
-                            i * diffusion_chunk_size : (i + 1) * diffusion_chunk_size,
+                            i * diffusion_chunk_size: (i + 1) * diffusion_chunk_size,
                             :,
                             :,
                         ]
                     elif (
-                        key in ["coordinate", "plddt", "pae", "pde", "resolved"]
+                        key in ["coordinate", "plddt",
+                                "pae", "pde", "resolved"]
                         and mode != "train"
                     ):
                         pred_dict_i[key] = value[
-                            i * diffusion_chunk_size : (i + 1) * diffusion_chunk_size,
+                            i * diffusion_chunk_size: (i + 1) * diffusion_chunk_size,
                             :,
                             :,
                         ]
                     elif key == "noise_level":
                         pred_dict_i[key] = value[
-                            i * diffusion_chunk_size : (i + 1) * diffusion_chunk_size
+                            i * diffusion_chunk_size: (i + 1) * diffusion_chunk_size
                         ]
                     else:
                         pred_dict_i[key] = value
-                pred_dict_i = self.calculate_prediction(pred_dict_i)
+                pred_dict_i = self.calculate_prediction(
+                    pred_dict_i)
                 cum_loss_i, losses_i = self.calculate_losses(
                     feat_dict=feat_dict,
                     pred_dict=pred_dict_i,
@@ -1823,7 +1916,8 @@ class ProtenixLoss(nn.Module):
                 # Aggregate metrics
                 for key, value in losses_i.items():
                     if key in losses:
-                        losses[key] += value * cur_sample_num
+                        losses[key] += value * \
+                            cur_sample_num
                     else:
                         losses[key] = value * cur_sample_num
             cum_loss /= N_sample

@@ -4,7 +4,7 @@ PROJECT_ROOT=$(python -c "from pathlib import Path; print(Path(__name__).resolve
 
 echo "ONESCIENCE_PATH:" $PROJECT_ROOT
 
-cd $PROJECT_ROOT/examples/biosciences/evo2/checkpoint/evo2-7b
+cd $PROJECT_ROOT/examples/biosciences/evo2/checkpoint/evo2_nemo_7b
 
 DIRS=(
     "./lightning_logs"

@@ -31,11 +31,14 @@ def acc(pred: Tensor, target: Tensor, climatology: Tensor, lat: Tensor) -> Tenso
     Reference: https://www.atmos.albany.edu/daes/atmclasses/atm401/spring_2016/ppts_pdfs/ECMWF_ACC_definition.pdf
     """
     if not (pred.ndim > 2):
-        raise AssertionError("Expected predictions to have at least two dimensions")
+        raise AssertionError(
+            "Expected predictions to have at least two dimensions")
     if not (target.ndim > 2):
-        raise AssertionError("Expected predictions to have at least two dimensions")
+        raise AssertionError(
+            "Expected predictions to have at least two dimensions")
     if not (climatology.ndim > 2):
-        raise AssertionError("Expected predictions to have at least two dimensions")
+        raise AssertionError(
+            "Expected predictions to have at least two dimensions")
 
     # subtract climate means
     pred_hat = pred - climatology
@@ -58,8 +61,11 @@ def acc(pred: Tensor, target: Tensor, climatology: Tensor, lat: Tensor) -> Tenso
     pred_diff = pred_hat - pred_bar
     target_diff = target_hat - target_bar
 
-    p1 = torch.sum(lat_weight[:, None] * pred_diff * target_diff, dim=(-2, -1))
-    p2 = torch.sum(lat_weight[:, None] * pred_diff * pred_diff, dim=(-2, -1))
-    p3 = torch.sum(lat_weight[:, None] * target_diff * target_diff, dim=(-2, -1))
+    p1 = torch.sum(
+        lat_weight[:, None] * pred_diff * target_diff, dim=(-2, -1))
+    p2 = torch.sum(
+        lat_weight[:, None] * pred_diff * pred_diff, dim=(-2, -1))
+    p3 = torch.sum(
+        lat_weight[:, None] * target_diff * target_diff, dim=(-2, -1))
     m = p1 / torch.sqrt(p2 * p3)
     return m

@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import argparse
@@ -7,10 +6,9 @@ import os
 import warnings
 
 import numpy as np
-from tqdm import tqdm
-
 from fairchem.core.common.typing import assert_is_instance
 from fairchem.core.datasets.collaters.simple_collater import LmdbDataset
+from tqdm import tqdm
 
 
 def get_data(index):
@@ -30,12 +28,15 @@ def make_lmdb_sizes(args) -> None:
     if os.path.isdir(path):
         outpath = os.path.join(path, "metadata.npz")
     elif os.path.isfile(path):
-        outpath = os.path.join(os.path.dirname(path), "metadata.npz")
+        outpath = os.path.join(
+            os.path.dirname(path), "metadata.npz")
 
     output_indices = range(len(dataset))
 
-    pool = mp.Pool(assert_is_instance(args.num_workers, int))
-    outputs = list(tqdm(pool.imap(get_data, output_indices), total=len(output_indices)))
+    pool = mp.Pool(assert_is_instance(
+        args.num_workers, int))
+    outputs = list(tqdm(pool.imap(
+        get_data, output_indices), total=len(output_indices)))
 
     indices = []
     natoms = []
@@ -53,8 +54,10 @@ def make_lmdb_sizes(args) -> None:
         )
         np.savez(outpath, natoms=sorted_natoms)
     else:
-        sorted_neighbors = np.array(neighbors, dtype=np.int32)[_sort]
-        np.savez(outpath, natoms=sorted_natoms, neighbors=sorted_neighbors)
+        sorted_neighbors = np.array(
+            neighbors, dtype=np.int32)[_sort]
+        np.savez(outpath, natoms=sorted_natoms,
+                 neighbors=sorted_neighbors)
 
 
 def get_lmdb_sizes_parser():

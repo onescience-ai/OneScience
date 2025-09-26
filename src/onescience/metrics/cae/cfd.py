@@ -44,7 +44,8 @@ def compute_frontal_area(mesh: pv.PolyData, direction: str = "x"):
         raise ValueError("Direction must be x, y or z only")
 
     normal, indices = direction_map[direction]
-    areas_proj = mesh.project_points_to_plane(origin=(0, 0, 0), normal=normal)
+    areas_proj = mesh.project_points_to_plane(
+        origin=(0, 0, 0), normal=normal)
     merged = shapely.union_all(
         [
             shapely.Polygon(
@@ -105,8 +106,10 @@ def compute_force_coefficients(
     """
 
     # Compute coefficients
-    c_p = coeff * np.sum(np.dot(normals, force_direction) * area * p)
-    c_f = -coeff * np.sum(np.dot(wss, force_direction) * area)
+    c_p = coeff * \
+        np.sum(np.dot(normals, force_direction) * area * p)
+    c_f = -coeff * \
+        np.sum(np.dot(wss, force_direction) * area)
 
     # Compute total force coefficients
     c_total = c_p + c_f
@@ -166,7 +169,8 @@ def compute_p_q_r(
     """
 
     bs = velocity_grad.shape[0]
-    J = velocity_grad.permute(0, 3, 4, 5, 1, 2).reshape(bs, -1, 3, 3)
+    J = velocity_grad.permute(
+        0, 3, 4, 5, 1, 2).reshape(bs, -1, 3, 3)
     strain = 0.5 * (J + torch.permute(J, (0, 1, 3, 2)))
 
     # Combine the points across all batches
@@ -188,7 +192,8 @@ def compute_p_q_r(
     trace_J1 = J.diagonal(dim1=-2, dim2=-1).sum(-1)
     trace_J2 = J2.diagonal(dim1=-2, dim2=-1).sum(-1)
     trace_J3 = J3.diagonal(dim1=-2, dim2=-1).sum(-1)
-    trace_strain2 = strain2.diagonal(dim1=-2, dim2=-1).sum(-1)
+    trace_strain2 = strain2.diagonal(
+        dim1=-2, dim2=-1).sum(-1)
 
     # Compute P, Q and R invariants
     P = -1 * trace_J1
@@ -196,9 +201,11 @@ def compute_p_q_r(
     R = -1 / 3 * trace_J3
 
     # Normalize P, Q and R
-    P = P / torch.mean(trace_strain2**0.5, dim=-1, keepdim=True)
+    P = P / torch.mean(trace_strain2**0.5,
+                       dim=-1, keepdim=True)
     Q = Q / torch.mean(trace_strain2, dim=-1, keepdim=True)
-    R = R / torch.mean(trace_strain2**1.5, dim=-1, keepdim=True)
+    R = R / torch.mean(trace_strain2**1.5,
+                       dim=-1, keepdim=True)
 
     return P, Q, R
 
@@ -230,7 +237,8 @@ def compute_tke_spectrum(
     if length is None:
         lx, ly, lz = 2 * np.pi, 2 * np.pi, 2 * np.pi
 
-    u, v, w = field[0, :, :, :], field[1, :, :, :], field[2, :, :, :]
+    u, v, w = field[0, :, :, :], field[1,
+                                       :, :, :], field[2, :, :, :]
 
     nx = len(u[:, 0, 0])
     ny = len(v[0, :, 0])
@@ -250,9 +258,11 @@ def compute_tke_spectrum(
     ky = np.fft.fftfreq(ny, ly / ny)
     kz = np.fft.fftfreq(nz, lz / nz)
 
-    kx_g, ky_g, kz_g = np.meshgrid(kx, ky, kz, indexing="ij")
+    kx_g, ky_g, kz_g = np.meshgrid(
+        kx, ky, kz, indexing="ij")
     mk = np.sqrt(kx_g**2 + ky_g**2 + kz_g**2)
-    E = 0.5 * (uhat * uhat_conj + vhat * vhat_conj + what * what_conj).real
+    E = 0.5 * (uhat * uhat_conj + vhat *
+               vhat_conj + what * what_conj).real
 
     # Perform binning
     wave_numbers = np.arange(0, nx + 1) * 2 * np.pi
@@ -263,7 +273,8 @@ def compute_tke_spectrum(
     for rkx in range(nx):
         for rky in range(ny):
             for rkz in range(nz):
-                rk = int(np.round(np.sqrt(rkx * rkx + rky * rky + rkz * rkz)))
+                rk = int(
+                    np.round(np.sqrt(rkx * rkx + rky * rky + rkz * rkz)))
                 if rk < len(tke_spectrum):
                     tke_spectrum[rk] += E[rkx, rky, rkz]
 

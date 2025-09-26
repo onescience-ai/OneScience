@@ -35,15 +35,22 @@ from typing import Optional
 import numpy as np
 import torch
 import yaml
+from bionemo.noodles import (
+    back_transcribe_sequence,
+    complement_sequence,
+    reverse_sequence,
+    transcribe_sequence,
+)
+from bionemo.noodles.nvfaidx import NvFaidx
 from megatron.core.datasets.indexed_dataset import IndexedDatasetBuilder
 from nemo.utils import logging
 
 from onescience.models.evo2.data.tokenizer import Evo2Tokenizer
-from onescience.models.evo2.utils.config import Evo2PreprocessingConfig, Evo2TaxonomyLineage
-# from bionemo.noodles import back_transcribe_sequence, complement_sequence, reverse_sequence, transcribe_sequence
-# from bionemo.noodles.nvfaidx import NvFaidx
-from bionemo.noodles import back_transcribe_sequence, complement_sequence, reverse_sequence, transcribe_sequence
-from bionemo.noodles.nvfaidx import NvFaidx
+from onescience.models.evo2.utils.config import (
+    Evo2PreprocessingConfig,
+    Evo2TaxonomyLineage,
+)
+
 
 class Evo2Preprocessor:
     """Data preprocessing class for Evo2."""
@@ -60,7 +67,8 @@ class Evo2Preprocessor:
         Args:
             params (Evo2PreprocessingConfig | None): Configuration parameters for preprocessing.
         """
-        self.tokenizer: Evo2Tokenizer = Evo2Tokenizer(params)
+        self.tokenizer: Evo2Tokenizer = Evo2Tokenizer(
+            params)
 
     @staticmethod
     @contextmanager
@@ -82,7 +90,10 @@ class Evo2Preprocessor:
 
     @staticmethod
     def _get_output_filename(
-        config: Evo2PreprocessingConfig, ext: Optional[str] = None, split: Optional[str] = None, temp: bool = False
+        config: Evo2PreprocessingConfig,
+        ext: Optional[str] = None,
+        split: Optional[str] = None,
+        temp: bool = False,
     ) -> Path:
         """Generate the output filename for the preprocessed data.
 
@@ -100,7 +111,9 @@ class Evo2Preprocessor:
         if output_dir is None:
             output_dir = Path.cwd()
         # Pickup output file prefix.
-        config_prefix = "{}_{}".format(config.output_prefix, config.tokenizer_type.lower().replace(" ", ""))
+        config_prefix = "{}_{}".format(
+            config.output_prefix, config.tokenizer_type.lower().replace(" ", "")
+        )
         output_filepath = Path(output_dir) / (
             config_prefix
             + (f"_{split}" if split is not None else "")
@@ -110,7 +123,11 @@ class Evo2Preprocessor:
         return output_filepath
 
     @staticmethod
-    def _subsequence_generator(sequence: str, subsequence_length: Optional[int] = None, offset: Optional[int] = None):
+    def _subsequence_generator(
+        sequence: str,
+        subsequence_length: Optional[int] = None,
+        offset: Optional[int] = None,
+    ):
         """Generate subsequences from a given sequence.
 
         Args:
@@ -121,13 +138,18 @@ class Evo2Preprocessor:
         Yields:
             str: Subsequences of the input sequence.
         """
-        subsequence_length = subsequence_length if subsequence_length is not None else len(sequence)
+        subsequence_length = (
+            subsequence_length if subsequence_length is not None else len(
+                sequence)
+        )
         step_size = offset if offset is not None else subsequence_length
         for i in range(0, len(sequence), step_size):
-            yield sequence[i : i + subsequence_length]
+            yield sequence[i: i + subsequence_length]
 
     @staticmethod
-    def _random_reverse_complement(seq: str, prob: float = 0.0, seed: Optional[int] = None):
+    def _random_reverse_complement(
+        seq: str, prob: float = 0.0, seed: Optional[int] = None
+    ):
         """Randomly reverse complements a DNA sequence based on a given probability.
 
         Args:
@@ -157,7 +179,12 @@ class Evo2Preprocessor:
         return [seq, complement_sequence(reverse_sequence(seq))]
 
     @staticmethod
-    def _train_val_test_split(train_weight: float, val_weight: float, test_weight: float, seed: Optional[int] = None):
+    def _train_val_test_split(
+        train_weight: float,
+        val_weight: float,
+        test_weight: float,
+        seed: Optional[int] = None,
+    ):
         """Randomly assign a data point to train, validation, or test split based on provided weights.
 
         Args:
@@ -172,13 +199,18 @@ class Evo2Preprocessor:
         Raises:
             ValueError: If the sum of the weights is zero or negative.
         """
-        with Evo2Preprocessor.preprocessing_context_manager(seed if seed is not None else None):
+        with Evo2Preprocessor.preprocessing_context_manager(
+            seed if seed is not None else None
+        ):
             # Generate random number.
             roll = random.random()
             # Rectify and normalize split ratios.
-            total_weight = abs(train_weight) + abs(val_weight) + abs(test_weight)
+            total_weight = abs(
+                train_weight) + abs(val_weight) + abs(test_weight)
             if total_weight <= 0:
-                raise ValueError("Train-validation-test split proportions cannot be zero.")
+                raise ValueError(
+                    "Train-validation-test split proportions cannot be zero."
+                )
             train_split = abs(train_weight) / total_weight
             test_split = abs(test_weight) / total_weight
             split = "train"
@@ -204,7 +236,9 @@ class Evo2Preprocessor:
             Optional[str]: The constructed taxonomy token or None if lineage is None.
         """
         # If dropout > 0, randomly drop out segments of the lineage for training on incomplete lineages.
-        with Evo2Preprocessor.preprocessing_context_manager(seed if seed is not None else None):
+        with Evo2Preprocessor.preprocessing_context_manager(
+            seed if seed is not None else None
+        ):
             return (
                 "|d__{};p__{};c__{};o__{};f__{};g__{};s__{}|".format(
                     lineage.domain if random.random() >= dropout else None,
@@ -219,7 +253,14 @@ class Evo2Preprocessor:
                 else None
             )
 
-    def preprocess_data(self, filepath: str, seqid: str, seq: str, seq_idx: int, config: Evo2PreprocessingConfig):
+    def preprocess_data(
+        self,
+        filepath: str,
+        seqid: str,
+        seq: str,
+        seq_idx: int,
+        config: Evo2PreprocessingConfig,
+    ):
         """Preprocess fasta datapaths.
 
         Args:
@@ -248,11 +289,19 @@ class Evo2Preprocessor:
         # Preprocess data.
         preproc_data = []
         with self.preprocessing_context_manager(
-            config.seed + hash(filepath) + seq_idx if config.seed is not None else None
+            config.seed +
+                hash(filepath) +
+            seq_idx if config.seed is not None else None
         ):
             # Randomly reverse complement the sequence.
-            seq = self._random_reverse_complement(seq, prob=config.random_reverse_complement)
-            seqs_to_parse = self._reverse_complement_expansion(seq) if config.embed_reverse_complement else [seq]
+            seq = self._random_reverse_complement(
+                seq, prob=config.random_reverse_complement
+            )
+            seqs_to_parse = (
+                self._reverse_complement_expansion(seq)
+                if config.embed_reverse_complement
+                else [seq]
+            )
             # 对生物序列（DNA/RNA）进行格式化、修饰、筛选、插入分类标签、切分成子序列、tokenize，并最终组织成结构化的训练数据
             for seq in seqs_to_parse:
                 # Sequence Modifiers
@@ -268,16 +317,27 @@ class Evo2Preprocessor:
                     continue
 
                 # Construct taxonomy token (分类标签) with random dropout on the lineage categories per sequence.
-                taxonomy_token = self._construct_taxonomy_token(lineage, dropout=config.random_lineage_dropout)
+                taxonomy_token = self._construct_taxonomy_token(
+                    lineage, dropout=config.random_lineage_dropout
+                )
 
                 # Inject taxonomy lineage tokens every prompt_spacer_length tokens in the sequence.
                 # If the taxonomy lineage token is not provided, then just take the original sequence.
                 target_length = (
-                    config.prompt_spacer_length - len(taxonomy_token) if taxonomy_token is not None else None
+                    config.prompt_spacer_length -
+                    len(taxonomy_token)
+                    if taxonomy_token is not None
+                    else None
                 )
                 taxonomy_injected_sequence = [
-                    taxonomy_token + str(subseq) if taxonomy_token is not None else str(subseq)
-                    for subseq in self._subsequence_generator(seq, target_length, target_length)
+                    (
+                        taxonomy_token + str(subseq)
+                        if taxonomy_token is not None
+                        else str(subseq)
+                    )
+                    for subseq in self._subsequence_generator(
+                        seq, target_length, target_length
+                    )
                 ]
                 # import pdb;pdb.set_trace()
                 # Wrap and tokenize.
@@ -307,7 +367,9 @@ class Evo2Preprocessor:
         return self.preprocess_data(*file_sequence_config)
 
     @staticmethod
-    def _yield_sequences_from_files(config: Evo2PreprocessingConfig, semaphore: Semaphore):
+    def _yield_sequences_from_files(
+        config: Evo2PreprocessingConfig, semaphore: Semaphore
+    ):
         # 数据生成器
         """Iterator over sequences within multiple input documents. Arguments for multiprocessing tasks.
 
@@ -319,7 +381,7 @@ class Evo2Preprocessor:
 
         Yields:
             tuple: Arguments for preprocess_data.
-        """ 
+        """
 
         def yielder(fname, semaphore):
             # Read FASTA.
@@ -348,25 +410,32 @@ class Evo2Preprocessor:
             "val": preproc_config.valid_split > 0,
             "test": preproc_config.test_split > 0,
         }
-        splits_needed = {k for k, v in split_assignments.items() if v}
+        splits_needed = {
+            k for k, v in split_assignments.items() if v}
 
         # Instantiate multiprocessing pool. Use semaphore to limit the amount of sequences to read into memory.
-        semaphore = Semaphore(preproc_config.preproc_concurrency + preproc_config.workers)
+        semaphore = Semaphore(
+            preproc_config.preproc_concurrency + preproc_config.workers
+        )
         if preproc_config.workers > 1:
             pool = mp.Pool(preproc_config.workers)
             # Ordered imap for downstream seeded splitting.
             preproc_tasks = pool.imap(
                 self.preprocess_data_task,
-                self._yield_sequences_from_files(preproc_config, semaphore),
+                self._yield_sequences_from_files(
+                    preproc_config, semaphore),
                 chunksize=preproc_config.chunksize,
             )
         else:
             preproc_tasks = (
-                self.preprocess_data_task(x) for x in self._yield_sequences_from_files(preproc_config, semaphore)
+                self.preprocess_data_task(x)
+                for x in self._yield_sequences_from_files(preproc_config, semaphore)
             )
 
         # Preprocess data and split results into train, test, and split.
-        with self.preprocessing_context_manager(preproc_config.seed if preproc_config.seed is not None else None):
+        with self.preprocessing_context_manager(
+            preproc_config.seed if preproc_config.seed is not None else None
+        ):
             for result, elapsed_time in preproc_tasks:
                 # Release semaphore for the task associated with the result.
                 semaphore.release()
@@ -377,7 +446,9 @@ class Evo2Preprocessor:
                 else:
                     # Regular random assignment
                     split = self._train_val_test_split(
-                        preproc_config.train_split, preproc_config.valid_split, preproc_config.test_split
+                        preproc_config.train_split,
+                        preproc_config.valid_split,
+                        preproc_config.test_split,
                     )
                 for sequence in result:
                     sequence["split"] = split
@@ -391,8 +462,12 @@ class Evo2Preprocessor:
         """
         # Validate if binaries have already been produced for the given config and overwrite is set to False.
         if any(
-            self._get_output_filename(preproc_config, ext, split).is_file()
-            for ext, split in zip([self.BIN, self.IDX], [self.TRAIN, self.VAL, self.TEST])
+            self._get_output_filename(
+                preproc_config, ext, split).is_file()
+            for ext, split in zip(
+                [self.BIN, self.IDX], [
+                    self.TRAIN, self.VAL, self.TEST]
+            )
         ):
             if not preproc_config.overwrite:
                 # Skip this dataset!
@@ -406,14 +481,29 @@ class Evo2Preprocessor:
                 )
 
         # Instantiate indexed data builders.
-        dataset_dtype = getattr(np, preproc_config.indexed_dataset_dtype)
-        temp_train_bin = self._get_output_filename(preproc_config, self.BIN, self.TRAIN, temp=True)
-        temp_val_bin = self._get_output_filename(preproc_config, self.BIN, self.VAL, temp=True)
-        temp_test_bin = self._get_output_filename(preproc_config, self.BIN, self.TEST, temp=True)
-        train_builder: IndexedDatasetBuilder = IndexedDatasetBuilder(bin_path=str(temp_train_bin), dtype=dataset_dtype)
-        val_builder: IndexedDatasetBuilder = IndexedDatasetBuilder(bin_path=str(temp_val_bin), dtype=dataset_dtype)
-        test_builder: IndexedDatasetBuilder = IndexedDatasetBuilder(bin_path=str(temp_test_bin), dtype=dataset_dtype)
-        logging.info(f"Created temporary binary datasets: {temp_train_bin} {temp_val_bin} {temp_test_bin}")
+        dataset_dtype = getattr(
+            np, preproc_config.indexed_dataset_dtype)
+        temp_train_bin = self._get_output_filename(
+            preproc_config, self.BIN, self.TRAIN, temp=True
+        )
+        temp_val_bin = self._get_output_filename(
+            preproc_config, self.BIN, self.VAL, temp=True
+        )
+        temp_test_bin = self._get_output_filename(
+            preproc_config, self.BIN, self.TEST, temp=True
+        )
+        train_builder: IndexedDatasetBuilder = IndexedDatasetBuilder(
+            bin_path=str(temp_train_bin), dtype=dataset_dtype
+        )
+        val_builder: IndexedDatasetBuilder = IndexedDatasetBuilder(
+            bin_path=str(temp_val_bin), dtype=dataset_dtype
+        )
+        test_builder: IndexedDatasetBuilder = IndexedDatasetBuilder(
+            bin_path=str(temp_test_bin), dtype=dataset_dtype
+        )
+        logging.info(
+            f"Created temporary binary datasets: {temp_train_bin} {temp_val_bin} {temp_test_bin}"
+        )
 
         # Preprocess data and split results into train, validation, or test.
         avg_preproc_time = 0.0
@@ -422,38 +512,77 @@ class Evo2Preprocessor:
         for sequence, elapsed_time in self.preprocess_generator(preproc_config):
             index_start_time = time.time()
             if sequence["split"] == "train":
-                train_builder.add_item(torch.Tensor(sequence["tokens"]))
+                train_builder.add_item(
+                    torch.Tensor(sequence["tokens"]))
                 train_builder.end_document()
             elif sequence["split"] == "val":
-                val_builder.add_item(torch.Tensor(sequence["tokens"]))
+                val_builder.add_item(
+                    torch.Tensor(sequence["tokens"]))
                 val_builder.end_document()
             elif sequence["split"] == "test":
-                test_builder.add_item(torch.Tensor(sequence["tokens"]))
+                test_builder.add_item(
+                    torch.Tensor(sequence["tokens"]))
                 test_builder.end_document()
             index_end_time = time.time()
             # Update average preprocessing and indexing time.
-            avg_preproc_time = (avg_preproc_time * count + elapsed_time) / (count + 1)
-            avg_index_time = (avg_index_time * count + index_end_time - index_start_time) / (count + 1)
+            avg_preproc_time = (
+                avg_preproc_time * count + elapsed_time) / (count + 1)
+            avg_index_time = (
+                avg_index_time * count + index_end_time - index_start_time
+            ) / (count + 1)
             count += 1
 
         # Report timing.
-        logging.info(f"Average preprocessing time per sequence: {avg_preproc_time}")
-        logging.info(f"Average indexing time per sequence: {avg_index_time}")
-        logging.info(f"Number of sequences processed: {count}")
+        logging.info(
+            f"Average preprocessing time per sequence: {avg_preproc_time}")
+        logging.info(
+            f"Average indexing time per sequence: {avg_index_time}")
+        logging.info(
+            f"Number of sequences processed: {count}")
 
         # Write preprocessed index data to disk. Rename temporary binaries to denote preprocessing completion.
-        train_builder.finalize(idx_path=str(self._get_output_filename(preproc_config, self.IDX, self.TRAIN)))
-        val_builder.finalize(idx_path=str(self._get_output_filename(preproc_config, self.IDX, self.VAL)))
-        test_builder.finalize(idx_path=str(self._get_output_filename(preproc_config, self.IDX, self.TEST)))
-        os.rename(temp_train_bin, self._get_output_filename(preproc_config, self.BIN, self.TRAIN))
-        os.rename(temp_val_bin, self._get_output_filename(preproc_config, self.BIN, self.VAL))
-        os.rename(temp_test_bin, self._get_output_filename(preproc_config, self.BIN, self.TEST))
+        train_builder.finalize(
+            idx_path=str(
+                self._get_output_filename(
+                    preproc_config, self.IDX, self.TRAIN)
+            )
+        )
+        val_builder.finalize(
+            idx_path=str(self._get_output_filename(
+                preproc_config, self.IDX, self.VAL))
+        )
+        test_builder.finalize(
+            idx_path=str(self._get_output_filename(
+                preproc_config, self.IDX, self.TEST))
+        )
+        os.rename(
+            temp_train_bin,
+            self._get_output_filename(
+                preproc_config, self.BIN, self.TRAIN),
+        )
+        os.rename(
+            temp_val_bin, self._get_output_filename(
+                preproc_config, self.BIN, self.VAL)
+        )
+        os.rename(
+            temp_test_bin,
+            self._get_output_filename(
+                preproc_config, self.BIN, self.TEST),
+        )
 
 
 def parse_args():
     """Parse arguments for preprocessing."""
-    parser = argparse.ArgumentParser(description="Preprocess FASTA files for training Evo2.")
-    parser.add_argument("-c", "--config", type=str, required=True, help="Path to data preprocessing config JSON.")
+    parser = argparse.ArgumentParser(
+        description="Preprocess FASTA files for training Evo2."
+    )
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        required=True,
+        help="Path to data preprocessing config JSON.",
+    )
     return parser.parse_args()
 
 
@@ -472,13 +601,17 @@ def main():
     for config in evo2_preproc_config_batch:
         start = time.time()
         # Convert into Evo2PreprocessingConfig.
-        evo2_preproc_config = Evo2PreprocessingConfig(**config)
+        evo2_preproc_config = Evo2PreprocessingConfig(
+            **config)
         if evo2_preproc_config.output_dir is not None:
-            evo2_preproc_config.output_dir.mkdir(parents=True, exist_ok=True)
+            evo2_preproc_config.output_dir.mkdir(
+                parents=True, exist_ok=True)
         # Instantiate Evo2Preprocessor.
-        evo2_preprocessor = Evo2Preprocessor(evo2_preproc_config)
+        evo2_preprocessor = Evo2Preprocessor(
+            evo2_preproc_config)
         # Preprocess data specified in config.
-        evo2_preprocessor.preprocess_offline(evo2_preproc_config)
+        evo2_preprocessor.preprocess_offline(
+            evo2_preproc_config)
         end = time.time()
         logging.info(
             f"Finished preprocessing {evo2_preproc_config.output_prefix} ({evo2_preproc_config.datapaths}) in {end - start:.3f} seconds with {evo2_preproc_config.workers} workers."

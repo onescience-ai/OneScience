@@ -9,18 +9,18 @@ from typing import Any, Mapping
 
 import torch
 import torch.distributed as dist
-
 from configs.configs_base import configs as configs_base
 from configs.configs_data import data_configs
 from configs.configs_inference import inference_configs
-from onescience.models.protenix.config import parse_configs, parse_sys_args
+from runner.dumper import DataDumper
+
 from onescience.datapipes.protenix.infer_data_pipeline import get_inference_dataloader
+from onescience.models.protenix.config import parse_configs, parse_sys_args
 from onescience.models.protenix.protenix import Protenix
+from onescience.sciui.protenix.web_service.dependency_url import URL
 from onescience.utils.protenix.distributed import DIST_WRAPPER
 from onescience.utils.protenix.seed import seed_everything
 from onescience.utils.protenix.torch_utils import to_device
-from onescience.sciui.protenix.web_service.dependency_url import URL
-from runner.dumper import DataDumper
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +44,13 @@ class InferenceRunner(object):
         )
         self.use_cuda = torch.cuda.device_count() > 0
         if self.use_cuda:
-            self.device = torch.device("cuda:{}".format(DIST_WRAPPER.local_rank))
+            self.device = torch.device(
+                "cuda:{}".format(DIST_WRAPPER.local_rank))
             os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-            all_gpu_ids = ",".join(str(x) for x in range(torch.cuda.device_count()))
-            devices = os.getenv("CUDA_VISIBLE_DEVICES", all_gpu_ids)
+            all_gpu_ids = ",".join(
+                str(x) for x in range(torch.cuda.device_count()))
+            devices = os.getenv(
+                "CUDA_VISIBLE_DEVICES", all_gpu_ids)
             logging.info(
                 f"LOCAL_RANK: {DIST_WRAPPER.local_rank} - CUDA_VISIBLE_DEVICES: [{devices}]"
             )
@@ -66,7 +69,8 @@ class InferenceRunner(object):
                 logging.info(
                     "The kernels will be compiled when DS4Sci_EvoformerAttention is called for the first time."
                 )
-        use_fastlayernorm = os.getenv("LAYERNORM_TYPE", None)
+        use_fastlayernorm = os.getenv(
+            "LAYERNORM_TYPE", None)
         if use_fastlayernorm == "fast_layernorm":
             logging.info(
                 "The kernels will be compiled when fast_layernorm is called for the first time."
@@ -86,17 +90,21 @@ class InferenceRunner(object):
     def load_checkpoint(self) -> None:
         checkpoint_path = self.configs.load_checkpoint_path
         if not os.path.exists(checkpoint_path):
-            raise Exception(f"Given checkpoint path not exist [{checkpoint_path}]")
+            raise Exception(
+                f"Given checkpoint path not exist [{checkpoint_path}]")
         self.print(
             f"Loading from {checkpoint_path}, strict: {self.configs.load_strict}"
         )
-        checkpoint = torch.load(checkpoint_path, self.device)
+        checkpoint = torch.load(
+            checkpoint_path, self.device)
 
-        sample_key = [k for k in checkpoint["model"].keys()][0]
+        sample_key = [
+            k for k in checkpoint["model"].keys()][0]
         self.print(f"Sampled key: {sample_key}")
-        if sample_key.startswith("module."):  # DDP checkpoint has module. prefix
+        # DDP checkpoint has module. prefix
+        if sample_key.startswith("module."):
             checkpoint["model"] = {
-                k[len("module.") :]: v for k, v in checkpoint["model"].items()
+                k[len("module."):]: v for k, v in checkpoint["model"].items()
             }
         self.model.load_state_dict(
             state_dict=checkpoint["model"],
@@ -124,7 +132,8 @@ class InferenceRunner(object):
         }[self.configs.dtype]
 
         enable_amp = (
-            torch.autocast(device_type="cuda", dtype=eval_precision)
+            torch.autocast(device_type="cuda",
+                           dtype=eval_precision)
             if torch.cuda.is_available()
             else nullcontext()
         )
@@ -153,7 +162,8 @@ def download_infercence_cache(configs: Any, model_version: str = "v0.5.0") -> No
     for cache_name in ("ccd_components_file", "ccd_components_rdkit_mol_file"):
         cur_cache_fpath = configs["data"][cache_name]
         if not opexists(cur_cache_fpath):
-            os.makedirs(os.path.dirname(cur_cache_fpath), exist_ok=True)
+            os.makedirs(os.path.dirname(
+                cur_cache_fpath), exist_ok=True)
             tos_url = URL[cache_name]
             assert os.path.basename(tos_url) == os.path.basename(cur_cache_fpath), (
                 f"{cache_name} file name is incorrect, `{tos_url}` and "
@@ -162,26 +172,28 @@ def download_infercence_cache(configs: Any, model_version: str = "v0.5.0") -> No
             logger.info(
                 f"Downloading data cache from\n {tos_url}... to {cur_cache_fpath}"
             )
-            urllib.request.urlretrieve(tos_url, cur_cache_fpath)
+            urllib.request.urlretrieve(
+                tos_url, cur_cache_fpath)
 
     checkpoint_path = configs.load_checkpoint_path
 
     if not opexists(checkpoint_path):
-        os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
+        os.makedirs(os.path.dirname(
+            checkpoint_path), exist_ok=True)
         tos_url = URL[f"model_{model_version}"]
         logger.info(
             f"Downloading model checkpoint from\n {tos_url}... to {checkpoint_path}"
         )
         urllib.request.urlretrieve(tos_url, checkpoint_path)
         try:
-            ckpt = torch.load(checkpoint_path)
+            torch.load(checkpoint_path)
             del ckpt
         except:
             os.remove(checkpoint_path)
             raise RuntimeError(
                 "Download model checkpoint failed, please download by yourself with "
                 f"wget {tos_url} -O {checkpoint_path}"
-            )        
+            )
 
 
 def update_inference_configs(configs: Any, N_token: int):
@@ -202,9 +214,11 @@ def update_inference_configs(configs: Any, N_token: int):
 
 def infer_predict(runner: InferenceRunner, configs: Any) -> None:
     # Data
-    logger.info(f"Loading data from\n{configs.input_json_path}")
+    logger.info(
+        f"Loading data from\n{configs.input_json_path}")
     try:
-        dataloader = get_inference_dataloader(configs=configs)
+        dataloader = get_inference_dataloader(
+            configs=configs)
     except Exception as e:
         error_message = f"{e}:\n{traceback.format_exc()}"
         logger.info(error_message)
@@ -214,7 +228,8 @@ def infer_predict(runner: InferenceRunner, configs: Any) -> None:
 
     num_data = len(dataloader.dataset)
     for seed in configs.seeds:
-        seed_everything(seed=seed, deterministic=configs.deterministic)
+        seed_everything(
+            seed=seed, deterministic=configs.deterministic)
         for batch in dataloader:
             try:
                 data, atom_array, data_error_message = batch[0]
@@ -233,7 +248,8 @@ def infer_predict(runner: InferenceRunner, configs: Any) -> None:
                         f"N_atom {data['N_atom'].item()}, N_msa {data['N_msa'].item()}"
                     )
                 )
-                new_configs = update_inference_configs(configs, data["N_token"].item())
+                new_configs = update_inference_configs(
+                    configs, data["N_token"].item())
                 runner.update_model_configs(new_configs)
                 prediction = runner.predict(data)
                 runner.dumper.dump(
@@ -275,16 +291,19 @@ def run() -> None:
         filemode="w",
     )
     configs_base["use_deepspeed_evo_attention"] = (
-        os.environ.get("USE_DEEPSPEED_EVO_ATTENTION", False) == "true"
+        os.environ.get(
+            "USE_DEEPSPEED_EVO_ATTENTION", False) == "true"
     )
-    configs = {**configs_base, **{"data": data_configs}, **inference_configs}
+    configs = {**configs_base, **
+               {"data": data_configs}, **inference_configs}
     configs = parse_configs(
         configs=configs,
         arg_str=parse_sys_args(),
         fill_required_with_null=True,
     )
-    #if inference_configs["load_checkpoint_path"] is None:
-    download_infercence_cache(configs, model_version="v0.5.0")
+    # if inference_configs["load_checkpoint_path"] is None:
+    download_infercence_cache(
+        configs, model_version="v0.5.0")
     main(configs)
 
 

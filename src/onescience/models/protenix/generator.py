@@ -41,7 +41,8 @@ class TrainingNoiseSampler:
             torch.Tensor: sampled noise-level
         """
         rnd_normal = torch.randn(size=size, device=device)
-        noise_level = (rnd_normal * self.p_std + self.p_mean).exp() * self.sigma_data
+        noise_level = (rnd_normal * self.p_std +
+                       self.p_mean).exp() * self.sigma_data
         return noise_level
 
 
@@ -89,7 +90,8 @@ class InferenceNoiseScheduler:
                 [N_step+1]
         """
         step_size = 1 / N_step
-        step_indices = torch.arange(N_step + 1, device=device, dtype=dtype)
+        step_indices = torch.arange(
+            N_step + 1, device=device, dtype=dtype)
         t_step_list = (
             self.sigma_data
             * (
@@ -150,7 +152,8 @@ def sample_diffusion(
         torch.Tensor: the denoised coordinates of x in inference stage
             [..., N_sample, N_atom, 3]
     """
-    N_atom = input_feature_dict["atom_to_token_idx"].size(-1)
+    N_atom = input_feature_dict["atom_to_token_idx"].size(
+        -1)
     batch_shape = s_inputs.shape[:-2]
     device = s_inputs.device
     dtype = s_inputs.dtype
@@ -167,17 +170,20 @@ def sample_diffusion(
         ):
             # [..., N_sample, N_atom, 3]
             x_l = (
-                centre_random_augmentation(x_input_coords=x_l, N_sample=1)
+                centre_random_augmentation(
+                    x_input_coords=x_l, N_sample=1)
                 .squeeze(dim=-3)
                 .to(dtype)
             )
 
             # Denoise with a predictor-corrector sampler
             # 1. Add noise to move x_{c_tau_last} to x_{t_hat}
-            gamma = float(gamma0) if c_tau > gamma_min else 0
+            gamma = float(
+                gamma0) if c_tau > gamma_min else 0
             t_hat = c_tau_last * (gamma + 1)
 
-            delta_noise_level = torch.sqrt(t_hat**2 - c_tau_last**2)
+            delta_noise_level = torch.sqrt(
+                t_hat**2 - c_tau_last**2)
             x_noisy = x_l + noise_scale_lambda * delta_noise_level * torch.randn(
                 size=x_l.shape, device=device, dtype=dtype
             )
@@ -205,12 +211,14 @@ def sample_diffusion(
                 ..., None, None
             ]  # Line 9 of AF3 uses 'x_l_hat' instead, which we believe  is a typo.
             dt = c_tau - t_hat
-            x_l = x_noisy + step_scale_eta * dt[..., None, None] * delta
+            x_l = x_noisy + step_scale_eta * \
+                dt[..., None, None] * delta
 
         return x_l
 
     if diffusion_chunk_size is None:
-        x_l = _chunk_sample_diffusion(N_sample, inplace_safe=inplace_safe)
+        x_l = _chunk_sample_diffusion(
+            N_sample, inplace_safe=inplace_safe)
     else:
         x_l = []
         no_chunks = N_sample // diffusion_chunk_size + (
@@ -226,7 +234,8 @@ def sample_diffusion(
                 chunk_n_sample, inplace_safe=inplace_safe
             )
             x_l.append(chunk_x_l)
-        x_l = torch.cat(x_l, -3)  # [..., N_sample, N_atom, 3]
+        # [..., N_sample, N_atom, 3]
+        x_l = torch.cat(x_l, -3)
     return x_l
 
 
@@ -279,9 +288,11 @@ def sample_diffusion_training(
 
     # Add independent noise to each structure
     # sigma: independent noise-level [..., N_sample]
-    sigma = noise_sampler(size=(*batch_size_shape, N_sample), device=device).to(dtype)
+    sigma = noise_sampler(
+        size=(*batch_size_shape, N_sample), device=device).to(dtype)
     # noise: [..., N_sample, N_atom, 3]
-    noise = torch.randn_like(x_gt_augment, dtype=dtype) * sigma[..., None, None]
+    noise = torch.randn_like(
+        x_gt_augment, dtype=dtype) * sigma[..., None, None]
 
     # Get denoising outputs [..., N_sample, N_atom, 3]
     if diffusion_chunk_size is None:
@@ -301,10 +312,10 @@ def sample_diffusion_training(
         )
         for i in range(no_chunks):
             x_noisy_i = (x_gt_augment + noise)[
-                ..., i * diffusion_chunk_size : (i + 1) * diffusion_chunk_size, :, :
+                ..., i * diffusion_chunk_size: (i + 1) * diffusion_chunk_size, :, :
             ]
             t_hat_noise_level_i = sigma[
-                ..., i * diffusion_chunk_size : (i + 1) * diffusion_chunk_size
+                ..., i * diffusion_chunk_size: (i + 1) * diffusion_chunk_size
             ]
             x_denoised_i = denoise_net(
                 x_noisy=x_noisy_i,

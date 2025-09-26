@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import logging
@@ -47,11 +45,13 @@ def get_batches(
     # Initialize variables to keep track of the batches and the total number of atoms in each batch
     batches = []  # List of batches, where each batch is a list of indices
     run_sum = 0  # Running total of the number of atoms in the current batch
-    cur_batch = nb.typed.List.empty_list(nb.int64)  # Current batch being constructed
+    cur_batch = nb.typed.List.empty_list(
+        nb.int64)  # Current batch being constructed
     atom_counts = nb.typed.List.empty_list(
         nb.int64
     )  # List of total number of atoms in each batch
-    samples_filtered = 0  # Number of samples filtered out because they exceeded the maximum number of atoms
+    # Number of samples filtered out because they exceeded the maximum number of atoms
+    samples_filtered = 0
 
     # Iterate over the samples
     for idx, atoms in zip(indices, natoms_list):
@@ -138,10 +138,12 @@ class MaxAtomDistributedBatchSampler(Sampler[list[int]]):
             # This is to ensure each rank receives the same amount of data when
             # using this Sampler.
             self.num_samples = math.ceil(
-                (len(self.all_batches) - self.num_replicas) / self.num_replicas
+                (len(self.all_batches) -
+                 self.num_replicas) / self.num_replicas
             )
         else:
-            self.num_samples = math.ceil(len(self.all_batches) / self.num_replicas)
+            self.num_samples = math.ceil(
+                len(self.all_batches) / self.num_replicas)
         self.total_size = self.num_samples * self.num_replicas
         assert (
             len(self.all_batches) >= self.num_replicas
@@ -150,13 +152,16 @@ class MaxAtomDistributedBatchSampler(Sampler[list[int]]):
     def _prepare_batches(self) -> list[int]:
         # shuffle is not optional here since the metadata tend to be sorted by atom count and the resulting batches will be highly uneven
         rng = np.random.default_rng(self.seed)
-        original_indices = rng.permutation(len(self.dataset))
+        original_indices = rng.permutation(
+            len(self.dataset))
         # TODO: this is slow
         t0 = time.time()
-        natoms_list = self.dataset.get_metadata("natoms", original_indices.tolist())
+        natoms_list = self.dataset.get_metadata(
+            "natoms", original_indices.tolist())
         t1 = time.time()
         indices, atoms_count, samples_filtered = get_batches(
-            np.array(natoms_list), original_indices, self.max_atoms, self.min_atoms
+            np.array(
+                natoms_list), original_indices, self.max_atoms, self.min_atoms
         )
         t2 = time.time()
         logging.info(
@@ -179,9 +184,12 @@ class MaxAtomDistributedBatchSampler(Sampler[list[int]]):
             # deterministically shuffle based on epoch and seed
             g = torch.Generator()
             g.manual_seed(self.seed + self.epoch)
-            indices = torch.randperm(len(self.all_batches), generator=g).tolist()  # type: ignore[arg-type]
+            # type: ignore[arg-type]
+            indices = torch.randperm(
+                len(self.all_batches), generator=g).tolist()
         else:
-            indices = list(range(len(self.all_batches)))  # type: ignore[arg-type]
+            # type: ignore[arg-type]
+            indices = list(range(len(self.all_batches)))
 
         if not self.drop_last:
             # add extra samples to make it evenly divisible
@@ -198,14 +206,14 @@ class MaxAtomDistributedBatchSampler(Sampler[list[int]]):
 
         assert len(indices) == self.total_size
 
-        indices = indices[self.rank : self.total_size : self.num_replicas]
+        indices = indices[self.rank: self.total_size: self.num_replicas]
         assert len(indices) == self.num_samples
         # slice of batch indices
         batch_slice = [self.all_batches[i] for i in indices]
-        assert (
-            self.start_iter < len(batch_slice)
+        assert self.start_iter < len(
+            batch_slice
         ), f"starting iteration {self.start_iter} must be less than size of the slice of batches! {len(batch_slice)}"
-        return iter(batch_slice[self.start_iter :])
+        return iter(batch_slice[self.start_iter:])
 
     def set_epoch_and_start_iteration(self, epoch: int, start_iter: int) -> None:
         self.epoch = epoch

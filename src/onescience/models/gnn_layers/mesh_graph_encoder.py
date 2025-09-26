@@ -112,10 +112,14 @@ class MeshGraphEncoder(nn.Module):
     ) -> Tuple[Tensor, Tensor]:
         # update edge features by concatenating node features (both mesh and grid) and existing edge featues
         # (or applying the concat trick instead)
-        efeat = self.edge_mlp(g2m_efeat, (grid_nfeat, mesh_nfeat), graph)
+        efeat = self.edge_mlp(
+            g2m_efeat, (grid_nfeat, mesh_nfeat), graph)
         # aggregate messages (edge features) to obtain updated node features
-        cat_feat = aggregate_and_concat(efeat, mesh_nfeat, graph, self.aggregation)
+        cat_feat = aggregate_and_concat(
+            efeat, mesh_nfeat, graph, self.aggregation)
         # update src, dst node features + residual connections
-        mesh_nfeat = mesh_nfeat + self.dst_node_mlp(cat_feat)
-        grid_nfeat = grid_nfeat + self.src_node_mlp(grid_nfeat)
+        mesh_nfeat = mesh_nfeat + \
+            self.dst_node_mlp(cat_feat)
+        grid_nfeat = grid_nfeat + \
+            self.src_node_mlp(grid_nfeat)
         return grid_nfeat, mesh_nfeat

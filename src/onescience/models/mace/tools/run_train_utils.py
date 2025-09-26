@@ -26,7 +26,8 @@ def normalize_file_paths(file_paths: Union[str, List[str]]) -> List[str]:
         return [file_paths]
     if isinstance(file_paths, list):
         return file_paths
-    raise ValueError(f"Unexpected file paths format: {type(file_paths)}")
+    raise ValueError(
+        f"Unexpected file paths format: {type(file_paths)}")
 
 
 def load_dataset_for_path(
@@ -55,7 +56,8 @@ def load_dataset_for_path(
         if len(file_path) == 1:
             file_path = file_path[0]
     if isinstance(file_path, list):
-        is_ase_readable = all(check_path_ase_read(p) for p in file_path)
+        is_ase_readable = all(
+            check_path_ase_read(p) for p in file_path)
         if not is_ase_readable:
             raise ValueError(
                 "Not all paths in the list are ASE readable, not supported"
@@ -80,7 +82,8 @@ def load_dataset_for_path(
         if filepath.name.endswith("_lmdb") or any(
             f.endswith(".lmdb") or f.endswith(".aselmdb") for f in os.listdir(filepath)
         ):
-            logging.info(f"Loading LMDB dataset from {file_path}")
+            logging.info(
+                f"Loading LMDB dataset from {file_path}")
             return data.LMDBDataset(
                 file_path,
                 r_max=r_max,
@@ -89,9 +92,11 @@ def load_dataset_for_path(
                 head=head_config.head_name,
             )
 
-        h5_files = list(filepath.glob("*.h5")) + list(filepath.glob("*.hdf5"))
+        h5_files = list(filepath.glob("*.h5")) + \
+            list(filepath.glob("*.hdf5"))
         if h5_files:
-            logging.info(f"Loading HDF5 dataset from directory {file_path}")
+            logging.info(
+                f"Loading HDF5 dataset from directory {file_path}")
             try:
                 return data.dataset_from_sharded_hdf5(
                     file_path,
@@ -101,11 +106,13 @@ def load_dataset_for_path(
                     head=head_config.head_name,
                 )
             except Exception as e:
-                logging.error(f"Error loading sharded HDF5 dataset: {e}")
+                logging.error(
+                    f"Error loading sharded HDF5 dataset: {e}")
                 raise
 
         if "lmdb" in str(filepath).lower() or "aselmdb" in str(filepath).lower():
-            logging.info(f"Loading LMDB dataset based on path name: {file_path}")
+            logging.info(
+                f"Loading LMDB dataset based on path name: {file_path}")
             return data.LMDBDataset(
                 file_path,
                 r_max=r_max,
@@ -114,7 +121,8 @@ def load_dataset_for_path(
                 head=head_config.head_name,
             )
 
-        logging.info(f"Attempting to load directory as HDF5 dataset: {file_path}")
+        logging.info(
+            f"Attempting to load directory as HDF5 dataset: {file_path}")
         try:
             return data.dataset_from_sharded_hdf5(
                 file_path,
@@ -124,12 +132,14 @@ def load_dataset_for_path(
                 head=head_config.head_name,
             )
         except Exception as e:
-            logging.error(f"Error loading as sharded HDF5: {e}")
+            logging.error(
+                f"Error loading as sharded HDF5: {e}")
             raise
 
     suffix = filepath.suffix.lower()
     if suffix in (".h5", ".hdf5"):
-        logging.info(f"Loading single HDF5 file: {file_path}")
+        logging.info(
+            f"Loading single HDF5 file: {file_path}")
         return data.HDF5Dataset(
             file_path,
             r_max=r_max,
@@ -139,7 +149,8 @@ def load_dataset_for_path(
         )
 
     if suffix in (".lmdb", ".aselmdb", ".db"):
-        logging.info(f"Loading single LMDB file: {file_path}")
+        logging.info(
+            f"Loading single LMDB file: {file_path}")
         return data.LMDBDataset(
             file_path,
             r_max=r_max,
@@ -173,7 +184,8 @@ def combine_datasets(datasets, head_name):
         return []
 
     if all(isinstance(ds, list) for ds in datasets):
-        logging.info(f"Combining {len(datasets)} list datasets for head '{head_name}'")
+        logging.info(
+            f"Combining {len(datasets)} list datasets for head '{head_name}'")
         return [item for sublist in datasets for item in sublist]
 
     if all(not isinstance(ds, list) for ds in datasets):
@@ -182,7 +194,8 @@ def combine_datasets(datasets, head_name):
         )
         return ConcatDataset(datasets) if len(datasets) > 1 else datasets[0]
 
-    logging.info(f"Converting mixed dataset types for head '{head_name}'")
+    logging.info(
+        f"Converting mixed dataset types for head '{head_name}'")
 
     try:
         all_items = []
@@ -190,10 +203,12 @@ def combine_datasets(datasets, head_name):
             if isinstance(ds, list):
                 all_items.extend(ds)
             else:
-                all_items.extend([ds[i] for i in range(len(ds))])
+                all_items.extend([ds[i]
+                                 for i in range(len(ds))])
         return all_items
     except Exception as e:  # pylint: disable=W0703
-        logging.warning(f"Failed to convert mixed datasets to list: {e}")
+        logging.warning(
+            f"Failed to convert mixed datasets to list: {e}")
 
     try:
         dataset_objects = []
@@ -203,13 +218,15 @@ def combine_datasets(datasets, head_name):
 
                 # Convert list to a Dataset
                 dataset_objects.append(
-                    TensorDataset(*[torch.tensor([i]) for i in range(len(ds))])
+                    TensorDataset(*[torch.tensor([i])
+                                  for i in range(len(ds))])
                 )
             else:
                 dataset_objects.append(ds)
         return ConcatDataset(dataset_objects)
     except Exception as e:  # pylint: disable=W0703
-        logging.warning(f"Failed to convert mixed datasets to ConcatDataset: {e}")
+        logging.warning(
+            f"Failed to convert mixed datasets to ConcatDataset: {e}")
 
     logging.warning(
         "Could not combine datasets of different types. Using only the first dataset."

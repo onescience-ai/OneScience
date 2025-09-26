@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import logging
@@ -13,20 +11,20 @@ from typing import TYPE_CHECKING, Literal
 
 import torch
 import torch.nn as nn
-from fairchem.experimental.legacy.utils import build_config
-from torch.nn.parallel.distributed import DistributedDataParallel
-
 from fairchem.core.common.flags import flags
 from fairchem.core.common.utils import new_trainer_context, setup_logging
 from fairchem.core.modules.scaling import ScaleFactor
 from fairchem.core.modules.scaling.compat import load_scales_compat
+from fairchem.experimental.legacy.utils import build_config
+from torch.nn.parallel.distributed import DistributedDataParallel
 
 if TYPE_CHECKING:
     from fairchem.core.trainers.base_trainer import BaseTrainer
 
 
 def _prefilled_input(prompt: str, prefill: str = "") -> str:
-    readline.set_startup_hook(lambda: readline.insert_text(prefill))
+    readline.set_startup_hook(
+        lambda: readline.insert_text(prefill))
     try:
         return input(prompt)
     finally:
@@ -52,22 +50,26 @@ def compute_scaling_factors(config, num_batches: int = 16) -> None:
         ), "Checkpoint file not specified. Please specify --checkpoint <path>"
         ckpt_file = Path(ckpt_file)
 
-        logging.info(f"Input checkpoint path: {ckpt_file}, {ckpt_file.exists()=}")
+        logging.info(
+            f"Input checkpoint path: {ckpt_file}, {ckpt_file.exists()=}")
 
         model: nn.Module = trainer.model
         data_loader = trainer.train_loader
         assert data_loader is not None, "Train set required to load batches"
 
         if ckpt_file.exists():
-            trainer.load_checkpoint(checkpoint_path=str(ckpt_file))
+            trainer.load_checkpoint(
+                checkpoint_path=str(ckpt_file))
 
         # region reoad scale file contents if necessary
         # unwrap module from DP/DDP
         unwrapped_model = model
         while isinstance(unwrapped_model, DistributedDataParallel):
             unwrapped_model = unwrapped_model.module
-        assert isinstance(unwrapped_model, nn.Module), "Model is not a nn.Module"
-        load_scales_compat(unwrapped_model, config.get("scale_file", None))
+        assert isinstance(
+            unwrapped_model, nn.Module), "Model is not a nn.Module"
+        load_scales_compat(
+            unwrapped_model, config.get("scale_file", None))
         # endregion
 
         model.eval()
@@ -90,10 +92,14 @@ def compute_scaling_factors(config, num_batches: int = 16) -> None:
         unfitted_scale_factors = [
             name for name, module in scale_factors.items() if not module.fitted
         ]
-        fitted_scale_factors_str = ", ".join(fitted_scale_factors)
-        logging.info(f"Fitted scale factors: [{fitted_scale_factors_str}]")
-        unfitted_scale_factors_str = ", ".join(unfitted_scale_factors)
-        logging.info(f"Unfitted scale factors: [{unfitted_scale_factors_str}]")
+        fitted_scale_factors_str = ", ".join(
+            fitted_scale_factors)
+        logging.info(
+            f"Fitted scale factors: [{fitted_scale_factors_str}]")
+        unfitted_scale_factors_str = ", ".join(
+            unfitted_scale_factors)
+        logging.info(
+            f"Unfitted scale factors: [{unfitted_scale_factors_str}]")
 
         if fitted_scale_factors:
             flag = input(
@@ -105,7 +111,8 @@ def compute_scaling_factors(config, num_batches: int = 16) -> None:
                 logging.info("Fitting all scale factors.")
             elif str(flag) == "2":
                 mode = "unfitted"
-                logging.info("Only fitting unfitted variables.")
+                logging.info(
+                    "Only fitting unfitted variables.")
             elif str(flag) == "3":
                 logging.info("Exiting script")
                 sys.exit()
@@ -117,7 +124,8 @@ def compute_scaling_factors(config, num_batches: int = 16) -> None:
         # endregion
 
         if ckpt_file.exists():
-            logging.warning(f"Already found existing file: {ckpt_file}")
+            logging.warning(
+                f"Already found existing file: {ckpt_file}")
             flag = input(
                 "Do you want to continue and overwrite existing file (1), "
                 "or exit (2)? "
@@ -156,7 +164,8 @@ def compute_scaling_factors(config, num_batches: int = 16) -> None:
                 assert name is not None
                 if name not in scale_factor_indices:
                     scale_factor_indices[name] = max_idx
-                    logging.debug(f"Scale factor for {name} = {max_idx}")
+                    logging.debug(
+                        f"Scale factor for {name} = {max_idx}")
                     max_idx += 1
 
             module.initialize_(index_fn=index_fn)
@@ -167,12 +176,15 @@ def compute_scaling_factors(config, num_batches: int = 16) -> None:
         # sort the scale factors by their computation order
         sorted_factors = sorted(
             scale_factors.items(),
-            key=lambda x: scale_factor_indices.get(x[0], math.inf),
+            key=lambda x: scale_factor_indices.get(
+                x[0], math.inf),
         )
 
-        logging.info("Sorted scale factors by computation order:")
+        logging.info(
+            "Sorted scale factors by computation order:")
         for name, _ in sorted_factors:
-            logging.info(f"{name}: {scale_factor_indices[name]}")
+            logging.info(
+                f"{name}: {scale_factor_indices[name]}")
 
         # endregion
 
@@ -182,7 +194,8 @@ def compute_scaling_factors(config, num_batches: int = 16) -> None:
 
         for name, module in sorted_factors:
             if mode == "unfitted" and module.fitted:
-                logging.info(f"Skipping {name} (already fitted)")
+                logging.info(
+                    f"Skipping {name} (already fitted)")
                 continue
 
             logging.info(f"Fitting {name}...")

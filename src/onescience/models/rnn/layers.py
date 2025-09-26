@@ -74,7 +74,8 @@ class _ConvLayer(nn.Module):
                 bias=True,
             )
         else:
-            raise ValueError("Only 1D, 2D and 3D dimensions are supported")
+            raise ValueError(
+                "Only 1D, 2D and 3D dimensions are supported")
 
         self.reset_parameters()
 
@@ -88,14 +89,18 @@ class _ConvLayer(nn.Module):
         nn.init.xavier_uniform_(self.conv.weight)
 
     def forward(self, x: Tensor) -> Tensor:
-        input_length = len(x.size()) - 2  # exclude channel and batch dims
+        # exclude channel and batch dims
+        input_length = len(x.size()) - 2
         if input_length != self.dimension:
-            raise ValueError("Input dimension not compatible")
+            raise ValueError(
+                "Input dimension not compatible")
 
         if input_length == 1:
             iw = x.size()[-1:][0]
-            pad_w = _get_same_padding(iw, self.kernel_size, self.stride)
-            x = F.pad(x, [pad_w // 2, pad_w - pad_w // 2], mode="constant", value=0.0)
+            pad_w = _get_same_padding(
+                iw, self.kernel_size, self.stride)
+            x = F.pad(x, [pad_w // 2, pad_w - pad_w //
+                      2], mode="constant", value=0.0)
         elif input_length == 2:
             ih, iw = x.size()[-2:]
             pad_h, pad_w = _get_same_padding(
@@ -103,16 +108,20 @@ class _ConvLayer(nn.Module):
             ), _get_same_padding(iw, self.kernel_size, self.stride)
             x = F.pad(
                 x,
-                [pad_h // 2, pad_h - pad_h // 2, pad_w // 2, pad_w - pad_w // 2],
+                [pad_h // 2, pad_h - pad_h // 2,
+                    pad_w // 2, pad_w - pad_w // 2],
                 mode="constant",
                 value=0.0,
             )
         else:
             _id, ih, iw = x.size()[-3:]
             pad_d, pad_h, pad_w = (
-                _get_same_padding(_id, self.kernel_size, self.stride),
-                _get_same_padding(ih, self.kernel_size, self.stride),
-                _get_same_padding(iw, self.kernel_size, self.stride),
+                _get_same_padding(
+                    _id, self.kernel_size, self.stride),
+                _get_same_padding(
+                    ih, self.kernel_size, self.stride),
+                _get_same_padding(
+                    iw, self.kernel_size, self.stride),
             )
             x = F.pad(
                 x,
@@ -197,7 +206,8 @@ class _TransposeConvLayer(nn.Module):
                 bias=True,
             )
         else:
-            raise ValueError("Only 1D, 2D and 3D dimensions are supported")
+            raise ValueError(
+                "Only 1D, 2D and 3D dimensions are supported")
 
         self.reset_parameters()
 
@@ -212,19 +222,22 @@ class _TransposeConvLayer(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         orig_x = x
-        input_length = len(orig_x.size()) - 2  # exclude channel and batch dims
+        # exclude channel and batch dims
+        input_length = len(orig_x.size()) - 2
         if input_length != self.dimension:
-            raise ValueError("Input dimension not compatible")
+            raise ValueError(
+                "Input dimension not compatible")
 
         x = self.trans_conv(x)
 
         if input_length == 1:
             iw = orig_x.size()[-1:][0]
-            pad_w = _get_same_padding(iw, self.kernel_size, self.stride)
+            pad_w = _get_same_padding(
+                iw, self.kernel_size, self.stride)
             x = x[
                 :,
                 :,
-                pad_w // 2 : x.size(-1) - (pad_w - pad_w // 2),
+                pad_w // 2: x.size(-1) - (pad_w - pad_w // 2),
             ]
         elif input_length == 2:
             ih, iw = orig_x.size()[-2:]
@@ -236,22 +249,25 @@ class _TransposeConvLayer(nn.Module):
             x = x[
                 :,
                 :,
-                pad_h // 2 : x.size(-2) - (pad_h - pad_h // 2),
-                pad_w // 2 : x.size(-1) - (pad_w - pad_w // 2),
+                pad_h // 2: x.size(-2) - (pad_h - pad_h // 2),
+                pad_w // 2: x.size(-1) - (pad_w - pad_w // 2),
             ]
         else:
             _id, ih, iw = orig_x.size()[-3:]
             pad_d, pad_h, pad_w = (
-                _get_same_padding(_id, self.kernel_size, self.stride),
-                _get_same_padding(ih, self.kernel_size, self.stride),
-                _get_same_padding(iw, self.kernel_size, self.stride),
+                _get_same_padding(
+                    _id, self.kernel_size, self.stride),
+                _get_same_padding(
+                    ih, self.kernel_size, self.stride),
+                _get_same_padding(
+                    iw, self.kernel_size, self.stride),
             )
             x = x[
                 :,
                 :,
-                pad_d // 2 : x.size(-3) - (pad_d - pad_d // 2),
-                pad_h // 2 : x.size(-2) - (pad_h - pad_h // 2),
-                pad_w // 2 : x.size(-1) - (pad_w - pad_w // 2),
+                pad_d // 2: x.size(-3) - (pad_d - pad_d // 2),
+                pad_h // 2: x.size(-2) - (pad_h - pad_h // 2),
+                pad_w // 2: x.size(-1) - (pad_w - pad_w // 2),
             ]
 
         if self.activation_fn is not nn.Identity():
@@ -308,13 +324,16 @@ class _ConvGRULayer(nn.Module):
     def forward(self, x: Tensor, hidden: Tensor) -> Tensor:
         concat = torch.cat((x, hidden), dim=1)
         conv_concat = self.conv_1(concat)
-        conv_r, conv_z = torch.split(conv_concat, self.hidden_size, 1)
+        conv_r, conv_z = torch.split(
+            conv_concat, self.hidden_size, 1)
 
         reset_gate = torch.special.expit(conv_r)
         update_gate = torch.special.expit(conv_z)
-        concat = torch.cat((x, torch.mul(hidden, reset_gate)), dim=1)
+        concat = torch.cat(
+            (x, torch.mul(hidden, reset_gate)), dim=1)
         n = self.exec_activation_fn(self.conv_2(concat))
-        h_next = torch.mul((1 - update_gate), n) + torch.mul(update_gate, hidden)
+        h_next = torch.mul(
+            (1 - update_gate), n) + torch.mul(update_gate, hidden)
 
         return h_next
 
@@ -413,7 +432,8 @@ class _ConvResidualBlock(nn.Module):
 
         if self.begin_activation_fn:
             if self.layer_normalization:
-                layer_norm = nn.LayerNorm(x.size()[1:], elementwise_affine=False)
+                layer_norm = nn.LayerNorm(
+                    x.size()[1:], elementwise_affine=False)
                 x = layer_norm(x)
             x = self.exec_activation_fn(x)
 
@@ -422,7 +442,8 @@ class _ConvResidualBlock(nn.Module):
 
         # add layer normalization
         if self.layer_normalization:
-            layer_norm = nn.LayerNorm(x.size()[1:], elementwise_affine=False)
+            layer_norm = nn.LayerNorm(
+                x.size()[1:], elementwise_affine=False)
             x = layer_norm(x)
 
         # second activation
@@ -434,7 +455,8 @@ class _ConvResidualBlock(nn.Module):
             x = x_1 * torch.special.expit(x_2)
 
         # possibly reshape skip connection
-        if orig_x.size(-1) > x.size(-1):  # Check if widths are same)
+        # Check if widths are same)
+        if orig_x.size(-1) > x.size(-1):
             if len(orig_x.size()) - 2 == 1:
                 iw = orig_x.size()[-1:][0]
                 pad_w = _get_same_padding(iw, 2, 2)
@@ -461,11 +483,13 @@ class _ConvResidualBlock(nn.Module):
                 pool = torch.nn.AvgPool3d(
                     2,
                     2,
-                    padding=(pad_d // 2, pad_h // 2, pad_w // 2),
+                    padding=(pad_d // 2, pad_h //
+                             2, pad_w // 2),
                     count_include_pad=False,
                 )
             else:
-                raise ValueError("Only 1D, 2D and 3D dimensions are supported")
+                raise ValueError(
+                    "Only 1D, 2D and 3D dimensions are supported")
             orig_x = pool(orig_x)
 
         # possibly change the channels for skip connection

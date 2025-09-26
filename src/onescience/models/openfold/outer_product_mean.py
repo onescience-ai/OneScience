@@ -34,7 +34,8 @@ class OuterProductMean(nn.Module):
         self.layer_norm = LayerNorm(c_m)
         self.linear_1 = Linear(c_m, c_hidden, bias=False)
         self.linear_2 = Linear(c_m, c_hidden, bias=False)
-        self.linear_out = Linear(c_hidden**2, c_z, init="final")
+        self.linear_out = Linear(
+            c_hidden**2, c_z, init="final")
 
     def _opm(self, a, b):
         # [*, N_res, N_res, C, C]
@@ -71,7 +72,8 @@ class OuterProductMean(nn.Module):
         else:
             outer = torch.stack(out, dim=0)
 
-        outer = outer.reshape(a.shape[:-3] + outer.shape[1:])
+        outer = outer.reshape(
+            a.shape[:-3] + outer.shape[1:])
 
         return outer
 
@@ -116,7 +118,8 @@ class OuterProductMean(nn.Module):
             outer = self._opm(a, b)
 
         # [*, N_res, N_res, 1]
-        norm = torch.einsum("...abc,...adc->...bdc", mask, mask)
+        norm = torch.einsum(
+            "...abc,...adc->...bdc", mask, mask)
         norm = norm + self.eps
 
         # [*, N_res, N_res, C_z]

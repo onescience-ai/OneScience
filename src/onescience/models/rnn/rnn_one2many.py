@@ -75,7 +75,8 @@ class One2ManyRNN(Module):
 
         # check valid dimensions
         if dimension not in [2, 3]:
-            raise ValueError("Only 2D and 3D spatial dimensions are supported")
+            raise ValueError(
+                "Only 2D and 3D spatial dimensions are supported")
 
         for i in range(nr_downsamples):
             for j in range(nr_residual_blocks):
@@ -95,7 +96,8 @@ class One2ManyRNN(Module):
                         dimension=dimension,
                         gated=True,
                         layer_normalization=False,
-                        begin_activation_fn=not ((i == 0) and (j == 0)),
+                        begin_activation_fn=not (
+                            (i == 0) and (j == 0)),
                         activation_fn=activation_fn,
                     )
                 )
@@ -128,7 +130,8 @@ class One2ManyRNN(Module):
                         dimension=dimension,
                         gated=True,
                         layer_normalization=False,
-                        begin_activation_fn=not ((i == 0) and (j == 0)),
+                        begin_activation_fn=not (
+                            (i == 0) and (j == 0)),
                         activation_fn=activation_fn,
                     )
                 )
@@ -141,7 +144,8 @@ class One2ManyRNN(Module):
                     dimension=dimension,
                 )
             )
-            self.decoder_layers.append(self.upsampling_layers)
+            self.decoder_layers.append(
+                self.upsampling_layers)
 
         if dimension == 2:
             self.final_conv = nn.Conv2d(
@@ -184,7 +188,8 @@ class One2ManyRNN(Module):
         rnn_output = []
         for t in range(self.nr_tsteps):
             if t == 0:
-                h = torch.zeros(list(x_in.size())).to(x.device)
+                h = torch.zeros(
+                    list(x_in.size())).to(x.device)
                 x_in_rnn = encoded_inputs[0]
             h = self.rnn_layer(x_in_rnn, h)
             x_in_rnn = h
@@ -196,7 +201,8 @@ class One2ManyRNN(Module):
             # Decoding step
             latent_context_grid = []
             for conv_layer, decoder in zip(self.conv_layers, self.decoder_layers):
-                latent_context_grid.append(conv_layer(x_out))
+                latent_context_grid.append(
+                    conv_layer(x_out))
                 upsampling_layers = decoder
                 for upsampling_layer in upsampling_layers:
                     x_out = upsampling_layer(x_out)

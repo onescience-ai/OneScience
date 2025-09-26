@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import heapq
@@ -13,11 +11,9 @@ import torch.distributed
 from torch.utils.data import BatchSampler, Dataset, DistributedSampler
 from typing_extensions import deprecated, override
 
-from onescience.models.UMA.common import distutils, gp_utils
 from onescience.datapipes.uma import data_list_collater
-from onescience.datapipes.uma.base_dataset import (
-    UnsupportedDatasetError,
-)
+from onescience.datapipes.uma.base_dataset import UnsupportedDatasetError
+from onescience.models.UMA.common import distutils, gp_utils
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -43,7 +39,8 @@ def _balanced_partition(sizes: NDArray[np.int_], num_parts: int):
     the largest element into the smallest partition.
     """
     sort_idx = np.argsort(-sizes)  # Sort in descending order
-    heap = [(sizes[idx], [idx]) for idx in sort_idx[:num_parts]]
+    heap = [(sizes[idx], [idx])
+            for idx in sort_idx[:num_parts]]
     heapq.heapify(heap)
     for idx in sort_idx[num_parts:]:
         smallest_part = heapq.heappop(heap)
@@ -81,7 +78,8 @@ class StatefulDistributedSampler(DistributedSampler):
         self.start_iter = 0
         self.batch_size = batch_size
         assert self.batch_size > 0, "batch_size not set for the sampler"
-        logging.info(f"rank: {self.rank}: Sampler created...")
+        logging.info(
+            f"rank: {self.rank}: Sampler created...")
 
     def __iter__(self):
         # TODO: For very large datasets, even virtual datasets this might slow down
@@ -103,14 +101,16 @@ class StatefulDistributedSampler(DistributedSampler):
 
 def _ensure_supported(dataset: Any):
     if not isinstance(dataset, Dataset):
-        raise UnsupportedDatasetError("BalancedBatchSampler requires a dataset.")
+        raise UnsupportedDatasetError(
+            "BalancedBatchSampler requires a dataset.")
 
     if not dataset.metadata_hasattr("natoms"):
         raise UnsupportedDatasetError(
             "BalancedBatchSampler requires a dataset that has a metadata attributed with number of atoms."
         )
 
-    logging.debug(f"BalancedBatchSampler: Resolved dataset to {type(dataset)}")
+    logging.debug(
+        f"BalancedBatchSampler: Resolved dataset to {type(dataset)}")
     return dataset
 
 
@@ -128,7 +128,8 @@ class BalancedBatchSampler(BatchSampler):
         seed: int,
         mode: bool | Literal["atoms"] = "atoms",
         shuffle: bool = True,
-        on_error: Literal["warn_and_balance", "warn_and_no_balance", "raise"] = "raise",
+        on_error: Literal["warn_and_balance",
+                          "warn_and_no_balance", "raise"] = "raise",
         drop_last: bool = False,
     ):
         """
@@ -152,14 +153,16 @@ class BalancedBatchSampler(BatchSampler):
         self.on_error = on_error
 
         if mode is False:
-            logging.warning(f"Disabled BalancedBatchSampler because {mode=}.")
+            logging.warning(
+                f"Disabled BalancedBatchSampler because {mode=}.")
             self.disabled = True
         elif mode.lower() != "atoms":
             raise ValueError(
                 f"Only mode='atoms' or mode=True is supported, got {mode=}."
             )
         elif num_replicas == 1:
-            logging.warning(f"Disabled BalancedBatchSampler because {num_replicas=}.")
+            logging.warning(
+                f"Disabled BalancedBatchSampler because {num_replicas=}.")
             self.disabled = True
 
         try:
@@ -176,7 +179,8 @@ class BalancedBatchSampler(BatchSampler):
                     f"Failed to get data sizes, falling back to uniform partitioning. {error}"
                 )
             else:
-                raise ValueError(f"Unknown on_error={self.on_error}") from error
+                raise ValueError(
+                    f"Unknown on_error={self.on_error}") from error
 
         sampler = StatefulDistributedSampler(
             dataset,
@@ -200,7 +204,8 @@ class BalancedBatchSampler(BatchSampler):
     def _get_natoms(self, batch_idx: list[int]):
         if self.sampler.dataset.metadata_hasattr("natoms"):
             return np.array(
-                self.sampler.dataset.get_metadata("natoms", batch_idx)
+                self.sampler.dataset.get_metadata(
+                    "natoms", batch_idx)
             ).reshape(-1)
         if self.on_error == "warn_and_balance":
             return np.array([self.sampler.dataset[idx].num_nodes for idx in batch_idx])
@@ -214,7 +219,8 @@ class BalancedBatchSampler(BatchSampler):
                 )
             self.sampler.set_epoch(epoch)
         else:
-            self.sampler.set_epoch_and_start_iteration(epoch, start_iteration)
+            self.sampler.set_epoch_and_start_iteration(
+                epoch, start_iteration)
 
     def set_epoch(self, epoch: int) -> None:
         if isinstance(self.sampler, DistributedSampler):
@@ -238,14 +244,18 @@ class BalancedBatchSampler(BatchSampler):
 
             idx_sizes = torch.stack(
                 [
-                    torch.tensor(batch_idx, device=self.device),
+                    torch.tensor(
+                        batch_idx, device=self.device),
                     torch.tensor(sizes, device=self.device),
                 ]
             )
-            idx_sizes_all = distutils.all_gather(idx_sizes, device=self.device)
-            idx_sizes_all = torch.cat(idx_sizes_all, dim=-1).cpu()
+            idx_sizes_all = distutils.all_gather(
+                idx_sizes, device=self.device)
+            idx_sizes_all = torch.cat(
+                idx_sizes_all, dim=-1).cpu()
             if gp_utils.initialized():
-                idx_sizes_all = torch.unique(input=idx_sizes_all, dim=1)
+                idx_sizes_all = torch.unique(
+                    input=idx_sizes_all, dim=1)
             idx_all = idx_sizes_all[0]
             sizes_all = idx_sizes_all[1]
 

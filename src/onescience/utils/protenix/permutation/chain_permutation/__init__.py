@@ -1,4 +1,3 @@
-
 import traceback
 from typing import Union
 
@@ -70,17 +69,20 @@ def run(
                     atom_entity_id=input_feature_dict["entity_mol_id"],
                     atom_asym_id=input_feature_dict["mol_id"],
                     mol_atom_index=input_feature_dict["mol_atom_index"],
-                    use_center_rmsd=kwargs.get("use_center_rmsd", False),
+                    use_center_rmsd=kwargs.get(
+                        "use_center_rmsd", False),
                 )
             )
-            output_dict = {"coordinate": permuted_aligned_pred_coord}
+            output_dict = {
+                "coordinate": permuted_aligned_pred_coord}
             permute_label_indices = []
 
         else:
             """Optimize the chain assignment on all chains"""
             output_dict, log_dict, permute_pred_indices, permute_label_indices = (
                 correct_symmetric_chains(
-                    pred_dict={**input_feature_dict, "coordinate": pred_coord},
+                    pred_dict={**input_feature_dict,
+                               "coordinate": pred_coord},
                     label_full_dict=label_full_dict,
                     max_num_chains=max_num_chains,
                     permute_label=permute_label,

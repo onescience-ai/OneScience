@@ -90,7 +90,8 @@ def open_time_series_dataset_classic_on_the_fly(
     xr.Dataset: The merged dataset
     """
     output_variables = output_variables or input_variables
-    all_variables = np.union1d(input_variables, output_variables)
+    all_variables = np.union1d(
+        input_variables, output_variables)
     prefix = prefix or ""
     suffix = suffix or ""
 
@@ -98,15 +99,19 @@ def open_time_series_dataset_classic_on_the_fly(
     logger.info("merging input datasets")
 
     datasets = []
-    remove_attrs = ["mean", "std"] if "LL" in prefix else ["varlev", "mean", "std"]
+    remove_attrs = ["mean", "std"] if "LL" in prefix else [
+        "varlev", "mean", "std"]
     for variable in all_variables:
-        file_name = _get_file_name(directory, prefix, variable, suffix)
+        file_name = _get_file_name(
+            directory, prefix, variable, suffix)
         logger.debug("open nc dataset %s", file_name)
 
-        ds = xr.open_dataset(file_name, chunks={"sample": batch_size}, autoclose=True)
+        ds = xr.open_dataset(file_name, chunks={
+                             "sample": batch_size}, autoclose=True)
 
         if "LL" in prefix:
-            ds = ds.rename({"lat": "height", "lon": "width"})
+            ds = ds.rename(
+                {"lat": "height", "lon": "width"})
             ds = ds.isel({"height": slice(0, 180)})
         try:
             ds = ds.isel(varlev=0)
@@ -158,13 +163,15 @@ def open_time_series_dataset_classic_on_the_fly(
                     _get_file_name(directory, prefix, name, suffix), autoclose=True
                 ).set_coords(["lat", "lon"])[var]
             )
-        constants_ds = xr.merge(constants_ds, compat="override")
+        constants_ds = xr.merge(
+            constants_ds, compat="override")
         constants_da = constants_ds.to_array("channel_c", name="constants").transpose(
             "channel_c", "face", "height", "width"
         )
         result["constants"] = constants_da
 
-    logger.info("merged datasets in %0.1f s", time.time() - merge_time)
+    logger.info("merged datasets in %0.1f s",
+                time.time() - merge_time)
 
     return result
 
@@ -194,9 +201,11 @@ def open_time_series_dataset_classic_prebuilt(
     ds_path = Path(directory, dataset_name + ".zarr")
 
     if not ds_path.exists():
-        raise FileNotFoundError(f"Dataset doesn't appear to exist at {ds_path}")
+        raise FileNotFoundError(
+            f"Dataset doesn't appear to exist at {ds_path}")
 
-    result = xr.open_zarr(ds_path, chunks={"time": batch_size})
+    result = xr.open_zarr(
+        ds_path, chunks={"time": batch_size})
     return result
 
 
@@ -245,7 +254,8 @@ def create_time_series_dataset_classic(
     -------
     xr.Dataset: The merged dataset
     """
-    dst_zarr = os.path.join(dst_directory, dataset_name + ".zarr")
+    dst_zarr = os.path.join(
+        dst_directory, dataset_name + ".zarr")
     file_exists = os.path.exists(dst_zarr)
 
     if file_exists and not overwrite:
@@ -257,7 +267,8 @@ def create_time_series_dataset_classic(
         )
 
     output_variables = output_variables or input_variables
-    all_variables = np.union1d(input_variables, output_variables)
+    all_variables = np.union1d(
+        input_variables, output_variables)
     prefix = prefix or ""
     suffix = suffix or ""
 
@@ -267,14 +278,16 @@ def create_time_series_dataset_classic(
     datasets = []
     remove_attrs = ["varlev", "mean", "std"]
     for variable in all_variables:
-        file_name = _get_file_name(src_directory, prefix, variable, suffix)
+        file_name = _get_file_name(
+            src_directory, prefix, variable, suffix)
         logger.debug("open nc dataset %s", file_name)
         if "sample" in list(xr.open_dataset(file_name).dims.keys()):
             ds = xr.open_dataset(file_name, chunks={"sample": batch_size}).rename(
                 {"sample": "time"}
             )
         else:
-            ds = xr.open_dataset(file_name, chunks={"time": batch_size})
+            ds = xr.open_dataset(file_name, chunks={
+                                 "time": batch_size})
         if "varlev" in ds.dims:
             ds = ds.isel(varlev=0)
 
@@ -298,7 +311,8 @@ def create_time_series_dataset_classic(
             and scaling[variable].get("log_epsilon", None) is not None
         ):
             ds[variable] = np.log(
-                ds[variable] + scaling[variable]["log_epsilon"]
+                ds[variable] +
+                scaling[variable]["log_epsilon"]
             ) - np.log(scaling[variable]["log_epsilon"])
         datasets.append(ds)
     # Merge datasets
@@ -325,22 +339,27 @@ def create_time_series_dataset_classic(
         constants_ds = []
         for name, var in constants.items():
             constants_ds.append(
-                xr.open_dataset(_get_file_name(src_directory, prefix, name, suffix))
+                xr.open_dataset(_get_file_name(
+                    src_directory, prefix, name, suffix))
                 .set_coords(["lat", "lon"])[var]
                 .astype(np.float32)
             )
-        constants_ds = xr.merge(constants_ds, compat="override")
+        constants_ds = xr.merge(
+            constants_ds, compat="override")
         constants_da = constants_ds.to_array("channel_c", name="constants").transpose(
             "channel_c", "face", "height", "width"
         )
         result["constants"] = constants_da
 
-    logger.info("merged datasets in %0.1f s", time.time() - merge_time)
-    logger.info("writing unified dataset to file (takes long!)")
+    logger.info("merged datasets in %0.1f s",
+                time.time() - merge_time)
+    logger.info(
+        "writing unified dataset to file (takes long!)")
 
     # writing out
     def _write_zarr(data, path):
-        write_job = data.to_zarr(path, compute=False, mode="w")
+        write_job = data.to_zarr(
+            path, compute=False, mode="w")
         with ProgressBar():
             logger.info(f"writing dataset to {path}")
             write_job.compute()
@@ -469,7 +488,8 @@ class TimeSeriesDataModule:
         self.constants = constants
         self.scaling = scaling
         self.splits = splits
-        self.input_time_dim = input_time_dim + (presteps * input_time_dim)
+        self.input_time_dim = input_time_dim + \
+            (presteps * input_time_dim)
         self.output_time_dim = output_time_dim
         self.data_time_step = data_time_step
         self.time_step = time_step
@@ -518,7 +538,8 @@ class TimeSeriesDataModule:
                 else open_time_series_dataset_classic_on_the_fly
             )
         else:
-            raise ValueError("'data_format' must be one of ['classic']")
+            raise ValueError(
+                "'data_format' must be one of ['classic']")
 
         # make sure distributed manager is initalized
         if not DistributedManager.is_initialized():
@@ -920,7 +941,8 @@ class CoupledTimeSeriesDataModule(TimeSeriesDataModule):
 
         coupled_variables = []
         for d in self.couplings:
-            coupled_variables = coupled_variables + d["params"]["variables"]
+            coupled_variables = coupled_variables + \
+                d["params"]["variables"]
         return coupled_variables
 
     def setup(self) -> None:
@@ -933,7 +955,8 @@ class CoupledTimeSeriesDataModule(TimeSeriesDataModule):
                 else open_time_series_dataset_classic_on_the_fly
             )
         else:
-            raise ValueError("'data_format' must be one of ['classic', 'zarr']")
+            raise ValueError(
+                "'data_format' must be one of ['classic', 'zarr']")
 
         coupled_variables = self._get_coupled_vars()
         # make sure distributed manager is initalized

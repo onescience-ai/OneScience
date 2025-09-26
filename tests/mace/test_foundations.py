@@ -13,7 +13,10 @@ from onescience.models.mace import data, modules, tools
 from onescience.models.mace.calculators import mace_mp, mace_off
 from onescience.models.mace.tools import torch_geometric
 from onescience.models.mace.tools.finetuning_utils import load_foundations_elements
-from onescience.models.mace.tools.scripts_utils import extract_config_mace_model, remove_pt_head
+from onescience.models.mace.tools.scripts_utils import (
+    extract_config_mace_model,
+    remove_pt_head,
+)
 from onescience.models.mace.tools.utils import AtomicNumberTable
 
 MODEL_PATH = (
@@ -26,24 +29,25 @@ MODEL_PATH = (
 
 torch.set_default_dtype(torch.float64)
 
+
 @pytest.skip("Problem with the float type", allow_module_level=True)
 def test_foundations():
     # Create MACE model
     config = data.Configuration(
-    atomic_numbers=molecule("H2COH").numbers,
-    positions=molecule("H2COH").positions,
-    properties={
-        "forces": molecule("H2COH").positions,
-        "energy": -1.5,
-        "charges": molecule("H2COH").numbers,
-        "dipole": np.array([-1.5, 1.5, 2.0]),
-    },
-    property_weights={
-        "forces": 1.0,
-        "energy": 1.0,
-        "charges": 1.0,
-        "dipole": 1.0,
-    },
+        atomic_numbers=molecule("H2COH").numbers,
+        positions=molecule("H2COH").positions,
+        properties={
+            "forces": molecule("H2COH").positions,
+            "energy": -1.5,
+            "charges": molecule("H2COH").numbers,
+            "dipole": np.array([-1.5, 1.5, 2.0]),
+        },
+        property_weights={
+            "forces": 1.0,
+            "energy": 1.0,
+            "charges": 1.0,
+            "dipole": 1.0,
+        },
     )
 
     # Created the rotated environment
@@ -92,7 +96,8 @@ def test_foundations():
         atomic_inter_shift=0.0,
     )
     model = modules.ScaleShiftMACE(**model_config)
-    calc_foundation = mace_mp(model="medium", device="cpu", default_dtype="float64")
+    calc_foundation = mace_mp(
+        model="medium", device="cpu", default_dtype="float64")
     model_loaded = load_foundations_elements(
         model,
         calc_foundation.models[0],
@@ -101,7 +106,8 @@ def test_foundations():
         use_shift=False,
         max_L=1,
     )
-    atomic_data = data.AtomicData.from_config(config, z_table=table, cutoff=6.0)
+    atomic_data = data.AtomicData.from_config(
+        config, z_table=table, cutoff=6.0)
     atomic_data2 = data.AtomicData.from_config(
         config_rotated, z_table=table, cutoff=6.0
     )
@@ -137,9 +143,9 @@ def test_multi_reference():
         head="MP2",
     )
     table_multi = tools.AtomicNumberTable([1, 6, 8])
-    atomic_energies_multi = np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], dtype=float)
+    atomic_energies_multi = np.array(
+        [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], dtype=float)
     table = tools.AtomicNumberTable([1, 6, 8])
-
 
     # Create MACE model
     model_config = dict(
@@ -168,7 +174,8 @@ def test_multi_reference():
         heads=["MP2", "DFT"],
     )
     model = modules.ScaleShiftMACE(**model_config)
-    calc_foundation = mace_mp(model="medium", device="cpu", default_dtype="float64")
+    calc_foundation = mace_mp(
+        model="medium", device="cpu", default_dtype="float64")
     model_loaded = load_foundations_elements(
         model,
         calc_foundation.models[0],
@@ -188,7 +195,8 @@ def test_multi_reference():
     )
     batch = next(iter(data_loader))
     forces_loaded = model_loaded(batch.to_dict())["forces"]
-    calc_foundation = mace_mp(model="medium", device="cpu", default_dtype="float64")
+    calc_foundation = mace_mp(
+        model="medium", device="cpu", default_dtype="float64")
     atoms = molecule("H2COH")
     atoms.info["head"] = "MP2"
     atoms.calc = calc_foundation
@@ -202,64 +210,86 @@ def test_multi_reference():
     "calc",
     [
         mace_mp(device="cpu", default_dtype="float64"),
-        mace_mp(model="small", device="cpu", default_dtype="float64"),
-        mace_mp(model="medium", device="cpu", default_dtype="float64"),
-        mace_mp(model="large", device="cpu", default_dtype="float64"),
-        mace_mp(model=MODEL_PATH, device="cpu", default_dtype="float64"),
-        mace_off(model="small", device="cpu", default_dtype="float64"),
-        mace_off(model="medium", device="cpu", default_dtype="float64"),
-        mace_off(model="large", device="cpu", default_dtype="float64"),
-        mace_off(model=MODEL_PATH, device="cpu", default_dtype="float64"),
+        mace_mp(model="small", device="cpu",
+                default_dtype="float64"),
+        mace_mp(model="medium", device="cpu",
+                default_dtype="float64"),
+        mace_mp(model="large", device="cpu",
+                default_dtype="float64"),
+        mace_mp(model=MODEL_PATH, device="cpu",
+                default_dtype="float64"),
+        mace_off(model="small", device="cpu",
+                 default_dtype="float64"),
+        mace_off(model="medium", device="cpu",
+                 default_dtype="float64"),
+        mace_off(model="large", device="cpu",
+                 default_dtype="float64"),
+        mace_off(model=MODEL_PATH, device="cpu",
+                 default_dtype="float64"),
     ],
 )
 def test_compile_foundation(calc):
     model = calc.models[0]
     atoms = molecule("CH4")
-    atoms.positions += np.random.randn(*atoms.positions.shape) * 0.1
-    batch = calc._atoms_to_batch(atoms)  # pylint: disable=protected-access
+    atoms.positions += np.random.randn(
+        *atoms.positions.shape) * 0.1
+    batch = calc._atoms_to_batch(
+        atoms)  # pylint: disable=protected-access
     output_1 = model(batch.to_dict())
     model_compiled = jit.compile(model)
     output = model_compiled(batch.to_dict())
     for key in output_1.keys():
         if isinstance(output_1[key], torch.Tensor):
-            assert torch.allclose(output_1[key], output[key], atol=1e-5)
+            assert torch.allclose(
+                output_1[key], output[key], atol=1e-5)
 
 
 @pytest.mark.parametrize(
     "model",
     [
-        mace_mp(model="small", device="cpu", default_dtype="float64").models[0],
-        mace_mp(model="medium", device="cpu", default_dtype="float64").models[0],
-        mace_mp(model="large", device="cpu", default_dtype="float64").models[0],
-        mace_mp(model=MODEL_PATH, device="cpu", default_dtype="float64").models[0],
-        mace_off(model="small", device="cpu", default_dtype="float64").models[0],
-        mace_off(model="medium", device="cpu", default_dtype="float64").models[0],
-        mace_off(model="large", device="cpu", default_dtype="float64").models[0],
-        mace_off(model=MODEL_PATH, device="cpu", default_dtype="float64").models[0],
+        mace_mp(model="small", device="cpu",
+                default_dtype="float64").models[0],
+        mace_mp(model="medium", device="cpu",
+                default_dtype="float64").models[0],
+        mace_mp(model="large", device="cpu",
+                default_dtype="float64").models[0],
+        mace_mp(model=MODEL_PATH, device="cpu",
+                default_dtype="float64").models[0],
+        mace_off(model="small", device="cpu",
+                 default_dtype="float64").models[0],
+        mace_off(model="medium", device="cpu",
+                 default_dtype="float64").models[0],
+        mace_off(model="large", device="cpu",
+                 default_dtype="float64").models[0],
+        mace_off(model=MODEL_PATH, device="cpu",
+                 default_dtype="float64").models[0],
     ],
 )
 def test_extract_config(model):
     assert isinstance(model, modules.ScaleShiftMACE)
     config = data.Configuration(
-    atomic_numbers=molecule("H2COH").numbers,
-    positions=molecule("H2COH").positions,
-    properties={
-        "forces": molecule("H2COH").positions,
-        "energy": -1.5,
-        "charges": molecule("H2COH").numbers,
-        "dipole": np.array([-1.5, 1.5, 2.0]),
-    },
-    property_weights={
-        "forces": 1.0,
-        "energy": 1.0,
-        "charges": 1.0,
-        "dipole": 1.0,
-    },
+        atomic_numbers=molecule("H2COH").numbers,
+        positions=molecule("H2COH").positions,
+        properties={
+            "forces": molecule("H2COH").positions,
+            "energy": -1.5,
+            "charges": molecule("H2COH").numbers,
+            "dipole": np.array([-1.5, 1.5, 2.0]),
+        },
+        property_weights={
+            "forces": 1.0,
+            "energy": 1.0,
+            "charges": 1.0,
+            "dipole": 1.0,
+        },
     )
-    model_copy = modules.ScaleShiftMACE(**extract_config_mace_model(model))
+    model_copy = modules.ScaleShiftMACE(
+        **extract_config_mace_model(model))
     model_copy.load_state_dict(model.state_dict())
-    z_table = AtomicNumberTable([int(z) for z in model.atomic_numbers])
-    atomic_data = data.AtomicData.from_config(config, z_table=z_table, cutoff=6.0)
+    z_table = AtomicNumberTable(
+        [int(z) for z in model.atomic_numbers])
+    atomic_data = data.AtomicData.from_config(
+        config, z_table=z_table, cutoff=6.0)
     data_loader = torch_geometric.dataloader.DataLoader(
         dataset=[atomic_data, atomic_data],
         batch_size=2,
@@ -272,13 +302,15 @@ def test_extract_config(model):
     # assert all items of the output dicts are equal
     for key in output.keys():
         if isinstance(output[key], torch.Tensor):
-            assert torch.allclose(output[key], output_copy[key], atol=1e-5)
+            assert torch.allclose(
+                output[key], output_copy[key], atol=1e-5)
 
 
 def test_remove_pt_head():
     # Set up test data
     torch.manual_seed(42)
-    atomic_energies_pt_head = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=float)
+    atomic_energies_pt_head = np.array(
+        [[1.0, 2.0], [3.0, 4.0]], dtype=float)
     z_table = AtomicNumberTable([1, 8])  # H and O
 
     # Create multihead model
@@ -314,7 +346,8 @@ def test_remove_pt_head():
     config_pt_head = data.Configuration(
         atomic_numbers=mol.numbers,
         positions=mol.positions,
-        properties={"energy": 1.0, "forces": np.random.randn(len(mol), 3)},
+        properties={"energy": 1.0,
+                    "forces": np.random.randn(len(mol), 3)},
         property_weights={"forces": 1.0, "energy": 1.0},
         head="DFT",
     )
@@ -335,8 +368,10 @@ def test_remove_pt_head():
     assert len(new_model.heads) == 1
     assert new_model.heads[0] == "DFT"
     assert new_model.atomic_energies_fn.atomic_energies.shape[0] == 1
-    assert len(torch.atleast_1d(new_model.scale_shift.scale)) == 1
-    assert len(torch.atleast_1d(new_model.scale_shift.shift)) == 1
+    assert len(torch.atleast_1d(
+        new_model.scale_shift.scale)) == 1
+    assert len(torch.atleast_1d(
+        new_model.scale_shift.shift)) == 1
 
     # Test output consistency
     atomic_data = data.AtomicData.from_config(
@@ -407,7 +442,8 @@ def test_remove_pt_head_multihead():
         config_pt_head = data.Configuration(
             atomic_numbers=mol.numbers,
             positions=mol.positions,
-            properties={"energy": 1.0, "forces": np.random.randn(len(mol), 3)},
+            properties={
+                "energy": 1.0, "forces": np.random.randn(len(mol), 3)},
             property_weights={"forces": 1.0, "energy": 1.0},
             head=head,
         )
@@ -433,24 +469,27 @@ def test_remove_pt_head_multihead():
         new_model = remove_pt_head(model, head_to_keep=head)
 
         # Basic structure tests
-        assert len(new_model.heads) == 1, f"Failed for head {head}"
+        assert len(
+            new_model.heads) == 1, f"Failed for head {head}"
         assert new_model.heads[0] == head, f"Failed for head {head}"
         assert (
             new_model.atomic_energies_fn.atomic_energies.shape[0] == 1
         ), f"Failed for head {head}"
         assert (
-            len(torch.atleast_1d(new_model.scale_shift.scale)) == 1
+            len(torch.atleast_1d(
+                new_model.scale_shift.scale)) == 1
         ), f"Failed for head {head}"
         assert (
-            len(torch.atleast_1d(new_model.scale_shift.shift)) == 1
+            len(torch.atleast_1d(
+                new_model.scale_shift.shift)) == 1
         ), f"Failed for head {head}"
 
         # Verify scale and shift values
         assert torch.allclose(
-            new_model.scale_shift.scale, model.scale_shift.scale[i : i + 1]
+            new_model.scale_shift.scale, model.scale_shift.scale[i: i + 1]
         ), f"Failed for head {head}"
         assert torch.allclose(
-            new_model.scale_shift.shift, model.scale_shift.shift[i : i + 1]
+            new_model.scale_shift.shift, model.scale_shift.shift[i: i + 1]
         ), f"Failed for head {head}"
 
         # Test output consistency
@@ -492,7 +531,8 @@ def test_remove_pt_head_multihead():
     assert default_model.heads[0] == "DFT"
 
     # Additional test: check if each model's computation graph is independent
-    models = {head: remove_pt_head(model, head_to_keep=head) for head in model.heads}
+    models = {head: remove_pt_head(
+        model, head_to_keep=head) for head in model.heads}
     results = {}
 
     for head, head_model in models.items():
@@ -506,7 +546,8 @@ def test_remove_pt_head_multihead():
         results[head] = head_model(batch.to_dict())
 
     # Verify each model produces different outputs
-    energies = torch.stack([results[head]["energy"] for head in model.heads])
+    energies = torch.stack(
+        [results[head]["energy"] for head in model.heads])
     assert not torch.allclose(
         energies[0], energies[1], rtol=1e-3
     ), "Different heads should produce different outputs"

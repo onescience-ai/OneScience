@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -56,21 +55,25 @@ def ensure_tensor(data_object, keys):
                 setattr(
                     data_object,
                     key,
-                    torch.tensor(getattr(data_object, key), dtype=torch.float),
+                    torch.tensor(
+                        getattr(data_object, key), dtype=torch.float),
                 )
-            setattr(data_object, key, getattr(data_object, key).view(-1).float())
+            setattr(data_object, key, getattr(
+                data_object, key).view(-1).float())
     return data_object
 
 
 def ani1x_transform(data_object: AtomicData, config) -> AtomicData:
     # make periodic with molecule centered in large cell
-    atomic_numbers, positions, cell = _get_molecule_cell(data_object)
+    atomic_numbers, positions, cell = _get_molecule_cell(
+        data_object)
     data_object.atomic_numbers = atomic_numbers
     data_object.pos = positions
     data_object.cell = cell
 
     # add fixed
-    data_object.fixed = torch.zeros(data_object.natoms, dtype=torch.float)
+    data_object.fixed = torch.zeros(
+        data_object.natoms, dtype=torch.float)
 
     # common transforms
     data_object = common_transform(data_object, config)
@@ -81,13 +84,15 @@ def ani1x_transform(data_object: AtomicData, config) -> AtomicData:
 
 def trans1x_transform(data_object: AtomicData, config) -> AtomicData:
     # make periodic with molecule centered in large cell
-    atomic_numbers, positions, cell = _get_molecule_cell(data_object)
+    atomic_numbers, positions, cell = _get_molecule_cell(
+        data_object)
     data_object.atomic_numbers = atomic_numbers
     data_object.pos = positions
     data_object.cell = cell
 
     # add fixed and cell
-    data_object.fixed = torch.zeros(data_object.natoms, dtype=torch.float)
+    data_object.fixed = torch.zeros(
+        data_object.natoms, dtype=torch.float)
 
     # common transforms
     data_object = common_transform(data_object, config)
@@ -99,18 +104,21 @@ def trans1x_transform(data_object: AtomicData, config) -> AtomicData:
 
 def spice_transform(data_object: AtomicData, config) -> AtomicData:
     # make periodic with molecule centered in large cell
-    atomic_numbers, positions, cell = _get_molecule_cell(data_object)
+    atomic_numbers, positions, cell = _get_molecule_cell(
+        data_object)
     data_object.atomic_numbers = atomic_numbers
     data_object.pos = positions
     data_object.cell = cell
 
     # add fixed
-    data_object.fixed = torch.zeros(data_object.natoms, dtype=torch.float)
+    data_object.fixed = torch.zeros(
+        data_object.natoms, dtype=torch.float)
 
     # common transforms
     data_object = common_transform(data_object, config)
     # this is necessary for SPICE maceoff split to work with GemNet-OC
-    data_object.tags = torch.full(data_object.tags.shape, 2, dtype=torch.long)
+    data_object.tags = torch.full(
+        data_object.tags.shape, 2, dtype=torch.long)
 
     # ensure spice_energy is a tensor
 
@@ -119,7 +127,8 @@ def spice_transform(data_object: AtomicData, config) -> AtomicData:
 
 def qmof_transform(data_object: AtomicData, config) -> AtomicData:
     # add fixed and cell
-    data_object.fixed = torch.zeros(data_object.natoms, dtype=torch.float)
+    data_object.fixed = torch.zeros(
+        data_object.natoms, dtype=torch.float)
 
     # common transforms
     data_object = common_transform(data_object, config)
@@ -129,13 +138,15 @@ def qmof_transform(data_object: AtomicData, config) -> AtomicData:
 
 def qm9_transform(data_object: AtomicData, config) -> AtomicData:
     # make periodic with molecule centered in large cell
-    atomic_numbers, positions, cell = _get_molecule_cell(data_object)
+    atomic_numbers, positions, cell = _get_molecule_cell(
+        data_object)
     data_object.atomic_numbers = atomic_numbers
     data_object.pos = positions
     data_object.cell = cell
 
     # add fixed
-    data_object.fixed = torch.zeros(data_object.natoms, dtype=torch.float)
+    data_object.fixed = torch.zeros(
+        data_object.natoms, dtype=torch.float)
 
     # common transforms
     data_object = common_transform(data_object, config)
@@ -145,7 +156,8 @@ def qm9_transform(data_object: AtomicData, config) -> AtomicData:
 
 def omol_transform(data_object: AtomicData, config) -> AtomicData:
     # make periodic with molecule centered in large cell
-    atomic_numbers, positions, cell = _get_molecule_cell(data_object)
+    atomic_numbers, positions, cell = _get_molecule_cell(
+        data_object)
     data_object.atomic_numbers = atomic_numbers
     data_object.pos = positions
     data_object.cell = cell
@@ -157,7 +169,8 @@ def omol_transform(data_object: AtomicData, config) -> AtomicData:
     ), "no spin in omol dataset set a2g_args: {r_energy: True, r_forces: True, r_data_keys: ['spin', 'charge']}"
 
     # add fixed
-    data_object.fixed = torch.zeros(data_object.natoms, dtype=torch.float)
+    data_object.fixed = torch.zeros(
+        data_object.natoms, dtype=torch.float)
 
     return common_transform(data_object, config)
 
@@ -172,7 +185,8 @@ def stress_reshape_transform(data_object: AtomicData, config) -> AtomicData:
 def asedb_transform(data_object: AtomicData, config) -> AtomicData:
     data_object.dataset = config["dataset_name"]
     data_object.sid = str(
-        data_object.sid.item() if torch.is_tensor(data_object) else data_object.sid
+        data_object.sid.item() if torch.is_tensor(
+            data_object) else data_object.sid
     )
     return data_object
 
@@ -192,7 +206,8 @@ class DataTransforms:
             if transform_fn in ("normalizer", "element_references"):
                 continue
 
-            data_object = eval(transform_fn)(data_object, self.config[transform_fn])
+            data_object = eval(transform_fn)(
+                data_object, self.config[transform_fn])
 
         return data_object
 
@@ -210,14 +225,15 @@ def decompose_tensor(data_object, config) -> AtomicData:
     tensor_decomposition = torch.einsum(
         "ab, cb->ca",
         cg_change_mat(rank),
-        data_object[tensor_key].reshape(1, irreps_sum(rank)),
+        data_object[tensor_key].reshape(
+            1, irreps_sum(rank)),
     )
 
     for decomposition_key in config["decomposition"]:
         irrep_dim = config["decomposition"][decomposition_key]["irrep_dim"]
         data_object[decomposition_key] = tensor_decomposition[
             :,
-            max(0, irreps_sum(irrep_dim - 1)) : irreps_sum(irrep_dim),
+            max(0, irreps_sum(irrep_dim - 1)): irreps_sum(irrep_dim),
         ]
 
     return data_object

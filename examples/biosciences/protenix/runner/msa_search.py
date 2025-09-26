@@ -16,8 +16,8 @@ import os
 import uuid
 from typing import Sequence
 
-from onescience.utils.protenix.logger import get_logger
 from onescience.sciui.protenix.web_service.colab_request_parser import RequestParser
+from onescience.utils.protenix.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -41,7 +41,8 @@ def msa_search(seqs: Sequence[str], msa_res_dir: str) -> Sequence[str]:
     do msa search with mmseqs and return result subdirs.
     """
     os.makedirs(msa_res_dir, exist_ok=True)
-    tmp_fasta_fpath = os.path.join(msa_res_dir, f"tmp_{uuid.uuid4().hex}.fasta")
+    tmp_fasta_fpath = os.path.join(
+        msa_res_dir, f"tmp_{uuid.uuid4().hex}.fasta")
     RequestParser.msa_search(
         seqs_pending_msa=seqs,
         tmp_fasta_fpath=tmp_fasta_fpath,
@@ -58,12 +59,16 @@ def update_seq_msa(infer_seq: dict, msa_res_dir: str) -> dict:
     protein_seqs = []
     for sequence in infer_seq["sequences"]:
         if "proteinChain" in sequence.keys():
-            protein_seqs.append(sequence["proteinChain"]["sequence"])
+            protein_seqs.append(
+                sequence["proteinChain"]["sequence"])
     if len(protein_seqs) > 0:
         protein_seqs = sorted(protein_seqs)
-        msa_res_subdirs = msa_search(protein_seqs, msa_res_dir)
-        assert len(msa_res_subdirs) == len(msa_res_subdirs), "msa search failed"
-        protein_msa_res = dict(zip(protein_seqs, msa_res_subdirs))
+        msa_res_subdirs = msa_search(
+            protein_seqs, msa_res_dir)
+        assert len(msa_res_subdirs) == len(
+            msa_res_subdirs), "msa search failed"
+        protein_msa_res = dict(
+            zip(protein_seqs, msa_res_subdirs))
         for sequence in infer_seq["sequences"]:
             if "proteinChain" in sequence.keys():
                 sequence["proteinChain"]["msa"] = {
@@ -95,13 +100,15 @@ def update_infer_json(
         if need_msa_search(infer_data):
             actual_updated = True
             if use_msa_server:
-                seq_name = infer_data.get("name", f"seq_{seq_idx}")
+                seq_name = infer_data.get(
+                    "name", f"seq_{seq_idx}")
                 logger.info(
                     f"starting to update msa result for seq {seq_idx} in {json_file}"
                 )
                 update_seq_msa(
                     infer_data,
-                    os.path.join(out_dir, seq_name, "msa_res" f"msa_seq_{seq_idx}"),
+                    os.path.join(
+                        out_dir, seq_name, "msa_res" f"msa_seq_{seq_idx}"),
                 )
             else:
                 raise RuntimeError(
@@ -114,8 +121,10 @@ def update_infer_json(
         )
         with open(updated_json, "w") as f:
             json.dump(json_data, f, indent=4)
-        logger.info(f"update msa result success and save to {updated_json}")
+        logger.info(
+            f"update msa result success and save to {updated_json}")
         return updated_json
     else:
-        logger.info(f"do not need to update msa result, so return itself {json_file}")
+        logger.info(
+            f"do not need to update msa result, so return itself {json_file}")
         return json_file

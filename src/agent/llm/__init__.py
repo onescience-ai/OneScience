@@ -1,7 +1,6 @@
 import importlib
 import inspect
 import os.path
-import sys
 
 ChatModel = globals().get("ChatModel", {})
 EmbeddingModel = globals().get("EmbeddingModel", {})
@@ -15,7 +14,8 @@ MODULE_MAPPING = {
 
 package_name = os.path.dirname(__file__)
 package_paths = package_name.split(os.path.sep)
-package_name = ".".join(package_paths[package_paths.index("src") + 1 :])
+package_name = ".".join(
+    package_paths[package_paths.index("src") + 1:])
 
 for module_name, mapping_dict in MODULE_MAPPING.items():
     full_module_name = f"{package_name}.{module_name}"

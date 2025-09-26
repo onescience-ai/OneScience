@@ -52,19 +52,22 @@ class EnsembleMetrics(ABC):
         """
         Initial calculation for stored information. Will also overwrite previously stored data.
         """
-        raise NotImplementedError("Class member must implement a __call__ method.")
+        raise NotImplementedError(
+            "Class member must implement a __call__ method.")
 
     def update(self, *args):
         """
         Update initial or stored calculation with additional information.
         """
-        raise NotImplementedError("Class member must implement an update method.")
+        raise NotImplementedError(
+            "Class member must implement an update method.")
 
     def finalize(self, *args):
         """
         Marks the end of the sequential calculation, used to finalize any computations.
         """
-        raise NotImplementedError("Class member must implement a finalize method.")
+        raise NotImplementedError(
+            "Class member must implement a finalize method.")
 
 
 def _update_mean(
@@ -119,8 +122,10 @@ class Mean(EnsembleMetrics):
 
     def __init__(self, input_shape: Union[Tuple, List], **kwargs):
         super().__init__(input_shape, **kwargs)
-        self.sum = torch.zeros(self.input_shape, dtype=self.dtype, device=self.device)
-        self.n = torch.zeros([1], dtype=torch.int32, device=self.device)
+        self.sum = torch.zeros(
+            self.input_shape, dtype=self.dtype, device=self.device)
+        self.n = torch.zeros(
+            [1], dtype=torch.int32, device=self.device)
 
     def __call__(self, inputs: Tensor, dim: int = 0) -> Tensor:
         """Calculate an initial mean
@@ -142,7 +147,8 @@ class Mean(EnsembleMetrics):
                 f"Input device, {inputs.device}, and Module device, {self.device}, must be the same."
             )
         self.sum = torch.sum(inputs, dim=dim)
-        self.n = torch.as_tensor([inputs.shape[dim]], device=self.device)
+        self.n = torch.as_tensor(
+            [inputs.shape[dim]], device=self.device)
         # TODO(Dallas) Move distributed calls into finalize.
 
         if (
@@ -180,7 +186,8 @@ class Mean(EnsembleMetrics):
         ):  # pragma: no cover
             # Collect local sums, n
             sums = torch.sum(inputs, dim=dim)
-            n = torch.as_tensor([inputs.shape[dim]], device=self.device)
+            n = torch.as_tensor(
+                [inputs.shape[dim]], device=self.device)
 
             # Reduce
             dist.all_reduce(sums, op=dist.ReduceOp.SUM)
@@ -190,7 +197,8 @@ class Mean(EnsembleMetrics):
             self.sum += sums
             self.n += n
         else:
-            self.sum, self.n = _update_mean(self.sum, self.n, inputs, batch_dim=dim)
+            self.sum, self.n = _update_mean(
+                self.sum, self.n, inputs, batch_dim=dim)
         return self.sum / self.n
 
     def finalize(
@@ -254,7 +262,8 @@ def _update_var(
 
     temp_n = inputs.shape[batch_dim]
     temp_sum = torch.sum(inputs, dim=batch_dim)
-    temp_sum2 = torch.sum((inputs - temp_sum / temp_n) ** 2, dim=batch_dim)
+    temp_sum2 = torch.sum(
+        (inputs - temp_sum / temp_n) ** 2, dim=batch_dim)
 
     delta = old_sum * temp_n / old_n - temp_sum
 
@@ -286,9 +295,12 @@ class Variance(EnsembleMetrics):
 
     def __init__(self, input_shape: Union[Tuple, List], **kwargs):
         super().__init__(input_shape, **kwargs)
-        self.n = torch.zeros([1], dtype=torch.int32, device=self.device)
-        self.sum = torch.zeros(self.input_shape, dtype=self.dtype, device=self.device)
-        self.sum2 = torch.zeros(self.input_shape, dtype=self.dtype, device=self.device)
+        self.n = torch.zeros(
+            [1], dtype=torch.int32, device=self.device)
+        self.sum = torch.zeros(
+            self.input_shape, dtype=self.dtype, device=self.device)
+        self.sum2 = torch.zeros(
+            self.input_shape, dtype=self.dtype, device=self.device)
 
     def __call__(self, inputs: Tensor, dim: int = 0) -> Tensor:
         """Calculate an initial variance
@@ -311,7 +323,8 @@ class Variance(EnsembleMetrics):
                 f"Input device, {inputs.device}, and Module device, {self.device}, must be the same."
             )
         self.sum = torch.sum(inputs, dim=dim)
-        self.n = torch.as_tensor([inputs.shape[0]], device=self.device)
+        self.n = torch.as_tensor(
+            [inputs.shape[0]], device=self.device)
 
         if (
             DistributedManager.is_initialized() and dist.is_initialized()
@@ -320,10 +333,12 @@ class Variance(EnsembleMetrics):
             dist.all_reduce(self.sum, op=dist.ReduceOp.SUM)
             dist.all_reduce(self.n, op=dist.ReduceOp.SUM)
 
-            self.sum2 = torch.sum((inputs - self.sum / self.n) ** 2, dim=dim)
+            self.sum2 = torch.sum(
+                (inputs - self.sum / self.n) ** 2, dim=dim)
             dist.all_reduce(self.sum2, op=dist.ReduceOp.SUM)
         else:
-            self.sum2 = torch.sum((inputs - self.sum / self.n) ** 2, dim=dim)
+            self.sum2 = torch.sum(
+                (inputs - self.sum / self.n) ** 2, dim=dim)
 
         if self.n < 2.0:
             return self.sum2
@@ -350,7 +365,8 @@ class Variance(EnsembleMetrics):
                 f"Input device, {inputs.device}, and Module device, {self.device}, must be the same."
             )
 
-        new_n = torch.as_tensor([inputs.shape[0]], device=self.device)
+        new_n = torch.as_tensor(
+            [inputs.shape[0]], device=self.device)
         new_sum = torch.sum(inputs, dim=0)
         # TODO(Dallas) Move distributed calls into finalize.
         if (
@@ -358,18 +374,21 @@ class Variance(EnsembleMetrics):
         ):  # pragma: no cover
             dist.all_reduce(new_n, op=dist.ReduceOp.SUM)
             dist.all_reduce(new_sum, op=dist.ReduceOp.SUM)
-            new_sum2 = torch.sum((inputs - new_sum / new_n) ** 2, dim=0)
+            new_sum2 = torch.sum(
+                (inputs - new_sum / new_n) ** 2, dim=0)
             dist.all_reduce(new_sum2, op=dist.ReduceOp.SUM)
 
         else:
             # Calculate new statistics
-            new_sum2 = torch.sum((inputs - new_sum / new_n) ** 2, dim=0)
+            new_sum2 = torch.sum(
+                (inputs - new_sum / new_n) ** 2, dim=0)
 
         delta = self.sum * new_n / self.n - new_sum
         # Update
         self.sum += new_sum
         self.sum2 += new_sum2
-        self.sum2 += self.n / new_n / (self.n + new_n) * (delta) ** 2
+        self.sum2 += self.n / new_n / \
+            (self.n + new_n) * (delta) ** 2
         self.n += new_n
         if self.n < 2.0:
             return self.sum2

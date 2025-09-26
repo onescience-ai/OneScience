@@ -100,7 +100,8 @@ def add_edge_features(graph: DGLGraph, pos: Tensor, normalize: bool = True) -> D
         src_pos = dst_pos = pos
     src, dst = graph.edges()
 
-    src_pos, dst_pos = src_pos[src.long()], dst_pos[dst.long()]
+    src_pos, dst_pos = src_pos[src.long(
+    )], dst_pos[dst.long()]
     dst_latlon = xyz2latlon(dst_pos, unit="rad")
     dst_lat, dst_lon = dst_latlon[:, 0], dst_latlon[:, 1]
 
@@ -108,26 +109,37 @@ def add_edge_features(graph: DGLGraph, pos: Tensor, normalize: bool = True) -> D
     theta_azimuthal = azimuthal_angle(dst_lon)
     theta_polar = polar_angle(dst_lat)
 
-    src_pos = geospatial_rotation(src_pos, theta=theta_azimuthal, axis="z", unit="rad")
-    dst_pos = geospatial_rotation(dst_pos, theta=theta_azimuthal, axis="z", unit="rad")
+    src_pos = geospatial_rotation(
+        src_pos, theta=theta_azimuthal, axis="z", unit="rad")
+    dst_pos = geospatial_rotation(
+        dst_pos, theta=theta_azimuthal, axis="z", unit="rad")
     # y values should be zero
     try:
-        testing.assert_close(dst_pos[:, 1], torch.zeros_like(dst_pos[:, 1]))
+        testing.assert_close(
+            dst_pos[:, 1], torch.zeros_like(dst_pos[:, 1]))
     except ValueError:
-        raise ValueError("Invalid projection of edge nodes to local ccordinate system")
-    src_pos = geospatial_rotation(src_pos, theta=theta_polar, axis="y", unit="rad")
-    dst_pos = geospatial_rotation(dst_pos, theta=theta_polar, axis="y", unit="rad")
+        raise ValueError(
+            "Invalid projection of edge nodes to local ccordinate system")
+    src_pos = geospatial_rotation(
+        src_pos, theta=theta_polar, axis="y", unit="rad")
+    dst_pos = geospatial_rotation(
+        dst_pos, theta=theta_polar, axis="y", unit="rad")
     # x values should be one, y & z values should be zero
     try:
-        testing.assert_close(dst_pos[:, 0], torch.ones_like(dst_pos[:, 0]))
-        testing.assert_close(dst_pos[:, 1], torch.zeros_like(dst_pos[:, 1]))
-        testing.assert_close(dst_pos[:, 2], torch.zeros_like(dst_pos[:, 2]))
+        testing.assert_close(
+            dst_pos[:, 0], torch.ones_like(dst_pos[:, 0]))
+        testing.assert_close(
+            dst_pos[:, 1], torch.zeros_like(dst_pos[:, 1]))
+        testing.assert_close(
+            dst_pos[:, 2], torch.zeros_like(dst_pos[:, 2]))
     except ValueError:
-        raise ValueError("Invalid projection of edge nodes to local ccordinate system")
+        raise ValueError(
+            "Invalid projection of edge nodes to local ccordinate system")
 
     # prepare edge features
     disp = src_pos - dst_pos
-    disp_norm = torch.linalg.norm(disp, dim=-1, keepdim=True)
+    disp_norm = torch.linalg.norm(
+        disp, dim=-1, keepdim=True)
 
     # normalize using the longest edge
     if normalize:
@@ -136,7 +148,8 @@ def add_edge_features(graph: DGLGraph, pos: Tensor, normalize: bool = True) -> D
             (disp / max_disp_norm, disp_norm / max_disp_norm), dim=-1
         )
     else:
-        graph.edata["x"] = torch.cat((disp, disp_norm), dim=-1)
+        graph.edata["x"] = torch.cat(
+            (disp, disp_norm), dim=-1)
     return graph
 
 
@@ -374,8 +387,10 @@ def cell_to_adj(cells: List[List[int]]):
         List of source and destination vertices
     """
     num_cells = np.shape(cells)[0]
-    src = [cells[i][indx] for i in range(num_cells) for indx in [0, 1, 2]]
-    dst = [cells[i][indx] for i in range(num_cells) for indx in [1, 2, 0]]
+    src = [cells[i][indx]
+           for i in range(num_cells) for indx in [0, 1, 2]]
+    dst = [cells[i][indx]
+           for i in range(num_cells) for indx in [1, 2, 0]]
     return src, dst
 
 
@@ -398,7 +413,8 @@ def max_edge_length(
     dest_coords = vertices_np[destination_nodes]
 
     # Compute the squared distances for all edges
-    squared_differences = np.sum((source_coords - dest_coords) ** 2, axis=1)
+    squared_differences = np.sum(
+        (source_coords - dest_coords) ** 2, axis=1)
 
     # Compute the maximum edge length
     max_length = np.sqrt(np.max(squared_differences))

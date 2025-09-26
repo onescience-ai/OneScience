@@ -1,20 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import os
-import copy
-import math
-import numpy as np
-from torch_geometric.data import Data, DataLoader
-from torch_geometric.nn import (
-    GCNConv,
-    GATConv,
-    global_mean_pool,
-    global_max_pool,
-    JumpingKnowledge,
-)
-from torch.nn import Sequential, Linear, ReLU, BatchNorm1d, Dropout
-from torch_geometric.nn import BatchNorm
 
 
 def knn(x, k):
@@ -61,7 +46,8 @@ def get_graph_feature(x, k=20, idx=None):
 
     # Prepare indices for gathering
     device = x.device
-    idx_base = torch.arange(0, batch_size, device=device).view(-1, 1, 1) * num_points
+    idx_base = torch.arange(
+        0, batch_size, device=device).view(-1, 1, 1) * num_points
     idx = idx + idx_base
     idx = idx.view(-1)
 
@@ -70,13 +56,16 @@ def get_graph_feature(x, k=20, idx=None):
 
     # Gather neighbors for each point to construct local regions
     feature = x.view(batch_size * num_points, -1)[idx, :]
-    feature = feature.view(batch_size, num_points, k, num_dims)
+    feature = feature.view(
+        batch_size, num_points, k, num_dims)
 
     # Expand x to match the dimensions for broadcasting subtraction
-    x = x.view(batch_size, num_points, 1, num_dims).repeat(1, 1, k, 1)
+    x = x.view(batch_size, num_points, 1,
+               num_dims).repeat(1, 1, k, 1)
 
     # Concatenate the original point features with the relative positions to form the graph features
-    feature = torch.cat((feature - x, x), dim=3).permute(0, 3, 1, 2).contiguous()
+    feature = torch.cat(
+        (feature - x, x), dim=3).permute(0, 3, 1, 2).contiguous()
 
     return feature
 
@@ -259,29 +248,34 @@ class Model(nn.Module):
             nn.LeakyReLU(negative_slope=0.2),
         )
         self.conv2 = nn.Sequential(
-            nn.Conv2d(args.n_hidden * 2, args.n_hidden * 2, kernel_size=1, bias=False),
+            nn.Conv2d(args.n_hidden * 2, args.n_hidden *
+                      2, kernel_size=1, bias=False),
             self.bn2,
             nn.LeakyReLU(negative_slope=0.2),
         )
         self.conv3 = nn.Sequential(
-            nn.Conv2d(args.n_hidden * 4, args.n_hidden * 2, kernel_size=1, bias=False),
+            nn.Conv2d(args.n_hidden * 4, args.n_hidden *
+                      2, kernel_size=1, bias=False),
             self.bn3,
             nn.LeakyReLU(negative_slope=0.2),
         )
         self.conv4 = nn.Sequential(
-            nn.Conv2d(args.n_hidden * 4, args.n_hidden * 4, kernel_size=1, bias=False),
+            nn.Conv2d(args.n_hidden * 4, args.n_hidden *
+                      4, kernel_size=1, bias=False),
             self.bn4,
             nn.LeakyReLU(negative_slope=0.2),
         )
         self.conv5 = nn.Sequential(
-            nn.Conv1d(args.n_hidden * 9, args.emb_dims, kernel_size=1, bias=False),
+            nn.Conv1d(args.n_hidden * 9, args.emb_dims,
+                      kernel_size=1, bias=False),
             self.bn5,
             nn.LeakyReLU(negative_slope=0.2),
         )
 
         # Fully connected layers to interpret the extracted features and make predictions
         self.point_pred = nn.Sequential(
-            nn.Linear(args.emb_dims, 64), nn.ReLU(), nn.Linear(64, args.out_dim)
+            nn.Linear(args.emb_dims, 64), nn.ReLU(
+            ), nn.Linear(64, args.out_dim)
         )
 
     def _make_norm_layer(self, channels):
@@ -299,7 +293,7 @@ class Model(nn.Module):
             torch.Tensor: Model predictions for the input batch.
         """
 
-        batch_size = x.size(0)
+        x.size(0)
 
         # 兼容 batch_size = 1 输入：去除 batch 维度
         x = torch.cat([x, fx], dim=-1)
@@ -357,6 +351,8 @@ class Model(nn.Module):
         x = self.conv5(
             x
         )  # (batch_size, 256+512+512+1024, num_points) -> (batch_size, emb_dims, num_points)
-        x = x.permute(0, 2, 1)  # (batch_size, num_points, emb_dims)
-        out = self.point_pred(x)  # 点级预测层，输出 (batch_size, num_points, out_dim)
+        # (batch_size, num_points, emb_dims)
+        x = x.permute(0, 2, 1)
+        # 点级预测层，输出 (batch_size, num_points, out_dim)
+        out = self.point_pred(x)
         return out

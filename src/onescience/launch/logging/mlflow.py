@@ -109,38 +109,46 @@ def initialize_mlflow(
         tracking_uri = "file:///mlflow/mlflow_metrics"
         artifact_location = "file:///mlflow/mlflow_artifacts"
     else:
-        logger.warning(f"Unsupported MLFlow mode '{mode}' provided")
-        tracking_uri = "file://" + str(Path("./mlruns").absolute())
+        logger.warning(
+            f"Unsupported MLFlow mode '{mode}' provided")
+        tracking_uri = "file://" + \
+            str(Path("./mlruns").absolute())
 
     mlflow.set_tracking_uri(tracking_uri)
     client = MlflowClient()
 
     check_mlflow_logged_in(client)
 
-    experiment = client.get_experiment_by_name(experiment_name)
+    experiment = client.get_experiment_by_name(
+        experiment_name)
     # If experiment does not exist create one
     if experiment is None:
-        logger.info(f"No {experiment_name} experiment found, creating...")
+        logger.info(
+            f"No {experiment_name} experiment found, creating...")
         experiment_id = client.create_experiment(
             experiment_name, artifact_location=artifact_location
         )
-        client.set_experiment_tag(experiment_id, "mlflow.note.content", experiment_desc)
+        client.set_experiment_tag(
+            experiment_id, "mlflow.note.content", experiment_desc)
     else:
-        logger.success(f"Existing {experiment_name} experiment found")
+        logger.success(
+            f"Existing {experiment_name} experiment found")
         experiment_id = experiment.experiment_id
 
     # Create an run and set its tags
     run = client.create_run(
         experiment_id, tags={"mlflow.user": user_name}, run_name=run_name
     )
-    client.set_tag(run.info.run_id, "mlflow.note.content", run_desc)
+    client.set_tag(run.info.run_id,
+                   "mlflow.note.content", run_desc)
 
     start_time = datetime.now().astimezone()
     time_string = start_time.strftime("%m/%d/%y %H:%M:%S")
     client.set_tag(run.info.run_id, "date", time_string)
     client.set_tag(run.info.run_id, "host", os.uname()[1])
     if torch.cuda.is_available():
-        client.set_tag(run.info.run_id, "gpu", torch.cuda.get_device_name(dist.device))
+        client.set_tag(run.info.run_id, "gpu",
+                       torch.cuda.get_device_name(dist.device))
     client.set_tag(run.info.run_id, "group", group_name)
 
     run = client.get_run(run.info.run_id)
@@ -165,12 +173,14 @@ def check_mlflow_logged_in(client: MlflowClient):
     t0 = os.environ.get("MLFLOW_HTTP_REQUEST_TIMEOUT", None)
     try:
         # Adjust http timeout to 5 seconds
-        os.environ["MLFLOW_HTTP_REQUEST_TIMEOUT"] = str(max(int(t0), 5)) if t0 else "5"
+        os.environ["MLFLOW_HTTP_REQUEST_TIMEOUT"] = str(
+            max(int(t0), 5)) if t0 else "5"
         experiment = client.create_experiment("test")
         client.delete_experiment(experiment)
 
     except Exception as e:
-        logger.error("Failed to validate MLFlow logging location works")
+        logger.error(
+            "Failed to validate MLFlow logging location works")
         raise e
     finally:
         # Restore http request

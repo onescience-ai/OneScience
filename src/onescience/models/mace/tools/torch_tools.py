@@ -1,7 +1,4 @@
-
 # Tools for torch
-
-
 
 
 import logging
@@ -24,7 +21,8 @@ def to_one_hot(indices: torch.Tensor, num_classes: int) -> torch.Tensor:
     :return: (N x num_classes) tensor
     """
     shape = indices.shape[:-1] + (num_classes,)
-    oh = torch.zeros(shape, device=indices.device).view(shape)
+    oh = torch.zeros(
+        shape, device=indices.device).view(shape)
 
     # scatter_ is the in-place version of scatter
     oh.scatter_(dim=-1, index=indices, value=1)
@@ -54,14 +52,16 @@ def init_device(device_str: str) -> torch.device:
         assert torch.cuda.is_available(), "No CUDA device available!"
         if ":" in device_str:
             # Check if the desired device is available
-            assert int(device_str.split(":")[-1]) < torch.cuda.device_count()
+            assert int(device_str.split(":")
+                       [-1]) < torch.cuda.device_count()
         logging.info(
             f"CUDA version: {torch.version.cuda}, CUDA device: {torch.cuda.current_device()}"
         )
         torch.cuda.init()
         return torch.device(device_str)
     if device_str == "mps":
-        assert torch.backends.mps.is_available(), "No MPS backend is available!"
+        assert torch.backends.mps.is_available(
+        ), "No MPS backend is available!"
         logging.info("Using MPS GPU acceleration")
         return torch.device("mps")
     if device_str == "xpu":
@@ -72,7 +72,8 @@ def init_device(device_str: str) -> torch.device:
     return torch.device("cpu")
 
 
-dtype_dict = {"float32": torch.float32, "float64": torch.float64}
+dtype_dict = {"float32": torch.float32,
+              "float64": torch.float64}
 
 
 def set_default_dtype(dtype: str) -> None:

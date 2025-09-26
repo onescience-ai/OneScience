@@ -1,4 +1,3 @@
-
 from contextlib import nullcontext
 from typing import Sequence, Union
 
@@ -68,7 +67,8 @@ def batch_avg_with_mask(
     """
     if avg_dim is None:
         avg_dim = tuple(range(1, len(value.shape)))
-    avg = (value * mask).sum(dim=avg_dim) / (mask.sum(dim=avg_dim) + eps)
+    avg = (value * mask).sum(dim=avg_dim) / \
+        (mask.sum(dim=avg_dim) + eps)
     if batch_reduction == "mean":
         return avg.mean()
     elif batch_reduction == "sum":
@@ -76,7 +76,8 @@ def batch_avg_with_mask(
     elif batch_reduction == "none":
         return avg
     else:
-        raise Exception(f"Invalid batch_reduction: {batch_reduction}")
+        raise Exception(
+            f"Invalid batch_reduction: {batch_reduction}")
 
 
 def eye_mask(L, device=None, opposite=False):
@@ -151,7 +152,8 @@ def unflatten_tensors(flat_tensor, shapes):
     offset = 0
     for shape in shapes:
         numel = shape.numel()
-        tensors.append(flat_tensor[offset : offset + numel].view(shape))
+        tensors.append(
+            flat_tensor[offset: offset + numel].view(shape))
         offset += numel
     return tensors
 
@@ -188,7 +190,8 @@ def autocasting_disable_decorator(disable_casting):
     def func_wrapper(func):
         def new_func(*args, **kwargs):
             _amp_context = (
-                torch.autocast(device_type="cuda", enabled=False)
+                torch.autocast(
+                    device_type="cuda", enabled=False)
                 if disable_casting
                 else nullcontext()
             )
@@ -230,8 +233,10 @@ def dict_to_tensor(feature_dict):
             feature_dict[k] = torch.tensor(v)
 
             if dtype in [np.int64, np.int32]:
-                feature_dict[k] = feature_dict[k].to(torch.int64)
+                feature_dict[k] = feature_dict[k].to(
+                    torch.int64)
             elif dtype in [np.float32, np.float64]:
-                feature_dict[k] = feature_dict[k].to(torch.float32)
+                feature_dict[k] = feature_dict[k].to(
+                    torch.float32)
 
     return feature_dict

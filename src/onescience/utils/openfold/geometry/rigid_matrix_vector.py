@@ -1,14 +1,13 @@
 """Rigid3Array Transformations represented by a Matrix and a Vector."""
 
 from __future__ import annotations
+
 import dataclasses
-from typing import Union, List
+from typing import List, Union
 
 import torch
 
-from onescience.utils.openfold.geometry import rotation_matrix
-from onescience.utils.openfold.geometry import vector
-
+from onescience.utils.openfold.geometry import rotation_matrix, vector
 
 Float = Union[float, torch.Tensor]
 
@@ -22,7 +21,8 @@ class Rigid3Array:
 
     def __matmul__(self, other: Rigid3Array) -> Rigid3Array:
         new_rotation = self.rotation @ other.rotation  # __matmul__
-        new_translation = self.apply_to_point(other.translation)
+        new_translation = self.apply_to_point(
+            other.translation)
         return Rigid3Array(new_rotation, new_translation)
 
     def __getitem__(self, index) -> Rigid3Array:
@@ -46,7 +46,8 @@ class Rigid3Array:
     def inverse(self) -> Rigid3Array:
         """Return Rigid3Array corresponding to inverse transform."""
         inv_rotation = self.rotation.inverse()
-        inv_translation = inv_rotation.apply_to_point(-self.translation)
+        inv_translation = inv_rotation.apply_to_point(
+            -self.translation)
         return Rigid3Array(inv_rotation, inv_translation)
 
     def apply_to_point(self, point: vector.Vec3Array) -> vector.Vec3Array:
@@ -95,15 +96,18 @@ class Rigid3Array:
     def identity(cls, shape, device) -> Rigid3Array:
         """Return identity Rigid3Array of given shape."""
         return cls(
-            rotation_matrix.Rot3Array.identity(shape, device),
+            rotation_matrix.Rot3Array.identity(
+                shape, device),
             vector.Vec3Array.zeros(shape, device),
         )
 
     @classmethod
     def cat(cls, rigids: List[Rigid3Array], dim: int) -> Rigid3Array:
         return cls(
-            rotation_matrix.Rot3Array.cat([r.rotation for r in rigids], dim=dim),
-            vector.Vec3Array.cat([r.translation for r in rigids], dim=dim),
+            rotation_matrix.Rot3Array.cat(
+                [r.rotation for r in rigids], dim=dim),
+            vector.Vec3Array.cat(
+                [r.translation for r in rigids], dim=dim),
         )
 
     def scale_translation(self, factor: Float) -> Rigid3Array:
@@ -164,7 +168,8 @@ class Rigid3Array:
             array[..., 2, 2],
         )
         translation = vector.Vec3Array(
-            array[..., 0, 3], array[..., 1, 3], array[..., 2, 3]
+            array[..., 0, 3], array[...,
+                                    1, 3], array[..., 2, 3]
         )
         return cls(rotation, translation)
 

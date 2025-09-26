@@ -95,7 +95,8 @@ class InferenceDataset(Dataset):
         t1 = time.time()
 
         # Msa features
-        entity_to_asym_id = DataPipeline.get_label_entity_id_to_asym_id_int(atom_array)
+        entity_to_asym_id = DataPipeline.get_label_entity_id_to_asym_id_int(
+            atom_array)
         msa_features = (
             InferenceMSAFeaturizer.make_msa_feature(
                 bioassembly=single_sample_dict["sequences"],
@@ -120,7 +121,8 @@ class InferenceDataset(Dataset):
         )
 
         # Transform to right data type
-        feat = data_type_transform(feat_or_label_dict=features_dict)
+        feat = data_type_transform(
+            feat_or_label_dict=features_dict)
 
         t2 = time.time()
 
@@ -135,12 +137,15 @@ class InferenceDataset(Dataset):
         stats = {}
         for mol_type in ["ligand", "protein", "dna", "rna"]:
             mol_type_mask = feat[f"is_{mol_type}"].bool()
-            stats[f"{mol_type}/atom"] = int(mol_type_mask.sum(dim=-1).item())
+            stats[f"{mol_type}/atom"] = int(
+                mol_type_mask.sum(dim=-1).item())
             stats[f"{mol_type}/token"] = len(
-                torch.unique(feat["atom_to_token_idx"][mol_type_mask])
+                torch.unique(
+                    feat["atom_to_token_idx"][mol_type_mask])
             )
 
-        N_asym = len(torch.unique(data["input_feature_dict"]["asym_id"]))
+        N_asym = len(torch.unique(
+            data["input_feature_dict"]["asym_id"]))
         data.update(
             {
                 "N_asym": torch.tensor([N_asym]),

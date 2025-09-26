@@ -24,8 +24,10 @@ def size_repr(key, item, indent=0):
     elif isinstance(item, list) or isinstance(item, tuple):
         out = str([len(item)])
     elif isinstance(item, dict):
-        lines = [indent_str + size_repr(k, v, 2) for k, v in item.items()]
-        out = "{\n" + ",\n".join(lines) + "\n" + indent_str + "}"
+        lines = [indent_str +
+                 size_repr(k, v, 2) for k, v in item.items()]
+        out = "{\n" + \
+            ",\n".join(lines) + "\n" + indent_str + "}"
     elif isinstance(item, str):
         out = f'"{item}"'
     else:
@@ -119,7 +121,8 @@ class Data(object):
 
     def to_namedtuple(self):
         keys = self.keys
-        DataTuple = collections.namedtuple("DataTuple", keys)
+        DataTuple = collections.namedtuple(
+            "DataTuple", keys)
         return DataTuple(*[self[key] for key in keys])
 
     def __getitem__(self, key):
@@ -137,8 +140,10 @@ class Data(object):
     @property
     def keys(self):
         r"""Returns all names of graph attributes."""
-        keys = [key for key in self.__dict__.keys() if self[key] is not None]
-        keys = [key for key in keys if key[:2] != "__" and key[-2:] != "__"]
+        keys = [key for key in self.__dict__.keys()
+                if self[key] is not None]
+        keys = [key for key in keys if key[:2]
+                != "__" and key[-2:] != "__"]
         return keys
 
     def __len__(self):
@@ -312,7 +317,8 @@ class Data(object):
         If :obj:`*keys` is not given, the conversion is applied to all present
         attributes."""
         return self.apply(
-            lambda x: x.cuda(device=device, non_blocking=non_blocking), *keys
+            lambda x: x.cuda(
+                device=device, non_blocking=non_blocking), *keys
         )
 
     def clone(self):
@@ -431,11 +437,14 @@ class Data(object):
 
     def __repr__(self):
         cls = str(self.__class__.__name__)
-        has_dict = any([isinstance(item, dict) for _, item in self])
+        has_dict = any([isinstance(item, dict)
+                       for _, item in self])
 
         if not has_dict:
-            info = [size_repr(key, item) for key, item in self]
+            info = [size_repr(key, item)
+                    for key, item in self]
             return "{}({})".format(cls, ", ".join(info))
         else:
-            info = [size_repr(key, item, indent=2) for key, item in self]
+            info = [size_repr(key, item, indent=2)
+                    for key, item in self]
             return "{}(\n{}\n)".format(cls, ",\n".join(info))

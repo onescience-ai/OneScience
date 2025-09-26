@@ -1,5 +1,6 @@
-from torch import nn, Tensor
-from typing import Optional, List
+from typing import List, Optional
+
+from torch import Tensor, nn
 
 from .loss import MseLoss
 
@@ -10,6 +11,7 @@ class CfdModel(nn.Module):
     conditions (physics properties, boundary conditions and geometry)
     to the solution at a later time.
     """
+
     def __init__(self, loss_fn: MseLoss):
         super().__init__()
         self.loss_fn = loss_fn

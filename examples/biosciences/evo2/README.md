@@ -4,47 +4,45 @@
 
 ### 模型简介
 
-Evo 2 是一种最先进的 DNA 语言模型，专为长上下文建模与设计而构建。该模型能够在单核苷酸分辨率下，对长达 100 万碱基对的上下文进行建模，基于 StripedHyena 2 架构实现。Evo 2 的预训练过程使用了 Savanna，并在 OpenGenome2 数据集上以自回归方式进行训练。该数据集涵盖了来自生命各领域的 8.8 万亿标记序列。
+Evo2 是一款面向基因组的基础模型，基于 **StripedHyena 2** 架构，支持**最长百万碱基上下文**，在大规模基因组数据集 **OpenGenome2** 上训练，覆盖细菌、古菌和真核等多类物种。模型提供 **7B** 和 **40B** 等版本，具备强大的长序列建模能力，可应用于变异效应预测、基因组设计和跨尺度序列分析。Evo2 已集成至本项目，支持高性能推理和微调，适合科研与实际生物学应用场景。  
+论文链接 ["Genome modeling and design across all domains of life with Evo 2"](https://www.biorxiv.org/content/10.1101/2025.02.18.638918v1)
 
 ### 模型结构
 ![](../../../doc/evo2.jpg)
 
-### 数据集准备
-
-
-
-OpenGenome2 官方提供了两种格式的数据，该数据集大小约 2.5T，OpenGenome2[数据下载地址](https://modelscope.cn/datasets/arcinstitute/opengenome2)：
-1. 原始 FASTA 文件
-  - 包含原始基因组序列，需要用户自行进行转录、反转录、互补、序列反转等预处理操作。
-  - 适合需要 灵活处理 DNA 序列 的研究场景。
-2. 预处理好的 JSON 文件
-  - 官方已经对原始数据做了初步处理。
-  - 用户只需进行 读取、tokenize、padding 等操作 即可直接使用。
-  - 适合快速实验。
-
-FASTA 文件需要额外的生物学相关处理，主要依赖 bionemo-noodles 包，该包是一个基于 noodles 的 Python 封装，扩展了 FAIDX（FASTA indexer），支持 内存映射（memmap），可高效地对 FASTA 文件进行随机访问。
- bionemo.noodles 的几个常用函数：
-- back_transcribe_sequence: RNA → DNA 反转录
-- transcribe_sequence: DNA → RNA 转录
-- complement_sequence: DNA 序列互补链
-- reverse_sequence: DNA 序列反转
-
-
-使用 NvFaidx 可以快速索引和读取大规模基因组数据：
-```python
-from bionemo.noodles import back_transcribe_sequence, complement_sequence, reverse_sequence, transcribe_sequence
-from bionemo.noodles.nvfaidx import NvFaidx
-
-# Shell 脚本入口
-bash evo2/tools/data_process/preprocess_data_fasta.sh
-
-# Python 脚本入口
-python evo2/tools/data_process/preprocess_data_fasta.py -c <CONFIG_PATH>
+### 环境安装
+```shell
+conda create -n your-name python=3.11 -y
+# 下载适配包脚本，自动下载 constraints.txt 中的包
+sh /tools/install_envs_constraints.sh
+pip install -c constraints.txt .[bio]
 ```
 
-Json 文件：JSON数据只需要做轻量级处理，数据读取、tokenizer 转换、样本长度填充。
+### 数据集准备
+OpenGenome2 官方提供了两种格式的数据，该数据集大小约 2.5T，OpenGenome2[数据下载地址](https://modelscope.cn/datasets/arcinstitute/opengenome2)：
+#### 1. 原始 FASTA 文件
+  - 包含原始基因组序列，需要用户自行进行转录、反转录、序列互补、序列反转等预处理操作。
+  - 适合需要 灵活处理 DNA 序列的研究场景。
 
-```python
+**依赖工具**：  
+- **`bionemo-noodles`**：基于 `noodles` 的 Python 封装，扩展了 **FAIDX (FASTA indexer)**，支持内存映射 (memmap)，可高效进行 FASTA 文件的随机访问。  
+- 常用函数：  
+  - `back_transcribe_sequence`: RNA → DNA 反转录  
+  - `transcribe_sequence`: DNA → RNA 转录  
+  - `complement_sequence`: DNA 序列互补链  
+  - `reverse_sequence`: DNA 序列反转  
+
+```shell
+# shell 脚本
+bash tools/data_process/preprocess_data_fasta.sh
+# Python 脚本
+python tools/data_process/preprocess_data_fasta.py -c <CONFIG_PATH>
+```
+#### 2. 预处理好的 JSON 文件
+  - 官方已经对原始数据做了初步处理。
+  - 仅需进行轻量级处理，例如数据读取、tokenizer 转换、样本长度填充（padding）等操作。
+  - 适合快速实验。
+```bash
 python preprocess_data_json.py \
     --input "$INPUT_FILE" \
     --output-prefix "$OUTPUT_PREFIX" \
@@ -58,50 +56,56 @@ python preprocess_data_json.py \
 
 ### 模型转换
 
-- 原本的发版模型的 checkpoint 保存格式为 torch 的格式，但是 nemo 框架用的是 megatron 训练，需将模型转化为 megatron 格式的 checkpoint。
+- 将单个 PyTorch 或 ZeRO-1 的 checkpoint（.pt 文件）转换为 NeMo2 格式
 - 模型转化的脚本位置
-  `onescience/examples/biosciences/evo2/scripts/checkpoint_convert/convert_to_nemo.py`
+  `onescience/examples/biosciences/evo2/tools/checkpoint_convert/convert_to_nemo.py`
 - 实用示例
-#7B 脚本示例
-```shell
-srun python convert_to_nemo.py
---model-path model/savanna_evo2/evo2_7b/savanna_evo2_7b.pt
---output-dir /model/nemo_evo2/evo2_7b/
---model-size 7b_arc_longcontext
+  `python tools/checkpoint_convert/convert_to_nemo.py --model-path <CKPT_FILE> --output-dir <OUTPUT_DIR>  --model-size <MODEL_SIZE>`
+
+**7B 脚本示例**
+```bash
+srun python tools/checkpoint_convert/convert_to_nemo.py \
+  --model-path checkpoint/evo2_savanna_7b/savanna_evo2_7b.pt \
+  --output-dir /work/share/ac8hkycjba/osmodels/evo2/nemo_model/nemo_evo2_7b \
+  --model-size 7b_arc_longcontext 
 ```
-- 注意事项
-  1. 官网存在两种模型权重，一种是训练，一种是推理，需要注意下载训练的模型权重 savanna_的模型权重
-![](../../../doc/evo2_model.png)
-  2. 对于7B和40B的模型，--model-size需要注意，
-```shell
-"7b": savanna_evo2_7b_base,
-"7b_arc_longcontext": savanna_evo2_7b,
-"40b": savanna_evo2_40b_base,
-"40b_arc_longcontext": savanna_evo2_40b
-```
+
+**注意事项**
+
+1. **模型权重来源**  
+   - 官网提供了两种模型权重：**训练** 和 **推理**。  
+   - 请务必下载并使用 **训练用权重**（前缀为 `savanna_` 的模型权重）。  
+
+   ![](../../../doc/evo2_model.png)
+
+2. **`--model-size` 参数说明**  
+   - 对于 7B 和 40B 的模型，需注意 `--model-size` 参数取值：  
+
+   | 参数值               | 对应模型              |
+   |----------------------|----------------------|
+   | `7b`                 | `savanna_evo2_7b_base` |
+   | `7b_arc_longcontext` | `savanna_evo2_7b`      |
+   | `40b`                | `savanna_evo2_40b_base`|
+   | `40b_arc_longcontext`| `savanna_evo2_40b`     |
+
+
  ### 训练
- `onescience/examples/biosciences/evo2/checkpoint`、`onescience/examples/biosciences/evo2/data`分别为模型和数据存放处，可用软连接将相应内容存放到该处
+`onescience/examples/biosciences/evo2/checkpoint` 和 `onescience/examples/biosciences/evo2/data`分别用于存放模型与数据，可以通过软链接的方式将目标路径指向这里。
 
-##### 环境安装
-```shell
-conda create -n your-name python=3.11 -y
-pip install packages of constraints.txt
-pip install -c constraints.txt .[bio]
-```
+**单节点多卡训练**
 
- **单节点多卡训练**
-
-需要加载dtk相关环境(以612为例)：
-
-`source ~/dtk/dtk-25.04.1/env.sh`
-
-`source ~/dtk/dtk-25.04.1/cuda/env.sh`
-
-`module load compiler/gcc/12.2.0`
-
-运行`onescience/examples/biosciences/evo2/train_single_node_evo2_7b.sh`脚本进行微调或从零训练。从零训练只需注释掉`ckpt-dir`参数即可
-
-onescience中的evo2支持从零训练和微调，下面对重要参数进行介绍：
+1. 需要加载dtk相关环境(以612为例)：
+    ```bash
+    source ~/dtk/dtk-25.04.1/env.sh
+    source ~/dtk/dtk-25.04.1/cuda/env.sh
+    module load compiler/gcc/12.2.0
+    ```
+2. 运行脚本进行训练或微调
+    ```bash
+    # 从零训练只需注释掉 ckpt-dir 参数即可
+    sh train_single_node_evo2_7b.sh
+    ```
+3. 重要参数说明
 - 必要参数：训练脚本 `train_one_node.py`
 - 必要参数：数据配置文件`the path of your data config`,具体格式可以参考config文件夹下示例
 - dataset-dir：数据存放地址，和data config保持一致
@@ -111,24 +115,25 @@ onescience中的evo2支持从零训练和微调，下面对重要参数进行介
 
 ```shell
 python  $PROJECT_ROOT/examples/biosciences/evo2/train_one_node.py\
--d $PROJECT_ROOT/examples/biosciences/evo2/config/training_data_config.yaml\
---dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data/data_evo2_612\
---model-size 7b_arc_longcontext\
---devices 4 \
---seq-length 1024 \
---micro-batch-size 2 \
---lr 0.0001 \
---warmup-steps 5 \
---max-steps 1000 \
---clip-grad 1 \
---wd 0.01 \
---activation-checkpoint-recompute-num-layers 1 \
---val-check-interval 50 \
---ckpt-async-save\
---ckpt-dir $PROJECT_ROOT/examples/biosciences/evo2/checkpoint/evo2_1b\
+    -d $PROJECT_ROOT/examples/biosciences/evo2/config/genome_data_config.yaml\
+    --dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data/genome_data\
+    --model-size 7b_arc_longcontext\
+    --devices 4 \
+    --num-nodes 1 \
+    --seq-length 8192 \
+    --micro-batch-size 2 \
+    --lr 0.0001 \
+    --warmup-steps 5 \
+    --max-steps 1000 \
+    --clip-grad 1 \
+    --wd 0.01 \
+    --activation-checkpoint-recompute-num-layers 1 \
+    --val-check-interval 50 \
+    --ckpt-async-save\
+    # --ckpt-dir .model \
 ```
 
-**多节点多卡微调**
+**多节点多卡训练**
 
 多节点多卡主要涉及sbatch配置文件`train_multi_node_slurm_evo2.sh`和执行文件`train_evo2.sh`：
 ```shell
@@ -269,11 +274,46 @@ python $PROJECT_ROOT/examples/biosciences/evo2/train_slurm.py\
 
 ```
 
-#### 推理
+ ### 推理
+在获得预训练或微调后的 **Evo2 checkpoint** 后，可以使用如下命令让模型根据提示生成 DNA 序列：
+```bash
+python infer.py --help 
+```
+**命令行参数说明**
+```text
+usage: infer_evo2 [-h] [--prompt PROMPT] --ckpt-dir CKPT_DIR
+                  [--temperature TEMPERATURE] [--top-k TOP_K] [--top-p TOP_P]
+                  [--max-new-tokens MAX_NEW_TOKENS]
+                  [--tensor-parallel-size TENSOR_PARALLEL_SIZE]
+                  [--pipeline-model-parallel-size PIPELINE_MODEL_PARALLEL_SIZE]
+                  [--context-parallel-size CONTEXT_PARALLEL_SIZE]
+                  [--output-file OUTPUT_FILE]
+options:
+  -h, --help            显示帮助信息并退出。
+  --prompt PROMPT       用于生成序列的提示词。默认是大肠杆菌 (E. coli) 的系统发育分类标签。
+  --ckpt-dir CKPT_DIR   指向包含预训练 Evo2 模型的 NeMo2 checkpoint 目录。（必填）
+  --temperature TEMPERATURE
+  --top-k TOP_K         
+  --top-p TOP_P         
+  --max-new-tokens MAX_NEW_TOKENS    生成的最大新 token 数。                   
+  --tensor-parallel-size TENSOR_PARALLEL_SIZE    张量并行大小，默认值为 1。
+  --pipeline-model-parallel-size PIPELINE_MODEL_PARALLEL_SIZE    流水线并行大小，默认值为 1。         
+  --context-parallel-size CONTEXT_PARALLEL_SIZE    上下文并行大小，默认值为 1。
+  --output-file OUTPUT_FILE    生成序列的输出文件。如果未指定，输出将直接打印在终端。                   
+```
+**使用示例**
+```bash
+# 最简单的调用方式
+srun python infer.py  --ckpt-dir checkpoint/evo2_nemo_7b --prompt "ATGCGT"
+# 将输出结果保存为 .txt 文件
+srun python infer.py  --ckpt-dir checkpoint/evo2_nemo_7b --prompt "ATGCGT" --output-file result.txt
+```
+**注意**   
+--ckpt-dir 加载的 checkpoint 需要是 evo2 的 NeMo2 类型的checkpoint。
 
-#### 在超算互联网使用
+### 在超算互联网使用
 
-#### 许可证
+### 许可证
 
-evo2项目（包括代码和模型参数）在[Apache 2.0](https://github.com/bytedance/Protenix/blob/main/LICENSE)许可下提供，可免费用于学术研究和商业用途。
+evo2项目（包括代码和模型参数）在[Apache 2.0](https://github.com/ArcInstitute/evo2/LICENSE)许可下提供，可免费用于学术研究和商业用途。
 

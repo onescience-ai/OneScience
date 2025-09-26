@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import argparse
@@ -35,8 +33,10 @@ def update_config(config_or_data):
     elif isinstance(config_or_data, str):
         for k, v in mapping.items():
             if k in config_or_data:
-                config_or_data = config_or_data.replace(k, v)
-        config_or_data = config_or_data.replace("osc", "omc")
+                config_or_data = config_or_data.replace(
+                    k, v)
+        config_or_data = config_or_data.replace(
+            "osc", "omc")
     return config_or_data
 
 
@@ -72,9 +72,12 @@ def migrate_checkpoint(
         Migrated checkpoint dict
     """
     pickle.Unpickler = RenameUnpickler
-    checkpoint = torch.load(checkpoint_path, pickle_module=pickle)
-    checkpoint.tasks_config = update_config(checkpoint.tasks_config)
-    checkpoint.model_config = update_config(checkpoint.model_config)
+    checkpoint = torch.load(
+        checkpoint_path, pickle_module=pickle)
+    checkpoint.tasks_config = update_config(
+        checkpoint.tasks_config)
+    checkpoint.model_config = update_config(
+        checkpoint.model_config)
 
     if (
         checkpoint.model_config["backbone"]["model"]
@@ -99,9 +102,11 @@ def migrate_checkpoint(
         # find output datasets
         for task in checkpoint.tasks_config:
             if "_energy" in task.name:
-                output_dataset_names.add(task.name.replace("_energy", ""))
+                output_dataset_names.add(
+                    task.name.replace("_energy", ""))
             elif "_stress" in task.name:
-                datasets_with_stress.add(task.name.replace("_stress", ""))
+                datasets_with_stress.add(
+                    task.name.replace("_stress", ""))
                 if task.name == target_stress_task:
                     target_stress_config = task
         assert (
@@ -116,7 +121,8 @@ def migrate_checkpoint(
 
     # remove keys for registered buffers that are no longer saved
     if rm_static_keys:
-        remove_keys = {"expand_index", "offset", "balance_degree_weight"}
+        remove_keys = {"expand_index",
+                       "offset", "balance_degree_weight"}
         # list explicit keys to rename here in the weight state dictionary
         rename_keys = {
             # "module.backbone.routing_mlp": "module.backbone.mole_coefficient_mlp",
@@ -125,14 +131,17 @@ def migrate_checkpoint(
             "module.backbone.dataset_embedding.dataset_emb_dict.osc.weight": "module.backbone.dataset_embedding.dataset_emb_dict.omc.weight",
         }
         for state_dict_name in ["model_state_dict", "ema_state_dict"]:
-            state_dict = getattr(checkpoint, state_dict_name)
+            state_dict = getattr(
+                checkpoint, state_dict_name)
             for k in [key for key in state_dict if key.split(".")[-1] in remove_keys]:
                 state_dict.pop(k)
-                print(f"Removing {k} from {state_dict_name}")
+                print(
+                    f"Removing {k} from {state_dict_name}")
             # rename explicitly mapped keys
             for subkey_from, subkey_to in rename_keys.items():
                 for key_from in [key for key in state_dict if subkey_from in key]:
-                    key_to = key_from.replace(subkey_from, subkey_to)
+                    key_to = key_from.replace(
+                        subkey_from, subkey_to)
                     state_dict[key_to] = state_dict[key_from]
                     state_dict.pop(key_from)
                     print("rename", key_from, key_to)
@@ -157,7 +166,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--map-undefined-stress-to", type=str, required=False, default=None
     )
-    parser.add_argument("--model-version", type=float, default=1.0)
+    parser.add_argument(
+        "--model-version", type=float, default=1.0)
     args = parser.parse_args()
 
     if os.path.exists(args.checkpoint_out):

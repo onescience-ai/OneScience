@@ -1,14 +1,14 @@
-from pathlib import Path
-from typing import Tuple, List, Dict, Union, Any
-from bisect import bisect_right
 import random
+from bisect import bisect_right
+from pathlib import Path
+from typing import Any, Dict, List, Tuple, Union
 
+import numpy as np
 import torch
 from torch import Tensor
-import numpy as np
 from tqdm import tqdm
 
-from .base import CfdDataset, CfdAutoDataset
+from .base import CfdAutoDataset, CfdDataset
 from .utils import load_json, normalize_bc, normalize_physics_props
 
 
@@ -29,7 +29,8 @@ def load_case_data(case_dir: Path) -> Tuple[np.ndarray, Dict[str, float]]:
 
     mask = np.ones_like(u)
 
-    features = np.stack([u, v, mask], axis=1)  # (T, 3, h, w)
+    features = np.stack(
+        [u, v, mask], axis=1)  # (T, 3, h, w)
     return features, case_params
 
 
@@ -111,13 +112,15 @@ class CavityFlowDataset(CfdDataset):
         self.num_features = 0
         self.num_frames: List[int] = []
         features: List[Tensor] = []
-        case_ids: List[int] = []  # The case ID of each example
+        # The case ID of each example
+        case_ids: List[int] = []
         self.all_features: List[np.ndarray] = []
 
         # Loop each frame in each case, create features labels
         for case_id, case_dir in enumerate(tqdm(case_dirs)):
             # (T, c, h, w), dict
-            this_case_features, this_case_params = load_case_data(case_dir)
+            this_case_features, this_case_params = load_case_data(
+                case_dir)
             if self.norm_props:
                 normalize_physics_props(this_case_params)
             if self.norm_bc:
@@ -126,14 +129,14 @@ class CavityFlowDataset(CfdDataset):
             T, c, h, w = this_case_features.shape
             self.num_features += T * h * w
             params_tensor = torch.tensor(
-                [this_case_params[key] for key in self.case_params_keys],
+                [this_case_params[key]
+                    for key in self.case_params_keys],
                 dtype=torch.float32,
             )
             self.all_features.append(this_case_features)
             self.case_params.append(params_tensor)
-            features.append(
-                torch.tensor(this_case_features, dtype=torch.float32)
-            )
+            features.append(torch.tensor(
+                this_case_features, dtype=torch.float32))
             case_ids.append(case_id)
             self.num_frames.append(T)
 
@@ -162,7 +165,8 @@ class CavityFlowDataset(CfdDataset):
         if case_id == 0:
             frame_idx = idx
         else:
-            frame_idx = idx - self.num_frames_before[case_id - 1]
+            frame_idx = idx - \
+                self.num_frames_before[case_id - 1]
         return case_id, frame_idx
 
     def __getitem__(
@@ -180,11 +184,13 @@ class CavityFlowDataset(CfdDataset):
             height = self.features[0].shape[2]
             width = self.features[0].shape[3]
             num_pixels = height * width
-            case_id, t = self.idx_to_case_id_and_frame_idx(idx // num_pixels)
+            case_id, t = self.idx_to_case_id_and_frame_idx(
+                idx // num_pixels)
             frame_idx = idx % num_pixels
             y = frame_idx // width
             x = frame_idx % width
-            case_features = self.features[case_id]  # (T, c, h, w)
+            # (T, c, h, w)
+            case_features = self.features[case_id]
             case_params = self.case_params[case_id]
             query_point = torch.tensor([t, x, y]).float()
             # Get the output function value
@@ -195,9 +201,11 @@ class CavityFlowDataset(CfdDataset):
         # During evaluation, we need an entire frame
         # So each example returns (case_params, frame)
         # The number of examples is
-        case_id, frame_idx = self.idx_to_case_id_and_frame_idx(idx)
+        case_id, frame_idx = self.idx_to_case_id_and_frame_idx(
+            idx)
         t = torch.tensor([frame_idx]).float()
-        frame = self.features[case_id][frame_idx]  # (T, c, h, w)
+        # (T, c, h, w)
+        frame = self.features[case_id][frame_idx]
         case_params = self.case_params[case_id]
         return case_params, t, frame
 
@@ -234,9 +242,8 @@ class CavityFlowAutoDataset(CfdAutoDataset):
     Each example is (u_{t-1} -> u_{t}), is used for auto-regressive generation.
     """
 
-    data_delta_time = (
-        0.1  # The time between two consecutive frames in the data
-    )
+    # The time between two consecutive frames in the data
+    data_delta_time = 0.1
 
     def __init__(
         self,
@@ -265,7 +272,8 @@ class CavityFlowAutoDataset(CfdAutoDataset):
         self.stable_state_diff = stable_state_diff
 
         # The difference between input and output in number of frames.
-        self.time_step_size = int(self.delta_time / self.data_delta_time)
+        self.time_step_size = int(
+            self.delta_time / self.data_delta_time)
         self.load_data(case_dirs, self.time_step_size)
 
     def load_data(self, case_dirs: List[Path], time_step_size: int):
@@ -280,17 +288,20 @@ class CavityFlowAutoDataset(CfdAutoDataset):
         self.case_params: List[dict] = []
         all_inputs: List[Tensor] = []
         all_labels: List[Tensor] = []
-        all_case_ids: List[int] = []  # The case ID of each feature
-        self.all_features: List[np.ndarray] = []  # (# case, # frames, 3, h, w)
+        # The case ID of each feature
+        all_case_ids: List[int] = []
+        # (# case, # frames, 3, h, w)
+        self.all_features: List[np.ndarray] = []
 
         # Loop through each frame in each case, create features labels
         for case_id, case_dir in enumerate(case_dirs):
             case_features, this_case_params = load_case_data(
-                case_dir
-            )  # (T, c, h, w)
+                case_dir)  # (T, c, h, w)
             self.all_features.append(case_features)
-            inputs = case_features[:-time_step_size, :]  # (T, 3, h, w)
-            outputs = case_features[time_step_size:, :]  # (T, 3, h, w)
+            # (T, 3, h, w)
+            inputs = case_features[:-time_step_size, :]
+            # (T, 3, h, w)
+            outputs = case_features[time_step_size:, :]
             assert len(inputs) == len(outputs)
 
             if self.norm_props:
@@ -303,27 +314,29 @@ class CavityFlowAutoDataset(CfdAutoDataset):
             # Loop frames, get input-output pairs
             # Stop when converged
             for i in range(num_steps):
-                inp = torch.tensor(inputs[i], dtype=torch.float32)  # (3, h, w)
+                inp = torch.tensor(
+                    inputs[i], dtype=torch.float32)  # (3, h, w)
                 out = torch.tensor(
-                    outputs[i], dtype=torch.float32
-                )  # (3, h, w)
+                    outputs[i], dtype=torch.float32)  # (3, h, w)
 
                 # Check for convergence
-                inp_magn = torch.sqrt(inp[0] ** 2 + inp[1] ** 2)
-                out_magn = torch.sqrt(out[0] ** 2 + out[1] ** 2)
-                diff = torch.abs(inp_magn - out_magn).mean()
+                inp_magn = torch.sqrt(
+                    inp[0] ** 2 + inp[1] ** 2)
+                out_magn = torch.sqrt(
+                    out[0] ** 2 + out[1] ** 2)
+                torch.abs(inp_magn - out_magn).mean()
                 assert not torch.isnan(inp).any()
                 assert not torch.isnan(out).any()
                 all_inputs.append(inp)  # (3, h, w)
                 all_labels.append(out)  # (3, h, w)
                 all_case_ids.append(case_id)
-        self.inputs = torch.stack(all_inputs)  # (# cases, 3, h, w)
-        self.labels = torch.stack(all_labels)  # (# cases, 3, h, w)
+        self.inputs = torch.stack(
+            all_inputs)  # (# cases, 3, h, w)
+        self.labels = torch.stack(
+            all_labels)  # (# cases, 3, h, w)
         self.case_ids = np.array(all_case_ids)  # (# cases,)
 
-    def __getitem__(
-        self, idx: int
-    ) -> Tuple[Tensor, Tensor, Dict[str, Tensor]]:
+    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor, Dict[str, Tensor]]:
         """
         Return:
             feat: (2, h, w)
@@ -336,8 +349,7 @@ class CavityFlowAutoDataset(CfdAutoDataset):
         case_id = self.case_ids[idx]
         case_params = self.case_params[case_id]
         case_params = {
-            k: torch.tensor(v, dtype=torch.float32)
-            for k, v in case_params.items()
+            k: torch.tensor(v, dtype=torch.float32) for k, v in case_params.items()
         }
         return inputs, label, case_params
 
@@ -372,14 +384,13 @@ def get_cavity_datasets(
     num_train = round(num_cases * 0.8)
     num_dev = round(num_cases * 0.1)
     train_case_dirs = case_dirs[:num_train]
-    dev_case_dirs = case_dirs[num_train : num_train + num_dev]
-    test_case_dirs = case_dirs[num_train + num_dev :]
+    dev_case_dirs = case_dirs[num_train: num_train + num_dev]
+    test_case_dirs = case_dirs[num_train + num_dev:]
     train_data = CavityFlowDataset(
         train_case_dirs, norm_props=norm_props, norm_bc=norm_bc
     )
     dev_data = CavityFlowDataset(
-        dev_case_dirs, norm_props=norm_props, norm_bc=norm_bc
-    )
+        dev_case_dirs, norm_props=norm_props, norm_bc=norm_bc)
     test_data = CavityFlowDataset(
         test_case_dirs, norm_props=norm_props, norm_bc=norm_bc
     )
@@ -419,8 +430,8 @@ def get_cavity_auto_datasets(
     num_train = round(num_cases * 0.8)
     num_dev = round(num_cases * 0.1)
     train_case_dirs = case_dirs[:num_train]
-    dev_case_dirs = case_dirs[num_train : num_train + num_dev]
-    test_case_dirs = case_dirs[num_train + num_dev :]
+    dev_case_dirs = case_dirs[num_train: num_train + num_dev]
+    test_case_dirs = case_dirs[num_train + num_dev:]
     if rank == 0:
         print("==== Number of cases in different splits ====")
         print(
@@ -435,9 +446,12 @@ def get_cavity_auto_datasets(
         norm_props=norm_props,
         norm_bc=norm_bc,
     )
-    train_data = CavityFlowAutoDataset(train_case_dirs, **kwargs)
-    dev_data = CavityFlowAutoDataset(dev_case_dirs, **kwargs)
-    test_data = CavityFlowAutoDataset(test_case_dirs, **kwargs)
+    train_data = CavityFlowAutoDataset(
+        train_case_dirs, **kwargs)
+    dev_data = CavityFlowAutoDataset(
+        dev_case_dirs, **kwargs)
+    test_data = CavityFlowAutoDataset(
+        test_case_dirs, **kwargs)
     return train_data, dev_data, test_data
 
 

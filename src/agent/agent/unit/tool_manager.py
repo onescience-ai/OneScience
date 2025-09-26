@@ -1,15 +1,17 @@
 import importlib
 import inspect
-import logging
 import json
+import logging
 from typing import List
-from langchain_core.tools import BaseTool
-from langchain_community.tools import ShellTool, ReadFileTool, WriteFileTool
-from langchain_experimental.tools import PythonREPLTool
-from langchain_core.messages import SystemMessage, HumanMessage
-from pydantic import BaseModel, Field
-from langchain_core.prompts import ChatPromptTemplate
+
+from langchain_community.tools import ReadFileTool, ShellTool, WriteFileTool
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.tools import BaseTool
+from langchain_experimental.tools import PythonREPLTool
+from pydantic import BaseModel, Field
+
 from agent.llm import ChatModel
 from agent.tools.description.tool_module_desc import description
 
@@ -28,7 +30,8 @@ def get_tools(tool_modules: list):
         application_tool_examples = []
         for module_name in tool_modules:
             full_module_name = f"{PACKAGE_NAME}.{module_name}"
-            module = importlib.import_module(full_module_name)
+            module = importlib.import_module(
+                full_module_name)
 
             for name, obj in inspect.getmembers(module):
                 if inspect.isclass(obj) and inspect.getmro(obj)[1] == BaseTool:
@@ -45,10 +48,13 @@ def get_tools(tool_modules: list):
 
         for module_name in tool_modules:
             full_module_name = f"{EXAMPLE_PACKAGE_NAME}.{module_name}"
-            module = importlib.import_module(full_module_name)
-            application_tool_examples.extend(getattr(module, "examples", []))
+            module = importlib.import_module(
+                full_module_name)
+            application_tool_examples.extend(
+                getattr(module, "examples", []))
 
-        logger.info(f"application tools: {application_tool_names}")
+        logger.info(
+            f"application tools: {application_tool_names}")
         return application_tools, application_tool_examples
 
 
@@ -73,18 +79,31 @@ def match_tool_modules(prompt: str, chat_model_config: dict):
 {format_instructions}
 """
     llm = ChatModel[chat_model_config["factory_name"]](
-        **chat_model_config["model"]
-    )
+        **chat_model_config["model"])
 
-    parser = JsonOutputParser(pydantic_object=ToolModulesResult)
-    messages = [SystemMessage(system_prompt.format(
-        tool_module_info="\n".join([f'工具模块名称：{k}，该模块的功能：{v}' for k, v in description.items()]),
-        format_instructions=parser.get_format_instructions())), HumanMessage(prompt)]
-    runnable = ChatPromptTemplate.from_messages(messages) | llm | parser
+    parser = JsonOutputParser(
+        pydantic_object=ToolModulesResult)
+    messages = [
+        SystemMessage(
+            system_prompt.format(
+                tool_module_info="\n".join(
+                    [
+                        f"工具模块名称：{k}，该模块的功能：{v}"
+                        for k, v in description.items()
+                    ]
+                ),
+                format_instructions=parser.get_format_instructions(),
+            )
+        ),
+        HumanMessage(prompt),
+    ]
+    runnable = ChatPromptTemplate.from_messages(
+        messages) | llm | parser
 
     result = runnable.invoke({})
 
-    result = ToolModulesResult.model_validate_json(json.dumps(result))
+    result = ToolModulesResult.model_validate_json(
+        json.dumps(result))
     return result.modules
 
 

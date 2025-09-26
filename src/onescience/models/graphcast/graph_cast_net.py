@@ -25,10 +25,7 @@ from onescience.models.meta import ModelMetaData
 from onescience.models.module import Module
 from onescience.utils.graphcast.graph import Graph
 
-from .graph_cast_processor import (
-    GraphCastProcessor,
-    GraphCastProcessorGraphTransformer,
-)
+from .graph_cast_processor import GraphCastProcessor, GraphCastProcessorGraphTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -60,10 +57,12 @@ def get_lat_lon_partition_separators(partition_size: int):
         for p_lat in range(num_lat_chunks):
             for p_lon in range(num_lon_chunks):
                 lat_ranges += [
-                    (lat_bin_width * p_lat - 90.0, lat_bin_width * (p_lat + 1) - 90.0)
+                    (lat_bin_width * p_lat - 90.0,
+                     lat_bin_width * (p_lat + 1) - 90.0)
                 ]
                 lon_ranges += [
-                    (lon_bin_width * p_lon - 180.0, lon_bin_width * (p_lon + 1) - 180.0)
+                    (lon_bin_width * p_lon - 180.0,
+                     lon_bin_width * (p_lon + 1) - 180.0)
                 ]
 
         lat_ranges[-1] = (lat_ranges[-1][0], None)
@@ -279,8 +278,10 @@ class GraphCastNet(Module):
         self.partition_group_name = partition_group_name
 
         # create the lat_lon_grid
-        self.latitudes = torch.linspace(-90, 90, steps=input_res[0])
-        self.longitudes = torch.linspace(-180, 180, steps=input_res[1] + 1)[1:]
+        self.latitudes = torch.linspace(
+            -90, 90, steps=input_res[0])
+        self.longitudes = torch.linspace(
+            -180, 180, steps=input_res[1] + 1)[1:]
         self.lat_lon_grid = torch.stack(
             torch.meshgrid(self.latitudes, self.longitudes, indexing="ij"), dim=-1
         )
@@ -289,11 +290,15 @@ class GraphCastNet(Module):
         activation_fn = get_activation(activation_fn)
 
         # construct the graph
-        self.graph = Graph(self.lat_lon_grid, mesh_level, multimesh, khop_neighbors)
+        self.graph = Graph(
+            self.lat_lon_grid, mesh_level, multimesh, khop_neighbors)
 
-        self.mesh_graph, self.attn_mask = self.graph.create_mesh_graph(verbose=False)
-        self.g2m_graph = self.graph.create_g2m_graph(verbose=False)
-        self.m2g_graph = self.graph.create_m2g_graph(verbose=False)
+        self.mesh_graph, self.attn_mask = self.graph.create_mesh_graph(
+            verbose=False)
+        self.g2m_graph = self.graph.create_g2m_graph(
+            verbose=False)
+        self.m2g_graph = self.graph.create_m2g_graph(
+            verbose=False)
 
         self.g2m_edata = self.g2m_graph.edata["x"]
         self.m2g_edata = self.m2g_graph.edata["x"]
@@ -302,14 +307,17 @@ class GraphCastNet(Module):
             self.mesh_edata = self.mesh_graph.edata["x"]
         elif self.processor_type == "GraphTransformer":
             # Dummy tensor to avoid breaking the API
-            self.mesh_edata = torch.zeros((1, input_dim_edges))
+            self.mesh_edata = torch.zeros(
+                (1, input_dim_edges))
         else:
-            raise ValueError(f"Invalid processor type {processor_type}")
+            raise ValueError(
+                f"Invalid processor type {processor_type}")
 
         if use_cugraphops_encoder or self.is_distributed:
             kwargs = {}
             if use_lat_lon_partitioning:
-                min_seps, max_seps = get_lat_lon_partition_separators(partition_size)
+                min_seps, max_seps = get_lat_lon_partition_separators(
+                    partition_size)
                 kwargs = {
                     "src_coordinates": self.g2m_graph.srcdata["lat_lon"],
                     "dst_coordinates": self.g2m_graph.dstdata["lat_lon"],
@@ -333,7 +341,8 @@ class GraphCastNet(Module):
         if use_cugraphops_decoder or self.is_distributed:
             kwargs = {}
             if use_lat_lon_partitioning:
-                min_seps, max_seps = get_lat_lon_partition_separators(partition_size)
+                min_seps, max_seps = get_lat_lon_partition_separators(
+                    partition_size)
                 kwargs = {
                     "src_coordinates": self.m2g_graph.srcdata["lat_lon"],
                     "dst_coordinates": self.m2g_graph.dstdata["lat_lon"],
@@ -358,7 +367,8 @@ class GraphCastNet(Module):
         if use_cugraphops_processor or self.is_distributed:
             kwargs = {}
             if use_lat_lon_partitioning:
-                min_seps, max_seps = get_lat_lon_partition_separators(partition_size)
+                min_seps, max_seps = get_lat_lon_partition_separators(
+                    partition_size)
                 kwargs = {
                     "src_coordinates": self.mesh_graph.ndata["lat_lon"],
                     "dst_coordinates": self.mesh_graph.ndata["lat_lon"],
@@ -388,8 +398,10 @@ class GraphCastNet(Module):
 
         # by default: don't checkpoint at all
         self.model_checkpoint_fn = set_checkpoint_fn(False)
-        self.encoder_checkpoint_fn = set_checkpoint_fn(False)
-        self.decoder_checkpoint_fn = set_checkpoint_fn(False)
+        self.encoder_checkpoint_fn = set_checkpoint_fn(
+            False)
+        self.decoder_checkpoint_fn = set_checkpoint_fn(
+            False)
 
         # initial feature embedder
         self.encoder_embedder = GraphCastEncoderEmbedder(
@@ -432,7 +444,8 @@ class GraphCastNet(Module):
 
         # icosahedron processor
         if processor_layers <= 2:
-            raise ValueError("Expected at least 3 processor layers")
+            raise ValueError(
+                "Expected at least 3 processor layers")
         if processor_type == "MessagePassing":
             self.processor_encoder = GraphCastProcessor(
                 aggregation=aggregation,
@@ -531,11 +544,14 @@ class GraphCastNet(Module):
             The selected checkpoint function to use for gradient computation.
         """
         # force a single checkpoint for the whole model
-        self.model_checkpoint_fn = set_checkpoint_fn(checkpoint_flag)
+        self.model_checkpoint_fn = set_checkpoint_fn(
+            checkpoint_flag)
         if checkpoint_flag:
             self.processor.set_checkpoint_segments(-1)
-            self.encoder_checkpoint_fn = set_checkpoint_fn(False)
-            self.decoder_checkpoint_fn = set_checkpoint_fn(False)
+            self.encoder_checkpoint_fn = set_checkpoint_fn(
+                False)
+            self.decoder_checkpoint_fn = set_checkpoint_fn(
+                False)
 
     def set_checkpoint_processor(self, checkpoint_segments: int):
         """Sets checkpoint function for the processor excluding the first and last
@@ -560,7 +576,8 @@ class GraphCastNet(Module):
         Callable
             The selected checkpoint function to use for gradient computation.
         """
-        self.processor.set_checkpoint_segments(checkpoint_segments)
+        self.processor.set_checkpoint_segments(
+            checkpoint_segments)
 
     def set_checkpoint_encoder(self, checkpoint_flag: bool):
         """Sets checkpoint function for the embedder, encoder, and the first of
@@ -584,7 +601,8 @@ class GraphCastNet(Module):
         Callable
             The selected checkpoint function to use for gradient computation.
         """
-        self.encoder_checkpoint_fn = set_checkpoint_fn(checkpoint_flag)
+        self.encoder_checkpoint_fn = set_checkpoint_fn(
+            checkpoint_flag)
 
     def set_checkpoint_decoder(self, checkpoint_flag: bool):
         """Sets checkpoint function for the last layer of the processor, the decoder,
@@ -608,7 +626,8 @@ class GraphCastNet(Module):
         Callable
             The selected checkpoint function to use for gradient computation.
         """
-        self.decoder_checkpoint_fn = set_checkpoint_fn(checkpoint_flag)
+        self.decoder_checkpoint_fn = set_checkpoint_fn(
+            checkpoint_flag)
 
     def encoder_forward(
         self,
@@ -702,7 +721,8 @@ class GraphCastNet(Module):
                 mesh_nfeat_processed,
             )
 
-        m2g_efeat_embedded = self.decoder_embedder(self.m2g_edata)
+        m2g_efeat_embedded = self.decoder_embedder(
+            self.m2g_edata)
 
         # decode multimesh to lat/lon
         grid_nfeat_decoded = self.decoder(
@@ -817,17 +837,21 @@ class GraphCastNet(Module):
 
         if not self.is_distributed:
             if invar.size(0) != 1:
-                raise ValueError("GraphCast does not support batch size > 1")
-            invar = invar[0].view(self.input_dim_grid_nodes, -1).permute(1, 0)
+                raise ValueError(
+                    "GraphCast does not support batch size > 1")
+            invar = invar[0].view(
+                self.input_dim_grid_nodes, -1).permute(1, 0)
 
         else:
             # is_distributed
             if not expect_partitioned_input:
                 # global_features_on_rank_0
                 if invar.size(0) != 1:
-                    raise ValueError("GraphCast does not support batch size > 1")
+                    raise ValueError(
+                        "GraphCast does not support batch size > 1")
 
-                invar = invar[0].view(self.input_dim_grid_nodes, -1).permute(1, 0)
+                invar = invar[0].view(
+                    self.input_dim_grid_nodes, -1).permute(1, 0)
 
                 # scatter global features
                 invar = self.g2m_graph.get_src_node_features_in_partition(
@@ -873,7 +897,8 @@ class GraphCastNet(Module):
                 )
 
             outvar = outvar.permute(1, 0)
-            outvar = outvar.view(self.output_dim_grid_nodes, *self.input_res)
+            outvar = outvar.view(
+                self.output_dim_grid_nodes, *self.input_res)
             outvar = torch.unsqueeze(outvar, dim=0)
 
         return outvar
@@ -899,10 +924,13 @@ class GraphCastNet(Module):
 
         self.g2m_edata = self.g2m_edata.to(*args, **kwargs)
         self.m2g_edata = self.m2g_edata.to(*args, **kwargs)
-        self.mesh_ndata = self.mesh_ndata.to(*args, **kwargs)
-        self.mesh_edata = self.mesh_edata.to(*args, **kwargs)
+        self.mesh_ndata = self.mesh_ndata.to(
+            *args, **kwargs)
+        self.mesh_edata = self.mesh_edata.to(
+            *args, **kwargs)
 
-        device, _, _, _ = torch._C._nn._parse_to(*args, **kwargs)
+        device, _, _, _ = torch._C._nn._parse_to(
+            *args, **kwargs)
         self.g2m_graph = self.g2m_graph.to(device)
         self.mesh_graph = self.mesh_graph.to(device)
         self.m2g_graph = self.m2g_graph.to(device)

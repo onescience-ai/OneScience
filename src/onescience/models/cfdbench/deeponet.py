@@ -2,11 +2,11 @@ from itertools import product
 from typing import Dict, Optional
 
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 
+from .act_fn import get_act_fn
 from .base_model import CfdModel
 from .ffn import Ffn
-from .act_fn import get_act_fn
 from .loss import MseLoss
 
 
@@ -48,7 +48,8 @@ class DeepONet(CfdModel):
         self.act_on_output = act_on_output
         self.num_label_samples = num_label_samples
 
-        self.branch_dims = [branch_dim] + [width] * branch_depth
+        self.branch_dims = [
+            branch_dim] + [width] * branch_depth
 
         act_fn = get_act_fn(act_name, act_norm)
         self.branch_net = Ffn(
@@ -62,7 +63,8 @@ class DeepONet(CfdModel):
         self.trunk_net = Ffn(self.trunk_dims, act_fn=act_fn)
 
         # self.params = self.__init_params()
-        self.bias = nn.Parameter(torch.zeros(1))  # type: ignore
+        self.bias = nn.Parameter(
+            torch.zeros(1))  # type: ignore
         # self.__initialize()
 
     # NOTE: This is no long used!!
@@ -120,9 +122,8 @@ class DeepONet(CfdModel):
         t = x_trunk.unsqueeze(1).float()  # (b, 1)
         x_trunk_t = self.fc_trunk_t(t)  # (b, p)
         # Normalize query location
-        x_trunk_xy = (
-            query_idxs.float() - 32.0
-        ) / 64.0  # (k, 2)  # TODO: update this
+        # (k, 2)  # TODO: update this
+        x_trunk_xy = (query_idxs.float() - 32.0) / 64.0
         x_trunk_xy = self.fc_trunk_xy(x_trunk_xy)  # (k, p)
         x_trunk_t = x_trunk_t.unsqueeze(1)  # (b, 1, p)
         x_trunk_xy = x_trunk_xy.unsqueeze(0)  # (1, k, p)
@@ -133,7 +134,8 @@ class DeepONet(CfdModel):
 
         # x_trunk = x_trunk.unsqueeze(0)  # (1, k, p)
         x_branch = x_branch.unsqueeze(1)  # (b, 1, p)
-        preds = torch.sum(x_branch * x_trunk, dim=-1) + self.bias  # (b)
+        preds = torch.sum(
+            x_branch * x_trunk, dim=-1) + self.bias  # (b)
         print(preds.dtype)
 
         if label is not None:
@@ -142,9 +144,11 @@ class DeepONet(CfdModel):
             label = label[:, 0]  # (B, w, h)
             # we have labels[i, j] = label[
             #     i, query_points[i, j, 0], query_points[i, j, 1]]
-            labels = label[:, query_idxs[:, 0], query_idxs[:, 1]]  # (b, k)
+            labels = label[:, query_idxs[:, 0],
+                           query_idxs[:, 1]]  # (b, k)
             # assert preds.shape == label.shape, f"{preds.shape} {label.shape}"
-            loss = self.loss_fn(preds=preds, labels=labels)  # (b, k)
+            loss = self.loss_fn(
+                preds=preds, labels=labels)  # (b, k)
             print(labels.dtype)
             print(loss.dtype)
             return preds, loss
@@ -202,18 +206,19 @@ class DeepONet(CfdModel):
         x_trunk = self.trunk_net(x_trunk)  # (b, k, p)
 
         case_params = case_params.unsqueeze(1)  # (b, 1, p)
-        preds = torch.sum(case_params * x_trunk, dim=-1) + self.bias  # (b, k)
+        preds = torch.sum(
+            case_params * x_trunk, dim=-1) + self.bias  # (b, k)
 
         if label is not None:
             # Only predict u
             label = label[:, 0]  # (B, w, h)
             # we have labels[i, j] = label[
             #     i, query_points[i, j, 0], query_points[i, j, 1]]
-            labels = label[:, query_idxs[:, 0], query_idxs[:, 1]]  # (b, k)
-            assert (
-                preds.shape == labels.shape
-            ), f"{preds.shape}, {labels.shape}"
-            loss = self.loss_fn(preds=preds, labels=labels)  # (b, k)
+            labels = label[:, query_idxs[:, 0],
+                           query_idxs[:, 1]]  # (b, k)
+            assert preds.shape == labels.shape, f"{preds.shape}, {labels.shape}"
+            loss = self.loss_fn(
+                preds=preds, labels=labels)  # (b, k)
             return dict(
                 preds=preds,
                 loss=loss,
@@ -252,6 +257,8 @@ class DeepONet(CfdModel):
         )  # (h * w, 2)
         # query_points = query_points / 100
         # (b, 1, h * w)
-        output = self.forward(case_params, t=t, query_idxs=query_idxs)["preds"]
-        output = output.view(-1, 1, height, width)  # (b, 1, h, w)
+        output = self.forward(
+            case_params, t=t, query_idxs=query_idxs)["preds"]
+        # (b, 1, h, w)
+        output = output.view(-1, 1, height, width)
         return output

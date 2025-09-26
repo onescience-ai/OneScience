@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import logging
@@ -13,9 +11,7 @@ import pandas as pd
 
 from onescience.models.UMA.common import distutils
 from onescience.models.UMA.common.logger import WandBSingletonLogger
-from onescience.models.UMA.components.calculate.calculate_runner import (
-    CalculateRunner,
-)
+from onescience.models.UMA.components.calculate.calculate_runner import CalculateRunner
 from onescience.models.UMA.components.reducer import Reducer
 
 if TYPE_CHECKING:
@@ -160,15 +156,19 @@ class BenchmarkReducer(Reducer, metaclass=ABCMeta):
         logging.info(
             f"Saving joined results in {self.job_config.metadata.results_dir}."
         )
-        self.save_results(results, self.job_config.metadata.results_dir)
+        self.save_results(
+            results, self.job_config.metadata.results_dir)
         logging.info("Calculating metrics.")
-        metrics = self.compute_metrics(results, run_name=self.job_config.run_name)
+        metrics = self.compute_metrics(
+            results, run_name=self.job_config.run_name)
         logging.info(
             f"Saving computed metrics in {self.job_config.metadata.results_dir}"
         )
-        self.save_metrics(metrics, self.job_config.metadata.results_dir)
+        self.save_metrics(
+            metrics, self.job_config.metadata.results_dir)
         if self.logger is not None:
-            self.log_metrics(metrics, run_name=self.job_config.run_name)
+            self.log_metrics(
+                metrics, run_name=self.job_config.run_name)
 
 
 class JsonDFReducer(BenchmarkReducer):
@@ -255,7 +255,8 @@ class JsonDFReducer(BenchmarkReducer):
             results_dir: Directory containing result files
         """
         results.reset_index().to_json(
-            os.path.join(results_dir, f"{self.benchmark_name}_results.json.gz")
+            os.path.join(
+                results_dir, f"{self.benchmark_name}_results.json.gz")
         )
 
     def compute_metrics(self, results: pd.DataFrame, run_name: str) -> pd.DataFrame:
@@ -288,12 +289,15 @@ class JsonDFReducer(BenchmarkReducer):
                 # approach for arbitrary metrics + properties should be
                 # incorporated
                 if target_name == "forces":
-                    forces = np.concatenate(results[target_name].values)
-                    forces_norm = np.linalg.norm(forces, axis=1)
+                    forces = np.concatenate(
+                        results[target_name].values)
+                    forces_norm = np.linalg.norm(
+                        forces, axis=1)
                     forces_target = np.concatenate(
                         results[f"{target_name}_target"].values
                     )
-                    forces_target_norm = np.linalg.norm(forces_target, axis=1)
+                    forces_target_norm = np.linalg.norm(
+                        forces_target, axis=1)
 
                     metrics[f"{target_name},mae"] = np.mean(
                         np.abs(forces - forces_target)
@@ -301,14 +305,17 @@ class JsonDFReducer(BenchmarkReducer):
                     metrics[f"{target_name},cosine_similarity"] = np.sum(
                         forces_target * forces
                     ) / max(
-                        np.linalg.norm(forces_target) * np.linalg.norm(forces), 1e-8
+                        np.linalg.norm(
+                            forces_target) * np.linalg.norm(forces), 1e-8
                     )
                     metrics[f"{target_name},magnitude_error"] = np.mean(
-                        np.abs(forces_norm - forces_target_norm)
+                        np.abs(forces_norm -
+                               forces_target_norm)
                     )
                 else:
                     metrics[f"{target_name},mae"] = (
-                        (results[target_name] - results[f"{target_name}_target"])
+                        (results[target_name] -
+                         results[f"{target_name}_target"])
                         .abs()
                         .mean()
                     )
@@ -323,7 +330,8 @@ class JsonDFReducer(BenchmarkReducer):
             results_dir: Directory where metrics will be saved
         """
         metrics.to_json(
-            os.path.join(results_dir, f"{self.benchmark_name}_metrics.json.gz")
+            os.path.join(
+                results_dir, f"{self.benchmark_name}_metrics.json.gz")
         )
 
     def log_metrics(self, metrics: pd.DataFrame, run_name: str) -> None:

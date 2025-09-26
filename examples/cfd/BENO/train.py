@@ -1,34 +1,28 @@
 import argparse
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 import pickle
 import pprint as pp
+import random
+import warnings
 from timeit import default_timer
+
+import matplotlib.tri as tri
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.data import Data, DataLoader
-from torch_geometric.utils import scatter
+from torch.nn.parallel import DistributedDataParallel
+from torch.utils.data.distributed import DistributedSampler
+from torch_geometric.data import DataLoader, HeteroData
 from torchvision.transforms import GaussianBlur
-import sys, os
+
+from onescience.distributed.manager import DistributedManager
+from onescience.models.beno.BE_MPNN import HeteroGNS
+from onescience.utils.beno.util import make_dir, record_data, to_cpu, to_np_array
 
 # from utilities import *
 from onescience.utils.beno.utilities import *
-from onescience.utils.beno.util import record_data, to_cpu, to_np_array, make_dir
-from onescience.models.beno.BE_MPNN import HeteroGNS
-
-from onescience.distributed.manager import DistributedManager
-from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data.distributed import DistributedSampler
-import random
-
-import matplotlib.tri as tri
-from torch_geometric.data import HeteroData
-import warnings
 
 warnings.filterwarnings("ignore")
-import pdb
 
 fix_seed = 2025
 random.seed(fix_seed)
@@ -43,23 +37,28 @@ dist = DistributedManager()
 
 parser = argparse.ArgumentParser(description="Training")
 
-parser.add_argument("--epochs", default=1000, type=int, help="Epochs")
-parser.add_argument("--lr", default=0.00001, type=float, help="learning rate")
+parser.add_argument(
+    "--epochs", default=1000, type=int, help="Epochs")
+parser.add_argument(
+    "--lr", default=0.00001, type=float, help="learning rate")
 parser.add_argument(
     "--inspect_interval", default=100, type=int, help="inspect interval"
 )
-parser.add_argument("--id", default="0", type=str, help="ID")
+parser.add_argument("--id", default="0",
+                    type=str, help="ID")
 parser.add_argument(
     "--init_boudary_loc",
     default="regular",
     type=str,
     help='choose from "random" or "regular" ',
 )
-parser.add_argument("--trans_layer", default=3, type=int, help="Layer of Transformer")
+parser.add_argument("--trans_layer", default=3,
+                    type=int, help="Layer of Transformer")
 parser.add_argument(
     "--boundary_dim", default=128, type=int, help="Layer of Transformer"
 )
-parser.add_argument("--batch_size", default=1, type=int, help="batch size")
+parser.add_argument(
+    "--batch_size", default=1, type=int, help="batch size")
 parser.add_argument(
     "--act",
     default="relu",
@@ -86,7 +85,7 @@ sol_all = np.load(DATA_PATH + "SOL_N32_4c_all.npy")
 bc_all = np.load(DATA_PATH + "BC_N32_4c_all.npy")
 ntrain = 900
 ntest = 100
-## ===============================================================
+# ===============================================================
 
 
 # DATA_PATH = f"./data/Dirichlet"
@@ -157,20 +156,23 @@ if dist.rank == 0:
 cells_state = f_all[:, :, 3]  # node type \in {0,1,2,3}
 coord_all = f_all[:, :, 0:2]  # all node corrdinate
 bc_euco = bc_all[:, :, 0:2]  # boundary corrdinate
-bc_value = bc_all[:, :, 2].reshape(-1, 128, 1)  # boundary value
+# boundary value
+bc_value = bc_all[:, :, 2].reshape(-1, 128, 1)
 bc_value = torch.tensor(bc_value)
 bc_value_1 = bc_value[0:ntrain, :, :]
 bc_euco = torch.tensor(bc_euco)
 bcv_normalizer = GaussianNormalizer(bc_value_1)
 bc_value = bcv_normalizer.encode(bc_value)
-bc_euco = to_np_array(torch.cat([bc_euco, bc_value], dim=-1))
+bc_euco = to_np_array(
+    torch.cat([bc_euco, bc_value], dim=-1))
 all_a = f_all[:, :, 2]
 all_a_smooth = to_np_array(
     gblur(torch.tensor(all_a.reshape(all_a.shape[0], resolution, resolution))).flatten(
         start_dim=1
     )
 )
-all_a_reshape = all_a_smooth.reshape(-1, resolution, resolution)
+all_a_reshape = all_a_smooth.reshape(
+    -1, resolution, resolution)
 all_a_gradx = np.concatenate(
     [
         all_a_reshape[:, 1:2] - all_a_reshape[:, 0:1],
@@ -183,19 +185,26 @@ all_a_gradx = all_a_gradx.reshape(-1, n)
 all_a_grady = np.concatenate(
     [
         all_a_reshape[:, :, 1:2] - all_a_reshape[:, :, 0:1],
-        (all_a_reshape[:, :, 2:] - all_a_reshape[:, :, :-2]) / 2,
-        all_a_reshape[:, :, -1:] - all_a_reshape[:, :, -2:-1],
+        (all_a_reshape[:, :, 2:] -
+         all_a_reshape[:, :, :-2]) / 2,
+        all_a_reshape[:, :, -1:] -
+        all_a_reshape[:, :, -2:-1],
     ],
     2,
 )
 all_a_grady = all_a_grady.reshape(-1, n)
 all_u = sol_all[:, :, 0]
 
-train_a = torch.FloatTensor(all_a[:ntrain])  # [num_train, 4096]
-train_a_smooth = torch.FloatTensor(all_a_smooth[:ntrain])  # [num_train, 4096]
-train_a_gradx = torch.FloatTensor(all_a_gradx[:ntrain])  # [num_train, 4096]
-train_a_grady = torch.FloatTensor(all_a_grady[:ntrain])  # [num_train, 4096]
-train_u = torch.FloatTensor(all_u[:ntrain])  # [num_train, 4096]
+train_a = torch.FloatTensor(
+    all_a[:ntrain])  # [num_train, 4096]
+train_a_smooth = torch.FloatTensor(
+    all_a_smooth[:ntrain])  # [num_train, 4096]
+train_a_gradx = torch.FloatTensor(
+    all_a_gradx[:ntrain])  # [num_train, 4096]
+train_a_grady = torch.FloatTensor(
+    all_a_grady[:ntrain])  # [num_train, 4096]
+train_u = torch.FloatTensor(
+    all_u[:ntrain])  # [num_train, 4096]
 test_a = torch.FloatTensor(all_a[ntrain:])
 test_a_smooth = torch.FloatTensor(all_a_smooth[ntrain:])
 test_a_gradx = torch.FloatTensor(all_a_gradx[ntrain:])
@@ -216,10 +225,13 @@ for j in range(ntrain):
         if cells_state[j][p] != 0:
             outdomain_idx = np.append(outdomain_idx, int(p))
     indomain_idx = list(
-        set([i for i in range(resolution * resolution)]) - set(list(outdomain_idx))
+        set([i for i in range(resolution * resolution)]
+            ) - set(list(outdomain_idx))
     )
-    indomain_u = np.append(indomain_u, sol_all[j][indomain_idx])
-    indomain_a = np.append(indomain_a, f_all[j][indomain_idx][:, 2])
+    indomain_u = np.append(
+        indomain_u, sol_all[j][indomain_idx])
+    indomain_a = np.append(
+        indomain_a, f_all[j][indomain_idx][:, 2])
 indomain_u = torch.tensor(indomain_u)
 indomain_a = torch.tensor(indomain_a)
 
@@ -240,7 +252,8 @@ u_normalizer = GaussianNormalizer(x=indomain_u)
 train_u = u_normalizer.encode(train_u)
 
 grid_input = f_all[-1, :, 0:2]
-meshgenerator = MeshGenerator([[0, 1], [0, 1]], [s, s], grid_input=grid_input)
+meshgenerator = MeshGenerator(
+    [[0, 1], [0, 1]], [s, s], grid_input=grid_input)
 data_train = []
 for j in range(ntrain):
     mesh_idx_temp = [p for p in range(resolution**2)]
@@ -262,21 +275,27 @@ for j in range(ntrain):
         ]
         dist2bd_y_temp = np.array(
             [
-                np.abs(bc_euco_train[j, horizon_bd_y[0], 1] - indomain_y),
-                np.abs(bc_euco_train[j, horizon_bd_y[1], 1] - indomain_y),
+                np.abs(
+                    bc_euco_train[j, horizon_bd_y[0], 1] - indomain_y),
+                np.abs(
+                    bc_euco_train[j, horizon_bd_y[1], 1] - indomain_y),
             ]
         )
-        dist2bd_y = np.vstack([dist2bd_y, dist2bd_y_temp[np.newaxis, :]])
+        dist2bd_y = np.vstack(
+            [dist2bd_y, dist2bd_y_temp[np.newaxis, :]])
         horizon_bd_x = np.where(bc_euco_train[j, :, 1].round(4) == indomain_y.round(4))[
             0
         ]
         dist2bd_x_temp = np.array(
             [
-                np.abs(bc_euco_train[j, horizon_bd_x[0], 0] - indomain_x),
-                np.abs(bc_euco_train[j, horizon_bd_x[1], 0] - indomain_x),
+                np.abs(
+                    bc_euco_train[j, horizon_bd_x[0], 0] - indomain_x),
+                np.abs(
+                    bc_euco_train[j, horizon_bd_x[1], 0] - indomain_x),
             ]
         )
-        dist2bd_x = np.vstack([dist2bd_x, dist2bd_x_temp[np.newaxis, :]])
+        dist2bd_x = np.vstack(
+            [dist2bd_x, dist2bd_x_temp[np.newaxis, :]])
     dist2bd_y = torch.tensor(dist2bd_y[1:]).float()
     dist2bd_x = torch.tensor(dist2bd_x[1:]).float()
 
@@ -288,8 +307,10 @@ for j in range(ntrain):
     triang = tri.Triangulation(xx, yy)
     tri_edge = triang.edges
 
-    edge_index = meshgenerator.ball_connectivity(ns=10, tri_edge=tri_edge)
-    edge_attr = meshgenerator.attributes(theta=train_a[j, :])
+    edge_index = meshgenerator.ball_connectivity(
+        ns=10, tri_edge=tri_edge)
+    edge_attr = meshgenerator.attributes(
+        theta=train_a[j, :])
     train_x = torch.cat(
         [
             grid,
@@ -313,13 +334,15 @@ for j in range(ntrain):
 
     data = HeteroData()
     data["G1"].x = train_x  # node features ▲u=f
-    data["G1"].boundary = bd_coord_input_1  # boundary value=0
+    # boundary value=0
+    data["G1"].boundary = bd_coord_input_1
     data["G1"].edge_features = edge_attr
     data["G1"].sample_idx = idx
     data["G1"].edge_index = edge_index
 
-    data["G2"].x = train_x_2  ##node features ▲u=0
-    data["G2"].boundary = bd_coord_input  # boundary value=g(x)
+    data["G2"].x = train_x_2  # node features ▲u=0
+    # boundary value=g(x)
+    data["G2"].boundary = bd_coord_input
     data["G2"].edge_features = edge_attr
     data["G2"].sample_idx = idx
     data["G2"].edge_index = edge_index
@@ -342,8 +365,10 @@ for j in range(ntest):
     dist2bd_x = np.array([0, 0])[np.newaxis, :]
     dist2bd_y = np.array([0, 0])[np.newaxis, :]
     for p in range(len(mesh_idx_temp)):
-        indomain_x = coord_all[j + ntrain][mesh_idx_temp[p]][0]
-        indomain_y = coord_all[j + ntrain][mesh_idx_temp[p]][1]
+        indomain_x = coord_all[j +
+                               ntrain][mesh_idx_temp[p]][0]
+        indomain_y = coord_all[j +
+                               ntrain][mesh_idx_temp[p]][1]
 
         horizon_bd_y = np.where(bc_euco_test[j, :, 0].round(4) == indomain_x.round(4))[
             0
@@ -351,24 +376,31 @@ for j in range(ntest):
 
         dist2bd_y_temp = np.array(
             [
-                np.abs(bc_euco_test[j, horizon_bd_y[0], 1] - indomain_y),
-                np.abs(bc_euco_test[j, horizon_bd_y[1], 1] - indomain_y),
+                np.abs(
+                    bc_euco_test[j, horizon_bd_y[0], 1] - indomain_y),
+                np.abs(
+                    bc_euco_test[j, horizon_bd_y[1], 1] - indomain_y),
             ]
         )
-        dist2bd_y = np.vstack([dist2bd_y, dist2bd_y_temp[np.newaxis, :]])
+        dist2bd_y = np.vstack(
+            [dist2bd_y, dist2bd_y_temp[np.newaxis, :]])
         horizon_bd_x = np.where(bc_euco_test[j, :, 1].round(4) == indomain_y.round(4))[
             0
         ]
 
         dist2bd_x_temp = np.array(
             [
-                np.abs(bc_euco_test[j, horizon_bd_x[0], 0] - indomain_x),
-                np.abs(bc_euco_test[j, horizon_bd_x[1], 0] - indomain_x),
+                np.abs(
+                    bc_euco_test[j, horizon_bd_x[0], 0] - indomain_x),
+                np.abs(
+                    bc_euco_test[j, horizon_bd_x[1], 0] - indomain_x),
             ]
         )
-        dist2bd_x = np.vstack([dist2bd_x, dist2bd_x_temp[np.newaxis, :]])
+        dist2bd_x = np.vstack(
+            [dist2bd_x, dist2bd_x_temp[np.newaxis, :]])
     dist2bd_y = torch.tensor(dist2bd_y[1:]).float()
-    dist2bd_x = torch.tensor(dist2bd_x[1:]).float()  # [num, 2]
+    dist2bd_x = torch.tensor(
+        dist2bd_x[1:]).float()  # [num, 2]
 
     idx = meshgenerator.sample(mesh_idx_temp)
     grid = meshgenerator.get_grid()
@@ -378,7 +410,8 @@ for j in range(ntest):
     triang = tri.Triangulation(xx, yy)
     tri_edge = triang.edges
 
-    edge_index = meshgenerator.ball_connectivity(ns=10, tri_edge=tri_edge)
+    edge_index = meshgenerator.ball_connectivity(
+        ns=10, tri_edge=tri_edge)
     edge_attr = meshgenerator.attributes(theta=test_a[j, :])
 
     test_x = torch.cat(
@@ -403,13 +436,15 @@ for j in range(ntest):
 
     data = HeteroData()
     data["G1"].x = test_x  # node features ▲u=f
-    data["G1"].boundary = bd_coord_input_1  # boundary value=0
+    # boundary value=0
+    data["G1"].boundary = bd_coord_input_1
     data["G1"].edge_features = edge_attr
     data["G1"].sample_idx = idx
     data["G1"].edge_index = edge_index
 
-    data["G2"].x = test_x_2  ##node features ▲u=0
-    data["G2"].boundary = bd_coord_input  # boundary value=g(x)
+    data["G2"].x = test_x_2  # node features ▲u=0
+    # boundary value=g(x)
+    data["G2"].boundary = bd_coord_input
     data["G2"].edge_features = edge_attr
     data["G2"].sample_idx = idx
     data["G2"].edge_index = edge_index
@@ -474,7 +509,8 @@ if dist.world_size > 1:
         find_unused_parameters=dist.find_unused_parameters,
     )
 
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=5e-4)
+optimizer = torch.optim.Adam(
+    model.parameters(), lr=learning_rate, weight_decay=5e-4)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(
     optimizer, T_0=16, T_mult=2
 )
@@ -508,18 +544,21 @@ for ep in range(epochs):
         optimizer.zero_grad()
 
         out = model(batch)
-        loss = F.mse_loss(out.view(-1, 1), batch["G1+2"].y.view(-1, 1))
+        loss = F.mse_loss(
+            out.view(-1, 1), batch["G1+2"].y.view(-1, 1))
 
         loss.backward()
 
         l2 = myloss(
             u_normalizer.decode(
                 out.view(batch_size, -1),
-                sample_idx=batch["G1"].sample_idx.view(batch_size, -1),
+                sample_idx=batch["G1"].sample_idx.view(
+                    batch_size, -1),
             ),
             u_normalizer.decode(
                 batch["G1+2"].y.view(batch_size, -1),
-                sample_idx=batch["G1"].sample_idx.view(batch_size, -1),
+                sample_idx=batch["G1"].sample_idx.view(
+                    batch_size, -1),
             ),
         )
 
@@ -532,22 +571,27 @@ for ep in range(epochs):
     t2 = default_timer()
 
     # 同步指标
-    train_mse_tensor = torch.tensor(train_mse, device=dist.device)
-    train_l2_tensor = torch.tensor(train_l2, device=dist.device)
-    num_batches_tensor = torch.tensor(num_batches, device=dist.device)
+    train_mse_tensor = torch.tensor(
+        train_mse, device=dist.device)
+    train_l2_tensor = torch.tensor(
+        train_l2, device=dist.device)
+    num_batches_tensor = torch.tensor(
+        num_batches, device=dist.device)
 
     # 全局求和
     if dist.world_size > 1:
         torch.distributed.all_reduce(
             train_mse_tensor, op=torch.distributed.ReduceOp.SUM
         )
-        torch.distributed.all_reduce(train_l2_tensor, op=torch.distributed.ReduceOp.SUM)
+        torch.distributed.all_reduce(
+            train_l2_tensor, op=torch.distributed.ReduceOp.SUM)
         torch.distributed.all_reduce(
             num_batches_tensor, op=torch.distributed.ReduceOp.SUM
         )
 
     # 计算全局平均指标
-    global_train_mse = train_mse_tensor.item() / num_batches_tensor.item()
+    global_train_mse = train_mse_tensor.item() / \
+        num_batches_tensor.item()
     global_train_l2 = train_l2_tensor.item() / ntrain
 
     # 所有进程都参与测试
@@ -569,19 +613,24 @@ for ep in range(epochs):
             if dist.rank == 0:
                 out = u_normalizer.decode(
                     out.view(batch_size2, -1),
-                    sample_idx=batch["G1"].sample_idx.view(batch_size2, -1),
+                    sample_idx=batch["G1"].sample_idx.view(
+                        batch_size2, -1),
                 )
-                test_l2 += myloss(out, batch["G1+2"].y.view(batch_size2, -1)).item()
+                test_l2 += myloss(
+                    out, batch["G1+2"].y.view(batch_size2, -1)).item()
 
     test_end.record()
     torch.cuda.synchronize()  # 等待测试完成
 
     # 同步测试结果
-    test_l2_tensor = torch.tensor(test_l2, device=dist.device)
+    test_l2_tensor = torch.tensor(
+        test_l2, device=dist.device)
     if dist.world_size > 1:
-        torch.distributed.all_reduce(test_l2_tensor, op=torch.distributed.ReduceOp.SUM)
+        torch.distributed.all_reduce(
+            test_l2_tensor, op=torch.distributed.ReduceOp.SUM)
     test_l2_normalized = test_l2_tensor.item() / ntest
-    test_time_ms = test_start.elapsed_time(test_end) / 1000.0
+    test_time_ms = test_start.elapsed_time(
+        test_end) / 1000.0
 
     if dist.rank == 0:
         t3 = default_timer()
@@ -599,7 +648,8 @@ for ep in range(epochs):
 
         record_data(
             data_record,
-            [ep, global_train_mse, global_train_l2, test_l2_normalized],
+            [ep, global_train_mse, global_train_l2,
+                test_l2_normalized],
             ["epoch", "train_MSE", "train_L2", "test_L2"],
         )
 
@@ -610,7 +660,8 @@ for ep in range(epochs):
                 else model.state_dict()
             )
             record_data(
-                data_record, [ep, to_cpu(model_state)], ["save_epoch", "state_dict"]
+                data_record, [ep, to_cpu(model_state)], [
+                    "save_epoch", "state_dict"]
             )
             pickle.dump(data_record, open(path_model, "wb"))
 

@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import functools
@@ -15,10 +13,10 @@ import torch
 from ase import build
 from torch.profiler import ProfilerActivity, profile
 
+from onescience.datapipes.uma.atomic_data import AtomicData
 from onescience.models.UMA.common.profiler_utils import get_profile_schedule
 from onescience.models.UMA.components.runner import Runner
 from onescience.models.UMA.datasets import data_list_collater
-from onescience.datapipes.uma.atomic_data import AtomicData
 from onescience.models.UMA.units.mlip_unit import MLIPPredictUnit
 from onescience.models.UMA.units.mlip_unit.api.inference import (
     InferenceSettings,
@@ -65,7 +63,8 @@ def get_fcc_carbon_xtal(
     atoms = build.bulk("C", "fcc", a=lattice_constant)
     n_cells = int(np.ceil(np.cbrt(num_atoms)))
     atoms = atoms.repeat((n_cells, n_cells, n_cells))
-    indices = np.random.choice(len(atoms), num_atoms, replace=False)
+    indices = np.random.choice(
+        len(atoms), num_atoms, replace=False)
     sampled_atoms = atoms[indices]
     return ase_to_graph(sampled_atoms, neighbors, radius, external_graph)
 
@@ -77,7 +76,8 @@ def get_qps(data, predictor, warmups: int = 10, timeiters: int = 100):
 
     for _ in range(warmups):
         timefunc()
-        logging.info(f"memory allocated: {torch.cuda.memory_allocated()/(1024**3)}")
+        logging.info(
+            f"memory allocated: {torch.cuda.memory_allocated()/(1024**3)}")
 
     result = timeit.timeit(timefunc, number=timeiters)
     qps = timeiters / result
@@ -93,9 +93,11 @@ def trace_handler(p, name, save_loc):
 
 
 def make_profile(data, predictor, name, save_loc):
-    activities = [ProfilerActivity.CPU, ProfilerActivity.CUDA]
+    activities = [ProfilerActivity.CPU,
+                  ProfilerActivity.CUDA]
     profile_schedule, total_profile_steps = get_profile_schedule()
-    tc = functools.partial(trace_handler, name=name, save_loc=save_loc)
+    tc = functools.partial(
+        trace_handler, name=name, save_loc=save_loc)
 
     with profile(
         activities=activities,
@@ -119,14 +121,16 @@ class InferenceBenchRunner(Runner):
         device="cuda",
         overrides: dict | None = None,
         inference_settings: InferenceSettings = inference_settings_default(),  # noqa B008
-        generate_traces: bool = False,  # takes additional memory and time
+        # takes additional memory and time
+        generate_traces: bool = False,
     ):
         self.natoms_list = natoms_list
         self.device = device
         self.seed = seed
         self.timeiters = timeiters
         self.model_checkpoints = model_checkpoints
-        self.run_dir = os.path.join(run_dir_root, uuid.uuid4().hex.upper()[0:8])
+        self.run_dir = os.path.join(
+            run_dir_root, uuid.uuid4().hex.upper()[0:8])
         self.overrides = overrides
         self.inference_settings = inference_settings
         self.generate_traces = generate_traces
@@ -149,7 +153,8 @@ class InferenceBenchRunner(Runner):
             )
             max_neighbors = predictor.model.module.backbone.max_neighbors
             cutoff = predictor.model.module.backbone.cutoff
-            logging.info(f"Model's max_neighbors: {max_neighbors}, cutoff: {cutoff}")
+            logging.info(
+                f"Model's max_neighbors: {max_neighbors}, cutoff: {cutoff}")
 
             # benchmark all cell sizes
             for natoms in self.natoms_list:
@@ -167,9 +172,12 @@ class InferenceBenchRunner(Runner):
                     print_info += f" num edges compute on: {num_edges}"
                 logging.info(print_info)
                 if self.generate_traces:
-                    make_profile(data, predictor, name=name, save_loc=self.run_dir)
-                qps, ns_per_day = get_qps(data, predictor, timeiters=self.timeiters)
-                model_to_qps_data[name].append([num_atoms, ns_per_day])
+                    make_profile(
+                        data, predictor, name=name, save_loc=self.run_dir)
+                qps, ns_per_day = get_qps(
+                    data, predictor, timeiters=self.timeiters)
+                model_to_qps_data[name].append(
+                    [num_atoms, ns_per_day])
                 logging.info(
                     f"Profile results: model: {model_checkpoint}, num_atoms: {num_atoms}, qps: {qps}, ns_per_day: {ns_per_day}"
                 )

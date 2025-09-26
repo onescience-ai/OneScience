@@ -12,6 +12,7 @@ def create_reranker(config: dict):
         case RerankMode.WEIGHTED_SCORE.value:
             runner = WeightRerankRunner(rerank_model_config)
         case _:
-            raise ValueError(f"Unknown runner type: {reranking_mode}")
+            raise ValueError(
+                f"Unknown runner type: {reranking_mode}")
 
     return runner

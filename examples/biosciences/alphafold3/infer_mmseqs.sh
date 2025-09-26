@@ -1,9 +1,7 @@
 #!/bin/bash
 module purge
 module load sghpc-mpi-gcc/25.8
-# source ${ROCM_PATH}/cuda/env.sh
-source /public/home/onescience2025404/zhangyq/dtk-25.04.2-beta-0912-centos8/env.sh
-source /public/home/onescience2025404/zhangyq/dtk-25.04.2-beta-0912-centos8/cuda/env.sh
+source ${ROCM_PATH}/cuda/env.sh
 export TF_CPP_MIN_LOG_LEVEL=0
 export JAX_TRACEBACK_FILTERING=off
 export XLA_PYTHON_CLIENT_ALLOCATOR=platform

@@ -4,6 +4,7 @@ from torch import Tensor
 from torch.nn import BatchNorm1d, Identity
 from torch_geometric.nn import Linear
 
+
 class MLP(torch.nn.Module):
     r"""A multi-layer perception (MLP) model.
 
@@ -18,8 +19,8 @@ class MLP(torch.nn.Module):
         relu_first (bool, optional): If set to :obj:`True`, ReLU activation is
             applied before batch normalization. (default: :obj:`False`)
     """
-    def __init__(self, channel_list, dropout = 0.,
-                 batch_norm = True, relu_first = False):
+
+    def __init__(self, channel_list, dropout=0.0, batch_norm=True, relu_first=False):
         super().__init__()
         assert len(channel_list) >= 2
         self.channel_list = channel_list
@@ -32,7 +33,11 @@ class MLP(torch.nn.Module):
 
         self.norms = torch.nn.ModuleList()
         for dim in zip(self.channel_list[1:-1]):
-            self.norms.append(BatchNorm1d(dim, track_running_stats = False) if batch_norm else Identity())
+            self.norms.append(
+                BatchNorm1d(dim, track_running_stats=False)
+                if batch_norm
+                else Identity()
+            )
 
         self.reset_parameters()
 
@@ -40,9 +45,8 @@ class MLP(torch.nn.Module):
         for lin in self.lins:
             lin.reset_parameters()
         for norm in self.norms:
-            if hasattr(norm, 'reset_parameters'):
+            if hasattr(norm, "reset_parameters"):
                 norm.reset_parameters()
-
 
     def forward(self, x: Tensor) -> Tensor:
         """"""
@@ -53,10 +57,10 @@ class MLP(torch.nn.Module):
             x = norm(x)
             if not self.relu_first:
                 x = x.relu_()
-            x = F.dropout(x, p = self.dropout, training = self.training)
+            x = F.dropout(x, p=self.dropout,
+                          training=self.training)
             x = lin.forward(x)
         return x
 
-
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({str(self.channel_list)[1:-1]})'
+        return f"{self.__class__.__name__}({str(self.channel_list)[1:-1]})"

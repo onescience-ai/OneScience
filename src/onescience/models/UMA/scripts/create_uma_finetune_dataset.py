@@ -35,7 +35,8 @@ def create_yaml(
     regression_tasks: str,
     # base_model_name: str,
 ):
-    data_task_yaml = TEMPLATE_DIR / REGRESSION_LABEL_TO_TASK_YAML[regression_tasks]
+    data_task_yaml = TEMPLATE_DIR / \
+        REGRESSION_LABEL_TO_TASK_YAML[regression_tasks]
     with open(data_task_yaml) as file:
         template = yaml.safe_load(file)
         template["dataset_name"] = dataset_name
@@ -46,21 +47,25 @@ def create_yaml(
         # add extra large vaccum box for molecules
         # if dataset_name == str(UMATask.OMOL):
         #     template["train_dataset"]["a2g_args"]["molecule_cell_size"] = 1000.0
-        os.makedirs(output_dir / DATA_YAML_DIR, exist_ok=True)
+        os.makedirs(output_dir / DATA_YAML_DIR,
+                    exist_ok=True)
         with open(
-            output_dir / REGRESSION_LABEL_TO_TASK_YAML[regression_tasks], "w"
+            output_dir /
+                REGRESSION_LABEL_TO_TASK_YAML[regression_tasks], "w"
         ) as yaml_file:
-            yaml.dump(template, yaml_file, default_flow_style=False, sort_keys=False)
+            yaml.dump(template, yaml_file,
+                      default_flow_style=False, sort_keys=False)
 
     uma_finetune_yaml = TEMPLATE_DIR / UMA_SM_FINETUNE_YAML
     with open(uma_finetune_yaml) as file:
         template_ft = yaml.safe_load(file)
-        #template_ft["base_model_name"] = base_model_name
+        # template_ft["base_model_name"] = base_model_name
         template_ft["defaults"][0]["data"] = REGRESSION_LABEL_TO_TASK_YAML[
             regression_tasks
         ].stem
     with open(output_dir / UMA_SM_FINETUNE_YAML, "w") as yaml_file:
-        yaml.dump(template_ft, yaml_file, default_flow_style=False, sort_keys=False)
+        yaml.dump(template_ft, yaml_file,
+                  default_flow_style=False, sort_keys=False)
 
 
 if __name__ == "__main__":
@@ -91,12 +96,12 @@ if __name__ == "__main__":
         required=True,
         help="Choose to finetune based on regression task set (you must have the corresponding labels in your dataset), can be energy (e), energy+force (ef) or energy+force+stress(efs)",
     )
-    #parser.add_argument(
+    # parser.add_argument(
     #    "--base-model",
     #    type=str,
     #   default="uma-s-1",
     #    help="Name of base uma model",
-    #)
+    # )
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -116,12 +121,14 @@ if __name__ == "__main__":
 
     # Launch processing for training data
     train_path = args.output_dir / "train"
-    launch_processing(args.train_dir, train_path, args.num_workers)
+    launch_processing(
+        args.train_dir, train_path, args.num_workers)
     force_rms, linref_coeff = compute_normalizer_and_linear_reference(
         train_path, args.num_workers
     )
     val_path = args.output_dir / "val"
-    launch_processing(args.val_dir, val_path, args.num_workers)
+    launch_processing(
+        args.val_dir, val_path, args.num_workers)
 
     create_yaml(
         train_path=str(train_path),
@@ -133,7 +140,8 @@ if __name__ == "__main__":
         regression_tasks=args.regression_tasks,
         # base_model_name=args.base_model,
     )
-    logging.info(f"Generated dataset and data config yaml in {args.output_dir}")
+    logging.info(
+        f"Generated dataset and data config yaml in {args.output_dir}")
     logging.info(
         f"To run finetuning, run fairchem -c {args.output_dir}/{UMA_SM_FINETUNE_YAML}"
     )

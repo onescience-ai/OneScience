@@ -1,4 +1,3 @@
-
 # Parsing functionalities
 
 
@@ -29,8 +28,10 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         )
 
     # Name and seed
-    parser.add_argument("--name", help="experiment name", required=True)
-    parser.add_argument("--seed", help="random seed", type=int, default=123)
+    parser.add_argument(
+        "--name", help="experiment name", required=True)
+    parser.add_argument(
+        "--seed", help="random seed", type=int, default=123)
 
     # Directories
     parser.add_argument(
@@ -79,7 +80,8 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=False,
     )
-    parser.add_argument("--log_level", help="log level", type=str, default="INFO")
+    parser.add_argument(
+        "--log_level", help="log level", type=str, default="INFO")
 
     parser.add_argument(
         "--plot",
@@ -238,7 +240,8 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         help="type of scaling to the output",
         type=str,
         default="rms_forces_scaling",
-        choices=["std_scaling", "rms_forces_scaling", "no_scaling"],
+        choices=["std_scaling",
+                 "rms_forces_scaling", "no_scaling"],
     )
     parser.add_argument(
         "--avg_num_neighbors",
@@ -408,7 +411,8 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--filter_type_pt",
         help="Filtering method for collecting the pretraining set",
-        choices=["none", "combinations", "inclusive", "exclusive"],
+        choices=["none", "combinations",
+                 "inclusive", "exclusive"],
         default="none",
     )
     parser.add_argument(
@@ -584,7 +588,8 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
         type=float,
         default=0.9,
     )
-    parser.add_argument("--batch_size", help="batch size", type=int, default=10)
+    parser.add_argument(
+        "--batch_size", help="batch size", type=int, default=10)
     parser.add_argument(
         "--valid_batch_size", help="Validation batch size", type=int, default=10
     )
@@ -911,7 +916,8 @@ def build_preprocess_arg_parser() -> argparse.ArgumentParser:
         help="type of scaling to the output",
         type=str,
         default="rms_forces_scaling",
-        choices=["std_scaling", "rms_forces_scaling", "no_scaling"],
+        choices=["std_scaling",
+                 "rms_forces_scaling", "no_scaling"],
     )
     parser.add_argument(
         "--E0s",
@@ -966,4 +972,5 @@ def str2bool(value):
         return True
     if value.lower() in ("no", "false", "f", "n", "0"):
         return False
-    raise argparse.ArgumentTypeError("Boolean value expected.")
+    raise argparse.ArgumentTypeError(
+        "Boolean value expected.")

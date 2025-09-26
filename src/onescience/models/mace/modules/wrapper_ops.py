@@ -28,7 +28,8 @@ class CuEquivarianceConfig:
     layout: str = "mul_ir"  # One of: mul_ir, ir_mul
     layout_str: str = "mul_ir"
     group: str = "O3"
-    optimize_all: bool = False  # Set to True to enable all optimizations
+    # Set to True to enable all optimizations
+    optimize_all: bool = False
     optimize_linear: bool = False
     optimize_channelwise: bool = False
     optimize_symmetric: bool = False
@@ -39,7 +40,8 @@ class CuEquivarianceConfig:
             self.layout_str = self.layout
             self.layout = getattr(cue, self.layout)
             self.group = (
-                O3_e3nn if self.group == "O3_e3nn" else getattr(cue, self.group)
+                O3_e3nn if self.group == "O3_e3nn" else getattr(
+                    cue, self.group)
             )
         if not CUET_AVAILABLE:
             self.enabled = False

@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import logging
@@ -27,7 +25,8 @@ class ElementReferences(nn.Module):
             element_references (Tensor): tensor with reference value for each element
         """
         super().__init__()
-        self.register_buffer(name="element_references", tensor=element_references)
+        self.register_buffer(
+            name="element_references", tensor=element_references)
 
     @staticmethod
     def compute_references(batch, tensor, elem_refs, operation):
@@ -46,7 +45,8 @@ class ElementReferences(nn.Module):
             elif operation == "add":
                 return tensor + refs
             else:
-                raise ValueError(f"Unknown operation: {operation}")
+                raise ValueError(
+                    f"Unknown operation: {operation}")
 
     def apply_refs(
         self,
@@ -120,7 +120,8 @@ class LinearReferences(nn.Module):
         indices = batch.atomic_numbers.to(
             dtype=torch.int, device=self.element_references.device
         )
-        elemrefs = self.element_references[indices].to(dtype=target.dtype)
+        elemrefs = self.element_references[indices].to(
+            dtype=target.dtype)
         # this option should not exist, all tensors should have compatible shapes in dataset and trainer outputs
         if reshaped:
             elemrefs = elemrefs.view(batch.natoms.sum(), -1)
@@ -173,7 +174,8 @@ def create_element_references(
             with np.load(file) as values:
                 # legacy linref files
                 if "coeff" in values:
-                    state_dict["element_references"] = torch.tensor(values["coeff"])
+                    state_dict["element_references"] = torch.tensor(
+                        values["coeff"])
                 else:
                     state_dict["element_references"] = torch.tensor(
                         values["element_references"]
@@ -184,7 +186,8 @@ def create_element_references(
             )
 
     if "element_references" not in state_dict:
-        raise RuntimeError("Unable to load linear element references!")
+        raise RuntimeError(
+            "Unable to load linear element references!")
 
     return LinearReferences(element_references=state_dict["element_references"])
 
@@ -234,7 +237,8 @@ def fit_linear_references(
         generator=torch.Generator().manual_seed(seed),
     )
 
-    num_batches = num_batches if num_batches is not None else len(data_loader)
+    num_batches = num_batches if num_batches is not None else len(
+        data_loader)
     if num_batches > len(data_loader):
         logging.warning(
             f"The given num_batches {num_batches} is larger than total batches of size {batch_size} in dataset. "
@@ -268,10 +272,11 @@ def fit_linear_references(
         elif i == num_batches:
             break
 
-        next_batch_size = len(batch) if i == len(data_loader) - 1 else batch_size
+        next_batch_size = len(batch) if i == len(
+            data_loader) - 1 else batch_size
         for target in targets:
             target_vectors[target][
-                i * batch_size : i * batch_size + next_batch_size
+                i * batch_size: i * batch_size + next_batch_size
             ] = batch[target].to(torch.float64)
         for j, data in enumerate(batch.batch_to_atomicdata_list()):
             composition_matrix[i * batch_size + j] = torch.bincount(
@@ -306,7 +311,8 @@ def fit_linear_references(
 
         if log_metrics is True:
             y = target_vectors[target]
-            y_pred = torch.matmul(reduced_composition_matrix, solution)
+            y_pred = torch.matmul(
+                reduced_composition_matrix, solution)
             y_mean = target_vectors[target].mean()
             N = len(target_vectors[target])
             ss_res = ((y - y_pred) ** 2).sum()

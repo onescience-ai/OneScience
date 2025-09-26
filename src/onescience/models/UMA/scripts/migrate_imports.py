@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import argparse
@@ -89,13 +87,15 @@ def main():
     args = parser.parse_args()
 
     if os.path.isfile(args.input):
-        replace_strings_in_file(args.input, mapping, not args.execute)
+        replace_strings_in_file(
+            args.input, mapping, not args.execute)
     elif os.path.isdir(args.input):
         for root, _, files in os.walk(args.input):
             for file in files:
                 file_path = os.path.join(root, file)
                 if pathlib.Path(file).suffix in extensions:
-                    replace_strings_in_file(file_path, mapping, not args.execute)
+                    replace_strings_in_file(
+                        file_path, mapping, not args.execute)
     else:
         raise ValueError("unknown input type")
 

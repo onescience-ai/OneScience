@@ -25,7 +25,8 @@ def get_clean_full_confidence(full_confidence_dict: dict) -> dict:
     # Remove atom_is_polymer
     full_confidence_dict.pop("atom_is_polymer")
     # Keep two decimal places
-    full_confidence_dict = round_values(full_confidence_dict)
+    full_confidence_dict = round_values(
+        full_confidence_dict)
     return full_confidence_dict
 
 
@@ -60,7 +61,8 @@ class DataDumper:
             atom_array (AtomArray): The AtomArray object containing the structure data.
             entity_poly_type (dict[str, str]): The entity poly type information.
         """
-        dump_dir = self._get_dump_dir(dataset_name, pdb_id, seed)
+        dump_dir = self._get_dump_dir(
+            dataset_name, pdb_id, seed)
         Path(dump_dir).mkdir(parents=True, exist_ok=True)
 
         self.dump_predictions(
@@ -95,7 +97,8 @@ class DataDumper:
             structure: Save the predicted coordinates as CIF files.
             confidence: Save the confidence data as JSON files.
         """
-        prediction_save_dir = os.path.join(dump_dir, "predictions")
+        prediction_save_dir = os.path.join(
+            dump_dir, "predictions")
         os.makedirs(prediction_save_dir, exist_ok=True)
 
         # Dump structure
@@ -108,12 +111,15 @@ class DataDumper:
                     # atom_plddt.shape == [N_atom]
                     atom_plddt = each_sample_dict["atom_plddt"]
                     if atom_plddt.dtype == torch.bfloat16:
-                        atom_plddt = atom_plddt.to(torch.float32)
-                    all_atom_plddt.append(atom_plddt.cpu().numpy() * 100.0)
+                        atom_plddt = atom_plddt.to(
+                            torch.float32)
+                    all_atom_plddt.append(
+                        atom_plddt.cpu().numpy() * 100.0)
 
             if len(all_atom_plddt) == len(pred_dict["full_data"]):
                 b_factor = all_atom_plddt
-        sorted_indices = self._get_ranker_indices(data=pred_dict)
+        sorted_indices = self._get_ranker_indices(
+            data=pred_dict)
         self._save_structure(
             pred_coordinates=pred_dict["coordinate"],
             prediction_save_dir=prediction_save_dir,
@@ -147,7 +153,8 @@ class DataDumper:
         assert atom_array is not None
         N_sample = pred_coordinates.shape[0]
         if sorted_indices is None:
-            sorted_indices = range(N_sample)  # do not rank the output file
+            # do not rank the output file
+            sorted_indices = range(N_sample)
         for idx, rank in enumerate(sorted_indices):
             output_fpath = os.path.join(
                 prediction_save_dir,
@@ -155,7 +162,8 @@ class DataDumper:
             )
             if b_factor is not None:
                 # b_factor.shape == [N_sample, N_atom]
-                atom_array.set_annotation("b_factor", np.round(b_factor[idx], 2))
+                atom_array.set_annotation(
+                    "b_factor", np.round(b_factor[idx], 2))
 
             save_structure_cif(
                 atom_array=atom_array,
@@ -202,10 +210,12 @@ class DataDumper:
                 prediction_save_dir,
                 f"{sample_name}_seed_{seed}_summary_confidence_sample_{rank}.json",
             )
-            save_json(data["summary_confidence"][idx], output_fpath, indent=4)
+            save_json(data["summary_confidence"]
+                      [idx], output_fpath, indent=4)
             if self.need_atom_confidence:
                 output_fpath = os.path.join(
                     prediction_save_dir,
                     f"{sample_name}_full_data_sample_{rank}.json",
                 )
-                save_json(data["full_data"][idx], output_fpath, indent=None)
+                save_json(data["full_data"][idx],
+                          output_fpath, indent=None)

@@ -1,4 +1,3 @@
-
 # Atomic Data Class for handling molecules as graphs
 
 from copy import deepcopy
@@ -69,26 +68,35 @@ class AtomicData(torch_geometric.data.Data):
         # Check shapes
         num_nodes = node_attrs.shape[0]
 
-        assert edge_index.shape[0] == 2 and len(edge_index.shape) == 2
+        assert edge_index.shape[0] == 2 and len(
+            edge_index.shape) == 2
         assert positions.shape == (num_nodes, 3)
         assert shifts.shape[1] == 3
         assert unit_shifts.shape[1] == 3
         assert len(node_attrs.shape) == 2
         assert weight is None or len(weight.shape) == 0
         assert head is None or len(head.shape) == 0
-        assert energy_weight is None or len(energy_weight.shape) == 0
-        assert forces_weight is None or len(forces_weight.shape) == 0
-        assert stress_weight is None or len(stress_weight.shape) == 0
-        assert virials_weight is None or len(virials_weight.shape) == 0
-        assert dipole_weight is None or dipole_weight.shape == (1, 3), dipole_weight
-        assert charges_weight is None or len(charges_weight.shape) == 0
+        assert energy_weight is None or len(
+            energy_weight.shape) == 0
+        assert forces_weight is None or len(
+            forces_weight.shape) == 0
+        assert stress_weight is None or len(
+            stress_weight.shape) == 0
+        assert virials_weight is None or len(
+            virials_weight.shape) == 0
+        assert dipole_weight is None or dipole_weight.shape == (
+            1, 3), dipole_weight
+        assert charges_weight is None or len(
+            charges_weight.shape) == 0
         assert cell is None or cell.shape == (3, 3)
-        assert forces is None or forces.shape == (num_nodes, 3)
+        assert forces is None or forces.shape == (
+            num_nodes, 3)
         assert energy is None or len(energy.shape) == 0
         assert stress is None or stress.shape == (1, 3, 3)
         assert virials is None or virials.shape == (1, 3, 3)
         assert dipole is None or dipole.shape[-1] == 3
-        assert charges is None or charges.shape == (num_nodes,)
+        assert charges is None or charges.shape == (
+            num_nodes,)
         # Aggregate data
         data = {
             "num_nodes": num_nodes,
@@ -132,18 +140,23 @@ class AtomicData(torch_geometric.data.Data):
             pbc=deepcopy(config.pbc),
             cell=deepcopy(config.cell),
         )
-        indices = atomic_numbers_to_indices(config.atomic_numbers, z_table=z_table)
+        indices = atomic_numbers_to_indices(
+            config.atomic_numbers, z_table=z_table)
         one_hot = to_one_hot(
-            torch.tensor(indices, dtype=torch.long).unsqueeze(-1),
+            torch.tensor(
+                indices, dtype=torch.long).unsqueeze(-1),
             num_classes=len(z_table),
         )
         try:
-            head = torch.tensor(heads.index(config.head), dtype=torch.long)
+            head = torch.tensor(heads.index(
+                config.head), dtype=torch.long)
         except ValueError:
-            head = torch.tensor(len(heads) - 1, dtype=torch.long)
+            head = torch.tensor(
+                len(heads) - 1, dtype=torch.long)
 
         cell = (
-            torch.tensor(cell, dtype=torch.get_default_dtype())
+            torch.tensor(
+                cell, dtype=torch.get_default_dtype())
             if cell is not None
             else torch.tensor(
                 3 * [0.0, 0.0, 0.0], dtype=torch.get_default_dtype()
@@ -153,7 +166,8 @@ class AtomicData(torch_geometric.data.Data):
         num_atoms = len(config.atomic_numbers)
 
         weight = (
-            torch.tensor(config.weight, dtype=torch.get_default_dtype())
+            torch.tensor(
+                config.weight, dtype=torch.get_default_dtype())
             if config.weight is not None
             else torch.tensor(1.0, dtype=torch.get_default_dtype())
         )
@@ -260,10 +274,14 @@ class AtomicData(torch_geometric.data.Data):
         )
 
         return cls(
-            edge_index=torch.tensor(edge_index, dtype=torch.long),
-            positions=torch.tensor(config.positions, dtype=torch.get_default_dtype()),
-            shifts=torch.tensor(shifts, dtype=torch.get_default_dtype()),
-            unit_shifts=torch.tensor(unit_shifts, dtype=torch.get_default_dtype()),
+            edge_index=torch.tensor(
+                edge_index, dtype=torch.long),
+            positions=torch.tensor(
+                config.positions, dtype=torch.get_default_dtype()),
+            shifts=torch.tensor(
+                shifts, dtype=torch.get_default_dtype()),
+            unit_shifts=torch.tensor(
+                unit_shifts, dtype=torch.get_default_dtype()),
             cell=cell,
             node_attrs=one_hot,
             weight=weight,

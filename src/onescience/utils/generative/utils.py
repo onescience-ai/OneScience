@@ -58,7 +58,8 @@ class StackedRandomGenerator:  # pragma: no cover
                 f"Expected first dimension of size {len(self.generators)}, got {size[0]}"
             )
         return torch.stack(
-            [torch.randn(size[1:], generator=gen, **kwargs) for gen in self.generators]
+            [torch.randn(size[1:], generator=gen, **kwargs)
+             for gen in self.generators]
         )
 
     def randn_like(self, input):
@@ -73,7 +74,8 @@ class StackedRandomGenerator:  # pragma: no cover
             )
         return torch.stack(
             [
-                torch.randint(*args, size=size[1:], generator=gen, **kwargs)
+                torch.randint(
+                    *args, size=size[1:], generator=gen, **kwargs)
                 for gen in self.generators
             ]
         )
@@ -91,7 +93,8 @@ def parse_int_list(s):  # pragma: no cover
     for p in s.split(","):
         m = range_re.match(p)
         if m:
-            ranges.extend(range(int(m.group(1)), int(m.group(2)) + 1))
+            ranges.extend(
+                range(int(m.group(1)), int(m.group(2)) + 1))
         else:
             ranges.append(int(p))
     return ranges
@@ -131,7 +134,8 @@ def format_time(seconds: Union[int, float]) -> str:  # pragma: no cover
         return "{0}h {1:02}m {2:02}s".format(s // (60 * 60), (s // 60) % 60, s % 60)
     else:
         return "{0}d {1:02}h {2:02}m".format(
-            s // (24 * 60 * 60), (s // (60 * 60)) % 24, (s // 60) % 60
+            s // (24 * 60 * 60), (s // (60 * 60)
+                                  ) % 24, (s // 60) % 60
         )
 
 
@@ -187,7 +191,8 @@ def get_dtype_and_ctype(type_obj: Any) -> Tuple[np.dtype, Any]:  # pragma: no co
     elif hasattr(type_obj, "name"):
         type_str = type_obj.name
     else:
-        raise RuntimeError("Cannot infer type name from input")
+        raise RuntimeError(
+            "Cannot infer type name from input")
 
     if type_str not in _str_to_ctype.keys():
         raise ValueError("Unknown type name: " + type_str)
@@ -197,7 +202,8 @@ def get_dtype_and_ctype(type_obj: Any) -> Tuple[np.dtype, Any]:  # pragma: no co
 
     if my_dtype.itemsize != ctypes.sizeof(my_ctype):
         raise ValueError(
-            "Numpy and ctypes types for '{}' have different sizes!".format(type_str)
+            "Numpy and ctypes types for '{}' have different sizes!".format(
+                type_str)
         )
 
     return my_dtype, my_ctype
@@ -228,8 +234,10 @@ def get_module_from_obj_name(
     # try each alternative in turn
     for module_name, local_obj_name in name_pairs:
         try:
-            module = importlib.import_module(module_name)  # may raise ImportError
-            get_obj_from_module(module, local_obj_name)  # may raise AttributeError
+            module = importlib.import_module(
+                module_name)  # may raise ImportError
+            # may raise AttributeError
+            get_obj_from_module(module, local_obj_name)
             return module, local_obj_name
         except:
             pass
@@ -237,7 +245,8 @@ def get_module_from_obj_name(
     # maybe some of the modules themselves contain errors?
     for module_name, _local_obj_name in name_pairs:
         try:
-            importlib.import_module(module_name)  # may raise ImportError
+            # may raise ImportError
+            importlib.import_module(module_name)
         except ImportError:
             if not str(sys.exc_info()[1]).startswith(
                 "No module named '" + module_name + "'"
@@ -247,8 +256,10 @@ def get_module_from_obj_name(
     # maybe the requested attribute is missing?
     for module_name, local_obj_name in name_pairs:
         try:
-            module = importlib.import_module(module_name)  # may raise ImportError
-            get_obj_from_module(module, local_obj_name)  # may raise AttributeError
+            module = importlib.import_module(
+                module_name)  # may raise ImportError
+            # may raise AttributeError
+            get_obj_from_module(module, local_obj_name)
         except ImportError:
             pass
 
@@ -323,10 +334,12 @@ def get_top_level_function_name(obj: Any) -> str:  # pragma: no cover
     Return the fully-qualified name of a top-level function.
     """
     if not is_top_level_function(obj):
-        raise ValueError("Object is not a top-level function")
+        raise ValueError(
+            "Object is not a top-level function")
     module = obj.__module__
     if module == "__main__":
-        module = os.path.splitext(os.path.basename(sys.modules[module].__file__))[0]
+        module = os.path.splitext(os.path.basename(
+            sys.modules[module].__file__))[0]
     return module + "." + obj.__name__
 
 
@@ -342,7 +355,8 @@ def list_dir_recursively_with_ignore(
     directory names. Returns list of tuples containing both absolute and relative paths.
     """
     if not os.path.isdir(dir_path):
-        raise RuntimeError(f"Directory does not exist: {dir_path}")
+        raise RuntimeError(
+            f"Directory does not exist: {dir_path}")
     base_name = os.path.basename(os.path.normpath(dir_path))
 
     if ignores is None:
@@ -352,29 +366,35 @@ def list_dir_recursively_with_ignore(
 
     for root, dirs, files in os.walk(dir_path, topdown=True):
         for ignore_ in ignores:
-            dirs_to_remove = [d for d in dirs if fnmatch.fnmatch(d, ignore_)]
+            dirs_to_remove = [
+                d for d in dirs if fnmatch.fnmatch(d, ignore_)]
 
             # dirs need to be edited in-place
             for d in dirs_to_remove:
                 dirs.remove(d)
 
-            files = [f for f in files if not fnmatch.fnmatch(f, ignore_)]
+            files = [
+                f for f in files if not fnmatch.fnmatch(f, ignore_)]
 
-        absolute_paths = [os.path.join(root, f) for f in files]
-        relative_paths = [os.path.relpath(p, dir_path) for p in absolute_paths]
+        absolute_paths = [
+            os.path.join(root, f) for f in files]
+        relative_paths = [os.path.relpath(
+            p, dir_path) for p in absolute_paths]
 
         if add_base_to_relative:
-            relative_paths = [os.path.join(base_name, p) for p in relative_paths]
+            relative_paths = [os.path.join(
+                base_name, p) for p in relative_paths]
 
         if len(absolute_paths) != len(relative_paths):
-            raise ValueError("Number of absolute and relative paths do not match")
+            raise ValueError(
+                "Number of absolute and relative paths do not match")
         result += zip(absolute_paths, relative_paths)
 
     return result
 
 
 def copy_files_and_create_dirs(
-    files: List[Tuple[str, str]]
+    files: List[Tuple[str, str]],
 ) -> None:  # pragma: no cover
     """
     Takes in a list of tuples of (src, dst) paths and copies files.
@@ -422,10 +442,13 @@ def constant(
     )
     tensor = _constant_cache.get(key, None)
     if tensor is None:
-        tensor = torch.as_tensor(value.copy(), dtype=dtype, device=device)
+        tensor = torch.as_tensor(
+            value.copy(), dtype=dtype, device=device)
         if shape is not None:
-            tensor, _ = torch.broadcast_tensors(tensor, torch.empty(shape))
-        tensor = tensor.contiguous(memory_format=memory_format)
+            tensor, _ = torch.broadcast_tensors(
+                tensor, torch.empty(shape))
+        tensor = tensor.contiguous(
+            memory_format=memory_format)
         _constant_cache[key] = tensor
     return tensor
 
@@ -448,7 +471,8 @@ except AttributeError:
         if neginf is None:
             neginf = torch.finfo(input.dtype).min
         if nan != 0:
-            raise ValueError("nan_to_num only supports nan=0")
+            raise ValueError(
+                "nan_to_num only supports nan=0")
         return torch.clamp(
             input.unsqueeze(0).nansum(0), min=neginf, max=posinf, out=out
         )
@@ -458,7 +482,8 @@ except AttributeError:
 # Symbolic assert.
 
 try:
-    symbolic_assert = torch._assert  # 1.8.0a0 # pylint: disable=protected-access
+    # 1.8.0a0 # pylint: disable=protected-access
+    symbolic_assert = torch._assert
 except AttributeError:
     symbolic_assert = torch.Assert  # 1.7.0
 
@@ -501,13 +526,15 @@ def assert_shape(tensor, ref_shape):  # pragma: no cover
         elif isinstance(ref_size, torch.Tensor):
             with suppress_tracer_warnings():  # as_tensor results are registered as constants
                 symbolic_assert(
-                    torch.equal(torch.as_tensor(size), ref_size),
+                    torch.equal(
+                        torch.as_tensor(size), ref_size),
                     f"Wrong size for dimension {idx}",
                 )
         elif isinstance(size, torch.Tensor):
             with suppress_tracer_warnings():  # as_tensor results are registered as constants
                 symbolic_assert(
-                    torch.equal(size, torch.as_tensor(ref_size)),
+                    torch.equal(
+                        size, torch.as_tensor(ref_size)),
                     f"Wrong size for dimension {idx}: expected {ref_size}",
                 )
         elif size != ref_size:
@@ -546,13 +573,17 @@ class InfiniteSampler(torch.utils.data.Sampler):  # pragma: no cover
         self, dataset, rank=0, num_replicas=1, shuffle=True, seed=0, window_size=0.5
     ):
         if not len(dataset) > 0:
-            raise ValueError("Dataset must contain at least one item")
+            raise ValueError(
+                "Dataset must contain at least one item")
         if not num_replicas > 0:
-            raise ValueError("num_replicas must be positive")
+            raise ValueError(
+                "num_replicas must be positive")
         if not 0 <= rank < num_replicas:
-            raise ValueError("rank must be non-negative and less than num_replicas")
+            raise ValueError(
+                "rank must be non-negative and less than num_replicas")
         if not 0 <= window_size <= 1:
-            raise ValueError("window_size must be between 0 and 1")
+            raise ValueError(
+                "window_size must be between 0 and 1")
         super().__init__()
         self.dataset = dataset
         self.rank = rank
@@ -568,7 +599,8 @@ class InfiniteSampler(torch.utils.data.Sampler):  # pragma: no cover
         if self.shuffle:
             rnd = np.random.RandomState(self.seed)
             rnd.shuffle(order)
-            window = int(np.rint(order.size * self.window_size))
+            window = int(
+                np.rint(order.size * self.window_size))
 
         idx = 0
         while True:
@@ -588,14 +620,16 @@ class InfiniteSampler(torch.utils.data.Sampler):  # pragma: no cover
 def params_and_buffers(module):  # pragma: no cover
     """Get parameters and buffers of a nn.Module"""
     if not isinstance(module, torch.nn.Module):
-        raise TypeError("module must be a torch.nn.Module instance")
+        raise TypeError(
+            "module must be a torch.nn.Module instance")
     return list(module.parameters()) + list(module.buffers())
 
 
 def named_params_and_buffers(module):  # pragma: no cover
     """Get named parameters and buffers of a nn.Module"""
     if not isinstance(module, torch.nn.Module):
-        raise TypeError("module must be a torch.nn.Module instance")
+        raise TypeError(
+            "module must be a torch.nn.Module instance")
     return list(module.named_parameters()) + list(module.named_buffers())
 
 
@@ -605,13 +639,16 @@ def copy_params_and_buffers(
 ):  # pragma: no cover
     """Copy parameters and buffers from a source module to target module"""
     if not isinstance(src_module, torch.nn.Module):
-        raise TypeError("src_module must be a torch.nn.Module instance")
+        raise TypeError(
+            "src_module must be a torch.nn.Module instance")
     if not isinstance(dst_module, torch.nn.Module):
-        raise TypeError("dst_module must be a torch.nn.Module instance")
+        raise TypeError(
+            "dst_module must be a torch.nn.Module instance")
     src_tensors = dict(named_params_and_buffers(src_module))
     for name, tensor in named_params_and_buffers(dst_module):
         if not ((name in src_tensors) or (not require_all)):
-            raise ValueError(f"Missing source tensor for {name}")
+            raise ValueError(
+                f"Missing source tensor for {name}")
         if name in src_tensors:
             tensor.copy_(src_tensors[name])
 
@@ -628,7 +665,8 @@ def ddp_sync(module, sync):  # pragma: no cover
     synchronization.
     """
     if not isinstance(module, torch.nn.Module):
-        raise TypeError("module must be a torch.nn.Module instance")
+        raise TypeError(
+            "module must be a torch.nn.Module instance")
     if sync or not isinstance(module, torch.nn.parallel.DistributedDataParallel):
         yield
     else:
@@ -643,7 +681,8 @@ def ddp_sync(module, sync):  # pragma: no cover
 def check_ddp_consistency(module, ignore_regex=None):  # pragma: no cover
     """Check DistributedDataParallel consistency across processes."""
     if not isinstance(module, torch.nn.Module):
-        raise TypeError("module must be a torch.nn.Module instance")
+        raise TypeError(
+            "module must be a torch.nn.Module instance")
     for name, tensor in named_params_and_buffers(module):
         fullname = type(module).__name__ + "." + name
         if ignore_regex is not None and re.fullmatch(ignore_regex, fullname):
@@ -654,7 +693,8 @@ def check_ddp_consistency(module, ignore_regex=None):  # pragma: no cover
         other = tensor.clone()
         torch.distributed.broadcast(tensor=other, src=0)
         if not (tensor == other).all():
-            raise RuntimeError(f"DDP consistency check failed for {fullname}")
+            raise RuntimeError(
+                f"DDP consistency check failed for {fullname}")
 
 
 # ----------------------------------------------------------------------------
@@ -666,9 +706,11 @@ def print_module_summary(
 ):  # pragma: no cover
     """Print summary table of module hierarchy."""
     if not isinstance(module, torch.nn.Module):
-        raise TypeError("module must be a torch.nn.Module instance")
+        raise TypeError(
+            "module must be a torch.nn.Module instance")
     if isinstance(module, torch.jit.ScriptModule):
-        raise TypeError("module must not be a torch.jit.ScriptModule instance")
+        raise TypeError(
+            "module must not be a torch.jit.ScriptModule instance")
     if not isinstance(inputs, (tuple, list)):
         raise TypeError("inputs must be a tuple or list")
 
@@ -682,12 +724,17 @@ def print_module_summary(
     def post_hook(mod, _inputs, outputs):
         nesting[0] -= 1
         if nesting[0] <= max_nesting:
-            outputs = list(outputs) if isinstance(outputs, (tuple, list)) else [outputs]
-            outputs = [t for t in outputs if isinstance(t, torch.Tensor)]
-            entries.append(EasyDict(mod=mod, outputs=outputs))
+            outputs = list(outputs) if isinstance(
+                outputs, (tuple, list)) else [outputs]
+            outputs = [
+                t for t in outputs if isinstance(t, torch.Tensor)]
+            entries.append(
+                EasyDict(mod=mod, outputs=outputs))
 
-    hooks = [mod.register_forward_pre_hook(pre_hook) for mod in module.modules()]
-    hooks += [mod.register_forward_hook(post_hook) for mod in module.modules()]
+    hooks = [mod.register_forward_pre_hook(
+        pre_hook) for mod in module.modules()]
+    hooks += [mod.register_forward_hook(post_hook)
+              for mod in module.modules()]
 
     # Run module.
     outputs = module(*inputs)
@@ -697,9 +744,12 @@ def print_module_summary(
     # Identify unique outputs, parameters, and buffers.
     tensors_seen = set()
     for e in entries:
-        e.unique_params = [t for t in e.mod.parameters() if id(t) not in tensors_seen]
-        e.unique_buffers = [t for t in e.mod.buffers() if id(t) not in tensors_seen]
-        e.unique_outputs = [t for t in e.outputs if id(t) not in tensors_seen]
+        e.unique_params = [
+            t for t in e.mod.parameters() if id(t) not in tensors_seen]
+        e.unique_buffers = [
+            t for t in e.mod.buffers() if id(t) not in tensors_seen]
+        e.unique_outputs = [
+            t for t in e.outputs if id(t) not in tensors_seen]
         tensors_seen |= {
             id(t) for t in e.unique_params + e.unique_buffers + e.unique_outputs
         }
@@ -714,21 +764,27 @@ def print_module_summary(
 
     # Construct table.
     rows = [
-        [type(module).__name__, "Parameters", "Buffers", "Output shape", "Datatype"]
+        [type(module).__name__, "Parameters",
+         "Buffers", "Output shape", "Datatype"]
     ]
     rows += [["---"] * len(rows[0])]
     param_total = 0
     buffer_total = 0
-    submodule_names = {mod: name for name, mod in module.named_modules()}
+    submodule_names = {mod: name for name,
+                       mod in module.named_modules()}
     for e in entries:
         name = "<top-level>" if e.mod is module else submodule_names[e.mod]
         param_size = sum(t.numel() for t in e.unique_params)
-        buffer_size = sum(t.numel() for t in e.unique_buffers)
-        output_shapes = [str(list(t.shape)) for t in e.outputs]
-        output_dtypes = [str(t.dtype).split(".")[-1] for t in e.outputs]
+        buffer_size = sum(t.numel()
+                          for t in e.unique_buffers)
+        output_shapes = [str(list(t.shape))
+                         for t in e.outputs]
+        output_dtypes = [str(t.dtype).split(
+            ".")[-1] for t in e.outputs]
         rows += [
             [
-                name + (":0" if len(e.outputs) >= 2 else ""),
+                name + (":0" if len(e.outputs)
+                        >= 2 else ""),
                 str(param_size) if param_size else "-",
                 str(buffer_size) if buffer_size else "-",
                 (output_shapes + ["-"])[0],
@@ -737,15 +793,18 @@ def print_module_summary(
         ]
         for idx in range(1, len(e.outputs)):
             rows += [
-                [name + f":{idx}", "-", "-", output_shapes[idx], output_dtypes[idx]]
+                [name + f":{idx}", "-", "-",
+                    output_shapes[idx], output_dtypes[idx]]
             ]
         param_total += param_size
         buffer_total += buffer_size
     rows += [["---"] * len(rows[0])]
-    rows += [["Total", str(param_total), str(buffer_total), "-", "-"]]
+    rows += [["Total", str(param_total),
+              str(buffer_total), "-", "-"]]
 
     # Print table.
-    widths = [max(len(cell) for cell in column) for column in zip(*rows)]
+    widths = [max(len(cell) for cell in column)
+              for column in zip(*rows)]
     for row in rows:
         print(
             "  ".join(

@@ -7,7 +7,8 @@ import torch.nn as nn
 from onescience.datapipes.protenix.constants import rdkit_vdws
 
 RDKIT_VDWS = torch.tensor(rdkit_vdws)
-ID2TYPE = {0: "UNK", 1: "lig", 2: "prot", 3: "dna", 4: "rna"}
+ID2TYPE = {0: "UNK", 1: "lig",
+           2: "prot", 3: "dna", 4: "rna"}
 
 
 def get_vdw_radii(elements_one_hot):
@@ -79,7 +80,8 @@ class Clash(nn.Module):
         # Check and compute chain_types
         chain_types = []
         mol_id_to_asym_ids, asym_id_to_mol_id = {}, {}
-        atom_type = (1 * is_ligand + 2 * is_protein + 3 * is_dna + 4 * is_rna).long()
+        atom_type = (1 * is_ligand + 2 * is_protein +
+                     3 * is_dna + 4 * is_rna).long()
         if self.compute_vdw_clash:
             assert mol_id is not None
             assert elements_one_hot is not None
@@ -92,11 +94,14 @@ class Clash(nn.Module):
                 logging.warning(
                     "Unknown asym_id type: not in ligand / protein / dna / rna"
                 )
-            chain_types.append(ID2TYPE[atom_type_i[0].item()])
+            chain_types.append(
+                ID2TYPE[atom_type_i[0].item()])
             if self.compute_vdw_clash:
                 # Check if all atoms in a chain are from the same molecule
-                mol_id_i = mol_id[atom_chain_mask].unique().item()
-                mol_id_to_asym_ids.setdefault(mol_id_i, []).append(aid)
+                mol_id_i = mol_id[atom_chain_mask].unique(
+                ).item()
+                mol_id_to_asym_ids.setdefault(
+                    mol_id_i, []).append(aid)
                 asym_id_to_mol_id[aid] = mol_id_i
 
         chain_info = {
@@ -110,7 +115,8 @@ class Clash(nn.Module):
         }
 
         if self.compute_vdw_clash:
-            chain_info.update({"asym_id_to_mol_id": asym_id_to_mol_id})
+            chain_info.update(
+                {"asym_id_to_mol_id": asym_id_to_mol_id})
 
         return chain_info
 
@@ -124,13 +130,16 @@ class Clash(nn.Module):
     ):
         chain_1_coords = pred_coordinate[chain_1_mask, :]
         chain_2_coords = pred_coordinate[chain_2_mask, :]
-        pred_dist = torch.cdist(chain_1_coords, chain_2_coords)
+        pred_dist = torch.cdist(
+            chain_1_coords, chain_2_coords)
         if violation_type == "af3":
             clash_per_atom_pair = (
                 pred_dist < self.af3_clash_threshold
             )  # [ N_atom_chain_1, N_atom_chain_2]
-            clashed_col, clashed_row = torch.where(clash_per_atom_pair)
-            clash_atom_pairs = torch.stack((clashed_col, clashed_row), dim=-1)
+            clashed_col, clashed_row = torch.where(
+                clash_per_atom_pair)
+            clash_atom_pairs = torch.stack(
+                (clashed_col, clashed_row), dim=-1)
         else:
             assert elements_one_hot is not None
             vdw_radii_i, vdw_radii_j = get_vdw_radii(
@@ -143,12 +152,16 @@ class Clash(nn.Module):
             clash_per_atom_pair = (
                 relative_vdw_distance < self.vdw_clash_threshold
             )  # [N_atom_chain_1, N_atom_chain_2]
-            clashed_col, clashed_row = torch.where(clash_per_atom_pair)
+            clashed_col, clashed_row = torch.where(
+                clash_per_atom_pair)
             clash_rel_dist = relative_vdw_distance[clashed_col, clashed_row]
-            clashed_global_col = torch.where(chain_1_mask)[0][clashed_col]
-            clashed_global_row = torch.where(chain_2_mask)[0][clashed_row]
+            clashed_global_col = torch.where(
+                chain_1_mask)[0][clashed_col]
+            clashed_global_row = torch.where(
+                chain_2_mask)[0][clashed_row]
             clash_atom_pairs = torch.stack(
-                (clashed_global_col, clashed_global_row, clash_rel_dist), dim=-1
+                (clashed_global_col, clashed_global_row,
+                 clash_rel_dist), dim=-1
             )
         return clash_atom_pairs
 
@@ -187,11 +200,13 @@ class Clash(nn.Module):
                 if chain_types[i] == "UNK":
                     continue
                 atom_chain_mask_i = asym_id_to_asym_mask[i][atom_to_token_idx]
-                N_chain_i = torch.sum(atom_chain_mask_i).item()
+                N_chain_i = torch.sum(
+                    atom_chain_mask_i).item()
                 for j in range(i + 1, N_chains):
                     if chain_types[j] == "UNK":
                         continue
-                    chain_pair_type = set([chain_types[i], chain_types[j]])
+                    chain_pair_type = set(
+                        [chain_types[i], chain_types[j]])
                     # Skip potential bonded ligand to polymers
                     skip_bonded_ligand = False
                     if (
@@ -207,7 +222,8 @@ class Clash(nn.Module):
                         skip_bonded_ligand = True
                         skipped_pairs.append((i, j))
                     atom_chain_mask_j = asym_id_to_asym_mask[j][atom_to_token_idx]
-                    N_chain_j = torch.sum(atom_chain_mask_j).item()
+                    N_chain_j = torch.sum(
+                        atom_chain_mask_j).item()
                     if self.compute_vdw_clash and not skip_bonded_ligand:
                         vdw_clash_pairs = self.get_chain_pair_violations(
                             pred_coordinate=pred_coordinate[sample_id, :, :],
@@ -217,9 +233,12 @@ class Clash(nn.Module):
                             elements_one_hot=elements_one_hot,
                         )
                         if vdw_clash_pairs.shape[0] > 0:
-                            vdw_clash_details[(sample_id, i, j)] = vdw_clash_pairs
-                            has_vdw_clash_flag[sample_id, i, j] = True
-                            has_vdw_clash_flag[sample_id, j, i] = True
+                            vdw_clash_details[(
+                                sample_id, i, j)] = vdw_clash_pairs
+                            has_vdw_clash_flag[sample_id,
+                                               i, j] = True
+                            has_vdw_clash_flag[sample_id,
+                                               j, i] = True
                     if (
                         chain_types[i] == "lig" or chain_types[j] == "lig"
                     ):  # AF3 clash only consider polymer chains
@@ -232,9 +251,12 @@ class Clash(nn.Module):
                             chain_2_mask=atom_chain_mask_j,
                         )
                         total_clash = af3_clash_pairs.shape[0]
-                        relative_clash = total_clash / min(N_chain_i, N_chain_j)
-                        af3_clash_details[sample_id, i, j, 0] = total_clash
-                        af3_clash_details[sample_id, i, j, 1] = relative_clash
+                        relative_clash = total_clash / \
+                            min(N_chain_i, N_chain_j)
+                        af3_clash_details[sample_id,
+                                          i, j, 0] = total_clash
+                        af3_clash_details[sample_id,
+                                          i, j, 1] = relative_clash
                         has_af3_clash_flag[sample_id, i, j] = (
                             total_clash > 100 or relative_clash > 0.5
                         )

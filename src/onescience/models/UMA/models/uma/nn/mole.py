@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import math
@@ -68,9 +66,11 @@ class MOLEGlobals:
 def init_linear(num_experts, use_bias, out_features, in_features):
     k = math.sqrt(1.0 / in_features)
     weights = nn.Parameter(
-        k * 2 * (torch.rand(num_experts, out_features, in_features) - 0.5)
+        k * 2 * (torch.rand(num_experts,
+                 out_features, in_features) - 0.5)
     )
-    bias = nn.Parameter(k * 2 * (torch.rand(out_features) - 0.5)) if use_bias else None
+    bias = nn.Parameter(
+        k * 2 * (torch.rand(out_features) - 0.5)) if use_bias else None
     return weights, bias
 
 
@@ -112,10 +112,12 @@ class MOLEDGL(torch.nn.Module):
             r = fairchem_cpp.ops.segment_mm(
                 x.reshape(-1, x_shape[-1]),
                 weights,
-                self.global_mole_tensors.mole_sizes * x_shape[1],
+                self.global_mole_tensors.mole_sizes *
+                x_shape[1],
             ).reshape(*x_shape[:-1], -1)
         else:
-            raise ValueError("x.ndim not in (2,3) not allowed")
+            raise ValueError(
+                "x.ndim not in (2,3) not allowed")
         if self.bias is not None:
             r += self.bias
         return r
@@ -176,7 +178,8 @@ class MOLE(torch.nn.Module):
         start_idxs = [0] + torch.cumsum(
             self.global_mole_tensors.mole_sizes, dim=0
         ).tolist()
-        mole_intervals = list(zip(start_idxs, start_idxs[1:]))
+        mole_intervals = list(
+            zip(start_idxs, start_idxs[1:]))
 
         # Because activation checkpointing can chunk the inputs, we need to only compute
         # the mole_size intervals that overlap with the current chunks
@@ -185,14 +188,17 @@ class MOLE(torch.nn.Module):
         # mole_intervals -> [(0,10),(10,20),(20,35)]
         # if the input segment is (5,15) then we compute the following 2 segments
         # (5,10),(10,15)
-        input_segment = (ac_start_idx, ac_start_idx + x.shape[0])
+        input_segment = (
+            ac_start_idx, ac_start_idx + x.shape[0])
 
         for n, mole_segment in enumerate(mole_intervals):
-            interval_overlap = interval_intersection(input_segment, mole_segment)
+            interval_overlap = interval_intersection(
+                input_segment, mole_segment)
             if interval_overlap is not None:
                 start = interval_overlap[0] - ac_start_idx
                 end = interval_overlap[1] - ac_start_idx
-                out.append(F.linear(x[start:end], weights[n], bias=self.bias))
+                out.append(
+                    F.linear(x[start:end], weights[n], bias=self.bias))
 
         result = torch.concatenate(out, dim=0)
         assert (

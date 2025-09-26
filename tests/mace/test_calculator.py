@@ -24,7 +24,8 @@ except ImportError:
     CUET_AVAILABLE = False
 
 pytest_mace_dir = Path(__file__).parent.parent
-run_train = Path(__file__).parent.parent / "mace" / "cli" / "run_train.py"
+run_train = Path(__file__).parent.parent / \
+    "mace" / "cli" / "run_train.py"
 
 
 @pytest.fixture(scope="module", name="fitting_configs")
@@ -36,8 +37,10 @@ def fitting_configs_fixture():
         pbc=[True] * 3,
     )
     fit_configs = [
-        Atoms(numbers=[8], positions=[[0, 0, 0]], cell=[6] * 3),
-        Atoms(numbers=[1], positions=[[0, 0, 0]], cell=[6] * 3),
+        Atoms(numbers=[8], positions=[
+              [0, 0, 0]], cell=[6] * 3),
+        Atoms(numbers=[1], positions=[
+              [0, 0, 0]], cell=[6] * 3),
     ]
     fit_configs[0].info["REF_energy"] = 1.0
     fit_configs[0].info["config_type"] = "IsolatedAtom"
@@ -47,11 +50,14 @@ def fitting_configs_fixture():
     np.random.seed(5)
     for _ in range(20):
         c = water.copy()
-        c.positions += np.random.normal(0.1, size=c.positions.shape)
+        c.positions += np.random.normal(
+            0.1, size=c.positions.shape)
         c.info["REF_energy"] = np.random.normal(0.1)
         c.info["REF_dipole"] = np.random.normal(0.1, size=3)
-        c.new_array("REF_forces", np.random.normal(0.1, size=c.positions.shape))
-        c.new_array("Qs", np.random.normal(0.1, size=c.positions.shape[0]))
+        c.new_array("REF_forces", np.random.normal(
+            0.1, size=c.positions.shape))
+        c.new_array("Qs", np.random.normal(
+            0.1, size=c.positions.shape[0]))
         c.info["REF_stress"] = np.random.normal(0.1, size=6)
         fit_configs.append(c)
 
@@ -99,7 +105,8 @@ def trained_model_fixture(tmp_path_factory, fitting_configs):
     run_env = os.environ.copy()
     sys.path.insert(0, str(Path(__file__).parent.parent))
     run_env["PYTHONPATH"] = ":".join(sys.path)
-    print("DEBUG subprocess PYTHONPATH", run_env["PYTHONPATH"])
+    print("DEBUG subprocess PYTHONPATH",
+          run_env["PYTHONPATH"])
 
     cmd = (
         sys.executable
@@ -162,7 +169,8 @@ def trained_model_equivariant_fixture(tmp_path_factory, fitting_configs):
     run_env = os.environ.copy()
     sys.path.insert(0, str(Path(__file__).parent.parent))
     run_env["PYTHONPATH"] = ":".join(sys.path)
-    print("DEBUG subprocess PYTHONPATH", run_env["PYTHONPATH"])
+    print("DEBUG subprocess PYTHONPATH",
+          run_env["PYTHONPATH"])
 
     cmd = (
         sys.executable
@@ -225,7 +233,8 @@ def trained_model_equivariant_fixture_cueq(tmp_path_factory, fitting_configs):
     run_env = os.environ.copy()
     sys.path.insert(0, str(Path(__file__).parent.parent))
     run_env["PYTHONPATH"] = ":".join(sys.path)
-    print("DEBUG subprocess PYTHONPATH", run_env["PYTHONPATH"])
+    print("DEBUG subprocess PYTHONPATH",
+          run_env["PYTHONPATH"])
 
     cmd = (
         sys.executable
@@ -291,7 +300,8 @@ def trained_dipole_fixture(tmp_path_factory, fitting_configs):
     run_env = os.environ.copy()
     sys.path.insert(0, str(Path(__file__).parent.parent))
     run_env["PYTHONPATH"] = ":".join(sys.path)
-    print("DEBUG subprocess PYTHONPATH", run_env["PYTHONPATH"])
+    print("DEBUG subprocess PYTHONPATH",
+          run_env["PYTHONPATH"])
 
     cmd = (
         sys.executable
@@ -357,7 +367,8 @@ def trained_energy_dipole_fixture(tmp_path_factory, fitting_configs):
     run_env = os.environ.copy()
     sys.path.insert(0, str(Path(__file__).parent.parent))
     run_env["PYTHONPATH"] = ":".join(sys.path)
-    print("DEBUG subprocess PYTHONPATH", run_env["PYTHONPATH"])
+    print("DEBUG subprocess PYTHONPATH",
+          run_env["PYTHONPATH"])
 
     cmd = (
         sys.executable
@@ -423,9 +434,11 @@ def trained_committee_fixture(tmp_path_factory, fitting_configs):
 
         # make sure run_train.py is using the mace that is currently being tested
         run_env = os.environ.copy()
-        sys.path.insert(0, str(Path(__file__).parent.parent))
+        sys.path.insert(
+            0, str(Path(__file__).parent.parent))
         run_env["PYTHONPATH"] = ":".join(sys.path)
-        print("DEBUG subprocess PYTHONPATH", run_env["PYTHONPATH"])
+        print("DEBUG subprocess PYTHONPATH",
+              run_env["PYTHONPATH"])
 
         cmd = (
             sys.executable
@@ -440,7 +453,8 @@ def trained_committee_fixture(tmp_path_factory, fitting_configs):
             )
         )
 
-        p = subprocess.run(cmd.split(), env=run_env, check=True)
+        p = subprocess.run(
+            cmd.split(), env=run_env, check=True)
 
         assert p.returncode == 0
 
@@ -453,16 +467,21 @@ def test_calculator_node_energy(fitting_configs, trained_model):
     for at in fitting_configs:
         trained_model.calculate(at)
         node_energies = trained_model.results["node_energy"]
-        batch = trained_model._atoms_to_batch(at)  # pylint: disable=protected-access
+        batch = trained_model._atoms_to_batch(
+            at)  # pylint: disable=protected-access
         node_heads = batch["head"][batch["batch"]]
-        num_atoms_arange = torch.arange(batch["positions"].shape[0])
+        num_atoms_arange = torch.arange(
+            batch["positions"].shape[0])
         node_e0 = (
-            trained_model.models[0].atomic_energies_fn(batch["node_attrs"]).detach()
+            trained_model.models[0].atomic_energies_fn(
+                batch["node_attrs"]).detach()
         )
-        node_e0 = node_e0[num_atoms_arange, node_heads].cpu().numpy()
+        node_e0 = node_e0[num_atoms_arange,
+                          node_heads].cpu().numpy()
         energy_via_nodes = np.sum(node_energies + node_e0)
         energy = trained_model.results["energy"]
-        np.testing.assert_allclose(energy, energy_via_nodes, atol=1e-6)
+        np.testing.assert_allclose(
+            energy, energy_via_nodes, atol=1e-6)
 
 
 def test_calculator_forces(fitting_configs, trained_model):
@@ -498,7 +517,8 @@ def test_calculator_committee(fitting_configs, trained_committee):
     E = at.get_potential_energy()
     energies = at.calc.results["energies"]
     energies_var = at.calc.results["energy_var"]
-    forces_var = np.var(at.calc.results["forces_comm"], axis=0)
+    forces_var = np.var(
+        at.calc.results["forces_comm"], axis=0)
     assert np.allclose(E, np.mean(energies))
     assert np.allclose(energies_var, np.var(energies))
     assert forces_var.shape == at.calc.results["forces"].shape
@@ -508,13 +528,15 @@ def test_calculator_from_model(fitting_configs, trained_committee):
     # test single model
     test_calculator_forces(
         fitting_configs,
-        trained_model=MACECalculator(models=trained_committee.models[0], device="cpu"),
+        trained_model=MACECalculator(
+            models=trained_committee.models[0], device="cpu"),
     )
 
     # test committee model
     test_calculator_committee(
         fitting_configs,
-        trained_committee=MACECalculator(models=trained_committee.models, device="cpu"),
+        trained_committee=MACECalculator(
+            models=trained_committee.models, device="cpu"),
     )
 
 
@@ -544,8 +566,10 @@ def test_calculator_descriptor(fitting_configs, trained_equivariant_model):
     at_rotated.rotate(90, "x")
     calc = trained_equivariant_model
 
-    desc_invariant = calc.get_descriptors(at, invariants_only=True)
-    desc_invariant_rotated = calc.get_descriptors(at_rotated, invariants_only=True)
+    desc_invariant = calc.get_descriptors(
+        at, invariants_only=True)
+    desc_invariant_rotated = calc.get_descriptors(
+        at_rotated, invariants_only=True)
     desc_invariant_single_layer = calc.get_descriptors(
         at, invariants_only=True, num_layers=1
     )
@@ -553,8 +577,10 @@ def test_calculator_descriptor(fitting_configs, trained_equivariant_model):
         at_rotated, invariants_only=True, num_layers=1
     )
     desc = calc.get_descriptors(at, invariants_only=False)
-    desc_single_layer = calc.get_descriptors(at, invariants_only=False, num_layers=1)
-    desc_rotated = calc.get_descriptors(at_rotated, invariants_only=False)
+    desc_single_layer = calc.get_descriptors(
+        at, invariants_only=False, num_layers=1)
+    desc_rotated = calc.get_descriptors(
+        at_rotated, invariants_only=False)
     desc_rotated_single_layer = calc.get_descriptors(
         at_rotated, invariants_only=False, num_layers=1
     )
@@ -570,18 +596,23 @@ def test_calculator_descriptor(fitting_configs, trained_equivariant_model):
     assert desc_rotated_single_layer.shape[0] == 3
     assert desc_rotated_single_layer.shape[1] == 16 * 4
 
-    np.testing.assert_allclose(desc_invariant, desc_invariant_rotated, atol=1e-6)
     np.testing.assert_allclose(
-        desc_invariant_single_layer, desc_invariant[:, :16], atol=1e-6
+        desc_invariant, desc_invariant_rotated, atol=1e-6)
+    np.testing.assert_allclose(
+        desc_invariant_single_layer, desc_invariant[:,
+                                                    :16], atol=1e-6
     )
     np.testing.assert_allclose(
-        desc_invariant_single_layer_rotated, desc_invariant[:, :16], atol=1e-6
+        desc_invariant_single_layer_rotated, desc_invariant[:,
+                                                            :16], atol=1e-6
     )
     np.testing.assert_allclose(
-        desc_single_layer[:, :16], desc_rotated_single_layer[:, :16], atol=1e-6
+        desc_single_layer[:,
+                          :16], desc_rotated_single_layer[:, :16], atol=1e-6
     )
     assert not np.allclose(
-        desc_single_layer[:, 16:], desc_rotated_single_layer[:, 16:], atol=1e-6
+        desc_single_layer[:,
+                          16:], desc_rotated_single_layer[:, 16:], atol=1e-6
     )
     assert not np.allclose(desc, desc_rotated, atol=1e-6)
 
@@ -593,8 +624,10 @@ def test_calculator_descriptor_cueq(fitting_configs, trained_equivariant_model_c
     at_rotated.rotate(90, "x")
     calc = trained_equivariant_model_cueq
 
-    desc_invariant = calc.get_descriptors(at, invariants_only=True)
-    desc_invariant_rotated = calc.get_descriptors(at_rotated, invariants_only=True)
+    desc_invariant = calc.get_descriptors(
+        at, invariants_only=True)
+    desc_invariant_rotated = calc.get_descriptors(
+        at_rotated, invariants_only=True)
     desc_invariant_single_layer = calc.get_descriptors(
         at, invariants_only=True, num_layers=1
     )
@@ -602,8 +635,10 @@ def test_calculator_descriptor_cueq(fitting_configs, trained_equivariant_model_c
         at_rotated, invariants_only=True, num_layers=1
     )
     desc = calc.get_descriptors(at, invariants_only=False)
-    desc_single_layer = calc.get_descriptors(at, invariants_only=False, num_layers=1)
-    desc_rotated = calc.get_descriptors(at_rotated, invariants_only=False)
+    desc_single_layer = calc.get_descriptors(
+        at, invariants_only=False, num_layers=1)
+    desc_rotated = calc.get_descriptors(
+        at_rotated, invariants_only=False)
     desc_rotated_single_layer = calc.get_descriptors(
         at_rotated, invariants_only=False, num_layers=1
     )
@@ -619,18 +654,23 @@ def test_calculator_descriptor_cueq(fitting_configs, trained_equivariant_model_c
     assert desc_rotated_single_layer.shape[0] == 3
     assert desc_rotated_single_layer.shape[1] == 16 * 4
 
-    np.testing.assert_allclose(desc_invariant, desc_invariant_rotated, atol=1e-6)
     np.testing.assert_allclose(
-        desc_invariant_single_layer, desc_invariant[:, :16], atol=1e-6
+        desc_invariant, desc_invariant_rotated, atol=1e-6)
+    np.testing.assert_allclose(
+        desc_invariant_single_layer, desc_invariant[:,
+                                                    :16], atol=1e-6
     )
     np.testing.assert_allclose(
-        desc_invariant_single_layer_rotated, desc_invariant[:, :16], atol=1e-6
+        desc_invariant_single_layer_rotated, desc_invariant[:,
+                                                            :16], atol=1e-6
     )
     np.testing.assert_allclose(
-        desc_single_layer[:, :16], desc_rotated_single_layer[:, :16], atol=1e-6
+        desc_single_layer[:,
+                          :16], desc_rotated_single_layer[:, :16], atol=1e-6
     )
     assert not np.allclose(
-        desc_single_layer[:, 16:], desc_rotated_single_layer[:, 16:], atol=1e-6
+        desc_single_layer[:,
+                          16:], desc_rotated_single_layer[:, 16:], atol=1e-6
     )
     assert not np.allclose(desc, desc_rotated, atol=1e-6)
 
@@ -651,7 +691,8 @@ def test_mace_off():
     assert isinstance(mace_off_model, MACECalculator)
     assert mace_off_model.model_type == "MACE"
     assert len(mace_off_model.models) == 1
-    assert isinstance(mace_off_model.models[0], ScaleShiftMACE)
+    assert isinstance(
+        mace_off_model.models[0], ScaleShiftMACE)
 
     atoms = build.molecule("H2O")
     atoms.calc = mace_off_model
@@ -663,11 +704,13 @@ def test_mace_off():
 
 @pytest.mark.skipif(not CUET_AVAILABLE, reason="cuequivariance not installed")
 def test_mace_off_cueq(model="medium", device="cpu"):
-    mace_off_model = mace_off(model=model, device=device, enable_cueq=True)
+    mace_off_model = mace_off(
+        model=model, device=device, enable_cueq=True)
     assert isinstance(mace_off_model, MACECalculator)
     assert mace_off_model.model_type == "MACE"
     assert len(mace_off_model.models) == 1
-    assert isinstance(mace_off_model.models[0], ScaleShiftMACE)
+    assert isinstance(
+        mace_off_model.models[0], ScaleShiftMACE)
 
     atoms = build.molecule("H2O")
     atoms.calc = mace_off_model
@@ -680,10 +723,12 @@ def test_mace_off_cueq(model="medium", device="cpu"):
 def test_mace_mp_stresses(model="medium", device="cpu"):
     atoms = build.bulk("Al", "fcc", a=4.05, cubic=True)
     atoms = atoms.repeat((2, 2, 2))
-    mace_mp_model = mace_mp(model=model, device=device, compute_atomic_stresses=True)
+    mace_mp_model = mace_mp(
+        model=model, device=device, compute_atomic_stresses=True)
     atoms.set_calculator(mace_mp_model)
     stress = atoms.get_stress()
     stresses = atoms.get_stresses()
     assert stress.shape == (6,)
     assert stresses.shape == (32, 6)
-    assert np.allclose(stress, stresses.sum(axis=0), atol=1e-6)
+    assert np.allclose(
+        stress, stresses.sum(axis=0), atol=1e-6)

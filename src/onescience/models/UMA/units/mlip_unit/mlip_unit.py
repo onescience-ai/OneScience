@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import logging
@@ -34,24 +32,22 @@ from torch.profiler import record_function
 from torchtnt.framework import EvalUnit, State, TrainUnit
 from torchtnt.utils.prepare_module import prepare_module
 
+from onescience.datapipes.uma.atomic_data import AtomicData
+from onescience.datapipes.uma.collaters.mt_collater import MTCollater
 from onescience.models.UMA.common import distutils, gp_utils
-from onescience.models.UMA.common.distutils import (
-    get_device_for_local_rank,
-)
+from onescience.models.UMA.common.distutils import get_device_for_local_rank
 from onescience.models.UMA.common.logger import WandBSingletonLogger
 from onescience.models.UMA.common.registry import registry
 from onescience.models.UMA.components.train.train_runner import Checkpointable
-from onescience.datapipes.uma.atomic_data import AtomicData
-from onescience.datapipes.uma.collaters.mt_collater import MTCollater
-from onescience.models.UMA.modules.normalization.element_references import (  # noqa: TCH001
+from onescience.models.UMA.modules.normalization.element_references import (
     ElementReferences,
-)
-from onescience.models.UMA.modules.normalization.normalizer import Normalizer  # noqa: TCH001
+)  # noqa: TCH001
+from onescience.models.UMA.modules.normalization.normalizer import (
+    Normalizer,
+)  # noqa: TCH001
 from onescience.models.UMA.modules.scheduler import CosineLRLambda
 from onescience.models.UMA.units.mlip_unit._metrics import Metrics, get_metrics_fn
-from onescience.models.UMA.units.mlip_unit.api.inference import (
-    MLIPInferenceCheckpoint,
-)
+from onescience.models.UMA.units.mlip_unit.api.inference import MLIPInferenceCheckpoint
 from onescience.models.UMA.units.mlip_unit.utils import load_inference_model
 
 if TYPE_CHECKING:
@@ -114,7 +110,8 @@ def convert_train_checkpoint_to_inference_checkpoint(
 def initialize_finetuning_model(
     checkpoint_location: str, overrides: dict | None = None, heads: dict | None = None
 ) -> torch.nn.Module:
-    model, checkpoint = load_inference_model(checkpoint_location, overrides)
+    model, checkpoint = load_inference_model(
+        checkpoint_location, overrides)
 
     logging.warning(
         f"initialize_finetuning_model starting from checkpoint_location: {checkpoint_location}"
@@ -142,7 +139,8 @@ def initialize_finetuning_model(
             model.backbone,
             **head_config,
         )
-    model.output_heads = torch.nn.ModuleDict(model.output_heads)
+    model.output_heads = torch.nn.ModuleDict(
+        model.output_heads)
     return model
 
 
@@ -161,22 +159,26 @@ def get_output_mask(batch: AtomicData, task: Task) -> dict[str, torch.Tensor]:
     indexing map. s.t. we can index like batch.oc20_forces[oc20_map].
     """
 
-    output_masks = {task.name: torch.isfinite(batch[task.name])}
+    output_masks = {
+        task.name: torch.isfinite(batch[task.name])}
     if "forces" in task.name:
-        output_masks[task.name] = output_masks[task.name].all(dim=1)
+        output_masks[task.name] = output_masks[task.name].all(
+            dim=1)
 
     for dset in set(batch.dataset_name):
         dset_mask = torch.from_numpy(np.array(batch.dataset_name) == dset).to(
             batch.pos.device
         )
         if task.level == "atom":
-            dset_mask = torch.repeat_interleave(dset_mask, batch.natoms)
+            dset_mask = torch.repeat_interleave(
+                dset_mask, batch.natoms)
             output_masks[f"{dset}.{task.name}"] = dset_mask & output_masks[task.name]
         elif "stress" in task.name:
             assert output_masks[task.name].shape[0] == dset_mask.shape[0]
             # we need to expand the target mask shape to match the output shape
             target_shape = output_masks[task.name].shape
-            dset_expanded = dset_mask.view(len(dset_mask), -1).expand(target_shape)
+            dset_expanded = dset_mask.view(
+                len(dset_mask), -1).expand(target_shape)
             output_masks[f"{dset}.{task.name}"] = (
                 dset_expanded & output_masks[task.name]
             )
@@ -229,7 +231,8 @@ def compute_loss(
         # apply element references to the target
         if task.element_references is not None:
             with record_function("element_refs"):
-                target = task.element_references.apply_refs(batch, target)
+                target = task.element_references.apply_refs(
+                    batch, target)
         # Normalize the target
         target = task.normalizer.norm(target)
 
@@ -242,9 +245,11 @@ def compute_loss(
         # ie: oc20_energy.energy
         pred_for_task = predictions[task.name][task.property]
         if task.level == "atom":
-            pred_for_task = pred_for_task.view(num_atoms_in_batch, -1)
+            pred_for_task = pred_for_task.view(
+                num_atoms_in_batch, -1)
         else:
-            pred_for_task = pred_for_task.view(batch_size, -1)
+            pred_for_task = pred_for_task.view(
+                batch_size, -1)
 
         if task.level == "atom" and task.train_on_free_atoms:
             mult_mask = free_mask & output_mask
@@ -286,7 +291,8 @@ def compute_metrics(
     mask_key = task.name if dataset_name is None else f"{dataset_name}.{task.name}"
     output_mask = get_output_mask(batch, task)[mask_key]
 
-    natoms = torch.repeat_interleave(batch.natoms, batch.natoms)
+    natoms = torch.repeat_interleave(
+        batch.natoms, batch.natoms)
     if task.level == "atom":
         if task.eval_on_free_atoms is True:
             output_mask = output_mask & (batch.fixed == 0)
@@ -331,7 +337,8 @@ def compute_metrics(
     # Lets package up the masked target and prediction into a dictionary,
     # so that it plays nicely with the metrics functions
     # this does not work for metrics that use more than a single prediction key, ie energy_forces_within_threshold
-    target_dict = {task.property: target_masked, "natoms": natoms_masked}
+    target_dict = {
+        task.property: target_masked, "natoms": natoms_masked}
     pred_dict = {task.property: pred_masked}
 
     # this is different from original mt trainer, it assumes a Task has a single normalizer\
@@ -377,10 +384,12 @@ def _get_consine_lr_scheduler(
     assert (epochs is not None) ^ (
         steps is not None
     ), "Exactly one of epochs or steps must be None/Not-None (XOR)"
-    scheduler_steps = int(epochs * n_iters_per_epoch) if steps is None else steps
+    scheduler_steps = int(
+        epochs * n_iters_per_epoch) if steps is None else steps
     # fixed function for constructing a LambdaLR scheduler
     lambda_fn = CosineLRLambda(
-        warmup_epochs=int(warmup_epochs * n_iters_per_epoch),
+        warmup_epochs=int(
+            warmup_epochs * n_iters_per_epoch),
         warmup_factor=warmup_factor,
         epochs=scheduler_steps,
         lr_min_factor=lr_min_factor,
@@ -391,7 +400,8 @@ def _get_consine_lr_scheduler(
 def _get_optimizer_wd(
     optimizer_fn: callable, model: torch.nn.Module
 ) -> torch.optim.Optimizer:
-    weight_decay = optimizer_fn.keywords.get("weight_decay", 0)
+    weight_decay = optimizer_fn.keywords.get(
+        "weight_decay", 0)
     # split the params into the params with and without WD
     # some fairchem models implement a no_weight_decay and this
     # is used to return params such as embeddings that should have no wd.
@@ -417,7 +427,8 @@ def _get_optimizer_wd(
         optimizer = optimizer_fn(
             params=[
                 {"params": params_no_decay, "weight_decay": 0},
-                {"params": params_decay, "weight_decay": weight_decay},
+                {"params": params_decay,
+                    "weight_decay": weight_decay},
             ]
         )
     else:
@@ -428,7 +439,8 @@ def _get_optimizer_wd(
 def _reshard_fsdp(model: torch.nn.Module) -> None:
     for m in FullyShardedDataParallel.fsdp_modules(model):
         if m._has_params and m.sharding_strategy is not ShardingStrategy.NO_SHARD:
-            torch.distributed.fsdp._runtime_utils._reshard(m, m._handle, True)
+            torch.distributed.fsdp._runtime_utils._reshard(
+                m, m._handle, True)
 
 
 def set_sampler_state(state: State, epoch: int, step_start: int) -> None:
@@ -477,7 +489,8 @@ class MLIPTrainEvalUnit(
 
         for task in tasks:
             if task.element_references is not None:
-                task.element_references.to(torch.device(get_device_for_local_rank()))
+                task.element_references.to(
+                    torch.device(get_device_for_local_rank()))
 
         # placeholder for autocast code, may need to move out to common
         self.bf16 = bf16
@@ -490,7 +503,8 @@ class MLIPTrainEvalUnit(
 
         # call optimizer function between wrapping in DDP
         # this is required for models that have a no_weight_decay function
-        self.optimizer = _get_optimizer_wd(optimizer_fn, model)
+        self.optimizer = _get_optimizer_wd(
+            optimizer_fn, model)
 
         self.logger = (
             WandBSingletonLogger.get_instance()
@@ -501,7 +515,8 @@ class MLIPTrainEvalUnit(
         )
         self.debug_checksums_save_path = debug_checksums_save_path
         if self.debug_checksums_save_path:
-            os.makedirs(debug_checksums_save_path, exist_ok=True)
+            os.makedirs(
+                debug_checksums_save_path, exist_ok=True)
         self.print_every = print_every
         self.clip_grad_norm = clip_grad_norm
         self.dp_world_size = (
@@ -510,10 +525,12 @@ class MLIPTrainEvalUnit(
             else distutils.get_world_size()
         )
 
-        self.num_params = sum(p.numel() for p in model.parameters())
+        self.num_params = sum(p.numel()
+                              for p in model.parameters())
         if self.logger:
             self.logger.log_summary(
-                {"num_params": self.num_params, "dp_world_size": self.dp_world_size}
+                {"num_params": self.num_params,
+                    "dp_world_size": self.dp_world_size}
             )
 
         model.to(torch.device(get_device_for_local_rank()))
@@ -540,7 +557,8 @@ class MLIPTrainEvalUnit(
             mesh_2d = init_device_mesh(
                 get_device_for_local_rank(),
                 mesh_shape=(
-                    int(distutils.get_world_size() // shard_group_size),
+                    int(distutils.get_world_size() //
+                        shard_group_size),
                     shard_group_size,
                 ),
                 mesh_dim_names=("replicate", "shard"),
@@ -558,26 +576,31 @@ class MLIPTrainEvalUnit(
                         self.ema_decay
                     ),
                 )
-                self.ema_model = FullyShardedDataParallel(ema_model, **fsdp_params)
+                self.ema_model = FullyShardedDataParallel(
+                    ema_model, **fsdp_params)
 
                 FullyShardedDataParallel.set_state_dict_type(
                     self.ema_model,
                     StateDictType.SHARDED_STATE_DICT,
                     state_dict_config=ShardedStateDictConfig(),
                 )
-            self.model = FullyShardedDataParallel(model, **fsdp_params)
+            self.model = FullyShardedDataParallel(
+                model, **fsdp_params)
             FullyShardedDataParallel.set_state_dict_type(
                 self.model,
                 StateDictType.SHARDED_STATE_DICT,
                 state_dict_config=ShardedStateDictConfig(),
             )
 
-            logging.info(f"Create device mesh {mesh_2d} for FSDP")
+            logging.info(
+                f"Create device mesh {mesh_2d} for FSDP")
         else:
-            raise ValueError(f"Unknown Training Strategy {train_strategy}")
+            raise ValueError(
+                f"Unknown Training Strategy {train_strategy}")
 
         # setup eval unit, make it share the same model as this unit and turn off the logger
-        self.eval_unit = MLIPEvalUnit(job_config=job_config, model=None, tasks=tasks)
+        self.eval_unit = MLIPEvalUnit(
+            job_config=job_config, model=None, tasks=tasks)
         eval_model = self.ema_model if self.ema_model is not None else self.model
         self.eval_unit.setup_train_eval_unit(eval_model)
 
@@ -600,9 +623,11 @@ class MLIPTrainEvalUnit(
             data = next(iter(state.train_state.dataloader)).to(
                 get_device_for_local_rank()
             )
-            flops = get_flops_profile(self.model, data, verbose=True)
+            flops = get_flops_profile(
+                self.model, data, verbose=True)
             num_atoms_local = data.natoms.sum().item()
-            flops_per_atom_param = flops / self.num_params / num_atoms_local
+            flops_per_atom_param = flops / \
+                self.num_params / num_atoms_local
             if self.logger:
                 self.logger.log_summary(
                     {
@@ -612,7 +637,8 @@ class MLIPTrainEvalUnit(
                 )
             if "edge_index" in data:
                 num_edges_local = data.edge_index.shape[1]
-                flops_per_edge_param = flops / self.num_params / num_edges_local
+                flops_per_edge_param = flops / \
+                    self.num_params / num_edges_local
                 if self.logger:
                     self.logger.log_summary(
                         {
@@ -622,16 +648,19 @@ class MLIPTrainEvalUnit(
                     )
 
         if self.scheduler is None:
-            self.load_scheduler(len(state.train_state.dataloader))
+            self.load_scheduler(
+                len(state.train_state.dataloader))
 
         if self.lazy_state_location is not None:
-            self._execute_load_state(self.lazy_state_location)
+            self._execute_load_state(
+                self.lazy_state_location)
 
         self.previous_wall_time = time.time()
         # this should only be non-zero if we are resuming from a run
         epoch = self.train_progress.num_epochs_completed
         start_step = self.train_progress.num_steps_completed_in_epoch
-        logging.info(f"on_train_start: setting sampler state to {epoch}, {start_step}")
+        logging.info(
+            f"on_train_start: setting sampler state to {epoch}, {start_step}")
         set_sampler_state(
             state,
             epoch,
@@ -641,7 +670,8 @@ class MLIPTrainEvalUnit(
     def on_train_epoch_start(self, state: State) -> None:
         # we can safely set start steps to 0 here because this callback is NOT called when resuming from a run
         # https://github.com/pytorch/tnt/blob/master/torchtnt/framework/train.py#L187
-        set_sampler_state(state, self.train_progress.num_epochs_completed, 0)
+        set_sampler_state(
+            state, self.train_progress.num_epochs_completed, 0)
 
     def train_step(self, state: State, data: AtomicData) -> None:
         try:
@@ -659,9 +689,11 @@ class MLIPTrainEvalUnit(
                 dtype=self.autocast_dtype,
             ):
                 with record_function("forward"):
-                    pred = self.model.forward(batch_on_device)
+                    pred = self.model.forward(
+                        batch_on_device)
                 with record_function("compute_loss"):
-                    loss_dict = compute_loss(self.tasks, pred, batch_on_device)
+                    loss_dict = compute_loss(
+                        self.tasks, pred, batch_on_device)
             scalar_loss = sum(loss_dict.values())
             self.optimizer.zero_grad()
             with record_function("backward"):
@@ -704,7 +736,8 @@ class MLIPTrainEvalUnit(
                     )
 
                 if self.logger:
-                    self.logger.log({"train/grad_norm": grad_norm}, step=step)
+                    self.logger.log(
+                        {"train/grad_norm": grad_norm}, step=step)
             self.optimizer.step()
             if self.ema_model is not None:
                 self.ema_model.update_parameters(self.model)
@@ -731,7 +764,8 @@ class MLIPTrainEvalUnit(
             }
 
             if self.logger:
-                self.logger.log(log_dict, step=step, commit=True)
+                self.logger.log(
+                    log_dict, step=step, commit=True)
 
             if step % self.print_every == 0:
                 logging.info(log_dict)
@@ -765,7 +799,8 @@ class MLIPTrainEvalUnit(
             self.model, self.optimizer
         )
         ema_state_dict = (
-            get_model_state_dict(self.ema_model) if self.ema_model else None
+            get_model_state_dict(
+                self.ema_model) if self.ema_model else None
         )
         state = {
             "progress": self.train_progress.state_dict(),
@@ -784,14 +819,17 @@ class MLIPTrainEvalUnit(
             model_state_dict=state_dict["model"],
             optim_state_dict=state_dict["optim"],
         )
-        self.train_progress.load_state_dict(state_dict["progress"])
-        self.scheduler.load_state_dict(state_dict["scheduler"])
+        self.train_progress.load_state_dict(
+            state_dict["progress"])
+        self.scheduler.load_state_dict(
+            state_dict["scheduler"])
         if self.ema_model is not None:
             set_model_state_dict(
                 self.ema_model,
                 model_state_dict=state_dict["ema"],
             )
-            self.ema_model.load_state_dict(state_dict["ema"])
+            self.ema_model.load_state_dict(
+                state_dict["ema"])
 
     def eval_step(self, state: State, data: AtomicData) -> None:
         self.eval_unit.eval_step(state, data)
@@ -813,17 +851,20 @@ class MLIPTrainEvalUnit(
     def save_state(self, checkpoint_location: str) -> None:
         # save a resume config that can be easily used for resuming runs
         os.makedirs(checkpoint_location, exist_ok=True)
-        config = OmegaConf.load(self.job_config.metadata.config_path)
+        config = OmegaConf.load(
+            self.job_config.metadata.config_path)
         config.job.runner_state_path = checkpoint_location
 
         finetune_model_full_config = self.get_finetune_model_config()
         if finetune_model_full_config is not None:
             config.runner.train_eval_unit.model = finetune_model_full_config
 
-        OmegaConf.save(config, os.path.join(checkpoint_location, UNIT_RESUME_CONFIG))
+        OmegaConf.save(config, os.path.join(
+            checkpoint_location, UNIT_RESUME_CONFIG))
 
         # calls train_eval_unit.save_state
-        state = {"unit_state": self.state_dict(), "config": config}
+        state = {"unit_state": self.state_dict(),
+                 "config": config}
         dcp.save(state, checkpoint_id=checkpoint_location)
 
         # warning this can be VERY SLOW for large models, better not to do this at every checkpoint
@@ -834,10 +875,12 @@ class MLIPTrainEvalUnit(
         ):
             convert_train_checkpoint_to_inference_checkpoint(
                 checkpoint_location,
-                os.path.join(checkpoint_location, UNIT_INFERENCE_CHECKPOINT),
+                os.path.join(checkpoint_location,
+                             UNIT_INFERENCE_CHECKPOINT),
             )
 
-        logging.info(f"Saved dcp checkpoint to {checkpoint_location}")
+        logging.info(
+            f"Saved dcp checkpoint to {checkpoint_location}")
 
     def load_state(self, checkpoint_location: str | None) -> None:
         # lazily load state, save the state and load on the first train step
@@ -845,9 +888,11 @@ class MLIPTrainEvalUnit(
 
     def _execute_load_state(self, checkpoint_location: str | None) -> None:
         state = {"unit_state": self.state_dict()}
-        dcp.load(state_dict=state, checkpoint_id=checkpoint_location)
+        dcp.load(state_dict=state,
+                 checkpoint_id=checkpoint_location)
         self.load_state_dict(state["unit_state"])
-        logging.info(f"Done loading checkpoint from {checkpoint_location}")
+        logging.info(
+            f"Done loading checkpoint from {checkpoint_location}")
 
 
 class MLIPEvalUnit(EvalUnit[AtomicData]):
@@ -873,10 +918,12 @@ class MLIPEvalUnit(EvalUnit[AtomicData]):
 
         for task in tasks:
             if task.element_references is not None:
-                task.element_references.to(torch.device(get_device_for_local_rank()))
+                task.element_references.to(
+                    torch.device(get_device_for_local_rank()))
 
         # dictionary of metrics for each dataset, split, task, and metric
-        self.running_metrics: dict[str, dict[str, dict[str, Metrics]]] = {}
+        self.running_metrics: dict[str,
+                                   dict[str, dict[str, Metrics]]] = {}
         self.total_loss_metrics: Metrics = Metrics()
         self.total_atoms: int = 0
         self.total_runtime: float = 0
@@ -912,9 +959,11 @@ class MLIPEvalUnit(EvalUnit[AtomicData]):
         datasets_to_eval = state.eval_state.dataloader.dataset.dataset_names
         self.running_metrics = {
             task.name: {
-                dataset: {metric: Metrics() for metric in task.metrics}
+                dataset: {metric: Metrics()
+                          for metric in task.metrics}
                 for dataset in filter(
-                    lambda x: any(dset in x for dset in task.datasets), datasets_to_eval
+                    lambda x: any(
+                        dset in x for dset in task.datasets), datasets_to_eval
                 )
             }
             for task in self.tasks
@@ -937,7 +986,8 @@ class MLIPEvalUnit(EvalUnit[AtomicData]):
             seconds_per_step = (time.time() - self.start_time) / max(
                 1, self.eval_progress.num_steps_completed
             )
-            eta_hours = self.total_len * seconds_per_step / (60.0 * 60.0)
+            eta_hours = self.total_len * \
+                seconds_per_step / (60.0 * 60.0)
             print(
                 f"step: {self.eval_progress.num_steps_completed}, seconds_per_step: {seconds_per_step} eta_hours: {eta_hours}"
             )
@@ -955,7 +1005,8 @@ class MLIPEvalUnit(EvalUnit[AtomicData]):
         # compute the loss
         loss_dict = compute_loss(self.tasks, preds, data)
         total_loss = sum(loss_dict.values())
-        self.total_loss_metrics += Metrics(metric=total_loss, total=total_loss, numel=1)
+        self.total_loss_metrics += Metrics(
+            metric=total_loss, total=total_loss, numel=1)
 
         # get the datasets with split names
         datasets_in_batch = set(data.dataset_name)
@@ -967,16 +1018,19 @@ class MLIPEvalUnit(EvalUnit[AtomicData]):
             # wont compute metrics for those.
             # TODO overhaul the dataset names in task to avoid this filter?
             for dataset in filter(
-                lambda x: any(dset_name in x for dset_name in task.datasets),
+                lambda x: any(
+                    dset_name in x for dset_name in task.datasets),
                 datasets_in_batch,
             ):
-                current_metrics = compute_metrics(task, preds, data, dataset)
+                current_metrics = compute_metrics(
+                    task, preds, data, dataset)
                 running_metrics = self.running_metrics[task.name][dataset]
 
                 for metric_name in task.metrics:
                     running_metrics[metric_name] += current_metrics[metric_name]
 
-                self.running_metrics[task.name][dataset].update(running_metrics)
+                self.running_metrics[task.name][dataset].update(
+                    running_metrics)
 
                 # update the loss metrics
                 # loss_metrics = Metrics(
@@ -1015,7 +1069,8 @@ class MLIPEvalUnit(EvalUnit[AtomicData]):
         # we do not reduce across ranks here. DDP loss uses a _ddp_mean that
         # gives the an approximate loss -> loss_rank_i / average_num_samples_across_ranks
         log_dict["val/loss"] = self.total_loss_metrics.metric
-        log_dict["val/atoms_per_second"] = total_atoms / total_runtime
+        log_dict["val/atoms_per_second"] = total_atoms / \
+            total_runtime
         log_dict["val/epoch"] = self.eval_progress.num_epochs_completed
 
         if self.logger is not None:
@@ -1024,6 +1079,7 @@ class MLIPEvalUnit(EvalUnit[AtomicData]):
         log_str = "".join(
             f"  {k}: {log_dict[k]:.4f}\n" for k in sorted(log_dict.keys())
         )
-        logging.info(f"Finished aggregating metrics: \n{log_str}")
+        logging.info(
+            f"Finished aggregating metrics: \n{log_str}")
 
         return log_dict

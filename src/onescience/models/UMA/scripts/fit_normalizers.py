@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import argparse
@@ -31,7 +30,8 @@ def fit_norms(
     """
     output_path = Path(output_path).resolve()
     elementrefs = (
-        {linref_target: create_element_references(linref_file)}
+        {linref_target: create_element_references(
+            linref_file)}
         if linref_file is not None
         else {}
     )
@@ -42,7 +42,8 @@ def fit_norms(
             config["dataset"]["train"].get("format", "lmdb")
         )(config["dataset"]["train"])
     except KeyError as err:
-        raise ValueError("Train dataset is not specified in config!") from err
+        raise ValueError(
+            "Train dataset is not specified in config!") from err
 
     try:
         norm_config = config["dataset"]["train"]["transforms"]["normalizer"]["fit"]
@@ -65,7 +66,8 @@ def fit_norms(
         dataset=train_dataset,
         batch_size=norm_config.get("batch_size", 32),
         num_batches=norm_config.get("num_batches"),
-        num_workers=config.get("optim", {}).get("num_workers", 16),
+        num_workers=config.get(
+            "optim", {}).get("num_workers", 16),
     )
     path = save_checkpoint(
         normalizers,
@@ -101,7 +103,8 @@ if __name__ == "__main__":
         help="target for which linear references are used.",
     )
     args = parser.parse_args()
-    config, dup_warning, dup_error = load_config(args.config)
+    config, dup_warning, dup_error = load_config(
+        args.config)
 
     if len(dup_warning) > 0:
         logging.warning(

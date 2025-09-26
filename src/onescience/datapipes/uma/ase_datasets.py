@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import bisect
@@ -17,11 +15,11 @@ import ase
 import numpy as np
 from tqdm import tqdm
 
-from onescience.models.UMA.common.registry import registry
 from onescience.datapipes.uma._utils import rename_data_object_keys
 from onescience.datapipes.uma.atomic_data import AtomicData
 from onescience.datapipes.uma.base_dataset import BaseDataset
 from onescience.datapipes.uma.target_metadata_guesser import guess_property_metadata
+from onescience.models.UMA.common.registry import registry
 from onescience.models.UMA.modules.transforms import DataTransforms
 
 
@@ -71,15 +69,18 @@ class AseAtomsDataset(BaseDataset, ABC):
     def __init__(
         self,
         config: dict,
-        atoms_transform: Callable[[ase.Atoms, Any, ...], ase.Atoms] = apply_one_tags,
+        atoms_transform: Callable[[
+            ase.Atoms, Any, ...], ase.Atoms] = apply_one_tags,
     ) -> None:
         super().__init__(config)
 
         a2g_args = config.get("a2g_args", {}) or {}
         self.a2g = partial(AtomicData.from_ase, **a2g_args)
 
-        self.key_mapping = self.config.get("key_mapping", None)
-        self.transforms = DataTransforms(self.config.get("transforms", {}))
+        self.key_mapping = self.config.get(
+            "key_mapping", None)
+        self.transforms = DataTransforms(
+            self.config.get("transforms", {}))
 
         self.atoms_transform = atoms_transform
 
@@ -121,10 +122,12 @@ class AseAtomsDataset(BaseDataset, ABC):
         data_object = self.transforms(data_object)
 
         if self.key_mapping is not None:
-            data_object = rename_data_object_keys(data_object, self.key_mapping)
+            data_object = rename_data_object_keys(
+                data_object, self.key_mapping)
 
         if self.config.get("include_relaxed_energy", False):
-            data_object.energy_relaxed = self.get_relaxed_energy(self.ids[idx])
+            data_object.energy_relaxed = self.get_relaxed_energy(
+                self.ids[idx])
 
         return data_object
 
@@ -163,7 +166,8 @@ class AseAtomsDataset(BaseDataset, ABC):
             )
         else:
             metadata["targets"] = guess_property_metadata(
-                [self.get_atoms(self.ids[idx]) for idx in range(len(self))]
+                [self.get_atoms(self.ids[idx])
+                 for idx in range(len(self))]
             )
 
         return metadata
@@ -244,7 +248,8 @@ class AseReadDataset(AseAtomsDataset):
             )
 
         if self.config.get("include_relaxed_energy", False):
-            self.relaxed_ase_read_args = copy.deepcopy(self.ase_read_args)
+            self.relaxed_ase_read_args = copy.deepcopy(
+                self.ase_read_args)
             self.relaxed_ase_read_args["index"] = "-1"
 
         return list(self.path.glob(f'{config.get("pattern", "*")}'))
@@ -253,13 +258,15 @@ class AseReadDataset(AseAtomsDataset):
         try:
             atoms = ase.io.read(idx, **self.ase_read_args)
         except Exception as err:
-            warnings.warn(f"{err} occured for: {idx}", stacklevel=2)
+            warnings.warn(
+                f"{err} occured for: {idx}", stacklevel=2)
             raise err
 
         return atoms
 
     def get_relaxed_energy(self, identifier) -> float:
-        relaxed_atoms = ase.io.read(identifier, **self.relaxed_ase_read_args)
+        relaxed_atoms = ase.io.read(
+            identifier, **self.relaxed_ase_read_args)
         return relaxed_atoms.get_potential_energy(apply_constraint=False)
 
 
@@ -338,7 +345,8 @@ class AseReadMultiStructureDataset(AseAtomsDataset):
             ids = []
             for line in index:
                 filename = line.split(" ", maxsplit=1)[0]
-                ids = [f"{filename} {i}" for i in range(int(line.split(" ")[1]))]
+                ids = [f"{filename} {i}" for i in range(
+                    int(line.split(" ")[1]))]
 
             return ids
 
@@ -348,7 +356,8 @@ class AseReadMultiStructureDataset(AseAtomsDataset):
                 f"The specified src is not a directory: {self.config['src']}"
             )
 
-        filenames = list(self.path.glob(f'{config.get("pattern", "*")}'))
+        filenames = list(self.path.glob(
+            f'{config.get("pattern", "*")}'))
 
         ids = []
 
@@ -356,9 +365,11 @@ class AseReadMultiStructureDataset(AseAtomsDataset):
             filenames = tqdm(filenames)
         for filename in filenames:
             try:
-                structures = ase.io.read(filename, **self.ase_read_args)
+                structures = ase.io.read(
+                    filename, **self.ase_read_args)
             except Exception as err:
-                warnings.warn(f"{err} occured for: {filename}", stacklevel=2)
+                warnings.warn(
+                    f"{err} occured for: {filename}", stacklevel=2)
             else:
                 for i, _ in enumerate(structures):
                     ids.append(f"{filename} {i}")
@@ -372,7 +383,8 @@ class AseReadMultiStructureDataset(AseAtomsDataset):
                 int(identifiers[-1])
             ]
         except Exception as err:
-            warnings.warn(f"{err} occured for: {idx}", stacklevel=2)
+            warnings.warn(
+                f"{err} occured for: {idx}", stacklevel=2)
             raise err
 
         if "sid" not in atoms.info:
@@ -455,11 +467,13 @@ class AseDBDataset(AseAtomsDataset):
             filepaths = []
             for path in sorted(config["src"]):
                 if os.path.isdir(path):
-                    filepaths.extend(sorted(glob(f"{path}/*")))
+                    filepaths.extend(
+                        sorted(glob(f"{path}/*")))
                 elif os.path.isfile(path):
                     filepaths.append(path)
                 else:
-                    raise RuntimeError(f"Error reading dataset in {path}!")
+                    raise RuntimeError(
+                        f"Error reading dataset in {path}!")
         elif os.path.isfile(config["src"]):
             filepaths = [config["src"]]
         elif os.path.isdir(config["src"]):
@@ -497,7 +511,8 @@ class AseDBDataset(AseAtomsDataset):
                 self.db_ids.append(db.ids)
             else:
                 # this is the slow alternative
-                self.db_ids.append([row.id for row in db.select(**self.select_args)])
+                self.db_ids.append(
+                    [row.id for row in db.select(**self.select_args)])
 
         idlens = [len(ids) for ids in self.db_ids]
         self._idlen_cumulative = np.cumsum(idlens).tolist()
@@ -518,10 +533,12 @@ class AseDBDataset(AseAtomsDataset):
         # Extract index of element within that db
         el_idx = idx
         if db_idx != 0:
-            el_idx = idx - self._idlen_cumulative[db_idx - 1]
+            el_idx = idx - \
+                self._idlen_cumulative[db_idx - 1]
         assert el_idx >= 0
 
-        atoms_row = self.dbs[db_idx]._get_row(self.db_ids[db_idx][el_idx])
+        atoms_row = self.dbs[db_idx]._get_row(
+            self.db_ids[db_idx][el_idx])
         atoms = atoms_row.toatoms()
 
         # put data back into atoms info

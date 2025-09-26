@@ -74,14 +74,18 @@ class VPLoss:
             A tensor representing the loss calculated based on the network's
             predictions.
         """
-        rnd_uniform = torch.rand([images.shape[0], 1, 1, 1], device=images.device)
-        sigma = self.sigma(1 + rnd_uniform * (self.epsilon_t - 1))
+        rnd_uniform = torch.rand(
+            [images.shape[0], 1, 1, 1], device=images.device)
+        sigma = self.sigma(
+            1 + rnd_uniform * (self.epsilon_t - 1))
         weight = 1 / sigma**2
         y, augment_labels = (
-            augment_pipe(images) if augment_pipe is not None else (images, None)
+            augment_pipe(images) if augment_pipe is not None else (
+                images, None)
         )
         n = torch.randn_like(y) * sigma
-        D_yn = net(y + n, sigma, labels, augment_labels=augment_labels)
+        D_yn = net(y + n, sigma, labels,
+                   augment_labels=augment_labels)
         loss = weight * ((D_yn - y) ** 2)
         return loss
 
@@ -162,14 +166,18 @@ class VELoss:
             A tensor representing the loss calculated based on the network's
             predictions.
         """
-        rnd_uniform = torch.rand([images.shape[0], 1, 1, 1], device=images.device)
-        sigma = self.sigma_min * ((self.sigma_max / self.sigma_min) ** rnd_uniform)
+        rnd_uniform = torch.rand(
+            [images.shape[0], 1, 1, 1], device=images.device)
+        sigma = self.sigma_min * \
+            ((self.sigma_max / self.sigma_min) ** rnd_uniform)
         weight = 1 / sigma**2
         y, augment_labels = (
-            augment_pipe(images) if augment_pipe is not None else (images, None)
+            augment_pipe(images) if augment_pipe is not None else (
+                images, None)
         )
         n = torch.randn_like(y) * sigma
-        D_yn = net(y + n, sigma, labels, augment_labels=augment_labels)
+        D_yn = net(y + n, sigma, labels,
+                   augment_labels=augment_labels)
         loss = weight * ((D_yn - y) ** 2)
         return loss
 
@@ -232,14 +240,19 @@ class EDMLoss:
             A tensor representing the loss calculated based on the network's
             predictions.
         """
-        rnd_normal = torch.randn([images.shape[0], 1, 1, 1], device=images.device)
-        sigma = (rnd_normal * self.P_std + self.P_mean).exp()
-        weight = (sigma**2 + self.sigma_data**2) / (sigma * self.sigma_data) ** 2
+        rnd_normal = torch.randn(
+            [images.shape[0], 1, 1, 1], device=images.device)
+        sigma = (rnd_normal * self.P_std +
+                 self.P_mean).exp()
+        weight = (sigma**2 + self.sigma_data**2) / \
+            (sigma * self.sigma_data) ** 2
         y, augment_labels = (
-            augment_pipe(images) if augment_pipe is not None else (images, None)
+            augment_pipe(images) if augment_pipe is not None else (
+                images, None)
         )
         n = torch.randn_like(y) * sigma
-        D_yn = net(y + n, sigma, labels, augment_labels=augment_labels)
+        D_yn = net(y + n, sigma, labels,
+                   augment_labels=augment_labels)
         loss = weight * ((D_yn - y) ** 2)
         return loss
 
@@ -303,20 +316,25 @@ class EDMLossSR:
             A tensor representing the loss calculated based on the network's
             predictions.
         """
-        rnd_normal = torch.randn([img_clean.shape[0], 1, 1, 1], device=img_clean.device)
-        sigma = (rnd_normal * self.P_std + self.P_mean).exp()
-        weight = (sigma**2 + self.sigma_data**2) / (sigma * self.sigma_data) ** 2
+        rnd_normal = torch.randn(
+            [img_clean.shape[0], 1, 1, 1], device=img_clean.device)
+        sigma = (rnd_normal * self.P_std +
+                 self.P_mean).exp()
+        weight = (sigma**2 + self.sigma_data**2) / \
+            (sigma * self.sigma_data) ** 2
 
         # augment for conditional generaiton
         img_tot = torch.cat((img_clean, img_lr), dim=1)
         y_tot, augment_labels = (
-            augment_pipe(img_tot) if augment_pipe is not None else (img_tot, None)
+            augment_pipe(img_tot) if augment_pipe is not None else (
+                img_tot, None)
         )
         y = y_tot[:, : img_clean.shape[1], :, :]
-        y_lr = y_tot[:, img_clean.shape[1] :, :, :]
+        y_lr = y_tot[:, img_clean.shape[1]:, :, :]
 
         n = torch.randn_like(y) * sigma
-        D_yn = net(y + n, y_lr, sigma, labels, augment_labels=augment_labels)
+        D_yn = net(y + n, y_lr, sigma, labels,
+                   augment_labels=augment_labels)
         loss = weight * ((D_yn - y) ** 2)
         return loss
 
@@ -377,21 +395,26 @@ class RegressionLoss:
             A tensor representing the loss calculated based on the network's
             predictions.
         """
-        rnd_normal = torch.randn([img_clean.shape[0], 1, 1, 1], device=img_clean.device)
-        sigma = (rnd_normal * self.P_std + self.P_mean).exp()
+        rnd_normal = torch.randn(
+            [img_clean.shape[0], 1, 1, 1], device=img_clean.device)
+        sigma = (rnd_normal * self.P_std +
+                 self.P_mean).exp()
         weight = (
-            1.0  # (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
+            # (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
+            1.0
         )
 
         img_tot = torch.cat((img_clean, img_lr), dim=1)
         y_tot, augment_labels = (
-            augment_pipe(img_tot) if augment_pipe is not None else (img_tot, None)
+            augment_pipe(img_tot) if augment_pipe is not None else (
+                img_tot, None)
         )
         y = y_tot[:, : img_clean.shape[1], :, :]
-        y_lr = y_tot[:, img_clean.shape[1] :, :, :]
+        y_lr = y_tot[:, img_clean.shape[1]:, :, :]
 
         input = torch.zeros_like(y, device=img_clean.device)
-        D_yn = net(input, y_lr, sigma, labels, augment_labels=augment_labels)
+        D_yn = net(input, y_lr, sigma, labels,
+                   augment_labels=augment_labels)
         loss = weight * ((D_yn - y) ** 2)
 
         return loss
@@ -471,26 +494,30 @@ class ResLoss:
             predictions.
         """
 
-        rnd_normal = torch.randn([img_clean.shape[0], 1, 1, 1], device=img_clean.device)
-        sigma = (rnd_normal * self.P_std + self.P_mean).exp()
-        weight = (sigma**2 + self.sigma_data**2) / (sigma * self.sigma_data) ** 2
+        rnd_normal = torch.randn(
+            [img_clean.shape[0], 1, 1, 1], device=img_clean.device)
+        sigma = (rnd_normal * self.P_std +
+                 self.P_mean).exp()
+        weight = (sigma**2 + self.sigma_data**2) / \
+            (sigma * self.sigma_data) ** 2
 
         # augment for conditional generaiton
         img_tot = torch.cat((img_clean, img_lr), dim=1)
         y_tot, augment_labels = (
-            augment_pipe(img_tot) if augment_pipe is not None else (img_tot, None)
+            augment_pipe(img_tot) if augment_pipe is not None else (
+                img_tot, None)
         )
         y = y_tot[:, : img_clean.shape[1], :, :]
-        y_lr = y_tot[:, img_clean.shape[1] :, :, :]
+        y_lr = y_tot[:, img_clean.shape[1]:, :, :]
         y_lr_res = y_lr
 
         # global index
         b = y.shape[0]
         Nx = torch.arange(self.img_shape_x).int()
         Ny = torch.arange(self.img_shape_y).int()
-        grid = torch.stack(torch.meshgrid(Ny, Nx, indexing="ij"), dim=0)[
-            None,
-        ].expand(b, -1, -1, -1)
+        grid = torch.stack(torch.meshgrid(Ny, Nx, indexing="ij"), dim=0)[None,].expand(
+            b, -1, -1, -1
+        )
 
         # form residual
         y_mean = self.unet(
@@ -504,7 +531,8 @@ class ResLoss:
         y = y - y_mean
 
         if self.hr_mean_conditioning:
-            y_lr = torch.cat((y_mean, y_lr), dim=1).contiguous()
+            y_lr = torch.cat(
+                (y_mean, y_lr), dim=1).contiguous()
         global_index = None
         # patchified training
         # conditioning: cat(y_mean, y_lr, input_interp, pos_embd), 4+12+100+4
@@ -517,10 +545,10 @@ class ResLoss:
             rnd_normal = torch.randn(
                 [img_clean.shape[0] * self.patch_num, 1, 1, 1], device=img_clean.device
             )
-            sigma = (rnd_normal * self.P_std + self.P_mean).exp()
-            weight = (sigma**2 + self.sigma_data**2) / (
-                sigma * self.sigma_data
-            ) ** 2
+            sigma = (rnd_normal * self.P_std +
+                     self.P_mean).exp()
+            weight = (sigma**2 + self.sigma_data **
+                      2) / (sigma * self.sigma_data) ** 2
 
             # global interpolation
             input_interp = torch.nn.functional.interpolate(
@@ -553,27 +581,29 @@ class ResLoss:
                 device=img_clean.device,
             )
             for i in range(self.patch_num):
-                rnd_x = random.randint(0, self.img_shape_x - self.patch_shape_x)
-                rnd_y = random.randint(0, self.img_shape_y - self.patch_shape_y)
-                y_new[b * i : b * (i + 1),] = y[
+                rnd_x = random.randint(
+                    0, self.img_shape_x - self.patch_shape_x)
+                rnd_y = random.randint(
+                    0, self.img_shape_y - self.patch_shape_y)
+                y_new[b * i: b * (i + 1),] = y[
                     :,
                     :,
-                    rnd_y : rnd_y + self.patch_shape_y,
-                    rnd_x : rnd_x + self.patch_shape_x,
+                    rnd_y: rnd_y + self.patch_shape_y,
+                    rnd_x: rnd_x + self.patch_shape_x,
                 ]
-                global_index[b * i : b * (i + 1),] = grid[
+                global_index[b * i: b * (i + 1),] = grid[
                     :,
                     :,
-                    rnd_y : rnd_y + self.patch_shape_y,
-                    rnd_x : rnd_x + self.patch_shape_x,
+                    rnd_y: rnd_y + self.patch_shape_y,
+                    rnd_x: rnd_x + self.patch_shape_x,
                 ]
-                y_lr_new[b * i : b * (i + 1),] = torch.cat(
+                y_lr_new[b * i: b * (i + 1),] = torch.cat(
                     (
                         y_lr[
                             :,
                             :,
-                            rnd_y : rnd_y + self.patch_shape_y,
-                            rnd_x : rnd_x + self.patch_shape_x,
+                            rnd_y: rnd_y + self.patch_shape_y,
+                            rnd_x: rnd_x + self.patch_shape_x,
                         ],
                         input_interp,
                     ),
@@ -670,14 +700,19 @@ class VELoss_dfsr:
                 beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64
             )
         elif beta_schedule == "const":
-            betas = beta_end * np.ones(num_diffusion_timesteps, dtype=np.float64)
-        elif beta_schedule == "jsd":  # 1/T, 1/(T-1), 1/(T-2), ..., 1
+            betas = beta_end * \
+                np.ones(num_diffusion_timesteps,
+                        dtype=np.float64)
+        # 1/T, 1/(T-1), 1/(T-2), ..., 1
+        elif beta_schedule == "jsd":
             betas = 1.0 / np.linspace(
                 num_diffusion_timesteps, 1, num_diffusion_timesteps, dtype=np.float64
             )
         elif beta_schedule == "sigmoid":
-            betas = np.linspace(-6, 6, num_diffusion_timesteps)
-            betas = sigmoid(betas) * (beta_end - beta_start) + beta_start
+            betas = np.linspace(-6, 6,
+                                num_diffusion_timesteps)
+            betas = sigmoid(
+                betas) * (beta_end - beta_start) + beta_start
         else:
             raise NotImplementedError(beta_schedule)
         if betas.shape != (num_diffusion_timesteps,):
@@ -722,10 +757,12 @@ class VELoss_dfsr:
         t = torch.randint(
             low=0, high=self.num_timesteps, size=(images.size(0) // 2 + 1,)
         ).to(images.device)
-        t = torch.cat([t, self.num_timesteps - t - 1], dim=0)[: images.size(0)]
+        t = torch.cat(
+            [t, self.num_timesteps - t - 1], dim=0)[: images.size(0)]
         e = torch.randn_like(images)
         b = self.betas.to(images.device)
-        a = (1 - b).cumprod(dim=0).index_select(0, t).view(-1, 1, 1, 1)
+        a = (1 - b).cumprod(dim=0).index_select(0,
+                                                t).view(-1, 1, 1, 1)
         x = images * a.sqrt() + e * (1.0 - a).sqrt()
 
         output = net(x, t, labels)

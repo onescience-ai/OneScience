@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import math
@@ -7,7 +5,7 @@ import math
 import torch
 
 
-### Methods for sample points on a sphere
+# Methods for sample points on a sphere
 def CalcSpherePoints(num_points: int, device: str = "cpu") -> torch.Tensor:
     goldenRatio = (1 + 5**0.5) / 2
     i = torch.arange(num_points, device=device).view(-1, 1)
@@ -32,12 +30,15 @@ def CalcSpherePoints(num_points: int, device: str = "cpu") -> torch.Tensor:
 
 
 def CalcSpherePointsRandom(num_points: int, device) -> torch.Tensor:
-    pts = 2.0 * (torch.rand(num_points, 3, device=device) - 0.5)
+    pts = 2.0 * \
+        (torch.rand(num_points, 3, device=device) - 0.5)
     radius = torch.sum(pts**2, dim=1)
     while torch.max(radius) > 1.0:
-        replace_pts = 2.0 * (torch.rand(num_points, 3, device=device) - 0.5)
+        replace_pts = 2.0 * \
+            (torch.rand(num_points, 3, device=device) - 0.5)
         replace_mask = radius.gt(0.99)
-        pts.masked_scatter_(replace_mask.view(-1, 1).repeat(1, 3), replace_pts)
+        pts.masked_scatter_(
+            replace_mask.view(-1, 1).repeat(1, 3), replace_pts)
         radius = torch.sum(pts**2, dim=1)
 
     return pts / radius.view(-1, 1)

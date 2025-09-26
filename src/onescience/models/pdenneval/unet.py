@@ -1,6 +1,8 @@
+from collections import OrderedDict
+
 import torch
 import torch.nn as nn
-from collections import OrderedDict
+
 
 class UNet1d(nn.Module):
 
@@ -8,27 +10,46 @@ class UNet1d(nn.Module):
         super(UNet1d, self).__init__()
 
         features = init_features
-        self.encoder1 = UNet1d._block(in_channels, features, name="enc1")
+        self.encoder1 = UNet1d._block(
+            in_channels, features, name="enc1")
         self.pool1 = nn.MaxPool1d(kernel_size=2, stride=2)
-        self.encoder2 = UNet1d._block(features, features * 2, name="enc2")
+        self.encoder2 = UNet1d._block(
+            features, features * 2, name="enc2")
         self.pool2 = nn.MaxPool1d(kernel_size=2, stride=2)
-        self.encoder3 = UNet1d._block(features * 2, features * 4, name="enc3")
+        self.encoder3 = UNet1d._block(
+            features * 2, features * 4, name="enc3")
         self.pool3 = nn.MaxPool1d(kernel_size=2, stride=2)
-        self.encoder4 = UNet1d._block(features * 4, features * 8, name="enc4")
+        self.encoder4 = UNet1d._block(
+            features * 4, features * 8, name="enc4")
         self.pool4 = nn.MaxPool1d(kernel_size=2, stride=2)
 
-        self.bottleneck = UNet1d._block(features * 8, features * 16, name="bottleneck")
+        self.bottleneck = UNet1d._block(
+            features * 8, features * 16, name="bottleneck")
 
-        self.upconv4 = nn.ConvTranspose1d(features * 16, features * 8, kernel_size=2, stride=2)
-        self.decoder4 = UNet1d._block((features * 8) * 2, features * 8, name="dec4")
-        self.upconv3 = nn.ConvTranspose1d(features * 8, features * 4, kernel_size=2, stride=2)
-        self.decoder3 = UNet1d._block((features * 4) * 2, features * 4, name="dec3")
-        self.upconv2 = nn.ConvTranspose1d(features * 4, features * 2, kernel_size=2, stride=2)
-        self.decoder2 = UNet1d._block((features * 2) * 2, features * 2, name="dec2")
-        self.upconv1 = nn.ConvTranspose1d(features * 2, features, kernel_size=2, stride=2)
-        self.decoder1 = UNet1d._block(features * 2, features, name="dec1")
+        self.upconv4 = nn.ConvTranspose1d(
+            features * 16, features * 8, kernel_size=2, stride=2
+        )
+        self.decoder4 = UNet1d._block(
+            (features * 8) * 2, features * 8, name="dec4")
+        self.upconv3 = nn.ConvTranspose1d(
+            features * 8, features * 4, kernel_size=2, stride=2
+        )
+        self.decoder3 = UNet1d._block(
+            (features * 4) * 2, features * 4, name="dec3")
+        self.upconv2 = nn.ConvTranspose1d(
+            features * 4, features * 2, kernel_size=2, stride=2
+        )
+        self.decoder2 = UNet1d._block(
+            (features * 2) * 2, features * 2, name="dec2")
+        self.upconv1 = nn.ConvTranspose1d(
+            features * 2, features, kernel_size=2, stride=2
+        )
+        self.decoder1 = UNet1d._block(
+            features * 2, features, name="dec1")
 
-        self.conv = nn.Conv1d(in_channels=features, out_channels=out_channels, kernel_size=1)
+        self.conv = nn.Conv1d(
+            in_channels=features, out_channels=out_channels, kernel_size=1
+        )
 
     def forward(self, x):
         enc1 = self.encoder1(x)
@@ -68,7 +89,8 @@ class UNet1d(nn.Module):
                             bias=False,
                         ),
                     ),
-                    (name + "norm1", nn.BatchNorm1d(num_features=features)),
+                    (name + "norm1",
+                     nn.BatchNorm1d(num_features=features)),
                     (name + "tanh1", nn.Tanh()),
                     (
                         name + "conv2",
@@ -80,7 +102,8 @@ class UNet1d(nn.Module):
                             bias=False,
                         ),
                     ),
-                    (name + "norm2", nn.BatchNorm1d(num_features=features)),
+                    (name + "norm2",
+                     nn.BatchNorm1d(num_features=features)),
                     (name + "tanh2", nn.Tanh()),
                 ]
             )
@@ -93,27 +116,46 @@ class UNet2d(nn.Module):
         super(UNet2d, self).__init__()
 
         features = init_features
-        self.encoder1 = UNet2d._block(in_channels, features, name="enc1")
+        self.encoder1 = UNet2d._block(
+            in_channels, features, name="enc1")
         self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.encoder2 = UNet2d._block(features, features * 2, name="enc2")
+        self.encoder2 = UNet2d._block(
+            features, features * 2, name="enc2")
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.encoder3 = UNet2d._block(features * 2, features * 4, name="enc3")
+        self.encoder3 = UNet2d._block(
+            features * 2, features * 4, name="enc3")
         self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.encoder4 = UNet2d._block(features * 4, features * 8, name="enc4")
+        self.encoder4 = UNet2d._block(
+            features * 4, features * 8, name="enc4")
         self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.bottleneck = UNet2d._block(features * 8, features * 16, name="bottleneck")
+        self.bottleneck = UNet2d._block(
+            features * 8, features * 16, name="bottleneck")
 
-        self.upconv4 = nn.ConvTranspose2d(features * 16, features * 8, kernel_size=2, stride=2)
-        self.decoder4 = UNet2d._block((features * 8) * 2, features * 8, name="dec4")
-        self.upconv3 = nn.ConvTranspose2d(features * 8, features * 4, kernel_size=2, stride=2)
-        self.decoder3 = UNet2d._block((features * 4) * 2, features * 4, name="dec3")
-        self.upconv2 = nn.ConvTranspose2d(features * 4, features * 2, kernel_size=2, stride=2)
-        self.decoder2 = UNet2d._block((features * 2) * 2, features * 2, name="dec2")
-        self.upconv1 = nn.ConvTranspose2d(features * 2, features, kernel_size=2, stride=2)
-        self.decoder1 = UNet2d._block(features * 2, features, name="dec1")
+        self.upconv4 = nn.ConvTranspose2d(
+            features * 16, features * 8, kernel_size=2, stride=2
+        )
+        self.decoder4 = UNet2d._block(
+            (features * 8) * 2, features * 8, name="dec4")
+        self.upconv3 = nn.ConvTranspose2d(
+            features * 8, features * 4, kernel_size=2, stride=2
+        )
+        self.decoder3 = UNet2d._block(
+            (features * 4) * 2, features * 4, name="dec3")
+        self.upconv2 = nn.ConvTranspose2d(
+            features * 4, features * 2, kernel_size=2, stride=2
+        )
+        self.decoder2 = UNet2d._block(
+            (features * 2) * 2, features * 2, name="dec2")
+        self.upconv1 = nn.ConvTranspose2d(
+            features * 2, features, kernel_size=2, stride=2
+        )
+        self.decoder1 = UNet2d._block(
+            features * 2, features, name="dec1")
 
-        self.conv = nn.Conv2d(in_channels=features, out_channels=out_channels, kernel_size=1)
+        self.conv = nn.Conv2d(
+            in_channels=features, out_channels=out_channels, kernel_size=1
+        )
 
     def forward(self, x):
         enc1 = self.encoder1(x)
@@ -152,7 +194,8 @@ class UNet2d(nn.Module):
                             bias=False,
                         ),
                     ),
-                    (name + "norm1", nn.BatchNorm2d(num_features=features)),
+                    (name + "norm1",
+                     nn.BatchNorm2d(num_features=features)),
                     (name + "tanh1", nn.Tanh()),
                     (
                         name + "conv2",
@@ -164,12 +207,13 @@ class UNet2d(nn.Module):
                             bias=False,
                         ),
                     ),
-                    (name + "norm2", nn.BatchNorm2d(num_features=features)),
+                    (name + "norm2",
+                     nn.BatchNorm2d(num_features=features)),
                     (name + "tanh2", nn.Tanh()),
                 ]
             )
         )
-    
+
 
 class UNet3d(nn.Module):
 
@@ -177,27 +221,46 @@ class UNet3d(nn.Module):
         super(UNet3d, self).__init__()
 
         features = init_features
-        self.encoder1 = UNet3d._block(in_channels, features, name="enc1")
+        self.encoder1 = UNet3d._block(
+            in_channels, features, name="enc1")
         self.pool1 = nn.MaxPool3d(kernel_size=2, stride=2)
-        self.encoder2 = UNet3d._block(features, features * 2, name="enc2")
+        self.encoder2 = UNet3d._block(
+            features, features * 2, name="enc2")
         self.pool2 = nn.MaxPool3d(kernel_size=2, stride=2)
-        self.encoder3 = UNet3d._block(features * 2, features * 4, name="enc3")
+        self.encoder3 = UNet3d._block(
+            features * 2, features * 4, name="enc3")
         self.pool3 = nn.MaxPool3d(kernel_size=2, stride=2)
-        self.encoder4 = UNet3d._block(features * 4, features * 8, name="enc4")
+        self.encoder4 = UNet3d._block(
+            features * 4, features * 8, name="enc4")
         self.pool4 = nn.MaxPool3d(kernel_size=2, stride=2)
 
-        self.bottleneck = UNet3d._block(features * 8, features * 16, name="bottleneck")
+        self.bottleneck = UNet3d._block(
+            features * 8, features * 16, name="bottleneck")
 
-        self.upconv4 = nn.ConvTranspose3d(features * 16, features * 8, kernel_size=2, stride=2)
-        self.decoder4 = UNet3d._block((features * 8) * 2, features * 8, name="dec4")
-        self.upconv3 = nn.ConvTranspose3d(features * 8, features * 4, kernel_size=2, stride=2)
-        self.decoder3 = UNet3d._block((features * 4) * 2, features * 4, name="dec3")
-        self.upconv2 = nn.ConvTranspose3d(features * 4, features * 2, kernel_size=2, stride=2)
-        self.decoder2 = UNet3d._block((features * 2) * 2, features * 2, name="dec2")
-        self.upconv1 = nn.ConvTranspose3d(features * 2, features, kernel_size=2, stride=2)
-        self.decoder1 = UNet3d._block(features * 2, features, name="dec1")
+        self.upconv4 = nn.ConvTranspose3d(
+            features * 16, features * 8, kernel_size=2, stride=2
+        )
+        self.decoder4 = UNet3d._block(
+            (features * 8) * 2, features * 8, name="dec4")
+        self.upconv3 = nn.ConvTranspose3d(
+            features * 8, features * 4, kernel_size=2, stride=2
+        )
+        self.decoder3 = UNet3d._block(
+            (features * 4) * 2, features * 4, name="dec3")
+        self.upconv2 = nn.ConvTranspose3d(
+            features * 4, features * 2, kernel_size=2, stride=2
+        )
+        self.decoder2 = UNet3d._block(
+            (features * 2) * 2, features * 2, name="dec2")
+        self.upconv1 = nn.ConvTranspose3d(
+            features * 2, features, kernel_size=2, stride=2
+        )
+        self.decoder1 = UNet3d._block(
+            features * 2, features, name="dec1")
 
-        self.conv = nn.Conv3d(in_channels=features, out_channels=out_channels, kernel_size=1)
+        self.conv = nn.Conv3d(
+            in_channels=features, out_channels=out_channels, kernel_size=1
+        )
 
     def forward(self, x):
         enc1 = self.encoder1(x)
@@ -236,7 +299,8 @@ class UNet3d(nn.Module):
                             bias=False,
                         ),
                     ),
-                    (name + "norm1", nn.BatchNorm3d(num_features=features)),
+                    (name + "norm1",
+                     nn.BatchNorm3d(num_features=features)),
                     (name + "tanh1", nn.Tanh()),
                     (
                         name + "conv2",
@@ -248,7 +312,8 @@ class UNet3d(nn.Module):
                             bias=False,
                         ),
                     ),
-                    (name + "norm2", nn.BatchNorm3d(num_features=features)),
+                    (name + "norm2",
+                     nn.BatchNorm3d(num_features=features)),
                     (name + "tanh2", nn.Tanh()),
                 ]
             )

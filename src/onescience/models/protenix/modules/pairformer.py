@@ -5,20 +5,21 @@ from typing import Any, Optional
 import torch
 import torch.nn as nn
 
-from onescience.models.protenix.modules.primitives import LinearNoBias, Transition
-from onescience.models.protenix.modules.transformer import AttentionPairBias
-from onescience.models.protenix.utils import pad_at_dim, sample_msa_feature_dict_random_without_replacement
 from onescience.models.openfold.dropout import DropoutRowwise
 from onescience.models.openfold.outer_product_mean import (
-    OuterProductMean,  # Alg 9 in AF3
-)
+    OuterProductMean,
+)  # Alg 9 in AF3
 from onescience.models.openfold.primitives import LayerNorm
 from onescience.models.openfold.triangular_attention import TriangleAttention
-from onescience.models.openfold.triangular_multiplicative_update import (
-    TriangleMultiplicationIncoming,  # Alg 13 in AF3
+from onescience.models.openfold.triangular_multiplicative_update import (  # Alg 13 in AF3; Alg 12 in AF3
+    TriangleMultiplicationIncoming,
+    TriangleMultiplicationOutgoing,
 )
-from onescience.models.openfold.triangular_multiplicative_update import (
-    TriangleMultiplicationOutgoing,  # Alg 12 in AF3
+from onescience.models.protenix.modules.primitives import LinearNoBias, Transition
+from onescience.models.protenix.modules.transformer import AttentionPairBias
+from onescience.models.protenix.utils import (
+    pad_at_dim,
+    sample_msa_feature_dict_random_without_replacement,
 )
 from onescience.utils.openfold.checkpointing import checkpoint_blocks, get_checkpoint_fn
 
@@ -56,7 +57,8 @@ class PairformerBlock(nn.Module):
         self.tri_mul_out = TriangleMultiplicationOutgoing(
             c_z=c_z, c_hidden=c_hidden_mul
         )
-        self.tri_mul_in = TriangleMultiplicationIncoming(c_z=c_z, c_hidden=c_hidden_mul)
+        self.tri_mul_in = TriangleMultiplicationIncoming(
+            c_z=c_z, c_hidden=c_hidden_mul)
         self.tri_att_start = TriangleAttention(
             c_in=c_z,
             c_hidden=c_hidden_pair_att,
@@ -74,7 +76,8 @@ class PairformerBlock(nn.Module):
             self.attention_pair_bias = AttentionPairBias(
                 has_s=False, create_offset_ln_z=True, n_heads=n_heads, c_a=c_s, c_z=c_z
             )
-            self.single_transition = Transition(c_in=c_s, n=4)
+            self.single_transition = Transition(
+                c_in=c_s, n=4)
 
     def forward(
         self,
@@ -127,7 +130,8 @@ class PairformerBlock(nn.Module):
             z = z.transpose(-2, -3).contiguous()
             z += self.tri_att_end(
                 z,
-                mask=pair_mask.transpose(-1, -2) if pair_mask is not None else None,
+                mask=pair_mask.transpose(
+                    -1, -2) if pair_mask is not None else None,
                 use_memory_efficient_kernel=use_memory_efficient_kernel,
                 use_deepspeed_evo_attention=use_deepspeed_evo_attention,
                 use_lma=use_lma,
@@ -162,7 +166,8 @@ class PairformerBlock(nn.Module):
             z = z + self.dropout_row(
                 self.tri_att_end(
                     z,
-                    mask=pair_mask.transpose(-1, -2) if pair_mask is not None else None,
+                    mask=pair_mask.transpose(
+                        -1, -2) if pair_mask is not None else None,
                     use_memory_efficient_kernel=use_memory_efficient_kernel,
                     use_deepspeed_evo_attention=use_deepspeed_evo_attention,
                     use_lma=use_lma,
@@ -216,7 +221,8 @@ class PairformerStack(nn.Module):
         self.blocks = nn.ModuleList()
 
         for _ in range(n_blocks):
-            block = PairformerBlock(n_heads=n_heads, c_z=c_z, c_s=c_s, dropout=dropout)
+            block = PairformerBlock(
+                n_heads=n_heads, c_z=c_z, c_s=c_s, dropout=dropout)
             self.blocks.append(block)
 
     def _prep_blocks(
@@ -247,7 +253,8 @@ class PairformerStack(nn.Module):
             return b(*args, **kwargs)
 
         if clear_cache_between_blocks:
-            blocks = [partial(clear_cache, b) for b in blocks]
+            blocks = [partial(clear_cache, b)
+                      for b in blocks]
         return blocks
 
     def forward(
@@ -334,13 +341,17 @@ class MSAPairWeightedAveraging(nn.Module):
             in_features=self.c_z, out_features=self.n_heads
         )
         self.linear_no_bias_mg = LinearNoBias(
-            in_features=self.c_m, out_features=self.c * self.n_heads, initializer="zeros",
+            in_features=self.c_m,
+            out_features=self.c * self.n_heads,
+            initializer="zeros",
         )
         # Weighted average with gating
         self.softmax_w = nn.Softmax(dim=-2)
         # Output projection
         self.linear_no_bias_out = LinearNoBias(
-            in_features=self.c * self.n_heads, out_features=self.c_m, initializer="zeros",
+            in_features=self.c * self.n_heads,
+            out_features=self.c_m,
+            initializer="zeros",
         )
 
     def forward(self, m: torch.Tensor, z: torch.Tensor) -> torch.Tensor:
@@ -355,8 +366,10 @@ class MSAPairWeightedAveraging(nn.Module):
                 [...,n_msa_sampled, n_token, c_m]
         """
         # Input projections
-        m = self.layernorm_m(m)  # [...,n_msa_sampled, n_token, c_m]
-        v = self.linear_no_bias_mv(m)  # [...,n_msa_sampled, n_token, n_heads * c]
+        # [...,n_msa_sampled, n_token, c_m]
+        m = self.layernorm_m(m)
+        # [...,n_msa_sampled, n_token, n_heads * c]
+        v = self.linear_no_bias_mv(m)
         v = v.reshape(
             *v.shape[:-1], self.n_heads, self.c
         )  # [...,n_msa_sampled, n_token, n_heads, c]
@@ -369,7 +382,8 @@ class MSAPairWeightedAveraging(nn.Module):
         g = g.reshape(
             *g.shape[:-1], self.n_heads, self.c
         )  # [...,n_msa_sampled, n_token, n_heads, c]
-        w = self.softmax_w(b)  # [...,n_token, n_token, n_heads]
+        # [...,n_token, n_token, n_heads]
+        w = self.softmax_w(b)
         wv = torch.einsum(
             "...ijh,...mjhc->...mihc", w, v
         )  # [...,n_msa_sampled,n_token,n_heads,c]
@@ -377,7 +391,8 @@ class MSAPairWeightedAveraging(nn.Module):
         o = o.reshape(
             *o.shape[:-2], self.n_heads * self.c
         )  # [...,n_msa_sampled, n_token, n_heads * c]
-        m = self.linear_no_bias_out(o)  # [...,n_msa_sampled, n_token, c_m]
+        # [...,n_msa_sampled, n_token, c_m]
+        m = self.linear_no_bias_out(o)
         if (not self.training) and m.shape[-3] > 5120:
             del v, b, g, w, wv, o
             torch.cuda.empty_cache()
@@ -405,7 +420,8 @@ class MSAStack(nn.Module):
         """
         super(MSAStack, self).__init__()
         self.c = c
-        self.msa_pair_weighted_averaging = MSAPairWeightedAveraging(c=self.c)
+        self.msa_pair_weighted_averaging = MSAPairWeightedAveraging(
+            c=self.c)
         self.dropout_row = DropoutRowwise(dropout)
         self.transition_m = Transition(c_in=c_m, n=4)
         self.msa_chunk_size = msa_chunk_size
@@ -436,7 +452,9 @@ class MSAStack(nn.Module):
             msa_pair_weighted = self.chunk_forward(
                 self.msa_pair_weighted_averaging, m_new, z, chunk_size
             )
-            m = m + self.dropout_row(msa_pair_weighted[: m.shape[-3], :, :])
+            m = m + \
+                self.dropout_row(
+                    msa_pair_weighted[: m.shape[-3], :, :])
             m_new = pad_at_dim(
                 m, dim=-3, pad_length=(0, self.msa_max_size - m.shape[-3]), value=0
             )
@@ -473,7 +491,8 @@ class MSAStack(nn.Module):
 
         def fixed_length_chunk(m, chunk_length, dim=0):
             dim_size = m.size(dim)
-            chunk_num = (dim_size + chunk_length - 1) // chunk_length
+            chunk_num = (
+                dim_size + chunk_length - 1) // chunk_length
             chunks = []
 
             for i in range(chunk_num):
@@ -491,9 +510,11 @@ class MSAStack(nn.Module):
 
         # Process each chunk with gradient checkpointing
         if z is not None:
-            processed_chunks = [checkpoint_fn(module, chunk, z) for chunk in m_chunks]
+            processed_chunks = [checkpoint_fn(
+                module, chunk, z) for chunk in m_chunks]
         else:
-            processed_chunks = [checkpoint_fn(module, chunk) for chunk in m_chunks]
+            processed_chunks = [checkpoint_fn(
+                module, chunk) for chunk in m_chunks]
         if (not self.training) and m.shape[-3] > 5120:
             del m_chunks
             torch.cuda.empty_cache()
@@ -520,7 +541,8 @@ class MSAStack(nn.Module):
                 [..., n_msa_sampled, n_token, c_m]
         """
         num_msa = m.shape[-3]
-        no_chunks = num_msa // chunk_size + (num_msa % chunk_size != 0)
+        no_chunks = num_msa // chunk_size + \
+            (num_msa % chunk_size != 0)
         for i in range(no_chunks):
             start = i * chunk_size
             end = min((i + 1) * chunk_size, num_msa)
@@ -528,7 +550,8 @@ class MSAStack(nn.Module):
             m[start:end, :, :] += self.msa_pair_weighted_averaging(
                 m[start:end, :, :], z
             )
-            m[start:end, :, :] += self.transition_m(m[start:end, :, :])
+            m[start:end, :,
+                :] += self.transition_m(m[start:end, :, :])
         return m
 
 
@@ -575,7 +598,8 @@ class MSABlock(nn.Module):
                 msa_max_size=msa_max_size,
             )
         # Pair stack
-        self.pair_stack = PairformerBlock(c_z=c_z, c_s=0, dropout=pair_dropout)
+        self.pair_stack = PairformerBlock(
+            c_z=c_z, c_s=0, dropout=pair_dropout)
 
     def forward(
         self,
@@ -634,7 +658,8 @@ class MSABlock(nn.Module):
         if not self.is_last_block:
             return m, z
         else:
-            return None, z  # to ensure that `m` will not be used.
+            # to ensure that `m` will not be used.
+            return None, z
 
 
 class MSAModule(nn.Module):
@@ -699,8 +724,10 @@ class MSAModule(nn.Module):
             # the default msa_max_size is 16384 if not specified
             self.msa_max_size = self.msa_configs["train_cutoff"]
         if "min_size" in msa_configs:
-            self.msa_configs["train_lowerb"] = msa_configs["min_size"].get("train", 1)
-            self.msa_configs["test_lowerb"] = msa_configs["min_size"].get("test", 1)
+            self.msa_configs["train_lowerb"] = msa_configs["min_size"].get(
+                "train", 1)
+            self.msa_configs["test_lowerb"] = msa_configs["min_size"].get(
+                "test", 1)
 
         self.linear_no_bias_m = LinearNoBias(
             in_features=32 + 1 + 1, out_features=self.c_m
@@ -751,7 +778,8 @@ class MSAModule(nn.Module):
             return b(*args, **kwargs)
 
         if clear_cache_between_blocks:
-            blocks = [partial(clear_cache, b) for b in blocks]
+            blocks = [partial(clear_cache, b)
+                      for b in blocks]
         return blocks
 
     def one_hot_fp32(
@@ -772,7 +800,8 @@ class MSAModule(nn.Module):
         one_hot_tensor = torch.zeros(
             *shape, num_classes, dtype=dtype, device=tensor.device
         )
-        one_hot_tensor.scatter_(len(shape), tensor.unsqueeze(-1), 1)
+        one_hot_tensor.scatter_(
+            len(shape), tensor.unsqueeze(-1), 1)
         return one_hot_tensor
 
     def forward(
@@ -819,7 +848,8 @@ class MSAModule(nn.Module):
             return z
         msa_feat = sample_msa_feature_dict_random_without_replacement(
             feat_dict=input_feature_dict,
-            dim_dict={feat_name: -2 for feat_name in self.input_feature},
+            dim_dict={feat_name: -
+                      2 for feat_name in self.input_feature},
             cutoff=(
                 self.msa_configs["train_cutoff"]
                 if self.training
@@ -864,7 +894,8 @@ class MSAModule(nn.Module):
         msa_sample = self.linear_no_bias_m(msa_sample)
 
         # Auto broadcast [...,n_msa_sampled, n_token, c_m]
-        msa_sample = msa_sample + self.linear_no_bias_s(s_inputs)
+        msa_sample = msa_sample + \
+            self.linear_no_bias_s(s_inputs)
         if z.shape[-2] > 2000 and (not self.training):
             clear_cache_between_blocks = True
         else:
@@ -930,10 +961,12 @@ class TemplateEmbedder(nn.Module):
             "template_restype_i": 32,
             "template_restype_j": 32,
         }
-        self.distogram = {"max_bin": 50.75, "min_bin": 3.25, "no_bins": 39}
+        self.distogram = {"max_bin": 50.75,
+                          "min_bin": 3.25, "no_bins": 39}
         self.inf = 100000.0
 
-        self.linear_no_bias_z = LinearNoBias(in_features=self.c_z, out_features=self.c)
+        self.linear_no_bias_z = LinearNoBias(
+            in_features=self.c_z, out_features=self.c)
         self.layernorm_z = LayerNorm(self.c_z)
         self.linear_no_bias_a = LinearNoBias(
             in_features=sum(self.input_feature1.values())
@@ -948,7 +981,8 @@ class TemplateEmbedder(nn.Module):
             blocks_per_ckpt=blocks_per_ckpt,
         )
         self.layernorm_v = LayerNorm(self.c)
-        self.linear_no_bias_u = LinearNoBias(in_features=self.c, out_features=self.c_z)
+        self.linear_no_bias_u = LinearNoBias(
+            in_features=self.c, out_features=self.c_z)
 
     def forward(
         self,

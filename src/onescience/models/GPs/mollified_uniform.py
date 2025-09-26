@@ -1,9 +1,11 @@
 import math
+from numbers import Number
+
 import torch
 from gpytorch.priors import Prior
-from torch.distributions import constraints,Uniform,Normal
+from torch.distributions import Normal, Uniform, constraints
 from torch.distributions.utils import broadcast_all
-from numbers import Number
+
 
 class MollifiedUniformPrior(Prior):
     r"""Uniform distribution that is differentiable everywhere 
@@ -36,42 +38,58 @@ class MollifiedUniformPrior(Prior):
         The purpose of the priors in this package is to generate initial starting points for optimizing
         hyperparameters and for MAP estimation. 
     """
-    arg_constraints = {'a':constraints.real,'b':constraints.real,'tail_sigma':constraints.positive}
+
+    arg_constraints = {
+        "a": constraints.real,
+        "b": constraints.real,
+        "tail_sigma": constraints.positive,
+    }
     support = constraints.real
-    def __init__(self,a,b,tail_sigma=0.1):
-        self.a,self.b,self.tail_sigma = broadcast_all(a,b,tail_sigma)
-        
-        if isinstance(a,Number) or isinstance(b,Number):
+
+    def __init__(self, a, b, tail_sigma=0.1):
+        self.a, self.b, self.tail_sigma = broadcast_all(
+            a, b, tail_sigma)
+
+        if isinstance(a, Number) or isinstance(b, Number):
             batch_shape = torch.Size()
         else:
             batch_shape = self.a.size()
 
         super().__init__(batch_shape)
-    
+
     @property
     def mean(self):
-        return (self.a+self.b)/2
-    
+        return (self.a + self.b) / 2
+
     @property
     def _half_range(self):
-        return (self.b-self.a)/2
+        return (self.b - self.a) / 2
 
     @property
     def _log_normalization_constant(self):
-        return -torch.log(1+(self.b-self.a)/(math.sqrt(2*math.pi)*self.tail_sigma))
+        return -torch.log(
+            1 + (self.b - self.a) /
+            (math.sqrt(2 * math.pi) * self.tail_sigma)
+        )
 
-    def log_prob(self,X):
+    def log_prob(self, X):
         # expression preserving gradients under automatic differentiation
-        tail_dist = ((X-self.mean).abs()-self._half_range).clamp(min=0)
-        return Normal(loc=torch.zeros_like(self.a),scale=self.tail_sigma).log_prob(tail_dist)+self._log_normalization_constant
-    
-    def rsample(self,sample_shape=torch.Size([])):
-        return Uniform(self.a,self.b).rsample(sample_shape).to(self.a)
+        tail_dist = ((X - self.mean).abs() -
+                     self._half_range).clamp(min=0)
+        return (
+            Normal(loc=torch.zeros_like(self.a), scale=self.tail_sigma).log_prob(
+                tail_dist
+            )
+            + self._log_normalization_constant
+        )
 
-    def expand(self,expand_shape):
+    def rsample(self, sample_shape=torch.Size([])):
+        return Uniform(self.a, self.b).rsample(sample_shape).to(self.a)
+
+    def expand(self, expand_shape):
         batch_shape = torch.Size(expand_shape)
         return MollifiedUniformPrior(
             self.a.expand(batch_shape),
             self.b.expand(batch_shape),
-            self.tail_sigma.expand(batch_shape)
+            self.tail_sigma.expand(batch_shape),
         )

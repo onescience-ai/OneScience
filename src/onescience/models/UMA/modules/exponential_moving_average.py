@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import copy
@@ -34,18 +33,21 @@ class ExponentialMovingAverage:
         use_num_updates: bool = False,
     ) -> None:
         if decay < 0.0 or decay > 1.0:
-            raise ValueError("Decay must be between 0 and 1")
+            raise ValueError(
+                "Decay must be between 0 and 1")
         self.decay = decay
         self.num_updates: int | None = 0 if use_num_updates else None
         parameters = list(parameters)
-        self.shadow_params = [p.clone().detach() for p in parameters if p.requires_grad]
+        self.shadow_params = [p.clone().detach()
+                              for p in parameters if p.requires_grad]
         self.collected_params: list[torch.nn.Parameter] = []
         # By maintaining only a weakref to each parameter,
         # we maintain the old GC behaviour of ExponentialMovingAverage:
         # if the model goes out of scope but the ExponentialMovingAverage
         # is kept, no references to the model or its parameters will be
         # maintained, and the model will be cleaned up.
-        self._params_refs = [weakref.ref(p) for p in parameters if p.requires_grad]
+        self._params_refs = [weakref.ref(
+            p) for p in parameters if p.requires_grad]
 
     def _get_parameters(
         self, parameters: Iterable[torch.nn.Parameter] | None
@@ -80,7 +82,8 @@ class ExponentialMovingAverage:
         decay = self.decay
         if self.num_updates is not None:
             self.num_updates += 1
-            decay = min(decay, (1 + self.num_updates) / (10 + self.num_updates))
+            decay = min(
+                decay, (1 + self.num_updates) / (10 + self.num_updates))
         one_minus_decay = 1.0 - decay
         with torch.no_grad():
             for s_param, param in zip(self.shadow_params, parameters):
@@ -111,7 +114,8 @@ class ExponentialMovingAverage:
             `ExponentialMovingAverage` was initialized will be used.
         """
         parameters = self._get_parameters(parameters)
-        self.collected_params = [param.clone() for param in parameters]
+        self.collected_params = [
+            param.clone() for param in parameters]
 
     def restore(self, parameters: Iterable[torch.nn.Parameter] | None = None) -> None:
         """
@@ -155,7 +159,8 @@ class ExponentialMovingAverage:
 
         self.decay = state_dict["decay"]
         if self.decay < 0.0 or self.decay > 1.0:
-            raise ValueError("Decay must be between 0 and 1")
+            raise ValueError(
+                "Decay must be between 0 and 1")
 
         self.num_updates = state_dict["num_updates"]
         assert self.num_updates is None or isinstance(

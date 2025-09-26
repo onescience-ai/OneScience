@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import os
@@ -18,9 +16,11 @@ def count_pairs(tensor, max_value=100):
     # Ensure the tensor is of type long for indexing
     tensor = tensor.long()
     # Flatten the pairs into a single index
-    indices = (tensor[:, 0] - 1) * max_value + (tensor[:, 1] - 1)
+    indices = (tensor[:, 0] - 1) * \
+        max_value + (tensor[:, 1] - 1)
     # Count occurrences of each index
-    counts = torch.bincount(indices, minlength=max_value * max_value)
+    counts = torch.bincount(
+        indices, minlength=max_value * max_value)
     count_matrix = counts.view(max_value, max_value)
 
     return count_matrix
@@ -65,12 +65,14 @@ class PairwiseCountRunner(Runner, metaclass=ABCMeta):
         # canonical config of a training run. here I took uma_sm_direct (preview)
         cfg = omegaconf.OmegaConf.load(self.dataset_cfg)
         dataset_cfg = cfg["runner"]["train_dataloader"]["dataset"]
-        dataset_names = sorted(dataset_cfg["dataset_configs"].keys())
+        dataset_names = sorted(
+            dataset_cfg["dataset_configs"].keys())
         for ds in dataset_names:
             dataset_cfg["dataset_configs"][ds]["a2g_args"]["radius"] = self.radius
             dataset_cfg["dataset_configs"][ds]["a2g_args"]["max_neigh"] = 300
 
-        concat_uma_dataset = hydra.utils.instantiate(dataset_cfg)
+        concat_uma_dataset = hydra.utils.instantiate(
+            dataset_cfg)
 
         ds_idx = dataset_names.index(self.ds_name)
         dataset = concat_uma_dataset.datasets[ds_idx]

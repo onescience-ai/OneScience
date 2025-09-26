@@ -1,18 +1,15 @@
-from abc import ABC, abstractmethod
 import functools
 import logging
 import os
+from abc import ABC, abstractmethod
 from typing import Any, Mapping, Optional
-
-from hydra.utils import instantiate
-from omegaconf import DictConfig, OmegaConf
-
-from termcolor import colored
-
-from torch import nn
 
 import torch
 import wandb
+from hydra.utils import instantiate
+from omegaconf import DictConfig, OmegaConf
+from termcolor import colored
+from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 
 from onescience.distributed.manager import DistributedManager
@@ -33,12 +30,14 @@ class TermColorFormatter(logging.Formatter):
         *,
         defaults=None,
     ):
-        super().__init__(fmt, datefmt, style, validate, defaults=defaults)
+        super().__init__(fmt, datefmt, style,
+                         validate, defaults=defaults)
         self.log_colors = log_colors if log_colors is not None else {}
 
     def format(self, record):
         log_message = super().format(record)
-        color = self.log_colors.get(record.levelname, "white")
+        color = self.log_colors.get(
+            record.levelname, "white")
         return colored(log_message, color)
 
 
@@ -61,7 +60,8 @@ def init_python_logging(
         for l in pylog_cfg.loggers.values():
             l.handlers = []
     # Configure logging.
-    logging.config.dictConfig(OmegaConf.to_container(pylog_cfg, resolve=True))
+    logging.config.dictConfig(
+        OmegaConf.to_container(pylog_cfg, resolve=True))
 
 
 def get_gpu_info() -> str:
@@ -116,7 +116,6 @@ class ExperimentLogger(ABC):
         step : int
             Current step/iteration number
         """
-        pass
 
     @abstractmethod
     def log_image(self, tag: str, value, step: int) -> None:
@@ -131,7 +130,6 @@ class ExperimentLogger(ABC):
         step : int
             Current step/iteration number
         """
-        pass
 
     @abstractmethod
     def log(self, data: Mapping[str, Any], step: int) -> None:
@@ -144,7 +142,6 @@ class ExperimentLogger(ABC):
         step : int
             Current step/iteration number
         """
-        pass
 
     @abstractmethod
     def watch_model(self, model: nn.Module) -> None:
@@ -155,12 +152,10 @@ class ExperimentLogger(ABC):
         model : nn.Module
             PyTorch model to watch
         """
-        pass
 
     @abstractmethod
     def close(self) -> None:
         """Closes the logger and cleans up resources"""
-        pass
 
 
 class WandBLogger(ExperimentLogger):
@@ -175,23 +170,27 @@ class WandBLogger(ExperimentLogger):
             return
 
         if wandb_key := kwargs.pop("wandb_key", None) is not None:
-            logger.warning("Passing W&B key via config is not recommended.")
+            logger.warning(
+                "Passing W&B key via config is not recommended.")
             wandb.login(key=wandb_key)
 
         # If wandb_id is not provided to resume the experiment,
         # create new id if wandb_id.txt does not exist,
         # otherwise - load id from the file.
         if wandb_id := kwargs.pop("id", None) is None:
-            wandb_id_file = os.path.join(kwargs["dir"], "wandb_id.txt")
+            wandb_id_file = os.path.join(
+                kwargs["dir"], "wandb_id.txt")
             if not os.path.exists(wandb_id_file):
                 wandb_id = wandb.util.generate_id()
                 with open(wandb_id_file, "w", encoding="utf-8") as f:
                     f.write(wandb_id)
-                logger.info(f"Starting new wandb run: {wandb_id}")
+                logger.info(
+                    f"Starting new wandb run: {wandb_id}")
             else:
                 with open(wandb_id_file, encoding="utf-8") as f:
                     wandb_id = f.read()
-                logger.info(f"Resuming wandb run: {wandb_id}")
+                logger.info(
+                    f"Resuming wandb run: {wandb_id}")
         resume = kwargs.pop("resume", "allow")
 
         self.watch = kwargs.pop("watch_model", False)
@@ -392,7 +391,6 @@ class TensorBoardLogger(ExperimentLogger):
             model: PyTorch model to visualize
         """
         # TODO(akamenev): add model graph and monitoring to TensorBoard.
-        pass
 
     def close(self) -> None:
         """Closes the TensorBoard writer."""

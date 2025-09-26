@@ -34,7 +34,8 @@ class Vector:
         self._vector_processor = self._init_vector()
 
     def _init_vector(self) -> BaseVector:
-        vector_factory_cls = self.get_vector_factory(self._vec_config["vector_type"])
+        vector_factory_cls = self.get_vector_factory(
+            self._vec_config["vector_type"])
         return vector_factory_cls().init_vector(self._vec_config, self._embeddings)
 
     @staticmethod
@@ -47,23 +48,29 @@ class Vector:
 
                 return MilvusVectorFactory
             case _:
-                raise ValueError(f"Vector store {vector_type} is not supported.")
+                raise ValueError(
+                    f"Vector store {vector_type} is not supported.")
 
     def create(self, texts: Optional[list] = None, **kwargs):
         if texts:
             start = time.time()
-            logger.info("start embedding %s texts %s", len(texts), start)
+            logger.info(
+                "start embedding %s texts %s", len(texts), start)
             batch_size = 1000
             for i in range(0, len(texts), batch_size):
-                batch = texts[i : i + batch_size]
-                self._vector_processor.create(documents=batch, **kwargs)
-            logger.info("Embedding %s texts took %s s", len(texts), time.time() - start)
+                batch = texts[i: i + batch_size]
+                self._vector_processor.create(
+                    documents=batch, **kwargs)
+            logger.info("Embedding %s texts took %s s", len(
+                texts), time.time() - start)
 
     def add_texts(self, documents: list[Document], **kwargs):
         if kwargs.get("duplicate_check", False):
-            documents = self._filter_duplicate_texts(documents)
+            documents = self._filter_duplicate_texts(
+                documents)
 
-        self._vector_processor.create(texts=documents, **kwargs)
+        self._vector_processor.create(
+            texts=documents, **kwargs)
 
     def text_exists(self, doc_id: str) -> bool:
         return self._vector_processor.text_exists(doc_id)
@@ -72,7 +79,8 @@ class Vector:
         self._vector_processor.delete_by_ids(doc_ids)
 
     def delete_by_metadata_field(self, key: str, value: str) -> None:
-        self._vector_processor.delete_by_metadata_field(key, value)
+        self._vector_processor.delete_by_metadata_field(
+            key, value)
 
     def search_by_vector(self, query: str, **kwargs: Any) -> list[Document]:
         return self._vector_processor.search_by_vector(query, **kwargs)
@@ -93,7 +101,8 @@ class Vector:
                 continue
             doc_id = text.metadata["doc_id"]
             if doc_id:
-                exists_duplicate_node = self.text_exists(doc_id)
+                exists_duplicate_node = self.text_exists(
+                    doc_id)
                 if exists_duplicate_node:
                     texts.remove(text)
 
@@ -105,4 +114,5 @@ class Vector:
             if callable(method):
                 return method
 
-        raise AttributeError(f"'vector_processor' object has no attribute '{name}'")
+        raise AttributeError(
+            f"'vector_processor' object has no attribute '{name}'")

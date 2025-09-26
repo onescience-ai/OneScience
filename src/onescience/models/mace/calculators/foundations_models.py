@@ -87,8 +87,10 @@ def download_mace_mp_checkpoint(model: Union[str, Path] = None) -> str:
 
     if not os.path.isfile(cached_model_path):
         os.makedirs(cache_dir, exist_ok=True)
-        print(f"Downloading MACE model from {checkpoint_url!r}")
-        _, http_msg = urllib.request.urlretrieve(checkpoint_url, cached_model_path)
+        print(
+            f"Downloading MACE model from {checkpoint_url!r}")
+        _, http_msg = urllib.request.urlretrieve(
+            checkpoint_url, cached_model_path)
         if "Content-Type: text/html" in http_msg:
             raise RuntimeError(
                 f"Model download failed, please check the URL {checkpoint_url}"
@@ -103,7 +105,8 @@ def mace_mp(
     device: str = "",
     default_dtype: str = "float32",
     dispersion: bool = False,
-    damping: str = "bj",  # choices: ["zero", "bj", "zerom", "bjm"]
+    # choices: ["zero", "bj", "zerom", "bjm"]
+    damping: str = "bj",
     dispersion_xc: str = "pbe",
     dispersion_cutoff: float = 40.0 * units.Bohr,
     return_raw_model: bool = False,
@@ -154,15 +157,19 @@ def mace_mp(
             "medium-omat-0",
         ) or str(model).startswith("https:"):
             model_path = download_mace_mp_checkpoint(model)
-            print(f"Using Materials Project MACE for MACECalculator with {model_path}")
+            print(
+                f"Using Materials Project MACE for MACECalculator with {model_path}")
         else:
             if not Path(model).exists():
-                raise FileNotFoundError(f"{model} not found locally")
+                raise FileNotFoundError(
+                    f"{model} not found locally")
             model_path = model
     except Exception as exc:
-        raise RuntimeError("Model download failed and no local model found") from exc
+        raise RuntimeError(
+            "Model download failed and no local model found") from exc
 
-    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    device = device or (
+        "cuda" if torch.cuda.is_available() else "cpu")
     if default_dtype == "float64":
         print(
             "Using float64 for MACECalculator, which is slower but more accurate. Recommended for geometry optimization."
@@ -189,7 +196,8 @@ def mace_mp(
             "Please install torch-dftd to use dispersion corrections (see https://github.com/pfnet-research/torch-dftd)"
         ) from exc
 
-    print("Using TorchDFTD3Calculator for D3 dispersion corrections")
+    print(
+        "Using TorchDFTD3Calculator for D3 dispersion corrections")
     dtype = torch.float32 if default_dtype == "float32" else torch.float64
     d3_calc = TorchDFTD3Calculator(
         device=device,
@@ -243,30 +251,37 @@ def mace_off(
                 else model
             )
             cache_dir = os.path.expanduser("~/.cache/mace")
-            checkpoint_url_name = os.path.basename(checkpoint_url).split("?")[0]
+            checkpoint_url_name = os.path.basename(
+                checkpoint_url).split("?")[0]
             cached_model_path = f"{cache_dir}/{checkpoint_url_name}"
             if not os.path.isfile(cached_model_path):
                 os.makedirs(cache_dir, exist_ok=True)
                 # download and save to disk
-                print(f"Downloading MACE model from {checkpoint_url!r}")
+                print(
+                    f"Downloading MACE model from {checkpoint_url!r}")
                 print(
                     "The model is distributed under the Academic Software License (ASL) license, see https://github.com/gabor1/ASL \n To use the model you accept the terms of the license."
                 )
                 print(
                     "ASL is based on the Gnu Public License, but does not permit commercial use"
                 )
-                urllib.request.urlretrieve(checkpoint_url, cached_model_path)
-                print(f"Cached MACE model to {cached_model_path}")
+                urllib.request.urlretrieve(
+                    checkpoint_url, cached_model_path)
+                print(
+                    f"Cached MACE model to {cached_model_path}")
             model = cached_model_path
             msg = f"Using MACE-OFF23 MODEL for MACECalculator with {model}"
             print(msg)
         else:
             if not Path(model).exists():
-                raise FileNotFoundError(f"{model} not found locally")
+                raise FileNotFoundError(
+                    f"{model} not found locally")
     except Exception as exc:
-        raise RuntimeError("Model download failed and no local model found") from exc
+        raise RuntimeError(
+            "Model download failed and no local model found") from exc
 
-    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    device = device or (
+        "cuda" if torch.cuda.is_available() else "cpu")
 
     if return_raw_model:
         return torch.load(model, map_location=device)
@@ -310,14 +325,16 @@ def mace_anicc(
         os.makedirs(model_dir, exist_ok=True)
 
         # Download the model
-        print(f"Model not found at {model_path}. Downloading...")
+        print(
+            f"Model not found at {model_path}. Downloading...")
         model_url = "https://github.com/ACEsuit/mace/raw/main/mace/calculators/foundations_models/ani500k_large_CC.model"
 
         try:
 
             def report_progress(block_num, block_size, total_size):
                 downloaded = block_num * block_size
-                percent = min(100, downloaded * 100 / total_size)
+                percent = min(
+                    100, downloaded * 100 / total_size)
                 if total_size > 0:
                     print(
                         f"\rDownloading model: {percent:.1f}% ({downloaded / 1024 / 1024:.1f} MB / {total_size / 1024 / 1024:.1f} MB)",
@@ -330,7 +347,8 @@ def mace_anicc(
             print("\nDownload complete!")
 
         except Exception as e:
-            raise RuntimeError(f"Failed to download model: {e}") from e
+            raise RuntimeError(
+                f"Failed to download model: {e}") from e
 
     if return_raw_model:
         return torch.load(model_path, map_location=device)

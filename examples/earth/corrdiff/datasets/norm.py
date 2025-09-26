@@ -7,8 +7,11 @@ def normalize(x, center, scale):
     center = np.asarray(center)
     scale = np.asarray(scale)
     if not (center.ndim == 1 and scale.ndim == 1):
-        raise ValueError("center and scale must be 1D arrays")
-    return (x - center[np.newaxis, :, np.newaxis, np.newaxis]) / scale[np.newaxis, :, np.newaxis, np.newaxis]
+        raise ValueError(
+            "center and scale must be 1D arrays")
+    return (x - center[np.newaxis, :, np.newaxis, np.newaxis]) / scale[
+        np.newaxis, :, np.newaxis, np.newaxis
+    ]
 
 
 def denormalize(x, center, scale):
@@ -16,7 +19,9 @@ def denormalize(x, center, scale):
     center = np.asarray(center)
     scale = np.asarray(scale)
     if not (center.ndim == 1 and scale.ndim == 1):
-        raise ValueError("center and scale must be 1D arrays")
+        raise ValueError(
+            "center and scale must be 1D arrays")
     return (
-        x * scale[np.newaxis, :, np.newaxis, np.newaxis] + center[np.newaxis, :, np.newaxis, np.newaxis]
+        x * scale[np.newaxis, :, np.newaxis, np.newaxis]
+        + center[np.newaxis, :, np.newaxis, np.newaxis]
     )

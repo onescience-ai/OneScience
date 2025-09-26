@@ -28,8 +28,10 @@ class StaticData:
         latitudes: Tensor,
         longitudes: Tensor,
     ) -> None:  # pragma: no cover
-        self.lsm_path = os.path.join(static_dataset_path, "land_sea_mask.nc")
-        self.geop_path = os.path.join(static_dataset_path, "geopotential.nc")
+        self.lsm_path = os.path.join(
+            static_dataset_path, "land_sea_mask.nc")
+        self.geop_path = os.path.join(
+            static_dataset_path, "geopotential.nc")
         self.lat = latitudes
         self.lon = longitudes
 
@@ -41,9 +43,11 @@ class StaticData:
         Tensor
             Land-sea mask with shape (1, 1, lat, lon).
         """
-        ds = torch.tensor(nc.Dataset(self.lsm_path)["lsm"], dtype=torch.float32)
+        ds = torch.tensor(nc.Dataset(self.lsm_path)[
+                          "lsm"], dtype=torch.float32)
         ds = torch.unsqueeze(ds, dim=0)
-        ds = interpolate(ds, size=(self.lat.size(0), self.lon.size(0)), mode="bilinear")
+        ds = interpolate(ds, size=(self.lat.size(
+            0), self.lon.size(0)), mode="bilinear")
         return ds
 
     def get_geop(self, normalize: bool = True) -> Tensor:  # pragma: no cover
@@ -59,9 +63,11 @@ class StaticData:
         Tensor
             Normalized geopotential with shape (1, 1, lat, lon).
         """
-        ds = torch.tensor(nc.Dataset(self.geop_path)["z"], dtype=torch.float32)
+        ds = torch.tensor(nc.Dataset(self.geop_path)[
+                          "z"], dtype=torch.float32)
         ds = torch.unsqueeze(ds, dim=0)
-        ds = interpolate(ds, size=(self.lat.size(0), self.lon.size(0)), mode="bilinear")
+        ds = interpolate(ds, size=(self.lat.size(
+            0), self.lon.size(0)), mode="bilinear")
         if normalize:
             ds = (ds - ds.mean()) / ds.std()
         return ds
@@ -79,19 +85,23 @@ class StaticData:
         # cos latitudes
         cos_lat = torch.cos(deg2rad(self.lat))
         cos_lat = cos_lat.view(1, 1, self.lat.size(0), 1)
-        cos_lat_mg = cos_lat.expand(1, 1, self.lat.size(0), self.lon.size(0))
+        cos_lat_mg = cos_lat.expand(
+            1, 1, self.lat.size(0), self.lon.size(0))
 
         # sin longitudes
         sin_lon = torch.sin(deg2rad(self.lon))
         sin_lon = sin_lon.view(1, 1, 1, self.lon.size(0))
-        sin_lon_mg = sin_lon.expand(1, 1, self.lat.size(0), self.lon.size(0))
+        sin_lon_mg = sin_lon.expand(
+            1, 1, self.lat.size(0), self.lon.size(0))
 
         # cos longitudes
         cos_lon = torch.cos(deg2rad(self.lon))
         cos_lon = cos_lon.view(1, 1, 1, self.lon.size(0))
-        cos_lon_mg = cos_lon.expand(1, 1, self.lat.size(0), self.lon.size(0))
+        cos_lon_mg = cos_lon.expand(
+            1, 1, self.lat.size(0), self.lon.size(0))
 
-        outvar = torch.cat((cos_lat_mg, sin_lon_mg, cos_lon_mg), dim=1)
+        outvar = torch.cat(
+            (cos_lat_mg, sin_lon_mg, cos_lon_mg), dim=1)
         return outvar
 
     def get(self) -> Tensor:  # pragma: no cover

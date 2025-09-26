@@ -44,10 +44,12 @@ def centre_random_augmentation(
         center = (x_input_coords * mask.unsqueeze(dim=-1)).sum(dim=-2) / (
             mask.sum(dim=-1) + eps
         )
-        x_input_coords = x_input_coords - center.unsqueeze(dim=-2)
+        x_input_coords = x_input_coords - \
+            center.unsqueeze(dim=-2)
 
     # Expand to [..., N_sample, N_atom, 3]
-    x_input_coords = expand_at_dim(x_input_coords, dim=-3, n=N_sample)
+    x_input_coords = expand_at_dim(
+        x_input_coords, dim=-3, n=N_sample)
 
     if centre_only:
         return x_input_coords
@@ -62,7 +64,9 @@ def centre_random_augmentation(
         .to(device)
         .reshape(*batch_size_shape, N_sample, 3, 3)
     ).detach()  # [..., N_sample, 3, 3]
-    trans_random = s_trans * torch.randn(size=(*batch_size_shape, N_sample, 3), device=device)  # [..., N_sample, 3]
+    trans_random = s_trans * torch.randn(
+        size=(*batch_size_shape, N_sample, 3), device=device
+    )  # [..., N_sample, 3]
     x_augment_coords = (
         rot_vec_mul(
             r=expand_at_dim(rot_matrix_random, dim=-3, n=N_atom), t=x_input_coords
@@ -71,7 +75,8 @@ def centre_random_augmentation(
     )  # [..., N_sample, N_atom, 3]
 
     if mask is not None:
-        x_augment_coords = x_augment_coords * mask[..., None, :, None]
+        x_augment_coords = x_augment_coords * \
+            mask[..., None, :, None]
     return x_augment_coords
 
 
@@ -87,7 +92,8 @@ def uniform_random_rotation(N_sample: int = 1) -> torch.Tensor:
             [N_sample, 3, 3]
     """
     rotation = Rotation.random(num=N_sample)
-    rot_matrix = torch.from_numpy(rotation.as_matrix()).float()  # [N_sample, 3, 3]
+    rot_matrix = torch.from_numpy(
+        rotation.as_matrix()).float()  # [N_sample, 3, 3]
     return rot_matrix
 
 
@@ -114,9 +120,12 @@ def rot_vec_mul(r: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
     x, y, z = torch.unbind(input=t, dim=-1)
     return torch.stack(
         tensors=[
-            r[..., 0, 0] * x + r[..., 0, 1] * y + r[..., 0, 2] * z,
-            r[..., 1, 0] * x + r[..., 1, 1] * y + r[..., 1, 2] * z,
-            r[..., 2, 0] * x + r[..., 2, 1] * y + r[..., 2, 2] * z,
+            r[..., 0, 0] * x + r[..., 0, 1] *
+            y + r[..., 0, 2] * z,
+            r[..., 1, 0] * x + r[..., 1, 1] *
+            y + r[..., 1, 2] * z,
+            r[..., 2, 0] * x + r[..., 2, 1] *
+            y + r[..., 2, 2] * z,
         ],
         dim=-1,
     )
@@ -169,7 +178,8 @@ def one_hot(
         torch.Tensor: the one hot embedding of x from v_bins
             [..., bins]
     """
-    dgram = (x[..., None] > lower_bins) * (x[..., None] < upper_bins).float()
+    dgram = (x[..., None] > lower_bins) * \
+        (x[..., None] < upper_bins).float()
     return dgram
 
 
@@ -199,11 +209,14 @@ def batched_gather(
     ranges = []
     for i, s in enumerate(data.shape[:no_batch_dims]):
         r = torch.arange(s)
-        r = r.view(*(*((1,) * i), -1, *((1,) * (len(inds.shape) - i - 1))))
+        r = r.view(
+            *(*((1,) * i), -1, *((1,) * (len(inds.shape) - i - 1))))
         ranges.append(r)
 
-    remaining_dims = [slice(None) for _ in range(len(data.shape) - no_batch_dims)]
-    remaining_dims[dim - no_batch_dims if dim >= 0 else dim] = inds
+    remaining_dims = [slice(None) for _ in range(
+        len(data.shape) - no_batch_dims)]
+    remaining_dims[dim -
+                   no_batch_dims if dim >= 0 else dim] = inds
     ranges.extend(remaining_dims)
     return data[ranges]
 
@@ -228,7 +241,8 @@ def broadcast_token_to_atom(
         # shape = [N_atom], easy index
         return x_token[..., atom_to_token_idx, :]
     else:
-        assert atom_to_token_idx.shape[:-1] == x_token.shape[:-2]
+        assert atom_to_token_idx.shape[:-
+                                       1] == x_token.shape[:-2]
 
     return batched_gather(
         data=x_token,
@@ -283,9 +297,11 @@ def sample_indices(
         torch.Tensor: the sampled indices k
     """
     assert strategy in ["random", "topk"]
-    sample_size = torch.randint(low=min(lower_bound, n), high=n + 1, size=(1,)).item()
+    sample_size = torch.randint(
+        low=min(lower_bound, n), high=n + 1, size=(1,)).item()
     if strategy == "random":
-        indices = torch.randperm(n=n, device=device)[:sample_size]
+        indices = torch.randperm(n=n, device=device)[
+            :sample_size]
     if strategy == "topk":
         indices = torch.arange(sample_size, device=device)
     return indices
@@ -344,7 +360,7 @@ def expand_at_dim(x: torch.Tensor, dim: int, n: int) -> torch.Tensor:
     if dim < 0:
         dim = x.dim() + dim
     before_shape = x.shape[:dim]
-    after_shape = x.shape[dim + 1 :]
+    after_shape = x.shape[dim + 1:]
     return x.expand(*before_shape, n, *after_shape)
 
 
@@ -398,7 +414,7 @@ def reshape_at_dim(
     target_shape = tuple(target_shape)
     target_shape = (*x.shape[:dim], *target_shape)
     if dim + 1 < n_dim:
-        target_shape = (*target_shape, *x.shape[dim + 1 :])
+        target_shape = (*target_shape, *x.shape[dim + 1:])
     return x.reshape(target_shape)
 
 
@@ -453,7 +469,8 @@ def simple_merge_dict_list(dict_list: list[dict]) -> dict:
         elif isinstance(value, np.ndarray):
             pass
         else:
-            raise ValueError(f"Unsupported type for metric data: {type(value)}")
+            raise ValueError(
+                f"Unsupported type for metric data: {type(value)}")
         merged_dict[key].append(value)
 
     for x in dict_list:

@@ -1,16 +1,16 @@
 from .data_loader import (
+    BubbleTemp,
+    BubbleTempVel,
     airfoil,
-    ns,
-    darcy,
-    pipe,
-    elas,
-    plas,
-    pdebench_autoregressive,
-    pdebench_steady_darcy,
     car_design,
     cfd3d,
-    BubbleTempVel,
-    BubbleTemp,
+    darcy,
+    elas,
+    ns,
+    pdebench_autoregressive,
+    pdebench_steady_darcy,
+    pipe,
+    plas,
 )
 
 
