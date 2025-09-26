@@ -1,8 +1,9 @@
 #!/user/bin/env
-from agent.untils.until import gen_job_log_name, setup_global_logger
-from agent.agent.unit.tool_manager import match_tool_modules
-from agent.agent.unit.agent_state import AgentState
-from agent.agent.react_agent import ReactAgent
+from agent.utils.util import gen_job_log_name, setup_global_logger
+from agent.agent_imp.unit.tool_manager import match_tool_modules
+from agent.agent_imp.unit.agent_state import AgentState
+from agent.agent_imp.react_agent import ReactAgent
+from typing import Optional
 import uuid
 import logging
 import os
@@ -17,7 +18,11 @@ sys.path.append(os.path.join(
 class OnescienceAgent:
     support_llms = ["Qwen3-32B"]
 
-    def __init__(self, job_name: str, llm_server: str, llm: str = "Qwen3-32B"):
+    def __init__(self,
+                 job_name: str,
+                 llm_server: str,
+                 llm: str = "Qwen3-32B",
+                 log_dir:Optional[str] = os.path.join(os.path.dirname(os.path.dirname(__file__)),"logs")):
         self.job_name = job_name
         if llm not in self.support_llms:
             raise ValueError("Only support Qwen3-32B now")
@@ -28,13 +33,12 @@ class OnescienceAgent:
                     "model": {
                         "model_name": llm,
                         "model_server": llm_server,
-                        "tools": [],
                     },
                 }
             }
         }
-        log_name = gen_job_log_name(job_name, "../logs")
-        setup_global_logger(f"../logs/{log_name}")
+        log_name = gen_job_log_name(job_name, log_dir)
+        setup_global_logger(f"{log_dir}/{log_name}")
         self.logger = logging.getLogger(__name__)
 
     def run(self, input: str):
@@ -47,7 +51,7 @@ class OnescienceAgent:
         tool_modules = match_tool_modules(
             input, self.agent_config["chat_model"]["default"]
         )
-        self.logger.info(
+        self.logger.debug(
             f"match tool modules: {tool_modules}")
         if tool_modules and len(tool_modules):
             self.agent_config["tool_modules"] = tool_modules

@@ -368,11 +368,11 @@ class LocalQwen3(Runnable):
         if messages[0]["role"] == "system":
             messages[0]["content"] = messages[0]["content"] + \
                 self.function_call
-        logger.info(f"Input messages: {messages}")
+        logger.debug(f"Input messages: {messages}")
 
         for responses in self.agent.run(messages=messages):
             pass
-        logger.info(f"LLM response: {responses}")
+        logger.debug(f"LLM response: {responses}")
 
         content = ""
         tool_calls = []
@@ -389,7 +389,7 @@ class LocalQwen3(Runnable):
             functions = [json.loads(function)
                          for function in functions]
             functions = [
-                function for function in functions if function["type"] == "function"
+                function for function in functions if function.get("type", None) == "function"
             ]
             tool_calls.extend(
                 [
@@ -466,10 +466,10 @@ class HuggingfaceLLM:
 
 
 if __name__ == "__main__":
-    from agent.agent.unit.tool_manager import get_tools
+    from agent.agent_imp.unit.tool_manager import get_tools
     from agent.llm import ChatModel
 
-    tools = get_tools()
+    tools = get_tools([])
     llm = ChatModel["HuggingfaceLLM"](
         model_name="../download/models--Qwen--Qwen3-4B/snapshots", tools=tools
     )

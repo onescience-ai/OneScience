@@ -6,7 +6,8 @@ import re
 from langchain_core.messages.base import get_msg_title_repr
 
 
-def setup_global_logger(log_file_path, log_level=logging.INFO):
+def setup_global_logger(log_file_path:str,
+                        log_level:str = os.environ.get("ONESCIENCE_AGENT_LOGGING_LEVEL", logging.INFO)):
     log_dir = os.path.dirname(log_file_path)
     if log_dir:
         os.makedirs(log_dir, exist_ok=True)

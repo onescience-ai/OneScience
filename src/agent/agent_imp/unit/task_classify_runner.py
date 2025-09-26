@@ -7,7 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langgraph.typing import StateLike
 from pydantic import BaseModel, Field
 
-from agent.agent.unit.runner import Runner
+from agent.agent_imp.unit.runner import Runner
 
 
 class TaskTypeResult(BaseModel):

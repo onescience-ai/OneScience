@@ -4,7 +4,7 @@ from typing import Dict, Optional
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.typing import StateLike
 
-from agent.agent.unit.runner import Runner
+from agent.agent_imp.unit.runner import Runner
 
 
 class GenerateRunner(Runner):
@@ -73,7 +73,7 @@ class GenerateRunner(Runner):
             messages = [SystemMessage(
                 self.system_prompt)] + state["messages"]
         response = self.llm.invoke(messages)
-        self.logger.info(
+        self.logger.debug(
             f"{self.name} response: {response}")
         return {"messages": [response]}
 

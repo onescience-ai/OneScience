@@ -15,8 +15,10 @@ from agent.rag.docparser.doc_processor import DocProcessor
 from agent.rag.docparser.helpers import file_name_to_uuid
 from agent.rag.preprocess.collection_preprocessor import CollectionPreprocessor
 from agent.rag.preprocess.summary_preprocessor import SummaryPreprocessor
+import os
 
-with open("../config/onescience_rag.yml", "r", encoding="utf-8") as f:
+config_path = os.path.dirname(os.path.dirname(__file__))
+with open(os.path.join(config_path, "config", "onescience_rag.yml"), "r", encoding="utf-8") as f:
     default_config = safe_load(f)
 
 

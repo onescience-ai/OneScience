@@ -1,6 +1,6 @@
 from typing import Dict, Optional
 
-from agent.agent.unit.runner import Runner
+from agent.agent_imp.unit.runner import Runner
 
 
 class CotRunner(Runner):

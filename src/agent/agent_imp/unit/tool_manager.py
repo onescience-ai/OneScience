@@ -15,15 +15,16 @@ from pydantic import BaseModel, Field
 from agent.llm import ChatModel
 from agent.tools.description.tool_module_desc import description
 
-PACKAGE_NAME = "agent.tool"
-EXAMPLE_PACKAGE_NAME = "agent.tool.example"
+PACKAGE_NAME = "agent.tools"
+EXAMPLE_PACKAGE_NAME = "agent.tools.example"
 
 logger = logging.getLogger(__name__)
 
 
 def get_tools(tool_modules: list):
     if not tool_modules or not len(tool_modules):
-        return [ShellTool(), PythonREPLTool(), ReadFileTool(), WriteFileTool()]
+        # return [ShellTool(), PythonREPLTool(), ReadFileTool(), WriteFileTool()]
+        return [ReadFileTool(), WriteFileTool()]
     else:
         application_tools = []
         application_tool_names = []
@@ -53,7 +54,7 @@ def get_tools(tool_modules: list):
             application_tool_examples.extend(
                 getattr(module, "examples", []))
 
-        logger.info(
+        logger.debug(
             f"application tools: {application_tool_names}")
         return application_tools, application_tool_examples
 
@@ -79,7 +80,7 @@ def match_tool_modules(prompt: str, chat_model_config: dict):
 {format_instructions}
 """
     llm = ChatModel[chat_model_config["factory_name"]](
-        **chat_model_config["model"])
+        **chat_model_config["model"], tools=[])
 
     parser = JsonOutputParser(
         pydantic_object=ToolModulesResult)
@@ -108,4 +109,4 @@ def match_tool_modules(prompt: str, chat_model_config: dict):
 
 
 if __name__ == "__main__":
-    get_tools({"tool_modules": ["test"]})
+    get_tools(["molsculptor"])

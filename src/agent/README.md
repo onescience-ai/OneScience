@@ -34,7 +34,7 @@ pip install -e .
     ```ssh a02r3n20```
 - 加载环境：
 
-    ```source ~/env_dtk2504.sh```
+    ```source ~/env_dtk25041.sh```
 - 激活运行环境：
 
     ```conda activate vllm```
@@ -47,10 +47,10 @@ pip install -e .
 #### 运行Agent
 
 ```
-from onescience_agent import OnescienceAgent
+from agent import OnescienceAgent
 
-agent = OnescienceAgent(job_name='molsculptor', llm_server='http://a02r2n09:8000/v1', llm='Qwen3-32B')
-agent.run("请帮我设计一个小分子蛋白结构")
+agent = OnescienceAgent(job_name='molsculptor', llm_server='http://a02r2n09:8000/v1', log_dir='./logs')
+agent.run("请使用2个搜索步数帮我设计一个蛋白小分子结构，各参数初始化的配置文件路径为'./application/molsculptor/config.ini")
 
 ```
 
