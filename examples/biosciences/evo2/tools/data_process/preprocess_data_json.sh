@@ -16,7 +16,7 @@ for SPLIT in train test valid; do
     mkdir -p "$SPLIT_DIR"
     echo "Processing $INPUT_FILE -> $OUTPUT_PREFIX"
 
-    if python preprocess_data.py \
+    if python preprocess_data_json.py \
         --input "$INPUT_FILE" \
         --output-prefix "$OUTPUT_PREFIX" \
         --tokenizer-type "$TOKENIZER" \
