@@ -103,7 +103,7 @@ HIP_VISIBLE_DEVICES：指定在哪张显卡上运行，默认0号显卡
 
 - sample_diffusion.N_step：评估过程中，扩散过程的步数，默认设置 20，以提高效率
 
-- data.train_sets：训练数据集，详细设置可参考文件`examples/alphafold/protenix/configs/configs_data.py`
+- data.train_sets：训练数据集，详细设置可参考文件`examples/biosciences/protenix/configs/configs_data.py`
 
 - data.test_sets：评估数据集，多个数据集可用逗号分开
 
@@ -205,5 +205,5 @@ https://github.com/bytedance/Protenix
 
 # 许可证
 
-Protenix 项目，包括代码和模型参数，依据 [Apache 2.0 许可协议](https://monica.im/home/chat/Monica/LICENSE) 提供，可免费用于学术研究和商业用途。
+Protenix 项目，包括代码和模型参数，依据 [Apache 2.0 许可协议](https://github.com/bytedance/Protenix/blob/main/LICENSE) 提供，可免费用于学术研究和商业用途。
 
