@@ -1,8 +1,6 @@
 #!/bin/bash
 module load sghpc-mpi-gcc/25.8
-# source ${ROCM_PATH}/cuda/env.sh
-source /public/home/onescience2025404/zhangyq/dtk-25.04.2-beta-0912-centos8/env.sh
-source /public/home/onescience2025404/zhangyq/dtk-25.04.2-beta-0912-centos8/cuda/env.sh
+source ${ROCM_PATH}/cuda/env.sh
 
 export TF_CPP_MIN_LOG_LEVEL=0
 export JAX_TRACEBACK_FILTERING=off
@@ -13,7 +11,7 @@ export TRITON_ENABLE_GLOBAL_TO_LOCAL=1
 export TRITON_USE_MAKE_BLOCK_PTR=1
 export TRITON_DEFAULT_ENABLE_NUM_VGPRS512=1
 export HOME=/public/onestore/onedatasets/alphafold3
-export PATH=/public/home/onescience2025404/zhangyq/hmmer/bin:${PATH}
+export PATH=/xxx/hmmer/bin:${PATH}
 which jackhmmer
 
 DIR="./inputs"
