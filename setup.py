@@ -150,10 +150,12 @@ biology_requires = [
     "s3fs",
     "zarr",
     "zstandard",
-    "bionemo-noodles",
+    #"bionemo-noodles",
     "psutil",
     "transformers",
     "ftfy",
+    "biotite==1.0.1",
+    "optree",
 ]
 
 dev_requires = [
