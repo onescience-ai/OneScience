@@ -39,11 +39,6 @@ from onescience.models.evo2.data.fasta_dataset import SimpleFastaDataset
 from onescience.models.evo2.lightning import LightningPassthroughPredictionMixin
 from onescience.models.evo2.utils.callbacks import PredictionWriter
 
-# from bionemo.llm.lightning import LightningPassthroughPredictionMixin
-# from bionemo.evo2.data.fasta_dataset import SimpleFastaDataset
-# from bionemo.llm.lightning import LightningPassthroughPredictionMixin
-# from bionemo.llm.utils.callbacks import PredictionWriter
-
 
 CheckpointFormats = Literal["torch_dist", "zarr"]
 
@@ -52,15 +47,40 @@ def parse_args():
     """Parse arguments for Evo2 inference."""
     ap = argparse.ArgumentParser()
 
-    ap.add_argument("--fasta", type=Path, required=True, help="Fasta path from which to generate logit predictions.")
-    ap.add_argument("--ckpt-dir", type=Path, required=True, help="NeMo2 checkpoint directory for inference.")
-    ap.add_argument("--prepend-bos", action="store_true", help="Prepend BOS token to sequences. Defaults to False.")
-    ap.add_argument("--tensor-parallel-size", type=int, default=1, help="Order of tensor parallelism. Defaults to 1.")
     ap.add_argument(
-        "--pipeline-model-parallel-size", type=int, default=1, help="Order of pipeline parallelism. Defaults to 1."
+        "--fasta",
+        type=Path,
+        required=True,
+        help="Fasta path from which to generate logit predictions.",
     )
     ap.add_argument(
-        "--context-parallel-size", type=int, default=1, help="Order of context parallelism. Defaults to 1."
+        "--ckpt-dir",
+        type=Path,
+        required=True,
+        help="NeMo2 checkpoint directory for inference.",
+    )
+    ap.add_argument(
+        "--prepend-bos",
+        action="store_true",
+        help="Prepend BOS token to sequences. Defaults to False.",
+    )
+    ap.add_argument(
+        "--tensor-parallel-size",
+        type=int,
+        default=1,
+        help="Order of tensor parallelism. Defaults to 1.",
+    )
+    ap.add_argument(
+        "--pipeline-model-parallel-size",
+        type=int,
+        default=1,
+        help="Order of pipeline parallelism. Defaults to 1.",
+    )
+    ap.add_argument(
+        "--context-parallel-size",
+        type=int,
+        default=1,
+        help="Order of context parallelism. Defaults to 1.",
     )
     ap.add_argument(
         "--no-sequence-parallel",
@@ -69,7 +89,12 @@ def parse_args():
         "parallelism is used. sequence parallelism should save a small amount of GPU memory so it's on"
         " by default.",
     )
-    ap.add_argument("--batch-size", type=int, default=1, help="Batch size for prediction. Defaults to 1.")
+    ap.add_argument(
+        "--batch-size",
+        type=int,
+        default=1,
+        help="Batch size for prediction. Defaults to 1.",
+    )
     ap.add_argument(
         "--model-size",
         type=str,
@@ -90,7 +115,9 @@ def parse_args():
         help="Use full FP8 precision (faster but less accurate) rather than vortex style which "
         "only applies FP8 to the projection layer of the hyena mixer, when using FP8.",
     )
-    ap.add_argument("--fp8", action="store_true", help="Use FP8 precision. Defaults to BF16.")
+    ap.add_argument(
+        "--fp8", action="store_true", help="Use FP8 precision. Defaults to BF16."
+    )
     # extra:
     ap.add_argument(
         "--ckpt-format",
@@ -100,7 +127,9 @@ def parse_args():
         help="Specify checkpoint format to use. Defaults to 'torch_dist', as 'zarr' is deprecated.",
     )
     ap.add_argument(
-        "--output-log-prob-seqs", action="store_true", help="Output log probability of sequences. Defaults to False."
+        "--output-log-prob-seqs",
+        action="store_true",
+        help="Output log probability of sequences. Defaults to False.",
     )
     ap.add_argument(
         "--log-prob-collapse-option",
@@ -114,7 +143,9 @@ def parse_args():
         help="Override the hybrid override pattern in the config (specifies hyena layer ordering and type).",
     )
     ap.add_argument(
-        "--num-layers", type=int, help="If set, override the number of layers specified in the requested config."
+        "--num-layers",
+        type=int,
+        help="If set, override the number of layers specified in the requested config.",
     )
     return ap.parse_args()
 
@@ -129,9 +160,13 @@ def _gather_along_cp_dim(input_, seq_dim: int = 1):
     dim_size = list(input_.size())
     dim_size[0] = dim_size[0] * world_size
 
-    output = torch.empty(dim_size, dtype=input_.dtype, device=torch.cuda.current_device())
+    output = torch.empty(
+        dim_size, dtype=input_.dtype, device=torch.cuda.current_device()
+    )
     torch.distributed.all_gather_into_tensor(
-        output, input_.contiguous(), group=parallel_state.get_tensor_model_parallel_group()
+        output,
+        input_.contiguous(),
+        group=parallel_state.get_tensor_model_parallel_group(),
     )
     tensor_list = output.chunk(world_size, dim=0)
     output = torch.cat(tensor_list, dim=seq_dim).contiguous()
@@ -181,10 +216,17 @@ class HyenaPredictor(LightningPassthroughPredictionMixin, HyenaModel):
                 2,  # along the vocab dimension...
                 input_ids.unsqueeze(-1),  # using the token ids to index.
             ).squeeze(-1)
-            log_prob_seqs = torch.sum(logprobs * batch["loss_mask"][:, 1:].float(), dim=-1)
+            log_prob_seqs = torch.sum(
+                logprobs * batch["loss_mask"][:, 1:].float(), dim=-1
+            )
             if self.log_prob_collapse_option == "mean":
-                log_prob_seqs = log_prob_seqs / (batch["loss_mask"][:, 1:].float().sum(dim=-1) + 1e-8)
-            return {"log_probs_seqs": log_prob_seqs.cpu(), "seq_idx": batch["seq_idx"].cpu()}
+                log_prob_seqs = log_prob_seqs / (
+                    batch["loss_mask"][:, 1:].float().sum(dim=-1) + 1e-8
+                )
+            return {
+                "log_probs_seqs": log_prob_seqs.cpu(),
+                "seq_idx": batch["seq_idx"].cpu(),
+            }
         else:
             # If the user wants to match back to logits, then they will need to do the offsetting logic themselves.
             return {
@@ -276,7 +318,6 @@ class PredictDataModule(LightningDataModule):
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Set up the dataloader."""
-        pass
 
     def predict_dataloader(self):
         """Create a dataloader for prediction."""
@@ -319,8 +360,12 @@ def predict(
     if work_dir is None:
         work_dir = Path(tempfile.mkdtemp())
     sequence_parallel = tensor_parallel_size > 1 and not no_sequence_parallel
-    output_dir.mkdir(parents=True, exist_ok=True)  # Make sure the output directory exists, files will be written here.
-    model_parallel_size = tensor_parallel_size * pipeline_model_parallel_size * context_parallel_size
+    output_dir.mkdir(
+        parents=True, exist_ok=True
+    )  # Make sure the output directory exists, files will be written here.
+    model_parallel_size = (
+        tensor_parallel_size * pipeline_model_parallel_size * context_parallel_size
+    )
     if model_parallel_size > torch.cuda.device_count():
         raise ValueError(
             f"Requested model parallel size {model_parallel_size} is greater than the "
@@ -380,7 +425,9 @@ def predict(
     config = HYENA_MODEL_OPTIONS[model_size](
         forward_step_fn=hyena_predict_forward_step,
         data_step_fn=hyena_predict_data_step,  # , attention_backend=AttnBackend.fused,
-        distribute_saved_activations=False if sequence_parallel and tensor_parallel_size > 1 else True,
+        distribute_saved_activations=(
+            False if sequence_parallel and tensor_parallel_size > 1 else True
+        ),
         # Only use vortex style FP8 in the model config if using FP8 and not full FP8. This will only apply FP8 to
         #   the projection layer of the hyena mixer.
         vortex_style_fp8=fp8 and not full_fp8,
