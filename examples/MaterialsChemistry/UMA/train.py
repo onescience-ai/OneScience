@@ -14,7 +14,7 @@ try:
     import clusterscope
 except Exception:
     clusterscope = None
-import hydra
+import hydra 
 import numpy as np
 import torch
 from omegaconf import OmegaConf
@@ -33,8 +33,7 @@ from submitit.core.utils import JobPaths, cloudpickle_dump
 from submitit.helpers import Checkpointable, DelayedSubmission
 from submitit.slurm.slurm import SlurmJobEnvironment
 
-#from onescience.models.UMA.common import distutils
-from onescience.distributed.manager import DistributedManager
+from onescience.models.UMA.common import distutils
 from onescience.models.UMA.common.logger import WandBSingletonLogger
 from onescience.models.UMA.common.utils import (
     get_commit_hash,
@@ -252,10 +251,10 @@ class Submitit(Checkpointable):
         setup_logging()
         dist_config = map_job_config_to_dist_config(self.config.job)
         logging.info("Setting up distributed backend...")
-        DistributedManager.initialize()  # 替代 distutils.setup()
-        DistributedManager().synchronize()  # 替代 distutils.synchronize()
+        distutils.setup(dist_config)
+        distutils.synchronize()
         if (
-            DistributedManager().rank == 0  # 替代 distutils.is_master()
+            distutils.is_master()
             and self.config.job.scheduler.mode == SchedulerType.SLURM
         ):
             # this pickle file is shared across all processes so can only modify this on the main rank
@@ -272,7 +271,7 @@ class Submitit(Checkpointable):
             )
 
         self._init_logger()
-        print(f"rank:{DistributedManager().rank}")
+        print(f"rank:{distutils.get_rank()}")
 
         _set_seeds(self.config.job.seed)
         if self.config.job.deterministic:
@@ -296,12 +295,12 @@ class Submitit(Checkpointable):
         else:
             raise ValueError(f"run type {run_type} is not recognized!")
 
-        DistributedManager.cleanup()  # 替代 distutils.cleanup()
+        distutils.cleanup()
 
     def _init_logger(self) -> None:
         if (
             self.config.job.logger
-            and  DistributedManager().rank == 0
+            and distutils.is_master()
             and not self.config.job.debug
             and self.config.job.metadata.array_job_num == 0
         ):
@@ -507,8 +506,7 @@ def main(
                 elastic_launch(launch_config, _runner_wrapper)(cfg, RunType.REDUCE)
         else:
             logging.info("Running in local mode without elastic launch")
-            # <<< 核心修改：使用 DistributedManager 初始化分布式环境 >>>
-            DistributedManager.initialize()  # 替代 distutils.setup_env_local()
+            distutils.setup_env_local()
             Submitit()(cfg)
             if "reducer" in cfg:
                 Submitit()(cfg, RunType.REDUCE)

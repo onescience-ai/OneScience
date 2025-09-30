@@ -14,3 +14,4 @@ treelib
 s3fs
 numba
 submitit
+lmdb==1.6.2
