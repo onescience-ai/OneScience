@@ -79,3 +79,4 @@ bionemo-noodles
 psutil==7.1.0
 transformers==4.56.2
 ftfy
+gpytorch

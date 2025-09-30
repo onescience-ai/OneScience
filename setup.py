@@ -105,6 +105,7 @@ cfd_requires = [
     "shapely",
     "seaborn",
     "deepxde",
+    "gpytorch",
 ]
 
 quantum_requires = [
