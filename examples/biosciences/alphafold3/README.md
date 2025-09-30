@@ -1,3 +1,7 @@
+# 安装说明
+使用之前请先参考该路径下的README.md文件：../../../src/onescience/flax_models/alphafold3/README.md，进行相关依赖安装
+注意 mmseqs编译需要cuda12的版本
+
 # 推理示例
 
 ## 有MSA文件，直接进行推理

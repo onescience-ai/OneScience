@@ -20,9 +20,10 @@ mkdir ~/hmmer_build ~/hmmer
 wget http://eddylab.org/software/hmmer/hmmer-3.4.tar.gz --directory-prefix ~/hmmer_build
 cd ~/hmmer_build &&  tar zxf hmmer-3.4.tar.gz && rm hmmer-3.4.tar.gz
 patch -p0 < jackhmmer_seq_limit.patch
+cd ~/hmmer-3.4
 ./configure --prefix ~/hmmer
 make -j && make install && cd ./easel && make install
-rm -R /hmmer_build
+rm -R ~/hmmer_build
 
 # install extension
 pip install .[bio] -c constraints.txt
