@@ -232,8 +232,8 @@ class Fengwu(Module):
             drop_path=drop_path,
         )
 
-    def prepare_input(self, surface, z, r, u, v, t):
-        """Prepares the input to the model in the required shape.
+    def forward(self, surface, z, r, u, v, t):
+        """
         Args:
             surface (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=4.
             z (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
@@ -242,24 +242,7 @@ class Fengwu(Module):
             v (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
             t (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
         """
-        return torch.concat([surface, z, r, u, v, t], dim=1)
 
-    def forward(self, x):
-        """
-        Args:
-            surface (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=4.
-            z (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
-            r (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
-            u (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
-            v (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
-            t (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
-        """
-        surface = x[:, :4, :, :]
-        z = x[:, 4:41, :, :]
-        r = x[:, 41:78, :, :]
-        u = x[:, 78:115, :, :]
-        v = x[:, 115:152, :, :]
-        t = x[:, 152:189, :, :]
         surface, skip_surface = self.encoder_surface(surface)
         z, skip_z = self.encoder_z(z)
         r, skip_r = self.encoder_r(r)
