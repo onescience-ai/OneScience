@@ -155,8 +155,6 @@ biology_requires = [
     "psutil",
     "transformers",
     "ftfy",
-    "biotite==1.0.1",
-    "optree",
 ]
 
 dev_requires = [
