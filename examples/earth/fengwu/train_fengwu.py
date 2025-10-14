@@ -17,13 +17,12 @@ from apex import optimizers
 
 
 def main():
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s - %(levelname)s - %(message)s")
     logger = logging.getLogger()
 
     config_file_path = os.path.join(current_path, "conf/config.yaml")
-    cfg = YParams(config_file_path, "fengwu")
+    cfg = YParams(config_file_path, "model")
     cfg["N_in_channels"] = len(cfg.channels)
     cfg["N_out_channels"] = len(cfg.channels)
     cfg.world_size = 1
@@ -37,17 +36,10 @@ def main():
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
 
-    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
+    train_dataset = ERA5HDF5Datapipe(params=cfg,distributed=dist.is_initialized())
     train_dataloader, train_sampler = train_dataset.train_dataloader()
-    world_rank == 0 and logger.info(
-        f"Loaded train_dataloader of size {len(train_dataloader)}"
-    )
-
-    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
+    val_dataset = ERA5HDF5Datapipe(params=cfg,distributed=dist.is_initialized())
     val_dataloader, val_sampler = val_dataset.val_dataloader()
-    world_rank == 0 and logger.info(
-        f"Loaded val_dataloader of size {len(val_dataloader)}"
-    )
 
     fengwu_model = Fengwu(
         img_size=cfg.img_size,
@@ -57,37 +49,45 @@ def main():
         num_heads=cfg.num_heads,
         window_size=cfg.window_size,
     ).to(local_rank)
+
     if cfg.world_size == 1:
         total_params = sum(p.numel() for p in fengwu_model.parameters())
-        print('-' * 20, f'now params is {total_params}, {total_params / 1e6: .2f}M, {total_params / 1e9: .2f}B')
-    
-    if cfg.world_size > 1:
-        fengwu_model = DistributedDataParallel(fengwu_model, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
+        print("\n\n")
+        print("-" * 50)
+        print(f"📂 now params is {total_params}, {total_params / 1e6:.2f}M, {total_params / 1e9:.2f}B")
+        print("-" * 50, "\n")
 
+    if cfg.world_size > 1:
+        fengwu_model = DistributedDataParallel(
+            fengwu_model,
+            device_ids=[local_rank],
+            output_device=local_rank,
+            find_unused_parameters=True,
+        )
 
     optimizer = optimizers.FusedAdam(fengwu_model.parameters(), lr=cfg.lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, factor=0.2, patience=5, mode="min"
-    )
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                           factor=0.2,
+                                                           patience=5,
+                                                           mode="min")
     loss_obj = LpLoss()
 
     os.makedirs(cfg.checkpoint_dir, exist_ok=True)
     train_loss_file = f"{cfg.checkpoint_dir}/trloss.npy"
     valid_loss_file = f"{cfg.checkpoint_dir}/valoss.npy"
 
-    world_rank == 0 and logger.info(f"start training ...")
+    world_rank == 0 and logger.info("start training ...")
 
     best_valid_loss = 1.0e6
     best_loss_epoch = 0
-    train_losses = np.empty((0,), dtype=np.float32)
-    valid_losses = np.empty((0,), dtype=np.float32)
+    train_losses = np.empty((0, ), dtype=np.float32)
+    valid_losses = np.empty((0, ), dtype=np.float32)
 
     print_length = 1  # len(train_dataloader) // 64
 
     for epoch in range(cfg.max_epoch):
 
         epoch_start_time = time.time()  # 记录epoch开始时间
-
         if dist.is_initialized():
             train_sampler.set_epoch(epoch)
             val_sampler.set_epoch(epoch)
@@ -97,7 +97,6 @@ def main():
         for j, data in enumerate(train_dataloader):
             invar = data[0].to(local_rank, dtype=torch.float32)
             outvar = data[1].to(local_rank, dtype=torch.float32)
-
             surface = invar[:, :4, :, :]
             z = invar[:, 4:41, :, :]
             r = invar[:, 41:78, :, :]
@@ -105,17 +104,14 @@ def main():
             v = invar[:, 115:152, :, :]
             t = invar[:, 152:189, :, :]
 
-            with replace_function(
-                fengwu_model,
-                ["encoder_surface", "encoder_z", "encoder_r", "encoder_u", "encoder_v", "encoder_t", "fuser"],
-                cfg.world_size > 1,
+            with replace_function(fengwu_model,
+                        ["encoder_surface","encoder_z","encoder_r","encoder_u","encoder_v","encoder_t","fuser"],
+                        cfg.world_size > 1,
             ):
                 surface_p, z_p, r_p, u_p, v_p, t_p = fengwu_model(surface, z, r, u, v, t)
 
-            # surface, z, r, u, v, t = fengwu_model(surface, z, r, u, v, t)
+            outvar_pred = torch.concat([surface_p, z_p, r_p, u_p, v_p, t_p],dim=1)
 
-            outvar_pred = torch.concat([surface_p, z_p, r_p, u_p, v_p, t_p], dim=1)
-            
             loss = loss_obj(outvar, outvar_pred)
 
             optimizer.zero_grad()
@@ -139,7 +135,6 @@ def main():
             for j, data in enumerate(val_dataloader):
                 invar = data[0].to(local_rank, dtype=torch.float32)
                 outvar = data[1].to(local_rank, dtype=torch.float32)
-
                 surface = invar[:, :4, :, :]
                 z = invar[:, 4:41, :, :]
                 r = invar[:, 41:78, :, :]
@@ -149,8 +144,9 @@ def main():
 
                 surface, z, r, u, v, t = fengwu_model(surface, z, r, u, v, t)
 
-                outvar_pred = torch.concat([surface_p, z_p, r_p, u_p, v_p, t_p], dim=1)
-                
+                outvar_pred = torch.concat(
+                    [surface_p, z_p, r_p, u_p, v_p, t_p], dim=1)
+
                 loss = loss_obj(outvar, outvar_pred)
 
                 if cfg.world_size > 1:
@@ -192,24 +188,19 @@ def main():
                 f"Train Loss: {train_loss:.4f}, "
                 f"Valid Loss: {valid_loss:.4f}, "
                 f"This Epoch cost {time.time() - epoch_start_time: .2f}, "
-                f"Best loss at Epoch: {best_loss_epoch + 1}"
-                + (", saving checkpoint" if is_save_ckp else "")
-            )
+                f"Best loss at Epoch: {best_loss_epoch + 1}" +
+                (", saving checkpoint" if is_save_ckp else ""))
             train_losses = np.append(train_losses, train_loss)
             valid_losses = np.append(valid_losses, valid_loss)
-
             np.save(train_loss_file, train_losses)
             np.save(valid_loss_file, valid_losses)
         if epoch - best_loss_epoch > cfg.patience:
-            print(
-                f"Loss has not decrease in {cfg.patience} epochs, stopping training..."
-            )
+            print(f"Loss has not decrease in {cfg.patience} epochs, stopping training...")
             exit()
 
 
-def save_checkpoint(
-    model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path
-):
+def save_checkpoint(model, optimizer, scheduler, best_valid_loss,
+                    best_loss_epoch, model_path):
     model_to_save = model.module if hasattr(model, "module") else model
     state = {
         "model_state_dict": model_to_save.state_dict(),

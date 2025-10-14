@@ -24,7 +24,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     logger = logging.getLogger()
     config_file_path = os.path.join(current_path, 'conf/config.yaml')
-    cfg = YParams(config_file_path, 'graphcast')
+    cfg = YParams(config_file_path, 'model')
 
     cfg.world_size = 1
     if 'WORLD_SIZE' in os.environ:
@@ -43,14 +43,14 @@ def main():
 
     train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
     train_dataloader, train_sampler = train_dataset.train_dataloader()
-    world_rank == 0 and logger.info(f"Loaded train_dataloader of size {len(train_dataloader)}")
 
-    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), num_steps=cfg.num_val_steps)
+    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), output_steps=cfg.num_val_steps)
     val_dataloader, val_sampler = val_dataset.val_dataloader()
-    world_rank == 0 and logger.info(f"Loaded val_dataloader of size {len(val_dataloader)}")
 
     input_dim_grid_nodes = (len(cfg.channels) + cfg.use_cos_zenith + 4 * cfg.use_time_of_year_index) * \
                            (cfg.num_history + 1) + cfg.num_channels_static
+
+    
     graphcast_model = GraphCastNet(
         mesh_level=cfg.mesh_level,
         multimesh=cfg.multimesh,
@@ -82,7 +82,7 @@ def main():
         latitudes = graphcast_model.latitudes
         longitudes = graphcast_model.longitudes
         lat_lon_grid = graphcast_model.lat_lon_grid
-    static_data = StaticData(cfg.static_dataset_path, latitudes, longitudes).get().to(device=local_rank)
+    static_data = StaticData(cfg.static_dir, latitudes, longitudes).get().to(device=local_rank)
 
     if cfg.world_size > 1:
         graphcast_model = DistributedDataParallel(graphcast_model, device_ids=[local_rank], output_device=local_rank)
@@ -140,7 +140,6 @@ def main():
             sin_time_of_day = torch.sin(normalized_time_of_day).expand(1, 1, 721, 1440)
             cos_time_of_day = torch.cos(normalized_time_of_day).expand(1, 1, 721, 1440)
             invar = torch.concat((invar, cos_zenith, static_data, sin_day_of_year, cos_day_of_year, sin_time_of_day, cos_time_of_day), dim=1)
-
             invar, outvar = invar.to(dtype=model_dtype), outvar.to(dtype=model_dtype)
             outvar_pred = graphcast_model(invar)
             loss = criterion(outvar_pred, outvar)
@@ -225,6 +224,7 @@ def main():
                         if world_rank == 0:
                             logger.info(f"Best loss at Minibatch: {i + 1}" + (", saving checkpoint" if is_save_ckp else ""))
 
+
         epoch_time = time.perf_counter() - epoch_start_time
         if world_rank == 0:
             logger.info(
@@ -237,6 +237,7 @@ def main():
             train_losses = np.append(train_losses, train_loss)
 
             np.save(train_loss_file, train_losses)
+            exit()
         if epoch - best_loss_epoch > cfg.patience:
             print(f"Loss has not decrease in {cfg.patience} epochs, stopping training...")
             exit()

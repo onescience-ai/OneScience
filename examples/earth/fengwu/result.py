@@ -7,7 +7,7 @@ import sys
 current_path = os.getcwd()
 sys.path.append(current_path)
 config_file_path = os.path.join(current_path, 'conf/config.yaml')
-cfg = YParams(config_file_path, 'fengwu')
+cfg = YParams(config_file_path, 'model')
 
 # Load data
 label = np.load('result/label.npy')

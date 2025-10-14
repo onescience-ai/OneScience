@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH -p k100ai
+#SBATCH -p newlarge
 #SBATCH -N 1
-#SBATCH --gres=dcu:4
-#SBATCH --cpus-per-task=32
-#SBATCH --ntasks-per-node=1
+#SBATCH --gres=dcu:8
+#SBATCH --cpus-per-task=8
+#SBATCH --ntasks-per-node=16
 #SBATCH -J fengwu
 #SBATCH -o logs/%j.out
 #SBATCH -e logs/%j.out
@@ -12,18 +12,18 @@ echo "START TIME: $(date)"
 
 module purge
 
-source ~/.bashrc # 该命令视具体环境下激活conda的方法进行修改
-conda activate fengwu # conda环境依据自己可用环境修改
-module load compiler/dtk/25.04 # 利用DCU训练时，需加载DTK，具体加载方式根据环境进行修改
+module load sghpcdas/25.6 # 该命令视具体环境下激活conda的方法进行修改
+conda init bash
+source ~/.bashrc
+
+conda activate onescience # conda环境依据自己可用环境修改
+module load sghpc-mpi-gcc/25.8 # 利用DCU训练时，需加载DTK，具体加载方式根据环境进行修改
 
 which python
 which hipcc # DCU训练时开启，使用GPU训练则注释此行
 
-export NCCL_IB_HCA=mlx5_0
-export NCCL_SOCKET_IFNAME=ib0
-export HSA_FORCE_FINE_GRAIN_PCIE=1
-export OMP_NUM_THREADS=1
-export HIP_VISIBLE_DEVICES=0,1,2,3
+export OMP_NUM_THREADS=16
+export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7,8
 nodes=$(scontrol show hostnames $SLURM_JOB_NODELIST)
 nodes_array=($nodes)
 
@@ -41,7 +41,7 @@ echo master_port=$master_port
 srun --nodes=$SLURM_NNODES --ntasks=$SLURM_NNODES torchrun \
             --nnodes=$SLURM_NNODES \
             --node_rank=$SLURM_NODEID \
-            --nproc_per_node=4 \
+            --nproc_per_node=8 \
             --rdzv_id=$SLURM_JOB_ID \
             --rdzv_backend=c10d \
             --rdzv_endpoint=$master_addr:$master_port \

@@ -23,7 +23,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     logger = logging.getLogger()
     config_file_path = os.path.join(current_path, 'conf/config.yaml')
-    cfg = YParams(config_file_path, 'graphcast')
+    cfg = YParams(config_file_path, 'model')
 
     cfg.world_size = 1
     if 'WORLD_SIZE' in os.environ:
@@ -73,7 +73,7 @@ def main():
         latitudes = graphcast_model.latitudes
         longitudes = graphcast_model.longitudes
         lat_lon_grid = graphcast_model.lat_lon_grid
-    static_data = StaticData(cfg.static_dataset_path, latitudes, longitudes).get().to(device=local_rank)
+    static_data = StaticData(cfg.static_dir, latitudes, longitudes).get().to(device=local_rank)
 
 
     channels_list = [i for i in range(len(cfg.channels))]
@@ -125,7 +125,7 @@ def main():
     world_rank == 0 and logger.info(f"Loading model ...")
     train_loss_file = f"{cfg.checkpoint_dir}/finetune_trloss.npy"
 
-    world_rank == 0 and logger.info(f"start training ...")
+    world_rank == 0 and logger.info(f"start finetuning ...")
 
     best_valid_loss = 1.e6
     best_loss_epoch = 0
@@ -136,19 +136,17 @@ def main():
     num_rollout_steps = 2
     world_rank == 0 and logger.info(f"Switching to {num_rollout_steps}-step rollout!")
 
-    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), num_steps=num_rollout_steps)
+    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), output_steps=num_rollout_steps)
     train_dataloader, train_sampler = train_dataset.train_dataloader()
-    world_rank == 0 and logger.info(f"Loaded train_dataloader of size {len(train_dataloader)}")
 
-    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), num_steps=cfg.num_val_steps)
+    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), output_steps=cfg.num_val_steps)
     val_dataloader, val_sampler = val_dataset.val_dataloader()
-    world_rank == 0 and logger.info(f"Loaded val_dataloader of size {len(val_dataloader)}")
 
     for epoch in range(cfg.num_iters_step3):
         if epoch % cfg.step_change_freq == 0:
             num_rollout_steps = epoch // cfg.step_change_freq + 2
             world_rank == 0 and logger.info(f"Switching to {num_rollout_steps}-step rollout!")
-            train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), num_steps=num_rollout_steps)
+            train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), output_steps=num_rollout_steps)
             train_dataloader, train_sampler = train_dataset.train_dataloader()
 
         if dist.is_initialized():

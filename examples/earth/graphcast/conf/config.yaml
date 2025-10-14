@@ -1,4 +1,4 @@
-graphcast:
+model:
   # ┌───────────────────────────────────────────┐
   # │            Model Configuration            │
   # └───────────────────────────────────────────┘
@@ -47,12 +47,7 @@ graphcast:
   # └───────────────────────────────────────────┘
   start_epoch: 0
   max_epoch: 1000
-  train_data_dir: '/work/share/ac8hkycjba/osdatasets/graphcast/train/'            # Path to the dataset.
-  val_data_dir: '/work/share/ac8hkycjba/osdatasets/graphcast/val/'          # Path to the dataset.
-  test_data_dir: '/work/share/ac8hkycjba/osdatasets/graphcast/test/'          # Path to the dataset.
-  stats_dir: "/work/share/ac8hkycjba/osdatasets/graphcast/stats/"                # Path to the static datasets. Includes .nc files for land-sea mask and geopotential.
-  static_dataset_path: "/work/share/ac8hkycjba/osdatasets/graphcast/static/"
-  checkpoint_dir : "./checkpoints"
+  
   dataset_metadata_path: './data.json'  # Path to the dataset metadata, containing channel names.
   time_diff_std_path: './time_diff_std.npy'  # Path to the .npy file with standard deviation of normalized per-variable per-pressure level time differences.
   channels:  ['10m_u_component_of_wind', '10m_v_component_of_wind', '2m_temperature', 'mean_sea_level_pressure',
@@ -90,3 +85,11 @@ graphcast:
   num_iters_step3: 11000      # Number of iterations (backward passes) for incremental fine-tuning, with increments of "step_change_freq".
   step_change_freq: 1000      # Frequency of increments for multi-step fine-tuning.
   val_freq: 5                 # Frequency (iterations) for performing light-weight validation during training.
+
+  checkpoint_dir : "./data/checkpoints"
+  stats_dir: './data/stats' # "/public/onestore/onedatasets/ERA5/newh5/stats/" 
+  static_dir: "./data/static/" # "/public/onestore/onedatasets/ERA5/newh5/static/" 
+  data_dir: ./data/ # "/public/onestore/onedatasets/ERA5/newh5" 
+  train_ratio: 0.6
+  val_ratio: 0.2
+  test_ratio: 0.2

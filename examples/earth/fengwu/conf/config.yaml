@@ -1,13 +1,10 @@
-fengwu:
+model:
 
     start_epoch: 0
     max_epoch: 50
-
     lr: 1E-3
-
     num_blocks: 8
-
-    channels:  ['10m_u_component_of_wind_0', '10m_v_component_of_wind_0', '2m_temperature_0', 'mean_sea_level_pressure_0', 
+    channels:  ['10m_u_component_of_wind', '10m_v_component_of_wind', '2m_temperature', 'mean_sea_level_pressure', 
                 # 上面是4组地面变量，下面是5个大气变量，每个37组气压
                 'geopotential_1', 'geopotential_2', 'geopotential_3', 'geopotential_5', 'geopotential_7', 'geopotential_10', 'geopotential_20', 'geopotential_30', 
                 'geopotential_50', 'geopotential_70', 'geopotential_100', 'geopotential_125', 'geopotential_150', 'geopotential_175', 'geopotential_200', 'geopotential_225', 
@@ -41,7 +38,7 @@ fengwu:
                 'temperature_500', 'temperature_550', 'temperature_600', 'temperature_650', 'temperature_700', 'temperature_750', 'temperature_775', 'temperature_800', 'temperature_825', 'temperature_850', 
                 'temperature_875', 'temperature_900', 'temperature_925', 'temperature_950', 'temperature_975', 'temperature_1000'
                 ]
-
+    time_res: 6
     img_size: [721, 1440]
     patch_size: [4, 4]
     embed_dim: 192
@@ -51,17 +48,22 @@ fengwu:
 
     num_samples_per_year: None
     num_steps: 1
-    time_res: 6
-    stats_dir: "/work/share/ac8hkycjba/osdatasets/FengWu/stats"
-    checkpoint_dir : "./checkpoints"
     mask_dtype: "float32"
     batch_size: 1
     num_workers: 1
     patience: 50
 
-    train_data_dir: '/work/share/ac8hkycjba/osdatasets/FengWu/train/' 
-    val_data_dir: '/work/share/ac8hkycjba/osdatasets/FengWu/valid'
-    test_data_dir: "/work/share/ac8hkycjba/osdatasets/FengWu/test"
+    checkpoint_dir : "./data/checkpoints"
+    stats_dir: './data/stats' #  "/public/onestore/onedatasets/ERA5/newh5/stats/"
+    static_dir: "./data/static/" # "/public/onestore/onedatasets/ERA5/newh5/static/"
+    data_dir: './data/' # "/public/onestore/onedatasets/ERA5/newh5"
+    
+    # 比例可通过百分比设置，如下，总和为1即可
+    # 也可以通过数字设置，总和为所有年份，例如共10年，则可分别设置为8-1-1
+    train_ratio: 0.6
+    val_ratio: 0.2
+    test_ratio: 0.2
+    
 
 
 

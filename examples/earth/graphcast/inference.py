@@ -25,9 +25,8 @@ current_path = os.getcwd()
 sys.path.append(current_path)
 
 config_file_path = os.path.join(current_path, "conf/config.yaml")
-cfg = YParams(config_file_path, "graphcast")
-cfg['num_samples_per_year'] = 24
-test_dataset = ERA5HDF5Datapipe(params = cfg, distributed = False, num_steps=1)
+cfg = YParams(config_file_path, "model")
+test_dataset = ERA5HDF5Datapipe(params = cfg, distributed = False, output_steps=1)
 test_dataloader = test_dataset.test_dataloader()
 
 ckpt = torch.load(f"{cfg.checkpoint_dir}/graphcast_finetune.pth", map_location="cuda:0", weights_only=True)
@@ -66,8 +65,8 @@ else:
     latitudes = graphcast_model.latitudes
     longitudes = graphcast_model.longitudes
     lat_lon_grid = graphcast_model.lat_lon_grid
-static_data = StaticData(cfg.static_dataset_path, latitudes, longitudes).get().to(device="cuda:0")
-  # ⚠️ 你的 checkpoint key
+static_data = StaticData(cfg.static_dir, latitudes, longitudes).get().to(device="cuda:0")
+
 pred = []
 label = []
 # 4️⃣ 设置为 eval 模式

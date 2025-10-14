@@ -86,6 +86,10 @@ basic_requires = [
     # "torch_cluster",
     # "torch_spline_conv",
     "megatron-core",
+    "pytz",
+    "xarray",
+    "s3fs",
+    "netcdf4",
 ]
 
 

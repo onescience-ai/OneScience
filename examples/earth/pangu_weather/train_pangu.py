@@ -20,13 +20,11 @@ def loss_func(x, y):
 
 def main():
 
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logger = logging.getLogger()
 
     config_file_path = os.path.join(current_path, "conf/config.yaml")
-    cfg = YParams(config_file_path, "pangu")
+    cfg = YParams(config_file_path, "model")
     cfg.world_size = 1
     if "WORLD_SIZE" in os.environ:
         cfg.world_size = int(os.environ["WORLD_SIZE"])
@@ -38,29 +36,17 @@ def main():
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
 
-    land_mask = torch.from_numpy(
-        np.load(os.path.join(cfg.mask_dir, "land_mask.npy")).astype(np.float32)
-    )
-    soil_type = torch.from_numpy(
-        np.load(os.path.join(cfg.mask_dir, "soil_type.npy")).astype(np.float32)
-    )
-    topography = torch.from_numpy(
-        np.load(os.path.join(cfg.mask_dir, "topography.npy")).astype(np.float32)
-    )
+    land_mask = torch.from_numpy(np.load(os.path.join(cfg.static_dir, "land_mask.npy")).astype(np.float32))
+    soil_type = torch.from_numpy(np.load(os.path.join(cfg.static_dir, "soil_type.npy")).astype(np.float32))
+    topography = torch.from_numpy(np.load(os.path.join(cfg.static_dir, "topography.npy")).astype(np.float32))
     surface_mask = torch.stack([land_mask, soil_type, topography], dim=0).to(local_rank)
     surface_mask = surface_mask.unsqueeze(0).repeat(cfg.batch_size, 1, 1, 1)
 
     train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
     train_dataloader, train_sampler = train_dataset.train_dataloader()
-    world_rank == 0 and logger.info(
-        f"Loaded train_dataloader of size {len(train_dataloader)}"
-    )
 
     val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
     val_dataloader, val_sampler = val_dataset.val_dataloader()
-    world_rank == 0 and logger.info(
-        f"Loaded val_dataloader of size {len(val_dataloader)}"
-    )
 
     pangu_model = Pangu(
         img_size=cfg.img_size,
@@ -71,13 +57,9 @@ def main():
     ).to(local_rank)
 
     if cfg.world_size > 1:
-        pangu_model = DistributedDataParallel(
-            pangu_model, device_ids=[local_rank], output_device=local_rank
-        )
+        pangu_model = DistributedDataParallel(pangu_model, device_ids=[local_rank], output_device=local_rank)
 
-    optimizer = optimizers.FusedAdam(
-        pangu_model.parameters(), betas=(0.9, 0.999), lr=5e-4, weight_decay=3e-6
-    )
+    optimizer = optimizers.FusedAdam(pangu_model.parameters(), betas=(0.9, 0.999), lr=5e-4, weight_decay=3e-6)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)
 
     os.makedirs(cfg.checkpoint_dir, exist_ok=True)

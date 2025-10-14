@@ -1,4 +1,4 @@
-fuxi:
+model:
 
     start_epoch: 0
     max_epoch: 50
@@ -50,16 +50,18 @@ fuxi:
     step_change_freq: 1000
     input_steps: 2
     time_res: 6
-    stats_dir: "/work/share/ac8hkycjba/osdatasets/FuXi/stats"
-    checkpoint_dir : "./checkpoints"
     mask_dtype: "float32"
     batch_size: 1
     num_workers: 1
     patience: 50
 
-    train_data_dir: '/work/share/ac8hkycjba/osdatasets/FuXi/train/' 
-    val_data_dir: '/work/share/ac8hkycjba/osdatasets/FuXi/valid'
-    test_data_dir: "/work/share/ac8hkycjba/osdatasets/FuXi/test"
+    checkpoint_dir : "./data/checkpoints"
+    stats_dir: './data/stats' # "/public/onestore/onedatasets/ERA5/newh5/stats/" 
+    static_dir: "./data/static/" # "/public/onestore/onedatasets/ERA5/newh5/static/" 
+    data_dir: ./data/ # "/public/onestore/onedatasets/ERA5/newh5" 
+    train_ratio: 6
+    val_ratio: 2
+    test_ratio: 1
 
 
 
