@@ -8,6 +8,7 @@ OneScience是基于先进的深度学习框架打造的科学计算工具包，�
 这些模型包括个可续研究的多数领域，包括：
 *  地球科学
 *  流体仿真
+*  结构力学
 *  生物信息
 *  材料化学
 
@@ -16,8 +17,11 @@ OneScience是基于先进的深度学习框架打造的科学计算工具包，�
 项目中模型均在GPU和海光DCU平台上，完成测试验证。
 
 ## 最近更新
-- 🔥 `2025.04.16` onescience代码和模型发布
-
+- 🔥 `2022年10月` 共性科学问题调研。
+- 🔥 `2023年08月` OneScience基础项目启动，明确工程化 路线。
+- 🔥 `2024年03月` OneScience平台逐渐成型，基于热点AI4S模型复现，工程化探索。
+- 🔥 `2024年12月` v0.1.0版本，支持物理、化学、生物、计算科学等多学科的模型。科研流程接口。
+- 🔥 `2025年10月` v0.2.0版本。开放生态 · 科学共智 。推动科研机构与AI企业共建科学智能平台，并行扩展能力支持，智能化改进。
 
 ## 在线试用
 
@@ -36,6 +40,9 @@ OneScience是基于先进的深度学习框架打造的科学计算工具包，�
 中期天气预报 | [GraphCast](examples/earth/graphcast) | ERA5再分析数据集 | GNN |
 中期天气预报 | [Pangu](examples/earth/pangu_weather) | ERA5再分析数据集 | 3DTransformer |
 短临降雨 | [NowCastNet](examples/earth/nowcastnet) | MRMS | GAN |
+中期天气预报 | [FengWu](examples/earth/fengwu) | ERA5再分析数据集 | 3DTransformer
+中长期天气预报 | [Fuxi](examples/earth/fuxi) | ERA5再分析数据集 | 3DTransformer
+短中期海洋预报 | [Oceancast](examples/earth/oceancast) | EMCMS海洋数据 | AFNO
 
 数据集下载
 
@@ -55,6 +62,9 @@ ERA5是由欧洲中期天气预报中心开发和维护的一种全球范围内�
 不可压流体 | [CFDBench](examples/cfd/CFDBench) | CFDBench数据集 | 多种模型集合 |
 复杂边界的椭圆偏微分方程 | [BENO](examples/cfd/beno) | 椭圆偏微分方程数据集 | Transformer，GNN |
 圆柱绕流 | [lagrangian_mgn](examples/cfd/lagrangian_mgn) | DeepMind拉格朗日网格数据集 | GNN |
+流体模型Benckmark |[CFD_Benchmark](examples/cfd/CFD_Benchmark) |多种数据集 | 多种模型集合
+湍流 |[EagleMeshTransformer](examples/cfd/EagleMeshTransformer) |Eagle无人机数据集 | Transformer
+拓扑优化 |[GP_for_TO](examples/cfd/GP_for_TO) |-| Gaussian Processes
 
 #### <div align="center">结构力学(AI for Structural)</div>
 
@@ -74,6 +84,12 @@ ERA5是由欧洲中期天气预报中心开发和维护的一种全球范围内�
 突变预测,外显子分类,基因必要性| [Evo2](examples/biosciences/evo2) | OpenGenome2数据集| StripedHyena2|
 药物设计| [MolSculptor](examples/biosciences/molsculptor) | - | Autoencoder，Latent Diffusion等多种模型集合|
 
+#### <div align="center">材料化学(AI for MaterialsChemistry)</div>
+
+问题类型| 案例 | 数据集 | 模型架构|
+|:-:|:-:|:-:|:-:|
+通用原子尺度模拟| [UMA](examples/MaterialsChemistry/UMA) | 多种第一性原理计算数据集的 大规模聚合(OC20，OMat24，OMol25，ODAC23,OMC25) | 等变图神经网络(GNN)
+原子间势函数拟合 / 原子尺度模拟 | [MACE](examples/MaterialsChemistry/mace) | MPTrj, SPICE, OMat24 | E(3)-等变图神经网络 (E(3)-Equivariant GNN)
 
 ## 安装使用
 
