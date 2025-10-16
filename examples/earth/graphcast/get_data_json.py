@@ -6,7 +6,7 @@ import sys
 
 def main():
     config_file_path = os.path.join(current_path, 'conf/config.yaml')
-    cfg = YParams(config_file_path, 'graphcast')
+    cfg = YParams(config_file_path, 'model')
     metadata = {
         "coords": {
             "channel": {str(i): name for i, name in enumerate(cfg.channels)}

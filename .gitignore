@@ -23,3 +23,4 @@ analyze_fail.dat
 .markdownlint.json
 debug
 /src/agent/logs/
+.DS_Store

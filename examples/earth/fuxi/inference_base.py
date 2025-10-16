@@ -15,7 +15,7 @@ current_path = os.getcwd()
 sys.path.append(current_path)
 
 config_file_path = os.path.join(current_path, "conf/config.yaml")
-cfg = YParams(config_file_path, "fuxi")
+cfg = YParams(config_file_path, "model")
 cfg['batch_size'] = 1
 cfg["N_in_channels"] = len(cfg.channels)
 cfg["N_out_channels"] = len(cfg.channels)
@@ -23,8 +23,7 @@ test_dataset = ERA5HDF5Datapipe(params = cfg, distributed = False, input_steps=2
 test_dataloader = test_dataset.test_dataloader()
 print(f"Total {len(test_dataloader) * cfg['batch_size']} samples.")
 ckpt = torch.load(f"{cfg.checkpoint_dir}/fuxi_base.pth", map_location="cuda:0", weights_only=False)
-fuxi_model = Fuxi(
-                    img_size=cfg.img_size, 
+fuxi_model = Fuxi(img_size=cfg.img_size,
                     patch_size=cfg.patch_size, 
                     in_chans=cfg.N_in_channels ,
                     out_chans=cfg.N_out_channels,

@@ -4,10 +4,12 @@ from onescience.utils.fcn.YParams import YParams
 
 import os
 import sys
+
+
 current_path = os.getcwd()
 sys.path.append(current_path)
 config_file_path = os.path.join(current_path, 'conf/config.yaml')
-cfg = YParams(config_file_path, 'fuxi')
+cfg = YParams(config_file_path, 'model')
 
 # Load data
 label = np.load('result/label_base.npy')

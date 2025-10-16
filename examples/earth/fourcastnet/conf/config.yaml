@@ -1,4 +1,4 @@
-fourcastnet:
+model:
 
     start_epoch: 0
     max_epoch: 50
@@ -16,22 +16,25 @@ fourcastnet:
 
                 'specific_humidity_1000', 'specific_humidity_925', 'specific_humidity_850'    ]
     time_res: 6
+
     img_size: [721, 1440]
     patch_size: [8, 8]
 
     num_samples_per_year: None
     num_steps: 1
-    stats_dir: "/work/home/onescience2025/osdatasets/FourcastNet/stats"
-    # mask_dir: "/work/home/onescience2025/osdatasets/pangu_weather/dataset/static/"
-    checkpoint_dir : "./checkpoints"
+
     mask_dtype: "float32"
     batch_size: 6
     num_workers: 4
     patience: 50
 
-    train_data_dir: '/work/home/onescience2025/osdatasets/FourcastNet/train/'
-    val_data_dir: '/work/home/onescience2025/osdatasets/FourcastNet/valid'
-    test_data_dir: "/work/home/onescience2025/osdatasets/FourcastNet/test"
+    checkpoint_dir : "./data/checkpoints"
+    stats_dir: './data/stats' # "/public/onestore/onedatasets/ERA5/newh5/stats/" 
+    static_dir: "./data/static/" # "/public/onestore/onedatasets/ERA5/newh5/static/" 
+    data_dir: ./data/ # "/public/onestore/onedatasets/ERA5/newh5" 
+    train_ratio: 0.6
+    val_ratio: 0.2
+    test_ratio: 0.2
 
 
 

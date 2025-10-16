@@ -17,13 +17,11 @@ from apex import optimizers
 
 
 def main():
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logger = logging.getLogger()
 
     config_file_path = os.path.join(current_path, "conf/config.yaml")
-    cfg = YParams(config_file_path, "fuxi")
+    cfg = YParams(config_file_path, "model")
     cfg["N_in_channels"] = len(cfg.channels)
     cfg["N_out_channels"] = len(cfg.channels)
     cfg.world_size = 1
@@ -39,15 +37,9 @@ def main():
 
     train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), input_steps=2)
     train_dataloader, train_sampler = train_dataset.train_dataloader()
-    world_rank == 0 and logger.info(
-        f"Loaded train_dataloader of size {len(train_dataloader)}"
-    )
 
     val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), input_steps=2)
     val_dataloader, val_sampler = val_dataset.val_dataloader()
-    world_rank == 0 and logger.info(
-        f"Loaded val_dataloader of size {len(val_dataloader)}"
-    )
 
     fuxi_model = Fuxi(
                     img_size=cfg.img_size, 
@@ -70,14 +62,12 @@ def main():
 
 
     optimizer = optimizers.FusedAdam(fuxi_model.parameters(), lr=cfg.train_lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, factor=0.2, patience=5, mode="min"
-    )
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.2, patience=5, mode="min")
     loss_obj = LatitudeWeightedLoss(loss_type="l1", normalize=True).to(local_rank)
 
     os.makedirs(cfg.checkpoint_dir, exist_ok=True)
-    train_loss_file = f"{cfg.checkpoint_dir}/trloss.npy"
-    valid_loss_file = f"{cfg.checkpoint_dir}/valoss.npy"
+    train_loss_file = f"{cfg.checkpoint_dir}/tr_base_loss.npy"
+    valid_loss_file = f"{cfg.checkpoint_dir}/va_base_loss.npy"
 
     world_rank == 0 and logger.info(f"start training ...")
 
@@ -89,7 +79,6 @@ def main():
     print_length = 1  # len(train_dataloader) // 64
 
     for epoch in range(cfg.max_epoch):
-
         epoch_start_time = time.time()  # 记录epoch开始时间
 
         if dist.is_initialized():
@@ -99,12 +88,9 @@ def main():
         train_loss = 0
         batch_start_time = time.time()
         for j, data in enumerate(train_dataloader):
-            if j == 10:
-                break
             invar = data[0].to(local_rank, dtype=torch.float32) # B, T, C, H, W
             invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
             outvar = data[1].to(local_rank, dtype=torch.float32)
-
             with replace_function(fuxi_model, ["cube_embedding", "u_transformer"], cfg.world_size > 1):
                 outvar_pred = fuxi_model(invar)
 
@@ -128,8 +114,6 @@ def main():
         val_batch_time = time.time()
         with torch.no_grad():
             for j, data in enumerate(val_dataloader):
-                if j == 10:
-                    break
                 invar = data[0].to(local_rank, dtype=torch.float32) # B, T, C, H, W
                 invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
                 outvar = data[1].to(local_rank, dtype=torch.float32)
@@ -183,9 +167,7 @@ def main():
             np.save(train_loss_file, train_losses)
             np.save(valid_loss_file, valid_losses)
         if epoch - best_loss_epoch > cfg.patience:
-            print(
-                f"Loss has not decrease in {cfg.patience} epochs, stopping training..."
-            )
+            print(f"Loss has not decrease in {cfg.patience} epochs, stopping training...")
             exit()
 
 

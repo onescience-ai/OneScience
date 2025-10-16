@@ -17,13 +17,11 @@ from apex import optimizers
 
 
 def main():
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logger = logging.getLogger()
 
     config_file_path = os.path.join(current_path, "conf/config.yaml")
-    cfg = YParams(config_file_path, "fuxi")
+    cfg = YParams(config_file_path, "model")
     cfg["N_in_channels"] = len(cfg.channels)
     cfg["N_out_channels"] = len(cfg.channels)
     cfg.world_size = 1
@@ -37,14 +35,12 @@ def main():
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
 
-    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), num_steps=2, input_steps=2)
+    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), output_steps=2, input_steps=2)
     train_dataloader, train_sampler = train_dataset.train_dataloader()
-    world_rank == 0 and logger.info(f"Loaded train_dataloader of size {len(train_dataloader)}")
 
-    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), num_steps=2, input_steps=2)
+    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), output_steps=2, input_steps=2)
     val_dataloader, val_sampler = val_dataset.val_dataloader()
-    world_rank == 0 and logger.info(f"Loaded val_dataloader of size {len(val_dataloader)}")
-
+ 
     fuxi_model = Fuxi(
                     img_size=cfg.img_size, 
                     patch_size=cfg.patch_size, 
@@ -59,7 +55,7 @@ def main():
     optimizer = optimizers.FusedAdam(fuxi_model.parameters(), lr=cfg.finetune_lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.2, patience=5, mode="min")
     loss_obj = LatitudeWeightedLoss(loss_type="l1", normalize=True).to(local_rank)
-
+    print('-' * 30, f"{cfg.checkpoint_dir}/fuxi_base.pth")
     ckpt = torch.load(f"{cfg.checkpoint_dir}/fuxi_base.pth", map_location='cpu')
     fuxi_model.load_state_dict(ckpt["model_state_dict"])  # ⚠️ 你的 checkpoint key
     optimizer.load_state_dict(ckpt["optimizer_state_dict"])
@@ -69,8 +65,8 @@ def main():
         fuxi_model = DistributedDataParallel(fuxi_model, device_ids=[local_rank], output_device=local_rank, find_unused_parameters=True)
 
     os.makedirs(cfg.checkpoint_dir, exist_ok=True)
-    train_loss_file = f"{cfg.checkpoint_dir}/trloss_short.npy"
-    valid_loss_file = f"{cfg.checkpoint_dir}/valoss_short.npy"
+    train_loss_file = f"{cfg.checkpoint_dir}/tr_short_loss.npy"
+    valid_loss_file = f"{cfg.checkpoint_dir}/va_short_loss.npy"
 
     world_rank == 0 and logger.info(f"start training ...")
 
@@ -87,9 +83,9 @@ def main():
             if num_rollout_steps > 12: # Paper: 2~12 curriculum training schedule, then skip to 20.
                 num_rollout_steps = cfg.short_num_steps
             world_rank == 0 and logger.info(f"Switching to {num_rollout_steps}-step rollout!")
-            train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), num_steps=num_rollout_steps, input_steps=2)
+            train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), output_steps=num_rollout_steps, input_steps=2)
             train_dataloader, train_sampler = train_dataset.train_dataloader()
-            val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), num_steps=num_rollout_steps, input_steps=2)
+            val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), output_steps=num_rollout_steps, input_steps=2)
             val_dataloader, val_sampler = val_dataset.val_dataloader()
 
         epoch_start_time = time.time()  # 记录epoch开始时间
@@ -101,12 +97,9 @@ def main():
         train_loss = 0
         batch_start_time = time.time()
         for j, data in enumerate(train_dataloader):
-            if j == 10:
-                break
             invar = data[0].to(local_rank, dtype=torch.float32) # B, T, C, H, W
             invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
             outvar = data[1].to(local_rank, dtype=torch.float32)
-            
             for t in range(outvar.shape[1]):
                 if t < outvar.shape[1] - 1:
                     with torch.no_grad():
@@ -138,8 +131,6 @@ def main():
         val_batch_time = time.time()
         with torch.no_grad():
             for j, data in enumerate(val_dataloader):
-                if j == 10:
-                    break
                 invar = data[0].to(local_rank, dtype=torch.float32) # B, T, C, H, W
                 invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
                 outvar = data[1].to(local_rank, dtype=torch.float32)
@@ -180,7 +171,6 @@ def main():
                 cfg.checkpoint_dir,
             )
             is_save_ckp = True
-            exit()
         scheduler.step(valid_loss)
         epoch_time = time.time() - epoch_start_time  # 计算epoch耗时
 
@@ -199,9 +189,7 @@ def main():
             np.save(train_loss_file, train_losses)
             np.save(valid_loss_file, valid_losses)
         if epoch - best_loss_epoch > cfg.patience:
-            print(
-                f"Loss has not decrease in {cfg.patience} epochs, stopping training..."
-            )
+            print(f"Loss has not decrease in {cfg.patience} epochs, stopping training...")
             exit()
 
 

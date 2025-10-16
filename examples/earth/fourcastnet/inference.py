@@ -15,7 +15,7 @@ current_path = os.getcwd()
 sys.path.append(current_path)
 
 config_file_path = os.path.join(current_path, "conf/config.yaml")
-cfg = YParams(config_file_path, "fourcastnet")
+cfg = YParams(config_file_path, "model")
 cfg['N_in_channels'] = len(cfg.channels)
 cfg['N_out_channels'] = len(cfg.channels)
 cfg['batch_size'] = 16

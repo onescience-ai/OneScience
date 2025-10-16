@@ -15,7 +15,7 @@ current_path = os.getcwd()
 sys.path.append(current_path)
 
 config_file_path = os.path.join(current_path, "conf/config.yaml")
-cfg = YParams(config_file_path, "fengwu")
+cfg = YParams(config_file_path, "model")
 cfg['batch_size'] = 2
 
 test_dataset = ERA5HDF5Datapipe(params = cfg, distributed = False)
@@ -47,7 +47,6 @@ with torch.no_grad():
         u = invar[:, 78:115, :, :]
         v = invar[:, 115:152, :, :]
         t = invar[:, 152:189, :, :]
-
 
         surface_p, z_p, r_p, u_p, v_p, t_p = fengwu_model(surface, z, r, u, v, t)
 

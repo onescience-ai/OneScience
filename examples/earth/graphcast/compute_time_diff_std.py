@@ -10,12 +10,11 @@ from onescience.utils.fcn.YParams import YParams
 def main():
     # instantiate the training datapipe
     config_file_path = os.path.join(current_path, 'conf/config.yaml')
-    cfg = YParams(config_file_path, 'graphcast')
+    cfg = YParams(config_file_path, 'model')
     train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=False)
-    train_dataloader, train_sampler = train_dataset.train_dataloader()
+    train_dataloader, _ = train_dataset.train_dataloader()
 
     print(f"Loaded training datapipe of length {len(train_dataloader)}")
-
 
     area = torch.abs(torch.cos(torch.linspace(-90, 90, steps=cfg.img_size[0]) * np.pi / 180))
     area /= torch.mean(area)
@@ -31,10 +30,8 @@ def main():
 
         mean += torch.mean(weighted_diff, dim=(2, 3)) / len(train_dataloader)
         mean_sqr += torch.mean(weighted_diff_sqr, dim=(2, 3)) / len(train_dataloader)
-
-        if i % 100 == 0 :
-            print(f"Number of iterations {i}/{len(train_dataloader)}")
-
+        if (i+1) % 100 == 0:
+            print(f"Number of iterations {i+1}/{len(train_dataloader)}")
 
     variance = mean_sqr - mean**2  # [1,num_channel, 1,1]
     std = torch.sqrt(variance)

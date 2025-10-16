@@ -8,7 +8,7 @@ import time
 
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.fuxi import Fuxi
-from fuxi_medium_long_data_loader import FuXiHDF5Datapipe
+from onescience.datapipes.climate import ERA5HDF5Datapipe
 from onescience.utils.fcn.YParams import YParams
 from onescience.metrics.climate.loss import LatitudeWeightedLoss
 from onescience.memory.checkpoint import replace_function
@@ -17,13 +17,11 @@ from apex import optimizers
 
 
 def main():
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logger = logging.getLogger()
 
     config_file_path = os.path.join(current_path, "conf/config.yaml")
-    cfg = YParams(config_file_path, "fuxi")
+    cfg = YParams(config_file_path, "model")
     cfg["N_in_channels"] = len(cfg.channels)
     cfg["N_out_channels"] = len(cfg.channels)
     cfg.world_size = 1
@@ -37,13 +35,12 @@ def main():
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
 
-    train_dataset = FuXiHDF5Datapipe(params=cfg, distributed=dist.is_initialized(), mode='long', num_steps=cfg.long_num_steps - cfg.medium_num_steps, input_steps=2)
+    cfg.data_dir = './data/long'
+    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), output_steps=2, input_steps=2)
     train_dataloader, train_sampler = train_dataset.train_dataloader()
-    world_rank == 0 and logger.info(f"Loaded train_dataloader of size {len(train_dataloader)}")
 
-    val_dataset = FuXiHDF5Datapipe(params=cfg, distributed=dist.is_initialized(), mode='long', num_steps=cfg.long_num_steps - cfg.medium_num_steps, input_steps=2)
+    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), output_steps=2, input_steps=2)
     val_dataloader, val_sampler = val_dataset.val_dataloader()
-    world_rank == 0 and logger.info(f"Loaded val_dataloader of size {len(val_dataloader)}")
 
     fuxi_model = Fuxi(
                     img_size=cfg.img_size, 
@@ -87,10 +84,9 @@ def main():
             if num_rollout_steps > 12: # Paper: 2~12 curriculum training schedule, then skip to 20.
                 num_rollout_steps = cfg.long_num_steps - cfg.medium_num_steps
             world_rank == 0 and logger.info(f"Switching to {num_rollout_steps}-step rollout!")
-
-            train_dataset = FuXiHDF5Datapipe(params=cfg, distributed=dist.is_initialized(), mode='long', num_steps=num_rollout_steps, input_steps=2)
+            train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), output_steps=num_rollout_steps, input_steps=2)
             train_dataloader, train_sampler = train_dataset.train_dataloader()
-            val_dataset = FuXiHDF5Datapipe(params=cfg, distributed=dist.is_initialized(), mode='long', num_steps=num_rollout_steps, input_steps=2)
+            val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized(), output_steps=num_rollout_steps, input_steps=2)
             val_dataloader, val_sampler = val_dataset.val_dataloader()
         
         epoch_start_time = time.time()  # 记录epoch开始时间
@@ -102,8 +98,6 @@ def main():
         train_loss = 0
         batch_start_time = time.time()
         for j, data in enumerate(train_dataloader):
-            if j == 10:
-                break
             invar = data[0].to(local_rank, dtype=torch.float32) # B, T, C, H, W
             invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
             outvar = data[1].to(local_rank, dtype=torch.float32)
@@ -138,8 +132,6 @@ def main():
         val_batch_time = time.time()
         with torch.no_grad():
             for j, data in enumerate(val_dataloader):
-                if j == 10:
-                    break
                 invar = data[0].to(local_rank, dtype=torch.float32) # B, T, C, H, W
                 invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
                 outvar = data[1].to(local_rank, dtype=torch.float32)
@@ -199,9 +191,7 @@ def main():
             np.save(train_loss_file, train_losses)
             np.save(valid_loss_file, valid_losses)
         if epoch - best_loss_epoch > cfg.patience:
-            print(
-                f"Loss has not decrease in {cfg.patience} epochs, stopping training..."
-            )
+            print(f"Loss has not decrease in {cfg.patience} epochs, stopping training...")
             exit()
 
 

@@ -20,7 +20,7 @@ def main():
     logger = logging.getLogger()
 
     config_file_path = os.path.join(current_path, "conf/config.yaml")
-    cfg = YParams(config_file_path, "fourcastnet")
+    cfg = YParams(config_file_path, "model")
     cfg['N_in_channels'] = len(cfg.channels)
     cfg['N_out_channels'] = len(cfg.channels)
     cfg.world_size = 1
@@ -36,13 +36,18 @@ def main():
 
     train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
     train_dataloader, train_sampler = train_dataset.train_dataloader()
-    world_rank == 0 and logger.info(f"Loaded train_dataloader of size {len(train_dataloader)}")
 
     val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
     val_dataloader, val_sampler = val_dataset.val_dataloader()
-    world_rank == 0 and logger.info(f"Loaded val_dataloader of size {len(val_dataloader)}")
 
     fourcastnet_model = AFNONet(cfg).to(local_rank)
+
+    if cfg.world_size == 1:
+        total_params = sum(p.numel() for p in fourcastnet_model.parameters())
+        print("\n\n")
+        print("-" * 50)
+        print(f"📂 now params is {total_params}, {total_params / 1e6:.2f}M, {total_params / 1e9:.2f}B")
+        print("-" * 50, "\n")
 
     if cfg.world_size > 1:
         fourcastnet_model = DistributedDataParallel(fourcastnet_model, device_ids=[local_rank], output_device=local_rank)
@@ -65,9 +70,7 @@ def main():
     print_length = 1 # len(train_dataloader) // 64
 
     for epoch in range(cfg.max_epoch):
-
         epoch_start_time = time.time()  # 记录epoch开始时间
-
         if dist.is_initialized():
             train_sampler.set_epoch(epoch)
             val_sampler.set_epoch(epoch)
@@ -148,9 +151,9 @@ def main():
             )
             train_losses = np.append(train_losses, train_loss)
             valid_losses = np.append(valid_losses, valid_loss)
-
             np.save(train_loss_file, train_losses)
             np.save(valid_loss_file, valid_losses)
+            
         if epoch - best_loss_epoch > cfg.patience:
             print(f"Loss has not decrease in {cfg.patience} epochs, stopping training...")
             exit()
