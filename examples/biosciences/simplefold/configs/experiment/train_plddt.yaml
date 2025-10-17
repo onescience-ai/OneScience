@@ -1,0 +1,85 @@
+# @package _global_
+
+# All parameters below will be merged with parameters from default configurations set above 
+# this allows you to overwrite only specified parameters
+
+# Options for training:
+# - /data: [pdb, pdb_sp, pdb_sp_afesm, pdb_sp_afesme]
+# - /model/architecture: 
+#         [foldingdit_100M, foldingdit_360M, foldingdit_700M, 
+#          foldingdit_1.1B, foldingdit_1.6B, foldingdit_3B]
+# - /trainer: [default, fsdp]
+
+defaults:
+  - override /data: pdb
+  - override /model: simplefold
+  - override /model/architecture: foldingdit_100M
+  - override /model/sampler: euler_maruyama
+  - override /model/processor: protein_processor
+  - override /callbacks: default
+  - override /trainer: default
+  - override /logger: tensorboard
+
+# load_ckpt_path: [PATH_TO_YOUR_CKPT] # uncomment to load a checkpoint
+seed: 12345
+
+trainer:
+  max_steps: 10000
+  val_check_interval: 1000 # this controls BOTH checkpoint steps and validation
+  accumulate_grad_batches: 1 # gradient accumulation
+
+data:
+  batch_size: 8 # should be the same as the number of GPUs
+  num_workers: 16
+
+model:
+  _target_: model.simplefold.SimpleFold
+  ema_decay: 0.999
+  clip_grad_norm_val: 2.0
+  esm_model: "esm2_3B"
+  plddt_training: True
+
+  plddt_module:
+    _target_: model.torch.confidence_module.ConfidenceModule
+    hidden_size: ${model.architecture.hidden_size}
+    num_plddt_bins: 50
+    transformer_blocks: 
+      _target_: model.torch.blocks.HomogenTrunk
+      depth: 4
+      block:
+        _target_: model.torch.blocks.TransformerBlock
+        _partial_: true
+        hidden_size: ${model.architecture.hidden_size}
+        mlp_ratio: 4.0
+        use_swiglu: True # SwiGLU FFN
+        self_attention_layer:
+          _target_: model.torch.layers.EfficientSelfAttentionLayer
+          _partial_: True
+          hidden_size: ${model.architecture.hidden_size}
+          num_heads: ${model.architecture.num_heads}
+          qk_norm: True
+          pos_embedder:
+            _target_: model.torch.pos_embed.AxialRotaryPositionEncoding
+            in_dim: 4
+            embed_dim: ${model.architecture.hidden_size}
+            num_heads: ${model.architecture.num_heads}
+            base: 100.0
+
+  scheduler:
+    _target_: utils.lr_scheduler.LinearWarmup
+    _partial_: true
+    min_lr: 1e-6
+    max_lr: ${model.optimizer.lr}
+    warmup_steps: 5000
+
+  architecture:
+    esm_model: ${model.esm_model}
+
+  sampler:
+    num_timesteps: 150
+    tau: 0.3
+
+  processor:
+    scale: 16.0
+    ref_scale: 5.0
+    multiplicity: 16 # number of copies per GPU

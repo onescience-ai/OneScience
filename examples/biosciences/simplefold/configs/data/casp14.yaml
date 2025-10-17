@@ -1,0 +1,6 @@
+_target_: datasets.processed_test_af2.SimpleFoldProcessedInferenceDataModule
+data_name: 'casp14'
+target_dir: /mnt/task_runtime/data/casp14/
+esm_s_dir: /mnt/task_runtime/data/casp14_esm_s_3B/
+esm_z_dir: /mnt/task_runtime/data/casp14_esm_z_3B/
+num_workers: 1

@@ -1,0 +1,30 @@
+# @package _global_
+defaults:
+  - override /data: cameo22
+  - override /model: simplefold
+  - override /model/architecture: foldingdit_100M
+  - override /model/sampler: euler_maruyama
+  - override /model/processor: protein_processor
+  - override /callbacks: default
+  - override /trainer: default
+
+load_ckpt_path: artifacts/simplefold_100M.ckpt
+seed: 12345
+
+data:
+  num_repeats: 1
+  filters:
+    - _target_: boltz.data.filter.dynamic.max_residues.MaxResiduesFilter
+      min_residues: 1
+      max_residues: 1000 # filter out T1044 in CASP14
+
+model:
+  sampler:
+    num_timesteps: 500
+    t_start: 1e-4
+    tau: 0.01
+    log_timesteps: True
+    w_cutoff: 0.99
+
+  processor:
+    inference_multiplicity: 1
