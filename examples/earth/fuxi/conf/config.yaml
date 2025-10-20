@@ -8,7 +8,7 @@ model:
 
     num_blocks: 8
 
-    channels:  ['10m_u_component_of_wind_0', '10m_v_component_of_wind_0', '2m_temperature_0', 'mean_sea_level_pressure_0', 'total_precipitation',
+    channels:  ['10m_u_component_of_wind', '10m_v_component_of_wind', '2m_temperature', 'mean_sea_level_pressure', 'total_precipitation',
                 # 上面是5组地面变量，下面是5个大气变量，每个13组气压，共70
                 
                 'geopotential_50', 'geopotential_100', 'geopotential_150', 'geopotential_200', 'geopotential_250', 
