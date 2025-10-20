@@ -12,9 +12,9 @@ from typing import Optional
 import numpy as np
 from scipy.spatial.distance import cdist
 
-from boltz_data_pipeline import const
-from boltz_data_pipeline.crop.cropper import Cropper
-from boltz_data_pipeline.types import Tokenized
+from onescience.models.simplefold.boltz_data_pipeline import const
+from onescience.models.simplefold.boltz_data_pipeline.crop.cropper import Cropper
+from onescience.models.simplefold.boltz_data_pipeline.types import Tokenized
 
 
 def pick_protein_token(

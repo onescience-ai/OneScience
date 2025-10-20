@@ -11,7 +11,7 @@ from typing import Optional
 
 import numpy as np
 
-from ..types import Tokenized
+from onescience.models.simplefold.boltz_data_pipeline.types import Tokenized
 
 
 class Cropper(ABC):
