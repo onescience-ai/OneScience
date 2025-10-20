@@ -10,16 +10,16 @@ import omegaconf
 from pathlib import Path
 from itertools import starmap
 
-from model.flow import LinearPath
-from model.torch.sampler import EMSampler
+from .model.flow import LinearPath
+from .model.torch.sampler import EMSampler
 
-from processor.protein_processor import ProteinDataProcessor
-from utils.datamodule_utils import process_one_inference_structure
-from utils.esm_utils import _af2_to_esm, esm_registry
-from utils.boltz_utils import process_structure, save_structure
-from utils.fasta_utils import process_fastas, download_fasta_utilities
-from boltz_data_pipeline.feature.featurizer import BoltzFeaturizer
-from boltz_data_pipeline.tokenize.boltz_protein import BoltzTokenizer
+from .processor.protein_processor import ProteinDataProcessor
+from .utils.datamodule_utils import process_one_inference_structure
+from .utils.esm_utils import _af2_to_esm, esm_registry
+from .utils.boltz_utils import process_structure, save_structure
+from .utils.fasta_utils import process_fastas, download_fasta_utilities
+from .boltz_data_pipeline.feature.featurizer import BoltzFeaturizer
+from .boltz_data_pipeline.tokenize.boltz_protein import BoltzTokenizer
 
 try: 
     import mlx.core as mx
@@ -318,13 +318,14 @@ class InferenceWrapper:
         )
         return batch, structure, record
 
-    def run_inference(self, batch, model, plddt_model, device):
+    def run_inference(self, batch, model, plddt_model, device, seq_name):
         # run inference for target protein
         if self.backend == "torch":
             noise = torch.randn_like(batch["coords"]).to(device)
         elif self.backend == "mlx":
             noise = mx.random.normal(batch["coords"].shape)
-        out_dict = self.sampler.sample(model, self.flow, noise, batch)
+        
+        out_dict = self.sampler.sample(model, self.flow, noise, batch, seq_name)
 
         plddt_out_module = plddt_model["plddt_out_module"]
         plddt_latent_module = plddt_model["plddt_latent_module"]

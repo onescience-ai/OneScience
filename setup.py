@@ -54,7 +54,6 @@ basic_requires = [
     "tqdm",
     "timm",
     "wandb",
-    "hydra-core",
     "treelib",
     "hydra-core",
     "termcolor",

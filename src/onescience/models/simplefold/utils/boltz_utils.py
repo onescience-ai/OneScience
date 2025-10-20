@@ -20,10 +20,10 @@ from torch.nn import Linear
 import torch.nn.functional as F
 from torch.types import Device
 
-from boltz_data_pipeline import const
-from boltz_data_pipeline.types import Interface, Structure, ChainInfo
-from boltz_data_pipeline.write.mmcif import to_mmcif
-from boltz_data_pipeline.write.pdb import to_pdb
+from ..boltz_data_pipeline import const
+from ..boltz_data_pipeline.types import Interface, Structure, ChainInfo
+from ..boltz_data_pipeline.write.mmcif import to_mmcif
+from ..boltz_data_pipeline.write.pdb import to_pdb
 
 
 LinearNoBias = partial(Linear, bias=False)

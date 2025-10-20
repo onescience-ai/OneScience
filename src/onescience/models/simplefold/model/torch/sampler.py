@@ -6,7 +6,7 @@
 import torch
 from tqdm import tqdm
 from einops import repeat
-from utils.boltz_utils import center_random_augmentation
+from onescience.models.simplefold.utils.boltz_utils import center_random_augmentation
 
 
 class EMSampler():

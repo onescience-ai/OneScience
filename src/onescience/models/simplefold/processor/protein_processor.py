@@ -5,12 +5,18 @@
 
 import torch
 import numpy as np
-from utils.esm_utils import (
+# from utils.esm_utils import (
+#     af2_idx_to_esm_idx,
+#     compute_language_model_representations,
+#     batch_encode_sequences,
+# )
+# from utils.boltz_utils import center_random_augmentation as torch_center_random
+from ..utils.esm_utils import (
     af2_idx_to_esm_idx,
     compute_language_model_representations,
     batch_encode_sequences,
 )
-from utils.boltz_utils import center_random_augmentation as torch_center_random
+from ..utils.boltz_utils import center_random_augmentation as torch_center_random
 
 try:
     import mlx.core as mx

@@ -11,22 +11,39 @@ import typing as T
 import numpy as np
 from functools import partial
 
-from utils import residue_constants
+# from utils import residue_constants
+from .utils import residue_constants
 
 try:
     import mlx.core as mx
 except:
     pass
 
-load_fn = torch.hub.load
+# load_fn = torch.hub.load
+# esm_registry = {
+#     "esm2_8M": partial(load_fn, "facebookresearch/esm:main", "esm2_t6_8M_UR50D"),
+#     "esm2_35M": partial(load_fn, "facebookresearch/esm:main", "esm2_t12_35M_UR50D"),
+#     "esm2_150M": partial(load_fn, "facebookresearch/esm:main", "esm2_t30_150M_UR50D"),
+#     "esm2_650M": partial(load_fn, "facebookresearch/esm:main", "esm2_t33_650M_UR50D"),
+#     "esm2_3B": partial(load_fn, "facebookresearch/esm:main", "esm2_t36_3B_UR50D"),
+#     "esm2_15B": partial(load_fn, "facebookresearch/esm:main", "esm2_t48_15B_UR50D"),
+# }
+
+def load_fn(repo_or_dir, model_name, source="github"):
+    if source == "local":
+        return torch.hub.load(repo_or_dir, model_name, source="local")
+    else:
+        return torch.hub.load(repo_or_dir, model_name)
+LOCAL_ESM_REPO = "/public/home/onescience2025404/khren/onescience/examples/biosciences/simplefold/artifacts/esm-main"
+
 esm_registry = {
-    "esm2_8M": partial(load_fn, "facebookresearch/esm:main", "esm2_t6_8M_UR50D"),
-    "esm2_35M": partial(load_fn, "facebookresearch/esm:main", "esm2_t12_35M_UR50D"),
-    "esm2_150M": partial(load_fn, "facebookresearch/esm:main", "esm2_t30_150M_UR50D"),
-    "esm2_650M": partial(load_fn, "facebookresearch/esm:main", "esm2_t33_650M_UR50D"),
-    "esm2_3B": partial(load_fn, "facebookresearch/esm:main", "esm2_t36_3B_UR50D"),
-    "esm2_15B": partial(load_fn, "facebookresearch/esm:main", "esm2_t48_15B_UR50D"),
-}
+    "esm2_8M": partial(load_fn, LOCAL_ESM_REPO, "esm2_t6_8M_UR50D",source="local"),
+    "esm2_35M": partial(load_fn, LOCAL_ESM_REPO, "esm2_t12_35M_UR50D",source="local"),
+    "esm2_150M": partial(load_fn, LOCAL_ESM_REPO, "esm2_t30_150M_UR50D",source="local"),
+    "esm2_650M": partial(load_fn, LOCAL_ESM_REPO, "esm2_t33_650M_UR50D",source="local"),
+    "esm2_3B": partial(load_fn, LOCAL_ESM_REPO, "esm2_t36_3B_UR50D",source="local"),
+    "esm2_15B": partial(load_fn, LOCAL_ESM_REPO, "esm2_t48_15B_UR50D",source="local"),
+} 
 
 
 esm_model_dict = {
