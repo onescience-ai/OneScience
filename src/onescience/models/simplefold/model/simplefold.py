@@ -23,9 +23,9 @@ import lightning.pytorch as pl
 from fairscale.nn.data_parallel import FullyShardedDataParallel as FSDP
 from fairscale.nn.wrap import enable_wrap, wrap
 
-from utils.esm_utils import _af2_to_esm, esm_registry
-from boltz_data_pipeline.types import Record, Structure
-from utils.boltz_utils import (
+from onescience.models.simplefold.utils.esm_utils import _af2_to_esm, esm_registry
+from onescience.models.simplefold.boltz_data_pipeline.types import Record, Structure
+from onescience.models.simplefold.utils.boltz_utils import (
     weighted_rigid_align, 
     center_random_augmentation,
     process_structure, 

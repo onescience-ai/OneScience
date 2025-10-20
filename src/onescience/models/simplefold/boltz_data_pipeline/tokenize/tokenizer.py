@@ -8,7 +8,7 @@
 
 from abc import ABC, abstractmethod
 
-from boltz_data_pipeline.types import Input, Tokenized
+from onescience.models.simplefold.boltz_data_pipeline.types import Input, Tokenized
 
 
 class Tokenizer(ABC):

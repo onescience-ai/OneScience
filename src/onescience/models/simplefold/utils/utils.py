@@ -17,7 +17,7 @@ from hydra.core.hydra_config import HydraConfig
 from lightning_utilities.core.rank_zero import rank_zero_only
 from omegaconf import DictConfig, OmegaConf, open_dict
 
-from utils.pylogger import RankedLogger
+from .pylogger import RankedLogger
 log = RankedLogger(__name__, rank_zero_only=True)
 
 

@@ -6,7 +6,7 @@
 import torch
 from torch import nn
 from timm.models.vision_transformer import Mlp
-from model.torch.layers import modulate, SwiGLUFeedForward
+from onescience.models.simplefold.model.torch.layers import modulate, SwiGLUFeedForward
 
 
 class DiTBlock(nn.Module):

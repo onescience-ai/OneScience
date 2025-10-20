@@ -11,13 +11,13 @@ from typing import Optional
 from dataclasses import dataclass
 from pathlib import Path
 
-from boltz_data_pipeline.feature.pad import pad_to_max
-from boltz_data_pipeline.crop.cropper import Cropper
-from boltz_data_pipeline.tokenize.boltz_protein import BoltzTokenizer
-from boltz_data_pipeline.feature.featurizer import BoltzFeaturizer
-from processor.protein_processor import ProteinDataProcessor
-from boltz_data_pipeline.types import Connection, Input, Manifest, Record, Structure
-from boltz_data_pipeline import const
+from ..boltz_data_pipeline.feature.pad import pad_to_max
+from ..boltz_data_pipeline.crop.cropper import Cropper
+from ..boltz_data_pipeline.tokenize.boltz_protein import BoltzTokenizer
+from ..boltz_data_pipeline.feature.featurizer import BoltzFeaturizer
+from ..processor.protein_processor import ProteinDataProcessor
+from ..boltz_data_pipeline.types import Connection, Input, Manifest, Record, Structure
+from ..boltz_data_pipeline import const
 
 
 restype_1to3 = {

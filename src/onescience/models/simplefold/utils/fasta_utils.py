@@ -14,7 +14,7 @@ from pathlib import Path
 from tqdm import tqdm
 from dataclasses import asdict
 
-from boltz_data_pipeline.types import Manifest, Record
+from onescience.models.simplefold.boltz_data_pipeline.types import Manifest, Record
 
 
 CCD_URL = "https://huggingface.co/boltz-community/boltz-1/resolve/main/ccd.pkl"
@@ -29,8 +29,8 @@ from pathlib import Path
 from Bio import SeqIO
 from rdkit.Chem.rdchem import Mol
 
-from boltz_data_pipeline.parse.yaml import parse_boltz_schema
-from boltz_data_pipeline.types import Target
+from onescience.models.simplefold.boltz_data_pipeline.parse.yaml import parse_boltz_schema
+from onescience.models.simplefold.boltz_data_pipeline.types import Target
 
 
 def parse_fasta(path: Path, ccd: Mapping[str, Mol]) -> Target:  # noqa: C901

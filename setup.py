@@ -158,6 +158,10 @@ biology_requires = [
     "psutil",
     "transformers",
     "ftfy",
+    "modelcif",
+    "ihm",
+    "mashumaro", 
+    "py3Dmol",   
 ]
 
 dev_requires = [

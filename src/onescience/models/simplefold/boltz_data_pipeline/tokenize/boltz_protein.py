@@ -10,9 +10,9 @@ from dataclasses import astuple, dataclass
 
 import numpy as np
 
-from boltz_data_pipeline import const
-from boltz_data_pipeline.tokenize.tokenizer import Tokenizer
-from boltz_data_pipeline.types import Input, Token, TokenBond, Tokenized
+from onescience.models.simplefold.boltz_data_pipeline import const
+from onescience.models.simplefold.boltz_data_pipeline.tokenize.tokenizer import Tokenizer
+from onescience.models.simplefold.boltz_data_pipeline.types import Input, Token, TokenBond, Tokenized
 
 
 @dataclass

@@ -16,8 +16,8 @@ from rdkit import rdBase, Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.rdchem import Conformer, Mol
 
-from boltz_data_pipeline import const
-from boltz_data_pipeline.types import (
+from onescience.models.simplefold.boltz_data_pipeline import const
+from onescience.models.simplefold.boltz_data_pipeline.types import (
     Atom,
     Bond,
     Chain,

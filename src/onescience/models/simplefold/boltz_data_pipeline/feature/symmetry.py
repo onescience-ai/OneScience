@@ -14,10 +14,10 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from boltz_data_pipeline import const
-from boltz_data_pipeline.feature.pad import pad_dim
-from utils.boltz_utils import lddt_dist
-from utils.boltz_utils import weighted_minimum_rmsd_single
+from onescience.models.simplefold.boltz_data_pipeline import const
+from onescience.models.simplefold.boltz_data_pipeline.feature.pad import pad_dim
+from onescience.models.simplefold.utils.boltz_utils import lddt_dist
+from onescience.models.simplefold.utils.boltz_utils import weighted_minimum_rmsd_single
 
 
 def convert_atom_name(name: str) -> tuple[int, int, int, int]:

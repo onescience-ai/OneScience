@@ -8,8 +8,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from model.torch.layers import FinalLayer, ConditionEmbedder
-from utils.esm_utils import esm_model_dict
+from onescience.models.simplefold.model.torch.layers import FinalLayer, ConditionEmbedder
+from onescience.models.simplefold.utils.esm_utils import esm_model_dict
 
 
 class FoldingDiT(nn.Module):

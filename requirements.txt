@@ -82,3 +82,9 @@ ftfy
 gpytorch
 optree
 biotite==1.0.1
+
+# simplefold
+mashumaro==3.16
+ihm==2.7
+modelcif==1.4
+py3Dmol==2.5.2

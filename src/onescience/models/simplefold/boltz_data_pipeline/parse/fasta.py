@@ -12,8 +12,8 @@ from pathlib import Path
 from Bio import SeqIO
 from rdkit.Chem.rdchem import Mol
 
-from boltz_data_pipeline.parse.yaml import parse_boltz_schema
-from boltz_data_pipeline.types import Target
+from onescience.models.simplefold.boltz_data_pipeline.parse.yaml import parse_boltz_schema
+from onescience.models.simplefold.boltz_data_pipeline.types import Target
 
 
 def parse_fasta(path: Path, ccd: Mapping[str, Mol]) -> Target:  # noqa: C901

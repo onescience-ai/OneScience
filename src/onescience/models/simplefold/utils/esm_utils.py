@@ -12,7 +12,7 @@ import numpy as np
 from functools import partial
 
 # from utils import residue_constants
-from .utils import residue_constants
+from . import residue_constants
 
 try:
     import mlx.core as mx

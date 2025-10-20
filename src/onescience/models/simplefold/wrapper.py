@@ -318,14 +318,13 @@ class InferenceWrapper:
         )
         return batch, structure, record
 
-    def run_inference(self, batch, model, plddt_model, device, seq_name):
+    def run_inference(self, batch, model, plddt_model, device):
         # run inference for target protein
         if self.backend == "torch":
             noise = torch.randn_like(batch["coords"]).to(device)
         elif self.backend == "mlx":
             noise = mx.random.normal(batch["coords"].shape)
-        
-        out_dict = self.sampler.sample(model, self.flow, noise, batch, seq_name)
+        out_dict = self.sampler.sample(model, self.flow, noise, batch)
 
         plddt_out_module = plddt_model["plddt_out_module"]
         plddt_latent_module = plddt_model["plddt_latent_module"]
