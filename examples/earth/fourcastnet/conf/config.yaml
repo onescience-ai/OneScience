@@ -9,7 +9,7 @@ model:
 
     in_channels: [0, 1 ,2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     out_channels: [0, 1 ,2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-    channels:  ['10m_u_component_of_wind_0', '10m_v_component_of_wind_0', '2m_temperature_0', 'mean_sea_level_pressure_0',
+    channels:  ['10m_u_component_of_wind', '10m_v_component_of_wind', '2m_temperature', 'mean_sea_level_pressure',
 
                 'geopotential_1000', 'geopotential_925', 'geopotential_850', 'geopotential_700', 'geopotential_600', 'geopotential_500',
                 'geopotential_400', 'geopotential_300', 'geopotential_250', 'geopotential_200', 'geopotential_150', 'geopotential_100', 'geopotential_50',
