@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="./doc/logo1-256x256.png" width="300"/>
+</div>
+
 # <div align="center"><strong>OneScience</strong></div>
 ### <div align="center">先进的科学智能(AI for Science)模型工具包</div>
 
