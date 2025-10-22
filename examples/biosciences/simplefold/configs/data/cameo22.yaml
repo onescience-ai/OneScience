@@ -1,0 +1,5 @@
+_target_: datasets.test_datamodule.SimpleFoldInferenceDataModule
+data_name: 'cameo22'
+target_dir: data/cameo22/
+esm_s_dir: data/cameo22/esm/
+num_workers: 1

@@ -1,0 +1,67 @@
+_target_: datasets.train_datamodule.SimpleFoldTrainingDataModule
+
+datasets:
+  - _target_: datasets.train_datamodule.DatasetConfig
+    data_name: rcsb_protein
+    tokenized_dir: data/rcsb_protein_tokenized
+    target_dir: data/rcsb_processed_targets
+    manifest_path: data/rcsb_protein_tokenized/manifest.json
+    cropper:
+      _target_: boltz_data_pipeline.crop.boltz.BoltzCropper
+      min_neighborhood: 0
+      max_neighborhood: 40
+    filters:
+      - _target_: boltz_data_pipeline.filter.dynamic.resolution.ResolutionFilter
+        resolution: 5.0
+      - _target_: boltz_data_pipeline.filter.dynamic.date.DateFilter
+        date: "2020-05-01"
+        ref: released
+
+  - _target_: datasets.train_datamodule.DatasetConfig
+    data_name: swissprot
+    tokenized_dir: data/swissprot_tokenized
+    target_dir: data/swissprot_pdb_v4_boltz
+    manifest_path: data/swissprot_tokenized/manifest.json
+    record_list: data/swissprot_filtered.txt
+    cropper:
+      _target_: boltz_data_pipeline.crop.boltz.BoltzCropper
+      min_neighborhood: 0
+      max_neighborhood: 40
+
+  - _target_: datasets.train_datamodule.DatasetConfig
+    data_name: processed_afesm_cluster
+    tokenized_dir: data/tokenized_afesm_cluster
+    target_dir: data/processed_afesm_cluster
+    manifest_path: data/processed_afesm_cluster/manifest.json
+    cluster: data/filtered_afesm_cluster.json
+    cropper:
+      _target_: boltz_data_pipeline.crop.boltz.BoltzCropper
+      min_neighborhood: 0
+      max_neighborhood: 40
+
+filters:
+    - _target_: boltz_data_pipeline.filter.dynamic.size.SizeFilter
+      min_chains: 1
+      max_chains: 300
+
+tokenizer:
+  _target_: boltz_data_pipeline.tokenize.boltz_protein.BoltzTokenizer
+
+featurizer:
+  _target_: boltz_data_pipeline.feature.featurizer.BoltzFeaturizer
+
+symmetries: data/symmetry.pkl
+max_tokens: 256
+max_atoms: 2304
+pad_to_max_tokens: False
+pad_to_max_atoms: False
+batch_size: 256
+num_workers: 16
+pin_memory: True
+return_train_symmetries: False
+min_dist: 2.0
+max_dist: 22.0
+num_bins: 64
+atoms_per_window_queries: 32
+rotation_augment_ref_pos: False
+rotation_augment_coords: True

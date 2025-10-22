@@ -24,3 +24,4 @@ analyze_fail.dat
 debug
 /src/agent/logs/
 .DS_Store
+examples/biosciences/simplefold/artifacts/

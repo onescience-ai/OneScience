@@ -1,0 +1,16 @@
+# @package _global_
+defaults:
+  - data: test
+  - model/architecture: foldingdit_100M
+  - model/sampler: euler_maruyama
+  - model: simplefold
+  - model/processor: protein_processor
+  - compute: local
+  - callbacks: default
+  - logger: null # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
+  - trainer: default
+  - paths: default
+  - extras: default
+  - hydra: default
+  - _self_
+  - experiment: null
