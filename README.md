@@ -142,6 +142,7 @@ This project also makes use of open-source software:
 
 See the [NOTICE](NOTICE) file for details on third-party attributions.
 
+
 ## 🌐 Join the Community
 
 We welcome you to join the OneScience WeChat community — a place for researchers, engineers, and enthusiasts to share insights and collaborate.
