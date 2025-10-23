@@ -138,3 +138,15 @@ This project also makes use of open-source software:
 - [NVIDIA NeMo](https://github.com/NVIDIA/NeMo), licensed under the [Apache License 2.0](licenses/NeMo_LICENSE).
 
 See the [NOTICE](NOTICE) file for details on third-party attributions.
+
+
+## 🌐 Join the Community
+
+We welcome you to join the OneScience WeChat community — a place for researchers, engineers, and enthusiasts to share insights and collaborate.
+
+- 📱 **WeChat Group:** OneScience开放社区群  
+- 💬 *Add our WeChat Group by scaning the QR code below.*
+
+<div align="center">
+  <img src="./doc/WeChat_QR_code.png" width="300"/>
+</div>
