@@ -27,6 +27,9 @@ OneScience是基于先进的深度学习框架打造的科学计算工具包，�
 - 🔥 `2024年12月` v0.1.0版本，支持物理、化学、生物、计算科学等多学科的模型。科研流程接口。
 - 🔥 `2025年10月` v0.2.0版本。开放生态 · 科学共智 。推动科研机构与AI企业共建科学智能平台，并行扩展能力支持，智能化改进。
 
+## 使用手册
+  如果你想快速了解OneScience的全部使用方法，可以参考我们的[使用手册](https://download2.sourcefind.cn:65024/9/main/onesicence)。
+
 ## 在线试用
 
 你可以直接在[超算互联网平台](https://www.scnet.cn/ui/mall/app)试用大多数模型，同时，我们在平台上还提供了各个领域模型所需要的丰富的[数据集](https://www.scnet.cn/ui/mall/search/goods?common1=DATA&common2=DATA-330)。我们还为共有或者私有模型提供私有托管服务，欢迎交流合作。
@@ -138,3 +141,14 @@ This project also makes use of open-source software:
 - [NVIDIA NeMo](https://github.com/NVIDIA/NeMo), licensed under the [Apache License 2.0](licenses/NeMo_LICENSE).
 
 See the [NOTICE](NOTICE) file for details on third-party attributions.
+
+## 🌐 Join the Community
+
+We welcome you to join the OneScience WeChat community — a place for researchers, engineers, and enthusiasts to share insights and collaborate.
+
+- 📱 **WeChat Group:** OneScience开放社区群  
+- 💬 *Add our WeChat assistant or scan the QR code below to join the group.*
+
+<div align="center">
+  <img src="./doc/WeChat_QR_code.png" width="300"/>
+</div>
