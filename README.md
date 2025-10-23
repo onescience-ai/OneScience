@@ -147,7 +147,7 @@ See the [NOTICE](NOTICE) file for details on third-party attributions.
 We welcome you to join the OneScience WeChat community — a place for researchers, engineers, and enthusiasts to share insights and collaborate.
 
 - 📱 **WeChat Group:** OneScience开放社区群  
-- 💬 *Add our WeChat assistant or scan the QR code below to join the group.*
+- 💬 *Add our WeChat Group by scaning the QR code below.*
 
 <div align="center">
   <img src="./doc/WeChat_QR_code.png" width="300"/>
