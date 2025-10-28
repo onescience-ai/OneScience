@@ -134,20 +134,20 @@ pip install -e .
 
 本项目 Onescience 遵循 [Apache License 2.0](LICENSE) 许可.
 
-### Third-Party Components
+### 第三方软件
 
 本项目还使用了以下开源软件：
 
 - [NVIDIA NeMo](https://github.com/NVIDIA/NeMo), 遵循 [Apache License 2.0](licenses/NeMo_LICENSE).
 
-有关第三方归属的详细信息，请参阅[NOTICE](NOTICE)文件.
+有关第三方软件归属的详细信息，请参阅[NOTICE](NOTICE)文件.
 
 ## 🌐 加入我们的社区
 
 我们欢迎你加入 OneScience 微信社区 —— 这里汇聚了研究人员、工程师和爱好者，共同分享见解、交流合作.
 
 - 📱 **微信社区交流群:** OneScience开放社区群  
-- 💬 *请扫描下方二维码，加入我们的 微信交流群.*
+- 💬 您也可以扫描下方二维码，加入我们的微信交流群.
 
 <div align="center">
   <img src="./doc/WeChat_QR_code.png" width="300"/>
