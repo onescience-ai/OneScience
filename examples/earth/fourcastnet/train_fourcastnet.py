@@ -19,8 +19,8 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logger = logging.getLogger()
 
-    config_file_path = os.path.join(current_path, "conf/config.yaml")
-    cfg = YParams('/public/home/onescience2025404/biao.liu/onescience/examples/configs/data/earth/era5.yaml', "model")
+    config_file_path = os.path.join(current_path, "conf/fourcastnet_era5.yaml")
+    cfg = YParams(config_file_path, "model")
     cfg['N_in_channels'] = len(cfg.channels)
     cfg['N_out_channels'] = len(cfg.channels)
     cfg.world_size = 1
@@ -33,7 +33,7 @@ def main():
         dist.init_process_group(backend="nccl", init_method="env://")
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
-    cfg_data = YParams('/public/home/onescience2025404/biao.liu/onescience/examples/configs/data/earth/era5.yaml', "dataset")
+    cfg_data = YParams(config_file_path, "dataset")
     train_dataset = ERA5HDF5Datapipe(params=cfg_data, distributed=dist.is_initialized())
     train_dataloader, train_sampler = train_dataset.train_dataloader()
 
