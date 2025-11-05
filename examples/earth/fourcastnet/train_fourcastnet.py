@@ -8,7 +8,7 @@ import time
 
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.afno.afnonet import AFNONet
-from onescience.datapipes.earth.ear5.ERA5 import ERA5HDF5Datapipe
+from onescience.datapipes.earth import ERA5HDF5Datapipe
 from onescience.utils.fcn.YParams import YParams
 from onescience.utils.fcn.darcy_loss import LpLoss
 
