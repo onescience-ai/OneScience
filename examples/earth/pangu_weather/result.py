@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 
 import os
 import sys

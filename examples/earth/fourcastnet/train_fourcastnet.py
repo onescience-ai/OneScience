@@ -8,7 +8,7 @@ import time
 
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.afno.afnonet import AFNONet
-from onescience.datapipes.earth.ear5.ERA5 import ERA5HDF5Datapipe
+from onescience.datapipes import ERA5HDF5Datapipe
 from onescience.utils.fcn.YParams import YParams
 from onescience.utils.fcn.darcy_loss import LpLoss
 
@@ -33,12 +33,10 @@ def main():
         dist.init_process_group(backend="nccl", init_method="env://")
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
-    cfg_data = YParams(config_file_path, "dataset")
-    train_dataset = ERA5HDF5Datapipe(params=cfg_data, distributed=dist.is_initialized())
-    train_dataloader, train_sampler = train_dataset.train_dataloader()
-
-    val_dataset = ERA5HDF5Datapipe(params=cfg_data, distributed=dist.is_initialized())
-    val_dataloader, val_sampler = val_dataset.val_dataloader()
+    cfg_data = YParams(config_file_path, "datapipe")
+    datapipe = ERA5HDF5Datapipe(params=cfg_data, distributed=dist.is_initialized())
+    train_dataloader, train_sampler = datapipe.train_dataloader()
+    val_dataloader, val_sampler = datapipe.val_dataloader()
 
     fourcastnet_model = AFNONet(cfg).to(local_rank)
 

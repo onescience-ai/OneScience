@@ -8,8 +8,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Optional, Type, Union
 
-from ..core.base_dataset import BaseDataset
-from ..core.config import DatasetConfig, SourceConfig, DataConfig, TransformConfig
+from onescience.datapipes.core.base_dataset import BaseDataset
+from onescience.datapipes.core.config import DatasetConfig, SourceConfig, DataConfig, TransformConfig
 from .dataset_registry import DatasetRegistry
 
 

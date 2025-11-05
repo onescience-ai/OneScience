@@ -110,7 +110,7 @@ class TransformPipeline:
         TransformPipeline
             转换流水线
         """
-        from .transform_registry import get_transform
+        from onescience.datapipes.core.registry.transform_registry import get_transform
         
         transforms = []
         for config in transform_configs:

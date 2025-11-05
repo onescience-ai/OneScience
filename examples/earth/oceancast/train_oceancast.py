@@ -23,7 +23,7 @@ import logging
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.afno.afnonet_ocean import AFNONet
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 from onescience.utils.fcn.data_loader_ocean import get_data_loader
 from onescience.utils.fcn.darcy_loss_ocean import LpLoss as loss_function
 

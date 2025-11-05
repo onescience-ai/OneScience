@@ -9,7 +9,7 @@ import h5py
 import numpy as np
 import sys
 
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 
 current_path = os.getcwd()
 sys.path.append(current_path)

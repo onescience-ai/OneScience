@@ -17,7 +17,7 @@ from onescience.models.afno.afnonet_dualpipe import build_dualpipe_model
 from onescience.distributed.comm import set_p2p_tensor_shapes, set_p2p_tensor_dtype
 from onescience.utils.fcn.data_loader_ocean import get_data_loader
 from onescience.utils.fcn.darcy_loss_ocean import LpLoss as loss_function
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 import torch.multiprocessing as mp
 mp.set_start_method('spawn', force=True)
 

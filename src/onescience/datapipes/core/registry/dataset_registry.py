@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Type
 from dataclasses import dataclass
 import logging
 
-from ..core.base_dataset import BaseDataset
+from onescience.datapipes.core.base_dataset import BaseDataset
 
 
 logger = logging.getLogger("onescience.datapipes.registry")

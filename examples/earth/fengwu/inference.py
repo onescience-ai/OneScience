@@ -5,7 +5,7 @@ import numpy as np
 
 from onescience.models.fengwu import Fengwu
 from onescience.datapipes.climate import ERA5HDF5Datapipe
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 from ruamel.yaml.scalarfloat import ScalarFloat
 
 # torch.serialization.add_safe_globals([ScalarFloat])

@@ -13,7 +13,7 @@ import time
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.afno.afnonet_pipeline import build_pipeline_model
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 from onescience.utils.fcn.data_loader_ocean import get_data_loader
 from onescience.utils.fcn.darcy_loss_ocean import LpLoss as loss_function
 

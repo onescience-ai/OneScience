@@ -5,7 +5,7 @@ Transform注册机制
 """
 
 from typing import Dict, Optional, Type
-from .transforms import Transform
+from onescience.datapipes.datakit.transforms import Transform
 
 
 # 全局转换注册表
@@ -66,7 +66,7 @@ def list_transforms() -> Dict[str, Type[Transform]]:
 
 
 # 注册内置转换
-from .transforms import (
+from onescience.datapipes.datakit.transforms import (
     ToTensor, Normalize, Denormalize,
     RandomCrop, CenterCrop, Lambda, Compose
 )
