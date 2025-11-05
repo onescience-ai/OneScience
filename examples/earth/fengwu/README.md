@@ -87,7 +87,7 @@ import numpy as np
 import h5py
 import os
 import sys
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 
 SHAPE, CHUNKS, DTYPE = (30, 189, 721, 1440), (1, 189, 721, 1440), "float32"
 def create_h5_files():

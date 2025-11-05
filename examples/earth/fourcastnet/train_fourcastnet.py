@@ -9,7 +9,7 @@ import time
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.afno.afnonet import AFNONet
 from onescience.datapipes import ERA5HDF5Datapipe
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 from onescience.utils.fcn.darcy_loss import LpLoss
 
 from apex import optimizers

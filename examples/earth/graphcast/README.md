@@ -161,7 +161,7 @@ import h5py
 import os
 import sys
 import xarray as xr
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 SHAPE, CHUNKS, DTYPE = (30, 69, 721, 1440), (1, 1, 721, 1440), "float32"
 # 69可以自行设置，原始模型为83，该数字要与config中channels的数量对应即可
 def create_h5_files():
