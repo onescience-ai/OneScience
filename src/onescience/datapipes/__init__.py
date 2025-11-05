@@ -1,13 +1,10 @@
-from .earth.base import EarthDataset
-from .cfd.base import CFDDataset
-from .bio.base import BioDataset
-from .materials.base import MaterialsDataset
-from .structural.base import StructuralDataset
+## 所有的常用数据集和用户自己构建的数据集从这里管理
+
+from onescience.datapipes.core import BaseDataset
+from onescience.datapipes.climate.era5_hdf5_new import ERA5Dataset, ERA5HDF5Datapipe
 
 __all__ = [
-    "EarthDataset",
-    "CFDDataset",
-    "BioDataset",
-    "MaterialsDataset",
-    "StructuralDataset",
+    "ERA5Dataset",
+    "ERA5HDF5Datapipe",
+    "BaseDataset",
 ]

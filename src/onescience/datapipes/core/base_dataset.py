@@ -13,8 +13,7 @@ from functools import cached_property
 from torch.utils.data import Dataset
 
 from .config import DatasetConfig
-from .transforms import TransformPipeline
-
+from onescience.datapipes.datakit import *
 
 class BaseDataset(Dataset, ABC):
     """
@@ -49,10 +48,10 @@ class BaseDataset(Dataset, ABC):
         super().__init__()
         
         # 配置处理
-        if isinstance(config, dict):
-            self.config = DatasetConfig.from_dict(config)
-        else:
-            self.config = config
+        # if isinstance(config, dict):
+        #     self.config = DatasetConfig.from_dict(config)
+        # else:
+        self.config = config
         
         # 设置日志
         self.logger = self._setup_logger()
@@ -61,23 +60,61 @@ class BaseDataset(Dataset, ABC):
         # self._validate_config()
         
         # 初始化Transform pipeline
-        self.transform = None
-        if self.config.transforms:
-            self.transform = TransformPipeline.from_config(self.config.transforms)
+        # self.transform = None
+        # if self.config.transforms:
+        #     self.transform = TransformPipeline.from_config(self.config.transforms)
         
         # 数据集状态
         self._initialized = False
         self._num_samples = 0
         
         # 子类需要实现的初始化
-        self._init_paths()
-        self._load_metadata()
-        self._init_data()
+    def _init_paths(self,):
+
+        """初始化数据路径"""
+        self.data_path = Path(self.config.source.data_dir)
         
-        self._initialized = True
+        if not self.data_path.exists():
+            raise FileNotFoundError(f"Data path not found: {self.data_path}")
         
-        self.logger.info(f"Initialized {self.__class__.__name__} with {len(self)} samples")
+        self.logger.debug(f"Data path: {self.data_path}")
+
+    def _load_metadata(self,):
+        # 加载变量列表
+        if self.config.data['variables']:
+            self.variables = self.config.data['variables']
+        
+        # 加载气压层级
+        if hasattr(self.config.data, 'levels'):
+            self.levels = self.config.data['extra'].get('levels', [])
+
+    def _init_data(self,):
+        """初始化数据"""
+
+        pass
     
+    
+    def get_variable_info(self, variable: str) -> Dict[str, Any]:
+        """
+        获取变量信息
+        
+        Parameters
+        ----------
+        variable : str
+            变量名
+            
+        Returns
+        -------
+        Dict[str, Any]
+            变量信息字典
+        """
+        return {
+            "name": variable,
+            "domain": "earth",
+            "unit": self._get_variable_unit(variable),
+            "description": self._get_variable_description(variable),
+        }
+
     def _setup_logger(self) -> logging.Logger:
         """设置日志记录器"""
         logger = logging.getLogger(f"onescience.datapipes.{self.__class__.__name__}")
@@ -115,14 +152,6 @@ class BaseDataset(Dataset, ABC):
             if not path.exists():
                 self.logger.warning(f"Data path does not exist: {path}")
     
-    @abstractmethod
-    def _init_paths(self):
-        """
-        初始化数据路径
-        
-        子类必须实现此方法，用于设置数据文件路径等
-        """
-        pass
     
     # @abstractmethod
     # def _load_metadata(self):

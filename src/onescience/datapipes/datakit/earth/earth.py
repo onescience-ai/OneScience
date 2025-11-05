@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 import numpy as np
 
-from onescience.datapipes.core.base_dataset import BaseDataset
-from onescience.datapipes.core.config import DatasetConfig
+from onescience.datapipes.core import BaseDataset
+from onescience.datapipes.core import DatasetConfig
 
 
 class EarthDataset(BaseDataset):

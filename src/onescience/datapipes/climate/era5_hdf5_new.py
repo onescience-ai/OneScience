@@ -13,59 +13,60 @@ from torch.utils.data.distributed import DistributedSampler
 from onescience.datapipes.datapipe import Datapipe
 from onescience.datapipes.climate.utils.invariant import latlon_grid
 from onescience.datapipes.climate.utils.zenith_angle import cos_zenith_angle
-from onescience.datapipes.earth.base import EarthDataset
+from onescience.datapipes.core import BaseDataset
 
 class ERA5HDF5Datapipe(Datapipe):
     def __init__(self, params, distributed, output_steps=1, input_steps=1):
         self.params = params
+        self.dataset = params.dataset
         self.distributed = distributed
         self.output_steps = output_steps
         self.input_steps = input_steps
 
     def train_dataloader(self):
-        data = ERA5Dataset(params=self.params, mode='train', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = ERA5Dataset(dataset=self.dataset, mode='train', output_steps=self.output_steps, input_steps=self.input_steps)
         sampler = DistributedSampler(data, shuffle=True) if self.distributed else None
         data_loader = DataLoader(data,
-                                 batch_size=self.params.dataloader['batch_size'],
+                                 batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
-                                 num_workers=self.params.dataloader['num_workers'],
+                                 num_workers=self.params.dataloader.num_workers,
                                  pin_memory=True,
                                  shuffle=False,
                                  sampler=sampler)
         return data_loader, sampler
 
     def val_dataloader(self):
-        data = ERA5Dataset(params=self.params, mode='val', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = ERA5Dataset(dataset=self.dataset, mode='val', output_steps=self.output_steps, input_steps=self.input_steps)
         sampler = DistributedSampler(data, shuffle=False) if self.distributed else None
         data_loader = DataLoader(data,
-                                 batch_size=self.params.dataloader['batch_size'],
+                                 batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
-                                 num_workers=self.params.dataloader['num_workers'],
+                                 num_workers=self.params.dataloader.num_workers,
                                  pin_memory=True,
                                  shuffle=False,
                                  sampler=sampler)
         return data_loader, sampler
 
     def test_dataloader(self):
-        data = ERA5Dataset(params=self.params, mode='test', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = ERA5Dataset(dataset=self.dataset, mode='test', output_steps=self.output_steps, input_steps=self.input_steps)
         data_loader = DataLoader(data,
-                                 batch_size=self.params.dataloader['batch_size'],
+                                 batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
-                                 num_workers=self.params.dataloader['num_workers'],
+                                 num_workers=self.params.dataloader.num_workers,
                                  pin_memory=True,
                                  shuffle=False)
         return data_loader
     
     
-class ERA5Dataset(EarthDataset):
-    def __init__(self, params, mode='train', output_steps=1, input_steps=1, patch_size=[1, 1]):
-        self.params = params
-        self.data_dir = params.source['data_dir']
+class ERA5Dataset(BaseDataset):
+    def __init__(self, dataset, mode='train', output_steps=1, input_steps=1, patch_size=[1, 1]):
+        self.params = dataset
+        self.data_dir = self.params.data_dir
         self.mode = mode
         self.output_steps = output_steps
         self.input_steps = input_steps
         self.patch_size = patch_size
-        self.dt = params.data['time_res']
+        self.dt = self.params.time_res
 
         self.metadata = None
         self.years = []
@@ -102,24 +103,24 @@ class ERA5Dataset(EarthDataset):
 
     def _init_normalization(self):
         self.channel_indices = [self.variables.index(v) for v in self.params.channels]
-        mu = np.load(os.path.join(self.params.source['stats_dir'], "global_means.npy"))  # shape: [1, M, 1, 1]
-        std = np.load(os.path.join(self.params.source['stats_dir'], "global_stds.npy"))
+        mu = np.load(os.path.join(self.params.stats_dir, "global_means.npy"))  # shape: [1, M, 1, 1]
+        std = np.load(os.path.join(self.params.stats_dir, "global_stds.npy"))
         self.mu = mu[:, self.channel_indices, :, :]
         self.sd = std[:, self.channel_indices, :, :]
 
     def _init_split(self):
         y = sorted(self.years)
-        if self.params.source['train_ratio'] + self.params.source['val_ratio'] + self.params.source['test_ratio'] == 1:
-            n_train = int(len(y) * self.params.source['train_ratio'])
-            n_val = int(len(y) * self.params.source['val_ratio'])
+        if self.params.train_ratio + self.params.val_ratio + self.params.test_ratio == 1:
+            n_train = int(len(y) * self.params.train_ratio)
+            n_val = int(len(y) * self.params.val_ratio)
             year_splits = {
                 "train": y[:n_train],
                 "val": y[n_train:n_train + n_val],
                 "test": y[n_train + n_val:]
             }
-        elif self.params.source['train_ratio'] + self.params.source['val_ratio'] + self.params.source['test_ratio'] == len(y):
-            n_train =  self.params.source['train_ratio']
-            n_val = self.params.source['val_ratio']
+        elif self.params.train_ratio + self.params.val_ratio + self.params.test_ratio == len(y):
+            n_train =  self.params.train_ratio
+            n_val = self.params.val_ratio
             year_splits = {
                 "train": y[:n_train],
                 "val": y[n_train:n_train + n_val],
@@ -131,7 +132,7 @@ class ERA5Dataset(EarthDataset):
             print('Train/Val/Test settings must use ratio or digital numbers')
             print('If using ratio, please ensure the sum of all ratios equal to 1')
             print(f'If using digital number, please ensure the sum of number equal to total years {len(y)}')
-            # print(f'❌❌ Now settings are {self.params.source['train_ratio']}-{self.params.source['val_ratio']}-{self.params.source['test_ratio']}, please check.')
+            # print(f'❌❌ Now settings are {self.params.dataset['train_ratio']}-{self.params.dataset['val_ratio']}-{self.params.dataset['test_ratio']}, please check.')
             print('-' * 30)
             print('\n\n')
             exit()

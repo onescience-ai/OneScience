@@ -21,20 +21,13 @@ model:
   checkpoint_dir: "./data/checkpoints"
   static_dir: "/public/onestore/onedatasets/ERA5/newh5/static/" 
 
-dataset:
+ # 整个数据读取流程
+datapipe:
   name: "ERA5HDF5"
-  domain: "earth"
   task: "weather_forecasting"
 
-  channels:  ['10m_u_component_of_wind', '10m_v_component_of_wind', '2m_temperature', 'mean_sea_level_pressure',
-
-              'geopotential_1000', 'geopotential_925', 'geopotential_850', 'geopotential_700', 'geopotential_600', 'geopotential_500',
-              'geopotential_400', 'geopotential_300', 'geopotential_250', 'geopotential_200', 'geopotential_150', 'geopotential_100', 'geopotential_50',
-
-              'specific_humidity_1000', 'specific_humidity_925', 'specific_humidity_850'    ]
-
-  # 数据源配置
-  source:
+  # dataset设定
+  dataset:
     type: "hdf5"
     stats_dir: "/public/onestore/onedatasets/ERA5/newh5/stats/" 
     static_dir: "/public/onestore/onedatasets/ERA5/newh5/static/" 
@@ -42,10 +35,18 @@ dataset:
     train_ratio: 15
     val_ratio: 3
     test_ratio: 2
-
-  # 数据配置
-  data:
+    img_size: [2, 721, 1440]
+    verbose: true
+    cache: false
     # 气象变量
+
+    channels:  ['10m_u_component_of_wind', '10m_v_component_of_wind', '2m_temperature', 'mean_sea_level_pressure',
+
+            'geopotential_1000', 'geopotential_925', 'geopotential_850', 'geopotential_700', 'geopotential_600', 'geopotential_500',
+            'geopotential_400', 'geopotential_300', 'geopotential_250', 'geopotential_200', 'geopotential_150', 'geopotential_100', 'geopotential_50',
+
+            'specific_humidity_1000', 'specific_humidity_925', 'specific_humidity_850'    ]
+
     variables:
       - "u10"        # 10m U wind component
       - "v10"        # 10m V wind component
@@ -86,10 +87,8 @@ dataset:
         keys: null  # null表示转换所有numpy数组
   
   # 其他配置
-  verbose: true
-  cache: false
-  img_size: [2, 721, 1440]
-  
+
+
   # DataLoader配置
   dataloader:
     mask_dtype: "float32"
