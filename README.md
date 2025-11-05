@@ -149,5 +149,5 @@ pip install -e .
 - 📱 **微信社区交流群:**  微信扫描管理员微信进群
 
 <div align="center">
-  <img src="./doc/WeChat_liu.png" width="300"/>
+  <img src="./doc/Wechat_liu.png" width="300"/>
 </div>
