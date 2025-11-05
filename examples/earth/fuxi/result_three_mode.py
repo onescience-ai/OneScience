@@ -7,7 +7,7 @@ import numpy as np
 import glob
 import h5py
 import time
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 from onescience.datapipes.climate import ERA5HDF5Datapipe
 
 

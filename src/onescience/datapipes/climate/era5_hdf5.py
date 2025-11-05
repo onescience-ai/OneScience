@@ -13,59 +13,60 @@ from torch.utils.data.distributed import DistributedSampler
 from onescience.datapipes.datapipe import Datapipe
 from onescience.datapipes.climate.utils.invariant import latlon_grid
 from onescience.datapipes.climate.utils.zenith_angle import cos_zenith_angle
-
+from onescience.datapipes.core import BaseDataset
 
 class ERA5HDF5Datapipe(Datapipe):
     def __init__(self, params, distributed, output_steps=1, input_steps=1):
         self.params = params
+        self.dataset = params.dataset
         self.distributed = distributed
         self.output_steps = output_steps
         self.input_steps = input_steps
 
     def train_dataloader(self):
-        data = ERA5Dataset(params=self.params, mode='train', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = ERA5Dataset(dataset=self.dataset, mode='train', output_steps=self.output_steps, input_steps=self.input_steps)
         sampler = DistributedSampler(data, shuffle=True) if self.distributed else None
         data_loader = DataLoader(data,
-                                 batch_size=self.params.batch_size,
+                                 batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
-                                 num_workers=self.params.num_workers,
+                                 num_workers=self.params.dataloader.num_workers,
                                  pin_memory=True,
                                  shuffle=False,
                                  sampler=sampler)
         return data_loader, sampler
 
     def val_dataloader(self):
-        data = ERA5Dataset(params=self.params, mode='val', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = ERA5Dataset(dataset=self.dataset, mode='val', output_steps=self.output_steps, input_steps=self.input_steps)
         sampler = DistributedSampler(data, shuffle=False) if self.distributed else None
         data_loader = DataLoader(data,
-                                 batch_size=self.params.batch_size,
+                                 batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
-                                 num_workers=self.params.num_workers,
+                                 num_workers=self.params.dataloader.num_workers,
                                  pin_memory=True,
                                  shuffle=False,
                                  sampler=sampler)
         return data_loader, sampler
 
     def test_dataloader(self):
-        data = ERA5Dataset(params=self.params, mode='test', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = ERA5Dataset(dataset=self.dataset, mode='test', output_steps=self.output_steps, input_steps=self.input_steps)
         data_loader = DataLoader(data,
-                                 batch_size=self.params.batch_size,
-                                 drop_last=False,
-                                 num_workers=self.params.num_workers,
+                                 batch_size=self.params.dataloader.batch_size,
+                                 drop_last=True if self.distributed else False,
+                                 num_workers=self.params.dataloader.num_workers,
                                  pin_memory=True,
                                  shuffle=False)
         return data_loader
     
     
-class ERA5Dataset(Dataset):
-    def __init__(self, params, mode='train', output_steps=1, input_steps=1, patch_size=[1, 1]):
-        self.params = params
-        self.data_dir = params.data_dir
+class ERA5Dataset(BaseDataset):
+    def __init__(self, dataset, mode='train', output_steps=1, input_steps=1, patch_size=[1, 1]):
+        self.params = dataset
+        self.data_dir = self.params.data_dir
         self.mode = mode
         self.output_steps = output_steps
         self.input_steps = input_steps
         self.patch_size = patch_size
-        self.dt = params.time_res
+        self.dt = self.params.time_res
 
         self.metadata = None
         self.years = []
@@ -86,6 +87,7 @@ class ERA5Dataset(Dataset):
         self._init_files()
         self._init_latlon()
         self._init_shape()
+        super().__init__(self.params)
 
     def _init_paths(self):
         meta_path = os.path.join(self.data_dir, 'metadata.json')
@@ -130,7 +132,7 @@ class ERA5Dataset(Dataset):
             print('Train/Val/Test settings must use ratio or digital numbers')
             print('If using ratio, please ensure the sum of all ratios equal to 1')
             print(f'If using digital number, please ensure the sum of number equal to total years {len(y)}')
-            print(f'❌❌ Now settings are {self.params.train_ratio}-{self.params.val_ratio}-{self.params.test_ratio}, please check.')
+            # print(f'❌❌ Now settings are {self.params.dataset['train_ratio']}-{self.params.dataset['val_ratio']}-{self.params.dataset['test_ratio']}, please check.')
             print('-' * 30)
             print('\n\n')
             exit()

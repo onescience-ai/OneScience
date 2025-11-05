@@ -4,7 +4,7 @@ import sys
 import h5py
 import numpy as np
 from onescience.models.pangu import Pangu
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 from onescience.datapipes.climate import ERA5HDF5Datapipe
 
 def loss_func(x, y):

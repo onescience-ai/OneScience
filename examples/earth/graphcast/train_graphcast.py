@@ -11,7 +11,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 from onescience.models.graphcast.graph_cast_net import GraphCastNet
 from onescience.utils.graphcast.loss import GraphCastLossFunction
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 from onescience.launch.utils import load_checkpoint, save_checkpoint
 from onescience.utils.graphcast.data_utils import StaticData
 from onescience.utils.graphcast.graph_utils import deg2rad
