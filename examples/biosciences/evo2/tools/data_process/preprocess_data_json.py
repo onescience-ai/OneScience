@@ -20,7 +20,7 @@ import ftfy
 import tqdm
 
 # from evo2.tokenizer import build_tokenizer
-from evo2.data import indexed_dataset
+from onescience.models.evo2.data import indexed_dataset
 
 
 def build_tokenizer(args):

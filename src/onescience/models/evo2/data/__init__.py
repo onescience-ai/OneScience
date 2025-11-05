@@ -15,3 +15,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import torch
+
+def print_rank_0(*message):
+    """If distributed is initialized print only on rank 0."""
+    if torch.distributed.is_initialized():
+        if torch.distributed.get_rank() == 0:
+            print(*message, flush=True)
+    else:
+        print(*message, flush=True)
