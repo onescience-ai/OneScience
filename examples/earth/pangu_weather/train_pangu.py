@@ -9,7 +9,7 @@ import time
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.pangu import Pangu
 from onescience.datapipes.climate import ERA5HDF5Datapipe
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 from onescience.memory.checkpoint import replace_function
 from apex import optimizers
 

@@ -4,7 +4,7 @@ import sys
 import numpy as np
 
 from onescience.datapipes.climate import ERA5HDF5Datapipe
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 
 
 def main():

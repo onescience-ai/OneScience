@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 from onescience.datapipes.climate import ERA5HDF5Datapipe
 from onescience.models.fuxi import Fuxi
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 
 
 

@@ -8,8 +8,8 @@ import time
 
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.afno.afnonet import AFNONet
-from onescience.datapipes.climate import ERA5HDF5Datapipe
-from onescience.utils.fcn.YParams import YParams
+from onescience.datapipes import ERA5Datapipe
+from onescience.utils.YParams import YParams
 from onescience.utils.fcn.darcy_loss import LpLoss
 
 from apex import optimizers
@@ -19,7 +19,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logger = logging.getLogger()
 
-    config_file_path = os.path.join(current_path, "conf/config.yaml")
+    config_file_path = os.path.join(current_path, "conf/fourcastnet_era5.yaml")
     cfg = YParams(config_file_path, "model")
     cfg['N_in_channels'] = len(cfg.channels)
     cfg['N_out_channels'] = len(cfg.channels)
@@ -33,12 +33,10 @@ def main():
         dist.init_process_group(backend="nccl", init_method="env://")
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
-
-    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
-    train_dataloader, train_sampler = train_dataset.train_dataloader()
-
-    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
-    val_dataloader, val_sampler = val_dataset.val_dataloader()
+    cfg_data = YParams(config_file_path, "datapipe")
+    datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized())
+    train_dataloader, train_sampler = datapipe.train_dataloader()
+    val_dataloader, val_sampler = datapipe.val_dataloader()
 
     fourcastnet_model = AFNONet(cfg).to(local_rank)
 

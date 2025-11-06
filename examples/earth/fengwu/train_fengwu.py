@@ -9,7 +9,7 @@ import time
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.fengwu import Fengwu
 from onescience.datapipes.climate import ERA5HDF5Datapipe
-from onescience.utils.fcn.YParams import YParams
+from onescience.utils.YParams import YParams
 from onescience.utils.fcn.darcy_loss import LpLoss
 from onescience.memory.checkpoint import replace_function
 

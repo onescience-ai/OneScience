@@ -146,9 +146,8 @@ pip install -e .
 
 我们欢迎你加入 OneScience 微信社区 —— 这里汇聚了研究人员、工程师和爱好者，共同分享见解、交流合作.
 
-- 📱 **微信社区交流群:** OneScience开放社区群. 
-- 💬 您也可以扫描下方二维码，加入我们的微信交流群.
+- 📱 **微信社区交流群:**  微信扫描管理员微信进群
 
 <div align="center">
-  <img src="./doc/WeChat_QR_code.png" width="300"/>
+  <img src="./doc/Wechat_liu.png" width="300"/>
 </div>
