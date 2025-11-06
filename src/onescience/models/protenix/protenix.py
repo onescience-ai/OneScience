@@ -15,7 +15,7 @@ from onescience.models.protenix.generator import (
     sample_diffusion_training,
 )
 from onescience.models.protenix.utils import simple_merge_dict_list
-from onescience.models.openfold.primitives import LayerNorm
+from onescience.models.openfold.primitives import ProtenixLayerNorm
 from onescience.utils.protenix.logger import get_logger
 from onescience.utils.protenix.permutation.permutation import SymmetricPermutation
 from onescience.utils.protenix.torch_utils import autocasting_disable_decorator
@@ -93,8 +93,8 @@ class Protenix(nn.Module):
         self.linear_no_bias_s = LinearNoBias(
             in_features=self.c_s, out_features=self.c_s
         )
-        self.layernorm_z_cycle = LayerNorm(self.c_z)
-        self.layernorm_s = LayerNorm(self.c_s)
+        self.layernorm_z_cycle = ProtenixLayerNorm(self.c_z)
+        self.layernorm_s = ProtenixLayerNorm(self.c_s)
 
         # Zero init the recycling layer
         nn.init.zeros_(self.linear_no_bias_z_cycle.weight)

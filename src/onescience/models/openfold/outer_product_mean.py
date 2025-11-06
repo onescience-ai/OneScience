@@ -1,10 +1,25 @@
+# Copyright 2021 AlQuraishi Laboratory
+# Copyright 2021 DeepMind Technologies Limited
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from functools import partial
 from typing import Optional
 
 import torch
 import torch.nn as nn
 
-from onescience.models.openfold.primitives import LayerNorm, Linear
+from onescience.models.openfold.primitives import Linear
 from onescience.utils.openfold.chunk_utils import chunk_layer
 from onescience.utils.openfold.precision_utils import is_fp16_enabled
 
@@ -14,7 +29,7 @@ class OuterProductMean(nn.Module):
     Implements Algorithm 10.
     """
 
-    def __init__(self, c_m, c_z, c_hidden, eps=1e-3):
+    def __init__(self, c_m, c_z, c_hidden, eps=1e-3, bias: bool=True):
         """
         Args:
             c_m:
@@ -31,10 +46,10 @@ class OuterProductMean(nn.Module):
         self.c_hidden = c_hidden
         self.eps = eps
 
-        self.layer_norm = LayerNorm(c_m)
-        self.linear_1 = Linear(c_m, c_hidden, bias=False)
-        self.linear_2 = Linear(c_m, c_hidden, bias=False)
-        self.linear_out = Linear(c_hidden**2, c_z, init="final")
+        self.layer_norm = nn.LayerNorm(c_m)
+        self.linear_1 = Linear(c_m, c_hidden, bias=bias)
+        self.linear_2 = Linear(c_m, c_hidden, bias=bias)
+        self.linear_out = Linear(c_hidden ** 2, c_z, init="final")
 
     def _opm(self, a, b):
         # [*, N_res, N_res, C, C]
@@ -49,7 +64,11 @@ class OuterProductMean(nn.Module):
         return outer
 
     @torch.jit.ignore
-    def _chunk(self, a: torch.Tensor, b: torch.Tensor, chunk_size: int) -> torch.Tensor:
+    def _chunk(self, 
+        a: torch.Tensor, 
+        b: torch.Tensor, 
+        chunk_size: int
+    ) -> torch.Tensor:
         # Since the "batch dim" in this case is not a true batch dimension
         # (in that the shape of the output depends on it), we need to
         # iterate over it ourselves
@@ -66,7 +85,7 @@ class OuterProductMean(nn.Module):
             out.append(outer)
 
         # For some cursed reason making this distinction saves memory
-        if len(out) == 1:
+        if(len(out) == 1):
             outer = out[0].unsqueeze(0)
         else:
             outer = torch.stack(out, dim=0)
@@ -75,9 +94,8 @@ class OuterProductMean(nn.Module):
 
         return outer
 
-    def _forward(
-        self,
-        m: torch.Tensor,
+    def _forward(self, 
+        m: torch.Tensor, 
         mask: Optional[torch.Tensor] = None,
         chunk_size: Optional[int] = None,
         inplace_safe: bool = False,
@@ -99,10 +117,10 @@ class OuterProductMean(nn.Module):
 
         # [*, N_seq, N_res, C]
         mask = mask.unsqueeze(-1)
-        a = self.linear_1(ln)
+        a = self.linear_1(ln) 
         a = a * mask
-
-        b = self.linear_2(ln)
+        
+        b = self.linear_2(ln) 
         b = b * mask
 
         del ln
@@ -120,22 +138,22 @@ class OuterProductMean(nn.Module):
         norm = norm + self.eps
 
         # [*, N_res, N_res, C_z]
-        if inplace_safe:
+        if(inplace_safe):
             outer /= norm
         else:
             outer = outer / norm
 
         return outer
 
-    def forward(
-        self,
-        m: torch.Tensor,
-        mask: Optional[torch.Tensor] = None,
-        chunk_size: Optional[int] = None,
-        inplace_safe: bool = False,
+    def forward(self,
+                m: torch.Tensor,
+                mask: Optional[torch.Tensor] = None,
+                chunk_size: Optional[int] = None,
+                inplace_safe: bool = False,
     ) -> torch.Tensor:
-        if is_fp16_enabled():
+        if(is_fp16_enabled()):
             with torch.cuda.amp.autocast(enabled=False):
                 return self._forward(m.float(), mask, chunk_size, inplace_safe)
         else:
             return self._forward(m, mask, chunk_size, inplace_safe)
+        

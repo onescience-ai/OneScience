@@ -11,7 +11,7 @@ from onescience.models.protenix.modules.transformer import (
     DiffusionTransformer,
 )
 from onescience.models.protenix.utils import expand_at_dim
-from onescience.models.openfold.primitives import LayerNorm
+from onescience.models.openfold.primitives import ProtenixLayerNorm
 from onescience.utils.openfold.checkpointing import get_checkpoint_fn
 
 
@@ -43,7 +43,7 @@ class DiffusionConditioning(nn.Module):
         self.c_s_inputs = c_s_inputs
         # Line1-Line3:
         self.relpe = RelativePositionEncoding(c_z=c_z)
-        self.layernorm_z = LayerNorm(2 * self.c_z, create_offset=False)
+        self.layernorm_z = ProtenixLayerNorm(2 * self.c_z, create_offset=False)
         self.linear_no_bias_z = LinearNoBias(
             in_features=2 * self.c_z, out_features=self.c_z, precision=torch.float32
         )
@@ -52,7 +52,7 @@ class DiffusionConditioning(nn.Module):
         self.transition_z2 = Transition(c_in=self.c_z, n=2)
 
         # Line6-Line7
-        self.layernorm_s = LayerNorm(self.c_s + self.c_s_inputs, create_offset=False)
+        self.layernorm_s = ProtenixLayerNorm(self.c_s + self.c_s_inputs, create_offset=False)
         self.linear_no_bias_s = LinearNoBias(
             in_features=self.c_s + self.c_s_inputs,
             out_features=self.c_s,
@@ -60,7 +60,7 @@ class DiffusionConditioning(nn.Module):
         )
         # Line8-Line9
         self.fourier_embedding = FourierEmbedding(c=c_noise_embedding)
-        self.layernorm_n = LayerNorm(c_noise_embedding, create_offset=False)
+        self.layernorm_n = ProtenixLayerNorm(c_noise_embedding, create_offset=False)
         self.linear_no_bias_n = LinearNoBias(
             in_features=c_noise_embedding, out_features=self.c_s, precision=torch.float32,
         )
@@ -257,7 +257,7 @@ class DiffusionModule(nn.Module):
             blocks_per_ckpt=blocks_per_ckpt,
         )
         # Alg20: line4
-        self.layernorm_s = LayerNorm(c_s, create_offset=False)
+        self.layernorm_s = ProtenixLayerNorm(c_s, create_offset=False)
         self.linear_no_bias_s = LinearNoBias(in_features=c_s, out_features=c_token, precision=torch.float32, initializer="zeros",)
         self.diffusion_transformer = DiffusionTransformer(
             **transformer,
@@ -266,7 +266,7 @@ class DiffusionModule(nn.Module):
             c_z=c_z,
             blocks_per_ckpt=blocks_per_ckpt,
         )
-        self.layernorm_a = LayerNorm(c_token, create_offset=False)
+        self.layernorm_a = ProtenixLayerNorm(c_token, create_offset=False)
         self.atom_attention_decoder = AtomAttentionDecoder(
             **atom_decoder,
             c_token=c_token,
