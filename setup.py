@@ -150,6 +150,7 @@ biology_requires = [
     "braceexpand",
     "webdataset",
     "nemo_run",
+    "nemo-toolkit",
     "tiktoken",
     "s3fs",
     "zarr",

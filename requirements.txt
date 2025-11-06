@@ -82,6 +82,7 @@ ftfy
 gpytorch
 optree
 biotite==1.0.1
+nemo-toolkit==2.1.0
 
 # simplefold
 mashumaro==3.16
