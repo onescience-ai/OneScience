@@ -162,7 +162,7 @@ def make_sequence_features(
         FeatureDict: basic features of the input sequence
     """
     features = {}
-    features["aatype"] = residue_constants.sequence_to_onehot(
+    features["aatype"] = residue_constants.protenix_sequence_to_onehot(
         sequence=sequence,
         mapping=mapping,
         map_unknown_to_x=True,

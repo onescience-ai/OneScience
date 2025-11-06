@@ -12,13 +12,15 @@ from onescience.models.openfold.dropout import DropoutRowwise
 from onescience.models.openfold.outer_product_mean import (
     OuterProductMean,  # Alg 9 in AF3
 )
-from onescience.models.openfold.primitives import LayerNorm
+from onescience.models.openfold.primitives import ProtenixLayerNorm
 from onescience.models.openfold.triangular_attention import TriangleAttention
 from onescience.models.openfold.triangular_multiplicative_update import (
-    TriangleMultiplicationIncoming,  # Alg 13 in AF3
+    TriangleMultiplicationIncoming,  
+    ProtenixTriangleMultiplicationIncoming# Alg 13 in AF3
 )
 from onescience.models.openfold.triangular_multiplicative_update import (
-    TriangleMultiplicationOutgoing,  # Alg 12 in AF3
+    TriangleMultiplicationOutgoing,
+    ProtenixTriangleMultiplicationOutgoing# Alg 12 in AF3
 )
 from onescience.utils.openfold.checkpointing import checkpoint_blocks, get_checkpoint_fn
 
@@ -45,7 +47,7 @@ class PairformerBlock(nn.Module):
             n_heads (int, optional): number of head [for AttentionPairBias]. Defaults to 16.
             c_z (int, optional): hidden dim [for pair embedding]. Defaults to 128.
             c_s (int, optional):  hidden dim [for single embedding]. Defaults to 384.
-            c_hidden_mul (int, optional): hidden dim [for TriangleMultiplicationOutgoing].
+            c_hidden_mul (int, optional): hidden dim [for ProtenixTriangleMultiplicationOutgoing].
                 Defaults to 128.
             c_hidden_pair_att (int, optional): hidden dim [for TriangleAttention]. Defaults to 32.
             no_heads_pair (int, optional): number of head [for TriangleAttention]. Defaults to 4.
@@ -53,20 +55,22 @@ class PairformerBlock(nn.Module):
         """
         super(PairformerBlock, self).__init__()
         self.n_heads = n_heads
-        self.tri_mul_out = TriangleMultiplicationOutgoing(
+        self.tri_mul_out = ProtenixTriangleMultiplicationOutgoing(
             c_z=c_z, c_hidden=c_hidden_mul
         )
-        self.tri_mul_in = TriangleMultiplicationIncoming(c_z=c_z, c_hidden=c_hidden_mul)
+        self.tri_mul_in = ProtenixTriangleMultiplicationIncoming(c_z=c_z, c_hidden=c_hidden_mul)
         self.tri_att_start = TriangleAttention(
             c_in=c_z,
             c_hidden=c_hidden_pair_att,
             no_heads=no_heads_pair,
-        )
+            bias=False
+        ) #ppy
         self.tri_att_end = TriangleAttention(
             c_in=c_z,
             c_hidden=c_hidden_pair_att,
             no_heads=no_heads_pair,
-        )
+            bias=False
+        ) #ppy
         self.dropout_row = DropoutRowwise(dropout)
         self.pair_transition = Transition(c_in=c_z, n=4)
         self.c_s = c_s
@@ -325,11 +329,11 @@ class MSAPairWeightedAveraging(nn.Module):
         self.n_heads = n_heads
         self.c_z = c_z
         # Input projections
-        self.layernorm_m = LayerNorm(self.c_m)
+        self.layernorm_m = ProtenixLayerNorm(self.c_m)
         self.linear_no_bias_mv = LinearNoBias(
             in_features=self.c_m, out_features=self.c * self.n_heads
         )
-        self.layernorm_z = LayerNorm(self.c_z)
+        self.layernorm_z = ProtenixLayerNorm(self.c_z)
         self.linear_no_bias_z = LinearNoBias(
             in_features=self.c_z, out_features=self.n_heads
         )
@@ -564,8 +568,8 @@ class MSABlock(nn.Module):
         self.is_last_block = is_last_block
         # Communication
         self.outer_product_mean_msa = OuterProductMean(
-            c_m=self.c_m, c_z=self.c_z, c_hidden=self.c_hidden
-        )
+            c_m=self.c_m, c_z=self.c_z, c_hidden=self.c_hidden, bias=False
+        )#ppy
         if not self.is_last_block:
             # MSA stack
             self.msa_stack = MSAStack(
@@ -934,7 +938,7 @@ class TemplateEmbedder(nn.Module):
         self.inf = 100000.0
 
         self.linear_no_bias_z = LinearNoBias(in_features=self.c_z, out_features=self.c)
-        self.layernorm_z = LayerNorm(self.c_z)
+        self.layernorm_z = ProtenixLayerNorm(self.c_z)
         self.linear_no_bias_a = LinearNoBias(
             in_features=sum(self.input_feature1.values())
             + sum(self.input_feature2.values()),
@@ -947,7 +951,7 @@ class TemplateEmbedder(nn.Module):
             dropout=dropout,
             blocks_per_ckpt=blocks_per_ckpt,
         )
-        self.layernorm_v = LayerNorm(self.c)
+        self.layernorm_v = ProtenixLayerNorm(self.c)
         self.linear_no_bias_u = LinearNoBias(in_features=self.c, out_features=self.c_z)
 
     def forward(

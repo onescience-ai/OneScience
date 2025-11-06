@@ -19,7 +19,7 @@ from onescience.models.protenix.utils import (
     broadcast_token_to_atom,
     permute_final_dims,
 )
-from onescience.models.openfold.primitives import LayerNorm
+from onescience.models.openfold.primitives import ProtenixLayerNorm
 from onescience.utils.openfold.checkpointing import checkpoint_blocks
 
 
@@ -63,9 +63,9 @@ class AttentionPairBias(nn.Module):
             if self.cross_attention_mode:
                 self.layernorm_kv = AdaptiveLayerNorm(c_a=c_a, c_s=c_s)
         else:
-            self.layernorm_a = LayerNorm(c_a)
+            self.layernorm_a = ProtenixLayerNorm(c_a)
             if self.cross_attention_mode:
-                self.layernorm_kv = LayerNorm(c_a)
+                self.layernorm_kv = ProtenixLayerNorm(c_a)
 
         # Line 6-11
         self.local_attention_method = "local_cross_attention"
@@ -80,7 +80,7 @@ class AttentionPairBias(nn.Module):
             local_attention_method=self.local_attention_method,
             zero_init=not self.has_s,  # Adaptive zero init
         )
-        self.layernorm_z = LayerNorm(c_z, create_offset=self.create_offset_ln_z)
+        self.layernorm_z = ProtenixLayerNorm(c_z, create_offset=self.create_offset_ln_z)
         # Alg24. Line8 is scalar, but this is different for different heads
         self.linear_nobias_z = LinearNoBias(in_features=c_z, out_features=n_heads)
 
@@ -639,7 +639,7 @@ class AtomAttentionEncoder(nn.Module):
 
         if self.has_coords:
             # Line9
-            self.layernorm_s = LayerNorm(self.c_s, create_offset=False)
+            self.layernorm_s = ProtenixLayerNorm(self.c_s, create_offset=False)
             self.linear_no_bias_s = LinearNoBias(
                 in_features=self.c_s,
                 out_features=self.c_atom,
@@ -647,7 +647,7 @@ class AtomAttentionEncoder(nn.Module):
                 precision=torch.float32,
             )
             # Line10
-            self.layernorm_z = LayerNorm(
+            self.layernorm_z = ProtenixLayerNorm(
                 self.c_z, create_offset=False
             )  # memory bottleneck
             self.linear_no_bias_z = LinearNoBias(
@@ -922,7 +922,7 @@ class AtomAttentionDecoder(nn.Module):
         self.n_queries = n_queries
         self.n_keys = n_keys
         self.linear_no_bias_a = LinearNoBias(in_features=c_token, out_features=c_atom)
-        self.layernorm_q = LayerNorm(c_atom, create_offset=False)
+        self.layernorm_q = ProtenixLayerNorm(c_atom, create_offset=False)
         self.linear_no_bias_out = LinearNoBias(
             in_features=c_atom, out_features=3, precision=torch.float32
         )

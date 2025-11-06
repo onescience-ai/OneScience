@@ -6,7 +6,7 @@ import torch.nn as nn
 from onescience.models.protenix.modules.pairformer import PairformerStack
 from onescience.models.protenix.modules.primitives import LinearNoBias
 from onescience.models.protenix.utils import broadcast_token_to_atom, one_hot
-from onescience.models.openfold.primitives import LayerNorm
+from onescience.models.openfold.primitives import ProtenixLayerNorm
 from onescience.utils.protenix.torch_utils import cdist
 
 
@@ -102,11 +102,11 @@ class ConfidenceHead(nn.Module):
             data=torch.empty(size=(self.max_atoms_per_token, self.c_s, self.b_resolved))
         )
 
-        self.input_strunk_ln = LayerNorm(self.c_s)
-        self.pae_ln = LayerNorm(self.c_z)
-        self.pde_ln = LayerNorm(self.c_z)
-        self.plddt_ln = LayerNorm(self.c_s)
-        self.resolved_ln = LayerNorm(self.c_s)
+        self.input_strunk_ln = ProtenixLayerNorm(self.c_s)
+        self.pae_ln = ProtenixLayerNorm(self.c_z)
+        self.pde_ln = ProtenixLayerNorm(self.c_z)
+        self.plddt_ln = ProtenixLayerNorm(self.c_s)
+        self.resolved_ln = ProtenixLayerNorm(self.c_s)
 
         with torch.no_grad():
             # Zero init for output layer (before softmax) to zero
