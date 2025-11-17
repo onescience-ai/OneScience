@@ -24,4 +24,5 @@ __all__ = [
     "get_pad2d",
     "crop2d",
     "crop3d",
+    "save_checkpoint",
 ]

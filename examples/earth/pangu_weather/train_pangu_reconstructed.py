@@ -13,6 +13,7 @@ from onescience.utils.YParams import YParams
 from onescience.memory.checkpoint import replace_function
 from onescience.metrics import L1_loss
 from onescience.optimizers import FusedAdam
+from onescience.modules import save_checkpoint
 
 def main():
 
@@ -193,18 +194,18 @@ def main():
             exit()
 
 
-def save_checkpoint(
-    model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path
-):
-    model_to_save = model.module if hasattr(model, "module") else model
-    state = {
-        "model_state_dict": model_to_save.state_dict(),
-        "optimizer_state_dict": optimizer.state_dict(),
-        "scheduler_state_dict": scheduler.state_dict(),
-        "best_valid_loss": best_valid_loss,
-        "best_loss_epoch": best_loss_epoch,
-    }
-    torch.save(state, f"{model_path}/pangu_weather.pth")
+# def save_checkpoint(
+#     model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path
+# ):
+#     model_to_save = model.module if hasattr(model, "module") else model
+#     state = {
+#         "model_state_dict": model_to_save.state_dict(),
+#         "optimizer_state_dict": optimizer.state_dict(),
+#         "scheduler_state_dict": scheduler.state_dict(),
+#         "best_valid_loss": best_valid_loss,
+#         "best_loss_epoch": best_loss_epoch,
+#     }
+#     torch.save(state, f"{model_path}/pangu_weather.pth")
 
 
 if __name__ == "__main__":
