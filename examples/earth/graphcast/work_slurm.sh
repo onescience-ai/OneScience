@@ -4,7 +4,7 @@
 #SBATCH --gres=dcu:8
 #SBATCH --cpus-per-task=16
 #SBATCH --ntasks-per-node=8
-#SBATCH -J FourCastNet
+#SBATCH -J GraphCast
 #SBATCH -o logs/%j.out
 #SBATCH --exclusive
 

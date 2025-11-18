@@ -210,8 +210,6 @@ def main():
                                     f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                                     f'[{(time.time()-start_time)/(k+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                                     f'loss:{valid_loss / (k+1): .04f}')
-                                    
-                        break
                     
                     valid_loss /= len(val_dataloader)
                     is_save_ckp = False
@@ -230,7 +228,7 @@ def main():
                                 )
                     train_losses = np.append(train_losses, train_loss)
                     np.save(train_loss_file, train_losses)
-                    exit()
+
 
         if epoch - best_loss_epoch > cfg.patience:
             print(f"Loss has not decrease in {cfg.patience} epochs, stopping training...")

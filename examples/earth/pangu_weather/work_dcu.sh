@@ -20,7 +20,7 @@ export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 python train.py
 
 ##### 8 DCU Train(change nproc_per_node to set DCU numbers) #####
-# torchrun --nproc_per_node=4 --nnodes=1 --rdzv_id=1000 --rdzv_backend=c10d --max_restarts=0 --master_addr="localhost" --master_port=29500 train.py
+# torchrun --nproc_per_node=8 --nnodes=1 --rdzv_id=1000 --rdzv_backend=c10d --max_restarts=0 --master_addr="localhost" --master_port=29500 train.py
 
 ##### 1 DCU Inference #####
 # python inference.py

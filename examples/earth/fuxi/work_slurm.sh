@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -p largedev
-#SBATCH -N 4
+#SBATCH -N 8
 #SBATCH --gres=dcu:8
 #SBATCH --cpus-per-task=16
 #SBATCH --ntasks-per-node=8
@@ -39,5 +39,5 @@ echo SLURM_NTASKS=$SLURM_NTASKS
 srun -u --mpi=pmix\
     bash -c "
     source export_DDP_vars.sh
-    python train.py
+    python train_base.py
     "
