@@ -6,8 +6,9 @@ import xarray as xr
 from onescience.utils.YParams import YParams
 
 
-def generate_debug_sample(cfg, years=None, timestamp="2001010100"):
-    years = years or list(range(2001, 2011))
+def generate_debug_sample(cfg):
+    years = years or list(range(1951, 1971))
+    timestamp=f'{years[0]}010100'
     total_files = 1460
     variables = cfg.channels
     M = len(variables)
@@ -65,7 +66,7 @@ def get_stats(cfg):
     print(f"✅ Stats data: {arr.shape}, dtype: {arr.dtype}, save to {cfg.stats_dir}")
 
 
-def get_static(var, name):
+def get_static(cfg, var, name):
     os.makedirs(cfg.static_dir, exist_ok=True)
     ds = xr.Dataset(
         data_vars={
@@ -98,8 +99,11 @@ def get_static(var, name):
 
 # === Example Usage ===
 if __name__ == "__main__":
-    cfg = YParams('conf/config.yaml', 'model')
-    generate_debug_sample(cfg)
-    get_stats(cfg)
-    get_static('z', 'geopotential')
-    get_static('lsm', 'land_sea_mask')
+    cfg = YParams('conf/config.yaml', 'datapipe')
+    if cfg.dataset.data_dir.startswith('/public/onestore'):
+        print('Please check the config and ensure the config//datapipe//dataset//*_dir set to the local dir.')
+        exit()
+    generate_debug_sample(cfg.dataset)
+    get_stats(cfg.dataset)
+    get_static(cfg.dataset, 'z', 'geopotential')
+    get_static(cfg.dataset, 'lsm', 'land_sea_mask')
