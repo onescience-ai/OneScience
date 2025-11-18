@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH -p largedev
-#SBATCH -N 8
+#SBATCH -p newlarge
+#SBATCH -N 2
 #SBATCH --gres=dcu:8
 #SBATCH --cpus-per-task=16
 #SBATCH --ntasks-per-node=8

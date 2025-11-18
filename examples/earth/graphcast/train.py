@@ -162,7 +162,7 @@ def main():
             train_loss += loss.item()
 
             if world_rank == 0:
-                logger.info(f'Train: Epoch {epoch}-MiniBatch {j+1}/{len(train_dataloader)} '
+                logger.info(f'Train: Epoch {epoch}-{j+1}/{len(train_dataloader)} '
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{train_loss / (j+1): .04f}')
@@ -206,7 +206,7 @@ def main():
                             valid_loss += loss.item()
 
                         if world_rank == 0:
-                            logger.info(f'Valid: Epoch {epoch}-MiniBatch {k+1}/{len(val_dataloader)} '
+                            logger.info(f'Valid: Epoch {epoch}-{k+1}/{len(val_dataloader)} '
                                     f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                                     f'[{(time.time()-start_time)/(k+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                                     f'loss:{valid_loss / (k+1): .04f}')
