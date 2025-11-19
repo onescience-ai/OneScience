@@ -189,8 +189,7 @@ class ERA5Dataset(BaseDataset):
         
         outvar_list = []
         for i in range(step_idx + self.input_steps, step_idx + self.input_steps + self.output_steps):
-            with h5py.File(f'{self.data_dir}/data/2001/2001020100.h5', "r") as f:
-            # with h5py.File(f'{self.data_dir}/data/{year}/{files[i][-13:]}', "r") as f:
+            with h5py.File(f'{self.data_dir}/data/{year}/{files[i][-13:]}', "r") as f:
                 data = f["fields"][:]  # [N, H, W]
                 data = data[self.channel_indices]
                 outvar_list.append(data)
