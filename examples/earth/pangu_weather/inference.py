@@ -78,7 +78,7 @@ if __name__ == "__main__":
     surface_mask = torch.stack([land_mask, soil_type, topography], dim=0).to('cuda:0')
     surface_mask = surface_mask.unsqueeze(0).repeat(cfg_data.dataloader.batch_size, 1, 1, 1)
 
-    ckpt = torch.load(f"{cfg.checkpoint_dir}/model.pth", map_location="cuda:0")
+    ckpt = torch.load(f"{cfg.checkpoint_dir}/model_bak.pth", map_location="cuda:0")
     model = Pangu(img_size=cfg_data.dataset.img_size,
                   patch_size=cfg.patch_size,
                   embed_dim=cfg.embed_dim,
