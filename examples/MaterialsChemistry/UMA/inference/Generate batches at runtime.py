@@ -1,6 +1,6 @@
 from ase.build import bulk
 from onescience.models.UMA.units.mlip_unit import load_predict_unit
-from onescience.datapipes.uma.atomic_data import AtomicData, atomicdata_list_to_batch
+from onescience.datapipes.materials.custom_stack.core.atomic_data import AtomicData, atomicdata_list_to_batch
 
 # 构建多个结构，可替换为 molecule() 或 slab(...)
 atoms_list = [
@@ -19,7 +19,7 @@ batch = atomicdata_list_to_batch(atomic_data_list)
 
 # 加载模型
 predictor = load_predict_unit(
-    "../checkpoint/uma-s-1p1.pt",#替换为你的检查点路径",#替换为你的检查点路径
+    "/public/home/onescience2025404/yuxiaodong/onescience_new/examples/MaterialsChemistry/UMA/uma_finetune_runs/202511-1115-2736-02e4/checkpoints/final/inference_ckpt.pt",#替换为你的检查点路径",#替换为你的检查点路径
     device="cuda"
 )
 

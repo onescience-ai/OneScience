@@ -14,7 +14,7 @@ from torch import nn
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from onescience.datapipes.uma.atomic_data import atomicdata_list_to_batch
+from onescience.datapipes.materials.custom_stack.core.atomic_data import atomicdata_list_to_batch
 
 from ._load_utils import _load_from_config
 

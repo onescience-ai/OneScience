@@ -7,7 +7,7 @@ from typing import TypeVar
 
 import torch
 
-from onescience.datapipes.uma.atomic_data import AtomicData, atomicdata_list_to_batch
+from onescience.datapipes.materials.custom_stack.core.atomic_data import AtomicData, atomicdata_list_to_batch
 
 T_co = TypeVar("T_co", covariant=True)
 

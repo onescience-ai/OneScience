@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import torch
 
-from onescience.datapipes.uma.atomic_data import AtomicData, atomicdata_list_to_batch
+from onescience.datapipes.materials.custom_stack.core.atomic_data import AtomicData, atomicdata_list_to_batch
 
 
 class MTCollater:

@@ -6,9 +6,9 @@ import argparse
 import ase.io
 import numpy as np
 import torch
-
-from onescience.models.mace import data
-from onescience.models.mace.tools import torch_geometric, torch_tools, utils
+from onescience.datapipes.materials.pyg_stack.core.utils import config_from_atoms
+from onescience.datapipes.materials.pyg_stack.core.atomic_data import AtomicData
+from onescience.datapipes.materials.tools import torch_geometric, torch_tools, utils
 
 
 def parse_args() -> argparse.Namespace:
@@ -80,7 +80,7 @@ def run(args: argparse.Namespace) -> None:
     if args.head is not None:
         for atoms in atoms_list:
             atoms.info["head"] = args.head
-    configs = [data.config_from_atoms(atoms) for atoms in atoms_list]
+    configs = [config_from_atoms(atoms) for atoms in atoms_list]
 
     z_table = utils.AtomicNumberTable([int(z) for z in model.atomic_numbers])
 
@@ -91,7 +91,7 @@ def run(args: argparse.Namespace) -> None:
 
     data_loader = torch_geometric.dataloader.DataLoader(
         dataset=[
-            data.AtomicData.from_config(
+            AtomicData.from_config(
                 config, z_table=z_table, cutoff=float(model.r_max), heads=heads
             )
             for config in configs

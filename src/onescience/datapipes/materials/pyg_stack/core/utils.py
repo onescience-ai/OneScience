@@ -10,7 +10,15 @@ import ase.io
 import h5py
 import numpy as np
 
-from onescience.models.mace.tools import AtomicNumberTable, DefaultKeys
+#from onescience.models.mace.tools import AtomicNumberTable, DefaultKeys
+
+# -----------------------------------------------------------------
+# ✨ 关键重构：导入已指向 L3-Tools 目录 ✨
+# -----------------------------------------------------------------
+# ✨ 关键：重定向到正确的 L3-Tools 绝对路径
+from onescience.datapipes.materials.tools.utils import AtomicNumberTable
+from onescience.datapipes.materials.tools.keys import DefaultKeys
+
 
 Positions = np.ndarray  # [..., 3]
 Cell = np.ndarray  # [3,3]

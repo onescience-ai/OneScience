@@ -6,8 +6,8 @@ import argparse
 import os
 from typing import Optional
 
-from .default_keys import DefaultKeys
-
+#from .default_keys import DefaultKeys
+from onescience.datapipes.materials.tools.keys import DefaultKeys
 
 def build_default_arg_parser() -> argparse.ArgumentParser:
     try:

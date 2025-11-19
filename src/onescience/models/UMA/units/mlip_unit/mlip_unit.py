@@ -41,8 +41,8 @@ from onescience.models.UMA.common.distutils import (
 from onescience.models.UMA.common.logger import WandBSingletonLogger
 from onescience.models.UMA.common.registry import registry
 from onescience.models.UMA.components.train.train_runner import Checkpointable
-from onescience.datapipes.uma.atomic_data import AtomicData
-from onescience.datapipes.uma.collaters.mt_collater import MTCollater
+from onescience.datapipes.materials.custom_stack.core.atomic_data import AtomicData
+from onescience.datapipes.materials.custom_stack.collaters.mt_collater import MTCollater
 from onescience.models.UMA.modules.normalization.element_references import (  # noqa: TCH001
     ElementReferences,
 )

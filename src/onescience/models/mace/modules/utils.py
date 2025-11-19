@@ -9,9 +9,13 @@ import torch
 import torch.utils.data
 from scipy.constants import c, e
 
-from onescience.models.mace.tools import to_numpy
-from onescience.models.mace.tools.scatter import scatter_mean, scatter_std, scatter_sum
-from onescience.models.mace.tools.torch_geometric.batch import Batch
+#from onescience.models.mace.tools import to_numpy
+from onescience.datapipes.materials.tools.torch_tools import to_numpy
+
+#from onescience.models.mace.tools.scatter import scatter_mean, scatter_std, scatter_sum
+#from onescience.models.mace.tools.torch_geometric.batch import Batch
+from onescience.datapipes.materials.tools.scatter import scatter_mean, scatter_std, scatter_sum
+from onescience.datapipes.materials.tools.torch_geometric.batch import Batch
 
 from .blocks import AtomicEnergiesBlock
 

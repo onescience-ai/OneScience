@@ -49,7 +49,7 @@ UMA 模型在 5 个具有不同理论水平的不同 DFT 数据集（omol,oc20.o
 
 ##   4.文件夹解释
 
-​     checkpoint：存放预训练模型，可从官网下载，https://huggingface.co/facebook/UMA，也可以从/work/share/ac8hkycjba/osmodels/uma 下载
+​     checkpoint：存放预训练模型，可从官网下载，https://huggingface.co/facebook/UMA，从官方下载以后需要进行预处理。
 
 ​     configs：基础的配置yaml模板，这些文件会被其他脚本用到，会将其中的一些空着的内容进行填充。
 
@@ -76,13 +76,11 @@ UMA 模型在 5 个具有不同理论水平的不同 DFT 数据集（omol,oc20.o
 
 ## 5.1 准备数据:
 
-​        将原始训练数据与验证数据放到合适路径。
-​        要确保数据中包含与选择的任务一致的标签：
-​        e → 需要 energy
-​        ef → 需要 energy + forces
-​        efs → 需要 energy + forces + stress
-
-## 5.2 运行脚本
+将原始微调数据与验证数据放到合适路径。如果下载的数据集不是aselmdb格式需要进行转换！（如oc20）执行下面的脚本,如果已经是aselmdb格式，下面这个脚本也支持生成一个一个可直接用于微调的微调 yaml 配置。
+        要确保数据中包含与选择的任务一致的标签：
+        e → 需要 energy
+        ef → 需要 energy + forces
+        efs → 需要 energy + forces + stress
 
 指定 训练目录、验证目录、输出目录、任务类型、监督类型以及 基础模型 checkpoint：（举例）
 
@@ -98,7 +96,7 @@ UMA 模型在 5 个具有不同理论水平的不同 DFT 数据集（omol,oc20.o
         --regression-tasks ef \  #监督类型
         --num-workers 16 #并行处理 worker 数
 
-## 5.3 输出目录结构
+**输出目录结构**
 
 ​    ./dataset/oc20/uma_oc20_finetuneuma_oc20_finetune/
 ​    ├─ train/        # 转换后的训练集 ASE-DB
@@ -110,7 +108,17 @@ UMA 模型在 5 个具有不同理论水平的不同 DFT 数据集（omol,oc20.o
 ​    自行在配置文件中checkpoint_location:  目前默认设置./checkpoint/uma-s-1p1.pt，你可以设置为自己检查点的位置checkpoint_location: newmodels/uma-s-1p1.pt（写为你的）
 ​    （你也可以在configs文件夹下修改用于填充的基础yaml模板中的checkpoint_location:，将这里设置为你需要微调的模型路径，以后生成的配置文件都将以此进行微调）
 
-## 5.4 启动微调
+## 5.2 准备模型
+
+预训练模型下载：https://huggingface.co/facebook/UMA 下载完毕后需要一定的调整才能进行使用
+
+```
+python ./scripts/convert_model.py ./checkpoint/uma-s-1p1.pt --out ./checkpoint/uma-s-1p1_converted.pt
+```
+
+然后修改用于微调的微调 yaml 配置中的checkpoint_location: ./checkpoint/uma-s-1p1_converted.pt
+
+## 5.3 启动微调
 
    直接在计算节点：
    单节点多卡：

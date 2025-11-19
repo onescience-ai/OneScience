@@ -10,7 +10,8 @@ from typing import Dict, List, Optional, Tuple
 
 import torch
 
-from .torch_tools import TensorDict
+#from .torch_tools import TensorDict
+from onescience.datapipes.materials.tools.torch_tools import TensorDict
 
 Checkpoint = Dict[str, TensorDict]
 
