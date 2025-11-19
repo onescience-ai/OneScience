@@ -13,7 +13,7 @@ from onescience.utils.YParams import YParams
 from onescience.utils.fcn.darcy_loss import LpLoss
 
 from apex import optimizers
-
+import ipdb
 
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -37,7 +37,7 @@ def main():
     datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized())
     train_dataloader, train_sampler = datapipe.train_dataloader()
     val_dataloader, val_sampler = datapipe.val_dataloader()
-
+    ipdb.set_trace()
     fourcastnet_model = AFNONet(cfg).to(local_rank)
 
     if cfg.world_size == 1:
