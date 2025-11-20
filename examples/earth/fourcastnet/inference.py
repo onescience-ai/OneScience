@@ -89,7 +89,7 @@ if __name__ == "__main__":
         for data in tqdm(test_dataloader, desc="Inferring testset", unit="batch"):
             invar = data[0].to('cuda:0', dtype=torch.float32)
             invar = invar[:, :, :-1, :]
-            pred_var = model(invar)
+            pred_var = model(invar).cpu().numpy()
             pred_var = pred_var * stds + means
-            np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var.cpu().numpy())
+            np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var)
             j += 1

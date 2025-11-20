@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
             out_surface, out_upper_air = model(invar)
             out_upper_air = out_upper_air.reshape(invar_upper_air.shape)
-            pred_var = torch.concat([out_surface, out_upper_air], dim=1)
+            pred_var = torch.concat([out_surface, out_upper_air], dim=1).cpu().numpy()
             pred_var = pred_var * stds + means
-            np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var.cpu().numpy())
+            np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var)
             j += 1

@@ -104,7 +104,7 @@ if __name__ == "__main__":
             t = invar[:, 152:189, :, :]
 
             surface_p, z_p, r_p, u_p, v_p, t_p = model(surface, z, r, u, v, t)
-            pred_var = torch.concat([surface_p, z_p, r_p, u_p, v_p, t_p], dim=1)
+            pred_var = torch.concat([surface_p, z_p, r_p, u_p, v_p, t_p], dim=1).cpu().numpy()
             pred_var = pred_var * stds + means
-            np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var.cpu().numpy())
+            np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var)
             j += 1

@@ -151,8 +151,8 @@ if __name__ == "__main__":
             invar = torch.concat((invar, cos_zenith, static_data, sin_day_of_year, cos_day_of_year, sin_time_of_day, cos_time_of_day), dim=1)
 
             invar = invar.to(dtype=model_dtype)
-            pred_var = model(invar)
+            pred_var = model(invar).cpu().numpy()
             pred_var = pred_var * stds + means
             
-            np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var.float().cpu().numpy())
+            np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var.float())
             j += 1

@@ -135,10 +135,10 @@ if __name__ == "__main__":
         for data in tqdm(test_dataloader, desc="Inferring testset", unit="batch"):
             invar = data[0].to("cuda:0", dtype=torch.float32) # B, T, C, H, W
             invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
-            pred_var = model(invar)
+            pred_var = model(invar).cpu().numpy()
             pred_var = pred_var * stds + means
             os.makedirs(f'{save_path}/{total_files[j][:4]}', exist_ok=True)
-            np.save(f"{save_path}/{total_files[j][:4]}/{total_files[j][:-3]}.npy", pred_var.cpu().numpy())
+            np.save(f"{save_path}/{total_files[j][:4]}/{total_files[j][:-3]}.npy", pred_var)
             j += 1
             
     
