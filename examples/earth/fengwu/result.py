@@ -130,14 +130,13 @@ if __name__ == "__main__":
     total_files, channel_indices = get_metadata(cfg_data.dataset)
     # Load data
     # Compute RMSE per channel and total
-    get_rmse(total_files, channel_indices)
-
-
+    
     ##### You can choose the date to plot #####
-    total_files = ['1959011100.h5', '1959011106.h5', '1959011112.h5']
-    channel_index = [cfg_data.dataset.channels.index(v) for v in ['geopotential_500', 'temperature_500']]
+    total_files = ['2019011812.h5', '2019011612.h5', '2019011012.h5']
+    channel_index = [cfg_data.dataset.channels.index(v) for v in ['v_component_of_wind_150', 'u_component_of_wind_500', 'temperature_1000']]
     selected_files = total_files
 
+    get_rmse(total_files, channel_indices)
     ##### Or use random index to plot #####
     # np.random.seed(42) # use a fix seed ensure to get same result
     # sample_index = np.random.choice(len(total_files), 3, replace=False)
@@ -152,10 +151,9 @@ if __name__ == "__main__":
         with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}', "r") as f:
             label = f["fields"][:]  # [N, H, W]
             label = label[channel_indices]
-            label = label[channel_index]
-        pred = np.load(f'result/output/{file[:-3]}.npy').squeeze()
 
+        pred = np.load(f'result/output/{file[:-3]}.npy').squeeze()
         for i in range(len(selected_var)):
             filename = f'./result/{file[:-3]}_{selected_var[i]}.png'
+            plot(label[channel_index[i]], pred[channel_index[i]], selected_var[i], filename)
             print(f'✅plot {filename}')
-            plot(label[i], pred[i], selected_var[i], filename)

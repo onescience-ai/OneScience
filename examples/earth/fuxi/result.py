@@ -7,7 +7,7 @@ import h5py
 from tqdm import tqdm
 from onescience.utils.fcn.YParams import YParams
 
-def get_metadata(mode, cfg):
+def get_metadata(cfg):
     meta_path = os.path.join(cfg.data_dir, 'metadata.json')
     with open(meta_path, "r") as f:
         metadata = json.load(f)
@@ -44,10 +44,7 @@ def get_metadata(mode, cfg):
     selected_years = year_splits['test']
     total_files = []
     for year in selected_years:
-        if mode == 'base':
-            path = os.path.join(cfg.data_dir, 'data', str(year))
-        else:
-            path = os.path.join(f'./result/{mode}', 'data', str(year)) 
+        path = os.path.join(cfg.data_dir, 'data', str(year))
         files = sorted(os.listdir(path))
         samples_per_year = len(files) - 1
         total_files.extend(files[-samples_per_year:])
@@ -56,22 +53,18 @@ def get_metadata(mode, cfg):
     return total_files, channel_indices
 
 
-def get_rmse(mode, total_files, channel_indices):
+def get_rmse(total_files, channel_indices):
     total_rmse = 0
     channel_rmse = np.zeros(len(channel_indices))
     if not os.path.exists('result/rmse.npy'):
         for file in tqdm(total_files, unit="files"):
-            if mode == 'base':
-                h5file = f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}'
-            else:
-                h5file = f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file[:-4]}.h5'
-            with h5py.File(h5file, "r") as f:
+            with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}', "r") as f:
                 label = f["fields"][:]  # [N, H, W]
                 label = label[channel_indices]
-            pred = np.load(f'result/{mode}/data/{file[:4]}/{file}').squeeze()
+            pred = np.load(f'result/output/{file[:-3]}.npy').squeeze()
             channel_rmse += np.sqrt(np.mean((label - pred) ** 2, axis=(1, 2)))
         channel_rmse /= len(total_files)
-        np.save(f'result/{mode}_rmse.npy', channel_rmse)
+        np.save('result/rmse.npy', channel_rmse)
     else:
         channel_rmse = np.load('result/rmse.npy')
     for i in range(len(channel_indices)):
@@ -129,36 +122,27 @@ def plot(label, pred, var, filename):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: input the mode: : base, short, medium, or long...")
-        sys.exit(1)
-    
-    mode = sys.argv[1]
-    if mode not in ['base', 'short', 'medium', 'long']:
-        print(f'❌ ❌ Please input the mode: base, short, medium, or long...')
-        exit()
-
     current_path = os.getcwd()
     sys.path.append(current_path)
-
     config_file_path = os.path.join(current_path, 'conf/config.yaml')
     cfg = YParams(config_file_path, 'model')
     cfg_data = YParams(config_file_path, "datapipe")
-    total_files, channel_indices = get_metadata(mode, cfg_data.dataset)
+    total_files, channel_indices = get_metadata(cfg_data.dataset)
     # Load data
     # Compute RMSE per channel and total
-    get_rmse(mode, total_files, channel_indices)
-
+    
     ##### You can choose the date to plot #####
-    total_files = ['2019010106.h5', '2019012306.h5', '2020020806.h5']
-    channel_index = [cfg_data.dataset.channels.index(v) for v in ['geopotential_500', 'temperature_500']]
+    total_files = ['2019011812.h5', '2019011612.h5', '2019011012.h5']
+    channel_index = [cfg_data.dataset.channels.index(v) for v in ['v_component_of_wind_150', 'u_component_of_wind_500', 'temperature_1000']]
     selected_files = total_files
 
+    get_rmse(total_files, channel_indices)
     ##### Or use random index to plot #####
     # np.random.seed(42) # use a fix seed ensure to get same result
     # sample_index = np.random.choice(len(total_files), 3, replace=False)
     # channel_index = np.random.choice(len(cfg_data.dataset.channels), 3, replace=False)
     # selected_files = [total_files[int(i)] for i in sample_index]
+
     
     selected_var = [cfg_data.dataset.channels[int(i)] for i in channel_index]
     print(f"seleted date: {selected_files}")
@@ -167,11 +151,9 @@ if __name__ == "__main__":
         with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}', "r") as f:
             label = f["fields"][:]  # [N, H, W]
             label = label[channel_indices]
-            # label = label[:, :-1, :]
-            label = label[channel_index]
-        pred = np.load(f'result/{mode}/data/{file[:4]}/{file[:-3]}.npy').squeeze()
 
+        pred = np.load(f'result/output/{file[:-3]}.npy').squeeze()
         for i in range(len(selected_var)):
-            filename = f'./result/{mode}_{file[:-3]}_{selected_var[i]}.png'
+            filename = f'./result/{file[:-3]}_{selected_var[i]}.png'
+            plot(label[channel_index[i]], pred[channel_index[i]], selected_var[i], filename)
             print(f'✅plot {filename}')
-            plot(label[i], pred[i], selected_var[i], filename)

@@ -78,6 +78,8 @@ if __name__ == "__main__":
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
     cfg_data.dataloader.batch_size = 1
+    total_files, means, stds = get_stats(cfg_data.dataset)
+
     if mode == 'base':
         from onescience.datapipes import ERA5Datapipe
         datapipe = ERA5Datapipe(params = cfg_data, distributed = False, input_steps=2)
@@ -86,7 +88,6 @@ if __name__ == "__main__":
         test_dataloader = datapipe.test_dataloader()
     else:
         from data_loader import ERA5Datapipe
-        total_files, means, stds = get_stats(cfg_data.dataset)
         datapipe = ERA5Datapipe(params = cfg_data, distributed = False, input_steps=2)
         train_dataloader, train_sampler = datapipe.train_dataloader()
         val_dataloader, val_sampler = datapipe.val_dataloader()
