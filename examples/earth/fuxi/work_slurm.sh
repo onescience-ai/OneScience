@@ -1,10 +1,11 @@
 #!/bin/bash
 #SBATCH -p newlarge
-#SBATCH -N 2
+#SBATCH -N 4
 #SBATCH --gres=dcu:8
 #SBATCH --cpus-per-task=16
 #SBATCH --ntasks-per-node=8
 #SBATCH -J Fuxi
+#SBATCH --time=72:00:00
 #SBATCH -o logs/%j.out
 #SBATCH --exclusive
 

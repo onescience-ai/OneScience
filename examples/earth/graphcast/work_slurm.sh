@@ -5,6 +5,7 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --ntasks-per-node=8
 #SBATCH -J GraphCast
+#SBATCH --time=72:00:00
 #SBATCH -o logs/%j.out
 #SBATCH --exclusive
 
