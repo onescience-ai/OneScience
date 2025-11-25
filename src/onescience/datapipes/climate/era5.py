@@ -52,7 +52,7 @@ class ERA5Datapipe(Datapipe):
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
-                                 num_workers=self.params.dataloader.num_workers,
+                                 num_workers=4,
                                  pin_memory=True,
                                  shuffle=False)
         return data_loader
