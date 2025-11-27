@@ -53,20 +53,20 @@ def get_metadata(cfg):
     return total_files, channel_indices
 
 
-def get_rmse(total_files, channel_indices):
+def get_rmse(mode, total_files, channel_indices):
     total_rmse = 0
     channel_rmse = np.zeros(len(channel_indices))
-    if not os.path.exists('result/rmse.npy'):
+    if not os.path.exists(f'result/{mode}_rmse.npy'):
         for file in tqdm(total_files, unit="files"):
             with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}', "r") as f:
                 label = f["fields"][:]  # [N, H, W]
                 label = label[channel_indices]
-            pred = np.load(f'result/output/{file[:-3]}.npy').squeeze()
+            pred = np.load(f'result/{mode}/data/{file[:4]}/{file[:-3]}.npy').squeeze()
             channel_rmse += np.sqrt(np.mean((label - pred) ** 2, axis=(1, 2)))
         channel_rmse /= len(total_files)
-        np.save('result/rmse.npy', channel_rmse)
+        np.save(f'result/{mode}_rmse.npy', channel_rmse)
     else:
-        channel_rmse = np.load('result/rmse.npy')
+        channel_rmse = np.load(f'result/{mode}_rmse.npy')
     for i in range(len(channel_indices)):
         print(f"📂 Channel: {cfg_data.dataset.channels[i]} RMSE: {channel_rmse[i]: .4f},")
     print(f"✅ Avg RMSE is : {np.mean(channel_rmse): .4f}")
@@ -122,6 +122,15 @@ def plot(label, pred, var, filename):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: input the mode: : base, short, medium, or long...")
+        sys.exit(1)
+    
+    mode = sys.argv[1]
+    if mode not in ['base', 'short', 'medium', 'long']:
+        print(f'❌ ❌ Please input the mode: base, short, medium, or long...')
+        exit()
+
     current_path = os.getcwd()
     sys.path.append(current_path)
     config_file_path = os.path.join(current_path, 'conf/config.yaml')
@@ -133,10 +142,10 @@ if __name__ == "__main__":
     
     ##### You can choose the date to plot #####
     total_files = ['2019011812.h5', '2019011612.h5', '2019011012.h5']
-    channel_index = [cfg_data.dataset.channels.index(v) for v in ['v_component_of_wind_150', 'u_component_of_wind_500', 'temperature_1000']]
+    channel_index = [cfg_data.dataset.channels.index(v) for v in ['2m_temperature', 'u_component_of_wind_500', 'geopotential_1000']]
     selected_files = total_files
 
-    get_rmse(total_files, channel_indices)
+    get_rmse(mode, total_files, channel_indices)
     ##### Or use random index to plot #####
     # np.random.seed(42) # use a fix seed ensure to get same result
     # sample_index = np.random.choice(len(total_files), 3, replace=False)
@@ -152,8 +161,8 @@ if __name__ == "__main__":
             label = f["fields"][:]  # [N, H, W]
             label = label[channel_indices]
 
-        pred = np.load(f'result/output/{file[:-3]}.npy').squeeze()
+        pred = np.load(f'result/{mode}/data/{file[:4]}/{file[:-3]}.npy').squeeze()
         for i in range(len(selected_var)):
-            filename = f'./result/{file[:-3]}_{selected_var[i]}.png'
+            filename = f'./result/{mode}/{file[:-3]}_{selected_var[i]}.png'
             plot(label[channel_index[i]], pred[channel_index[i]], selected_var[i], filename)
             print(f'✅plot {filename}')
