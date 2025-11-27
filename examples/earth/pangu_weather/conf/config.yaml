@@ -20,14 +20,14 @@ datapipe:
     static_dir: "/public/onestore/onedatasets/ERA5/newh5/static/" 
     data_dir: "/public/onestore/onedatasets/ERA5/newh5/" 
     
-    train_ratio: 15
-    val_ratio: 3
-    test_ratio: 2
+    train_ratio: 3
+    val_ratio: 1
+    test_ratio: 16
     img_size: [721, 1440]
     verbose: true
     cache: false
     # 气象变量
-    channels:  ['10m_u_component_of_wind', '10m_v_component_of_wind', '2m_temperature', 'mean_sea_level_pressure', 
+    channels:  ['mean_sea_level_pressure', '10m_u_component_of_wind', '10m_v_component_of_wind', '2m_temperature', 
                 
                 'geopotential_1000', 'geopotential_925', 'geopotential_850', 'geopotential_700', 'geopotential_600', 'geopotential_500', 
                 'geopotential_400', 'geopotential_300', 'geopotential_250', 'geopotential_200', 'geopotential_150', 'geopotential_100', 'geopotential_50',
@@ -47,6 +47,22 @@ datapipe:
                 'v_component_of_wind_500', 'v_component_of_wind_400', 'v_component_of_wind_300', 'v_component_of_wind_250', 'v_component_of_wind_200', 
                 'v_component_of_wind_150', 'v_component_of_wind_100', 'v_component_of_wind_50'
                 ]
+    weights: [  # ---- 4 surface variables ----
+                1.50,  # mean_sea_level_pressure
+                0.77,  # 10m_u_component_of_wind
+                0.66,  # 10m_v_component_of_wind
+                3.00,  # 2m_temperature
+                # ---- 13 geopotential_* (Z) ----
+                3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00,
+                # ---- 13 specific_humidity_* (Q) ----
+                0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60,
+                # ---- 13 temperature_* (T) ----
+                1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50,
+                # ---- 13 u_component_of_wind_* (U) ----
+                0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77,
+                # ---- 13 v_component_of_wind_* (V) ----
+                0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54,
+            ]
     variables:
       - "u10"        # 10m U wind component
       - "v10"        # 10m V wind component

@@ -5,7 +5,7 @@ import numpy as np
 import torch.distributed as dist
 import logging
 import time
-from tqdm import tqdm
+import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.pangu import Pangu
 from onescience.datapipes import ERA5Datapipe
@@ -14,9 +14,8 @@ from onescience.memory.checkpoint import replace_function
 from apex import optimizers
 
 
-def loss_func(x, y):
-    return torch.nn.functional.l1_loss(x, y)
-
+def loss_func(x, y, weights, level_weight=1.0):
+    return level_weight * (F.l1_loss(x, y, reduction='none') * weights).mean()
 
 def main():
 
@@ -43,9 +42,14 @@ def main():
     datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized())
     train_dataloader, train_sampler = datapipe.train_dataloader()
     val_dataloader, val_sampler = datapipe.val_dataloader()
+
+    surface_weights = torch.as_tensor(cfg_data.dataset.weights[:4], device=local_rank, dtype=torch.float32).view(1, -1, 1, 1)
+    pressure_weights = torch.as_tensor(cfg_data.dataset.weights[4:], device=local_rank, dtype=torch.float32).view(1, -1, 1, 1)
+
     land_mask = torch.from_numpy(np.load(os.path.join(cfg_data.dataset.static_dir, "land_mask.npy")).astype(np.float32))
     soil_type = torch.from_numpy(np.load(os.path.join(cfg_data.dataset.static_dir, "soil_type.npy")).astype(np.float32))
     topography = torch.from_numpy(np.load(os.path.join(cfg_data.dataset.static_dir, "topography.npy")).astype(np.float32))
+    topography = (topography - topography.mean()) / (topography.std(unbiased=False) + 1e-6)
     surface_mask = torch.stack([land_mask, soil_type, topography], dim=0).to(local_rank)
     surface_mask = surface_mask.unsqueeze(0).repeat(cfg_data.dataloader.batch_size, 1, 1, 1)
 
@@ -113,7 +117,6 @@ def main():
             invar_surface = invar[:, :4, :, :].to(local_rank, dtype=torch.float32)
             invar_upper_air = invar[:, 4:, :, :].to(local_rank, dtype=torch.float32)
             invar = torch.concat([invar_surface, surface_mask, invar_upper_air], dim=1)
-
             tar_surface = outvar[:, :4, :, :].to(local_rank, dtype=torch.float32)
             tar_upper_air = outvar[:, 4:, :, :].to(local_rank, dtype=torch.float32)
 
@@ -121,9 +124,10 @@ def main():
                 out_surface, out_upper_air = model(invar)
 
             out_upper_air = out_upper_air.reshape(tar_upper_air.shape)
-            loss1 = loss_func(tar_surface, out_surface)
-            loss2 = loss_func(tar_upper_air, out_upper_air)
-            loss = loss1 * 0.25 + loss2
+            loss1 = loss_func(out_surface, tar_surface, surface_weights,  level_weight=0.25)
+            loss2 = loss_func(out_upper_air, tar_upper_air, pressure_weights, level_weight=1.0)
+            # 总 loss
+            loss = loss1 + loss2
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -146,19 +150,20 @@ def main():
                 invar_surface = invar[:, :4, :, :].to(local_rank, dtype=torch.float32)
                 invar_upper_air = invar[:, 4:, :, :].to(local_rank, dtype=torch.float32)
                 invar = torch.concat([invar_surface, surface_mask, invar_upper_air], dim=1)
-
                 tar_surface = outvar[:, :4, :, :].to(local_rank, dtype=torch.float32)
                 tar_upper_air = outvar[:, 4:, :, :].to(local_rank, dtype=torch.float32)
 
-                out_surface, out_upper_air = model(invar)
-                out_upper_air = out_upper_air.reshape(tar_upper_air.shape)
+                with replace_function(model,["layer2", "layer3"],cfg.world_size > 1):
+                    out_surface, out_upper_air = model(invar)
 
-                loss1 = loss_func(tar_surface, out_surface).item()
-                loss2 = loss_func(tar_upper_air, out_upper_air).item()
-                loss = loss1 * 0.25 + loss2
+                out_upper_air = out_upper_air.reshape(tar_upper_air.shape)
+                loss1 = loss_func(out_surface, tar_surface, surface_weights,  level_weight=0.25)
+                loss2 = loss_func(out_upper_air, tar_upper_air, pressure_weights, level_weight=1.0)
+                # 总 loss
+                loss = loss1 + loss2
 
                 if cfg.world_size > 1:
-                    loss_tensor = torch.tensor(loss, device=local_rank)
+                    loss_tensor = loss.clone().detach()
                     dist.all_reduce(loss_tensor)
                     loss = loss_tensor.item() / cfg.world_size
                 valid_loss += loss
