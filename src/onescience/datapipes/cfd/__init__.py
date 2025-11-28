@@ -1,0 +1,5 @@
+from .AirfRANS import AirfRANSDataset,AirfRANSDatapipe
+from .ShapeNetCar import ShapeNetCarDataset,ShapeNetCarDatapipe
+from .deepmind_cylinderflow import DeepMind_CylinderFlowDataset,DeepMind_CylinderFlowDatapipe
+from .eagle import EagleDataset,EagleDatapipe
+from .cfdbench import CFDBenchDataset,CFDBenchDatapipe

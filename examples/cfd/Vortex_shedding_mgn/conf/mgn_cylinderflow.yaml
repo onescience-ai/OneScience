@@ -1,0 +1,69 @@
+datapipe:
+  # 数据源路径
+  source:
+    data_dir: /public/onestore/onedatasets/vortex_shedding_mgn/cylinder_flow
+    # 统计数据（均值/标准差）的保存路径
+    stats_dir: /public/onestore/onedatasets/vortex_shedding_mgn/cylinder_flow/stats 
+
+  verbose: True
+  data:
+    # 训练集参数 (来自 hydra: num_training_samples, num_training_time_steps)
+    train_samples: 400
+    train_steps: 300
+    
+    # 验证集参数 (使用 'vali' split)
+    val_samples: 10
+    val_steps: 300
+    
+    # 测试集参数 (来自 hydra: num_test_samples, num_test_time_steps)
+    test_samples: 10
+    test_steps: 300
+    
+    # 添加到训练集噪声的标准差
+    noise_std: 0.02
+
+  dataloader:
+    # (来自 hydra: batch_size, num_dataloader_workers)
+    batch_size: 1
+    num_workers: 4
+
+model:
+  # 要在训练脚本中动态加载的模型
+  name: MeshGraphNet
+  # MeshGraphNet 的特定超参数
+  specific_params:
+    MeshGraphNet:
+      # (来自 hydra: num_input_features, num_edge_features, num_output_features)
+      num_input_features: 6
+      num_edge_features: 3
+      num_output_features: 3
+      
+      # (来自 hydra: do_concat_trick, num_processor_checkpoint_segments, recompute_activation)
+      do_concat_trick: False
+      num_processor_checkpoint_segments: 0
+      recompute_activation: False
+      # 注意: 'mlp_activation_fn' 将在训练脚本中根据 recompute_activation 动态设置
+
+training:
+  # (来自 hydra: epochs, lr)
+  max_epoch: 25
+  lr: 0.0001
+  lr_decay_rate: 0.9999991 
+
+  # (来自 hydra: amp, jit, ckpt_path)
+  amp: False
+  jit: False
+  checkpoint_dir: "./checkpoints"
+
+  loss_criterion: 'MSE' # MGNTrainer 也使用 MSE
+  # 提前停止的耐心值 (来自 train_transolver.py 模板)
+  patience: 50 
+  # 每隔 N 个
+  log_interval: 100
+  # 单GPU训练时使用的GPU ID
+  gpuid: 0
+
+inference:
+  viz_vars: ["u", "v", "p"]
+  frame_skip: 10
+  frame_interval: 1

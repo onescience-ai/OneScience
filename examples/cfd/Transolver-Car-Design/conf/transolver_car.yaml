@@ -1,0 +1,69 @@
+model:
+  name: "Transolver" # 匹配训练脚本中的动态模型加载
+  
+  # 模型特定参数
+  specific_params:
+    Transolver:
+      # Transolver3D 的超参数 (来自旧的 train_car.py)
+      n_hidden: 256
+      n_layers: 8
+      space_dim: 7       # 输入维度 (pos + sdf + normal)
+      fun_dim: 0
+      n_head: 8
+      mlp_ratio: 2
+      out_dim: 4         # 输出维度 (velo + press)
+      slice_num: 32
+      unified_pos: 0
+      
+      # 用于指示是否使用 CFD 网格数据。如果为 True，使用网格数据；如果为 False，则需要通过 r 来使用半径构建邻接图
+      cfd_mesh: False
+      r: 0.2                 # 仅在 use_mesh_graph=False 时使用
+
+datapipe:
+  name: "ShapeNetCar"
+  task: "Transolver-Car-Design"
+
+  verbose: True
+
+  source:
+    data_dir: "/public/onestore/onedatasets/Transolver-Car-Design/mlcfd_data/training_data"
+    preprocessed_save_dir: "/public/onestore/onedatasets/Transolver-Car-Design/mlcfd_data/preprocessed_data"
+    stats_dir: "/public/onestore/onedatasets/Transolver-Car-Design/mlcfd_data/stats" # 存储 mean/std.npy 的地方
+    preprocessed: 1 # 1 (True) 或 0 (False)
+
+  data:
+    splits:
+      fold_id: 0 # 用于验证集划分
+
+  dataloader:
+    batch_size: 1
+    num_workers: 4
+    pin_memory: True
+
+
+training:
+  gpuid: 0 # DDP未启用时使用
+  max_epoch: 200
+  patience: 50 # 早停
+  
+  lr: 0.001
+  
+  # 损失函数 (来自旧的 args.weight)
+  loss_criterion: 'MSE' # 支持 'MSE' 或 'MAE'
+  loss_weight: 0.5      # 压力项的权重 (reg)
+  
+  checkpoint_dir: "./checkpoints/ShapeNetCar"
+  val_iter: 1 # 每 N 个 epoch 验证一次
+
+inference:
+  #指定的gpu编号
+  gpuid: 0
+  
+  # 推理结果的保存目录
+  result_dir: "./results/ShapeNetCar"
+  
+  # 是否保存 VTK 文件
+  save_vtk: True
+  
+  # 是否生成可视化图片 (需要 save_vtk=True)
+  visualize: True

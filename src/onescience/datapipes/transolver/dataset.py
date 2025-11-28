@@ -782,7 +782,6 @@ def get_airfoildatalist(
         )
 
     dataset = []
-
     for k, s in enumerate(tqdm(set)):
         # Get the 3D mesh, add the signed distance function and slice it to return in 2D
         internal = pv.read(osp.join(data_path, s, s + "_internal.vtu"))

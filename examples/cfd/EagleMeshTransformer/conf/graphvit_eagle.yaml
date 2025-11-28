@@ -1,0 +1,54 @@
+# conf/graphvit_eagle.yaml
+
+datapipe:
+  # 1. 源路径 (来自 argparse 和 EagleDataset init)
+  source:
+    data_dir: "/public/onestore/onedatasets/Eagle/Eagle_dataset"      
+    cluster_dir: "/public/onestore/onedatasets/Eagle/Eagle_dataset"  
+    splits_dir: "./splits/"        
+    
+  verbose: True
+  # 2. 数据集特定参数 (来自 argparse 和 EagleDataset init)
+  data:
+    # 窗口长度 (来自 --horizon-train/--horizon-val)
+    window_length_train: 6
+    window_length_val: 25
+    window_length_test: 25 # 假设 test 与 val 相同
+    
+    # 集群 (来自 --n-cluster)
+    n_cluster: 40 # 您需要在这里设置一个值, e.g., 40
+    
+    # 其他 EagleDataset 参数
+    normalized: True
+    type_as_onehot: True
+    with_cells: True # 通常在训练时为 False
+
+  # 3. Dataloader 参数 (来自 argparse)
+  dataloader:
+    batch_size: 2
+    num_workers: 4 # 一个合理的默认值
+
+model:
+  # 1. 模型名称 (来自 --model-name, 但这里用于标识)
+  name: "GraphViT"
+  
+  # 2. 模型超参数 (来自 argparse)
+  w_size: 512       # from --w-size
+  state_size: 4     # hardcoded in original train script
+
+training:
+  # 1. 训练参数 (来自 argparse)
+  max_epoch: 1000   # from --epoch
+  lr: 1e-4          # from --lr
+  loss_alpha: 0.1   # from --alpha
+  
+  # 2. 训练流程控制 (仿照 train_transolver.py)
+  patience: 100     # 提前停止的耐心值
+  
+  # 3. 检查点 (来自 --output-path 和 --model-name)
+  checkpoint_dir: "./checkpoints/eagle_graphvit/" # 组合了 output-path 和 model-name
+  
+  # 4. DDP/GPU 设置
+  gpuid: 0 # 用于单卡训练
+
+  max_anim_on_infer: 5

@@ -123,6 +123,33 @@ class AttrDict(dict):
 
     def __repr__(self):
         return f"AttrDict({dict.__repr__(self)})"
+    
+    # --- [ 新增的修复方法 ] ---
+    def to_dict(self):
+        """
+        递归地将 AttrDict 转换回标准的 dict。
+        """
+        plain_dict = {}
+        for k, v in self.items():
+            if isinstance(v, AttrDict):
+                plain_dict[k] = v.to_dict()
+            elif isinstance(v, list):
+                plain_dict[k] = self._convert_list(v)
+            else:
+                plain_dict[k] = v
+        return plain_dict
+
+    def _convert_list(self, value_list):
+        """ 辅助 to_dict，用于处理列表中的 AttrDicts """
+        new_list = []
+        for item in value_list:
+            if isinstance(item, AttrDict):
+                new_list.append(item.to_dict())
+            elif isinstance(item, list):
+                new_list.append(self._convert_list(item))
+            else:
+                new_list.append(item)
+        return new_list
 
 
 class YParams:
@@ -166,7 +193,10 @@ class YParams:
         for key, val in config.items():
             self.params[key] = val
             setattr(self, key, val)
-
+            
+    def to_dict(self):
+        return self.params.to_dict()
+    
     def log(self):
         logging.info("------------------ Configuration ------------------")
         logging.info(f"Configuration file: {self._yaml_filename}")
