@@ -4,16 +4,18 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-from onescience.models.layers import DownSample3D, FuserLayer, UpSample3D
 from onescience.models.meta import ModelMetaData
 from onescience.models.module import Module
-from onescience.models.utils import (
-    PatchEmbed2D,
-    PatchEmbed3D,
+
+from onescience.modules import (
     PatchRecovery2D,
     PatchRecovery3D,
+    FuserLayer,
+    DownSample3D,
+    UpSample3D,
+    PatchEmbed2D,
+    PatchEmbed3D,
 )
-
 
 @dataclass
 class MetaData(ModelMetaData):

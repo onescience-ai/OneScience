@@ -8,12 +8,12 @@ import time
 
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.afno.afnonet import AFNONet
-from onescience.datapipes import ERA5HDF5Datapipe
+from onescience.datapipes import ERA5Datapipe
 from onescience.utils.YParams import YParams
 from onescience.utils.fcn.darcy_loss import LpLoss
 
 from apex import optimizers
-
+import ipdb
 
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -34,10 +34,10 @@ def main():
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
     cfg_data = YParams(config_file_path, "datapipe")
-    datapipe = ERA5HDF5Datapipe(params=cfg_data, distributed=dist.is_initialized())
+    datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized())
     train_dataloader, train_sampler = datapipe.train_dataloader()
     val_dataloader, val_sampler = datapipe.val_dataloader()
-
+    ipdb.set_trace()
     fourcastnet_model = AFNONet(cfg).to(local_rank)
 
     if cfg.world_size == 1:

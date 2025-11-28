@@ -12,7 +12,7 @@ from onescience.models.protenix.utils import (
     pad_at_dim,
     reshape_at_dim,
 )
-from onescience.models.openfold.primitives import LayerNorm, trunc_normal_init_
+from onescience.models.openfold.primitives import ProtenixLayerNorm, trunc_normal_init_
 from onescience.utils.openfold.chunk_utils import chunk_layer
 
 
@@ -95,8 +95,8 @@ class AdaptiveLayerNorm(nn.Module):
             c_s (int, optional):  hidden dim [for single embedding]. Defaults to 384.
         """
         super(AdaptiveLayerNorm, self).__init__()
-        self.layernorm_a = LayerNorm(c_a, create_scale=False, create_offset=False)
-        self.layernorm_s = LayerNorm(c_s, create_offset=False)
+        self.layernorm_a = ProtenixLayerNorm(c_a, create_scale=False, create_offset=False)
+        self.layernorm_s = ProtenixLayerNorm(c_s, create_offset=False)
         self.linear_s = Linear(in_features=c_s, out_features=c_a, initializer="zeros")
         self.linear_nobias_s = LinearNoBias(
             in_features=c_s, out_features=c_a, initializer="zeros"
@@ -160,7 +160,7 @@ class Transition(nn.Module):
         super(Transition, self).__init__()
         self.n = n
         self.c_in = c_in
-        self.layernorm1 = LayerNorm(c_in)
+        self.layernorm1 = ProtenixLayerNorm(c_in)
         self.linear_no_bias_a = LinearNoBias(in_features=c_in, out_features=n * c_in, initializer="relu")
         self.linear_no_bias_b = LinearNoBias(in_features=c_in, out_features=n * c_in, initializer="relu")
         self.linear_no_bias = LinearNoBias(in_features=n * c_in, out_features=c_in, initializer="relu")

@@ -1,3 +1,18 @@
+# Copyright 2021 AlQuraishi Laboratory
+# Copyright 2021 DeepMind Technologies Limited
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Parses the mmCIF file format."""
 import collections
 import dataclasses
@@ -8,12 +23,13 @@ import logging
 import os
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
-import numpy as np
 from Bio import PDB
-from Bio.Data import SCOPData
+from Bio.Data import PDBData
+import numpy as np
 
-import onescience.models.openfold.np.residue_constants as residue_constants
 from onescience.datapipes.openfold.errors import MultipleChainsError
+import onescience.utils.openfold.np.residue_constants as residue_constants
+
 
 # Type aliases:
 ChainId = str
@@ -68,9 +84,9 @@ class MmcifObject:
         files being processed.
       header: Biopython header.
       structure: Biopython structure.
-      chain_to_seqres: dict mapping chain_id to 1 letter amino acid sequence. E.g.
+      chain_to_seqres: Dict mapping chain_id to 1 letter amino acid sequence. E.g.
         {'A': 'ABCDEFG'}
-      seqres_to_structure: dict; for each chain_id contains a mapping between
+      seqres_to_structure: Dict; for each chain_id contains a mapping between
         SEQRES index and a ResidueAtPosition. e.g. {'A': {0: ResidueAtPosition,
                                                           1: ResidueAtPosition,
                                                           ...}}
@@ -235,8 +251,12 @@ def parse(
                     residue_number=int(atom.author_seq_num),
                     insertion_code=insertion_code,
                 )
-                seq_idx = int(atom.mmcif_seq_num) - seq_start_num[atom.mmcif_chain_id]
-                current = seq_to_structure_mappings.get(atom.author_chain_id, {})
+                seq_idx = (
+                    int(atom.mmcif_seq_num) - seq_start_num[atom.mmcif_chain_id]
+                )
+                current = seq_to_structure_mappings.get(
+                    atom.author_chain_id, {}
+                )
                 current[seq_idx] = ResidueAtPosition(
                     position=position,
                     name=atom.residue_name,
@@ -263,7 +283,7 @@ def parse(
             author_chain = mmcif_to_author_chain_id[chain_id]
             seq = []
             for monomer in seq_info:
-                code = SCOPData.protein_letters_3to1.get(monomer.id, "X")
+                code = PDBData.protein_letters_3to1_extended.get(monomer.id, "X")
                 seq.append(code if len(code) == 1 else "X")
             seq = "".join(seq)
             author_chain_to_sequence[author_chain] = seq
@@ -327,8 +347,11 @@ def _get_header(parsed_info: MmCIFDict) -> PdbHeader:
             try:
                 raw_resolution = parsed_info[res_key][0]
                 header["resolution"] = float(raw_resolution)
+                break
             except ValueError:
-                logging.debug("Invalid resolution format: %s", parsed_info[res_key])
+                logging.debug(
+                    "Invalid resolution format: %s", parsed_info[res_key]
+                )
 
     return header
 
@@ -410,7 +433,9 @@ def _is_set(data: str) -> bool:
 
 
 def get_atom_coords(
-    mmcif_object: MmcifObject, chain_id: str, _zero_center_positions: bool = False
+    mmcif_object: MmcifObject, 
+    chain_id: str, 
+    _zero_center_positions: bool = False
 ) -> Tuple[np.ndarray, np.ndarray]:
     # Locate the right chain
     chains = list(mmcif_object.structure.get_chains())
@@ -454,16 +479,14 @@ def get_atom_coords(
 
             # Fix naming errors in arginine residues where NH2 is incorrectly
             # assigned to be closer to CD than NH1
-            cd = residue_constants.atom_order["CD"]
-            nh1 = residue_constants.atom_order["NH1"]
-            nh2 = residue_constants.atom_order["NH2"]
-            if (
-                res.get_resname() == "ARG"
-                and all(mask[atom_index] for atom_index in (cd, nh1, nh2))
-                and (
-                    np.linalg.norm(pos[nh1] - pos[cd])
-                    > np.linalg.norm(pos[nh2] - pos[cd])
-                )
+            cd = residue_constants.atom_order['CD']
+            nh1 = residue_constants.atom_order['NH1']
+            nh2 = residue_constants.atom_order['NH2']
+            if(
+                res.get_resname() == 'ARG' and
+                all(mask[atom_index] for atom_index in (cd, nh1, nh2)) and
+                (np.linalg.norm(pos[nh1] - pos[cd]) > 
+                 np.linalg.norm(pos[nh2] - pos[cd]))
             ):
                 pos[nh1], pos[nh2] = pos[nh2].copy(), pos[nh1].copy()
                 mask[nh1], mask[nh2] = mask[nh2].copy(), mask[nh1].copy()

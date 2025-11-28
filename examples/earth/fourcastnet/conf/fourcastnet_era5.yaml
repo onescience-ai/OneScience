@@ -23,7 +23,7 @@ model:
 
  # 整个数据读取流程
 datapipe:
-  name: "ERA5HDF5"
+  name: "ERA5"
   task: "weather_forecasting"
 
   # dataset设定

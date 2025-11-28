@@ -39,9 +39,9 @@ model:
     patience: 50
 
     checkpoint_dir : "./data/checkpoints"
-    stats_dir: './data/stats' # "/public/onestore/onedatasets/ERA5/newh5/stats/" 
-    static_dir: "./data/static/" # "/public/onestore/onedatasets/ERA5/newh5/static/" 
-    data_dir: ./data/ # "/public/onestore/onedatasets/ERA5/newh5" 
+    stats_dir: "/public/onestore/onedatasets/ERA5/newh5/stats/" 
+    static_dir: "/public/onestore/onedatasets/ERA5/newh5/static/" 
+    data_dir: "/public/onestore/onedatasets/ERA5/newh5" 
     train_ratio: 0.6
     val_ratio: 0.2
     test_ratio: 0.2
