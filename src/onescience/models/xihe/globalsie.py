@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-# from ..layers.transformer_layers import Transformer3DBlock
 from ..layers.mlp_layers import Mlp
 
 #GLOBAL 1
@@ -60,12 +59,6 @@ class FeatureGrouping(nn.Module):
         assert mask_tokens.shape == (B, N)
         # key_padding_mask = (mask_tokens == 0)   # True=忽略
         key_padding_mask = None if mask_tokens is None else (mask_tokens == 0)
-        # 统计海洋与陆地占比
-        # land_ratio = key_padding_mask.float().mean().item()         # 陆地(忽略)=True
-        # ocean_ratio = 1.0 - land_ratio                              # 海洋(保留)
-        # print(f"[DEBUG] 掩码统计: 海洋占比={ocean_ratio:.3f}, 陆地占比={land_ratio:.3f}")
-        # mask_tokens: (B,N) 或 (B,1,H',W')/(B,H',W')，1=海洋, 0=陆地  
-        #    Q = G,  K,V = x  （加入掩码，屏蔽掉陆地）
         G_prime, _ = self.attn(query=G, key=x, value=x,key_padding_mask=key_padding_mask)
         # 4. 输出更新后的 group vectors
         G_prime = self.proj_drop(self.proj(G_prime))  # (B, G, C)

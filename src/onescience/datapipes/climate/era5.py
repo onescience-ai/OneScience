@@ -103,16 +103,10 @@ class  ERA5HDF5Dataset(BaseDataset):
 
     def _init_normalization(self):
         self.channel_indices = [self.variables.index(v) for v in self.params.channels]
-        print("--"*50)
-        print("self.channel_indices",self.channel_indices)
         mu = np.load(os.path.join(self.params.stats_dir, "global_means.npy"))  # shape: [1, M, 1, 1]
         std = np.load(os.path.join(self.params.stats_dir, "global_stds.npy"))
         self.mu = mu[:, self.channel_indices, :, :]
         self.sd = std[:, self.channel_indices, :, :]
-        # print("*"*50)
-        # print("self.mu",self.mu)
-        # print("-"*50)
-        # print("self.sd",self.sd)
         # --- 1. 检查 self.mu (均值) [Numpy版本] ---
         # np.isnan 返回布尔数组，np.sum 统计 True 的个数
         if np.isnan(self.mu).any():
@@ -137,8 +131,6 @@ class  ERA5HDF5Dataset(BaseDataset):
         if zero_count > 0:
             print(f"☢️ 严重警告: self.sd 中包含 {zero_count} 个 0 值！")
             print("   这会在归一化时导致除以零，产生 Inf，最终导致 Loss 为 NaN。")
-            # 建议处理：将 0 替换为一个极小值
-            # self.sd[self.sd == 0] = 1e-6 
         else:
             print(f"✅ self.sd 正常 (无 0 值)")
         
@@ -230,7 +222,6 @@ class  ERA5HDF5Dataset(BaseDataset):
         # mu_t = torch.as_tensor(self.mu)       
         invar=torch.where(torch.isnan(invar), mu_t, invar)
         outvar=torch.where(torch.isnan(outvar), mu_t, outvar)
-        print("invar,outvar,mu_t",invar.shape,outvar.shape,mu_t.shape)
         invar = (invar - self.mu) / self.sd
         outvar = (outvar - self.mu) / self.sd
         

@@ -15,9 +15,11 @@ from onescience.models.utils import (
     PatchRecovery2D,
     PatchRecovery3D,
 )
-
+# from onescience.models.layers  import LocalSIE
+# from torch import nn
 
 import torch.nn as nn
+# from onescience.models.xihe.layers import LocalSIE # 这种可以
 from onescience.models.xihe.layers import GlobalSIE,OceanSpecificBlock
 from ..layers.resample_layers import DownSample2D, UpSample2D
 
@@ -50,9 +52,9 @@ class Xihe(Module):
     def __init__(
         self,
         config,
-        img_size=(2041, 4320),     
-        patch_size=(6, 12),        
-        window_size=(6, 12),       
+        img_size=(2041, 4320),      # [Lat, Lon]
+        patch_size=(6, 12),         # 与 window_size 配合
+        window_size=(6, 12),        # 2D 窗口 => 3D 要写成 (1, 6, 12)
         embed_dim=192,
         num_heads=(6, 12, 12, 6),
         in_chans=96,
@@ -64,10 +66,12 @@ class Xihe(Module):
     ):
         super().__init__(meta=MetaData())
         self.img_size = config.img_size
+        print("config",self.img_size)
         self.patch_size =config.patch_size
         # 正确初始化 mask_full
         self.mask=config.mask
         mask_full = np.load(self.mask)
+        print("config",self.mask)
         self.mask_full = mask_full if mask_full is not None else None
         self.mask_h_w=None
         self.out_chans=config.out_chans
@@ -84,16 +88,18 @@ class Xihe(Module):
             patch_size=self.patch_size,
             in_chans=self.in_chans,
             embed_dim=self.embed_dim,
+            # norm_layer=nn.LayerNorm
         )
         self.patchrecovery2d = PatchRecovery2D(
             img_size=img_size,
             patch_size=self.patch_size,
             in_chans=self.embed_dim,
             out_chans=self.out_chans,
+            # norm_layer=nn.LayerNorm
         )
 
         # patch 后的 3D 分辨率: (Pl=1, Lat_out, Lon_out)
-       
+        
         H_out = math.ceil(img_size[0] / patch_size[0])
         W_out = math.ceil(img_size[1] / patch_size[1])
         input_resolution = (1, H_out, W_out)
@@ -138,14 +144,14 @@ class Xihe(Module):
             input_resolution=input_resolution,
             num_local=2,
             num_global=1,
-            depth_local=depth,
+            depth_local=depth,#可以堆叠多个transformer3D
             num_heads_local=num_heads[0],
             num_heads_global=num_heads[1],
             window_size=window_size_3d,
             mlp_ratio=4.0,
             qkv_bias=True,
             num_groups=num_groups,
-            drop_path=drop_path,
+            drop_path=drop_path,#支持 stochastic depth
             norm_layer=nn.LayerNorm
         )
         
@@ -154,14 +160,14 @@ class Xihe(Module):
             input_resolution=input_resolution,
             num_local=2,
             num_global=1,
-            depth_local=depth,
+            depth_local=depth,#可以堆叠多个transformer3D
             num_heads_local=num_heads[0],
             num_heads_global=num_heads[1],
             window_size=window_size_3d,
             mlp_ratio=4.0,
             qkv_bias=True,
             num_groups=num_groups,
-            drop_path=drop_path,
+            drop_path=drop_path,#支持 stochastic depth
             norm_layer=nn.LayerNorm
         )
         
@@ -170,14 +176,14 @@ class Xihe(Module):
             input_resolution=input_resolution,
             num_local=2,
             num_global=1,
-            depth_local=depth,
+            depth_local=depth,#可以堆叠多个transformer3D
             num_heads_local=num_heads[0],
             num_heads_global=num_heads[1],
             window_size=window_size_3d,
             mlp_ratio=4.0,
             qkv_bias=True,
             num_groups=num_groups,
-            drop_path=drop_path,
+            drop_path=drop_path,#支持 stochastic depth
             norm_layer=nn.LayerNorm
         )
         self.upsample = UpSample2D(
@@ -187,6 +193,7 @@ class Xihe(Module):
                 output_resolution=(H_out, W_out),          # 3D 输出分辨率
             )   
         input_resolution = (1, H_out, W_out)
+        # print("H_out, W_out",H_out, W_out)
         self.block5=OceanSpecificBlock(
             dim=self.embed_dim,
             input_resolution=input_resolution,
@@ -206,6 +213,7 @@ class Xihe(Module):
     def change_mask(self,mask_full, x, h_out, w_out):
 
         #根据当前层特征分辨率，自动生成掩码（海洋=1，陆地=0）
+            # print("mask_full,x,h_out,w_out",mask_full.shape,x.shape,h_out,w_out)
             if not torch.is_tensor(mask_full):
                 mask_full = torch.tensor(mask_full, dtype=torch.float32)
             else:
@@ -223,20 +231,36 @@ class Xihe(Module):
                     patch = mask_full[h0:h1, w0:w1]
                     mask_coarse[i, j] = 1.0 if torch.any(patch > 0.5) else 0.0
             
-            mask_coarse = mask_coarse.to(x.device, dtype=x.dtype) 
+            mask_coarse = mask_coarse.to(x.device, dtype=x.dtype) #搬到DCU
 
-            B = x.shape[0]                
+            B = x.shape[0]
+            
+            #1.有NaN值
+            has_nan = torch.isnan(mask_coarse).any().item()
+
+            # 2. 统计 NaN 的数量
+            nan_count = torch.isnan(mask_coarse).sum().item()
+
+            if has_nan:
+                print(f"⚠️ 警告: mask_coarse 中包含 NaN!")
+                print(f"NaN 总数量: {nan_count}")
+                print(f"Tensor 形状: {mask_coarse.shape}")
+            else:
+                print("✅ mask_coarse 正常，没有 NaN")
+                
             mask_coarse = mask_coarse.unsqueeze(0).unsqueeze(0).repeat(B, 1, 1, 1) #将维度复制
             return mask_coarse  
         
     def forward(self, x: torch.Tensor):
+        # print("241------------",x.shape)
         x = self.patchembed2d(x)                  # (B, C=embed_dim, H', W')
+        # print("243------------",x.shape)
         x = x.flatten(2).transpose(1, 2)          # (B, N=H'*W', C) 
         B, N, C = x.shape     
         mask_full=self.mask_full        
         
-       
-        if mask_full is not None:              # mask1
+        # mask1
+        if mask_full is not None:
             H_out = math.ceil(self.img_size[0] / self.patch_size[0])
             W_out = math.ceil(self.img_size[1] / self.patch_size[1])
             mask1 = self.change_mask(mask_full, x, h_out=H_out, w_out=W_out)
@@ -249,9 +273,10 @@ class Xihe(Module):
       
         x=self.block1(x,mask=mask1)          # (B, N, C) 经过 3D 全局注意力
         x1=x
-                
-        x=self.downsample(x)                 # (B, N, C) 经过 2D 下采样
+        # print("x.shape-block11111111------", tuple(x.shape))
         
+        x=self.downsample(x)                 # (B, N, C) 经过 2D 下采样
+        # print("downsample```````````````````````", tuple(x.shape))
         if mask_full is not None:            #  mask2
             _,H_out,W_out = self.mask_h_w
             mask2 = self.change_mask(mask_full, x, h_out=H_out, w_out=W_out)
@@ -259,19 +284,28 @@ class Xihe(Module):
             mask2 = None
         
         x=self.block2(x,mask=mask2)                      
+        # print("x.shape-block2", tuple(x.shape))
         x=self.block3(x,mask=mask2)                                   
+        # print("x.shape-block3", tuple(x.shape))
         x=self.block4(x,mask=mask2)                       
+        # print("x.shape-block4", tuple(x.shape))
         x=self.upsample(x) 
+        # print("upsample```````````````````````", tuple(x.shape))  
+        #加上第一个的输出   
         x=self.block5(x,mask=mask1)                      
         print("x.shape-block5", tuple(x.shape))
+        # x_out=x+x1
+        # 在 block5 之后：
         x_out = torch.cat([x, x1], dim=-1)         # (B, N, 2C)
         x_out = self.skip_proj(x_out)
 
+        print("x++++++++++", tuple(x_out.shape))
         # B, N, C = x.shape
         # H_, W_ = 341, 360   # 对应 patch grid 尺寸
         H_ = math.ceil(self.img_size[0] / self.patch_size[0])
         W_ = math.ceil(self.img_size[1] / self.patch_size[1])
         x_out = x_out.transpose(1, 2).reshape(B, C, H_, W_)
+        print("x-——————————————————————————————", B, C, H_, W_,tuple(x_out.shape))
         x=self.patchrecovery2d(x_out)
         return x
 

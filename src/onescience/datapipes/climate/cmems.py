@@ -15,7 +15,7 @@ from onescience.datapipes.climate.utils.invariant import latlon_grid
 from onescience.datapipes.climate.utils.zenith_angle import cos_zenith_angle
 from onescience.datapipes.core import BaseDataset
 
-class ERA5Datapipe(Datapipe):
+class CMEMSDatapipe(Datapipe):
     def __init__(self, params, distributed, output_steps=1, input_steps=1):
         self.params = params
         self.dataset = params.dataset
@@ -24,7 +24,7 @@ class ERA5Datapipe(Datapipe):
         self.input_steps = input_steps
 
     def train_dataloader(self):
-        data = ERA5HDF5Dataset(dataset=self.dataset, mode='train', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = CMEMSDataset(dataset=self.dataset, mode='train', output_steps=self.output_steps, input_steps=self.input_steps)
         sampler = DistributedSampler(data, shuffle=True) if self.distributed else None
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
@@ -36,7 +36,7 @@ class ERA5Datapipe(Datapipe):
         return data_loader, sampler
 
     def val_dataloader(self):
-        data = ERA5HDF5Dataset(dataset=self.dataset, mode='val', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = CMEMSDataset(dataset=self.dataset, mode='val', output_steps=self.output_steps, input_steps=self.input_steps)
         sampler = DistributedSampler(data, shuffle=False) if self.distributed else None
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
@@ -48,7 +48,7 @@ class ERA5Datapipe(Datapipe):
         return data_loader, sampler
 
     def test_dataloader(self):
-        data = ERA5HDF5Dataset(dataset=self.dataset, mode='test', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = CMEMSDataset(dataset=self.dataset, mode='test', output_steps=self.output_steps, input_steps=self.input_steps)
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
@@ -58,7 +58,7 @@ class ERA5Datapipe(Datapipe):
         return data_loader
     
     
-class  ERA5HDF5Dataset(BaseDataset):
+class  CMEMSDataset(BaseDataset):
     def __init__(self, dataset, mode='train', output_steps=1, input_steps=1, patch_size=[1, 1]):
         self.params = dataset
         self.data_dir = self.params.data_dir
@@ -107,12 +107,9 @@ class  ERA5HDF5Dataset(BaseDataset):
         print("self.channel_indices",self.channel_indices)
         mu = np.load(os.path.join(self.params.stats_dir, "global_means.npy"))  # shape: [1, M, 1, 1]
         std = np.load(os.path.join(self.params.stats_dir, "global_stds.npy"))
-        self.mu = mu[:, self.channel_indices, :, :]
+        self.mu = mu[:, self.channel_indices, :, :] 
         self.sd = std[:, self.channel_indices, :, :]
-        # print("*"*50)
-        # print("self.mu",self.mu)
-        # print("-"*50)
-        # print("self.sd",self.sd)
+
         # --- 1. 检查 self.mu (均值) [Numpy版本] ---
         # np.isnan 返回布尔数组，np.sum 统计 True 的个数
         if np.isnan(self.mu).any():
@@ -141,7 +138,6 @@ class  ERA5HDF5Dataset(BaseDataset):
             # self.sd[self.sd == 0] = 1e-6 
         else:
             print(f"✅ self.sd 正常 (无 0 值)")
-        
         
         
 
@@ -226,11 +222,10 @@ class  ERA5HDF5Dataset(BaseDataset):
         h, w = self.img_shape
         invar = invar[:, :, :h, :w]
         outvar = outvar[:, :, :h, :w]
-        mu_t = torch.as_tensor(self.mu)       
-        # mu_t = torch.as_tensor(self.mu)       
+        #均值替换掉nan值
+        mu_t = torch.as_tensor(self.mu)        
         invar=torch.where(torch.isnan(invar), mu_t, invar)
         outvar=torch.where(torch.isnan(outvar), mu_t, outvar)
-        print("invar,outvar,mu_t",invar.shape,outvar.shape,mu_t.shape)
         invar = (invar - self.mu) / self.sd
         outvar = (outvar - self.mu) / self.sd
         

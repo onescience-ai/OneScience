@@ -116,7 +116,6 @@ class Transformer3DBlock(nn.Module):
         shortcut = x
         x = self.norm1(x)
         x = x.view(B, Pl, Lat, Lon, C)
-        # print("mask",mask)
         # start pad
         x = self.pad(x.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1)
 
@@ -129,11 +128,9 @@ class Transformer3DBlock(nn.Module):
                 x, shifts=(-shift_pl, -shift_lat, -shift_lon), dims=(1, 2, 3)
             )
             x_windows = window_partition(shifted_x, self.window_size)
-            # B*num_lon, num_pl*num_lat, win_pl, win_lat, win_lon, C
         else:        
             shifted_x = x
             x_windows = window_partition(shifted_x, self.window_size)
-            # B*num_lon, num_pl*num_lat, win_pl, win_lat, win_lon, C
         win_pl, win_lat, win_lon = self.window_size
         
         x_windows = x_windows.view(
@@ -174,9 +171,6 @@ class Transformer3DBlock(nn.Module):
 
             # 生成注意力掩码 (num_lon, num_pl*num_lat, N, N) 仅允许 海×海，其他（涉及陆地）设为 -inf
             attn_mask = (mwin.unsqueeze(-1) * mwin.unsqueeze(-2))  # 0/1
-            # ratio = (attn_mask == 1).float().mean().item()
-            # print("海洋区域占比:", ratio)
-            # print("mask1",attn_mask.shape,x.shape)
             attn_mask = (attn_mask == 0).float() * -100.0          # 变成 0 / -100
 
         attn_windows = self.attn(x_windows, mask=attn_mask)
@@ -188,7 +182,7 @@ class Transformer3DBlock(nn.Module):
             shifted_x = window_reverse(
                 attn_windows, self.window_size, Pl=Pl_pad, Lat=Lat_pad, Lon=Lon_pad
             )
-            # B * Pl * Lat * Lon * C
+
             x = torch.roll(
                 shifted_x, shifts=(shift_pl, shift_lat, shift_lon), dims=(1, 2, 3)
             )
@@ -198,7 +192,7 @@ class Transformer3DBlock(nn.Module):
             )
             x = shifted_x
 
-        # crop, end pad
+
         x = crop3d(x.permute(0, 4, 1, 2, 3), self.input_resolution).permute(
             0, 2, 3, 4, 1
         )
@@ -257,7 +251,7 @@ class LocalSIE(nn.Module):
                     input_resolution=input_resolution, #3d windows
                     num_heads=num_heads,
                     window_size=window_size,
-                    shift_size=(0, 0, 0), #不让他选择swin 
+                    shift_size=(0, 0, 0),             #不让他选择swin 
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
                     qk_scale=qk_scale,

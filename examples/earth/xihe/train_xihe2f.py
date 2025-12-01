@@ -41,7 +41,6 @@ def main():
     cfg_data = YParams(config_file_path, "datapipe")
     # cfg['N_in_channels'] = len(cfg_data.dataset.channels)
     # cfg['N_out_channels'] = len(cfg_data.dataset.channels)
-    print(cfg_data.dataset)
     
     datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized()) #config中的配置读取数据
     train_dataloader, train_sampler = datapipe.train_dataloader()
@@ -104,36 +103,26 @@ def main():
         train_loss = 0
         start_time = time.time()
         for j, data in enumerate(train_dataloader):
-            print("一个epoch的batch数量 =", len(train_dataloader))
+            # print("一个epoch的batch数量 =", len(train_dataloader))
             invar = data[0].to(local_rank, dtype=torch.float32)
             outvar = data[1].to(local_rank, dtype=torch.float32)  #做对比的真实数据
-            # print("invar",invar.shape)
-            # print("outvar",outvar.shape)
-            # data[0] → inputs (shape: [batch_size, channels, H, W])
-            # data[1] → targets (shape: [batch_size, channels, H, W])
-
-            # invar = invar[:, :, :-1, :]
-            # outvar = outvar[:, :, :-1, :]
             outvar_pred = model(invar)           #输出的预测数据
-            print("~"*60,"真实值与预测值")
-            if torch.isnan(outvar).any():
-                print("❌ outvar 中包含 NaN！")
-            else:
-                print("✅ outvar 正常")
-
-            # --- 检查 outvar_pred (预测值) ---
-            if torch.isnan(outvar_pred).any():
-                print("❌ outvar_pred 中包含 NaN！")
-            else:
-                print("✅ outvar_pred 正常")
-                
+            
+            # if torch.isnan(outvar).any():
+            #     print("❌ outvar 中包含 NaN！")
+            # else:
+            #     print("✅ outvar 正常")
+            # # --- 检查 outvar_pred (预测值) ---
+            # if torch.isnan(outvar_pred).any():
+            #     print("❌ outvar_pred 中包含 NaN！")
+            # else:
+            #     print("✅ outvar_pred 正常")               
                 
             loss = loss_obj(outvar, outvar_pred) #loss计算
             optimizer.zero_grad()                #梯度归0
             loss.backward()                      #反向传播
             optimizer.step()                     #优化器
             train_loss += loss.item()            #？？？？？更新记录最小的loss本轮？
-            print("train_loss",train_loss)
             if world_rank == 0:
                 logger.info(f'Train: Epoch {epoch}-{j+1}/{len(train_dataloader)} '
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
