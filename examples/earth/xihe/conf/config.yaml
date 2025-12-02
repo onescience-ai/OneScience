@@ -46,8 +46,6 @@ model:
   #   89, 90, 91, 92, 93, 94, 95
   # ]
 
-
-
  # 整个数据读取流程
 datapipe:
   name: "CMEMS"
@@ -89,7 +87,7 @@ datapipe:
              
     
     # 时间配置
-    time_range: ["2010-01-01", "2014-12-31"] #？？？
+    time_range: ["2010-01-01", "2014-12-31"] 
     time_steps: 1
     time_res: 24
     

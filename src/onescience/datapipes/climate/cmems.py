@@ -102,9 +102,8 @@ class  CMEMSDataset(BaseDataset):
             raise ValueError(f"❌ Missing required variables in metadata: {missing}")
 
     def _init_normalization(self):
+        #数据通道
         self.channel_indices = [self.variables.index(v) for v in self.params.channels]
-        print("--"*50)
-        print("self.channel_indices",self.channel_indices)
         mu = np.load(os.path.join(self.params.stats_dir, "global_means.npy"))  # shape: [1, M, 1, 1]
         std = np.load(os.path.join(self.params.stats_dir, "global_stds.npy"))
         self.mu = mu[:, self.channel_indices, :, :] 
@@ -222,7 +221,7 @@ class  CMEMSDataset(BaseDataset):
         h, w = self.img_shape
         invar = invar[:, :, :h, :w]
         outvar = outvar[:, :, :h, :w]
-        #均值替换掉nan值
+        #均值替换掉nan值，归一化之后还是0
         mu_t = torch.as_tensor(self.mu)        
         invar=torch.where(torch.isnan(invar), mu_t, invar)
         outvar=torch.where(torch.isnan(outvar), mu_t, outvar)

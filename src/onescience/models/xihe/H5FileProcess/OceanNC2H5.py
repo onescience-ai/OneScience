@@ -117,43 +117,43 @@ if __name__ == "__main__":
     depth_list = list(range(1, 24))
     
     #获取 u10 v10
-    get_uv_from_ERA5(str(year), f"{base_path}/tmp_h5/{year}/")
+    # get_uv_from_ERA5(str(year), f"{base_path}/tmp_h5/{year}/")
 
-    flag_day = 0
-    stop = False
-    # 获取 sst 来自osita，高分辨率
-    for month in month_list:
-        if stop:
-            break  # flag 达到 365 时跳出外层循环
-        # 每个月日期不同，该方法可以获取当月日期
-        _, num_days = calendar.monthrange(int(year), int(month))
-        day_list = [f"{day:02}" for day in range(1, num_days + 1)]
-        for day in day_list:
-            nc_file = f"{base_path}/nc/sst/{year}/{month}/{year}{month}{day}_sst.nc"         #      # 
-            process_file(nc_file, f"{base_path}/tmp_h5/{year}/", f'{year}{month}{day}_sea_surface_temperature.h5')
-            flag_day += 1
-            if flag_day >= 365:
-                stop = True   # 设置跳出标志
-                print(f'{year}_sea_surface_temperature  saving done')
-                break          # 先跳出 day 这一层循环
-    #获取ssh
-    flag_day = 0
-    stop = False
-    for month in month_list:
-        if stop:
-            break  # flag 达到 365 时跳出外层循环
-        # 每个月日期不同，该方法可以获取当月日期
-        _, num_days = calendar.monthrange(int(year), int(month))
-        day_list = [f"{day:02}" for day in range(1, num_days + 1)]
-        for day in day_list:
-            nc_file = f"{base_path}/nc/ssh/{year}/{month}/{year}{month}{day}_ssh.nc"         #      # 
-            process_file(nc_file, f"{base_path}/tmp_h5/{year}/", f'{year}{month}{day}_sea_surface_height_above_geoid.h5')
+    # flag_day = 0
+    # stop = False
+    # # 获取 sst 来自osita，高分辨率
+    # for month in month_list:
+    #     if stop:
+    #         break  # flag 达到 365 时跳出外层循环
+    #     # 每个月日期不同，该方法可以获取当月日期
+    #     _, num_days = calendar.monthrange(int(year), int(month))
+    #     day_list = [f"{day:02}" for day in range(1, num_days + 1)]
+    #     for day in day_list:
+    #         nc_file = f"{base_path}/nc/sst/{year}/{month}/{year}{month}{day}_sst.nc"         #      # 
+    #         process_file(nc_file, f"{base_path}/tmp_h5/{year}/", f'{year}{month}{day}_sea_surface_temperature.h5')
+    #         flag_day += 1
+    #         if flag_day >= 365:
+    #             stop = True   # 设置跳出标志
+    #             print(f'{year}_sea_surface_temperature  saving done')
+    #             break          # 先跳出 day 这一层循环
+    # #获取ssh
+    # flag_day = 0
+    # stop = False
+    # for month in month_list:
+    #     if stop:
+    #         break  # flag 达到 365 时跳出外层循环
+    #     # 每个月日期不同，该方法可以获取当月日期
+    #     _, num_days = calendar.monthrange(int(year), int(month))
+    #     day_list = [f"{day:02}" for day in range(1, num_days + 1)]
+    #     for day in day_list:
+    #         nc_file = f"{base_path}/nc/ssh/{year}/{month}/{year}{month}{day}_ssh.nc"         #      # 
+    #         process_file(nc_file, f"{base_path}/tmp_h5/{year}/", f'{year}{month}{day}_sea_surface_height_above_geoid.h5')
             
-            flag_day += 1
-            if flag_day >= 365:
-                stop = True   # 设置跳出标志
-                print(f'{year}_sea_surface_height_above_geoid  saving done')
-                break          # 先跳出 day 这一层循环            
+    #         flag_day += 1
+    #         if flag_day >= 365:
+    #             stop = True   # 设置跳出标志
+    #             print(f'{year}_sea_surface_height_above_geoid  saving done')
+    #             break          # 先跳出 day 这一层循环            
    #23*4
     pressure_list = ['uo','vo','so','thetao'] #'uo','vo','so','thetao'
     for pressure in pressure_list:

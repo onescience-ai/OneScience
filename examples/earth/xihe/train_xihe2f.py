@@ -39,8 +39,6 @@ def main():
     
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
-    # cfg['N_in_channels'] = len(cfg_data.dataset.channels)
-    # cfg['N_out_channels'] = len(cfg_data.dataset.channels)
     
     datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized()) #config中的配置读取数据
     train_dataloader, train_sampler = datapipe.train_dataloader()
@@ -48,12 +46,10 @@ def main():
 
     # Model init
     model = Xihe(config=cfg).to(local_rank) #根据cfg的model构建模型
-    # optimizer = optimizers.FusedAdam(model.parameters(), lr=cfg.lr)
     optimizer = optim.AdamW(model.parameters(), lr=cfg.lr,betas=tuple(cfg.betas),weight_decay=cfg.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.2, patience=5, mode='min')
     loss_obj = LpLoss()                        #loss函数
-    # mask_full = np.load('20210628_zos_ocean_mask.npy')
-    # model.mask_full = mask_full.to(local_rank) #mask掩码放到设备端
+
 
     ## Train process init
     os.makedirs(cfg.checkpoint_dir, exist_ok=True)
@@ -122,14 +118,14 @@ def main():
             optimizer.zero_grad()                #梯度归0
             loss.backward()                      #反向传播
             optimizer.step()                     #优化器
-            train_loss += loss.item()            #？？？？？更新记录最小的loss本轮？
+            train_loss += loss.item()           
             if world_rank == 0:
                 logger.info(f'Train: Epoch {epoch}-{j+1}/{len(train_dataloader)} '
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{train_loss / (j+1): .04f}')
 
-        train_loss /= len(train_dataloader) #平均loss?
+        train_loss /= len(train_dataloader) 
 
         model.eval() #关闭 dropout（不丢弃）
         valid_loss = 0

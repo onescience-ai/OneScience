@@ -134,8 +134,7 @@ class  ERA5HDF5Dataset(BaseDataset):
         else:
             print(f"✅ self.sd 正常 (无 0 值)")
         
-        
-        
+    
 
     def _init_split(self):        #######  划分训练/测试/验证数据集
         y = sorted(self.years)
