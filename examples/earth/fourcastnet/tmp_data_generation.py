@@ -7,7 +7,7 @@ from onescience.utils.YParams import YParams
 
 
 def generate_debug_sample(cfg):
-    years = years or list(range(1951, 1971))
+    years =  list(range(1951, 1971))
     timestamp=f'{years[0]}010100'
     total_files = 1460
     variables = cfg.channels
