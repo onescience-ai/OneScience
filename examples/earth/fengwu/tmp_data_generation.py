@@ -3,8 +3,7 @@ import h5py
 import json
 import numpy as np
 import xarray as xr
-# from onescience.utils.YParams import YParams
-from YParams import YParams
+from onescience.utils.YParams import YParams
 
 
 def generate_debug_sample(cfg):
