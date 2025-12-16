@@ -24,3 +24,5 @@ debug
 /src/agent/logs/
 .DS_Store
 examples/biosciences/simplefold/artifacts/
+*.pth
+
