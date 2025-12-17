@@ -8,7 +8,7 @@ import numpy as np
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import Dataset
 
-from onescience.datapipes.uma.base_dataset import create_dataset
+from onescience.datapipes.materials.custom_stack.base_dataset import create_dataset
 
 # This draws highly from fairseq's ConcatDataset implementation
 # https://github.com/facebookresearch/fairseq/blob/nllb/fairseq/data/concat_dataset.py

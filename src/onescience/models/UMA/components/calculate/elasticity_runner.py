@@ -20,7 +20,7 @@ from onescience.models.UMA.components.calculate.recipes.elastic import (
 if TYPE_CHECKING:
     from ase.calculators.calculator import Calculator
 
-    from onescience.datapipes.uma import AseDBDataset
+    from onescience.datapipes.materials.custom_stack import AseDBDataset
 
 
 eVA3_to_GPa = 1 / ase.units.GPa

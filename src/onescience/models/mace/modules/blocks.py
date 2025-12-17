@@ -18,8 +18,11 @@ from onescience.models.mace.modules.wrapper_ops import (
     TensorProduct,
 )
 from onescience.models.mace.tools.compile import simplify_if_compile
-from onescience.models.mace.tools.scatter import scatter_sum
-from onescience.models.mace.tools.utils import LAMMPS_MP
+#from onescience.models.mace.tools.scatter import scatter_sum
+from onescience.datapipes.materials.tools.scatter import scatter_sum
+
+#from onescience.models.mace.tools.utils import LAMMPS_MP
+from onescience.datapipes.materials.tools.utils import LAMMPS_MP
 
 from .irreps_tools import mask_head, reshape_irreps, tp_out_irreps_with_instructions
 from .radial import (

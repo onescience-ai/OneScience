@@ -16,7 +16,7 @@ from onescience.models.UMA.common.utils import (
 )
 
 if TYPE_CHECKING:
-    from onescience.datapipes.uma.atomic_data import AtomicData
+    from onescience.datapipes.materials.custom_stack.core.atomic_data import AtomicData
 
 
 class HeadInterface(metaclass=ABCMeta):

@@ -1,11 +1,3 @@
-"""basic scatter_sum operations from torch_scatter from
-https://github.com/mir-group/pytorch_runstats/blob/main/torch_runstats/scatter_sum.py
-Using code from https://github.com/rusty1s/pytorch_scatter, but cut down to avoid a dependency.
-PyTorch plans to move these features into the main repo, but until then,
-to make installation simpler, we need this pure python set of wrappers
-that don't require installing PyTorch C++ extensions.
-See https://github.com/pytorch/pytorch/issues/63780.
-"""
 
 from typing import Optional
 

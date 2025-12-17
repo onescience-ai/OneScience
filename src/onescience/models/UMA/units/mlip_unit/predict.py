@@ -19,7 +19,7 @@ from onescience.models.UMA.common.distutils import (
     CURRENT_DEVICE_TYPE_STR,
     get_device_for_local_rank,
 )
-from onescience.datapipes.uma.atomic_data import AtomicData
+from onescience.datapipes.materials.custom_stack.core.atomic_data import AtomicData
 from onescience.models.UMA.units.mlip_unit import InferenceSettings
 from onescience.models.UMA.units.mlip_unit.utils import (
     load_inference_model,

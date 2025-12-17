@@ -6,17 +6,34 @@ from typing import Optional, Sequence
 
 import torch.utils.data
 
-from onescience.models.mace.tools import (
+#from onescience.models.mace.tools import (
+#    AtomicNumberTable,
+#    atomic_numbers_to_indices,
+#    to_one_hot,
+#    torch_geometric,
+#    voigt_to_matrix,
+#)
+
+#from .neighborhood import get_neighborhood
+#from .utils import Configuration
+
+# -----------------------------------------------------------------
+# ✨ 关键重构：导入已指向 L3-Core 和 L3-Tools 目录 ✨
+# -----------------------------------------------------------------
+# 1. 导入 L3-Core (内部)
+from .neighborhood import get_neighborhood  # (Was: .neighborhood)
+from .utils import Configuration         # (Was: .utils)
+
+# 2. 导入 L3-Tools (通用工具)
+from onescience.datapipes.materials.tools import torch_geometric
+from onescience.datapipes.materials.tools.utils import (
     AtomicNumberTable,
     atomic_numbers_to_indices,
+)
+from onescience.datapipes.materials.tools.torch_tools import (
     to_one_hot,
-    torch_geometric,
     voigt_to_matrix,
 )
-
-from .neighborhood import get_neighborhood
-from .utils import Configuration
-
 
 class AtomicData(torch_geometric.data.Data):
     num_graphs: torch.Tensor

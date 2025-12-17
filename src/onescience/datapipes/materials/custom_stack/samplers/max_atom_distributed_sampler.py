@@ -15,7 +15,7 @@ from torch.utils.data import Sampler
 from onescience.models.UMA.common import gp_utils
 
 if TYPE_CHECKING:
-    from onescience.datapipes.uma.base_dataset import BaseDataset
+    from onescience.datapipes.materials.custom_stack.base_dataset import BaseDataset
 
 
 @nb.njit

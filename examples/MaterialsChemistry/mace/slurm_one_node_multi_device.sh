@@ -24,10 +24,10 @@ export RCCL_IB_HCA=mlx5_0
 export RCCL_SOCKET_IFNAME=ib0
 export NCCL_IB_HCA=mlx5_0
 export NCCL_SOCKET_IFNAME=ib0
-
+mkdir -p ./MACE_models
 
 torchrun --standalone --nnodes=1 --nproc_per_node=4 \
-  run_train.py \
+  train.py \
   --name='mace01' \
   --model='MACE' \
   --model_dir="./MACE_models" \

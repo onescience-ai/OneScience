@@ -20,10 +20,13 @@ from torchmetrics import Metric
 
 from onescience.models.mace.cli.visualise_train import TrainingPlotter
 
-from . import torch_geometric
+#from . import torch_geometric
+from onescience.datapipes.materials.tools import torch_geometric
+
 from .checkpoint import CheckpointHandler, CheckpointState
-from .torch_tools import to_numpy
-from .utils import (
+#from .torch_tools import to_numpy
+from onescience.datapipes.materials.tools.torch_tools import to_numpy
+from onescience.datapipes.materials.tools.utils import (
     MetricsLogger,
     compute_mae,
     compute_q95,

@@ -26,6 +26,8 @@ export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n1)
 export MASTER_PORT=29517
 export WORLD_SIZE=$SLURM_NTASKS
 
+mkdir -p ./MACE_models
+
 # 路径
 TRAIN_FILE=./data/solvent_xtb_train_200.xyz
 TEST_FILE=./data/solvent_xtb_test.xyz
@@ -38,7 +40,7 @@ srun --export=ALL --chdir="$WORKDIR" bash -c '
   export MASTER_ADDR='"$MASTER_ADDR"'
   export MASTER_PORT='"$MASTER_PORT"'
 
-  exec python run_train.py \
+  exec python train.py \
     --name mace01 \
     --model MACE \
     --model_dir="./MACE_models" \
