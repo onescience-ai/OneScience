@@ -1,95 +1,188 @@
 model:
-  # ┌───────────────────────────────────────────┐
-  # │            Model Configuration            │
-  # └───────────────────────────────────────────┘
-
-  processor_layers: 16              # Number of processor layers.
-  hidden_dim: 512                   # Size of each layer.
-  mesh_level: 6                     # Max icosphere level in the multimesh.
-  multimesh: true                   # If true, uses multimesh for the processor.
-  img_size: [721, 1440]     # Resolution of the latitude-longitude grid. If smaller than the native resolution, bilinear interpolation is applied.
-  num_channels_climate: 69    # Number of climate channels.
-  use_cos_zenith: true        # If true, uses cosine zenith angle as additional channel(s). It can replace the total incident solar radiation.
-  use_time_of_year_index: true  # If true, the dataloader also gives the index of the sample for calculating the time of day and year progress.
-  num_history: 0              # Number of historical (previous time steps) to use. With history=1, the model uses t-1 and t to predict t+1.
-  num_channels_static: 5      # Number of static channels (e.g., land-sea mask, geopotential, cosine of latitudes, sine and cosine of longitudes).
+  processor_layers: 16          
+  hidden_dim: 512               
+  mesh_level: 6                 
+  multimesh: true               
+  num_channels_climate: 69     
+  use_cos_zenith: true         
+  use_time_of_year_index: true 
+  num_history: 0               
+  num_channels_static: 5       
   num_steps: 1
-
-  checkpoint_encoder: true         # If true, applies single-segment gradient checkpointing for the embedder, encoder, and the first layer of the processor combined.
-  checkpoint_decoder: false        # If true, applies single-segment gradient checkpointing for the last layer of the processor, decoder, and the final layer combined.
-
-  full_bf16: true             # If true, uses bfloat16 for the entire training.
-
-  processor_type: MessagePassing    # "GraphTransformer" as in GenCast, or "MessagePassing" as in GraphCast.
-  khop_neighbors: 32                # Number of neighbors for each node used in the GraphTransformer. Only used if the processor type is "GraphTransformer".
-  num_attention_heads: 4            # Number of attention heads. Only used if the processor type is "GraphTransformer".
-  norm_type: LayerNorm            # "TELayerNorm" or "LayerNorm". Use "TELayerNorm" for improved performance.
-
-  segments: 1                      # Number of segments in gradient checkpointing for the processor. Only used if "checkpoint_processor" is true.
-  force_single_checkpoint: false   # If true, applies single-segment end-to-end gradient checkpointing.
-
-  checkpoint_processor: false      # If true, applies gradient checkpointing for the processor, excluding first and last layers. "segments" controls the number of segments for gradient checkpointing.
-
-  force_single_checkpoint_finetune: false   # If true, applies single-segment end-to-end gradient checkpointing for fine-tuning (multi-step rollout).
-  checkpoint_encoder_finetune: true         # If true, applies single-segment gradient checkpointing for fine-tuning for the embedder, encoder, and the first layer of the processor combined.
-  checkpoint_processor_finetune: true       # If true, applies gradient checkpointing for fine-tuning for the processor, excluding first and last layers. "segments" controls the number of segments for gradient checkpointing.
-  checkpoint_decoder_finetune: true         # If true, applies single-segment gradient checkpointing for fine-tuning for the last layer of the processor, decoder, and the final layer combined.
-  concat_trick: true          # If true, uses a concatenation trick to reduce memory overhead and improve MLP layer performance on the source, destination node features, and edge features.
-  # See https://docs.dgl.ai/guide/message-efficient.html for more info.
-  cugraphops_encoder: false   # If true, uses cugraphops backend for the encoder.
-  cugraphops_processor: false # If true, uses cugraphops backend for the processor.
-  cugraphops_decoder: false   # If true, uses cugraphops backend for the decoder.
-  recompute_activation: false  # If true, recomputes activation in backward to save memory. Currently, only SiLU is supported.
-  use_apex: true              # If true, uses Apex for fused Adam optimizer, typically resulting in 10-20% faster training iterations.
-
-  # ┌───────────────────────────────────────────┐
-  # │           Dataset Configuration           │
-  # └───────────────────────────────────────────┘
+  checkpoint_encoder: true      
+  checkpoint_decoder: false     
+  full_bf16: true              
+  processor_type: MessagePassing
+  khop_neighbors: 32            
+  num_attention_heads: 4        
+  norm_type: LayerNorm          
+  segments: 1                   
+  force_single_checkpoint: false
+  checkpoint_processor: false   
+  force_single_checkpoint_finetune: false
+  checkpoint_encoder_finetune: true      
+  checkpoint_processor_finetune: true    
+  checkpoint_decoder_finetune: true      
+  concat_trick: true         
+  cugraphops_encoder: false  
+  cugraphops_processor: false
+  cugraphops_decoder: false  
+  recompute_activation: false
+  use_apex: true             
+  patience: 50
   start_epoch: 0
   max_epoch: 1000
-  
-  dataset_metadata_path: './data.json'  # Path to the dataset metadata, containing channel names.
-  time_diff_std_path: './time_diff_std.npy'  # Path to the .npy file with standard deviation of normalized per-variable per-pressure level time differences.
-  channels:  ['10m_u_component_of_wind', '10m_v_component_of_wind', '2m_temperature', 'mean_sea_level_pressure',
-
-              'geopotential_1000', 'geopotential_925', 'geopotential_850', 'geopotential_700', 'geopotential_600', 'geopotential_500',
-              'geopotential_400', 'geopotential_300', 'geopotential_250', 'geopotential_200', 'geopotential_150', 'geopotential_100', 'geopotential_50',
-
-              'specific_humidity_1000', 'specific_humidity_925', 'specific_humidity_850',
-              'specific_humidity_700', 'specific_humidity_600',
-              'specific_humidity_500', 'specific_humidity_400', 'specific_humidity_300', 'specific_humidity_250', 'specific_humidity_200',
-              'specific_humidity_150', 'specific_humidity_100', 'specific_humidity_50',
-
-              'temperature_1000', 'temperature_925', 'temperature_850', 'temperature_700', 'temperature_600', 'temperature_500', 'temperature_400',
-              'temperature_300', 'temperature_250', 'temperature_200','temperature_150', 'temperature_100', 'temperature_50',
-
-              'u_component_of_wind_1000', 'u_component_of_wind_925', 'u_component_of_wind_850', 'u_component_of_wind_700', 'u_component_of_wind_600',
-              'u_component_of_wind_500', 'u_component_of_wind_400', 'u_component_of_wind_300', 'u_component_of_wind_250', 'u_component_of_wind_200',
-              'u_component_of_wind_150', 'u_component_of_wind_100', 'u_component_of_wind_50',
-
-              'v_component_of_wind_1000', 'v_component_of_wind_925', 'v_component_of_wind_850', 'v_component_of_wind_700', 'v_component_of_wind_600',
-              'v_component_of_wind_500', 'v_component_of_wind_400', 'v_component_of_wind_300', 'v_component_of_wind_250', 'v_component_of_wind_200',
-              'v_component_of_wind_150', 'v_component_of_wind_100', 'v_component_of_wind_50'
-  ]
-  time_res: 6
-  batch_size: 1
-  patience: 30
-  num_workers: 1              # Number of subprocesses to use for data loading. 0 means data is loaded in the main process.
-  num_val_steps: 8            # Number of rollouts used in light-weight validation during training.
-  dt: 6.0                     # Time in hours between each timestep in the dataset. A dt of 6.0 means four timesteps per day.
-  grad_clip_norm: 32.0        # Threshold for gradient clipping.
-  lr: 1e-3                    # Max learning rate in the learning rate schedule. Starts from zero to "lr" within "num_iters_step1" steps, then decays with a cosine schedule in "num_iters_step2" steps, reaching "lr_step3".
-  lr_step3: 3e-7              # Min learning rate in the learning rate schedule.
-  num_iters_step1: 1000       # Number of iterations (backward passes) in the first phase of the learning rate schedule.
-  num_iters_step2: 299000     # Number of iterations (backward passes) in the second phase of the learning rate schedule.
-  num_iters_step3: 11000      # Number of iterations (backward passes) for incremental fine-tuning, with increments of "step_change_freq".
-  step_change_freq: 1000      # Frequency of increments for multi-step fine-tuning.
-  val_freq: 5                 # Frequency (iterations) for performing light-weight validation during training.
-
+  num_val_steps: 8      
+  dt: 6.0                
+  grad_clip_norm: 32.0  
+  lr: 1e-3               
+  lr_step3: 3e-7        
+  num_iters_step1: 1000  
+  num_iters_step2: 299000
+  num_iters_step3: 11000 
+  step_change_freq: 1000
+  val_freq: 5           
   checkpoint_dir : "./data/checkpoints"
-  stats_dir: './data/stats' # "/public/onestore/onedatasets/ERA5/newh5/stats/" 
-  static_dir: "./data/static/" # "/public/onestore/onedatasets/ERA5/newh5/static/" 
-  data_dir: ./data/ # "/public/onestore/onedatasets/ERA5/newh5" 
-  train_ratio: 0.6
-  val_ratio: 0.2
-  test_ratio: 0.2
+  
+# 整个数据读取流程
+datapipe:
+  name: "ERA5"
+  task: "weather_forecasting"
+
+  # dataset设定
+  dataset:
+    type: "hdf5"
+    stats_dir: "/public/onestore/onedatasets/ERA5/newh5/stats/" 
+    static_dir: "/public/onestore/onedatasets/ERA5/newh5/static/" 
+    data_dir: "/public/onestore/onedatasets/ERA5/newh5/" 
+    dataset_metadata_path: './data.json'  # Path to the dataset metadata, containing channel names.
+    time_diff_std_path: './time_diff_std.npy'  # Path to the .npy file with standard deviation of normalized per-variable per-pressure level time differences.
+    train_ratio: 15
+    val_ratio: 3
+    test_ratio: 2
+    img_size: [721, 1440]
+    verbose: true
+    cache: false
+    # vars
+    channels: ['10m_u_component_of_wind', '10m_v_component_of_wind', '2m_temperature', 'mean_sea_level_pressure', 'total_precipitation',
+
+               'geopotential_1', 'geopotential_2', 'geopotential_3', 'geopotential_5', 'geopotential_7', 
+               'geopotential_10', 'geopotential_20', 'geopotential_30', 'geopotential_50', 'geopotential_70', 
+               'geopotential_100', 'geopotential_125', 'geopotential_150', 'geopotential_175', 'geopotential_200', 
+               'geopotential_225', geopotential_250', 'geopotential_300', 'geopotential_350', 'geopotential_400', 
+               'geopotential_450', 'geopotential_500', 'geopotential_550', 'geopotential_600', 'geopotential_650', 
+               'geopotential_700', 'geopotential_750', 'geopotential_775', 'geopotential_800', 'geopotential_825', 
+               'geopotential_850', 'geopotential_875', 'geopotential_900', 'geopotential_925', 'geopotential_950', 
+               'geopotential_975', 'geopotential_1000',
+
+               'relative_humidity_1', 'relative_humidity_2', 'relative_humidity_3', 'relative_humidity_5', 'relative_humidity_7', 
+               'relative_humidity_10', 'relative_humidity_20', 'relative_humidity_30', 'relative_humidity_50', 'relative_humidity_70', 
+               'relative_humidity_100', 'relative_humidity_125', 'relative_humidity_150', 'relative_humidity_175', 'relative_humidity_200', 
+               'relative_humidity_225', 'relative_humidity_250', 'relative_humidity_300', 'relative_humidity_350', 'relative_humidity_400', 
+               'relative_humidity_450', 'relative_humidity_500', 'relative_humidity_550', 'relative_humidity_600', 'relative_humidity_650', 
+               'relative_humidity_700', 'relative_humidity_750', 'relative_humidity_775', 'relative_humidity_800', 'relative_humidity_825', 
+               'relative_humidity_850', 'relative_humidity_875', 'relative_humidity_900', 'relative_humidity_925', 'relative_humidity_950', 
+               'relative_humidity_975', 'relative_humidity_1000',
+
+               'u_component_of_wind_1', 'u_component_of_wind_2', 'u_component_of_wind_3', 'u_component_of_wind_5', 'u_component_of_wind_7', 
+               'u_component_of_wind_10', 'u_component_of_wind_20', 'u_component_of_wind_30', 'u_component_of_wind_50', 'u_component_of_wind_70', 
+               'u_component_of_wind_100', 'u_component_of_wind_125', 'u_component_of_wind_150', 'u_component_of_wind_175', 'u_component_of_wind_200', 
+               'u_component_of_wind_225', 'u_component_of_wind_250', 'u_component_of_wind_300', 'u_component_of_wind_350', 'u_component_of_wind_400', 
+               'u_component_of_wind_450', 'u_component_of_wind_500', 'u_component_of_wind_550', 'u_component_of_wind_600', 'u_component_of_wind_650', 
+               'u_component_of_wind_700', 'u_component_of_wind_750', 'u_component_of_wind_775', 'u_component_of_wind_800', 'u_component_of_wind_825', 
+               'u_component_of_wind_850', 'u_component_of_wind_875', 'u_component_of_wind_900', 'u_component_of_wind_925', 'u_component_of_wind_950', 
+               'u_component_of_wind_975', 'u_component_of_wind_1000',
+
+               'v_component_of_wind_1', 'v_component_of_wind_2', 'v_component_of_wind_3', 'v_component_of_wind_5', 'v_component_of_wind_7', 
+               'v_component_of_wind_10', 'v_component_of_wind_20', 'v_component_of_wind_30', 'v_component_of_wind_50', 'v_component_of_wind_70', 
+               'v_component_of_wind_100', 'v_component_of_wind_125', 'v_component_of_wind_150', 'v_component_of_wind_175', 'v_component_of_wind_200', 
+               'v_component_of_wind_225', 'v_component_of_wind_250', 'v_component_of_wind_300', 'v_component_of_wind_350', 'v_component_of_wind_400', 
+               'v_component_of_wind_450', 'v_component_of_wind_500', 'v_component_of_wind_550', 'v_component_of_wind_600', 'v_component_of_wind_650', 
+               'v_component_of_wind_700', 'v_component_of_wind_750', 'v_component_of_wind_775', 'v_component_of_wind_800', 'v_component_of_wind_825', 
+               'v_component_of_wind_850', 'v_component_of_wind_875', 'v_component_of_wind_900', 'v_component_of_wind_925', 'v_component_of_wind_950', 
+               'v_component_of_wind_975', 'v_component_of_wind_1000',
+
+               'temperature_1', 'temperature_2', 'temperature_3', 'temperature_5', 'temperature_7', 
+               'temperature_10', 'temperature_20', 'temperature_30', 'temperature_50', 'temperature_70', 
+               'temperature_100', 'temperature_125', 'temperature_150', 'temperature_175', 'temperature_200', 
+               'temperature_225', 'temperature_250', 'temperature_300', 'temperature_350', 'temperature_400', 
+               'temperature_450', 'temperature_500', 'temperature_550', 'temperature_600', 'temperature_650', 
+               'temperature_700', 'temperature_750', 'temperature_775', 'temperature_800', 'temperature_825', 
+               'temperature_850', 'temperature_875', 'temperature_900', 'temperature_925', 'temperature_950', 
+               'temperature_975', 'temperature_1000',
+
+               'vertical_wind_speed_1', 'vertical_wind_speed_2', 'vertical_wind_speed_3', 'vertical_wind_speed_5', 'vertical_wind_speed_7', 
+               'vertical_wind_speed_10', 'vertical_wind_speed_20', 'vertical_wind_speed_30', 'vertical_wind_speed_50', 'vertical_wind_speed_70', 
+               'vertical_wind_speed_100', 'vertical_wind_speed_125', 'vertical_wind_speed_150', 'vertical_wind_speed_175', 'vertical_wind_speed_200', 
+               'vertical_wind_speed_225', 'vertical_wind_speed_250', 'vertical_wind_speed_300', 'vertical_wind_speed_350', 'vertical_wind_speed_400', 
+               'vertical_wind_speed_450', 'vertical_wind_speed_500', 'vertical_wind_speed_550', 'vertical_wind_speed_600', 'vertical_wind_speed_650', 
+               'vertical_wind_speed_700', 'vertical_wind_speed_750', 'vertical_wind_speed_775', 'vertical_wind_speed_800', 'vertical_wind_speed_825', 
+               'vertical_wind_speed_850', 'vertical_wind_speed_875', 'vertical_wind_speed_900', 'vertical_wind_speed_925', 'vertical_wind_speed_950', 
+               'vertical_wind_speed_975', 'vertical_wind_speed_1000',
+              ]
+
+    variables:
+      - "u10"        # 10m U wind component
+      - "v10"        # 10m V wind component
+      - "t2m"        # 2m temperature
+      - "msl"        # Mean sea level pressure
+      - "z500"       # Geopotential at 500 hPa
+      - "t850"       # Temperature at 850 hPa
+    
+    # 时间配置
+    time_range: ["2000-01-01", "2020-12-31"]
+    time_steps: 1
+    time_res: 6
+    
+    # 空间配置
+    spatial_resolution: [0.25, 0.25]
+    
+    # 采样配置
+    num_samples: -1  # -1 表示使用全部数据
+    shuffle: true
+    random_seed: 42
+    
+    # 领域特定配置
+    extra:
+      levels: [500, 850, 1000]
+      lat_range: [-90, 90]
+      lon_range: [0, 360]
+  
+  # 数据转换配置
+  transforms:
+    - type: "Normalize"
+      params:
+        mean: [0.0, 0.0, 288.0, 101325.0, 50000.0, 270.0]
+        std: [5.0, 5.0, 15.0, 1000.0, 5000.0, 10.0]
+        keys: ["input", "target"]
+    
+    - type: "ToTensor"
+      params:
+        keys: null  # null表示转换所有numpy数组
+  
+  # 其他配置
+
+
+  # DataLoader配置
+  dataloader:
+    mask_dtype: "float32"
+    batch_size: 1
+    num_workers: 1
+    pin_memory: true
+    drop_last: true
+    shuffle: false  # 使用sampler时设为false
+    prefetch_factor: 2
+    persistent_workers: true
+  
+  # 分布式配置
+  distributed:
+    enabled: true
+    sampler: "DistributedSampler"
+    rank: 0
+    world_size: 4
+    shuffle: true
+    seed: 42
+    drop_last: true
+  
+             
+  
