@@ -1,58 +1,64 @@
-pde_name: "2D_shallow_water"
-model_name: "PINO"
-if_training: True
-continue_training: False
-model_path: null
-output_dir: "./checkpoint/"
-save_period: 10
-seed: 0
-training_type: "single"   # or autoregressive
-initial_step: 1
-epochs: 200
+pino_config:
+  datapipe:
+    source:
+      data_dir: "YOUR_DATASET_DIR_PATH"
+      file_name: "2D_rdb_NA_NA.h5"
+    verbose: True    
+    data:
+      name: "2D_SWE"
+      single_file: False
+      reduced_resolution: 4
+      reduced_resolution_t: 1
+      reduced_resolution_pde: 1
+      reduced_resolution_pde_t: 1
+      reduced_batch: 1
+      initial_step: 1
+      test_ratio: 0.1
+      if_grid_norm: False
+      seed: 0
 
-model:
-  width : 64
-  modes1: [12, 12, 12, 12]
-  modes2: [12, 12, 12, 12]
-  modes3: [12, 12, 12, 12]
-  fc_dim: 128
-  act: 'gelu'
-  in_channels : 1   # input  : h    (u,v have no data except an initial condition =0 )
-  out_channels : 3   # output : h,u,v
+    dataloader:
+      batch_size: 1
+      num_workers: 0
+      pin_memory: False
 
-train:
-  scenario : "2D_shallow_water"
-  scheduler_gamma: 0.5
-  ic_loss: 2.0
-  f_loss: 1.0
-  xy_loss: 10.0
-  save_name : "2d_SWE_4x"
+  model:
+    name: "PINO"
+    width: 64
+    modes1: [12, 12, 12, 12]
+    modes2: [12, 12, 12, 12]
+    modes3: [12, 12, 12, 12]
+    fc_dim: 128
+    act: 'gelu'
+    in_channels: 1
+    out_channels: 3
 
-
-dataset:
-  name : "2D_SWE"
-  single_file: False
-  file_name: "2D_rdb_NA_NA.h5"
-  saved_folder: YOUR_DATASET_DIR_PATH
-  reduced_resolution: 4
-  reduced_resolution_t: 1
-  reduced_resolution_pde: 1
-  reduced_resolution_pde_t: 1
-  reduced_batch: 1
-  test_ratio: 0.1
-  if_grid_norm : False
-# dataloader args
-dataloader:
-  batch_size: 1 # 2
-  num_workers: 0
-  pin_memory: False
-# optimizer args
-optimizer:
-  name: 'Adam'
-  lr: 1.e-3
-  weight_decay : 1.e-4
-# scheduler args 
-scheduler:
-  name: "StepLR"
-  step_size: 50
-  gamma: 0.5
+  training:
+    pde_name: "2D_shallow_water"
+    training_type: "single"
+    
+    # Loss Weights for PINO
+    ic_loss: 2.0
+    f_loss: 1.0
+    xy_loss: 10.0
+    
+    # 模式控制
+    if_training: True
+    continue_training: False
+    model_path: null
+    output_dir: "./checkpoint/"
+    save_name: "2d_SWE_4x"
+    
+    epochs: 200
+    save_period: 10
+    seed: 0
+    
+    optimizer:
+      name: 'Adam'
+      lr: 1.0e-3
+      weight_decay: 1.0e-4
+    
+    scheduler:
+      name: "StepLR"
+      step_size: 50
+      gamma: 0.5

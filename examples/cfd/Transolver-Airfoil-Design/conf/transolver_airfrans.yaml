@@ -1,122 +1,130 @@
+# 模型配置
 model:
   # 在这里选择要训练的模型: Transolver, GraphSAGE, PointNet, MLP, GUNet
   name: 'Transolver' 
-
+  
   # --------------------------------------------------------------------
   # 每个模型独有的架构参数
   # --------------------------------------------------------------------
   specific_params:
+    # Transolver 模型参数
     Transolver:
-      n_hidden: 256
-      n_layers: 8
-      space_dim: 7
-      fun_dim: 0
-      n_head: 8
-      mlp_ratio: 2
-      out_dim: 4
-      slice_num: 32
-      unified_pos: 1
-      build_graph: True
-      r: 0.05
-      max_neighbors: 64
+      n_hidden: 256         # 隐藏层维度
+      n_layers: 8          # Transformer 层数
+      space_dim: 7         # 空间特征维度 (位置 + 法向量 + 边界条件)
+      fun_dim: 0           # 函数特征维度
+      n_head: 8            # 多头注意力头数
+      mlp_ratio: 2         # MLP 扩展比例
+      out_dim: 4           # 输出维度 (速度u, 速度v, 压力p, 湍流粘度nu)
+      slice_num: 32        # 物理切片数量
+      unified_pos: 1       # 是否使用统一位置编码 (1: 是, 0: 否)
+      build_graph: True    # 是否构建图结构
+      r: 0.05              # 图构建时的邻域半径
+      max_neighbors: 64    # 最大邻居数
 
+    # GraphSAGE 模型参数
     GraphSAGE:
-      encoder: [ 7, 64, 64, 8 ]
-      decoder: [ 8, 64, 64, 4 ]
-      nb_hidden_layers: 3
-      size_hidden_layers: 64
-      bn_bool: True
-      build_graph: True
-      r: 0.05
-      max_neighbors: 64
+      encoder: [ 7, 64, 64, 8 ]  # 编码器层结构 [输入, 隐藏, 输出]
+      decoder: [ 8, 64, 64, 4 ]  # 解码器层结构
+      nb_hidden_layers: 3         # 隐藏层数量
+      size_hidden_layers: 64      # 隐藏层大小
+      bn_bool: True               # 是否使用批量归一化
+      build_graph: True           # 是否构建图结构
+      r: 0.05                     # 图构建邻域半径
+      max_neighbors: 64           # 最大邻居数
 
+    # PointNet 模型参数
     PointNet:
-      encoder: [ 7, 64, 64, 8 ]
-      decoder: [ 8, 64, 64, 4 ]
-      base_nb: 8
-      build_graph: False
-      r: null
-      max_neighbors: null
+      encoder: [ 7, 64, 64, 8 ]   # 编码器层结构
+      decoder: [ 8, 64, 64, 4 ]   # 解码器层结构
+      base_nb: 8                  # 基础层数
+      build_graph: False          # 是否构建图结构
+      r: null                     # 邻域半径 (不适用)
+      max_neighbors: null         # 最大邻居数 (不适用)
 
+    # MLP 模型参数
     MLP:
-      encoder: [ 7, 64, 64, 8 ]
-      decoder: [ 8, 64, 64, 4 ]
-      nb_hidden_layers: 3
-      size_hidden_layers: 64
-      bn_bool: True
-      build_graph: False
-      r: null
-      max_neighbors: null
+      encoder: [ 7, 64, 64, 8 ]   # 编码器层结构
+      decoder: [ 8, 64, 64, 4 ]   # 解码器层结构
+      nb_hidden_layers: 3         # 隐藏层数量
+      size_hidden_layers: 64      # 隐藏层大小
+      bn_bool: True               # 是否使用批量归一化
+      build_graph: False          # 是否构建图结构
+      r: null                     # 邻域半径 (不适用)
+      max_neighbors: null         # 最大邻居数 (不适用)
 
+    # GUNet 模型参数
     GUNet:
-      encoder: [ 7, 64, 64, 8 ]
-      decoder: [ 8, 64, 64, 4 ]
-      layer: 'SAGE'
-      pool: 'random'
-      nb_scale: 5
-      pool_ratio: [ .5, .5, .5, .5 ]
-      list_r: [ .05, .2, .5, 1, 10 ]
-      size_hidden_layers: 8
-      batchnorm: True
-      res: False
-      build_graph: True
-      r: 0.05
-      max_neighbors: 64
+      encoder: [ 7, 64, 64, 8 ]   # 编码器层结构
+      decoder: [ 8, 64, 64, 4 ]   # 解码器层结构
+      layer: 'SAGE'               # 图神经网络层类型
+      pool: 'random'              # 池化方法
+      nb_scale: 5                 # 多尺度数量
+      pool_ratio: [ .5, .5, .5, .5 ]  # 各层池化比例
+      list_r: [ .05, .2, .5, 1, 10 ]  # 各层邻域半径
+      size_hidden_layers: 8       # 隐藏层大小
+      batchnorm: True             # 是否使用批量归一化
+      res: False                  # 是否使用残差连接
+      build_graph: True           # 是否构建图结构
+      r: 0.05                     # 基础邻域半径
+      max_neighbors: 64           # 最大邻居数
 
 # --------------------------------------------------------------------
-# 数据管道配置 (包含共享的数据参数)
+# 数据管道配置
 # --------------------------------------------------------------------
 datapipe:
-  name: 'AirfRANS'
-  verbose: False # 控制 BaseDataset 日志级别
+  name: 'AirfRANS'        # 数据管道名称
+  verbose: False          # 控制数据加载日志级别
   
+  # 数据源设置
   source:
-    data_dir: '/public/onestore/onedatasets/Transolver-Airfoil-Design/Dataset' 
-    stats_dir: './' 
+    data_dir: '/path/to/Dataset'  # 原始数据目录
+    stats_dir: './'               # 统计信息保存目录
   
+  # 数据划分和采样设置
   data:
     splits:
-      task: 'full'
-      train_name: 'full_train'
-      val_split_ratio: 0.1
-      test_name: 'full_test'
+      task: 'full'             # 任务类型: 'full', 'scarce', 'reynolds', 'aoa'
+      train_name: 'full_train' # 训练集名称
+      val_split_ratio: 0.1     # 验证集比例
+      test_name: 'full_test'   # 测试集名称
       
+    # 采样策略
     sampling:
-      sample_strategy: null # null, 'uniform', 'mesh'
-      n_boot: 500000
-      surf_ratio: 0.1
-      
-    crop: null # e.g., [-1.5, 2.5, -1.5, 1.5]
+      sample_strategy: null     # 采样策略: null, 'uniform', 'mesh'
+      n_boot: 500000           # 自举采样数量
+      surf_ratio: 0.1          # 表面点比例
     
-    subsampling: 32000
+    # 数据裁剪范围 (xmin, xmax, ymin, ymax)
+    crop: null
     
+    # 下采样设置
+    subsampling: 32000         # 每样本最大点数
+  
+  # 数据加载器设置
   dataloader:
-    batch_size: 1
-    num_workers: 4
+    batch_size: 1              # 批大小
+    num_workers: 4             # 数据加载进程数
 
 # --------------------------------------------------------------------
-# 训练配置 (包含共享的训练参数)
+# 训练配置
 # --------------------------------------------------------------------
 training:
-  # 通用参数 
-  max_epoch: 398
-  lr: 0.001
-  
-  #单卡训练时指定设备号
-  gpuid: 0
-  
-  # 早停
-  patience: 50
+  # 通用训练参数
+  max_epoch: 398               # 最大训练轮数
+  lr: 0.001                    # 初始学习率
+  gpuid: 0                     # 单卡训练时指定GPU编号
+  patience: 50                 # 早停耐心值
   
   # 损失函数设置
-  loss_criterion: 'MSE_weighted' # 'MSE', 'MAE', 'MSE_weighted'
-  loss_weight: 1.0 
+  loss_criterion: 'MSE_weighted'  # 损失函数: 'MSE', 'MAE', 'MSE_weighted'
+  loss_weight: 1.0              # 表面损失权重 (用于加权损失)
   
-  # checkpoint
-  checkpoint_dir: './checkpoints/transolver_airfrans'
-
-  #推理结果的输出路径
-  result_dir: './results'
-
-  # 测试
-  n_test: 3
+  # 模型保存
+  checkpoint_dir: './checkpoints/transolver_airfrans'  # 检查点保存目录
+  
+  # 推理结果
+  result_dir: './results'      # 推理结果输出路径
+  
+  # 测试设置
+  n_test: 3                    # 测试时随机抽取的翼型数量

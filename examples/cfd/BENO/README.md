@@ -35,15 +35,15 @@ README.md
 
 ## 训练
 
+详细的训练参数可以参考transolver_car.yaml文件中的参数注释
+
 单卡训练：
 
-使用以下命令训练BENO，具体使用哪个数据集可以在代码中更改
+使用以下命令训练BENO
 
 ```code
-python train.py --dataset_type=32x32 --epochs 1000
+python train.py 
 ```
-
-运行`python train.py -h`可以查看各参数作用
 
 多卡训练：
 
@@ -69,7 +69,7 @@ sbatch slurm.sh
 要分析结果，请使用以下命令：
 
 ```code
-python analysis.py 
+python inference.py 
 ```
 
 ## 参考文献:

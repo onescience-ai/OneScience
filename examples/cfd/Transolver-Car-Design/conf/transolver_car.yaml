@@ -1,69 +1,65 @@
+# 模型配置
 model:
-  name: "Transolver" # 匹配训练脚本中的动态模型加载
-  
-  # 模型特定参数
-  specific_params:
-    Transolver:
-      # Transolver3D 的超参数 (来自旧的 train_car.py)
-      n_hidden: 256
-      n_layers: 8
-      space_dim: 7       # 输入维度 (pos + sdf + normal)
-      fun_dim: 0
-      n_head: 8
-      mlp_ratio: 2
-      out_dim: 4         # 输出维度 (velo + press)
-      slice_num: 32
-      unified_pos: 0
-      
-      # 用于指示是否使用 CFD 网格数据。如果为 True，使用网格数据；如果为 False，则需要通过 r 来使用半径构建邻接图
-      cfd_mesh: False
-      r: 0.2                 # 仅在 use_mesh_graph=False 时使用
+  name: "Transolver"  # 模型名称，对应特定模型实现
+  specific_params:    # 各模型独有参数
+    Transolver:       # Transolver 模型参数
+      n_hidden: 256   # 隐藏层维度
+      n_layers: 8     # Transformer 层数
+      space_dim: 7    # 空间特征维度 (位置 + SDF + 法向量)
+      fun_dim: 0      # 函数特征维度
+      n_head: 8       # 多头注意力头数
+      mlp_ratio: 2    # MLP 扩展比例
+      out_dim: 4      # 输出维度 (3维速度 + 1维压力)
+      slice_num: 32   # 物理切片的数量
+      unified_pos: 0  # 是否使用统一位置编码
+      cfd_mesh: False # 是否使用 CFD 网格
+      r: 0.2          # 图构建时的邻域半径 (cfd_mesh=False 时使用)
 
+# 数据处理配置
 datapipe:
-  name: "ShapeNetCar"
-  task: "Transolver-Car-Design"
-
-  verbose: True
-
+  name: "ShapeNetCar"      # 数据管道名称
+  task: "Transolver-Car-Design"  # 任务标识
+  
+  verbose: True  # 是否显示详细信息
+  
+  # 数据源设置
   source:
-    data_dir: "/public/onestore/onedatasets/Transolver-Car-Design/mlcfd_data/training_data"
-    preprocessed_save_dir: "/public/onestore/onedatasets/Transolver-Car-Design/mlcfd_data/preprocessed_data"
-    stats_dir: "/public/onestore/onedatasets/Transolver-Car-Design/mlcfd_data/stats" # 存储 mean/std.npy 的地方
-    preprocessed: 1 # 1 (True) 或 0 (False)
-
+    data_dir: "/path/to/training_data"         # 原始数据目录
+    preprocessed_save_dir: "/path/to/preprocessed_data"  # 预处理数据保存目录
+    stats_dir: "/path/to/stats"      # 统计信息目录 (存储 mean/std.npy)
+    preprocessed: 1                  # 是否使用预处理数据 (1: 是, 0: 否)
+  
+  # 数据划分
   data:
     splits:
-      fold_id: 0 # 用于验证集划分
-
+      fold_id: 0  # 交叉验证折数，用于测试集划分
+  
+  # 数据加载器设置
   dataloader:
-    batch_size: 1
-    num_workers: 4
-    pin_memory: True
+    batch_size: 1         # 批大小
+    num_workers: 4        # 数据加载进程数
+    pin_memory: True      # 是否使用内存固定 (提升GPU传输效率)
 
-
+# 训练配置
 training:
-  gpuid: 0 # DDP未启用时使用
-  max_epoch: 200
-  patience: 50 # 早停
+  gpuid: 0           # 单卡训练时的 GPU ID
+  max_epoch: 200     # 最大训练轮数
+  patience: 50       # 早停耐心值 (验证损失不改进的轮数)
   
-  lr: 0.001
+  lr: 0.001          # 初始学习率
   
-  # 损失函数 (来自旧的 args.weight)
-  loss_criterion: 'MSE' # 支持 'MSE' 或 'MAE'
-  loss_weight: 0.5      # 压力项的权重 (reg)
+  # 损失函数设置
+  loss_criterion: 'MSE'  # 损失函数类型: 'MSE' 或 'MAE'
+  loss_weight: 0.5       # 压力损失项的权重
   
-  checkpoint_dir: "./checkpoints/ShapeNetCar"
-  val_iter: 1 # 每 N 个 epoch 验证一次
+  checkpoint_dir: "./checkpoints/ShapeNetCar"  # 模型保存目录
+  val_iter: 1  # 验证频率 (每 N 轮验证一次)
 
+# 推理配置
 inference:
-  #指定的gpu编号
-  gpuid: 0
+  gpuid: 0  # 推理时使用的 GPU ID
   
-  # 推理结果的保存目录
-  result_dir: "./results/ShapeNetCar"
+  result_dir: "./results/ShapeNetCar"  # 结果保存目录
   
-  # 是否保存 VTK 文件
-  save_vtk: True
-  
-  # 是否生成可视化图片 (需要 save_vtk=True)
-  visualize: True
+  save_vtk: True     # 是否保存 VTK 格式结果
+  visualize: True    # 是否生成可视化图片 (需要 save_vtk=True)

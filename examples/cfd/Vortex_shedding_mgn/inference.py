@@ -1,8 +1,3 @@
-# inference_meshgraphnet_dgl.py
-#
-# 适配 DGL 和 YParams 的 OneScience 推理脚本
-# (已将 'Rollout' 重构为 'Inference')
-
 import os
 import logging
 import time
@@ -24,7 +19,6 @@ from matplotlib import animation
 from matplotlib import tri as mtri
 from matplotlib.patches import Rectangle
 
-# --- OneScience 核心 ---
 from onescience.distributed.manager import DistributedManager 
 from onescience.utils.YParams import YParams
 from onescience.datapipes import DeepMind_CylinderFlowDatapipe
@@ -47,7 +41,7 @@ def setup_logging(rank):
 class MGNInference: # <--- [重命名]
     def __init__(
         self, 
-        cfg_inference: YParams, # <--- [重命名]
+        cfg_inference: YParams,
         cfg_data: YParams, 
         cfg_train: YParams, 
         model_params: YParams, 
@@ -57,7 +51,7 @@ class MGNInference: # <--- [重命名]
         stats: dict[str, any]
     ):
         
-        # --- 1. 从 YParams 设置配置 ---
+        # --- 从 YParams 设置配置 ---
         self.num_test_time_steps = cfg_data.data.test_steps
         self.frame_skip = cfg_inference.frame_skip
         self.frame_interval = cfg_inference.frame_interval
@@ -65,18 +59,18 @@ class MGNInference: # <--- [重命名]
         
         self.logger = logger
 
-        # --- 2. 设置 Device ---
+        # --- 设置 Device ---
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.logger.info(f"Using {self.device} device for inference") # <--- [重命名]
 
-        # --- 3. 接收 Datapipe 组件 ---
+        # --- 接收 Datapipe 组件 ---
         self.dataset = dataset
         self.dataloader = dataloader
         self.stats = {
             key: value.to(self.device) for key, value in stats['node_stats'].items()
         }
 
-        # --- 4. 初始化模型 ---
+        # --- 初始化模型 ---
         self.logger.info("Initializing model architecture...")
         mlp_act = "silu" if model_params.recompute_activation else "relu"
         
@@ -101,7 +95,7 @@ class MGNInference: # <--- [重命名]
 
         self.model.eval()
 
-        # --- 5. 加载 Checkpoint ---
+        # --- 加载 Checkpoint ---
         self.logger.info(f"Loading checkpoint from {cfg_train.checkpoint_dir}...")
         load_checkpoint(
             cfg_train.checkpoint_dir,
@@ -206,8 +200,7 @@ class MGNInference: # <--- [重命名]
             if i % 100 == 0 and self.logger.level == logging.INFO:
                 # <--- [重命名] ---
                 print(f"  Inference step {i}/{self.dataset.length}", end="\r")
-        
-        # <--- [重命名] ---
+
         self.logger.info(f"\nInference complete. Total steps: {i}") 
 
     def get_raw_data(self, idx):
@@ -272,23 +265,22 @@ class MGNInference: # <--- [重命名]
 
 
 def main():
-    # --- 1. 初始化 Manager 和 Logger ---
+    # --- 初始化 Manager 和 Logger ---
     DistributedManager.initialize() 
     manager = DistributedManager()
     logger = setup_logging(manager.rank)
     
-    # --- 2. 加载 YParams 配置 ---
+    # --- 加载 YParams 配置 ---
     config_file_path = "conf/mgn_cylinderflow.yaml"
     logger.info(f"Loading config from {config_file_path}")
     cfg_data = YParams(config_file_path, "datapipe")
     cfg_model = YParams(config_file_path, "model")
     cfg_train = YParams(config_file_path, "training")
-    # <--- [重命名] ---
     cfg_inference = YParams(config_file_path, "inference") 
     
     model_params = cfg_model.specific_params[cfg_model.name]
 
-    # --- 3. 初始化 Datapipe (DGL 版本) ---
+    # --- 初始化 Datapipe (DGL 版本) ---
     logger.info("Initializing datapipe (DGL)...")
     datapipe = DeepMind_CylinderFlowDatapipe(params=cfg_data, distributed=False)
     
@@ -298,8 +290,7 @@ def main():
     
     logger.info("Datapipe initialized.")
 
-    # --- 4. 初始化 Inference 类 ---
-    # <--- [重命名] ---
+    # --- 初始化 Inference 类 ---
     inference = MGNInference(
         cfg_inference, 
         cfg_data, 
@@ -311,8 +302,7 @@ def main():
         stats
     )
     
-    # --- 5. 执行预测和可视化 ---
-    # <--- [重命名] ---
+    # --- 执行预测和可视化 ---
     logger.info("Inference started...")
     idx = [inference.var_identifier[k] for k in inference.viz_vars]
     inference.predict()
@@ -333,7 +323,7 @@ def main():
         ani.save(save_path)
         logger.info(f"Saved animation: {save_path}")
 
-    logger.info("Inference finished.") # <--- [重命名]
+    logger.info("Inference finished.") 
 
 
 if __name__ == "__main__":

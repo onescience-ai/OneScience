@@ -194,102 +194,12 @@ def plot_data(
         plt.show()
 
 
-class MeshGenerator(object):
-    def __init__(self, real_space, mesh_size, attr_features=1, grid_input=np.array([])):
-        super(MeshGenerator, self).__init__()
-
-        self.d = len(real_space)  # 2
-        # self.m = sample_size  #1000
-        self.attr_features = attr_features
-
-        assert len(mesh_size) == self.d
-
-        if self.d == 1:  # 如果是一维网格，节点数 = 网格点数
-            self.n = mesh_size[0]
-            # self.grid = np.linspace(real_space[0][0], real_space[0][1], self.n).reshape((self.n, 1))
-        else:
-            self.n = 1
-            grids = []
-            for j in range(self.d):
-                # grids.append(np.linspace(real_space[j][0], real_space[j][1], mesh_size[j]))
-                # grids.append(np.linspace(real_space[j][0]+(0.5/mesh_size[j]), real_space[j][1]-(0.5/mesh_size[j]), mesh_size[j]))
-                self.n *= mesh_size[j]  # 对于多维网格，节点数 = 各维度网格点数的乘积
-
-        self.idx = np.array(range(self.n))
-        self.grid = grid_input
-        self.grid_sample = self.grid
-
-    def sample(self, idx):
-        self.idx = torch.tensor(idx)
-        self.grid_sample = self.grid[self.idx]
-        return self.idx
-
-    def get_grid(self):  # 将当前采样的网格（grid_sample）返回为 PyTorch 张量
-        return torch.tensor(self.grid_sample, dtype=torch.float)
-
-    def deduplicate_rows(tensor):  # 去除输入张量 tensor 中的重复行
-        unique_rows = []
-        seen_rows = set()
-        for row in tensor:
-            row_tuple = tuple(row.tolist())
-            if row_tuple not in seen_rows:
-                unique_rows.append(row)
-                seen_rows.add(row_tuple)
-        deduplicated_tensor = torch.stack(unique_rows)
-        return deduplicated_tensor
-
-    def ball_connectivity(
-        self, is_forward=False, ns=10, tri_edge=None
-    ):  # 根据输入的网格节点计算边索引，构造图的连接关系。
-        self.pwd = sklearn.metrics.pairwise_distances(self.grid_sample)
-        tri_edge = tri_edge.T
-
-        edge_index_1 = np.array([])
-        edge_index_2 = np.array([])
-        for i in range(self.grid_sample.shape[0]):
-            edge_index_1 = np.append(edge_index_1, np.array([i]).repeat(ns + 1))
-            edge_index_2 = np.append(edge_index_2, np.argsort(self.pwd[i])[: ns + 1])
-        self.edge_index = np.vstack([edge_index_1, edge_index_2])
-        self.edge_index = np.concatenate([self.edge_index, tri_edge], -1)
-
-        self.edge_index = torch.tensor(self.edge_index)
-        self.edge_index = torch.cat([self.edge_index, self.edge_index.flip(0)], dim=1)
-        self.edge_index = MeshGenerator.deduplicate_rows(self.edge_index.T).T
-        self.n_edges = self.edge_index.shape[1]
-        if is_forward:
-            print(self.edge_index.shape)
-            self.edge_index = self.edge_index[
-                :, self.edge_index[0] >= self.edge_index[1]
-            ]
-            print(self.edge_index.shape)
-            self.n_edges = self.edge_index.shape[1]
-
-        return torch.tensor(self.edge_index, dtype=torch.long)
-
-    def attributes(
-        self, theta=None
-    ):  # 构造边特征矩阵 edge_attr 包括：1.几何特性（如边长） 2.起点和终点的属性 3.起点和终点的坐标
-        # pwd = sklearn.metrics.pairwise_distances(self.grid_sample)
-        theta = theta[self.idx]
-        edge_attr = np.zeros((self.n_edges, 2 * self.d + 2 * self.attr_features + 1))
-        self.edge_index = torch.tensor(self.edge_index).to(torch.int64)
-
-        for p in range(self.n_edges):
-            edge_attr[p, 6:7] = self.pwd[self.edge_index[0][p]][self.edge_index[1][p]]
-        edge_attr[:, 4:5] = theta[self.edge_index[0]].view(-1, self.attr_features)
-        edge_attr[:, 5:6] = theta[self.edge_index[1]].view(-1, self.attr_features)
-        edge_attr[:, 0:4] = self.grid_sample[self.edge_index.T].reshape(
-            (self.n_edges, -1)
-        )
-
-        return torch.tensor(edge_attr, dtype=torch.float)
-
-
-# normalization, Gaussian
 class GaussianNormalizer(object):
     def __init__(self, x, eps=0.00001):
         super(GaussianNormalizer, self).__init__()
-
+        # 确保 mean 和 std 是 tensor
+        if not torch.is_tensor(x):
+            x = torch.tensor(x)
         self.mean = torch.mean(x)
         self.std = torch.std(x)
         self.eps = eps
@@ -302,21 +212,136 @@ class GaussianNormalizer(object):
         x = (x * (self.std + self.eps)) + self.mean
         return x
 
-    # def cuda(self):
-    #     self.mean = self.mean.cuda()
-    #     self.std = self.std.cuda()
-
-    # def cpu(self):
-    #     self.mean = self.mean.cpu()
-    #     self.std = self.std.cpu()
     def cuda(self, device):
         self.mean = self.mean.to(device)
         self.std = self.std.to(device)
+        return self
 
     def cpu(self):
         self.mean = self.mean.cpu()
         self.std = self.std.cpu()
+        return self
 
+    def to(self, device):
+        self.mean = self.mean.to(device)
+        self.std = self.std.to(device)
+        return self
+
+class MeshGenerator(object):
+    def __init__(self, real_space, mesh_size, attr_features=1, grid_input=np.array([])):
+        super(MeshGenerator, self).__init__()
+        self.d = len(real_space)
+        self.attr_features = attr_features
+        
+        if self.d == 1:
+            self.n = mesh_size[0]
+        else:
+            self.n = 1
+            for j in range(self.d):
+                self.n *= mesh_size[j]
+
+        self.grid = grid_input
+        self.grid_sample = self.grid
+        self.idx = np.arange(self.n)
+
+    def sample(self, idx):
+        # 优化：直接保存 numpy 索引，后续计算都在 numpy 中进行，最后转 tensor
+        self.idx = idx 
+        self.grid_sample = self.grid[self.idx]
+        return torch.tensor(self.idx)
+
+    def get_grid(self):
+        return torch.tensor(self.grid_sample, dtype=torch.float)
+
+    @staticmethod
+    def deduplicate_rows(tensor):
+        # 这是一个相对耗时的操作，但在图构建中通常必要
+        # 使用 torch.unique 可以加速 (dim=0)
+        return torch.unique(tensor, dim=0)
+
+    def ball_connectivity(self, is_forward=False, ns=10, tri_edge=None):
+        """
+        [极速优化版] 使用矩阵操作替代循环构建边索引
+        """
+        N = self.grid_sample.shape[0]
+        
+        # 1. 计算距离矩阵 (N, N)
+        # 使用 sklearn 的 pairwise_distances (底层C++优化)
+        self.pwd = sklearn.metrics.pairwise_distances(self.grid_sample)
+        
+        # 2. 找到最近的 ns 个邻居 (Vectorized)
+        # argsort 每一行，取前 ns+1 个 (包含自身)
+        # [N, ns+1]
+        knn_indices = np.argsort(self.pwd, axis=1)[:, :ns+1]
+        
+        # 3. 构建 Edge Index (KNN部分)
+        # source_nodes: [0,0,..,0, 1,1,..,1, ...] -> [N * (ns+1)]
+        source_nodes = np.repeat(np.arange(N), ns + 1)
+        # target_nodes: flatten knn_indices -> [N * (ns+1)]
+        target_nodes = knn_indices.flatten()
+        
+        edge_index_knn = np.stack([source_nodes, target_nodes], axis=0) # [2, E_knn]
+        
+        # 4. 合并三角剖分边 (Triangulation Edges)
+        if tri_edge is not None:
+            # tri_edge 应该是 [N_tri, 2] -> 转置为 [2, N_tri]
+            edge_index_knn = np.concatenate([edge_index_knn, tri_edge.T], axis=1)
+            
+        # 5. 转为 Tensor 并去重
+        # 先转 Tensor
+        self.edge_index = torch.from_numpy(edge_index_knn).long()
+        
+        # 添加无向边 (src->dst, dst->src)
+        self.edge_index = torch.cat([self.edge_index, self.edge_index.flip(0)], dim=1)
+        
+        # 去重 (使用 torch.unique 替代手动循环)
+        self.edge_index = torch.unique(self.edge_index, dim=1)
+        
+        self.n_edges = self.edge_index.shape[1]
+        
+        if is_forward:
+            mask = self.edge_index[0] >= self.edge_index[1]
+            self.edge_index = self.edge_index[:, mask]
+            self.n_edges = self.edge_index.shape[1]
+
+        return self.edge_index
+
+    def attributes(self, theta=None):
+        """
+        [极速优化版] 使用高级索引替代循环构建边特征
+        """
+        # theta: Tensor [N_total, 1] -> numpy slice -> [N_sample, 1]
+        # 确保 theta 是 tensor，self.idx 是 numpy 或 list
+        theta_sample = theta[self.idx] # [N_sample, 1]
+        
+        # 准备边索引 (numpy) 用于索引操作
+        row, col = self.edge_index[0].numpy(), self.edge_index[1].numpy()
+        
+        # 1. 初始化特征矩阵 [E, feat_dim]
+        # feat_dim = 2*2 + 2*1 + 1 = 7 (通常情况)
+        edge_attr = np.zeros((self.n_edges, 2 * self.d + 2 * self.attr_features + 1), dtype=np.float32)
+        
+        # 2. 向量化填充特征
+        # [0:4] 起点和终点的坐标 (grid_sample: [N, 2])
+        # 利用 numpy 高级索引直接提取所有边的坐标
+        # grid_sample[row] -> [E, 2], grid_sample[col] -> [E, 2]
+        # reshape(-1) 展平为 [E * 4] ? 不，原始代码是 cat 在 dim=1
+        # 原代码: edge_attr[:, 0:4] = ... reshape((n_edges, -1))
+        # 意思是 [x1, y1, x2, y2]
+        edge_attr[:, 0:2] = self.grid_sample[row]
+        edge_attr[:, 2:4] = self.grid_sample[col]
+        
+        # [4:5] 起点属性 theta
+        edge_attr[:, 4:5] = theta_sample[row].reshape(-1, 1).numpy()
+        
+        # [5:6] 终点属性 theta
+        edge_attr[:, 5:6] = theta_sample[col].reshape(-1, 1).numpy()
+        
+        # [6:7] 欧氏距离 (从 self.pwd 中直接查表)
+        # self.pwd 是 [N, N] 矩阵，直接用 row, col 索引
+        edge_attr[:, 6] = self.pwd[row, col]
+        
+        return torch.from_numpy(edge_attr).float()
 
 # loss function with rel/abs Lp loss
 class LpLoss(object):

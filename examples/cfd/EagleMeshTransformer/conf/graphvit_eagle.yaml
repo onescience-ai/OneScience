@@ -1,54 +1,80 @@
 # conf/graphvit_eagle.yaml
+# GraphViT 在 Eagle 数据集上的训练与推理配置文件
 
 datapipe:
-  # 1. 源路径 (来自 argparse 和 EagleDataset init)
+  # 数据相关配置模块
   source:
-    data_dir: "/public/onestore/onedatasets/Eagle/Eagle_dataset"      
-    cluster_dir: "/public/onestore/onedatasets/Eagle/Eagle_dataset"  
-    splits_dir: "./splits/"        
-    
-  verbose: True
-  # 2. 数据集特定参数 (来自 argparse 和 EagleDataset init)
-  data:
-    # 窗口长度 (来自 --horizon-train/--horizon-val)
-    window_length_train: 6
-    window_length_val: 25
-    window_length_test: 25 # 假设 test 与 val 相同
-    
-    # 集群 (来自 --n-cluster)
-    n_cluster: 40 # 您需要在这里设置一个值, e.g., 40
-    
-    # 其他 EagleDataset 参数
-    normalized: True
-    type_as_onehot: True
-    with_cells: True # 通常在训练时为 False
+    # Eagle 数据集根目录，包含原始流场与几何数据
+    data_dir: "/public/onestore/onedatasets/Eagle/Eagle_dataset"
 
-  # 3. Dataloader 参数 (来自 argparse)
+    # 聚类结果存放目录（GraphViT 使用的节点聚类信息）
+    cluster_dir: "/public/onestore/onedatasets/Eagle/Eagle_dataset"
+
+    # 训练 / 验证 / 测试数据划分文件所在目录
+    splits_dir: "./splits/"
+
+  # 是否在数据加载过程中输出详细日志
+  verbose: True
+
+  data:
+    # 训练阶段使用的时间窗口长度
+    window_length_train: 6
+
+    # 验证阶段使用的时间窗口长度
+    window_length_val: 25
+
+    # 测试阶段使用的时间窗口长度
+    window_length_test: 25
+
+    # 网格节点聚类数量，用于 GraphViT 的 cluster-based 表达
+    n_cluster: 40
+
+    # 是否对物理量进行归一化处理
+    normalized: True
+
+    # 是否将节点类型编码为 one-hot 向量
+    type_as_onehot: True
+
+    # 是否在数据中包含单元（cell）级别信息
+    with_cells: True
+
   dataloader:
+    # 单个 batch 中包含的样本数量
     batch_size: 2
-    num_workers: 4 # 一个合理的默认值
+
+    # DataLoader 使用的子进程数量
+    num_workers: 4
+
 
 model:
-  # 1. 模型名称 (来自 --model-name, 但这里用于标识)
+  # 模型名称标识，用于日志与 checkpoint 命名
   name: "GraphViT"
-  
-  # 2. 模型超参数 (来自 argparse)
-  w_size: 512       # from --w-size
-  state_size: 4     # hardcoded in original train script
+
+  # GraphViT 中隐空间特征维度
+  w_size: 512
+
+  # 节点状态向量维度（如速度 + 压力）
+  state_size: 4
+
 
 training:
-  # 1. 训练参数 (来自 argparse)
-  max_epoch: 1000   # from --epoch
-  lr: 1e-4          # from --lr
-  loss_alpha: 0.1   # from --alpha
-  
-  # 2. 训练流程控制 (仿照 train_transolver.py)
-  patience: 100     # 提前停止的耐心值
-  
-  # 3. 检查点 (来自 --output-path 和 --model-name)
-  checkpoint_dir: "./checkpoints/eagle_graphvit/" # 组合了 output-path 和 model-name
-  
-  # 4. DDP/GPU 设置
-  gpuid: 0 # 用于单卡训练
+  # 最大训练轮数
+  max_epoch: 1000
 
+  # 优化器学习率
+  lr: 1e-4
+
+  # 损失函数中压力项的加权系数
+  loss_alpha: 0.1
+
+  # 验证集指标在连续若干轮未提升时触发提前停止
+  patience: 100
+
+  # 模型 checkpoint 保存目录
+  checkpoint_dir: "./checkpoints/eagle_graphvit/"
+
+  # 单卡或主卡使用的 GPU 编号
+  gpuid: 0
+
+  # 推理阶段最多保存的动画/时间步数量
   max_anim_on_infer: 5

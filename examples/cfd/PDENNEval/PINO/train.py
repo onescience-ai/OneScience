@@ -1,375 +1,287 @@
-# coding=utf-8
-import argparse
 import os
 import sys
 import torch
-from tqdm import tqdm
 import torch.nn as nn
-from torch.utils.data import DataLoader
-import yaml
+import numpy as np
+import copy
+from timeit import default_timer
+from pathlib import Path
+from tqdm import tqdm
+import argparse
+from onescience.utils.YParams import YParams
+from onescience.distributed.manager import DistributedManager
+from onescience.datapipes import PDEBenchPINODatapipe
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 from onescience.models.pdenneval.pino_fno import FNO1d, FNO2d, FNO3d
-from onescience.utils.pdenneval.pino_utils import PINODatasetSingle, PINODatasetMult, setup_seed, generate_input, count_params, to_device, timer
 from onescience.utils.pdenneval.pino_loss import pde_loss
-from onescience.utils.pdenneval import metrics
+from onescience.utils.pdenneval.pino_utils import generate_input, to_device, count_params
 
 
-def get_dataset(args):
-    dataset_args = args["dataset"]
-    if dataset_args["single_file"]:
-        print("PINODatasetSingle")
-        train_data = PINODatasetSingle(dataset_args["file_name"],
-                                       dataset_args["saved_folder"],
-                                       initial_step=args["initial_step"],
-                                       reduced_resolution=dataset_args["reduced_resolution"],
-                                       reduced_resolution_t=dataset_args["reduced_resolution_t"],
-                                       reduced_batch=dataset_args["reduced_batch"],
-                                       test_ratio=dataset_args["test_ratio"],
-                                       if_test=False,
-                                       if_grid_norm=dataset_args["if_grid_norm"])
-        train_pde = PINODatasetSingle(dataset_args["file_name"],
-                                       dataset_args["saved_folder"],
-                                       initial_step=args["initial_step"],
-                                       reduced_resolution=dataset_args["reduced_resolution_pde"],
-                                       reduced_resolution_t=dataset_args["reduced_resolution_pde_t"],
-                                       reduced_batch=dataset_args["reduced_batch"],
-                                       test_ratio=dataset_args["test_ratio"],
-                                       if_test=False,
-                                       if_grid_norm=dataset_args["if_grid_norm"])
-        val_data = PINODatasetSingle(dataset_args["file_name"],
-                                     dataset_args["saved_folder"],
-                                     initial_step=args["initial_step"],
-                                     reduced_resolution=dataset_args["reduced_resolution"],
-                                     reduced_resolution_t=dataset_args["reduced_resolution_t"],
-                                     reduced_batch=dataset_args["reduced_batch"],
-                                     test_ratio=dataset_args["test_ratio"],
-                                     if_test=True,
-                                     if_grid_norm=dataset_args["if_grid_norm"])
-    else:
-        print("PINODatasetMult")
-        train_data = PINODatasetMult(dataset_args["file_name"],
-                                     dataset_args["saved_folder"],
-                                     initial_step=args["initial_step"],
-                                     reduced_resolution=dataset_args["reduced_resolution"],
-                                     reduced_resolution_t=dataset_args["reduced_resolution_t"],
-                                     reduced_batch=dataset_args["reduced_batch"],
-                                     test_ratio=dataset_args["test_ratio"],
-                                     if_test=False,
-                                     if_grid_norm=dataset_args["if_grid_norm"])
-        train_pde = PINODatasetMult(dataset_args["file_name"],
-                                     dataset_args["saved_folder"],
-                                     initial_step=args["initial_step"],
-                                     reduced_resolution=dataset_args["reduced_resolution_pde"],
-                                     reduced_resolution_t=dataset_args["reduced_resolution_pde_t"],
-                                     reduced_batch=dataset_args["reduced_batch"],
-                                     test_ratio=dataset_args["test_ratio"],
-                                     if_test=False,
-                                     if_grid_norm=dataset_args["if_grid_norm"])
-        val_data = PINODatasetMult(dataset_args["file_name"],
-                                   dataset_args["saved_folder"],
-                                   initial_step=args["initial_step"],
-                                   reduced_resolution=dataset_args["reduced_resolution"],
-                                   reduced_resolution_t=dataset_args["reduced_resolution_t"],
-                                   reduced_batch=dataset_args["reduced_batch"],
-                                   test_ratio=dataset_args["test_ratio"],
-                                   if_test=True,
-                                   if_grid_norm=dataset_args["if_grid_norm"])
-    return train_data, train_pde, val_data
-
-
-def get_dataloader(train_data,train_pde, val_data, args):
-    dataloader_args = args["dataloader"]
-    train_loader = DataLoader(train_data, shuffle=True,
-                              batch_size=dataloader_args["batch_size"],
-                              num_workers=dataloader_args["num_workers"],
-                              pin_memory=dataloader_args["pin_memory"])
-    pde_loader = DataLoader(train_pde, shuffle=True,
-                              batch_size=dataloader_args["batch_size"],
-                              num_workers=dataloader_args["num_workers"],
-                              pin_memory=dataloader_args["pin_memory"])
-    val_loader = DataLoader(val_data, shuffle=False,
-                            batch_size=dataloader_args["batch_size"],
-                            num_workers=dataloader_args["num_workers"],
-                            pin_memory=dataloader_args["pin_memory"],
-                            drop_last=True)
-    return train_loader, pde_loader, val_loader
-
-
-def get_model(spatial_dim, if_temporal, args):
+def get_model(spatial_dim, if_temporal, cfg):
     assert spatial_dim <= 3, "Spatial dimension of data can not exceed 3."
-
-    model_args = args["model"]
-    initial_step = args["initial_step"]
-    dim=spatial_dim+1 if if_temporal else spatial_dim
+    model_args = cfg.model
+    initial_step = cfg.datapipe.data.initial_step
+    dim = spatial_dim + 1 if if_temporal else spatial_dim
+    in_dim = model_args.in_channels * initial_step + dim
+    
     if dim == 1:
-        model = FNO1d(in_dim=model_args["in_channels"]*initial_step+1,
-                      out_dim= model_args["out_channels"],
-                       modes=model_args["modes1"],
-                       fc_dim=model_args["fc_dim"],
-                       width=model_args["width"],
-                       act=model_args["act"])
+        model = FNO1d(
+            in_dim=in_dim,
+            out_dim=model_args.out_channels,
+            modes=model_args.modes1,
+            fc_dim=model_args.fc_dim,
+            width=model_args.width,
+            act=model_args.act
+        )
     elif dim == 2:
-        model = FNO2d(in_dim=model_args["in_channels"]*initial_step+2,
-                      out_dim=model_args["out_channels"],
-                      modes1=model_args["modes1"],
-                      modes2=model_args["modes2"],
-                      fc_dim=model_args["fc_dim"],
-                      width=model_args["width"],
-                      act=model_args["act"])
+        model = FNO2d(
+            in_dim=in_dim,
+            out_dim=model_args.out_channels,
+            modes1=model_args.modes1,
+            modes2=model_args.modes2,
+            fc_dim=model_args.fc_dim,
+            width=model_args.width,
+            act=model_args.act
+        )
     elif dim == 3:
-        model = FNO3d(in_dim=model_args["in_channels"]*initial_step+3,
-                      out_dim=model_args["out_channels"],
-                      modes1=model_args["modes1"],
-                      modes2=model_args["modes2"],
-                      modes3=model_args["modes3"],
-                      fc_dim=model_args["fc_dim"],
-                      width=model_args["width"],
-                      act=model_args["act"])
+        # 使用标准的 FNO3d
+        model = FNO3d(
+            in_dim=in_dim,
+            out_dim=model_args.out_channels,
+            modes1=model_args.modes1,
+            modes2=model_args.modes2,
+            modes3=model_args.modes3,
+            fc_dim=model_args.fc_dim,
+            width=model_args.width,
+            act=model_args.act
+        )
     else:
-        raise NotImplementedError
-    print("Parameters num: "+str(count_params(model)))
+        raise NotImplementedError(f"Dimension {dim} is not supported.")
+        
     return model
-
-def train_loop(dataloader, pdeloader, model, if_temporal, optimizer, device, train_args):
+    
+def train_loop(dataloader, pdeloader, model, if_temporal, optimizer, device, train_args, rank, pbar=None):
     model.train()
-    train_loss = 0.0
-    train_data=0.0
-    train_ic = 0.0
-    train_f = 0.0
-    data_weight = train_args.get('xy_loss',1.0)
-    f_weight = train_args.get('f_loss',0.0)
-    ic_weight = train_args.get('ic_loss',0.0)
+
+    data_weight = train_args.xy_loss
+    f_weight = train_args.f_loss
+    ic_loss_weight = train_args.ic_loss
     loss_fn = nn.MSELoss(reduction="mean")
-    # pbar = tqdm(range(len(dataloader)), dynamic_ncols=True, smoothing=0.05)
-    dataloader=iter(dataloader)
-    pdeloader=iter(pdeloader)
-    # train loop
-    for i in range(len(dataloader)):
 
-        loss = 0
-        # a: (bs, x1, ..., xd, init_t, c), u: (bs, x1, ..., xd, t_train, v)
-        a, u, grid = next(dataloader)
-        if torch.any(u.isnan()): # ill data
+    train_loss = 0.0
+
+    loader_iter = iter(dataloader)
+    pde_iter = iter(pdeloader)
+
+    num_batches = len(dataloader) if hasattr(dataloader, "__len__") else None
+    if num_batches is None:
+        # 兜底：如果 dataloader 没有 __len__，就按迭代器跑
+        num_batches = 0
+        for _ in dataloader:
+            num_batches += 1
+        loader_iter = iter(dataloader)
+
+    for _ in range(num_batches):
+        # 1) Data batch
+        try:
+            a, u, grid = next(loader_iter)
+        except StopIteration:
+            loader_iter = iter(dataloader)
+            a, u, grid = next(loader_iter)
+
+        if torch.any(u.isnan()):
+            if pbar is not None:
+                pbar.update(1)
+                pbar.set_postfix(skip="nan")
             continue
-        bs= a.shape[0]
-        a, u, grid = to_device([a,u,grid],device)
-        if not if_temporal:  # DarcyFlow
-            a=u[...,0:1]
-            u=u[...,1:2]
-            input = generate_input(a,grid[...,:-1]).squeeze(-2)
+
+        bs = a.shape[0]
+        a, u, grid = to_device([a, u, grid], device)
+
+        if not if_temporal:  # Darcy
+            a_in = u[..., 0:1]
+            u_in = u[..., 1:2]
+            input_tensor = generate_input(a_in, grid[..., :-1]).squeeze(-2)
+            u_target = u_in
         else:
-            input = generate_input(a,grid)
+            input_tensor = generate_input(a, grid)
+            u_target = u
 
-        pred= model(input)
-        data_loss = loss_fn(pred[...,:u.shape[-1]].reshape([bs,-1]),u.reshape([bs,-1]))
+        pred = model(input_tensor)
+        data_loss = loss_fn(pred[..., :u_target.shape[-1]].reshape(bs, -1), u_target.reshape(bs, -1))
 
+        # 2) PDE loss
+        if f_weight > 0:
+            try:
+                a_pde, u_pde, grid_pde = next(pde_iter)
+            except StopIteration:
+                pde_iter = iter(pdeloader)
+                a_pde, u_pde, grid_pde = next(pde_iter)
 
-        if f_weight>0:
-            a, u, grid=next(pdeloader)
-            a, u, grid = to_device([a,u,grid],device)
-            if not if_temporal:  # DarcyFlow
-                a=u[...,0:1]
-                u=u[...,1:2]
-                input = generate_input(a,grid[...,:-1]).squeeze(-2)
+            a_pde, u_pde, grid_pde = to_device([a_pde, u_pde, grid_pde], device)
+
+            if not if_temporal:
+                a_in_pde = u_pde[..., 0:1]
+                u_in_pde = u_pde[..., 1:2]
+                input_pde = generate_input(a_in_pde, grid_pde[..., :-1]).squeeze(-2)
             else:
-                input = generate_input(a,grid)
-            pred = model(input)
-            ic_loss, f_loss = pde_loss(pred, a, u, train_args, grid)
+                input_pde = generate_input(a_pde, grid_pde)
+
+            pred_pde = model(input_pde)
+
+            ic_loss_val, f_loss_val = pde_loss(
+                pred_pde,
+                a_in_pde if not if_temporal else a_pde,
+                u_in_pde if not if_temporal else u_pde,
+                train_args,
+                grid_pde
+            )
         else:
-            ic_loss=torch.tensor(0.0)
-            f_loss=torch.tensor(0.0)
-        loss = data_weight*data_loss + ic_weight*ic_loss +f_weight*f_loss
-        # if loss.isnan():
-        #     continue
+            ic_loss_val = torch.tensor(0.0, device=device)
+            f_loss_val = torch.tensor(0.0, device=device)
+
+        loss = data_weight * data_loss + ic_loss_weight * ic_loss_val + f_weight * f_loss_val
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        train_loss+=loss.item()
-        train_data+=data_loss.item()
-        train_ic+=ic_loss.item()
-        train_f+=f_loss.item()
 
-    
-    train_loss/=len(dataloader)
-    train_data/=len(dataloader)
-    train_ic/=len(dataloader)
-    train_f/=len(dataloader)
+        loss_val = float(loss.item())
+        train_loss += loss_val
 
-    return train_loss, train_data, train_ic, train_f
+        if pbar is not None:
+            pbar.update(1)
+            pbar.set_postfix(
+                loss=f"{loss_val:.3e}",
+                data=f"{float(data_loss.item()):.3e}",
+                f=f"{float(f_loss_val.item()):.3e}",
+                ic=f"{float(ic_loss_val.item()):.3e}",
+            )
+
+    return train_loss / num_batches
+
 
 @torch.no_grad()
-def val_loop(dataloader, model, if_temporal, device, train_args):
+def val_loop(dataloader, model, if_temporal, device):
     model.eval()
-    val_l2 = 0
-    # start_time = time.time()
     loss_fn = nn.MSELoss(reduction="mean")
-    max_inf=0
+    val_loss = 0.0
+    
     for a, u, grid in dataloader:
-        bs = a.size(0)
-        a, u, grid = to_device([a,u,grid],device)
-        if not if_temporal:  # DarcyFlow
-            a=u[...,0:1]
-            u=u[...,1:2]
-            input = generate_input(a,grid[...,:-1]).squeeze(-2)
-        else:
-            input = generate_input(a,grid)
+        bs = a.shape[0]
+        a, u, grid = to_device([a, u, grid], device)
         
-        pred= model(input)
-        data_loss = loss_fn(pred[...,:u.shape[-1]].reshape([bs,-1]),u.reshape([bs,-1]))
-        L_inf= torch.norm(pred[...,:u.shape[-1]].reshape([bs,-1])-u.reshape([bs,-1]),p=float('inf')).item()
-        max_inf= L_inf if max_inf<L_inf else max_inf
-        val_l2+=data_loss.item()
-    val_l2/=len(dataloader)  # MSE
-    return data_loss, max_inf
-
-@timer
-@torch.no_grad()
-def test_loop(dataloader, model,if_temporal, device, metric_names=['MSE', 'L2RE', 'MaxError']):
-    model.eval()
-    # initial result dict
-    res_dict = {}
-    for name in metric_names:
-        res_dict[name] = []
-    # test
-    for a,u,grid in dataloader:
-        a, u, grid = to_device([a,u,grid],device)
-        if not if_temporal:  # DarcyFlow
-            a=u[...,0:1]
-            u=u[...,1:2]
-            input = generate_input(a,grid[...,:-1]).squeeze(-2)
+        if not if_temporal:
+            a_in = u[..., 0:1]
+            u_in = u[..., 1:2]
+            input_tensor = generate_input(a_in, grid[..., :-1]).squeeze(-2)
+            u = u_in
         else:
-            input = generate_input(a,grid)
-        pred= model(input)[...,:u.shape[-1]].reshape(u.shape)
-
-        for name in metric_names:
-            metric_fn = getattr(metrics, name)
-            res_dict[name].append(metric_fn(pred, u))
-    # post process
-    for name in metric_names:
-        res_list = res_dict[name]
-        if name == "MaxError":
-            res = torch.stack(res_list, dim=0)
-            res, _ = torch.max(res, dim=0)
-        else:
-            res = torch.cat(res_list, dim=0)
-            res = torch.mean(res, dim=0)
-        res_dict[name] = res
-    return res_dict
-
-
-def main(args):
-    # init
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    checkpoint = torch.load(args["model_path"]) if not args["if_training"] or args["continue_training"] else None
-    saved_model_name = args['train'].get('save_name',args['model_name'])
-    saved_model_name = saved_model_name+ f"_lr{args['optimizer']['lr']}" + f"_bs{args['dataloader']['batch_size']}"
-    saved_dir = os.path.join(args["output_dir"], os.path.splitext(args["dataset"]["file_name"])[0])
-    if not os.path.exists(saved_dir):
-        os.makedirs(saved_dir)
-
-    # data get dataloader
-    train_data, train_pde,val_data = get_dataset(args)
-    train_loader, pde_loader, val_loader = get_dataloader(train_data, train_pde, val_data, args)
-    # set some train args
-    _, sample, _ = next(iter(val_loader))
-    spatial_dim = len(sample.shape) - 3
-    if_temporal= True if sample.shape[-2]!=1 else False
-    args["train"].update({"dx": train_pde.dx, "dt": train_pde.dt})
-
-    # model
-    model = get_model(spatial_dim, if_temporal, args)
-    ## if test, load model from checkpoint
-    if not args["if_training"]:
-        model.load_state_dict(checkpoint["model_state_dict"])
-        if torch.cuda.device_count() > 8:
-            model = nn.DataParallel(model)
-        model.to(device)
-        model.eval()
-        print("start testing...")
-        print(f"testset batch num. is {len(val_loader)} , batchsize={args['dataloader']['batch_size']}")
-        # time_list=[]
-        # for i in range(10):
-        res, time = test_loop(val_loader, model, if_temporal, device)
-        #     time_list.append(time)
-        # time_list.pop(time_list.index(max(time_list)))
-        # time_list.pop(time_list.index(min(time_list)))
+            input_tensor = generate_input(a, grid)
+            
+        pred = model(input_tensor)
+        val_loss += loss_fn(pred[..., :u.shape[-1]].reshape(bs, -1), u.reshape(bs, -1)).item()
         
-        # print("average time per loop:",sum(time_list)/8)
-        # print(f"average time per batch:{sum(time_list)/8/len(val_loader): .4f}" )
-        for name,val in res.items():
-            if val.ndim==1:
-                for i, v in enumerate(val):
-                    print(f"{name}[{i}]: {v:.6f}")
-            else:
-                print(f"{name}: {val:.6f}")
-        print("Done")
-        return
-    ## if continue training, resume model from checkpoint
-    if args["continue_training"]:
-        print(f"continue training, load checkpoint from {args['model_path']}")
-        model.load_state_dict(checkpoint["model_state_dict"])
-    if torch.cuda.device_count() > 8:
-        model = nn.DataParallel(model)
-    model.to(device)
+    return val_loss / len(dataloader)
 
-    # optimizer
-    optim_args = args["optimizer"]
-    optim_name = optim_args.pop("name")
-    ## if continue training, resume optimizer and scheduler from checkpoint
-    if args["continue_training"]:
-        optimizer = getattr(torch.optim, optim_name)([{'params': model.parameters(), 'initial_lr': optim_args["lr"]}], **optim_args)
-    else:
-        optimizer = getattr(torch.optim, optim_name)(model.parameters(), **optim_args)
+def main():
+    DistributedManager.initialize()
+    dist = DistributedManager()
+    device = dist.device
+    
+    parser = argparse.ArgumentParser(description='Train PINO model')
+    parser.add_argument('config', type=str, help='Path to config file')
+    args = parser.parse_args()
+    config_path = args.config
+    # 验证配置文件是否存在
+    if not os.path.exists(config_path):
+        print(f"Error: Config file not found at {config_path}")
+        sys.exit(1)
+        
+    cfg = YParams(config_path, "pino_config")
+    
+    output_dir = Path(cfg.training.output_dir)
+    if dist.rank == 0:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Output: {output_dir}")
 
-    # scheduler
-    start_epoch = 0
-    min_val_loss = torch.inf
-    if args["continue_training"]:
-        start_epoch = checkpoint['epoch']
-        min_val_loss = checkpoint['loss']
-    sched_args = args["scheduler"]
-    sched_name = sched_args.pop("name")
-    scheduler = getattr(torch.optim.lr_scheduler, sched_name)(optimizer, last_epoch=start_epoch-1, **sched_args)
+    # Datapipe
+    datapipe = PDEBenchPINODatapipe(cfg, distributed=(dist.world_size > 1))
+    train_loader, train_sampler = datapipe.train_dataloader()
+    pde_loader, pde_sampler = datapipe.pde_dataloader()
+    val_loader, val_sampler = datapipe.val_dataloader()
+    
 
-    # train
-    print(f"start training from epoch {start_epoch}")
-    pbar=tqdm(range(start_epoch,args["epochs"]), dynamic_ncols=True, smoothing=0.05)
-    loss_curve=[]
-    for epoch in pbar:
-        ## train loop
-        train_loss, train_data, train_ic, train_f = train_loop(train_loader,pde_loader, model, if_temporal, optimizer, device, args["train"])
+    train_args_dict = cfg.training.to_dict()
+    train_args_dict['dx'] = datapipe.dx
+    train_args_dict['dt'] = datapipe.dt
+    # Wrap back to object for compatibility if pde_loss expects object access (args.dx)
+    # Or modify pde_loss to accept dict. Assuming dict/namespace wrapper.
+    class AttrDict(dict):
+        def __init__(self, *args, **kwargs):
+            super(AttrDict, self).__init__(*args, **kwargs)
+            self.__dict__ = self
+    train_args_obj = AttrDict(train_args_dict)
+
+    # Determine Spatial Dim
+    temp_sample = next(iter(val_loader))
+    _, sample_u, _ = temp_sample
+    spatial_dim = len(sample_u.shape) - 3
+    if_temporal = True if sample_u.shape[-2] != 1 else False
+
+    # Model
+    model = get_model(spatial_dim, if_temporal, cfg).to(device)
+    if dist.world_size > 1:
+        model = DDP(model, device_ids=[dist.local_rank], output_device=dist.local_rank)
+        
+    # Optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.training.optimizer.lr, weight_decay=cfg.training.optimizer.weight_decay)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=cfg.training.scheduler.step_size, gamma=cfg.training.scheduler.gamma)
+    
+    if dist.rank == 0:
+        print("Starting Training...")
+    
+    for epoch in range(cfg.training.epochs):
+        if train_sampler:
+            train_sampler.set_epoch(epoch)
+        if pde_sampler:
+            pde_sampler.set_epoch(epoch)
+    
+        pbar = None
+        if dist.rank == 0:
+            total = len(train_loader) if hasattr(train_loader, "__len__") else None
+            pbar = tqdm(
+                total=total,
+                desc=f"Epoch {epoch+1}/{cfg.training.epochs}",
+                dynamic_ncols=True,
+                leave=False,
+                mininterval=0.5,
+            )
+    
+        train_loss = train_loop(
+            train_loader, pde_loader, model, if_temporal, optimizer,
+            device, train_args_obj, dist.rank, pbar=pbar
+        )
+    
+        if pbar is not None:
+            pbar.close()
+    
         scheduler.step()
-        pbar.set_description(f"[Epoch {epoch}] train_loss: {train_loss:.5e}, data_loss: {train_data:.5e}, train_f: {train_f:.5e},train_ic:{train_ic:.5e}")
-        # print(f"[Epoch {epoch}] train_loss: {train_loss}, data_loss: {train_data}, train_f: {train_f},train_ic:{train_ic}")
-        loss_curve.append(train_loss)
-        ## save latest
-        saved_path = os.path.join(saved_dir, saved_model_name)
-        model_state_dict = model.module.state_dict() if torch.cuda.device_count() > 8 else model.state_dict()
-        torch.save({"epoch": epoch+1, "loss": min_val_loss,
-            "model_state_dict": model_state_dict,
-            "optimizer_state_dict": optimizer.state_dict()
-            }, saved_path + "-latest.pt")
-        ## validate
-        if (epoch+1) % args["save_period"] == 0:
-            val_loss, L_inf = val_loop(val_loader, model, if_temporal, device, args["train"])
-            print(f"[Epoch {epoch}] val_loss: {val_loss:.5e}, L_inf: {L_inf:.5e}")
-            print("================================================",flush=True)
-            if val_loss < min_val_loss:
-                ### save best
-                torch.save({"epoch": epoch+1, "loss": min_val_loss,
-                    "model_state_dict": model.module.state_dict() if torch.cuda.device_count() > 8 else model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict()
-                    }, saved_path + "-best.pt")
-    torch.save({"loss_curve":loss_curve},saved_path+"_loss_curve.pt")
-    print("Done.")
+    
+        if dist.rank == 0:
+            tqdm.write(f"[Epoch {epoch}] Train Loss: {train_loss:.4e}")
+    
+            if (epoch + 1) % cfg.training.save_period == 0:
+                val_loss = val_loop(val_loader, model, if_temporal, device)
+                tqdm.write(f"[Epoch {epoch}] Val Loss: {val_loss:.4e}")
+    
+                ckpt_path = output_dir / f"model_epoch_{epoch}.pt"
+                model_state = model.module.state_dict() if dist.world_size > 1 else model.state_dict()
+                torch.save(model_state, ckpt_path)
 
+
+    dist.cleanup()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("config_file", type=str, help="Path to config file")
-    cmd_args = parser.parse_args()
-    with open(cmd_args.config_file, 'r') as f:
-        args = yaml.safe_load(f)
-    print(args)
-    setup_seed(args["seed"])
-    main(args)
+    main()

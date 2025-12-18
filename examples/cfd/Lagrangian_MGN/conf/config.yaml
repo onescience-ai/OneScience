@@ -1,57 +1,76 @@
+# =========================
+# Hydra 默认配置
+# =========================
 defaults:
-  - /logging/python: default
-  - override hydra/job_logging: disabled  # We use rank-aware logger configuration instead.
+  - /logging/python: default      # Python logging 配置
+  - override hydra/job_logging: disabled
   - _self_
 
 hydra:
   run:
-    dir: ${output}
-  output_subdir: hydra  # Default is .hydra which causes files not being uploaded in W&B.
+    dir: ${output}               # 每次运行的工作目录（Hydra 会 cd 到这里）
+  output_subdir: hydra            # 保存 Hydra 生成的配置快照
 
-# Dimensionality of the problem (2D or 3D).
-dim: 2
 
-# Main output directory.
-output: outputs
+# =========================
+# 全局通用参数
+# =========================
+dim: 2                            # 空间维度（2D / 3D），用于 loss 归一化
+output: outputs                   # 实验输出根目录（日志 / checkpoint）
+resume_dir: ${output}             # 从该目录恢复 checkpoint（为空则不恢复）
 
-# The directory to search for checkpoints to continue training.
-resume_dir: ${output}
 
-# The dataset directory must be set either in command line or config.
+# =========================
+# 数据集描述（抽象层）
+# 这里只描述“数据语义”，不涉及 DataLoader
+# =========================
 data:
-  data_dir: ???
-  num_history: 5
-  num_node_types: 6
+  data_dir: ???                   # 【必须指定】
+                                  # 数据根目录，由命令行或 experiment/*.yaml 填充
+
+  name: "dataset"                 # 数据集名称（用于标识实验）
+  num_history: 5                  # 输入历史帧数（Graph 时间窗口）
+  num_node_types: 6               # 节点类型数（边界 / 内部 / 物体等）
+  noise_std: 0.0003               # 训练时加入的噪声（数据增强）
+
+  # 数据集切分策略
+  # 这里的 train / valid / test 只描述 split 逻辑
   train:
-    split: train
+    split: "train"
+    num_sequences: 1000           # 训练序列数量
   valid:
-    split: valid
+    split: "valid"
+    num_sequences: 30
   test:
-    split: test
+    split: "test"
+    num_sequences: 30
 
-# The loss should be set in the experiment.
-loss: ???
 
-# The optimizer should be set in the experiment.
-optimizer: ???
-
-# The scheduler should be set in the experiment.
-lr_scheduler: ???
-
+# =========================
+# 训练相关参数
+# =========================
 train:
-  batch_size: 20
-  epochs: 100
-  checkpoint_save_freq: 5
+  batch_size: 20                  # 训练 batch size
+  epochs: 100                     # 总训练 epoch 数
+  checkpoint_save_freq: 5         # 每多少个 epoch 保存一次 checkpoint
+
+  # DataLoader 配置（训练）
   dataloader:
-    batch_size: ${..batch_size}
-    shuffle: true
+    batch_size: ${..batch_size}   # 与 train.batch_size 保持一致
+    shuffle: true                 # 训练集必须 shuffle
     num_workers: 2
     pin_memory: true
-    drop_last: true
+    drop_last: true               # 保证 batch size 恒定（对 DDP 友好）
 
+
+# =========================
+# 测试 / 验证配置
+# =========================
 test:
-  batch_size: 1
+  batch_size: 1                   # 【关键】
+                                  # MeshGraphNet 推理必须 batch=1
   device: cuda
+
   dataloader:
     batch_size: ${..batch_size}
     shuffle: false
@@ -59,30 +78,80 @@ test:
     pin_memory: true
     drop_last: false
 
+
+# =========================
+# Datapipe（真正的数据加载实现）
+# =========================
+datapipe:
+  source:
+    data_dir: ${data.data_dir}    # 实际传给 Datapipe 的数据路径
+
+  verbose: True                   # 是否打印 datapipe 初始化信息
+
+  # 数据集构造参数（直接传给 DeepMindLagrangianDatapipe）
+  data:
+    name: ${data.name}
+    num_history: ${data.num_history}
+    num_node_types: ${data.num_node_types}
+    noise_std: ${data.noise_std}
+
+    train: ${data.train}
+    valid: ${data.valid}
+    test: ${data.test}
+
+  # DataLoader 映射
+  dataloader:
+    train: ${train.dataloader}
+    valid: ${test.dataloader}     # 验证阶段通常用 test 的配置（bs=1）
+    test: ${test.dataloader}
+
+
+# =========================
+# 模型与优化器（Hydra 动态实例化）
+# 必须在 experiment 中具体指定
+# =========================
+model: ???                         # _target_: xxx
+loss: ???                          # _target_: torch.nn.MSELoss 等
+optimizer: ???                     # _target_: torch.optim.Adam / AdamW
+lr_scheduler: ???                  # 学习率调度器配置
+
+
+# =========================
+# torch.compile 配置
+# =========================
 compile:
-  enabled: false
+  enabled: false                  # 是否启用 torch.compile
   args:
     backend: inductor
 
-amp:
-  enabled: false
 
+# =========================
+# AMP（混合精度）
+# =========================
+amp:
+  enabled: false                  # 是否启用 AMP（autocast + GradScaler）
+
+
+# =========================
+# 日志系统（可组合）
+# =========================
 loggers:
   wandb:
     _target_: loggers.WandBLogger
     project: meshgraphnet
     entity: onescience
     name: l-mgn
-    group: l-mgn
-    mode: disabled
+    mode: disabled                # disabled / online / offline
     dir: ${output}
-    id:
-    wandb_key:
-    watch_model: false
+
   tensorboard:
     _target_: loggers.TensorBoardLogger
     log_dir: ${output}/tensorboard
 
+
+# =========================
+# 推理相关参数
+# =========================
 inference:
-  frame_skip: 1
-  frame_interval: 1
+  frame_skip: 1                   # 推理时跳帧间隔
+  frame_interval: 1               # 输出帧间隔

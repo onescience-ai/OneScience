@@ -60,10 +60,10 @@ constrained_kmeans_xx.npy是使用clusterize_eagle.py生成的聚类数据，聚
 
 ## 训练
 
-使用以下命令训练模型：
+使用以下命令训练模型，详细的训练参数可以参考graphvit_eagle.yaml文件中的参数注释：
 
 ```bash
-python train_graphvit.py --dataset-path XX --cluster-path XX --model-name "graphvit_10" --output-path "trained_models/graphvit" --n-cluster=10
+python train_graphvit.py
 ```
 
 以下为预训练模型的训练曲线截图（供参考）：
@@ -105,7 +105,6 @@ torchrun --standalone --nnodes=<num_nodes> --nproc_per_node=<num_GPUs> train_gra
 sbatch slurm.sh
 ```
 
-
 ---
 
 ## 评估
@@ -127,24 +126,10 @@ $$
 - $\sigma_v$ 和 $\sigma_p$：速度和压力的标准差（硬编码于数据加载器）
 
 ```bash
-python eval_graphvit.py --ckpt "./trained_models/graphvit/graphvit_10.nn" --dataset-path ./Eagle_dataset --cluster-path ./Eagle_dataset --n-cluster 10
+python eval_graphvit.py
 100%|██████████████████| 118/118 [10:54<00:00,  5.55s/it, error_1=0.0811, error_50=0.352, error_250=0.634]
 ```
-
 ---
-
-## 可视化结果
-
-如果想复现项目页中的视频，可使用 `misc` 文件夹下的生成脚本：
-
-```bash
-python misc/export_video.py
-```
-
-它将为 EAGLE 数据集生成视频。
-
----
-
 ## 参考文献:
 
 [EAGLE: Large-scale Learning of Turbulent Fluid Dynamics with Mesh Transformers](https://openreview.net/forum?id=ZZTkLDRmkg) | [arXiv](https://arxiv.org/abs/2302.10803) | [dataset](https://datasets.liris.cnrs.fr/eagle-version1)
