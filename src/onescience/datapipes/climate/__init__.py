@@ -2,7 +2,7 @@
 from .era5_hdf5 import ERA5HDF5Datapipe, ERA5Dataset
 from .era5 import ERA5Datapipe, ERA5HDF5Dataset
 from .synthetic import SyntheticWeatherDataLoader, SyntheticWeatherDataset
-from .cmems import CMEMSDatapipe, CMEMSDataset
+from .cmems import CMEMSDatapipe, CMEMSHDF5Dataset
 
 __all__ = [
     "ERA5HDF5Datapipe",
@@ -12,5 +12,5 @@ __all__ = [
     "SyntheticWeatherDataLoader",
     "SyntheticWeatherDataset",
     "CMEMSDatapipe",
-    "CMEMSDataset",
+    "CMEMSHDF5Dataset",
 ]      

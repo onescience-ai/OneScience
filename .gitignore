@@ -23,9 +23,10 @@ analyze_fail.dat
 debug
 /src/agent/logs/
 .DS_Store
+*.pth
+*.h5
 examples/biosciences/simplefold/artifacts/
 <<<<<<< HEAD
 =======
-*.pth
 
 >>>>>>> 09328ad50aa71561f4a4749cba9f63881eed2c84

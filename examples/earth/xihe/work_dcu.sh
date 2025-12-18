@@ -14,7 +14,7 @@ module load sghpc-mpi-gcc/25.8
 which python
 which hipcc
 ##### Set DCU #####
-export HIP_VISIBLE_DEVICES=7
+#export HIP_VISIBLE_DEVICES=7
 
 ##### 1 DCU Train #####
 python train_xihe2f.py

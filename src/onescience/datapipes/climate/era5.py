@@ -52,7 +52,7 @@ class ERA5Datapipe(Datapipe):
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
-                                 num_workers=self.params.dataloader.num_workers,
+                                 num_workers=4,
                                  pin_memory=True,
                                  shuffle=False)
         return data_loader
@@ -107,36 +107,8 @@ class  ERA5HDF5Dataset(BaseDataset):
         std = np.load(os.path.join(self.params.stats_dir, "global_stds.npy"))
         self.mu = mu[:, self.channel_indices, :, :]
         self.sd = std[:, self.channel_indices, :, :]
-        # --- 1. 检查 self.mu (均值) [Numpy版本] ---
-        # np.isnan 返回布尔数组，np.sum 统计 True 的个数
-        if np.isnan(self.mu).any():
-            nan_count = np.sum(np.isnan(self.mu))
-            print(f"❌ 警告: self.mu 中发现 NaN!")
-            print(f"   数量: {nan_count} / {self.mu.size} (总元素数)")
-            print(f"   形状: {self.mu.shape}")
-        else:
-            print(f"✅ self.mu 正常 (无 NaN)")
 
-        # --- 2. 检查 self.sd (标准差) [Numpy版本] ---
-        if np.isnan(self.sd).any():
-            nan_count = np.sum(np.isnan(self.sd))
-            print(f"❌ 警告: self.sd 中发现 NaN!")
-            print(f"   数量: {nan_count} / {self.sd.size}")
-        else:
-            print(f"✅ self.sd 正常 (无 NaN)")
-
-        # --- 3. 检查标准差是否为 0 (导致除零异常的关键) ---
-        # 统计等于 0 的数量
-        zero_count = np.sum(self.sd == 0)
-        if zero_count > 0:
-            print(f"☢️ 严重警告: self.sd 中包含 {zero_count} 个 0 值！")
-            print("   这会在归一化时导致除以零，产生 Inf，最终导致 Loss 为 NaN。")
-        else:
-            print(f"✅ self.sd 正常 (无 0 值)")
-        
-    
-
-    def _init_split(self):        #######  划分训练/测试/验证数据集
+    def _init_split(self):
         y = sorted(self.years)
         if self.params.train_ratio + self.params.val_ratio + self.params.test_ratio == 1:
             n_train = int(len(y) * self.params.train_ratio)
@@ -217,31 +189,8 @@ class  ERA5HDF5Dataset(BaseDataset):
         h, w = self.img_shape
         invar = invar[:, :, :h, :w]
         outvar = outvar[:, :, :h, :w]
-        mu_t = torch.as_tensor(self.mu)       
-        # mu_t = torch.as_tensor(self.mu)       
-        invar=torch.where(torch.isnan(invar), mu_t, invar)
-        outvar=torch.where(torch.isnan(outvar), mu_t, outvar)
         invar = (invar - self.mu) / self.sd
         outvar = (outvar - self.mu) / self.sd
-        
-        if torch.isnan(invar).any():
-            nan_count = torch.isnan(invar).sum().item()
-            print(f"❌ 严重警告: invar 归一化后出现 {nan_count} 个 NaN!")
-        elif torch.isinf(invar).any():
-            inf_count = torch.isinf(invar).sum().item()
-            print(f"⚠️ 警告: invar 归一化后出现 {inf_count} 个 Inf (无穷大)!")
-        else:
-            print("✅ invar 归一化正常")
-
-        # 2. 检查 outvar (输出变量)
-        if torch.isnan(outvar).any():
-            nan_count = torch.isnan(outvar).sum().item()
-            print(f"❌ 严重警告: outvar 归一化后出现 {nan_count} 个 NaN!")
-        elif torch.isinf(outvar).any():
-            inf_count = torch.isinf(outvar).sum().item()
-            print(f"⚠️ 警告: outvar 归一化后出现 {inf_count} 个 Inf (无穷大)!")
-        else:
-            print("✅ outvar 归一化正常")
 
         start_time = datetime(year, 1, 1, tzinfo=pytz.utc)
         timestamps = np.array([(start_time + timedelta(hours=(step_idx + t) * self.dt)).timestamp()

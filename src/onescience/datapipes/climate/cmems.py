@@ -24,7 +24,7 @@ class CMEMSDatapipe(Datapipe):
         self.input_steps = input_steps
 
     def train_dataloader(self):
-        data = CMEMSDataset(dataset=self.dataset, mode='train', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = CMEMSHDF5Dataset(dataset=self.dataset, mode='train', output_steps=self.output_steps, input_steps=self.input_steps)
         sampler = DistributedSampler(data, shuffle=True) if self.distributed else None
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
@@ -36,7 +36,7 @@ class CMEMSDatapipe(Datapipe):
         return data_loader, sampler
 
     def val_dataloader(self):
-        data = CMEMSDataset(dataset=self.dataset, mode='val', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = CMEMSHDF5Dataset(dataset=self.dataset, mode='val', output_steps=self.output_steps, input_steps=self.input_steps)
         sampler = DistributedSampler(data, shuffle=False) if self.distributed else None
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
@@ -48,7 +48,7 @@ class CMEMSDatapipe(Datapipe):
         return data_loader, sampler
 
     def test_dataloader(self):
-        data = CMEMSDataset(dataset=self.dataset, mode='test', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = CMEMSHDF5Dataset(dataset=self.dataset, mode='test', output_steps=self.output_steps, input_steps=self.input_steps)
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
@@ -58,7 +58,7 @@ class CMEMSDatapipe(Datapipe):
         return data_loader
     
     
-class  CMEMSDataset(BaseDataset):
+class  CMEMSHDF5Dataset(BaseDataset):
     def __init__(self, dataset, mode='train', output_steps=1, input_steps=1, patch_size=[1, 1]):
         self.params = dataset
         self.data_dir = self.params.data_dir
@@ -96,51 +96,19 @@ class  CMEMSDataset(BaseDataset):
         self.years = list(map(int, self.metadata["years"]))
         self.variables = self.metadata["variables"]
 
-        # 检查 channels 是否都在 metadata.variables 中
+
         missing = [ch for ch in self.params.channels if ch not in self.variables]
         if missing:
             raise ValueError(f"❌ Missing required variables in metadata: {missing}")
 
     def _init_normalization(self):
-        #数据通道
         self.channel_indices = [self.variables.index(v) for v in self.params.channels]
         mu = np.load(os.path.join(self.params.stats_dir, "global_means.npy"))  # shape: [1, M, 1, 1]
         std = np.load(os.path.join(self.params.stats_dir, "global_stds.npy"))
-        self.mu = mu[:, self.channel_indices, :, :] 
+        self.mu = mu[:, self.channel_indices, :, :]
         self.sd = std[:, self.channel_indices, :, :]
-
-        # --- 1. 检查 self.mu (均值) [Numpy版本] ---
-        # np.isnan 返回布尔数组，np.sum 统计 True 的个数
-        if np.isnan(self.mu).any():
-            nan_count = np.sum(np.isnan(self.mu))
-            print(f"❌ 警告: self.mu 中发现 NaN!")
-            print(f"   数量: {nan_count} / {self.mu.size} (总元素数)")
-            print(f"   形状: {self.mu.shape}")
-        else:
-            print(f"✅ self.mu 正常 (无 NaN)")
-
-        # --- 2. 检查 self.sd (标准差) [Numpy版本] ---
-        if np.isnan(self.sd).any():
-            nan_count = np.sum(np.isnan(self.sd))
-            print(f"❌ 警告: self.sd 中发现 NaN!")
-            print(f"   数量: {nan_count} / {self.sd.size}")
-        else:
-            print(f"✅ self.sd 正常 (无 NaN)")
-
-        # --- 3. 检查标准差是否为 0 (导致除零异常的关键) ---
-        # 统计等于 0 的数量
-        zero_count = np.sum(self.sd == 0)
-        if zero_count > 0:
-            print(f"☢️ 严重警告: self.sd 中包含 {zero_count} 个 0 值！")
-            print("   这会在归一化时导致除以零，产生 Inf，最终导致 Loss 为 NaN。")
-            # 建议处理：将 0 替换为一个极小值
-            # self.sd[self.sd == 0] = 1e-6 
-        else:
-            print(f"✅ self.sd 正常 (无 0 值)")
         
-        
-
-    def _init_split(self):        #######  划分训练/测试/验证数据集
+    def _init_split(self):       
         y = sorted(self.years)
         if self.params.train_ratio + self.params.val_ratio + self.params.test_ratio == 1:
             n_train = int(len(y) * self.params.train_ratio)
@@ -221,13 +189,15 @@ class  CMEMSDataset(BaseDataset):
         h, w = self.img_shape
         invar = invar[:, :, :h, :w]
         outvar = outvar[:, :, :h, :w]
-        #均值替换掉nan值，归一化之后还是0
+        
+        #替换NaN
         mu_t = torch.as_tensor(self.mu)        
         invar=torch.where(torch.isnan(invar), mu_t, invar)
         outvar=torch.where(torch.isnan(outvar), mu_t, outvar)
         invar = (invar - self.mu) / self.sd
         outvar = (outvar - self.mu) / self.sd
         
+        #NaN检查
         if torch.isnan(invar).any():
             nan_count = torch.isnan(invar).sum().item()
             print(f"❌ 严重警告: invar 归一化后出现 {nan_count} 个 NaN!")
@@ -237,7 +207,6 @@ class  CMEMSDataset(BaseDataset):
         else:
             print("✅ invar 归一化正常")
 
-        # 2. 检查 outvar (输出变量)
         if torch.isnan(outvar).any():
             nan_count = torch.isnan(outvar).sum().item()
             print(f"❌ 严重警告: outvar 归一化后出现 {nan_count} 个 NaN!")

@@ -10,7 +10,7 @@ import torch.optim as optim
 
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.xihe.xihe import Xihe  # 你的 XiHe 模型定义路径
-from onescience.datapipes import ERA5Datapipe
+from onescience.datapipes import CMEMSDatapipe
 from onescience.utils.YParams import YParams
 from onescience.utils.fcn.darcy_loss import LpLoss
 
@@ -40,7 +40,7 @@ def main():
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
     
-    datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized()) #config中的配置读取数据
+    datapipe = CMEMSDatapipe(params=cfg_data, distributed=dist.is_initialized()) #config中的配置读取数据
     train_dataloader, train_sampler = datapipe.train_dataloader()
     val_dataloader, val_sampler = datapipe.val_dataloader()
 
@@ -134,8 +134,8 @@ def main():
             for j, data in enumerate(val_dataloader):
                 invar = data[0].to(local_rank, dtype=torch.float32)
                 outvar = data[1].to(local_rank, dtype=torch.float32)
-                invar = invar[:, :, :-1, :]
-                outvar = outvar[:, :, :-1, :]
+                # invar = invar[:, :, :-1, :]
+                # outvar = outvar[:, :, :-1, :]
                 outvar_pred = model(invar)
                 loss = loss_obj(outvar, outvar_pred)
 
