@@ -49,8 +49,13 @@ def main():
     manager = DistributedManager()
     logger = setup_logging(manager.rank)
     
+<<<<<<< HEAD
     # 1. 加载配置
     config_file_path = "conf/transolver_car.yaml" # <--- 修改
+=======
+    # 加载配置
+    config_file_path = "conf/transolver_car.yaml"
+>>>>>>> recover-cfd
     cfg = YParams(config_file_path, "model")
     cfg_data = YParams(config_file_path, "datapipe")
     cfg_train = YParams(config_file_path, "training")
@@ -68,9 +73,15 @@ def main():
     cfg_data.model_hparams = model_params
     # -------------------------
     
+<<<<<<< HEAD
     # 2. 初始化 Datapipe
     logger.info("Initializing datapipe...")
     datapipe = ShapeNetCarDatapipe(params=cfg_data, distributed=(manager.world_size > 1)) # <--- 修改
+=======
+    # 初始化 Datapipe
+    logger.info("Initializing datapipe...")
+    datapipe = ShapeNetCarDatapipe(params=cfg_data, distributed=(manager.world_size > 1)) 
+>>>>>>> recover-cfd
     train_dataloader, train_sampler = datapipe.train_dataloader()
     val_dataloader, val_sampler = datapipe.val_dataloader()
     
@@ -78,17 +89,29 @@ def main():
     coef_norm = datapipe.coef_norm
     logger.info("Datapipe initialized.")
 
+<<<<<<< HEAD
     # 3. 设置 Device
+=======
+    # 设置 Device
+>>>>>>> recover-cfd
     if manager.world_size > 1:
         device = torch.device(f'cuda:{manager.local_rank}' if torch.cuda.is_available() else 'cpu')
     else:
         device = torch.device(f'cuda:{cfg_train.gpuid}' if torch.cuda.is_available() else 'cpu')
         
+<<<<<<< HEAD
     # 4. 初始化模型 (动态)
     logger.info(f"Initializing model architecture: {model_name}")
     
     if model_name == 'Transolver':
         # Transolver 3D (来自旧的 train_car.py)
+=======
+    # 初始化模型
+    logger.info(f"Initializing model architecture: {model_name}")
+    
+    if model_name == 'Transolver':
+        # Transolver 3D
+>>>>>>> recover-cfd
         model = Transolver3D(
             n_hidden=model_params.n_hidden,
             n_layers=model_params.n_layers,
@@ -115,7 +138,11 @@ def main():
             find_unused_parameters=True 
         )
 
+<<<<<<< HEAD
     # 5. 初始化优化器、调度器、损失函数
+=======
+    # 初始化优化器、调度器、损失函数
+>>>>>>> recover-cfd
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg_train.lr)
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
@@ -132,7 +159,11 @@ def main():
         
     loss_weight = cfg_train.loss_weight # (reg)
     
+<<<<<<< HEAD
     # 6. 训练循环
+=======
+    # 训练循环
+>>>>>>> recover-cfd
     checkpoint_dir = cfg_train.checkpoint_dir
     os.makedirs(checkpoint_dir, exist_ok=True)
     best_valid_loss = 1.0e6
@@ -151,7 +182,11 @@ def main():
         train_loss_press = 0
         train_loss_velo = 0
         
+<<<<<<< HEAD
         # --- 训练循环 (来自旧 train.py 的逻辑) ---
+=======
+        # --- 训练循环---
+>>>>>>> recover-cfd
         for data in train_dataloader:
             data = data.to(device)
             optimizer.zero_grad()
@@ -188,7 +223,11 @@ def main():
         valid_loss_press = 0
         valid_loss_velo = 0
         
+<<<<<<< HEAD
         # --- 验证循环 (来自旧 test.py 的逻辑) ---
+=======
+        # --- 验证循环  ---
+>>>>>>> recover-cfd
         if (epoch + 1) % cfg_train.val_iter == 0 or epoch == cfg_train.max_epoch - 1:
             with torch.no_grad():
                 for data in val_dataloader:
@@ -215,7 +254,11 @@ def main():
             valid_loss_press /= len(val_dataloader)
             valid_loss_velo /= len(val_dataloader)
 
+<<<<<<< HEAD
         # --- 日志和 Checkpointing (仅 Rank 0) ---
+=======
+        # --- 日志和 Checkpointing ---
+>>>>>>> recover-cfd
         if manager.rank == 0:
             epoch_time = time.time() - epoch_start_time
             log_msg = (

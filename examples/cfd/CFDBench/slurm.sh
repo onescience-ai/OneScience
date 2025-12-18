@@ -43,4 +43,4 @@ srun --nodes=$SLURM_NNODES --ntasks=$SLURM_NNODES torchrun \
             --rdzv_id=$SLURM_JOB_ID \
             --rdzv_backend=c10d \
             --rdzv_endpoint=$master_addr:$master_port \
-            train_auto.py --model unet --data_name tube_prop_bc_geo
+            train_auto.py

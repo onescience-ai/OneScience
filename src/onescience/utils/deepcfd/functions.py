@@ -22,10 +22,10 @@ def initialize(model, gain=1, std=0.02):
             if module.bias is not None:
                 nn.init.normal_(module.bias, 0, std)
 
-def visualize(sample_y, out_y, error, s):
+def visualize(sample_y, out_y, error, s, save_dir="result"):
     # 创建 result 目录（如果不存在）
-    result_dir = "result"
-    os.makedirs(result_dir, exist_ok=True)
+    os.makedirs(save_dir, exist_ok=True)
+
 
     minu = np.min(sample_y[s, 0, :, :])
     maxu = np.max(sample_y[s, 0, :, :])
@@ -98,7 +98,7 @@ def visualize(sample_y, out_y, error, s):
 
     plt.tight_layout()
 
-    save_path = os.path.join(result_dir, f"visualization_{s}.png")
+    save_path = os.path.join(save_dir, f"visualization_{s}.png")
     plt.savefig(save_path, dpi=300)
     plt.show()
     plt.close()

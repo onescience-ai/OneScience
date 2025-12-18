@@ -1,8 +1,11 @@
+<<<<<<< HEAD
 # train_meshgraphnet_dgl.py
 # 
 # 适配 DGL 的 OneScience 训练脚本
 # [已修正] 使用 LambdaLR 调度器
 
+=======
+>>>>>>> recover-cfd
 import os
 import sys
 import logging
@@ -16,8 +19,13 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.amp import GradScaler, autocast
 
 from onescience.distributed.manager import DistributedManager
+<<<<<<< HEAD
 
 # --- 本地 imports ---
+=======
+from tqdm import tqdm
+
+>>>>>>> recover-cfd
 from onescience.utils.YParams import YParams
 from onescience.datapipes import DeepMind_CylinderFlowDatapipe
 from onescience.launch.utils import load_checkpoint, save_checkpoint 
@@ -41,7 +49,11 @@ def main():
     manager = DistributedManager()
     logger = setup_logging(manager.rank)
     
+<<<<<<< HEAD
     # 1. 加载配置
+=======
+    # 加载配置
+>>>>>>> recover-cfd
     config_file_path = "conf/mgn_cylinderflow.yaml"
     cfg = YParams(config_file_path, "model")
     cfg_data = YParams(config_file_path, "datapipe")
@@ -59,7 +71,11 @@ def main():
         raise ValueError(f"Model '{model_name}' not found in config's 'specific_params' block.")
     model_params = cfg.specific_params[model_name]
 
+<<<<<<< HEAD
     # 2. 初始化 Datapipe (DGL 版本)
+=======
+    # 初始化 Datapipe (DGL 版本)
+>>>>>>> recover-cfd
     logger.info("Initializing datapipe (DGL version)...")
     datapipe = DeepMind_CylinderFlowDatapipe(params=cfg_data, distributed=(manager.world_size > 1))
     train_dataloader, train_sampler = datapipe.train_dataloader()
@@ -68,13 +84,21 @@ def main():
     stats = datapipe.stats
     logger.info("Datapipe initialized.")
 
+<<<<<<< HEAD
     # 3. 设置 Device (与 PyG 版本相同)
+=======
+    # 设置 Device (与 PyG 版本相同)
+>>>>>>> recover-cfd
     if manager.world_size > 1:
         device = torch.device(f'cuda:{manager.local_rank}' if torch.cuda.is_available() else 'cpu')
     else:
         device = torch.device(f'cuda:{cfg_train.gpuid}' if torch.cuda.is_available() else 'cpu')
         
+<<<<<<< HEAD
     # 4. 初始化模型 (与 PyG 版本相同, 使用修正后的关键字)
+=======
+    # 初始化模型 (与 PyG 版本相同, 使用修正后的关键字)
+>>>>>>> recover-cfd
     logger.info(f"Initializing model architecture: {model_name}")
     
     if model_name == 'MeshGraphNet':
@@ -120,7 +144,11 @@ def main():
             find_unused_parameters=True 
         )
 
+<<<<<<< HEAD
     # 5. 初始化优化器、调度器、损失函数
+=======
+    # 初始化优化器、调度器、损失函数
+>>>>>>> recover-cfd
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg_train.lr)
     
 
@@ -131,7 +159,10 @@ def main():
         optimizer, 
         lr_lambda=lambda step: cfg_train.lr_decay_rate**step 
     )
+<<<<<<< HEAD
     # --- [修正结束] ---
+=======
+>>>>>>> recover-cfd
     
     if cfg_train.loss_criterion == 'MSE':
         loss_criterion = nn.MSELoss()
@@ -142,7 +173,11 @@ def main():
 
     scaler = GradScaler() if cfg_train.amp else None
 
+<<<<<<< HEAD
     # 6. 加载 Checkpoint
+=======
+    # 加载 Checkpoint
+>>>>>>> recover-cfd
     checkpoint_dir = cfg_train.checkpoint_dir
     os.makedirs(checkpoint_dir, exist_ok=True)
     
@@ -162,13 +197,18 @@ def main():
          logger.info(f"Loaded checkpoint. Resuming training from epoch {epoch_init}")
 
 
+<<<<<<< HEAD
     # 7. 训练循环
+=======
+    # 训练循环
+>>>>>>> recover-cfd
     best_valid_loss = 1.0e6
     best_loss_epoch = 0
 
     logger.info("Starting training...")
     for epoch in range(epoch_init, cfg_train.max_epoch):
         epoch_start_time = time.time()
+<<<<<<< HEAD
         
         if manager.world_size > 1:
             train_sampler.set_epoch(epoch)
@@ -242,6 +282,104 @@ def main():
                 f"Train Loss: {train_loss_avg:.6f} | "
                 f"Valid Loss: {valid_loss:.6f}"
             )
+=======
+    
+        if manager.world_size > 1:
+            train_sampler.set_epoch(epoch)
+            if val_sampler:
+                val_sampler.set_epoch(epoch)
+    
+        model.train()
+        train_loss_sum = 0.0
+    
+        if manager.rank == 0:
+            pbar = tqdm(
+                total=len(train_dataloader),
+                desc=f"Epoch [{epoch + 1}/{cfg_train.max_epoch}]",
+                dynamic_ncols=True,
+                leave=True
+            )
+        else:
+            pbar = None
+    
+        for idx, data in enumerate(train_dataloader):
+            iter_start = time.time()
+    
+            data = data.to(device)
+            optimizer.zero_grad()
+    
+            with autocast(device_type=device.type, enabled=cfg_train.amp):
+                out = model(data.ndata["x"], data.edata["x"], data)
+                targets = data.ndata["y"]
+                loss = loss_criterion(out, targets)
+    
+            if cfg_train.amp:
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                loss.backward()
+                optimizer.step()
+    
+            scheduler.step()
+    
+            current_batch_loss = loss.item()
+            train_loss_sum += current_batch_loss
+            avg_loss_so_far = train_loss_sum / (idx + 1)
+    
+            if pbar is not None:
+                pbar.set_postfix({
+                    "loss": f"{current_batch_loss:.3e}",
+                    "avg": f"{avg_loss_so_far:.3e}",
+                    "lr": f"{scheduler.get_last_lr()[0]:.1e}",
+                    "t": f"{time.time() - iter_start:.2f}s"
+                })
+                pbar.update(1)
+    
+            if manager.rank == 0 and (idx + 1) % log_interval == 0:
+                total_batches = len(train_dataloader)
+                logger.info(
+                    f"Epoch [{epoch + 1}/{cfg_train.max_epoch}] | "
+                    f"Batch [{idx + 1}/{total_batches}] | "
+                    f"Batch Loss: {current_batch_loss:.6f} | "
+                    f"Epoch Avg Loss: {avg_loss_so_far:.6f}"
+                )
+    
+        if pbar is not None:
+            pbar.close()
+
+            
+        train_loss_avg = train_loss_sum / len(train_dataloader)
+        
+        # --- 验证 ---
+        model.eval()
+        valid_loss = 0
+        
+        with torch.no_grad():
+            for data in val_dataloader:
+                data = data.to(device)
+                
+                with autocast(device_type=device.type, enabled=cfg_train.amp):
+                    out = model(data.ndata["x"], data.edata["x"], data)
+                    targets = data.ndata["y"]
+                    loss = loss_criterion(out, targets)
+                
+                if manager.world_size > 1:
+                    dist.all_reduce(loss, op=dist.ReduceOp.AVG)
+                    
+                valid_loss += loss.item()
+                
+        valid_loss /= len(val_dataloader)
+
+        # --- 日志和 Checkpointing ---
+        if manager.rank == 0:
+            epoch_time = time.time() - epoch_start_time
+            logger.info(
+                f"Epoch [{epoch + 1}/{cfg_train.max_epoch}] | Time: {epoch_time:.2f}s | "
+                f"Train Loss: {train_loss_avg:.6f} | "
+                f"Valid Loss: {valid_loss:.6f}"
+            )
+>>>>>>> recover-cfd
             
             if valid_loss < best_valid_loss:
                 best_valid_loss = valid_loss
@@ -261,10 +399,16 @@ def main():
                 logger.warning(f"Validation loss has not improved for {cfg_train.patience} epochs. Stopping training.")
                 break
                 
+<<<<<<< HEAD
     # 8. 训练后测试
     if manager.rank == 0:
         logger.info("===== ✅ Training finished. =====")
         # ...
+=======
+    # 训练后测试
+    if manager.rank == 0:
+        logger.info("===== ✅ Training finished. =====")
+>>>>>>> recover-cfd
 
 if __name__ == "__main__":
     main()

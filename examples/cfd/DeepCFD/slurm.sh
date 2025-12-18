@@ -41,4 +41,4 @@ srun --nodes=$SLURM_NNODES --ntasks=$SLURM_NNODES torchrun \
             --rdzv_id=$SLURM_JOB_ID \
             --rdzv_backend=c10d \
             --rdzv_endpoint=$master_addr:$master_port \
-            deepcfd.py --epochs 200  --batch-size 64 --visualize
+            train.py

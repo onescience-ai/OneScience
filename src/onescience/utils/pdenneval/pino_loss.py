@@ -286,32 +286,62 @@ def Black_Scholes_loss(pred, a, u, dx, dt, grid):
     f_loss=loss_fn(Df, torch.zeros_like(Df))
     return ic_loss, f_loss
 
+# def pde_loss(pred,a,u,train_args, grid=None):
+#     if train_args["scenario"] == '1D_Burgers':
+#         return burger_1d_loss(pred,a,u,train_args["dx"],train_args["dt"])
+#     elif train_args["scenario"] == "1D_Advection":
+#         return adv_1d_loss(pred,a,u,train_args["dx"],train_args["dt"])
+#     elif train_args["scenario"] == "1D_diffusion_sorption":
+#         return diff_sorp_1d_loss(pred,a,u,train_args["dx"],train_args["dt"])
+#     elif train_args["scenario"] == "1D_diffusion_reaction":
+#         return diff_react_1d_loss(pred, a, u,train_args["dx"],train_args["dt"])
+#     elif train_args["scenario"] == "1D_compressible_NS":
+#         return CFD_1d_loss(pred, a, u,train_args["dx"],train_args["dt"])
+#     elif train_args["scenario"] == "2D_DarcyFlow":
+#         return darcy_loss(pred,a,u,train_args["dx"])
+#     elif train_args["scenario"] == "2D_diffusion_reaction":
+#         return diff_react_2d_loss(pred,a,u,train_args["dx"],train_args["dt"])
+#     elif train_args["scenario"] == "2D_shallow_water":
+#         return swe_2d_loss(pred,a,u,train_args["dx"],train_args["dt"])
+#     elif train_args["scenario"] == "2D_Compressible_NS":
+#         return CFD_2d_loss(pred,a,u,train_args["dx"],train_args["dt"])
+#     elif train_args["scenario"] == "1D_Allen_Cahn":
+#         return Allen_Cahn_loss(pred, a, u, train_args["dx"],train_args["dt"])
+#     elif train_args["scenario"] == "1D_Cahn_Hilliard":
+#         return Cahn_Hilliard_loss(pred, a, u, train_args["dx"],train_args["dt"])
+#     elif train_args["scenario"] == "2D_Burgers":
+#         return burger_2d_loss(pred, a, u, train_args["dx"],train_args["dt"])
+#     elif train_args["scenario"] == "2D_Allen-Cahn":
+#         return Allen_Cahn_2d_loss(pred, a, u, train_args["dx"],train_args["dt"])
+#     elif train_args["scenario"] == "2D_black-scholes":
+#         return Black_Scholes_loss(pred, a, u, train_args["dx"],train_args["dt"], grid)
+
 def pde_loss(pred,a,u,train_args, grid=None):
-    if train_args["scenario"] == '1D_Burgers':
+    if train_args["pde_name"] == '1D_Burgers':
         return burger_1d_loss(pred,a,u,train_args["dx"],train_args["dt"])
-    elif train_args["scenario"] == "1D_Advection":
+    elif train_args["pde_name"] == "1D_Advection":
         return adv_1d_loss(pred,a,u,train_args["dx"],train_args["dt"])
-    elif train_args["scenario"] == "1D_diffusion_sorption":
+    elif train_args["pde_name"] == "1D_diffusion_sorption":
         return diff_sorp_1d_loss(pred,a,u,train_args["dx"],train_args["dt"])
-    elif train_args["scenario"] == "1D_diffusion_reaction":
+    elif train_args["pde_name"] == "1D_diffusion_reaction":
         return diff_react_1d_loss(pred, a, u,train_args["dx"],train_args["dt"])
-    elif train_args["scenario"] == "1D_compressible_NS":
+    elif train_args["pde_name"] == "1D_compressible_NS":
         return CFD_1d_loss(pred, a, u,train_args["dx"],train_args["dt"])
-    elif train_args["scenario"] == "2D_DarcyFlow":
+    elif train_args["pde_name"] == "2D_DarcyFlow":
         return darcy_loss(pred,a,u,train_args["dx"])
-    elif train_args["scenario"] == "2D_diffusion_reaction":
+    elif train_args["pde_name"] == "2D_diffusion_reaction":
         return diff_react_2d_loss(pred,a,u,train_args["dx"],train_args["dt"])
-    elif train_args["scenario"] == "2D_shallow_water":
+    elif train_args["pde_name"] == "2D_shallow_water":
         return swe_2d_loss(pred,a,u,train_args["dx"],train_args["dt"])
-    elif train_args["scenario"] == "2D_Compressible_NS":
+    elif train_args["pde_name"] == "2D_Compressible_NS":
         return CFD_2d_loss(pred,a,u,train_args["dx"],train_args["dt"])
-    elif train_args["scenario"] == "1D_Allen_Cahn":
+    elif train_args["pde_name"] == "1D_Allen_Cahn":
         return Allen_Cahn_loss(pred, a, u, train_args["dx"],train_args["dt"])
-    elif train_args["scenario"] == "1D_Cahn_Hilliard":
+    elif train_args["pde_name"] == "1D_Cahn_Hilliard":
         return Cahn_Hilliard_loss(pred, a, u, train_args["dx"],train_args["dt"])
-    elif train_args["scenario"] == "2D_Burgers":
+    elif train_args["pde_name"] == "2D_Burgers":
         return burger_2d_loss(pred, a, u, train_args["dx"],train_args["dt"])
-    elif train_args["scenario"] == "2D_Allen-Cahn":
+    elif train_args["pde_name"] == "2D_Allen-Cahn":
         return Allen_Cahn_2d_loss(pred, a, u, train_args["dx"],train_args["dt"])
     elif train_args["scenario"] == "2D_black-scholes":
         return Black_Scholes_loss(pred, a, u, train_args["dx"],train_args["dt"], grid)

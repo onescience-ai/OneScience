@@ -89,6 +89,10 @@ basic_requires = [
     "xarray",
     "s3fs",
     "netcdf4",
+<<<<<<< HEAD
+=======
+    "tensorflow",
+>>>>>>> recover-cfd
 ]
 
 

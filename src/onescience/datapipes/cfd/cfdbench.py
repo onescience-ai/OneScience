@@ -8,7 +8,11 @@ from bisect import bisect_right
 from torch.utils.data import DataLoader, DistributedSampler
 import copy
 from tqdm import tqdm
+<<<<<<< HEAD
 
+=======
+import json
+>>>>>>> recover-cfd
 from onescience.datapipes.core import BaseDataset
 from onescience.distributed.manager import DistributedManager
 
@@ -73,7 +77,11 @@ class CFDBenchDataset(BaseDataset):
             "param_keys": ["vel_in", "density", "viscosity", "height", "width", "center_x", "center_y", "radius"],
             "data_dt": 0.1 # 注意：Auto Dataset 原始代码是 0.001，但 Static 是 0.1，这里默认 0.1，可视情况调整
         },
+<<<<<<< HEAD
         "dam": {
+=======
+        "dam": { 
+>>>>>>> recover-cfd
             "bc_key": "velocity",
             "param_keys": ["velocity", "density", "viscosity", "height", "width"],
             "data_dt": 0.1
@@ -83,7 +91,13 @@ class CFDBenchDataset(BaseDataset):
     def __init__(self, config: Union[Dict[str, Any]], mode: str = 'train'):
         self.mode = mode
         super().__init__(config)
+<<<<<<< HEAD
         
+=======
+        self.dist = DistributedManager()
+        if self.dist.rank != 0:
+            self.logger.setLevel(logging.WARNING)       
+>>>>>>> recover-cfd
         # 解析配置
         self.problem_name = self.config.source.data_name.split("_")[0] 
         self.subset_name = self.config.source.data_name[len(self.problem_name) + 1 :]
@@ -141,8 +155,13 @@ class CFDBenchDataset(BaseDataset):
             self.case_dirs = case_dirs[num_train : num_train + num_val]
         elif self.mode == 'test':
             self.case_dirs = case_dirs[num_train + num_val :]
+<<<<<<< HEAD
         
         self.logger.info(f"[{self.mode}] Selected {len(self.case_dirs)} cases for {self.problem_name}.")
+=======
+        if self.dist.rank == 0:
+            self.logger.info(f"[{self.mode}] Selected {len(self.case_dirs)} cases for {self.problem_name}.")
+>>>>>>> recover-cfd
 
     def _load_metadata(self):
         pass
@@ -285,10 +304,18 @@ class CFDBenchDataset(BaseDataset):
         
         param_keys = self.curr_prob_cfg["param_keys"]
         bc_key = self.curr_prob_cfg["bc_key"]
+<<<<<<< HEAD
 
         self.logger.info(f"Loading {self.problem_name} STATIC data...")
         
         for case_dir in tqdm(self.case_dirs, desc="Loading Cases"):
+=======
+        if self.dist.rank == 0:
+            self.logger.info(f"Loading {self.problem_name} STATIC data...")
+        
+        iterator = tqdm(self.case_dirs, desc="Loading Cases", disable=(self.dist.rank != 0))
+        for case_dir in iterator:
+>>>>>>> recover-cfd
             feats, params = raw_loader_func(case_dir)
             
             if self.norm_props:
@@ -308,7 +335,15 @@ class CFDBenchDataset(BaseDataset):
     def _load_data_auto_generic(self, raw_loader_func):
         """自回归数据的通用加载逻辑"""
         self.delta_time = self.config.data.delta_time
+<<<<<<< HEAD
         self.data_delta_time = self.curr_prob_cfg["data_dt"]
+=======
+        if self.problem_name == "cylinder":
+            # 原始代码中 Cylinder Auto 数据集的 data_delta_time 是 0.001
+            self.data_delta_time = 0.001
+        else:
+            self.data_delta_time = self.curr_prob_cfg["data_dt"]
+>>>>>>> recover-cfd
         self.time_step_size = int(self.delta_time / self.data_delta_time)
         
         bc_key = self.curr_prob_cfg["bc_key"]
@@ -317,10 +352,18 @@ class CFDBenchDataset(BaseDataset):
         all_labels = []
         self.case_params_list_auto = [] 
         self.case_ids = []
+<<<<<<< HEAD
         
         self.logger.info(f"Loading {self.problem_name} AUTO data (dt={self.delta_time}, step={self.time_step_size})...")
 
         for case_id, case_dir in enumerate(tqdm(self.case_dirs, desc="Loading Cases")):
+=======
+        if self.dist.rank == 0:
+            self.logger.info(f"Loading {self.problem_name} AUTO data (dt={self.delta_time}, step={self.time_step_size})...")
+
+        iterator = tqdm(self.case_dirs, desc="Loading Cases", disable=(self.dist.rank != 0))
+        for case_id, case_dir in enumerate(iterator):
+>>>>>>> recover-cfd
             feats, params = raw_loader_func(case_dir)
             
             if self.norm_props:
