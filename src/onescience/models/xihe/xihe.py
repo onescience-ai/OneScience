@@ -19,7 +19,7 @@ from onescience.models.utils import (
 
 import torch.nn as nn
 from onescience.models.xihe.layers import GlobalSIE,OceanSpecificBlock
-from ..layers.resample_layers import DownSample2D, UpSample2D
+from ..layers.resample_layers import DownSample2D, UpSample
 
 
 
@@ -93,7 +93,6 @@ class Xihe(Module):
         )
 
         # patch 后的 3D 分辨率: (Pl=1, Lat_out, Lon_out)
-       
         H_out = math.ceil(img_size[0] / patch_size[0])
         W_out = math.ceil(img_size[1] / patch_size[1])
         input_resolution = (1, H_out, W_out)
@@ -180,11 +179,11 @@ class Xihe(Module):
             drop_path=drop_path,
             norm_layer=nn.LayerNorm
         )
-        self.upsample = UpSample2D(
+        self.upsample = UpSample(
                 in_dim=2*self.embed_dim,
                 out_dim=embed_dim,
-                input_resolution=(H_out // 2, W_out // 2),  # 2D 输入分辨率
-                output_resolution=(H_out, W_out),          # 3D 输出分辨率
+                input_resolution=(H_out // 2, W_out // 2),  
+                output_resolution=(H_out, W_out),         
             )   
         input_resolution = (1, H_out, W_out)
         self.block5=OceanSpecificBlock(
@@ -204,7 +203,6 @@ class Xihe(Module):
         ) 
    
     def change_mask(self,mask_full, x, h_out, w_out):
-
         #根据当前层特征分辨率，自动生成掩码（海洋=1，陆地=0）
             if not torch.is_tensor(mask_full):
                 mask_full = torch.tensor(mask_full, dtype=torch.float32)
@@ -224,9 +222,8 @@ class Xihe(Module):
                     mask_coarse[i, j] = 1.0 if torch.any(patch > 0.5) else 0.0
             
             mask_coarse = mask_coarse.to(x.device, dtype=x.dtype) 
-
             B = x.shape[0]                
-            mask_coarse = mask_coarse.unsqueeze(0).unsqueeze(0).repeat(B, 1, 1, 1) #将维度复制
+            mask_coarse = mask_coarse.unsqueeze(0).unsqueeze(0).repeat(B, 1, 1, 1) #broadcast
             return mask_coarse  
         
     def forward(self, x: torch.Tensor):
@@ -262,8 +259,7 @@ class Xihe(Module):
         x=self.block3(x,mask=mask2)                                   
         x=self.block4(x,mask=mask2)                       
         x=self.upsample(x) 
-        x=self.block5(x,mask=mask1)                      
-        print("x.shape-block5", tuple(x.shape))
+        x=self.block5(x,mask=mask1)
         x_out = torch.cat([x, x1], dim=-1)         # (B, N, 2C)
         x_out = self.skip_proj(x_out)
 

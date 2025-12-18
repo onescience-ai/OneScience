@@ -8,7 +8,7 @@ import torch
 from ase import Atoms
 
 if TYPE_CHECKING:
-    from onescience.datapipes.uma.atomic_data import AtomicData
+    from onescience.datapipes.materials.custom_stack.core.atomic_data import AtomicData
 from onescience.models.UMA.models.utils.irreps import cg_change_mat, irreps_sum
 
 

@@ -32,7 +32,7 @@ checkpoint_every_n_steps: 1000
 
 
 train_dataset:
-  _target_: onescience.datapipes.uma.mt_concat_dataset.create_concat_dataset
+  _target_: onescience.datapipes.materials.custom_stack.storage.mt_concat_dataset.create_concat_dataset
   dataset_configs:
     finetune_dataset: ${data.train_dataset}
   combined_dataset_config: { sampling: {type: temperature, temperature: 1.0} }
@@ -52,7 +52,7 @@ train_dataloader:
     tasks: ${data.tasks_list}
     exclude_keys: []
 val_dataset:
-  _target_: onescience.datapipes.uma.mt_concat_dataset.create_concat_dataset
+  _target_: onescience.datapipes.materials.custom_stack.storage.mt_concat_dataset.create_concat_dataset
   dataset_configs:
     finetune_dataset: ${data.val_dataset}
   combined_dataset_config: { sampling: {type: temperature, temperature: 1.0} }

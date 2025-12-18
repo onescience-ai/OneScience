@@ -29,9 +29,8 @@ class FeatureGrouping(nn.Module):
 
         # 初始化 learnable group vectors (相当于 G_l)
         self.group_vectors = nn.Parameter(torch.randn(1, num_groups, dim))
-        # 1.LN 作用在输入 patch 特征 Z_tilde 上
         self.norm = LN(dim)
-        # 2.多头注意力 (标准 vanilla Transformer Attention)
+        # 多头注意力 (标准 vanilla Transformer Attention)
         self.attn = nn.MultiheadAttention(
             embed_dim=dim, num_heads=num_heads, bias=qkv_bias, batch_first=True
         )
@@ -43,13 +42,11 @@ class FeatureGrouping(nn.Module):
         x: (B, N, C)  -> 来自 Local SIE 的特征
         """
         B, N, C = x.shape
-
-        # 1. 归一化输入特征
         x = self.norm(x)  # (B, N, C)
         
-        # 2. expand group vectors (batch 内共享同一份 group 参数)
+        #  expand group vectors (batch 内共享同一份 group 参数)
         G = self.group_vectors.expand(B, -1, -1)  # (B, G, C)
-        # 3. Multi-Head Cross-Attention
+        # Multi-Head Cross-Attention
         if mask_tokens is None:
             return None
         if mask_tokens.dim() == 4:              # (B,1,H,W)
@@ -60,7 +57,7 @@ class FeatureGrouping(nn.Module):
         # key_padding_mask = (mask_tokens == 0)   # True=忽略
         key_padding_mask = None if mask_tokens is None else (mask_tokens == 0)
         G_prime, _ = self.attn(query=G, key=x, value=x,key_padding_mask=key_padding_mask)
-        # 4. 输出更新后的 group vectors
+        #  输出更新后的 group vectors
         G_prime = self.proj_drop(self.proj(G_prime))  # (B, G, C)
 
         return G_prime
@@ -91,7 +88,7 @@ class GroupPropagation(nn.Module):
         self.norm1 = LN(dim)
         self.norm2 = LN(dim)
         
-        # 111  Token-mixing MLP (在 group 维度上传播信息)
+        # Token-mixing MLP (在 group 维度上传播信息)
         mlp_token_dim = int(num_groups * mlp_ratio)
         self.mlp_token = Mlp(
             in_features=num_groups,
@@ -100,7 +97,7 @@ class GroupPropagation(nn.Module):
             drop=drop,
         )        
     
-       # 222 Channel-mixing MLP (在 embedding 维度融合特征)
+       # Channel-mixing MLP (在 embedding 维度融合特征)
         mlp_channel_dim = int(dim * mlp_ratio)
         self.mlp_channel =Mlp(
             in_features=dim,

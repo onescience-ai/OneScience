@@ -6,10 +6,16 @@ from typing import Any, List, Optional, Union
 import torch
 from torch.utils.data import ConcatDataset
 
-from onescience.models.mace import data
+#from onescience.models.mace import data
+from onescience.datapipes.materials.pyg_stack.core.atomic_data import AtomicData
+from onescience.datapipes.materials.pyg_stack.storage.lmdb_dataset import LMDBDataset
+from onescience.datapipes.materials.pyg_stack.storage.hdf5_dataset import HDF5Dataset, dataset_from_sharded_hdf5
 from onescience.models.mace.tools.scripts_utils import check_path_ase_read
-from onescience.models.mace.tools.torch_geometric.dataset import Dataset
-from onescience.models.mace.tools.utils import AtomicNumberTable
+#from onescience.models.mace.tools.torch_geometric.dataset import Dataset
+from onescience.datapipes.materials.tools.torch_geometric.dataset import Dataset
+
+#from onescience.models.mace.tools.utils import AtomicNumberTable
+from onescience.datapipes.materials.tools.utils import AtomicNumberTable
 
 
 def normalize_file_paths(file_paths: Union[str, List[str]]) -> List[str]:
@@ -68,7 +74,7 @@ def load_dataset_for_path(
             collection is not None
         ), "Collection must be provided for ASE readable files"
         return [
-            data.AtomicData.from_config(
+            AtomicData.from_config(
                 config, z_table=z_table, cutoff=r_max, heads=heads
             )
             for config in collection
@@ -81,7 +87,7 @@ def load_dataset_for_path(
             f.endswith(".lmdb") or f.endswith(".aselmdb") for f in os.listdir(filepath)
         ):
             logging.info(f"Loading LMDB dataset from {file_path}")
-            return data.LMDBDataset(
+            return LMDBDataset(
                 file_path,
                 r_max=r_max,
                 z_table=z_table,
@@ -93,7 +99,7 @@ def load_dataset_for_path(
         if h5_files:
             logging.info(f"Loading HDF5 dataset from directory {file_path}")
             try:
-                return data.dataset_from_sharded_hdf5(
+                return dataset_from_sharded_hdf5(
                     file_path,
                     r_max=r_max,
                     z_table=z_table,
@@ -106,7 +112,7 @@ def load_dataset_for_path(
 
         if "lmdb" in str(filepath).lower() or "aselmdb" in str(filepath).lower():
             logging.info(f"Loading LMDB dataset based on path name: {file_path}")
-            return data.LMDBDataset(
+            return LMDBDataset(
                 file_path,
                 r_max=r_max,
                 z_table=z_table,
@@ -116,7 +122,7 @@ def load_dataset_for_path(
 
         logging.info(f"Attempting to load directory as HDF5 dataset: {file_path}")
         try:
-            return data.dataset_from_sharded_hdf5(
+            return dataset_from_sharded_hdf5(
                 file_path,
                 r_max=r_max,
                 z_table=z_table,
@@ -130,7 +136,7 @@ def load_dataset_for_path(
     suffix = filepath.suffix.lower()
     if suffix in (".h5", ".hdf5"):
         logging.info(f"Loading single HDF5 file: {file_path}")
-        return data.HDF5Dataset(
+        return HDF5Dataset(
             file_path,
             r_max=r_max,
             z_table=z_table,
@@ -140,7 +146,7 @@ def load_dataset_for_path(
 
     if suffix in (".lmdb", ".aselmdb", ".db"):
         logging.info(f"Loading single LMDB file: {file_path}")
-        return data.LMDBDataset(
+        return LMDBDataset(
             file_path,
             r_max=r_max,
             z_table=z_table,
@@ -149,7 +155,7 @@ def load_dataset_for_path(
         )
 
     logging.info(f"Attempting to load as LMDB: {file_path}")
-    return data.LMDBDataset(
+    return LMDBDataset(
         file_path,
         r_max=r_max,
         z_table=z_table,

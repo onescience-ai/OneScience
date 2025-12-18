@@ -200,21 +200,21 @@ class  CMEMSHDF5Dataset(BaseDataset):
         #NaN检查
         if torch.isnan(invar).any():
             nan_count = torch.isnan(invar).sum().item()
-            print(f"❌ 严重警告: invar 归一化后出现 {nan_count} 个 NaN!")
+            print(f"❌严重警告: invar 归一化后出现 {nan_count} 个 NaN!")
         elif torch.isinf(invar).any():
             inf_count = torch.isinf(invar).sum().item()
-            print(f"⚠️ 警告: invar 归一化后出现 {inf_count} 个 Inf (无穷大)!")
+            print(f"⚠️警告: invar 归一化后出现 {inf_count} 个 Inf (无穷大)!")
         else:
-            print("✅ invar 归一化正常")
+            print("✅invar 归一化正常")
 
         if torch.isnan(outvar).any():
             nan_count = torch.isnan(outvar).sum().item()
-            print(f"❌ 严重警告: outvar 归一化后出现 {nan_count} 个 NaN!")
+            print(f"❌严重警告: outvar 归一化后出现 {nan_count} 个 NaN!")
         elif torch.isinf(outvar).any():
             inf_count = torch.isinf(outvar).sum().item()
-            print(f"⚠️ 警告: outvar 归一化后出现 {inf_count} 个 Inf (无穷大)!")
+            print(f"⚠️警告: outvar 归一化后出现 {inf_count} 个 Inf (无穷大)!")
         else:
-            print("✅ outvar 归一化正常")
+            print("✅outvar 归一化正常")
 
         start_time = datetime(year, 1, 1, tzinfo=pytz.utc)
         timestamps = np.array([(start_time + timedelta(hours=(step_idx + t) * self.dt)).timestamp()

@@ -6,10 +6,10 @@ import sys
 
 def main():
     config_file_path = os.path.join(current_path, 'conf/config.yaml')
-    cfg = YParams(config_file_path, 'model')
+    cfg_data = YParams(config_file_path, "datapipe")
     metadata = {
         "coords": {
-            "channel": {str(i): name for i, name in enumerate(cfg.channels)}
+            "channel": {str(i): name for i, name in enumerate(cfg_data.dataset.channels)}
         }
     }
     with open('./data.json', "w") as f:

@@ -19,19 +19,22 @@ import torch.distributed
 from e3nn import o3
 from torch.optim.swa_utils import SWALR, AveragedModel
 
-from onescience.models.mace import data, modules, tools
-from onescience.models.mace.data import KeySpecification
+#from onescience.models.mace import data, modules, tools
+from onescience.models.mace import modules, tools
+#from onescience.models.mace.data import KeySpecification
+from onescience.datapipes.materials.pyg_stack.core.utils import KeySpecification
 from onescience.models.mace.tools.train import SWAContainer
-
-
+from onescience.datapipes.materials.pyg_stack.core.utils import load_from_xyz, random_train_valid_split, test_config_types
+from onescience.datapipes.materials.pyg_stack.core.utils import compute_average_E0s
+from onescience.datapipes.materials.pyg_stack.core.utils import Configurations
 @dataclasses.dataclass
 class SubsetCollection:
-    train: data.Configurations
-    valid: data.Configurations
-    tests: List[Tuple[str, data.Configurations]]
+    train: Configurations
+    valid: Configurations
+    tests: List[Tuple[str, Configurations]]
 
 
-def log_dataset_contents(dataset: data.Configurations, dataset_name: str) -> None:
+def log_dataset_contents(dataset: Configurations, dataset_name: str) -> None:
     log_string = f"{dataset_name} ["
     for prop_name in dataset[0].properties.keys():
         if prop_name == "dipole":
@@ -99,7 +102,7 @@ def get_dataset_from_xyz(
     # Process training files
     for i, path in enumerate(train_paths):
         logging.debug(f"Loading training file: {path}")
-        ae_dict, train_configs = data.load_from_xyz(
+        ae_dict, train_configs = load_from_xyz(
             file_path=path,
             config_type_weights=config_type_weights,
             key_specification=key_specification,
@@ -146,7 +149,7 @@ def get_dataset_from_xyz(
     else:
         # Split training data if no validation files are provided
         logging.info("No validation set provided, splitting training data instead.")
-        train_configs, valid_configs = data.random_train_valid_split(
+        train_configs, valid_configs = random_train_valid_split(
             all_train_configs, valid_fraction, seed, work_dir
         )
         log_dataset_contents(train_configs, "Random Split Training set")
@@ -155,7 +158,7 @@ def get_dataset_from_xyz(
     test_configs_by_type = []
     if test_paths:
         for i, path in enumerate(test_paths):
-            _, test_configs = data.load_from_xyz(
+            _, test_configs = load_from_xyz(
                 file_path=path,
                 config_type_weights=config_type_weights,
                 key_specification=key_specification,
@@ -167,7 +170,7 @@ def get_dataset_from_xyz(
             log_dataset_contents(test_configs, f"Test set {i+1}/{len(test_paths)}")
 
         # Create list of tuples (config_type, list(Atoms))
-        test_configs_by_type = data.test_config_types(all_test_configs)
+        test_configs_by_type = test_config_types(all_test_configs)
         log_dataset_contents(all_test_configs, "Total Test set")
 
     atomic_energies_dict = {}
@@ -480,7 +483,7 @@ def get_atomic_energies(E0s, train_collection, z_table) -> dict:
             # catch if colections.train not defined above
             try:
                 assert train_collection is not None
-                atomic_energies_dict = data.compute_average_E0s(
+                atomic_energies_dict = compute_average_E0s(
                     train_collection, z_table
                 )
             except Exception as e:

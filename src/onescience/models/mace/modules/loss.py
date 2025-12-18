@@ -7,9 +7,11 @@ from typing import Optional
 import torch
 import torch.distributed as dist
 
-from onescience.models.mace.tools import TensorDict
-from onescience.models.mace.tools.torch_geometric import Batch
-
+#from onescience.models.mace.tools import TensorDict
+#from onescience.models.mace.tools.torch_geometric import Batch
+# ✨ 关键：重定向到新的 L3-Tools 目录
+from onescience.datapipes.materials.tools.torch_tools import TensorDict
+from onescience.datapipes.materials.tools.torch_geometric import Batch
 
 # ------------------------------------------------------------------------------
 # Helper function for loss reduction that handles DDP correction

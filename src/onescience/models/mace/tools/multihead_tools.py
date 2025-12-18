@@ -15,7 +15,9 @@ from onescience.models.mace.cli.fine_tuning_select import (
     SubselectType,
     select_samples,
 )
-from onescience.models.mace.data import KeySpecification
+#from onescience.models.mace.data import KeySpecification
+from onescience.datapipes.materials.pyg_stack.core.utils import KeySpecification
+
 from onescience.models.mace.tools.scripts_utils import SubsetCollection, get_dataset_from_xyz
 
 

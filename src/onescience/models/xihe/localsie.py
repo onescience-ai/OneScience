@@ -143,8 +143,7 @@ class Transformer3DBlock(nn.Module):
             if mask.dim() == 4:                # (B,1,Lat,Lon) -> (B,1,1,Lat,Lon)
                 mask = mask.unsqueeze(2)
 
-            # 此时 mask: (B, 1, Pl, Lat, Lon)
-            #  期望 (N, C, D, H, W)；这里 C=1, D=Pl, H=Lat, W=Lon，直接 pad 即可
+            # 此时 mask: (B, 1, Pl, Lat, Lon) 期望 (N, C, D, H, W)；这里 C=1, D=Pl, H=Lat, W=Lon，直接 pad 即可
             mask = self.pad(mask)              # (B, 1, Pl_pad, Lat_pad, Lon_pad)
 
             # 为了与 window_partition 通用实现对齐，转成 (B, Pl_pad, Lat_pad, Lon_pad, 1)
@@ -251,7 +250,7 @@ class LocalSIE(nn.Module):
                     input_resolution=input_resolution, #3d windows
                     num_heads=num_heads,
                     window_size=window_size,
-                    shift_size=(0, 0, 0),             #不让他选择swin 
+                    shift_size=(0, 0, 0),             #不选择swin 
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
                     qk_scale=qk_scale,
