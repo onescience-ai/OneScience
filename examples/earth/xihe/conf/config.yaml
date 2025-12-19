@@ -1,0 +1,150 @@
+# ERA5数据集配置示例
+model:
+  start_epoch: 0
+  max_epoch: 1
+  lr: 5E-5          #学习率
+  
+  betas: [0.9, 0.95]
+  weight_decay: 0.01
+  
+  embed_dim: 192
+  num_blocks: 8 
+  patch_size: [6, 12]
+  patience: 50 
+  checkpoint_dir: "./data/checkpoints" #相对路径
+
+  in_chans: 96
+  out_chans: 96
+  num_groups: 64
+  depth: 2
+  num_heads:  [6, 12, 12, 6]
+  img_size: [2041, 4320]
+  #mask: "/public/onestore/onedatasets/CMEMS/static/20210628_zos_ocean_mask.npy"
+  mask: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/static/20210628_zos_ocean_mask.npy"
+  # in_channels: [  0, 1 ,2, 3, 4, 5, 6, 7, 8, 9, 
+  #                   10, 11, 12, 13, 14, 15, 16, 17,
+  #                   18, 19,20,21,22,23,24,25,26,27,
+  #                   28,29,30, 31,32, 33, 34, 35, 36,
+  #                   37, 38, 39,40, 41, 42, 43, 44,
+  #                   45, 46, 47,48, 49, 50, 51, 52,
+  #                   53, 54, 55,56, 57, 58, 59, 60,
+  #                   61, 62, 63,64, 65, 66, 67, 68, 
+  #                   69, 70, 71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95]
+  
+  # out_chans: 94
+  # out_channels: [
+  #   0, 1,
+  #   4, 5, 6, 7, 8, 9,
+  #   10, 11, 12, 13, 14, 15, 16, 17,
+  #   18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+  #   28, 29, 30, 31, 32, 33, 34, 35, 36,
+  #   37, 38, 39, 40, 41, 42, 43, 44,
+  #   45, 46, 47, 48, 49, 50, 51, 52,
+  #   53, 54, 55, 56, 57, 58, 59, 60,
+  #   61, 62, 63, 64, 65, 66, 67, 68,
+  #   69, 70, 71, 72, 73, 74, 75, 76, 77, 78,
+  #   79, 80, 81, 82, 83, 84, 85, 86, 87, 88,
+  #   89, 90, 91, 92, 93, 94, 95
+  # ]
+
+ # 整个数据读取流程
+datapipe:
+  name: "CMEMS"
+  task: "ocean_forecasting"
+
+  # dataset设定
+  dataset:
+    type: "hdf5"
+    #stats_dir: "/public/onestore/onedatasets/CMEMS/stats/" 
+    #static_dir: "/public/onestore/onedatasets/CMEMS/static/" 
+    #data_dir: "/public/onestore/onedatasets/CMEMS" #10-14
+    stats_dir: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/stats/" 
+    static_dir: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/static/" 
+    data_dir: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/cmems/" #10-14
+    
+    #数据拆分
+    # train_ratio: 0.5
+    # val_ratio: 0.25
+    # test_ratio: 0.25
+    train_ratio: 1
+    val_ratio: 1
+    test_ratio: 0
+    img_size: [2041, 4320]
+    verbose: true
+    cache: false
+
+    # 气象变量
+
+    channels: ["sea_surface_temperature","sea_surface_height_above_geoid","10m_u_component_of_wind","10m_v_component_of_wind",
+        "eastward_sea_water_velocity_1","eastward_sea_water_velocity_2","eastward_sea_water_velocity_3","eastward_sea_water_velocity_4","eastward_sea_water_velocity_5","eastward_sea_water_velocity_6","eastward_sea_water_velocity_7","eastward_sea_water_velocity_8","eastward_sea_water_velocity_9","eastward_sea_water_velocity_10","eastward_sea_water_velocity_11","eastward_sea_water_velocity_12","eastward_sea_water_velocity_13","eastward_sea_water_velocity_14","eastward_sea_water_velocity_15","eastward_sea_water_velocity_16","eastward_sea_water_velocity_17","eastward_sea_water_velocity_18","eastward_sea_water_velocity_19","eastward_sea_water_velocity_20","eastward_sea_water_velocity_21","eastward_sea_water_velocity_22","eastward_sea_water_velocity_23",
+        "northward_sea_water_velocity_1","northward_sea_water_velocity_2","northward_sea_water_velocity_3","northward_sea_water_velocity_4","northward_sea_water_velocity_5","northward_sea_water_velocity_6","northward_sea_water_velocity_7","northward_sea_water_velocity_8","northward_sea_water_velocity_9","northward_sea_water_velocity_10","northward_sea_water_velocity_11","northward_sea_water_velocity_12","northward_sea_water_velocity_13","northward_sea_water_velocity_14","northward_sea_water_velocity_15","northward_sea_water_velocity_16","northward_sea_water_velocity_17","northward_sea_water_velocity_18","northward_sea_water_velocity_19","northward_sea_water_velocity_20","northward_sea_water_velocity_21","northward_sea_water_velocity_22","northward_sea_water_velocity_23",
+        "sea_water_salinity_1","sea_water_salinity_2","sea_water_salinity_3","sea_water_salinity_4","sea_water_salinity_5","sea_water_salinity_6","sea_water_salinity_7","sea_water_salinity_8","sea_water_salinity_9","sea_water_salinity_10","sea_water_salinity_11","sea_water_salinity_12","sea_water_salinity_13","sea_water_salinity_14","sea_water_salinity_15","sea_water_salinity_16","sea_water_salinity_17","sea_water_salinity_18","sea_water_salinity_19","sea_water_salinity_20","sea_water_salinity_21","sea_water_salinity_22","sea_water_salinity_23",
+        "sea_water_potential_temperature_1","sea_water_potential_temperature_2","sea_water_potential_temperature_3","sea_water_potential_temperature_4","sea_water_potential_temperature_5","sea_water_potential_temperature_6","sea_water_potential_temperature_7","sea_water_potential_temperature_8","sea_water_potential_temperature_9","sea_water_potential_temperature_10","sea_water_potential_temperature_11","sea_water_potential_temperature_12","sea_water_potential_temperature_13","sea_water_potential_temperature_14","sea_water_potential_temperature_15","sea_water_potential_temperature_16","sea_water_potential_temperature_17","sea_water_potential_temperature_18","sea_water_potential_temperature_19","sea_water_potential_temperature_20","sea_water_potential_temperature_21","sea_water_potential_temperature_22","sea_water_potential_temperature_23"]
+    
+    
+    variables:
+      - "u10"        # 10m U wind component
+      - "v10"        # 10m V wind component
+      - "uo"        #  'uo': 'eastward_sea_water_velocity',
+      - "vo"        # 'vo': 'northward_sea_water_velocity',
+      - "so"        #  'so': 'sea_water_salinity',
+      - "thetao"        #    'thetao': 'sea_water_potential_temperature',
+      - "ssh"       # 'zos': 'sea_surface_height_above_geoid'
+      - "sst"       # 'analysed_sst': 'sea_surface_temperature',
+             
+    
+    # 时间配置
+    time_range: ["2010-01-01", "2010-12-31"] 
+    time_steps: 1
+    time_res: 24
+    
+    # 空间配置
+    spatial_resolution: [1/12, 1/12]
+    
+    # 采样配置
+    num_samples: -1  # -1 表示使用全部数据
+    shuffle: true
+    random_seed: 42
+    
+    # 领域特定配置
+    extra:
+      levels: [0.495, 2.65, 5.08, 7.93, 11.41, 15.81, 21.60, 29.44,40.34, 55.76, 77.85, 92.32, 109.73, 130.67, 155.85,186.13, 222.48, 266.04, 318.13, 380.21, 453.94,541.09, 643.57]
+      lat_range: [-90, 90]
+      lon_range: [0, 360]
+  
+  # 数据转换配置
+  transforms:
+    - type: "Normalize"
+      params:
+        mean: [0.0, 0.0, 288.0, 101325.0, 50000.0, 270.0]
+        std: [5.0, 5.0, 15.0, 1000.0, 5000.0, 10.0]
+        keys: ["input", "target"]
+    
+    - type: "ToTensor"
+      params:
+        keys: null  # null表示转换所有numpy数组
+  
+  # 其他配置
+
+
+  # DataLoader配置
+  dataloader:
+    mask_dtype: "float32"
+    batch_size: 1
+    num_workers: 1
+    pin_memory: true
+    drop_last: true
+    shuffle: false  # 使用sampler时设为false
+    prefetch_factor: 2
+    persistent_workers: true
+  
+  # 分布式配置
+  distributed:
+    enabled: false #开关
+    sampler: "DistributedSampler"
+    rank: 0
+    world_size: 8
+    shuffle: true
+    seed: 42
+    drop_last: true
+
