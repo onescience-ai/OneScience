@@ -1,135 +1,12 @@
-<<<<<<< HEAD
-model:
-  # 在这里选择要训练的模型: Transolver, GraphSAGE, PointNet, MLP, GUNet
-  name: 'Transolver' 
-
-=======
 # 模型配置
 model:
   # 在这里选择要训练的模型: Transolver, GraphSAGE, PointNet, MLP, GUNet
   name: 'Transolver' 
   
->>>>>>> recover-cfd
   # --------------------------------------------------------------------
   # 每个模型独有的架构参数
   # --------------------------------------------------------------------
   specific_params:
-<<<<<<< HEAD
-    Transolver:
-      n_hidden: 256
-      n_layers: 8
-      space_dim: 7
-      fun_dim: 0
-      n_head: 8
-      mlp_ratio: 2
-      out_dim: 4
-      slice_num: 32
-      unified_pos: 1
-      build_graph: True
-      r: 0.05
-      max_neighbors: 64
-
-    GraphSAGE:
-      encoder: [ 7, 64, 64, 8 ]
-      decoder: [ 8, 64, 64, 4 ]
-      nb_hidden_layers: 3
-      size_hidden_layers: 64
-      bn_bool: True
-      build_graph: True
-      r: 0.05
-      max_neighbors: 64
-
-    PointNet:
-      encoder: [ 7, 64, 64, 8 ]
-      decoder: [ 8, 64, 64, 4 ]
-      base_nb: 8
-      build_graph: False
-      r: null
-      max_neighbors: null
-
-    MLP:
-      encoder: [ 7, 64, 64, 8 ]
-      decoder: [ 8, 64, 64, 4 ]
-      nb_hidden_layers: 3
-      size_hidden_layers: 64
-      bn_bool: True
-      build_graph: False
-      r: null
-      max_neighbors: null
-
-    GUNet:
-      encoder: [ 7, 64, 64, 8 ]
-      decoder: [ 8, 64, 64, 4 ]
-      layer: 'SAGE'
-      pool: 'random'
-      nb_scale: 5
-      pool_ratio: [ .5, .5, .5, .5 ]
-      list_r: [ .05, .2, .5, 1, 10 ]
-      size_hidden_layers: 8
-      batchnorm: True
-      res: False
-      build_graph: True
-      r: 0.05
-      max_neighbors: 64
-
-# --------------------------------------------------------------------
-# 数据管道配置 (包含共享的数据参数)
-# --------------------------------------------------------------------
-datapipe:
-  name: 'AirfRANS'
-  verbose: False # 控制 BaseDataset 日志级别
-  
-  source:
-    data_dir: '/public/onestore/onedatasets/Transolver-Airfoil-Design/Dataset' 
-    stats_dir: './' 
-  
-  data:
-    splits:
-      task: 'full'
-      train_name: 'full_train'
-      val_split_ratio: 0.1
-      test_name: 'full_test'
-      
-    sampling:
-      sample_strategy: null # null, 'uniform', 'mesh'
-      n_boot: 500000
-      surf_ratio: 0.1
-      
-    crop: null # e.g., [-1.5, 2.5, -1.5, 1.5]
-    
-    subsampling: 32000
-    
-  dataloader:
-    batch_size: 1
-    num_workers: 4
-
-# --------------------------------------------------------------------
-# 训练配置 (包含共享的训练参数)
-# --------------------------------------------------------------------
-training:
-  # 通用参数 
-  max_epoch: 398
-  lr: 0.001
-  
-  #单卡训练时指定设备号
-  gpuid: 0
-  
-  # 早停
-  patience: 50
-  
-  # 损失函数设置
-  loss_criterion: 'MSE_weighted' # 'MSE', 'MAE', 'MSE_weighted'
-  loss_weight: 1.0 
-  
-  # checkpoint
-  checkpoint_dir: './checkpoints/transolver_airfrans'
-
-  #推理结果的输出路径
-  result_dir: './results'
-
-  # 测试
-  n_test: 3
-=======
     # Transolver 模型参数
     Transolver:
       n_hidden: 256         # 隐藏层维度
@@ -251,4 +128,3 @@ training:
   
   # 测试设置
   n_test: 3                    # 测试时随机抽取的翼型数量
->>>>>>> recover-cfd

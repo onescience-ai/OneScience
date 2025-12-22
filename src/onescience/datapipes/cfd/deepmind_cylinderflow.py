@@ -1,6 +1,3 @@
-# onescience/datapipes/deepmind_cylinderflow.py
-# --- DGL 版本 ---
-
 import functools
 import json
 import os
@@ -15,11 +12,10 @@ from torch.utils.data import Dataset
 from torch.utils.data.distributed import DistributedSampler
 
 # --- OneScience 核心 ---
-# 假设 BaseDataset 位于 onescience.datapipes.core
 from onescience.datapipes.core import BaseDataset 
 from onescience.distributed.manager import DistributedManager
 
-# --- DGL 库特定的 Imports ---
+# --- DGL 库特定导入 ---
 try:
     import dgl
     from dgl.dataloading import GraphDataLoader
@@ -30,7 +26,7 @@ except ImportError:
         "请访问: https://www.dgl.ai/pages/start.html"
     )
 
-# --- TensorFlow (用于数据加载) ---
+# --- TensorFlow (仅用于数据加载) ---
 try:
     import tensorflow.compat.v1 as tf
     # 隐藏 GPU，避免 TF 占用 PyTorch 的显存
@@ -42,11 +38,11 @@ except ImportError:
     )
 
 
-# --- 帮助函数 (与 PyG 版本相同) ---
+# --- 辅助函数 ---
 def _save_json(stats: Dict[str, Any], path: Union[str, Path]):
     """
-    将字典保存为 JSON 文件，处理 Torch Tensors。
-    [已修复] 创建一个新字典来保存，避免修改原始字典。
+    将字典保存为 JSON 文件，自动处理 Torch Tensors。
+    创建一个新字典来保存，避免修改原始字典。
     """
     stats_to_save = {}
     for key, value in stats.items():
@@ -62,7 +58,7 @@ def _save_json(stats: Dict[str, Any], path: Union[str, Path]):
     logging.info(f"Saved stats to {path}")
 
 def _load_json(path: Union[str, Path]) -> Dict[str, Any]:
-    """从 JSON 文件加载字典，并将列表转换回 Tensors"""
+    """从 JSON 文件加载字典，并将列表转换回 Tensors。"""
     path = Path(path)
     if not path.exists():
         raise FileNotFoundError(f"Stats file not found: {path}")
@@ -75,18 +71,17 @@ def _load_json(path: Union[str, Path]) -> Dict[str, Any]:
             stats[key] = torch.tensor(value, dtype=torch.float32)
     logging.info(f"Loaded stats from {path}")
     return stats
-# --- 帮助函数结束 ---
 
 
 class DeepMind_CylinderFlowDataset(BaseDataset):
     """
-    DeepMind 圆柱绕流 (Vortex Shedding) 数据集 [DGL 版本]
+    DeepMind 圆柱绕流 (Vortex Shedding) 数据集 [DGL]
     
     继承自 BaseDataset，用于处理 DGL 图数据。
     封装了原始 VortexSheddingDataset 的 TFRecord 加载和预处理逻辑。
     """
     
-    # 1. 覆盖元数据
+    # 覆盖元数据
     DOMAIN = "cfd"
     TASK = "regression"
     DATA_FORMATS = ["tfrecord"]
@@ -98,7 +93,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         stats: Optional[Dict[str, torch.Tensor]] = None
     ):
         """
-        初始化 DeepMind 圆柱绕流数据集 (DGL)
+        初始化 DeepMind 圆柱绕流数据集
         
         Parameters
         ----------
@@ -107,14 +102,14 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         mode : str, optional
             'train', 'val', 或 'test'
         stats : dict, optional
-            (edge_stats, node_stats)
+            包含 edge_stats 和 node_stats 的字典
         """
         self.mode = mode
-        # 将 'val' 模式映射到 TFRecord 的 'valid' split (假设原始 DGL 代码的 'eval' 是拼写错误)
+        # 将 'val' 模式映射到 TFRecord 的 'valid' split
         self.split = 'valid' if mode == 'val' else mode
         
         self._provided_stats = stats
-        self.stats = {} # { 'edge_stats': {...}, 'node_stats': {...} }
+        self.stats = {} 
         
         # 从 config 中获取特定于 split 的参数
         if self.mode == 'train':
@@ -134,10 +129,8 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         
         self.dist = DistributedManager()
         
-        # 2. 调用父类 __init__
         super().__init__(config)
         
-        # 3. 初始化
         if self.dist.rank == 0:
             self.logger.info(f"[{self.mode}] Initializing DeepMind CylinderFlow Dataset (DGL)...")
             self.logger.info(f"[{self.mode}] Mode='{self.mode}' (Split='{self.split}')")
@@ -151,10 +144,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
             self.logger.info(f"[{self.mode}] Dataset initialized. Total items: {self.length}")
 
     def _init_paths(self):
-        """
-        初始化数据路径并加载 meta.json
-        (与 PyG 版本相同)
-        """
+        """初始化数据路径并加载 meta.json"""
         super()._init_paths() 
         self.meta_path = self.data_path / "meta.json"
         
@@ -170,10 +160,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         self.node_stats_path = self.stats_dir / "node_stats.json"
 
     def _load_metadata(self):
-        """
-        加载或计算归一化统计数据 (edge_stats, node_stats)
-        (与 PyG 版本相同)
-        """
+        """加载或计算归一化统计数据 (edge_stats, node_stats)"""
         if self._provided_stats:
             if self.dist.rank == 0:
                 self.logger.debug(f"[{self.mode}] Using provided normalization stats.")
@@ -203,9 +190,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
 
 
     def _init_data(self):
-        """
-        加载和处理来自 TFRecord 的数据 [DGL 版本]
-        """
+        """加载和处理 TFRecord 数据"""
         
         # --- 1. 加载图结构 (Edges) ---
         dataset_iterator_graphs = self._load_tf_data(self.data_path, self.split)
@@ -221,9 +206,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
             data_np = {key: arr[:self.num_steps].numpy() for key, arr in data_np.items()}
             
             src, dst = self._cell_to_adj(data_np["cells"][0])
-            # [DGL] 使用 DGL 图构建
             graph = self._create_graph(src, dst) 
-            # [DGL] 使用 DGL 方式添加边特征
             graph = self._add_edge_features(graph, data_np["mesh_pos"][0]) 
             self.graphs.append(graph)
             
@@ -238,7 +221,6 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
 
         # --- 2. 边特征归一化 (计算或应用) ---
         if self.mode == "train" and 'edge_stats' not in self.stats:
-            # [DGL] _get_edge_stats 已适配 DGL
             self.stats['edge_stats'] = self._get_edge_stats() 
             _save_json(self.stats['edge_stats'], self.edge_stats_path)
             if self.dist.rank == 0:
@@ -247,13 +229,11 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         edge_mean = self.stats['edge_stats']["edge_mean"]
         edge_std = self.stats['edge_stats']["edge_std"]
         for i in range(self.num_samples):
-            # [DGL] 归一化 DGL 的 edata
             self.graphs[i].edata["x"] = self._normalize(
                 self.graphs[i].edata["x"], edge_mean, edge_std
             )
 
         # --- 3. 加载节点特征 (Nodes) ---
-        # (这部分与 PyG 版本相同，因为不涉及图操作)
         dataset_iterator_nodes = self._load_tf_data(self.data_path, self.split)
         self.node_features, self.node_targets = [], []
         
@@ -280,7 +260,6 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
             self.node_targets.append(targets)
 
         # --- 4. 节点特征归一化 (计算或应用) ---
-        # (这部分与 PyG 版本相同)
         if self.mode == "train" and 'node_stats' not in self.stats:
             self.stats['node_stats'] = self._get_node_stats()
             _save_json(self.stats['node_stats'], self.node_stats_path)
@@ -306,10 +285,9 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
             )
 
     def __len__(self) -> int:
-        """返回数据集大小"""
+        """返回数据集样本总数"""
         return self.length
 
-    # [--- 修正 1: 更新返回类型提示 ---]
     def __getitem__(self, idx: int) -> Union[DGLGraph, Tuple[DGLGraph, np.ndarray, torch.Tensor]]:
         """
         获取单个样本 (一个时间步的 DGL 图)
@@ -334,30 +312,28 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
             graph.ndata["x"] = node_features
             graph.ndata["y"] = node_targets
 
-            # --- [ 修正 2: 更改返回逻辑 ] ---
             if self.mode == "train":
-                # 训练时只返回 graph
+                # 训练模式：仅返回图
                 return graph
             else:
-                # 推理/验证时，返回 (graph, cells, mask) 元组
+                # 推理/验证模式：返回 (graph, cells, mask)
                 graph.ndata["mesh_pos"] = self.mesh_pos[gidx]
                 cells = self.cells[gidx]           # (numpy.ndarray)
-                mask = self.rollout_mask[gidx]    # (torch.Tensor)
+                mask = self.rollout_mask[gidx]     # (torch.Tensor)
                 return graph, cells, mask
-            # --- [ 修正结束 ] ---
                 
         except Exception as e:
             self.logger.error(f"Error loading data for index {idx} (gidx: {gidx}, tidx: {tidx}): {e}", exc_info=True)
-            # [--- 修正 3: 确保 except 块返回正确的类型 ---]
+            # 发生异常时返回空对象以防止 crash
             if self.mode == "train":
-                return dgl.graph(([], [])) # 返回一个空图
+                return dgl.graph(([], []))
             else:
                 return dgl.graph(([], [])), np.array([]), torch.tensor([])
 
-    # --- 统计数据计算 (适配 DGL) ---
+    # --- 统计数据计算 ---
 
     def _get_edge_stats(self) -> Dict[str, torch.Tensor]:
-        """计算边特征的均值和标准差 [DGL 版本]"""
+        """计算边特征的均值和标准差"""
         if self.dist.rank == 0:
             self.logger.info(f"[{self.mode}] Calculating edge stats...")
             
@@ -366,7 +342,6 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
             "edge_meansqr": 0,
         }
         for i in range(self.num_samples):
-            # [DGL] 从 edata["x"] 读取
             stats["edge_mean"] += (
                 torch.mean(self.graphs[i].edata["x"], dim=0) / self.num_samples
             )
@@ -381,15 +356,10 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         return stats
 
     def _get_node_stats(self) -> Dict[str, torch.Tensor]:
-        """
-        计算节点特征的均值和标准差
-        (与 PyG 版本相同，因为它不依赖图)
-        """
+        """计算节点特征的均值和标准差"""
         if self.dist.rank == 0:
             self.logger.info(f"[{self.mode}] Calculating node stats...")
-        # ( ... 此处省略了与 PyG 版本完全相同的代码 ... )
-        # ( ... 请从 PyG 版本复制 _get_node_stats 的完整实现 ... )
-        # 假设 _get_node_stats 的完整代码已复制到此处
+        
         stats = {
             "velocity_mean": 0, "velocity_meansqr": 0,
             "velocity_diff_mean": 0, "velocity_diff_meansqr": 0,
@@ -436,13 +406,10 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         return stats
 
 
-    # --- TFRecord 和图处理的帮助函数 (适配 DGL) ---
+    # --- TFRecord 和图处理辅助函数 ---
 
     def _load_tf_data(self, path: Path, split: str) -> tf.data.Iterator:
-        """
-        加载 .tfrecord 数据集
-        (与 PyG 版本相同)
-        """
+        """加载 .tfrecord 数据集"""
         tf_path = str(path / f"{split}.tfrecord")
         if not os.path.exists(tf_path):
              raise FileNotFoundError(f"TFRecord file not found: {tf_path}")
@@ -455,10 +422,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
 
     @staticmethod
     def _parse_data(p, meta):
-        """
-        (与 PyG 版本相同)
-        """
-        # ( ... 此处省略了与 PyG 版本完全相同的代码 ... )
+        """解析 TFRecord 中的单个样本"""
         outvar = {}
         feature_dict = {k: tf.io.VarLenFeature(tf.string) for k in meta["field_names"]}
         features = tf.io.parse_single_example(p, feature_dict)
@@ -479,9 +443,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
 
     @staticmethod
     def _cell_to_adj(cells) -> Tuple[List[int], List[int]]:
-        """
-        (与 PyG 版本相同)
-        """
+        """将网格单元转换为邻接表索引"""
         num_cells = np.shape(cells)[0]
         src = [cells[i][indx] for i in range(num_cells) for indx in [0, 1, 2]]
         dst = [cells[i][indx] for i in range(num_cells) for indx in [1, 2, 0]]
@@ -489,17 +451,14 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
 
     @staticmethod
     def _create_graph(src: List[int], dst: List[int]) -> DGLGraph:
-        """创建 DGL 图 [DGL 版本]"""
-        # 使用原始 DGL 代码的实现
+        """根据源和目标节点索引创建 DGL 图"""
         graph = dgl.to_bidirected(dgl.graph((src, dst), idtype=torch.int32))
         return graph
 
     @staticmethod
     def _add_edge_features(graph: DGLGraph, pos: np.ndarray) -> DGLGraph:
-        """添加边特征 [DGL 版本]"""
-        # 使用原始 DGL 代码的实现
+        """计算并添加边特征（相对位移和距离）"""
         row, col = graph.edges()
-        # 确保使用 .long() 索引 (如果需要) 并指定 dtype
         disp = torch.tensor(pos[row.long()] - pos[col.long()], dtype=torch.float)
         disp_norm = torch.linalg.norm(disp, dim=-1, keepdim=True)
         graph.edata["x"] = torch.cat((disp, disp_norm), dim=1)
@@ -507,31 +466,21 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
 
     @staticmethod
     def _normalize(invar: torch.Tensor, mu: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
-        """
-        标准化张量 (与 PyG 版本相同)
-        """
+        """标准化张量"""
         return (invar - mu) / (std + 1e-8)
 
     @staticmethod
     def normalize_node(invar, mu, std):
-        """
-        标准化一个节点张量 (供 inference 使用)
-        (来自原始 DGL VortexSheddingDataset)
-        """
+        """标准化单个节点张量（供推理使用）"""
         if (invar.size()[-1] != mu.size()[-1]) or (invar.size()[-1] != std.size()[-1]):
             raise AssertionError("input and stats must have the same size")
-        # 确保 mu 和 std 与 invar 在同一设备上
         mu = mu.to(invar.device)
         std = std.to(invar.device)
         return (invar - mu.expand(invar.size())) / (std.expand(invar.size()) + 1e-8)
 
     @staticmethod
     def denormalize(invar, mu, std):
-        """
-        反标准化一个张量 (供 inference 使用)
-        (来自原始 DGL VortexSheddingDataset)
-        """
-        # 确保 mu 和 std 与 invar 在同一设备上
+        """反标准化张量（供推理使用）"""
         mu = mu.to(invar.device)
         std = std.to(invar.device)
         denormalized_invar = invar * (std + 1e-8) + mu
@@ -539,7 +488,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
     
     @staticmethod
     def _one_hot_encode(node_type: torch.Tensor) -> torch.Tensor:
-        # ( ... 与 PyG 版本相同 ... )
+        """对节点类型进行 One-Hot 编码"""
         node_type = torch.squeeze(node_type, dim=-1)
         node_type = torch.where(
             node_type == 0,
@@ -563,7 +512,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
 
     @staticmethod
     def _get_rollout_mask(node_type: torch.Tensor) -> torch.Tensor:
-        # ( ... 与 PyG 版本相同 ... )
+        """生成 rollout 掩码"""
         mask = torch.logical_or(
             torch.eq(node_type, torch.zeros_like(node_type)),
             torch.eq(node_type, torch.zeros_like(node_type) + 5),
@@ -577,7 +526,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         noise_std: float, 
         noise_mask: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # ( ... 与 PyG 版本相同 ... )
+        """为训练数据添加高斯噪声"""
         noise = torch.normal(mean=0, std=noise_std, size=features.size())
         noise_mask = noise_mask.expand(features.size()[0], -1, 2)
         noise = torch.where(noise_mask, noise, torch.zeros_like(noise))
@@ -587,12 +536,12 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
 
 
 # ==============================================================================
-# DATAPIPE (DGL 版本)
+# DATAPIPE
 # ==============================================================================
 
 class DeepMind_CylinderFlowDatapipe:
     """
-    为 DeepMind CylinderFlow (MeshGraphNet) 数据集创建 DataLoaders [DGL 版本]
+    为 DeepMind CylinderFlow (MeshGraphNet) 数据集创建 DataLoader [DGL 版本]
     """
     
     def __init__(self, params: Dict[str, Any], distributed: bool):
@@ -600,7 +549,7 @@ class DeepMind_CylinderFlowDatapipe:
         self.distributed = distributed
         self.dist = DistributedManager()
         
-        # 1. 初始化训练数据集 (DGL 版本)
+        # 1. 初始化训练数据集
         if self.dist.rank == 0:
             logging.info("Initializing Train Dataset (DGL)...")
         self.train_dataset = DeepMind_CylinderFlowDataset(
@@ -614,7 +563,7 @@ class DeepMind_CylinderFlowDatapipe:
         if self.distributed:
             torch.distributed.barrier()
             
-        # 3. 初始化验证和测试数据集 (DGL 版本)
+        # 3. 初始化验证和测试数据集
         if self.dist.rank == 0:
             logging.info("Initializing Validation Dataset (DGL)...")
         self.val_dataset = DeepMind_CylinderFlowDataset(
@@ -634,7 +583,6 @@ class DeepMind_CylinderFlowDatapipe:
     def train_dataloader(self) -> Tuple[GraphDataLoader, Optional[DistributedSampler]]:
         sampler = DistributedSampler(self.train_dataset, shuffle=True) if self.distributed else None
         
-        # [DGL] 使用 DGL 的 GraphDataLoader
         data_loader = GraphDataLoader(
             self.train_dataset,
             batch_size=self.params.dataloader.batch_size,
@@ -649,7 +597,6 @@ class DeepMind_CylinderFlowDatapipe:
     def val_dataloader(self) -> Tuple[GraphDataLoader, Optional[DistributedSampler]]:
         sampler = DistributedSampler(self.val_dataset, shuffle=False) if self.distributed else None
         
-        # [DGL] 使用 DGL 的 GraphDataLoader
         data_loader = GraphDataLoader(
             self.val_dataset,
             batch_size=self.params.dataloader.batch_size,
@@ -664,7 +611,6 @@ class DeepMind_CylinderFlowDatapipe:
     def test_dataloader(self) -> GraphDataLoader:
         sampler = None
         
-        # [DGL] 使用 DGL 的 GraphDataLoader
         data_loader = GraphDataLoader(
             self.test_dataset,
             batch_size=self.params.dataloader.batch_size,

@@ -48,7 +48,7 @@ class BENODataset(BaseDataset):
 
         self._init_paths()
         
-        # [优化] 检查是否有缓存文件
+        # 检查是否有缓存文件
         cache_name = f"cached_{self.source_cfg.file_prefix}_{mode}_{self.ntrain if mode=='train' else self.ntest}.pt"
         self.cache_path = self.data_path / cache_name
         
@@ -188,33 +188,25 @@ class BENODataset(BaseDataset):
         meshgenerator = MeshGenerator([[0, 1], [0, 1]], [self.resolution, self.resolution], grid_input=grid_input)
         
         self.data_list = []
-        
-        # [优化] 使用 tqdm 进度条
+
         iterator = tqdm(sample_indices, desc=f"Building Graphs ({self.mode})", dynamic_ncols=True) if self.dist.rank == 0 else sample_indices
         
         for j in iterator:
             global_idx = j + global_offset
             
-            # [优化] 1. 使用 Numpy 掩码快速筛选 indomain 索引，替代列表 remove
-            # cells_state: 0=in-domain, !=0 out-domain
             mask_in_domain = cells_state[global_idx] == 0
             mesh_idx_temp = np.where(mask_in_domain)[0] 
             
-            # 2. Distance to Boundary (Original Logic but slightly cleaner)
             dist2bd_x = np.array([0, 0])[np.newaxis, :]
             dist2bd_y = np.array([0, 0])[np.newaxis, :]
             curr_coord = coord_all[global_idx]
             curr_bc = bc_data[j] # [128, 3]
             
-            # 这是一个瓶颈，但如果是复杂几何，这是必要的。如果是正方形区域，可以大大简化。
-            # 为了保持通用性，我们保留原逻辑，但因为外层循环有了进度条，用户体验会好很多。
-            # (如果确定是正方形区域，建议直接用坐标计算距离，速度快100倍)
             
             for p_idx in mesh_idx_temp:
                 indomain_x = curr_coord[p_idx][0]
                 indomain_y = curr_coord[p_idx][1]
                 
-                # Vectorized search for matching boundary points
                 # 寻找 x 坐标相同的边界点 (Vertical distance)
                 diff_x = np.abs(curr_bc[:, 0] - indomain_x)
                 horizon_bd_y = np.where(diff_x < 1e-4)[0]
@@ -229,7 +221,7 @@ class BENODataset(BaseDataset):
                     # Fallback for corner cases or errors in mesh
                     dist2bd_y = np.vstack([dist2bd_y, np.array([0,0])[np.newaxis, :]])
 
-                # 寻找 y 坐标相同的边界点 (Horizontal distance)
+                # 寻找 y 坐标相同的边界点 
                 diff_y = np.abs(curr_bc[:, 1] - indomain_y)
                 horizon_bd_x = np.where(diff_y < 1e-4)[0]
                 

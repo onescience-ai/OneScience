@@ -2,9 +2,6 @@ from .AirfRANS import AirfRANSDataset,AirfRANSDatapipe
 from .ShapeNetCar import ShapeNetCarDataset,ShapeNetCarDatapipe
 from .deepmind_cylinderflow import DeepMind_CylinderFlowDataset,DeepMind_CylinderFlowDatapipe
 from .eagle import EagleDataset,EagleDatapipe
-<<<<<<< HEAD
-from .cfdbench import CFDBenchDataset,CFDBenchDatapipe
-=======
 from .cfdbench import CFDBenchDataset,CFDBenchDatapipe
 from .deepcfd import DeepCFDDataset,DeepCFDDatapipe
 from .deepmind_lagrangian import DeepMindLagrangianDataset,DeepMindLagrangianDatapipe,graph_update
@@ -23,4 +20,3 @@ PDEBenchUNODatapipe,
 PDEBenchPINODataset,
 PDEBenchPINODatapipe,
 )
->>>>>>> recover-cfd

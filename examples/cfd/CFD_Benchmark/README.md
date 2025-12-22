@@ -92,13 +92,9 @@ torchrun --standalone --nnodes=<num_nodes> --nproc_per_node=<num_GPUs> run.py
 ```bash
 sbatch slurm.sh
 ```
-<<<<<<< HEAD
-
-=======
 3.推理和评估
 
 需要在对应的脚本中将--eval 参数改为1即可，然后继续执行此脚本
->>>>>>> recover-cfd
 
 3. 开发你自己的模型。
 

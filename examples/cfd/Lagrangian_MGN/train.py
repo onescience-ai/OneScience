@@ -107,11 +107,6 @@ class MGNTrainer:
         graph = graph.to(self.dist.device)
         self.optimizer.zero_grad()
 
-<<<<<<< HEAD
-    def forward(self, graph):
-        # forward pass
-=======
->>>>>>> recover-cfd
         with autocast(device_type="cuda", enabled=self.amp):
             gt_pos, gt_vel, gt_acc = self.dataset.unpack_targets(graph)
 

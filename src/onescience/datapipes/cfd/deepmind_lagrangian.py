@@ -358,12 +358,11 @@ class DeepMindLagrangianDatapipe:
         self.test_dataset = DeepMindLagrangianDataset(OmegaConf.create(test_cfg), mode='test')
 
     def train_dataloader(self):
-        # [修改] 从 datapipe.dataloader.train 读取配置
         loader_cfg = self.cfg.datapipe.dataloader.train
         return GraphDataLoader(
             self.train_dataset,
             batch_size=loader_cfg.batch_size,
-            shuffle=loader_cfg.shuffle, # 使用配置中的 shuffle (通常是 True)
+            shuffle=loader_cfg.shuffle, 
             num_workers=loader_cfg.num_workers,
             pin_memory=loader_cfg.pin_memory,
             drop_last=loader_cfg.drop_last,
@@ -371,7 +370,6 @@ class DeepMindLagrangianDatapipe:
         )
 
     def val_dataloader(self):
-        # [修改] 从 datapipe.dataloader.valid 读取配置
         loader_cfg = self.cfg.datapipe.dataloader.valid
         return GraphDataLoader(
             self.valid_dataset,
@@ -384,7 +382,6 @@ class DeepMindLagrangianDatapipe:
         )
     
     def test_dataloader(self):
-        # [修改] 从 datapipe.dataloader.test 读取配置
         loader_cfg = self.cfg.datapipe.dataloader.test
         return GraphDataLoader(
             self.test_dataset,

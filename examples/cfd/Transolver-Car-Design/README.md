@@ -52,21 +52,7 @@ torchrun --standalone --nnodes=<num_nodes> --nproc_per_node=<num_GPUs> train.py
 python inference.py
 ```
 
-<<<<<<< HEAD
-在推理时，加入`--save_vtk`选项可以将模型预测的结果保存为vtk文件（保存在results文件夹内），即可paraview中进行可视化。
-
-加入`--visualize`选项可以直接将模型预测的结果直接进行可视化展示，不过生成的图片为静态的，不能转换视角，这里更建议使用paraview。`--visualize`选项需与`--save_vtk`选项搭配使用。
-
-3.您也可以选择添加自己的模型。以下是说明：
-
--在文件夹`./models/`下添加模型文件。
-
--将模型配置添加到`./main.py`中。
-
--在文件夹 `./scripts/`下添加脚本文件，并更改参数--model。
-=======
 生成可视化结果：启用 save_vtk: True 保存 VTK 文件，可使用 ParaView 进行高级可视化。启用 visualize: True 生成静态可视化图片。
->>>>>>> recover-cfd
 
 ## 可视化
 

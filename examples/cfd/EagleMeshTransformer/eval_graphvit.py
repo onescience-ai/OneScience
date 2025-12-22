@@ -17,18 +17,18 @@ from onescience.models.graphvit import GraphViT
 
 def load_best_model(model, ckp_dir, device, model_name="best_model.pth"):
     """
-    从固定的文件加载最佳模型
+    从指定目录加载最佳模型权重
     """
     ckpt_path = os.path.join(ckp_dir, model_name)
     if os.path.exists(ckpt_path):
         checkpoint = torch.load(ckpt_path, map_location=device)
         
-        # 兼容 DDP 和非 DDP 加载
+        # 兼容 DDP 和非 DDP 模式
         model_to_load = model.module if hasattr(model, "module") else model
         try:
             model_to_load.load_state_dict(checkpoint['model_state_dict'])
         except KeyError:
-            # 如果 state_dict 没有 'model_state_dict' 键 (例如只保存了模型)
+            # 处理 checkpoint 仅包含状态字典的情况
             model_to_load.load_state_dict(checkpoint)
         logging.info(f"Successfully loaded model from {ckpt_path}")
     else:
@@ -85,28 +85,23 @@ def create_animation(x, velocity, pressure, velocity_hat, pressure_hat, cells, i
 
 
 def main():
-    # 初始化日志和设备
+    # 初始化分布式环境、日志和计算设备
     DistributedManager.initialize()
     logger = setup_logging(0) 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # 加载配置
+    # 加载配置文件
     config_file_path = "conf/graphvit_eagle.yaml"
     cfg_model = YParams(config_file_path, "model")
     cfg_data = YParams(config_file_path, "datapipe")
     cfg_train = YParams(config_file_path, "training")
     
-    # --- 修改：不再需要 cfg_infer ---
-    # cfg_infer = YParams(config_file_path, "inference") 
-    
-    # --- 新增：从训练配置中读取 max_anim (如果存在)，否则使用默认值 ---
     if hasattr(cfg_train, "max_anim_on_infer"):
         max_anim = cfg_train.max_anim_on_infer
     else:
-        max_anim = 5 # 默认值
+        max_anim = 5 # 默认生成数量
         logger.warning(f"conf.training.max_anim_on_infer 未设置, 默认生成 {max_anim} 个动画。")
 
-    
     logger.info(f"Loading config from: {config_file_path}")
     
     # 设置随机种子
@@ -115,28 +110,26 @@ def main():
     np.random.seed(3721)
     random.seed(3721)
 
-    # 初始化 Datapipe
+    # 初始化数据管道
     logger.info("Initializing datapipe...")
     datapipe = EagleDatapipe(params=cfg_data, distributed=False)
 
-    # --- 修正：强制 batch_size=1 用于推理 否则在可视化中会报错---
     dataloader, _ = datapipe.test_dataloader(batch_size=1)
     
     dataset = dataloader.dataset
     L = dataset.w_len
     logger.info(f"Datapipe initialized. Test window length: {L}, N_cluster: {dataset.n_cluster}")
 
-    # 初始化模型
+    # 初始化模型结构
     model = GraphViT(
         state_size=cfg_model.state_size, 
         w_size=cfg_model.w_size
     ).to(device)
 
-    # 加载模型
+    # 加载预训练权重
     checkpoint_dir = cfg_train.checkpoint_dir
     logger.info(f"Loading best model (best_model.pth) from dir: {checkpoint_dir}")
     
-    # --- 修改：调用本地的 load_best_model ---
     load_best_model(
         model=model,
         ckp_dir=checkpoint_dir,
@@ -147,7 +140,7 @@ def main():
     animation_dir = Path("animation_results")
     animation_dir.mkdir(exist_ok=True)
     
-    # 评估循环
+    # 模型评估循环
     anim_count = 0
     with torch.no_grad(), tqdm(total=len(dataloader)) as pbar:
         model.eval()
@@ -163,7 +156,7 @@ def main():
                 logger.warning(f"Skipping empty batch (index {i})")
                 continue
                 
-            # ... (数据移动到 device) ...
+            # 数据迁移至 GPU
             mesh_pos = x["mesh_pos"].to(device)
             edges = x["edges"].to(device).long()
             velocity = x["velocity"].to(device)
@@ -185,12 +178,11 @@ def main():
                 apply_noise=False,
             )
 
-            # Denormalize
+            # 反归一化处理
             velocity_hat, pressure_hat = state_hat[..., :2], state_hat[..., 2:]
             velocity_hat, pressure_hat = dataset.denormalize(velocity_hat, pressure_hat)
             velocity, pressure = dataset.denormalize(velocity, pressure)
 
-            # --- 修改：使用 max_anim 变量 ---
             if anim_count < max_anim:
                 create_animation(
                     x,
@@ -204,7 +196,7 @@ def main():
                 )
                 anim_count += 1
 
-            # ... (N-RMSE 计算保持不变) ...
+            # 计算 N-RMSE
             v_gt, p_gt = velocity[0, 1:], pressure[0, 1:]
             v_hat, p_hat = velocity_hat[0, 1:], pressure_hat[0, 1:]
             mask = mask[0, 1:].unsqueeze(-1)

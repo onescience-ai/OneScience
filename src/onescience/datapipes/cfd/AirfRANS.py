@@ -16,18 +16,18 @@ from onescience.datapipes.core import BaseDataset
 from onescience.utils.transolver.reorganize import reorganize 
 
 from torch.utils.data.distributed import DistributedSampler
-from torch_geometric.loader import DataLoader as PyGDataLoader # 关键：使用 PyG 的 DataLoader
+from torch_geometric.loader import DataLoader as PyGDataLoader # 使用 PyG 的 DataLoader
 
 def cell_sampling_2d(cell_points, cell_attr=None):
     """
-    Sample points in a two dimensional cell via parallelogram sampling and triangle interpolation via barycentric coordinates. The vertices have to be ordered in a certain way.
+    通过平行四边形采样和基于重心坐标的三角形插值，在二维单元中采样点。顶点必须按特定顺序排列。
 
     Args:
-        cell_points (array): Vertices of the 2 dimensional cells. Shape (N, 4) for N cells with 4 vertices.
-        cell_attr (array, optional): Features of the vertices of the 2 dimensional cells. Shape (N, 4, k) for N cells with 4 edges and k features.
-            If given shape (N, 4) it will resize it automatically in a (N, 4, 1) array. Default: ``None``
+        cell_points (array): 二维单元的顶点。形状为 (N, 4)，表示 N 个具有 4 个顶点的单元。
+        cell_attr (array, optional): 二维单元顶点的特征。形状为 (N, 4, k)。
+            如果形状为 (N, 4)，将自动调整为 (N, 4, 1)。默认为 ``None``。
     """
-    # Sampling via triangulation of the cell and parallelogram sampling
+    # 通过单元三角剖分和平行四边形采样进行采样
     v0, v1 = (
         cell_points[:, 1] - cell_points[:, 0],
         cell_points[:, 3] - cell_points[:, 0],
@@ -51,7 +51,7 @@ def cell_sampling_2d(cell_points, cell_attr=None):
     reflex = u.sum(axis=1) > 1
     sampled_point[reflex] = sampled_point_mirror[reflex]
 
-    # Interpolation on a triangle via barycentric coordinates
+    # 基于重心坐标在三角形上进行插值
     if cell_attr is not None:
         t0, t1, t2 = (
             np.zeros_like(v0),
@@ -96,18 +96,18 @@ def cell_sampling_2d(cell_points, cell_attr=None):
 
 def cell_sampling_1d(line_points, line_attr=None):
     """
-    Sample points in a one dimensional cell via linear sampling and interpolation.
+    通过线性采样和插值在如一维单元中采样点。
 
     Args:
-        line_points (array): Edges of the 1 dimensional cells. Shape (N, 2) for N cells with 2 edges.
-        line_attr (array, optional): Features of the edges of the 1 dimensional cells. Shape (N, 2, k) for N cells with 2 edges and k features.
-            If given shape (N, 2) it will resize it automatically in a (N, 2, 1) array. Default: ``None``
+        line_points (array): 一维单元的边。形状为 (N, 2)，表示 N 个具有 2 条边的单元。
+        line_attr (array, optional): 一维单元边的特征。形状为 (N, 2, k)。
+            如果形状为 (N, 2)，将自动调整为 (N, 2, 1)。默认为 ``None``。
     """
-    # Linear sampling
+    # 线性采样
     u = np.random.uniform(size=(len(line_points), 1))
     sampled_point = u * line_points[:, 0] + (1 - u) * line_points[:, 1]
 
-    # Linear interpolation
+    # 线性插值
     if line_attr is not None:
         if len(line_attr.shape) == 2:
             line_attr = line_attr[:, :, None]
@@ -127,7 +127,7 @@ class AirfRANSDataset(BaseDataset):
     继承自 BaseDataset，用于处理 PyTorch Geometric 的 Data 对象。
     """
     
-    # 1. 覆盖元数据
+    # 覆盖元数据
     DOMAIN = "cfd"
     TASK = "regression"
     DATA_FORMATS = ["vtu", "vtp"]
@@ -139,11 +139,11 @@ class AirfRANSDataset(BaseDataset):
         Parameters
         ----------
         config : Dict[str, Any]
-            数据集配置 (来自 YAML 文件的 datapipe 部分)
+            数据集配置
         mode : str, optional
             'train', 'val', 或 'test'
         coef_norm : tuple, optional
-            (mean_in, std_in, mean_out, std_out)
+            (mean_in, std_in, mean_out, std_out) 归一化系数。
             如果为 'train' 且此项为 None，将尝试加载或计算。
             如果为 'val'/'test'，必须提供此项。
         """
@@ -152,14 +152,14 @@ class AirfRANSDataset(BaseDataset):
         self.data_list_names = []
         self.coef_norm = None
         self.dist = DistributedManager()
-        # 2. 调用父类 __init__
+        
         super().__init__(config)
         if self.logger.hasHandlers():
-            self.logger.handlers.clear()     
-               
-        # 3. 初始化
+            self.logger.handlers.clear()      
+                
+        # 初始化
         self._init_paths()
-        self._load_metadata() # 在这里处理归一化
+        self._load_metadata() # 加载或计算归一化统计量
         if self.dist.rank == 0:
             self.logger.info(f"[{self.mode}] AirfRANS dataset initialized.")
             self.logger.info(f"[{self.mode}] Found {len(self.data_list_names)} simulation files.")
@@ -168,7 +168,7 @@ class AirfRANSDataset(BaseDataset):
         """
         加载 manifest.json 并根据 mode 拆分数据集
         """
-        super()._init_paths() # self.data_path 已经设置
+        super()._init_paths() 
         manifest_path = self.data_path / "manifest.json"
         if not manifest_path.exists():
             raise FileNotFoundError(f"manifest.json not found at: {self.data_path}")
@@ -176,13 +176,13 @@ class AirfRANSDataset(BaseDataset):
         with open(manifest_path, 'r') as f:
             manifest = json.load(f)
 
-        # 从 config 中获取要使用的 manifest 键
+        # 从配置中获取要使用的 manifest 键
         task_name = self.config.data.splits.task # e.g., 'full'
         
         if self.mode == 'train':
             train_key = self.config.data.splits.train_name # e.g., 'full_train'
             full_set = manifest[train_key]
-            # 按照原始脚本的逻辑，从训练集中划分出验证集
+            # 根据配置比例划分验证集
             n_val = int(len(full_set) * self.config.data.splits.val_split_ratio)
             self.data_list_names = full_set[:-n_val]
         elif self.mode == 'val':
@@ -226,7 +226,7 @@ class AirfRANSDataset(BaseDataset):
             if self.dist.rank == 0:
                 self.logger.warning(f"[{self.mode}] Stats not found. Calculating normalization stats on the fly...")
             self.coef_norm = self._calculate_normalization()
-            # 保存计算得到的统计数据
+            # 保存统计数据
             np.save(mean_in_path, self.coef_norm[0])
             np.save(std_in_path, self.coef_norm[1])
             np.save(mean_out_path, self.coef_norm[2])
@@ -239,7 +239,7 @@ class AirfRANSDataset(BaseDataset):
     def _calculate_normalization(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         在训练集上计算归一化统计量 (均值和标准差)
-        这会遍历整个训练集，可能很慢
+        这会遍历整个训练集，可能较慢
         """
         if self.mode != 'train':
             raise RuntimeError("Normalization calculation should only be done on the training set.")
@@ -251,13 +251,13 @@ class AirfRANSDataset(BaseDataset):
         old_length_in = 0
         old_length_out = 0
 
-        # 第一次遍历：计算均值
+        # 第一轮遍历：计算均值
         self.logger.info("Calculating mean...")
-        # 注意：这里我们使用 __len__ 和 _load_single_simulation，而不是索引
+        # 注意：这里直接使用 _load_single_simulation 加载数据
         pbar = tqdm(self.data_list_names, desc="Norm (pass 1/2)")
         for s in pbar:
-            # 临时将采样策略设为 None 来加载原始网格点进行统计
-            # 否则统计数据会依赖于采样，这可能不是期望的行为
+            # 临时禁用采样以统计原始网格数据
+            # 避免统计结果依赖于特定采样策略
             original_sample_strategy = self.config.data.sampling.sample_strategy
             if original_sample_strategy is not None:
                 self.config.data.sampling.sample_strategy = None
@@ -281,9 +281,9 @@ class AirfRANSDataset(BaseDataset):
         mean_in = mean_in.astype(np.single)
         mean_out = mean_out.astype(np.single)
 
-        # 第二次遍历：计算标准差
+        # 第二轮遍历：计算标准差
         self.logger.info("Calculating std dev...")
-        old_length_in = 0 # 重置
+        old_length_in = 0 # 重置计数
         pbar = tqdm(self.data_list_names, desc="Norm (pass 2/2)")
         for s in pbar:
             original_sample_strategy = self.config.data.sampling.sample_strategy
@@ -297,7 +297,7 @@ class AirfRANSDataset(BaseDataset):
                 self.config.data.sampling.sample_strategy = original_sample_strategy
             
             if std_in is None:
-                old_length_in = init.shape[0] # 获取第一次迭代的长度
+                old_length_in = init.shape[0] # 使用第一轮记录的长度
                 std_in = ((init - mean_in) ** 2).sum(axis=0, dtype=np.double) / old_length_in
                 std_out = ((target - mean_out) ** 2).sum(axis=0, dtype=np.double) / old_length_in
             else:
@@ -313,8 +313,7 @@ class AirfRANSDataset(BaseDataset):
         
     def _load_single_simulation(self, s: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
-        从 get_airfoildatalist 中提取的逻辑，用于加载单个模拟
-        返回 (pos, x, y, surf_bool)
+        加载单个模拟文件，返回 (pos, x, y, surf_bool)
         """
         internal_path = self.data_path / s / f"{s}_internal.vtu"
         aerofoil_path = self.data_path / s / f"{s}_aerofoil.vtp"
@@ -332,7 +331,7 @@ class AirfRANSDataset(BaseDataset):
         Uinf, alpha = float(s.split("_")[2]), float(s.split("_")[3]) * np.pi / 180
         
         if sample_strategy:
-            # --- START: 采样逻辑 (sample != None) ---
+            # --- 采样模式 (sample != None) ---
             n_boot = self.config.data.sampling.n_boot
             surf_ratio = self.config.data.sampling.surf_ratio
             n_boot_surf = int(n_boot * surf_ratio)
@@ -350,7 +349,7 @@ class AirfRANSDataset(BaseDataset):
             else:
                 raise ValueError(f"Unknown sample strategy: {sample_strategy}")
 
-            # 处理体积 (volume)
+            # 处理体积网格 (volume)
             cell_dict = internal.cells.reshape(-1, 5)[sampled_cell_indices, 1:]
             cell_points = internal.points[cell_dict]
             
@@ -368,17 +367,16 @@ class AirfRANSDataset(BaseDataset):
                 internal.point_data["nut"][cell_dict, None],
             ], axis=-1)
             
-            # 调用外部辅助函数
+            # 执行 2D 采样
             sampled_points = cell_sampling_2d(cell_points, attr)
             
             pos_vol = sampled_points[:, :2]
-            # [u_x, u_y, sdf, normal_x, normal_y] (5 dims)
-            # 我们还需要 pos_x, pos_y 来匹配 7 维的 x
+            # 拼接坐标以匹配 7 维特征
             init_vol_base = sampled_points[:, 2:7] 
             init_vol = np.concatenate([pos_vol, init_vol_base], axis=1) # 7 dims
             target_vol = sampled_points[:, 7:] # [v_x, v_y, p, nut] (4 dims)
 
-            # 处理表面 (surface)
+            # 处理表面网格 (surface)
             line_dict = aerofoil.lines.reshape(-1, 3)[sampled_line_indices, 1:]
             line_points = aerofoil.points[line_dict]
             
@@ -396,7 +394,7 @@ class AirfRANSDataset(BaseDataset):
                 aerofoil.point_data["nut"][line_dict, None],
             ], axis=-1)
             
-            # 调用外部辅助函数
+            # 执行 1D 采样
             surf_sampled_points = cell_sampling_1d(line_points, surf_attr)
 
             pos_surf = surf_sampled_points[:, :2]
@@ -404,7 +402,7 @@ class AirfRANSDataset(BaseDataset):
             init_surf = np.concatenate([pos_surf, init_surf_base], axis=1) # 7 dims
             target_surf = surf_sampled_points[:, 7:] # 4 dims
 
-            # 合并
+            # 合并体积和表面数据
             pos = np.concatenate([pos_vol, pos_surf], axis=0)
             x = np.concatenate([init_vol, init_surf], axis=0)
             y = np.concatenate([target_vol, target_surf], axis=0)
@@ -414,17 +412,16 @@ class AirfRANSDataset(BaseDataset):
             ], axis=0)
             
             return pos, x, y, surf_bool
-            # --- END: 采样逻辑 ---
 
         else:
-            # --- START: 原始网格节点逻辑 (sample=None) ---
+            # --- 全量网格模式 (sample=None) ---
             surf_bool = internal.point_data["U"][:, 0] == 0
             geom = -internal.point_data["implicit_distance"][:, None]
             u = (np.array([np.cos(alpha), np.sin(alpha)]) * Uinf).reshape(1, 2) * \
                 np.ones_like(internal.point_data["U"][:, :1])
             normal = np.zeros_like(u)
             
-            # 使用 reorganize 函数
+            # 重组表面点数据
             normal[surf_bool] = reorganize(
                 aerofoil.points[:, :2],
                 internal.points[surf_bool, :2],
@@ -446,12 +443,10 @@ class AirfRANSDataset(BaseDataset):
             ], axis=-1) # y/target: [v_x, v_y, p, nut] (4 dims)
             
             return pos, init, target, surf_bool
-            # --- END: 原始网格节点逻辑 ---
 
 
     def __len__(self) -> int:
         """返回数据集大小"""
-        # 每个 epoch 包含所有模拟
         return len(self.data_list_names)
 
 
@@ -460,13 +455,13 @@ class AirfRANSDataset(BaseDataset):
     def __getitem__(self, idx: int) -> Data:
         """
         获取单个样本，并完成所有预处理
-        (加载, 归一化, 子采样, 图构建)
+        (加载, 归一化, 子采样, 构建图)
         """
-        # 1. 获取模拟名称
+        # 1. 获取文件名
         sim_name = self.data_list_names[idx]
         
         try:
-            # 2. 加载原始数据 (例如 179033 个点)
+            # 2. 加载原始数据
             pos, x, y, surf = self._load_single_simulation(sim_name)
             
             # 3. 归一化
@@ -481,7 +476,7 @@ class AirfRANSDataset(BaseDataset):
             y = torch.tensor(y, dtype=torch.float)
             surf = torch.tensor(surf, dtype=torch.bool)
             
-            # 5. [!!! 关键修复 !!!]
+            # 5. 子采样 (Subsampling)
             # 仅在 'train' 或 'val' 模式下进行子采样
             if self.mode in ['train', 'val']:
                 subsampling_count = self.config.data.subsampling
@@ -505,8 +500,7 @@ class AirfRANSDataset(BaseDataset):
                 # 如果是 'test' 模式，则不进行子采样
                 pos_s, x_s, y_s, surf_s = pos, x, y, surf
             
-            # 6. 图构建
-            # 现在 pos_s 是正确的尺寸 (训练时 32k, 测试时 179k)
+            # 6. 构建图结构
             model_hparams = self.config.model_hparams
             if model_hparams.build_graph:
                 edge_index = nng.radius_graph(
@@ -533,24 +527,19 @@ class AirfRANSDataset(BaseDataset):
     
 
 
-
 class AirfRANSDatapipe:
     """
-    为 AirfRANS (CFD) 数据集创建 DataLoaders
+    为 AirfRANS (CFD) 数据集创建 DataLoader
     """
     
     def __init__(self, params, distributed: bool):
         self.params = params
         self.distributed = distributed
-        
-        # 1. 初始化训练数据集
-        # 训练集会计算或加载归一化系数
+
         self.train_dataset = AirfRANSDataset(config=self.params, mode='train')
         
-        # 2. 获取归一化系数
         self.coef_norm = self.train_dataset.coef_norm
         
-        # 3. 初始化验证和测试数据集 (传入归一化系数)
         self.val_dataset = AirfRANSDataset(config=self.params, mode='val', coef_norm=self.coef_norm)
         self.test_dataset = AirfRANSDataset(config=self.params, mode='test', coef_norm=self.coef_norm)
 
@@ -563,7 +552,7 @@ class AirfRANSDatapipe:
             drop_last=True if self.distributed else False,
             num_workers=self.params.dataloader.num_workers,
             pin_memory=True,
-            shuffle=(sampler is None), # 如果没有 sampler 则 shuffle
+            shuffle=(sampler is None), 
             sampler=sampler
         )
         return data_loader, sampler
@@ -583,7 +572,7 @@ class AirfRANSDatapipe:
         return data_loader, sampler
 
     def test_dataloader(self):
-        # 测试时通常不使用 DDP sampler
+        # 测试集不使用分布式采样
         sampler = None
         
         data_loader = PyGDataLoader(

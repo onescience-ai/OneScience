@@ -1,70 +1,4 @@
 # conf/cfdbench.yaml
-<<<<<<< HEAD
-
-# 数据集相关配置
-datapipe:
-  source:
-    data_dir: "./data"  # 数据根目录
-    data_name: "tube_prop"  # 格式: {problem}_{subset}, e.g., tube_prop, cavity_geo
-  
-  data:
-    # 任务类型: "auto" (自回归/时序) 或 "not_auto" (非自回归/输入->输出)
-    task_type: "auto" 
-    
-    # 物理属性
-    norm_props: true
-    norm_bc: true
-    
-    # 时间步长 (仅用于 auto 模式)
-    delta_time: 0.1 
-    stable_state_diff: 0.001
-    
-    # 数据分割比例
-    split_ratios: [0.8, 0.1, 0.1] # train, val, test
-    seed: 0
-
-  dataloader:
-    batch_size: 32  # 训练 batch size
-    eval_batch_size: 16
-    num_workers: 4
-
-# 模型相关配置
-model:
-  name: "deeponet" # deeponet, ffn, unet, fno, resnet, auto_deeponet...
-  
-  # 自回归模型参数
-  in_chan: 2
-  out_chan: 2
-  
-  # DeepONet 参数
-  deeponet_width: 100
-  branch_depth: 8
-  trunk_depth: 8
-  act_fn: "relu"
-  act_scale_invariant: true
-  act_on_output: false
-  
-  # FFN 参数
-  ffn_depth: 8
-  ffn_width: 100
-
-# 训练相关配置
-training:
-  output_dir: "./result"
-  mode: "train_test" # train, test, train_test
-  
-  num_epochs: 200
-  lr: 1.0e-3
-  lr_step_size: 20
-  lr_gamma: 0.9
-  
-  log_interval: 20
-  eval_interval: 20
-  
-  loss_name: "nmse" # mse, nmse, mae, nmae
-  
-  gpuid: 0
-=======
 root:
     datapipe:
       source:
@@ -156,4 +90,3 @@ root:
       loss_name: "nmse" # mse, nmse, mae, nmae
       
       gpuid: 0
->>>>>>> recover-cfd
