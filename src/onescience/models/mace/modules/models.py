@@ -9,7 +9,8 @@ from e3nn import o3
 from e3nn.util.jit import compile_mode
 
 from onescience.models.mace.modules.radial import ZBLBasis
-from onescience.models.mace.tools.scatter import scatter_sum
+#from onescience.models.mace.tools.scatter import scatter_sum
+from onescience.datapipes.materials.tools.scatter import scatter_sum
 
 from .blocks import (
     AtomicEnergiesBlock,

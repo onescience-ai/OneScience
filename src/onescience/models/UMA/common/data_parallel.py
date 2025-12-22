@@ -14,15 +14,15 @@ from torch.utils.data import BatchSampler, Dataset, DistributedSampler
 from typing_extensions import deprecated, override
 
 from onescience.models.UMA.common import distutils, gp_utils
-from onescience.datapipes.uma import data_list_collater
-from onescience.datapipes.uma.base_dataset import (
+from onescience.datapipes.materials.custom_stack import data_list_collater
+from onescience.datapipes.materials.custom_stack.base_dataset import (
     UnsupportedDatasetError,
 )
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
-    from onescience.datapipes.uma.atomic_data import AtomicData
+    from onescience.datapipes.materials.custom_stack.core.atomic_data import AtomicData
 
 
 @deprecated(

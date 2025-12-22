@@ -20,10 +20,17 @@ from ase.calculators.calculator import Calculator, all_changes
 from ase.stress import full_3x3_to_voigt_6_stress
 from e3nn import o3
 
-from onescience.models.mace import data
+#from onescience.models.mace import data
+# ✨ 关键：导入 L3-Core 模块
+from onescience.datapipes.materials.pyg_stack.core.atomic_data import AtomicData
+from onescience.datapipes.materials.pyg_stack.core.utils import config_from_atoms
+
 from onescience.models.mace.cli.convert_e3nn_cueq import run as run_e3nn_to_cueq
 from onescience.models.mace.modules.utils import extract_invariant
-from onescience.models.mace.tools import torch_geometric, torch_tools, utils
+
+#from onescience.models.mace.tools import torch_geometric, torch_tools, utils
+from onescience.datapipes.materials.tools import torch_geometric, torch_tools, utils
+
 from onescience.models.mace.tools.compile import prepare
 from onescience.models.mace.tools.scripts_utils import extract_model
 

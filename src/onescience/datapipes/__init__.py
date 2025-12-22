@@ -1,41 +1,30 @@
 ## 所有的常用数据集和用户自己构建的数据集从这里管理
-<<<<<<< HEAD
 
 from onescience.datapipes.core import BaseDataset
-from onescience.datapipes.cfd.AirfRANS import AirfRANSDataset,AirfRANSDatapipe
-from onescience.datapipes.cfd.ShapeNetCar import ShapeNetCarDataset,ShapeNetCarDatapipe
-from onescience.datapipes.cfd.deepmind_cylinderflow import DeepMind_CylinderFlowDataset,DeepMind_CylinderFlowDatapipe
-from onescience.datapipes.cfd.eagle import EagleDataset,EagleDatapipe
-from onescience.datapipes.cfd.cfdbench import CFDBenchDataset,CFDBenchDatapipe
-from onescience.datapipes.climate import ERA5Dataset, ERA5Datapipe, ERA5HDF5Datapipe, ERA5HDF5Dataset
-
-=======
-from onescience.datapipes.core import BaseDataset
-from onescience.datapipes.cfd.AirfRANS import AirfRANSDataset,AirfRANSDatapipe
-from onescience.datapipes.cfd.ShapeNetCar import ShapeNetCarDataset,ShapeNetCarDatapipe
-from onescience.datapipes.cfd.deepmind_cylinderflow import DeepMind_CylinderFlowDataset,DeepMind_CylinderFlowDatapipe
-from onescience.datapipes.cfd.eagle import EagleDataset,EagleDatapipe
-from onescience.datapipes.cfd.cfdbench import CFDBenchDataset,CFDBenchDatapipe
-from onescience.datapipes.cfd import DeepCFDDataset,DeepCFDDatapipe
-from onescience.datapipes.cfd import BENODataset,BENODatapipe
+from onescience.datapipes.cfd.AirfRANS import AirfRANSDataset, AirfRANSDatapipe
+from onescience.datapipes.cfd.ShapeNetCar import ShapeNetCarDataset, ShapeNetCarDatapipe
+from onescience.datapipes.cfd.deepmind_cylinderflow import DeepMind_CylinderFlowDataset, DeepMind_CylinderFlowDatapipe
+from onescience.datapipes.cfd.eagle import EagleDataset, EagleDatapipe
+from onescience.datapipes.cfd.cfdbench import CFDBenchDataset, CFDBenchDatapipe
+from onescience.datapipes.cfd import DeepCFDDataset, DeepCFDDatapipe
+from onescience.datapipes.cfd import BENODataset, BENODatapipe
 from onescience.datapipes.cfd import (
-PDEBenchFNODataset,
-PDEBenchFNODatapipe,
-PDEBenchDeepONetDataset,
-PDEBenchDeepONetDatapipe,
-PDEBenchMPNNDataset,
-PDEBenchMPNNDatapipe,
-PDEBenchUNetDataset,
-PDEBenchUNetDatapipe,
-PDEBenchUNODataset,
-PDEBenchUNODatapipe,
-PDEBenchPINODataset,
-PDEBenchPINODatapipe,
+    PDEBenchFNODataset,
+    PDEBenchFNODatapipe,
+    PDEBenchDeepONetDataset,
+    PDEBenchDeepONetDatapipe,
+    PDEBenchMPNNDataset,
+    PDEBenchMPNNDatapipe,
+    PDEBenchUNetDataset,
+    PDEBenchUNetDatapipe,
+    PDEBenchUNODataset,
+    PDEBenchUNODatapipe,
+    PDEBenchPINODataset,
+    PDEBenchPINODatapipe,
 )
+from onescience.datapipes.cfd import DeepMindLagrangianDataset, DeepMindLagrangianDatapipe
+from onescience.datapipes.climate import ERA5Dataset, ERA5Datapipe, ERA5HDF5Datapipe, ERA5HDF5Dataset, CMEMSDatapipe, CMEMSHDF5Dataset
 
-from onescience.datapipes.cfd import DeepMindLagrangianDataset,DeepMindLagrangianDatapipe
-from onescience.datapipes.climate import ERA5Dataset, ERA5Datapipe, ERA5HDF5Datapipe, ERA5HDF5Dataset
->>>>>>> recover-cfd
 __all__ = [
     "ERA5Dataset",
     "ERA5HDF5Datapipe",
@@ -52,8 +41,6 @@ __all__ = [
     "BaseDataset",
     "ERA5Datapipe",
     "ERA5HDF5Dataset",
-<<<<<<< HEAD
-=======
     "DeepCFDDataset",
     "DeepCFDDatapipe",
     "PDEBenchFNODataset",
@@ -72,5 +59,6 @@ __all__ = [
     "DeepMindLagrangianDatapipe",
     "BENODataset",
     "BENODatapipe",
->>>>>>> recover-cfd
+    "CMEMSDatapipe",
+    "CMEMSHDF5Dataset",
 ]

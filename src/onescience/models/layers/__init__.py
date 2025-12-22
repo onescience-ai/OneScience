@@ -23,6 +23,7 @@ from .resample_layers import (
     DownSample3D,
     UpSample2D,
     UpSample3D,
+    UpSample,
 )
 from .siren_layers import SirenLayer, SirenLayerType
 from .spectral_layers import (

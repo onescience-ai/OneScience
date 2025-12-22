@@ -4,8 +4,8 @@ from typing import Dict, List, Optional
 import torch
 from prettytable import PrettyTable
 
-from onescience.models.mace.tools import evaluate
-
+#from onescience.models.mace.tools import evaluate
+from .train import evaluate
 
 def custom_key(key):
     """

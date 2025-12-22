@@ -7,8 +7,9 @@ from e3nn import o3
 from onescience.models.mace import modules
 from onescience.models.mace.tools.finetuning_utils import load_foundations_elements
 from onescience.models.mace.tools.scripts_utils import extract_config_mace_model
-from onescience.models.mace.tools.utils import AtomicNumberTable
 
+#from onescience.models.mace.tools.utils import AtomicNumberTable
+from onescience.datapipes.materials.tools.utils import AtomicNumberTable
 
 def configure_model(
     args,

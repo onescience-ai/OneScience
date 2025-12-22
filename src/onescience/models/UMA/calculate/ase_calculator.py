@@ -12,8 +12,8 @@ from ase.calculators.calculator import Calculator
 from ase.stress import full_3x3_to_voigt_6_stress
 
 from onescience.models.UMA.calculate import pretrained_mlip
-from onescience.datapipes.uma import data_list_collater
-from onescience.datapipes.uma.atomic_data import AtomicData
+from onescience.datapipes.materials.custom_stack import data_list_collater
+from onescience.datapipes.materials.custom_stack.core.atomic_data import AtomicData
 from onescience.models.UMA.units.mlip_unit.api.inference import (
     CHARGE_RANGE,
     DEFAULT_CHARGE,

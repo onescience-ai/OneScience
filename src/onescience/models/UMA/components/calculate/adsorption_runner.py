@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from ase.calculators.calculator import Calculator
     from ase.optimize import Optimizer
 
-    from onescience.datapipes.uma import AseDBDataset
+    from onescience.datapipes.materials.custom_stack import AseDBDataset
 
 
 class AdsorptionRunner(CalculateRunner):
