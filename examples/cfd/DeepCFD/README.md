@@ -6,13 +6,10 @@
 通过数值求解纳维-斯托克斯方程的传统计算流体动力学（CFD）仿真在工程应用中计算成本高昂。DeepCFD采用卷积神经网络（CNN）直接从真实CFD数据中学习流动方程的解，相比传统CFD方法，在保持低误差率的情况下，推理速度可提高多达三个数量级。
 
 ## 数据集
-数据集可通过[此链接下载](https://zenodo.org/record/3666056/files/DeepCFD.zip?download=1)
 
-<<<<<<< HEAD
 此项目的数据集可以使用以此链接[下载](https://zenodo.org/record/3666056/files/DeepCFD.zip?download=1)
-=======
+
 曙光新一代机器平台数据集统一存放在：/public/onestore/onedatasets/DeepCFD
->>>>>>> recover-cfd
 
 数据集包含两个文件：
 - `dataX.pkl`: 981个管道流样本的几何输入信息
