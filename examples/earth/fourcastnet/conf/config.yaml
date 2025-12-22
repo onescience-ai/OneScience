@@ -33,7 +33,7 @@ datapipe:
               'geopotential_1000', 'geopotential_850', 'geopotential_500', 'geopotential_50', # 4
               "relative_humidity_500", "relative_humidity_850", # 2
               "temperature_500", "temperature_850", # 2
-              'u_component_of_wind_500', 'u_component_of_wind_850', 'v_component_of_wind_1000', # 3
+              'u_component_of_wind_500', 'u_component_of_wind_850', 'u_component_of_wind_1000', # 3
               'v_component_of_wind_500', 'v_component_of_wind_850', 'v_component_of_wind_1000'] # 3
 
     variables:

@@ -18,7 +18,7 @@ from onescience.models.utils import (
 
 
 import torch.nn as nn
-from onescience.models.xihe.layers import GlobalSIE,OceanSpecificBlock
+from onescience.models.xihe.oceanspecificblock import OceanSpecificBlock
 from ..layers.resample_layers import DownSample2D, UpSample
 
 
