@@ -1,10 +1,9 @@
-# train_transolver.py
-
 import os
 import sys
 import logging
 import time
 import numpy as np
+from tqdm import tqdm  # [New Import]
 
 import torch
 import torch.nn as nn
@@ -16,7 +15,8 @@ from onescience.utils.YParams import YParams
 from onescience.datapipes import AirfRANSDatapipe
 import onescience.utils.transolver.metrics as metrics
 
-from onescience.models.transolver.Transolver2D import Transolver2D
+from onescience.models.transolver import Transolver2D
+from onescience.models.transolver import Transolver2D_plus
 from onescience.models.transolver.MLP import MLP
 from onescience.models.transolver.GraphSAGE import GraphSAGE
 from onescience.models.transolver.PointNet import PointNet
@@ -25,7 +25,7 @@ from onescience.models.transolver.GUNet import GUNet
 
 
 def setup_logging(rank):
-    """日志初始化，仅 rank 0 输出 INFO，其余进程降低日志级别"""
+    """Initialize logging, INFO only on rank 0."""
     level = logging.INFO if rank == 0 else logging.WARNING
     logging.basicConfig(
         level=level,
@@ -37,7 +37,7 @@ def setup_logging(rank):
 
 
 def save_checkpoint(model, optimizer, scheduler, epoch, loss, ckp_dir, model_name):
-    """保存模型 checkpoint"""
+    """Save model checkpoint."""
     if not os.path.exists(ckp_dir):
         os.makedirs(ckp_dir, exist_ok=True)
 
@@ -57,29 +57,29 @@ def main():
     manager = DistributedManager()
     logger = setup_logging(manager.rank)
 
-    # 读取配置文件
+    # Load Config
     config_file_path = "conf/transolver_airfrans.yaml"
     cfg = YParams(config_file_path, "model")
     cfg_data = YParams(config_file_path, "datapipe")
     cfg_train = YParams(config_file_path, "training")
 
-    # 模型名称与参数
+    # Model Params
     model_name = cfg.name
     if manager.rank == 0:
-        logger.info(f"===== 🚀 Preparing model: {model_name} =====")
+        logger.info(f"=====  Preparing model: {model_name} =====")
 
     if model_name not in cfg.specific_params:
         raise ValueError(f"Model '{model_name}' not found in config's 'specific_params' block.")
     model_params = cfg.specific_params[model_name]
 
-    # 将模型相关参数注入 datapipe 配置
+    # Inject model params into datapipe config
     cfg_data.model_hparams = model_params
     hparams = model_params
     if not hasattr(hparams, 'subsampling') or hparams.subsampling is None:
         hparams.subsampling = cfg_data.data.subsampling
         logger.info(f"Added 'subsampling = {hparams.subsampling}' to hparams for Infer_test.")
 
-    # 初始化数据管道
+    # Initialize Datapipe
     logger.info("Initializing datapipe...")
     datapipe = AirfRANSDatapipe(params=cfg_data, distributed=(manager.world_size > 1))
     train_dataloader, train_sampler = datapipe.train_dataloader()
@@ -87,16 +87,17 @@ def main():
     coef_norm = datapipe.coef_norm
     logger.info("Datapipe initialized.")
 
-    # 设备选择
+    # Device Setup
     if manager.world_size > 1:
         device = torch.device(f'cuda:{manager.local_rank}' if torch.cuda.is_available() else 'cpu')
     else:
         device = torch.device(f'cuda:{cfg_train.gpuid}' if torch.cuda.is_available() else 'cpu')
 
-    # 模型初始化
+    # Initialize Model
     logger.info(f"Initializing model architecture: {model_name}")
-    if model_name == 'Transolver':
-        model = Transolver2D(
+    if model_name in ['Transolver', 'Transolver_plus']:
+        ModelClass = Transolver2D if model_name == 'Transolver' else Transolver2D_plus    
+        model = ModelClass(
             n_hidden=model_params.n_hidden,
             n_layers=model_params.n_layers,
             space_dim=model_params.space_dim,
@@ -134,7 +135,7 @@ def main():
             find_unused_parameters=True
         )
 
-    # 优化器、调度器、损失函数
+    # Optimizer, Scheduler, Loss
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg_train.lr)
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
         optimizer,
@@ -150,7 +151,7 @@ def main():
     loss_weight = cfg_train.loss_weight
     use_weighted_loss = (cfg_train.loss_criterion == 'MSE_weighted')
 
-    # 训练过程
+    # Training Loop
     checkpoint_dir = cfg_train.checkpoint_dir
     os.makedirs(checkpoint_dir, exist_ok=True)
     best_valid_loss = 1.0e6
@@ -167,7 +168,20 @@ def main():
         model.train()
         train_loss = train_loss_surf = train_loss_vol = 0.0
 
-        for data in train_dataloader:
+        # [Optimized] Progress Bar Setup
+        if manager.rank == 0:
+            # leave=False ensures the bar disappears after the epoch finishes, keeping logs clean
+            iterator = tqdm(
+                train_dataloader, 
+                desc=f"Epoch {epoch + 1}/{cfg_train.max_epoch}", 
+                dynamic_ncols=True, 
+                leave=False,
+                disable=not (manager.rank == 0) 
+            )
+        else:
+            iterator = train_dataloader
+
+        for data in iterator:
             data = data.to(device)
             optimizer.zero_grad()
             out = model(data)
@@ -186,15 +200,27 @@ def main():
             train_loss_surf += loss_surf.item()
             train_loss_vol += loss_vol.item()
 
+            # [Update] Update progress bar postfix with current batch loss
+            if manager.rank == 0:
+                iterator.set_postfix({
+                    "loss": f"{loss.item():.4f}", 
+                    "lr": f"{optimizer.param_groups[0]['lr']:.2e}"
+                })
+
         train_loss /= len(train_dataloader)
         train_loss_surf /= len(train_dataloader)
         train_loss_vol /= len(train_dataloader)
 
-        # 验证阶段
+        # Validation
         model.eval()
         valid_loss = valid_loss_surf = valid_loss_vol = 0.0
+        
+        # Optional: Add a simple progress bar for validation if desired
+        val_iterator = val_dataloader
+        # if manager.rank == 0: val_iterator = tqdm(val_dataloader, desc="Validating", leave=False)
+
         with torch.no_grad():
-            for data in val_dataloader:
+            for data in val_iterator:
                 data = data.to(device)
                 out = model(data)
                 targets = data.y
@@ -218,6 +244,7 @@ def main():
 
         if manager.rank == 0:
             epoch_time = time.time() - epoch_start_time
+            # Clear console line if needed or just print the summary
             logger.info(
                 f"Epoch [{epoch + 1}/{cfg_train.max_epoch}] | Time: {epoch_time:.2f}s | "
                 f"Train Loss: {train_loss:.6f} (Vol: {train_loss_vol:.6f}, Surf: {train_loss_surf:.6f}) | "
@@ -236,7 +263,7 @@ def main():
                 )
                 break
 
-    # 训练完成后测试
+    # Testing after training
     if manager.rank == 0:
         logger.info("===== Training finished. Starting testing... =====")
 

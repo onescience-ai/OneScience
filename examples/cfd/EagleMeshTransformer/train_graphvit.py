@@ -1,19 +1,16 @@
 # train_graphvit_eagle.py
-
 import os
 import sys
 import logging
 import time
 import random
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-
 from onescience.distributed.manager import DistributedManager
 from onescience.utils.YParams import YParams
 from onescience.datapipes import EagleDatapipe
