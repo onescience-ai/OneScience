@@ -8,7 +8,6 @@ try:
 except ImportError:
     raise ImportError(
         "Mesh Graph Net requires the DGL library. Install the "
-        + "desired CUDA version at: \n https://www.dgl.ai/pages/start.html"
     )
 from dataclasses import dataclass
 from itertools import chain

@@ -20,7 +20,7 @@
     * `reduced_resolution_pde`：整数，PINO 中物理驱动部分空间分辨率的下采样率。
     * `reduced_resolution_pde_t`：整数，物理驱动部分时间维度的下采样率。
 
-    注意，我们针对 PINO 训练提供了空间维度上 4 倍的物理/数据分辨率比，时间维度上为 1 倍，因此默认 `reduced_resolution` 是 `reduced_resolution_pde` 的 4 倍。
+    注意，我们针对 PINO 训练提供了空间维度上 4 倍的物理/数据分辨率比，时间维度上为 1 倍，因此默认 `reduced_resolution` 是 `reduced_resolution_pde` 的 4 倍。config目录下4x的空间分辨率会比
 
 * 损失权重:
     * ic_loss：浮点数，默认 2.0，物理驱动部分初始条件损失的权重。

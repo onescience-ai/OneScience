@@ -1,0 +1,50 @@
+beno_config:
+  datapipe:
+    source:
+      data_dir: "./data/Dirichlet/"        # 数据集根目录
+      file_prefix: "N32_4c"                # 数据文件名前缀（如 RHS_N32_4c_all.npy）
+    verbose: True                          # 是否打印 datapipe 详细日志
+
+    data:
+      name: "BENO_Elliptic"                # 数据集名称
+      ntrain: 900                          # 训练样本数量
+      ntest: 100                           # 测试样本数量
+      resolution: 32                       # 网格分辨率
+      ns: 10                               # 图构建时每个节点的邻居数
+
+      domain_bounds: [[0, 1], [0, 1]]      # 计算域范围（二维）
+
+    dataloader:
+      batch_size: 1                        # 批大小
+      num_workers: 0                      # 数据加载进程数
+      pin_memory: True                    # 是否使用 pinned memory
+
+  model:
+    name: "HeteroGNS"                     # 模型名称
+    nnode_in_features: 10                 # 节点输入特征维度
+    nnode_out_features: 1                 # 节点输出特征维度
+    nedge_in_features: 7                  # 边特征维度
+    nmlp_layers: 2                        # MLP 层数
+    act: "relu"                           # 激活函数类型
+    boundary_dim: 128                     # 边界特征编码维度
+    trans_layer: 3                        # 消息传递层数
+    width: 64                             # 网络宽度（保留参数）
+    ker_width: 256                        # 核宽度（保留参数）
+
+  training:
+    output_dir: "./model/"                # 模型输出目录
+    save_dir_name: "Resolution_32_poisson" # 保存子目录名
+
+    epochs: 1000                          # 训练轮数
+    save_period: 1                        # 模型保存周期（epoch）
+    seed: 2025                            # 随机种子
+
+    optimizer:
+      name: "Adam"                        # 优化器类型
+      lr: 1.0e-5                          # 学习率
+      weight_decay: 5.0e-4                # 权重衰减系数
+
+    scheduler:
+      name: "CosineAnnealingWarmRestarts" # 学习率调度器
+      T_0: 16                             # 初始重启周期
+      T_mult: 2                           # 周期倍增系数

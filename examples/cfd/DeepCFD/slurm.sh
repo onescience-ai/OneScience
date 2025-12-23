@@ -16,10 +16,6 @@ module load compiler/dtk/25.04
 
 source ~/conda.env # 替换为自己的conda路径
 conda activate onescience # 替换为自己的conda环境
-#unset ROCBLAS_TENSILE_LIBPATH
-
-#如果报了rocBLAS warning: No paths matched /opt/rocm/lib/rocblas/library/*gfx928*co. Make sure that ROCBLAS_TENSILE_LIBPATH is set correctly. 这个错误可以加入先这一行
-unset ROCBLAS_TENSILE_LIBPATH
 
 export NCCL_IB_HCA=mlx5_0
 export NCCL_SOCKET_IFNAME=ib0
@@ -45,4 +41,4 @@ srun --nodes=$SLURM_NNODES --ntasks=$SLURM_NNODES torchrun \
             --rdzv_id=$SLURM_JOB_ID \
             --rdzv_backend=c10d \
             --rdzv_endpoint=$master_addr:$master_port \
-            deepcfd.py --epochs 200  --batch-size 64 --visualize
+            train.py

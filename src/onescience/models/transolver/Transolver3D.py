@@ -193,7 +193,7 @@ class Transolver3D(nn.Module):
         return pos
 
     def forward(self, data):
-        cfd_data, geom_data = data
+        cfd_data = data
         x, fx, T = cfd_data.x, None, None
         x = x[None, :, :]
         if self.unified_pos:

@@ -46,8 +46,5 @@ srun --nodes=$SLURM_NNODES --ntasks=$SLURM_NNODES torchrun \
             --rdzv_id=$SLURM_JOB_ID \
             --rdzv_backend=c10d \
             --rdzv_endpoint=$master_addr:$master_port \
-            train_graphvit.py  --dataset-path ./Eagle_dataset \
-            --cluster-path ./Eagle_dataset \
-            --model-name "graphvit_10" \
-            --output-path "trained_models/graphvit" \
-            --n-cluster=10 \
+            train_graphvit.py
+
