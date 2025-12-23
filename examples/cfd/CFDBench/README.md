@@ -80,7 +80,7 @@ README.md
 
 ### 模型训练
 
-运行`train.py`或`train_auto.py`分别训练非自回归或自回归模型。使用`--model`指定模型，它必须是以下之一：
+运行`train.py`或`train_auto.py`分别训练非自回归或自回归模型。使用`conf/cfdbench.yaml`中的`model.name`指定模型，它必须是以下之一：
 
 Model | Value for `--model` | Script
 --- | --- | ---

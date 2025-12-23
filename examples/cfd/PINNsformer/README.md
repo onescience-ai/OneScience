@@ -39,6 +39,8 @@
 
 下载完数据放入对应的文件夹即可。
 
+曙光新一代机器平台数据集统一存放在：/public/onestore/onedatasets/pinnsformer
+
 ## 训练
 
 以一维反应方程为例，其目录结构如下：

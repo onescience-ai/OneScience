@@ -60,7 +60,7 @@ pip install "tensorflow<=2.17.1"
 cd raw_dataset
 bash download_dataset.sh Water ./data/
 ```
-曙光新一代机器平台数据集统一存放在 = /public/onestore/onedatasets/lagrangian_mgn
+曙光新一代机器平台数据集统一存放在 = /public/onestore/onedatasets/Lagrangian_MGN
 
 
 此示例使用[Hydra](https://hydra.cc/docs/intro/)用于[实验](https://hydra.cc/docs/patterns/configuring_experiments/)
