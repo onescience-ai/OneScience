@@ -62,7 +62,7 @@ def get_rmse(total_files, channel_indices):
                 label = f["fields"][:]  # [N, H, W]
                 label = label[channel_indices]
             pred = np.load(f'result/output/{file[:-3]}.npy').squeeze()
-            channel_rmse += np.sqrt(np.mean((label - pred) ** 2, axis=(1, 2)))
+            channel_rmse += np.sqrt(np.mean((label[:,:-1,:] - pred) ** 2, axis=(1, 2)))
         channel_rmse /= len(total_files)
         np.save('result/rmse.npy', channel_rmse)
     else:
@@ -103,8 +103,8 @@ def plot(label, pred, var, filename):
     cbar1 = plt.colorbar(im1, ax=axes[1], orientation='horizontal')
 
     # Row 3: Diff
-    im2 = axes[2].imshow(label - pred, cmap='RdBu_r')
-    rmse = np.sqrt(np.mean((label - pred) ** 2))
+    im2 = axes[2].imshow(label[:-1,:]  - pred, cmap='RdBu_r')
+    rmse = np.sqrt(np.mean((labellabel[:-1,:]  - pred) ** 2))
     axes[2].set_title(f'diff, RMSE={rmse: .2f}')
     axes[2].set_xlabel('Longitude')
     axes[2].set_ylabel('Latitude')
