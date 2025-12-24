@@ -182,92 +182,175 @@ def load_ckpt(model, ckpt_path: Path) -> None:
     model.load_state_dict(torch.load(ckpt_path, map_location="cpu", weights_only=True))
 
 
-def get_output_dir(args: Args, is_auto: bool = False) -> Path:
-    output_dir = Path(
-        args.output_dir,
-        "auto" if is_auto else "non-auto",
-        args.data_name,
-        f"dt{args.delta_time}",
-        args.model,
-    )
-    if args.model == "deeponet":
-        dir_name = (
-            f"lr{args.lr}"
-            + f"_width{args.deeponet_width}"
-            + f"_depthb{args.branch_depth}"
-            + f"_deptht{args.trunk_depth}"
-            + f"_normprop{args.norm_props}"
-            + f"_act{args.act_fn}"
-            + f"-{args.act_scale_invariant}"
-            + f"-{args.act_on_output}"
-        )
-        output_dir /= dir_name
-        return output_dir
-    elif args.model == "unet":
-        dir_name = (
-            f"lr{args.lr}"
-            f"_d{args.unet_dim}"
-            f"_cp{args.unet_insert_case_params_at}"
-        )
-        output_dir /= dir_name
-        return output_dir
-    elif args.model == "fno":
-        dir_name = (
-            f"lr{args.lr}"
-            + f"_d{args.fno_depth}"
-            + f"_h{args.fno_hidden_dim}"
-            + f"_m1{args.fno_modes_x}"
-            + f"_m2{args.fno_modes_y}"
-        )
-        output_dir /= dir_name
-        return output_dir
-    elif args.model == "resnet":
-        dir_name = (
-            f"lr{args.lr}"
-            f"_d{args.resnet_depth}"
-            f"_w{args.resnet_hidden_chan}"
-        )
-        return output_dir / dir_name
-    elif args.model == "auto_edeeponet":
-        dir_name = (
-            f"lr{args.lr}"
-            + f"_width{args.autoedeeponet_width}"
-            + f"_depthb{args.autoedeeponet_depth}"
-            + f"_deptht{args.autoedeeponet_depth}"
-            + f"_normprop{args.norm_props}"
-            + f"_act{args.autoedeeponet_act_fn}"
-            # + f"-{args.act_scale_invariant}"
-            # + f"-{args.act_on_output}"
-        )
-        return output_dir / dir_name
-    elif args.model == "auto_deeponet":
-        dir_name = (
-            f"lr{args.lr}"
-            f"_width{args.deeponet_width}"
-            f"_depthb{args.branch_depth}"
-            f"_deptht{args.trunk_depth}"
-            f"_normprop{args.norm_props}"
-            f"_act{args.act_fn}"
-        )
-        return output_dir / dir_name
-    elif args.model == "auto_ffn":
-        dir_name = (
-            f"lr{args.lr}"
-            f"_width{args.autoffn_width}"
-            f"_depth{args.autoffn_depth}"
-        )
-        return output_dir / dir_name
-    elif args.model == "auto_deeponet_cnn":
-        dir_name = f"lr{args.lr}" f"_depth{args.autoffn_depth}"
-        return output_dir / dir_name
-    elif args.model == "ffn":
-        dir_name = (
-            f"lr{args.lr}" f"_width{args.ffn_width}" f"_depth{args.ffn_depth}"
-        )
-        return output_dir / dir_name
-    else:
-        raise NotImplementedError
+# def get_output_dir(args: Args, is_auto: bool = False) -> Path:
+#     output_dir = Path(
+#         args.output_dir,
+#         "auto" if is_auto else "non-auto",
+#         args.data_name,
+#         f"dt{args.delta_time}",
+#         args.model,
+#     )
+#     if args.model == "deeponet":
+#         dir_name = (
+#             f"lr{args.lr}"
+#             + f"_width{args.deeponet_width}"
+#             + f"_depthb{args.branch_depth}"
+#             + f"_deptht{args.trunk_depth}"
+#             + f"_normprop{args.norm_props}"
+#             + f"_act{args.act_fn}"
+#             + f"-{args.act_scale_invariant}"
+#             + f"-{args.act_on_output}"
+#         )
+#         output_dir /= dir_name
+#         return output_dir
+#     elif args.model == "unet":
+#         dir_name = (
+#             f"lr{args.lr}"
+#             f"_d{args.unet_dim}"
+#             f"_cp{args.unet_insert_case_params_at}"
+#         )
+#         output_dir /= dir_name
+#         return output_dir
+#     elif args.model == "fno":
+#         dir_name = (
+#             f"lr{args.lr}"
+#             + f"_d{args.fno_depth}"
+#             + f"_h{args.fno_hidden_dim}"
+#             + f"_m1{args.fno_modes_x}"
+#             + f"_m2{args.fno_modes_y}"
+#         )
+#         output_dir /= dir_name
+#         return output_dir
+#     elif args.model == "resnet":
+#         dir_name = (
+#             f"lr{args.lr}"
+#             f"_d{args.resnet_depth}"
+#             f"_w{args.resnet_hidden_chan}"
+#         )
+#         return output_dir / dir_name
+#     elif args.model == "auto_edeeponet":
+#         dir_name = (
+#             f"lr{args.lr}"
+#             + f"_width{args.autoedeeponet_width}"
+#             + f"_depthb{args.autoedeeponet_depth}"
+#             + f"_deptht{args.autoedeeponet_depth}"
+#             + f"_normprop{args.norm_props}"
+#             + f"_act{args.autoedeeponet_act_fn}"
+#             # + f"-{args.act_scale_invariant}"
+#             # + f"-{args.act_on_output}"
+#         )
+#         return output_dir / dir_name
+#     elif args.model == "auto_deeponet":
+#         dir_name = (
+#             f"lr{args.lr}"
+#             f"_width{args.deeponet_width}"
+#             f"_depthb{args.branch_depth}"
+#             f"_deptht{args.trunk_depth}"
+#             f"_normprop{args.norm_props}"
+#             f"_act{args.act_fn}"
+#         )
+#         return output_dir / dir_name
+#     elif args.model == "auto_ffn":
+#         dir_name = (
+#             f"lr{args.lr}"
+#             f"_width{args.autoffn_width}"
+#             f"_depth{args.autoffn_depth}"
+#         )
+#         return output_dir / dir_name
+#     elif args.model == "auto_deeponet_cnn":
+#         dir_name = f"lr{args.lr}" f"_depth{args.autoffn_depth}"
+#         return output_dir / dir_name
+#     elif args.model == "ffn":
+#         dir_name = (
+#             f"lr{args.lr}" f"_width{args.ffn_width}" f"_depth{args.ffn_depth}"
+#         )
+#         return output_dir / dir_name
+#     else:
+#         raise NotImplementedError
 
+
+def get_output_dir(cfg, is_auto: bool = False) -> Path:
+    """
+    根据 Config 生成输出路径
+    """
+    train_cfg = cfg.training
+    model_cfg = cfg.model
+    data_source = cfg.datapipe.source
+    data_cfg = cfg.datapipe.data
+
+    output_dir = Path(
+        train_cfg.output_dir,
+        "auto" if is_auto else "non-auto",
+        data_source.data_name,
+        f"dt{data_cfg.delta_time}",
+        model_cfg.name,
+    )
+
+    if model_cfg.name == "deeponet":
+        dir_name = (
+            f"lr{train_cfg.lr}"
+            + f"_width{model_cfg.deeponet_width}"
+            + f"_depthb{model_cfg.branch_depth}"
+            + f"_deptht{model_cfg.trunk_depth}"
+            + f"_normprop{int(data_cfg.norm_props)}"
+            + f"_act{model_cfg.act_fn}"
+            + f"-{int(model_cfg.act_scale_invariant)}"
+            + f"-{int(model_cfg.act_on_output)}"
+        )
+    elif model_cfg.name == "unet":
+        dir_name = (
+            f"lr{train_cfg.lr}"
+            f"_d{model_cfg.unet_dim}"
+            f"_cp{model_cfg.unet_insert_case_params_at}"
+        )
+    elif model_cfg.name == "fno":
+        dir_name = (
+            f"lr{train_cfg.lr}"
+            + f"_d{model_cfg.fno_depth}"
+            + f"_h{model_cfg.fno_hidden_dim}"
+            + f"_m1{model_cfg.fno_modes_x}"
+            + f"_m2{model_cfg.fno_modes_y}"
+        )
+    elif model_cfg.name == "resnet":
+        dir_name = (
+            f"lr{train_cfg.lr}"
+            f"_d{model_cfg.resnet_depth}"
+            f"_w{model_cfg.resnet_hidden_chan}"
+        )
+    elif model_cfg.name == "auto_edeeponet":
+        dir_name = (
+            f"lr{train_cfg.lr}"
+            + f"_width{model_cfg.autoedeeponet_width}"
+            + f"_depthb{model_cfg.autoedeeponet_depth}"
+            + f"_deptht{model_cfg.autoedeeponet_depth}"
+            + f"_normprop{int(data_cfg.norm_props)}"
+            + f"_act{model_cfg.autoedeeponet_act_fn}"
+        )
+    elif model_cfg.name == "auto_deeponet":
+        dir_name = (
+            f"lr{train_cfg.lr}"
+            f"_width{model_cfg.deeponet_width}"
+            f"_depthb{model_cfg.branch_depth}"
+            f"_deptht{model_cfg.trunk_depth}"
+            f"_normprop{int(data_cfg.norm_props)}"
+            f"_act{model_cfg.act_fn}"
+        )
+    elif model_cfg.name == "auto_ffn":
+        dir_name = (
+            f"lr{train_cfg.lr}"
+            f"_width{model_cfg.autoffn_width}"
+            f"_depth{model_cfg.autoffn_depth}"
+        )
+    elif model_cfg.name == "auto_deeponet_cnn":
+        dir_name = f"lr{train_cfg.lr}" f"_depth{model_cfg.autoffn_depth}" # Warning: using autoffn_depth here based on original code?
+    elif model_cfg.name == "ffn":
+        dir_name = (
+            f"lr{train_cfg.lr}" f"_width{model_cfg.ffn_width}" f"_depth{model_cfg.ffn_depth}"
+        )
+    else:
+        raise NotImplementedError(f"Directory naming for {model_cfg.name} not implemented")
+
+    return output_dir / dir_name
 
 def load_best_ckpt(model, output_dir: Path):
     print(f"Finding the best checkpoint from {output_dir}")

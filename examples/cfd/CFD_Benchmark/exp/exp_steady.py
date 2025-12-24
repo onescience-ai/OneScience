@@ -69,6 +69,12 @@ class Exp_Steady(Exp_Basic):
                 optimizer, step_size=self.args.step_size, gamma=self.args.gamma
             )
         checkpoint_path = f"./checkpoints/{self.args.save_name}.pt"
+        
+        checkpoint_dir = os.path.dirname(checkpoint_path)
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir, exist_ok=True)
+            print(f"Created checkpoint directory: {checkpoint_dir}")
+
         # 如果启用继续训练且检查点存在
         if self.args.resume and os.path.exists(checkpoint_path):
             print(f"Loading checkpoint from {checkpoint_path}")
@@ -172,9 +178,9 @@ class Exp_Steady(Exp_Basic):
                         ),
                         "best_test_loss": self.best_test_loss,
                         "best_epoch": self.best_epoch,
-                        "args": self.args,  # 保存参数以便后续参考
+                        "args": self.args, 
                     }
-                    # torch.save(checkpoint, f"./checkpoints/{self.args.save_name}.pt")
+                    torch.save(checkpoint, f"./checkpoints/{self.args.save_name}.pt")
 
                 if ep % 10 == 0:
                     print("Epoch {} Train loss : {:.5f}".format(ep, train_loss))

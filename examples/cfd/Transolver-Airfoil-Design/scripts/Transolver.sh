@@ -1,1 +1,0 @@
-python main.py --model Transolver -t full --data_path ./dataset/Dataset --score 0 

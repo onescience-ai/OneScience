@@ -1,351 +1,280 @@
-# coding=utf-8
-import argparse
-import numpy as np
 import os
 import sys
-from timeit import default_timer
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-import yaml
+import numpy as np
+import copy
+from timeit import default_timer
+from pathlib import Path
+from tqdm import tqdm
+import argparse
+from onescience.utils.YParams import YParams
+from onescience.distributed.manager import DistributedManager
+from onescience.datapipes import PDEBenchUNODatapipe
+from torch.nn.parallel import DistributedDataParallel as DDP
 
-from onescience.utils.pdenneval.uno_utils import *
+# UNO Models
 from onescience.models.pdenneval.uno import UNO1d, UNO2d, UNO3d, UNO_maxwell
-from onescience.utils.pdenneval import metrics
 
-def get_dataset(args):
-    dataset_args = args["dataset"]
-    if(dataset_args["single_file"]):
-        print("UNODatasetSingle")
-        train_data = UNODatasetSingle(dataset_args["file_name"],
-                                reduced_resolution=dataset_args["reduced_resolution"],
-                                reduced_resolution_t=dataset_args["reduced_resolution_t"],
-                                reduced_batch=dataset_args["reduced_batch"],
-                                initial_step=args["initial_step"],
-                                if_test=False,
-                                saved_folder = dataset_args["saved_folder"]
-                                )
-        val_data = UNODatasetSingle(dataset_args["file_name"],
-                                reduced_resolution=dataset_args["reduced_resolution"],
-                                reduced_resolution_t=dataset_args["reduced_resolution_t"],
-                                reduced_batch=dataset_args["reduced_batch"],
-                                initial_step=args["initial_step"],
-                                if_test=True,
-                                saved_folder = dataset_args["saved_folder"]
-                                )
-    else:
-        print("UNODatasetMult")
-        train_data = UNODatasetMult(dataset_args["file_name"],
-                                reduced_resolution=dataset_args["reduced_resolution"],
-                                reduced_resolution_t=dataset_args["reduced_resolution_t"],
-                                reduced_batch=dataset_args["reduced_batch"],
-                                initial_step=args["initial_step"],
-                                if_test=False,
-                                saved_folder = dataset_args["saved_folder"]
-                                )
-        val_data = UNODatasetMult(dataset_args["file_name"],
-                                reduced_resolution=dataset_args["reduced_resolution"],
-                                reduced_resolution_t=dataset_args["reduced_resolution_t"],
-                                reduced_batch=dataset_args["reduced_batch"],
-                                initial_step=args["initial_step"],
-                                if_test=True,
-                                saved_folder = dataset_args["saved_folder"]
-                                )
-    return train_data, val_data
-
-def get_dataloader(train_data, val_data, args):
-    dataloader_args = args["dataloader"]
-    train_loader = DataLoader(train_data, shuffle=True, multiprocessing_context = 'spawn', generator=torch.Generator(device = 'cpu'), **dataloader_args)
-    if args["if_training"]:
-        val_loader = DataLoader(val_data, shuffle=False, multiprocessing_context = 'spawn', generator=torch.Generator(device = 'cpu'), **dataloader_args)
-    else:
-        val_loader = DataLoader(val_data, shuffle=False, drop_last=True, **dataloader_args)
-    return train_loader, val_loader
-
-def get_model(spatial_dim, args):
+def get_model(spatial_dim, cfg):
     assert spatial_dim <= 3, "Spatial dimension of data can not exceed 3."
-
-    model_args = args["model"]
-    initial_step = args["initial_step"]
-    if args['pde_name'] == "3D_Maxwell": #maxwell, input without grid
-        model = UNO_maxwell(num_channels=model_args["num_channels"],
-                      width=model_args["width"],
-                      initial_step=initial_step)
+    model_args = cfg.model
+    initial_step = cfg.datapipe.data.initial_step
+    
+    if cfg.training.pde_name == "3D_Maxwell":
+        model = UNO_maxwell(num_channels=model_args.num_channels,
+                            width=model_args.width,
+                            initial_step=initial_step)
     elif spatial_dim == 1:
-        model = UNO1d(num_channels=model_args["num_channels"],
-                      width=model_args["width"],
+        model = UNO1d(num_channels=model_args.num_channels,
+                      width=model_args.width,
                       initial_step=initial_step)
     elif spatial_dim == 2:
-        model = UNO2d(num_channels=model_args['num_channels'],
-                      width = model_args['width'],
+        model = UNO2d(num_channels=model_args.num_channels,
+                      width=model_args.width,
                       initial_step=initial_step)
     elif spatial_dim == 3:
-        model = UNO3d(num_channels=model_args["num_channels"],
-                      width = model_args['width'],
+        model = UNO3d(num_channels=model_args.num_channels,
+                      width=model_args.width,
                       initial_step=initial_step)
     return model
 
-def train_loop(model, train_loader, initial_step, t_train, optimizer, loss_fn, scheduler, device, args):
+def train_loop(dataloader, model, loss_fn, optimizer, device, cfg, rank, pbar=None):
     model.train()
-    t1 = default_timer()
-    train_l2 = 0
-    train_l_inf = 0
-    for x, y, grid in train_loader:
-        # batch_size = x.size(0)
-        loss = 0
-        if args['pde_name'] == "3D_Maxwell": #maxwell, we get x, y, global maximum
-            grid = grid[0] #maximum
-            x = x.detach().clone() / grid #scale
-            y = y.detach().clone() / grid
-        x = x.to(device) # x: input tensor (first few time steps) [b, x1, ..., xd, t_init, v]
-        y = y.to(device) # y: target tensor [b, x1, ..., xd, t, v]
-        grid = grid.to(device) # grid: meshgrid [b, x1, ..., xd, dims]
-        # initialize the prediction tensor
-        pred = y[..., :initial_step, :] # (bs, x1, ..., xd, init_t, v)
-        # reshape input
-        input_shape = list(x.shape)[:-2] # (bs, x1, ..., xd)
-        input_shape.append(-1) # (bs, x1, ..., xd, -1)
+    train_l2 = 0.0
+    train_l_inf = 0.0
 
-        if args["training_type"] in ['autoregressive']:
-            # Autoregressive loop
+    train_cfg = cfg.training
+    data_cfg  = cfg.datapipe.data
+
+    initial_step = data_cfg.initial_step
+    t_train      = train_cfg.t_train
+
+    for x, y, grid in dataloader:
+        # 0) 只取 cfg 需要的时间长度，避免 y 过长/不一致导致 reshape 尺寸变化
+        y = y[..., :t_train, :]
+
+        # Maxwell 预处理
+        if train_cfg.pde_name == "3D_Maxwell":
+            grid_scale = grid[0]
+            x = x.detach().clone() / grid_scale
+            y = y.detach().clone() / grid_scale
+
+        x = x.to(device)       # (bs, x1..., init_t, v)
+        y = y.to(device)       # (bs, x1..., t_train, v)
+        grid = grid.to(device)
+
+        batch_size = x.size(0)
+        loss = 0.0
+
+        pred = y[..., :initial_step, :]   # (bs, x1..., init_t, v)
+
+        input_shape = list(x.shape)[:-2]
+        input_shape.append(-1)            # (bs, x1..., init_t*v)
+
+        if train_cfg.training_type == "autoregressive":
             for t in range(initial_step, t_train):
-                # Reshape input tensor into [b, x1, ..., xd, t_init*v]
-                model_input = x.reshape(input_shape)
-                # Extract target at current time step
-                target = y[..., t:t+1, :]
-                # Model run
-                model_output = model(model_input, grid)
-                
-                # Loss calculation
-                _batch = model_output.size(0)
-                loss += loss_fn(model_output.reshape(_batch, -1), target.reshape(_batch, -1))
-                # Concatenate the prediction at current time step into the
-                # prediction tensor
-                pred = torch.cat((pred, model_output), -2)
-                # Concatenate the prediction at the current time step to be used
-                # as input for the next time step
-                x = torch.cat((x[..., 1:, :], model_output), dim=-2)
-            _batch = y.size(0)
-            train_l2 += loss_fn(pred.reshape(_batch, -1), y.reshape(_batch, -1)).item()
-            train_l_inf = max(train_l_inf, torch.max((torch.abs(pred.reshape(_batch, -1) - y.reshape(_batch, -1)))))
+                model_input = x.reshape(input_shape)         # (bs, x1..., init_t*v)
+                target = y[..., t:t+1, :]                    # (bs, x1..., 1, v)
 
-        if args["training_type"] in ['single']:
-            x = x[..., 0 , :]
-            y = y[..., t_train-1:t_train, :]
-            pred = model(x, grid)
-            _batch = y.size(0)
-            loss += loss_fn(pred.reshape(_batch, -1), y.reshape(_batch, -1))
-            train_l2 += loss.item()
-            train_l_inf = max(train_l_inf, torch.max((torch.abs(pred.reshape(_batch, -1) - y.reshape(_batch, -1)))))
+                model_output = model(model_input, grid)      # 可能是 (bs, x1..., v) 或 (bs, x1..., 1, v)
+                if model_output.dim() == target.dim() - 1:   # 补齐时间维
+                    model_output = model_output.unsqueeze(-2)
+
+                # 1) loss 必须是 单步输出 vs 单步 target
+                loss = loss + loss_fn(
+                    model_output.reshape(batch_size, -1),
+                    target.reshape(batch_size, -1)
+                )
+
+                pred = torch.cat((pred, model_output), dim=-2)
+                x = torch.cat((x[..., 1:, :], model_output), dim=-2)
+
+            train_l2 += float(loss.item())
+            train_l_inf = max(
+                train_l_inf,
+                torch.max(torch.abs(pred.reshape(batch_size, -1) - y.reshape(batch_size, -1))).item()
+            )
+
+        elif train_cfg.training_type == "single":
+            # 单步训练：只对最后一步做监督
+            model_input_single = x[..., 0, :]                # (bs, x1..., v)
+            target = y[..., t_train-1:t_train, :]            # (bs, x1..., 1, v)
+
+            pred_single = model(model_input_single, grid)    # 可能是 (bs, x1..., v) 或 (bs, x1..., 1, v)
+            if pred_single.dim() == target.dim() - 1:
+                pred_single = pred_single.unsqueeze(-2)
+
+            loss = loss_fn(
+                pred_single.reshape(batch_size, -1),
+                target.reshape(batch_size, -1)               # 2) 这里一定用 target，不要用 y
+            )
+
+            train_l2 += float(loss.item())
+            train_l_inf = max(
+                train_l_inf,
+                torch.max(torch.abs(pred_single.reshape(batch_size, -1) - target.reshape(batch_size, -1))).item()
+            )
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-    t2 = default_timer()
-    return train_l2, train_l_inf, t2 - t1
 
-def val_loop(val_loader, model, loss_fn, device, training_type, t_train, initial_step):
+        if pbar is not None:
+            pbar.update(1)
+            pbar.set_postfix(loss=f"{float(loss.item()):.3e}")
+
+    train_l2 /= max(len(dataloader), 1)
+    return train_l2, train_l_inf
+
+
+@torch.no_grad()
+def val_loop(dataloader, model, loss_fn, device, cfg):
     model.eval()
-    val_l2_full = 0
-    val_l_inf_full = 0
-    with torch.no_grad():
-        for x, y, grid in val_loader:
-            loss = 0
-            x = x.to(device)
-            y = y.to(device)
-            grid = grid.to(device)
-            
-            if training_type == 'autoregressive':
-                pred = y[..., :initial_step, :]
-                input_shape = list(x.shape)[:-2] # (bs, x1, ..., xd)
-                input_shape.append(-1) # (bs, x1, ..., xd, -1)
-                for t in range(initial_step, y.shape[-2]):
-                    model_input = x.reshape(input_shape)
-                    target = y[..., t:t+1, :]
-                    model_output = model(model_input, grid)
-                    _batch = model_output.size(0)
-                    loss += loss_fn(model_output.reshape(_batch, -1), target.reshape(_batch, -1))
-                    pred = torch.cat((pred, model_output), -2)
-                    x = torch.cat((x[..., 1:, :], model_output), dim=-2)
-    
-                _batch = y.size(0)
-                _pred = pred[..., initial_step:t_train, :]
-                _y = y[..., initial_step:t_train, :]
-                val_l2_full += loss_fn(_pred.reshape(_batch, -1), _y.reshape(_batch, -1)).item()
-                val_l_inf_full = max(torch.max(torch.abs(_pred.reshape(_batch, -1) - _y.reshape(_batch, -1))).item(), val_l_inf_full)
+    val_l2_full = 0.0
+    val_l_inf_full = 0.0
 
-            if training_type == 'single':
-                x = x[..., 0 , :]
-                y = y[..., t_train-1:t_train, :]
-                pred = model(x, grid)
-                _batch = y.size(0)
-                loss += loss_fn(pred.reshape(_batch, -1), y.reshape(_batch, -1))
-    
-                val_l2_full += loss.item()
-                val_l_inf_full = max(torch.max(torch.abs(pred.reshape(_batch, -1) - y.reshape(_batch, -1))).item(), val_l_inf_full)
-    return val_l2_full, val_l_inf_full
+    train_cfg = cfg.training
+    data_cfg  = cfg.datapipe.data
 
-def test_loop(dataloader, model, device, initial_step, metric_names=['MSE', 'RMSE', 'L2RE', 'MaxError']):
-    model.eval()
-    # initial result dict
-    res_dict = {}
-    for name in metric_names:
-        res_dict[name] = []
-    # test
+    initial_step = data_cfg.initial_step
+    t_train_cfg  = train_cfg.t_train
+
     for x, y, grid in dataloader:
-        if args['pde_name'] == "3D_Maxwell": #maxwell, we get x, y, global maximum
-            grid = grid[0] #maximum
-            x = x.detach().clone() / grid #scale
-            y = y.detach().clone() / grid
+        # 关键：验证也对齐 t_train，避免 y 太长/不一致
+        t_total = min(t_train_cfg, y.shape[-2])
+        if initial_step >= t_total:
+            continue
+        y = y[..., :t_total, :]
+
+        # Maxwell 预处理
+        if train_cfg.pde_name == "3D_Maxwell":
+            grid_scale = grid[0]
+            x = x.detach().clone() / grid_scale
+            y = y.detach().clone() / grid_scale
+
         x = x.to(device)
         y = y.to(device)
         grid = grid.to(device)
-        pred = y[..., :initial_step, :]
-        input_shape = list(x.shape)[:-2] # (bs, x1, ..., xd)
-        input_shape.append(-1) # (bs, x1, ..., xd, -1)
-        for t in range(initial_step, y.shape[-2]):
-            model_input = x.reshape(input_shape)
-            with torch.no_grad():
+        batch_size = x.size(0)
+
+        input_shape = list(x.shape)[:-2]
+        input_shape.append(-1)
+
+        if train_cfg.training_type == 'autoregressive':
+            pred = y[..., :initial_step, :]
+
+            for t in range(initial_step, t_total):
+                model_input = x.reshape(input_shape)
                 model_output = model(model_input, grid)
-            pred = torch.cat((pred, model_output), dim=-2)
-            x = torch.cat((x[..., 1:, :], model_output), dim=-2)
-        for name in metric_names:
-            metric_fn = getattr(metrics, name)
-            res_dict[name].append(metric_fn(pred[..., initial_step:, :], y[..., initial_step:, :]))
 
-    for name in metric_names:
-        res_list = res_dict[name]
-        if name == "MaxError":
-            res = torch.stack(res_list, dim=0)
-            res, _ = torch.max(res, dim=0)
-        else:
-            res = torch.cat(res_list, dim=0)
-            res = torch.mean(res, dim=0)
-        res_dict[name] = res
-    return res_dict
+                # 关键：补齐 time 维，保证 cat 的 dim=-2 是时间维
+                if model_output.dim() == pred.dim() - 1:
+                    model_output = model_output.unsqueeze(-2)
 
-def main(args):
-    #init
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    checkpoint = torch.load(args["model_path"]) if not args["if_training"] or args["continue_training"] else None
-    saved_model_name = args["model_name"] + f"_lr{args['optimizer']['lr']}" + f"_bs{args['dataloader']['batch_size']}"
-    saved_dir = os.path.join(args["output_dir"], os.path.splitext(args["dataset"]["file_name"])[0])
-    print(saved_dir)
-    if not os.path.exists(saved_dir):
-        os.makedirs(saved_dir)
+                pred = torch.cat((pred, model_output), dim=-2)
+                x = torch.cat((x[..., 1:, :], model_output), dim=-2)
+
+            # 只在对齐的区间算 loss / Linf
+            _pred = pred[..., initial_step:t_total, :]
+            _y    = y[..., initial_step:t_total, :]
+
+            val_l2_full += loss_fn(_pred.reshape(batch_size, -1), _y.reshape(batch_size, -1)).item()
+            val_l_inf_full = max(
+                val_l_inf_full,
+                torch.max(torch.abs(_pred.reshape(batch_size, -1) - _y.reshape(batch_size, -1))).item()
+            )
+
+        elif train_cfg.training_type == 'single':
+            model_input_single = x[..., 0, :]
+            target = y[..., t_total-1:t_total, :]
+
+            pred = model(model_input_single, grid)
+            if pred.dim() == target.dim() - 1:
+                pred = pred.unsqueeze(-2)
+
+            val_l2_full += loss_fn(pred.reshape(batch_size, -1), target.reshape(batch_size, -1)).item()
+            val_l_inf_full = max(
+                val_l_inf_full,
+                torch.max(torch.abs(pred.reshape(batch_size, -1) - target.reshape(batch_size, -1))).item()
+            )
+
+    val_l2_full /= max(len(dataloader), 1)
+    return val_l2_full, val_l_inf_full
+
+
+def main():
+    DistributedManager.initialize()
+    dist = DistributedManager()
+    device = dist.device
     
-    dataset_args = args["dataset"]
-    if(dataset_args["single_file"]):
-        saved_model_name = dataset_args["file_name"][:-5] + '_UNO'
-    else:
-        saved_model_name = dataset_args["file_name"] + '_UNO'
+    parser = argparse.ArgumentParser(description='Train UNO model')
+    parser.add_argument('config', type=str, help='Path to config file')
+    args = parser.parse_args()
+    config_path = args.config
+    # 验证配置文件是否存在
+    if not os.path.exists(config_path):
+        print(f"Error: Config file not found at {config_path}")
+        sys.exit(1)
+        
+    cfg = YParams(config_path, "uno_config")
     
-    # data get dataloader
-    train_data, val_data = get_dataset(args)
-    train_loader, val_loader = get_dataloader(train_data, val_data, args)
+    output_dir = Path(cfg.training.output_dir)
+    if dist.rank == 0:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Output: {output_dir}")
 
-    # set some train args
-    _, sample, _ = next(iter(val_loader))
-    spatial_dim = len(sample.shape) - 3
-    initial_step = args["initial_step"]
-    t_train = min(args["t_train"], sample.shape[-2])
-
-    #model
-    model = get_model(spatial_dim, args)
-    ##
-    if not args["if_training"]:
-        print(f"Test mode, load checkpoint from {args['model_path']}")
-        model.load_state_dict(checkpoint["model_state_dict"])
-        model.to(device)
-        # TODO: test code
-        print("start testing...")
-        res = test_loop(val_loader, model, device, initial_step)
-        for u, v in res.items():
-            dim = len(v)
-            if dim == 1:
-                print(u, "{0:.6f}".format(v.item()))
-            else:
-                for i in range(dim):
-                    if i == 0:
-                        print(u, "\t{0:.6f}".format(v[i].item()), end='\t')
-                    else:
-                        print("{0:.6f}".format(v[i].item()), end='\t')
-                print("")
-        print("Done")
-        return
-    ## if continue training, resume model from checkpoint
-    if args["continue_training"]:
-        model.load_state_dict(checkpoint["model_state_dict"])
-    model.to(device) 
-    model.train()
-
-    # optimizer
-    optim_args = args["optimizer"]
-    optim_name = optim_args.pop("name")
-    ## if continue training, resume optimizer and scheduler from checkpoint
-    if args["continue_training"]:
-        optimizer = getattr(torch.optim, optim_name)([{'params': model.parameters(), 'initial_lr': optim_args["lr"]}], **optim_args)
-    else:
-        optimizer = getattr(torch.optim, optim_name)(model.parameters(), **optim_args)
+    # Datapipe
+    datapipe = PDEBenchUNODatapipe(cfg, distributed=(dist.world_size > 1))
+    train_loader, train_sampler = datapipe.train_dataloader()
+    val_loader, val_sampler = datapipe.val_dataloader()
     
-    # scheduler
-    start_epoch = 0
-    min_val_loss = torch.inf
-    if args["continue_training"]:
-        start_epoch = checkpoint['epoch']
-        min_val_loss = checkpoint['loss']
-    sched_args = args["scheduler"]
-    sched_name = sched_args.pop("name")
-    scheduler = getattr(torch.optim.lr_scheduler, sched_name)(optimizer, last_epoch=start_epoch-1, **sched_args)
-
-    # loss function
-    loss_fn = nn.MSELoss(reduction="mean")
-
-    # save loss history
-    loss_history = []
-    if args["continue_training"]:
-        loss_history = np.load('./log/loss/' + args['pde_name'] + '_loss_history.npy')
-        loss_history = loss_history.tolist()
-
-     # train loop
-    print("start training...")
-    total_time = 0
-    for epoch in range(start_epoch, args["epochs"]):
-        train_l2, train_l_inf, time = train_loop(model,train_loader, initial_step, t_train, optimizer, loss_fn, scheduler, device, args)
+    spatial_dim = datapipe.spatial_dim
+    
+    # Model
+    model = get_model(spatial_dim, cfg).to(device)
+    if dist.world_size > 1:
+        model = DDP(model, device_ids=[dist.local_rank], output_device=dist.local_rank)
+    
+    # Optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.training.optimizer.lr, weight_decay=cfg.training.optimizer.weight_decay)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=cfg.training.scheduler.step_size, gamma=cfg.training.scheduler.gamma)
+    loss_fn = nn.MSELoss()
+    
+    if dist.rank == 0: print("Starting Training...")
+    
+    min_val_loss = float('inf')
+    
+    for epoch in range(cfg.training.epochs):
+        if train_sampler: train_sampler.set_epoch(epoch)
+        
+        train_loss, train_l_inf = train_loop(train_loader, model, loss_fn, optimizer, device, cfg, dist.rank)
         scheduler.step()
-        total_time += time
-        loss_history.append(train_l2)
-        print(f"[Epoch {epoch}] train_l2: {train_l2}, train_l_inf: {train_l_inf}, time_spend: {time:.3f}")
-        ## save latest
-        saved_path = os.path.join(saved_dir, saved_model_name)
-        model_state_dict = model.state_dict()
-        torch.save({"epoch": epoch+1, "loss": min_val_loss,
-            "model_state_dict": model_state_dict,
-            "optimizer_state_dict": optimizer.state_dict()
-            }, saved_path + "-latest.pt")
-        if (epoch+1) % args["save_period"] == 0:
-            print("====================validate====================")
-            val_l2_full, val_l_inf = val_loop(val_loader, model, loss_fn, device, args["training_type"], t_train, initial_step)
-            print(f"[Epoch {epoch}] val_l2_full: {val_l2_full} val_l_inf: {val_l_inf}")
-            print("================================================")
-            if val_l2_full < min_val_loss:
-                min_val_loss = val_l2_full
-                ## save best
-                torch.save({"epoch": epoch + 1, "loss": min_val_loss,
-                    "model_state_dict": model.state_dict(),
-                    "optimizer_state_dict": optimizer.state_dict()
-                    }, saved_path + "-best.pt")
-    print("Done.")
-    loss_history = np.array(loss_history)
-    os.makedirs('./log/loss', exist_ok=True)
-    np.save('./log/loss/' + args['pde_name'] + '_loss_history.npy', loss_history)
-    print("avg_time : {0:.5f}".format(total_time / (args["epochs"] - start_epoch)))
+        
+        if dist.rank == 0:
+            print(f"[Epoch {epoch}] Train Loss: {train_loss:.4e} Linf: {train_l_inf:.4e}")
+            
+            if (epoch + 1) % cfg.training.save_period == 0:
+                val_loss, val_l_inf = val_loop(val_loader, model, loss_fn, device, cfg)
+                print(f"[Epoch {epoch}] Val Loss: {val_loss:.4e} Val Linf: {val_l_inf:.4e}")
+                
+                ckpt_path = output_dir / f"model_epoch_{epoch}.pt"
+                model_state = model.module.state_dict() if dist.world_size > 1 else model.state_dict()
+                
+                torch.save({
+                    "epoch": epoch,
+                    "model_state_dict": model_state,
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "loss": val_loss
+                }, ckpt_path)
+                
+                if val_loss < min_val_loss:
+                    min_val_loss = val_loss
+                    best_path = output_dir / "best_model.pt"
+                    torch.save(model_state, best_path)
+                    print(f"Saved Best Model to {best_path}")
+
+    dist.cleanup()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("config_file", type=str, help="Path to config file")
-    cmd_args = parser.parse_args()
-    with open(cmd_args.config_file, 'r') as f:
-        args = yaml.safe_load(f)
-    setup_seed(args["seed"])
-    print(args)
-    main(args)
+    main()

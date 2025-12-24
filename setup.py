@@ -89,6 +89,7 @@ basic_requires = [
     "xarray",
     "s3fs",
     "netcdf4",
+    "tensorflow",
 ]
 
 

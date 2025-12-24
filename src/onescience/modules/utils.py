@@ -125,6 +125,18 @@ def get_earth_position_index(window_size, ndim=3):
 
     return position_index
 
+def save_checkpoint(
+    model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path
+):
+    model_to_save = model.module if hasattr(model, "module") else model
+    state = {
+        "model_state_dict": model_to_save.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "scheduler_state_dict": scheduler.state_dict(),
+        "best_valid_loss": best_valid_loss,
+        "best_loss_epoch": best_loss_epoch,
+    }
+    torch.save(state, f"{model_path}/pangu_weather.pth")
 
 def get_pad3d(input_resolution, window_size):
     """

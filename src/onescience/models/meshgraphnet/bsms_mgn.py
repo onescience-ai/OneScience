@@ -5,7 +5,7 @@ from dgl import DGLGraph
 from torch import Tensor
 
 from onescience.models.gnn_layers.bsms import BistrideGraphMessagePassing
-from onescience.models.meshgraphnet import MeshGraphNet
+from .meshgraphnet import MeshGraphNet
 from onescience.models.meta import ModelMetaData
 
 

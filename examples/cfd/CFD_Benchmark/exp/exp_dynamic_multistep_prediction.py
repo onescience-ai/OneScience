@@ -88,6 +88,11 @@ class Exp_Dynamic_MultiStep_Prediction(Exp_Basic):
                 optimizer, step_size=self.args.step_size, gamma=self.args.gamma
             )
         checkpoint_path = f"./checkpoints/{self.args.save_name}.pt"
+        # 添加目录创建代码
+        checkpoint_dir = os.path.dirname(checkpoint_path)
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir, exist_ok=True)
+            print(f"Created checkpoint directory: {checkpoint_dir}")
         # 如果启用继续训练且检查点存在
         if self.args.resume and os.path.exists(checkpoint_path):
             print(f"Loading checkpoint from {checkpoint_path}")
