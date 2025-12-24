@@ -23,11 +23,11 @@ from onescience.datapipes.core import BaseDataset
 #     PDEBenchPINODatapipe,
 # )
 # from onescience.datapipes.cfd import DeepMindLagrangianDataset, DeepMindLagrangianDatapipe
-from onescience.datapipes.climate import ERA5Dataset, ERA5Datapipe, ERA5HDF5Datapipe, ERA5HDF5Dataset, CMEMSDatapipe, CMEMSHDF5Dataset
+# from onescience.datapipes.climate import ERA5Dataset, ERA5Datapipe, ERA5HDF5Datapipe, ERA5HDF5Dataset, CMEMSDatapipe, CMEMSHDF5Dataset
 
 __all__ = [
-    "ERA5Dataset",
-    "ERA5HDF5Datapipe",
+    # "ERA5Dataset",
+    # "ERA5HDF5Datapipe",
     # "AirfRANSDataset",
     # "AirfRANSDatapipe",
     # "ShapeNetCarDataset",
@@ -59,6 +59,6 @@ __all__ = [
     # "DeepMindLagrangianDatapipe",
     # "BENODataset",
     # "BENODatapipe",
-    "CMEMSDatapipe",
-    "CMEMSHDF5Dataset",
+    # "CMEMSDatapipe",
+    # "CMEMSHDF5Dataset",
 ]
