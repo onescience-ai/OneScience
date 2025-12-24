@@ -6,9 +6,10 @@ import xarray as xr
 from onescience.utils.YParams import YParams
 
 
-def generate_debug_sample(cfg, years=None, timestamp="2001010100"):
-    years = years or list(range(2001, 2011))
-    total_files = 1460
+def generate_debug_sample(cfg):
+    years = list(range(1951, 1971))
+    timestamp=f'{years[0]}020100'
+    total_files = 1400
     variables = cfg.channels
     M = len(variables)
     shape = (M, 721, 1440)
@@ -27,7 +28,7 @@ def generate_debug_sample(cfg, years=None, timestamp="2001010100"):
 
     # 当前年份其余时间步软链
     for i in range(total_files):
-        ts = (np.datetime64(f"{real_year}-01-01T00") + np.timedelta64(i * 6, "h")).astype(str).replace("-", "").replace("T", "")[:10]
+        ts = (np.datetime64(f"{real_year}-02-01T00") + np.timedelta64(i * 6, "h")).astype(str).replace("-", "").replace("T", "")[:10]
         path = os.path.join(real_dir, f"{ts}.h5")
         if path != real_path and not os.path.exists(path):
             os.symlink(f"{timestamp}.h5", path)
@@ -37,7 +38,7 @@ def generate_debug_sample(cfg, years=None, timestamp="2001010100"):
         y_dir = os.path.join(data_root, str(y))
         os.makedirs(y_dir, exist_ok=True)
         for i in range(total_files):
-            ts = (np.datetime64(f"{y}-01-01T00") + np.timedelta64(i * 6, "h")).astype(str).replace("-", "").replace("T", "")[:10]
+            ts = (np.datetime64(f"{y}-02-01T00") + np.timedelta64(i * 6, "h")).astype(str).replace("-", "").replace("T", "")[:10]
             path = os.path.join(y_dir, f"{ts}.h5")
             if not os.path.exists(path):
                 rel = os.path.relpath(real_path, y_dir)
@@ -65,7 +66,7 @@ def get_stats(cfg):
     print(f"✅ Stats data: {arr.shape}, dtype: {arr.dtype}, save to {cfg.stats_dir}")
 
 
-def get_static(var, name):
+def get_static(cfg, var, name):
     os.makedirs(cfg.static_dir, exist_ok=True)
     ds = xr.Dataset(
         data_vars={
@@ -98,8 +99,11 @@ def get_static(var, name):
 
 # === Example Usage ===
 if __name__ == "__main__":
-    cfg = YParams('conf/config.yaml', 'model')
-    generate_debug_sample(cfg)
-    get_stats(cfg)
-    get_static('z', 'geopotential')
-    get_static('lsm', 'land_sea_mask')
+    cfg = YParams('conf/config.yaml', 'datapipe')
+    if cfg.dataset.data_dir.startswith('/public/onestore'):
+        print('Please check the config and ensure the config//datapipe//dataset//*_dir set to the local dir.')
+        exit()
+    generate_debug_sample(cfg.dataset)
+    get_stats(cfg.dataset)
+    get_static(cfg.dataset, 'z', 'geopotential')
+    get_static(cfg.dataset, 'lsm', 'land_sea_mask')

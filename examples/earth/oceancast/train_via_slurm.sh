@@ -23,7 +23,7 @@ export NCCL_IB_HCA=mlx5_0
 export NCCL_SOCKET_IFNAME=ib0
 export HSA_FORCE_FINE_GRAIN_PCIE=1
 export OMP_NUM_THREADS=1
-export HIP_VISIBLE_DEVICES=0,1,2,3
+export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 nodes=$(scontrol show hostnames $SLURM_JOB_NODELIST)
 nodes_array=($nodes)
 

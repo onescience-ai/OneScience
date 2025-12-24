@@ -1,10 +1,21 @@
+# onescience/models/mace/tools/__init__.py
+# (Refactored to import from datapipes/materials)
+
+# -----------------------------------------------------------------
+# 1. 导入 "模型训练" 相关的、保留在本地的工具 (相对导入)
+# -----------------------------------------------------------------
 from .arg_parser import build_default_arg_parser, build_preprocess_arg_parser
 from .arg_parser_tools import check_args
 from .cg import U_matrix_real
 from .checkpoint import CheckpointHandler, CheckpointIO, CheckpointState
-from .default_keys import DefaultKeys
 from .finetuning_utils import load_foundations, load_foundations_elements
-from .torch_tools import (
+from .train import SWAContainer, evaluate, train
+
+# -----------------------------------------------------------------
+# 2. ✨ 关键重构：导入 "通用数据" 相关的、已迁移到 L3 的工具
+# -----------------------------------------------------------------
+from onescience.datapipes.materials.tools.keys import DefaultKeys
+from onescience.datapipes.materials.tools.torch_tools import (
     TensorDict,
     cartesian_to_spherical,
     count_parameters,
@@ -17,8 +28,7 @@ from .torch_tools import (
     to_one_hot,
     voigt_to_matrix,
 )
-from .train import SWAContainer, evaluate, train
-from .utils import (
+from onescience.datapipes.materials.tools.utils import (
     AtomicNumberTable,
     MetricsLogger,
     atomic_numbers_to_indices,
@@ -33,6 +43,10 @@ from .utils import (
     setup_logger,
 )
 
+# -----------------------------------------------------------------
+# 3. 导出 __all__ 列表 (保持不变)
+#    (这个列表现在会导出我们从本地和 L3 导入的所有工具)
+# -----------------------------------------------------------------
 __all__ = [
     "TensorDict",
     "AtomicNumberTable",

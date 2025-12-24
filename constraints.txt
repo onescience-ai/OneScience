@@ -1,12 +1,12 @@
 # 自定义构建的包版本
-torch==2.5.1+das.opt1.dtk25042-cp310-cp310-manylinux_2_28_x86_64.whl
+torch==2.5.1+das.opt1.dtk25042-cp311-cp311-manylinux_2_28_x86_64.whl
 torchvision==0.22.0+das.opt1.dtk25042-cp311-cp311-manylinux_2_28_x86_64.whl
 apex==1.5.0+das.opt1.dtk25042.torch271-cp311-cp311-manylinux_2_28_x86_64.whl
 jax==0.4.34+das.opt1.dtk25042-py3-none-any.whl
 jax-rocm60-pjrt==0.4.34+das.opt1.dtk25042-py3-none-manylinux2014_x86_64.whl
 jax-rocm60-plugin==0.4.34+das.opt1.dtk25042-cp311-cp311-manylinux2014_x86_64.whl
 jaxlib==0.4.34+das.opt1.dtk25042-cp311-cp311-manylinux2014_x86_64.whl
-onnxruntime==1.15.0+das.opt1.dtk2504-cp310-cp310-linux_x86_64.whl
+onnxruntime==1.19.2+das.opt1.dtk25042-cp311-cp311-manylinux_2_28_x86_64.whl
 jax-triton==0.2.0+das.opt1.dtk25042-py3-none-any.whl
 triton==3.1.0+das.opt1.dtk25042-cp311-cp311-manylinux_2_28_x86_64.whl
 transformer-engine==2.7.0+das.opt1.dtk25042-cp311-cp311-manylinux_2_28_x86_64.whl

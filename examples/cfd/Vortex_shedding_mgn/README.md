@@ -53,6 +53,8 @@ pip install tensorflow
 cd raw_dataset
 sh download_dataset.sh cylinder_flow
 ```
+曙光新一代机器平台数据集统一存放在 = /public/onestore/onedatasets/vortex_shedding_mgn
+
 
 训练模型：
 

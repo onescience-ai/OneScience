@@ -1,7 +1,7 @@
 import torch
 
-from onescience.models.mace.tools.utils import AtomicNumberTable
-
+#from onescience.models.mace.tools.utils import AtomicNumberTable
+from onescience.datapipes.materials.tools.utils import AtomicNumberTable
 
 def load_foundations_elements(
     model: torch.nn.Module,

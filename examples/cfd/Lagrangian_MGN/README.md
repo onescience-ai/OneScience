@@ -60,17 +60,15 @@ pip install "tensorflow<=2.17.1"
 cd raw_dataset
 bash download_dataset.sh Water ./data/
 ```
+曙光新一代机器平台数据集统一存放在 = /public/onestore/onedatasets/lagrangian_mgn
+
 
 此示例使用[Hydra](https://hydra.cc/docs/intro/)用于[实验](https://hydra.cc/docs/patterns/configuring_experiments/)
 配置。Hydra提供了一种方便的方法来修改几乎任何实验参数，
 例如数据集设置、模型配置和优化器选项，
 通过命令行或配置文件。
 
-要查看完整脚本选项，请运行以下命令：
-
-```bash
-python train.py --help
-```
+详细的参数信息可以查看conf目录下的config.yaml文件
 
 如果遇到 Hydra 配置问题，可能会收到不太有帮助的错误信息。此时，可以设置环境变量 `HYDRA_FULL_ERROR=1`，以获取更详细的错误信息：
 ```bash
@@ -115,7 +113,7 @@ torchrun --standalone --nnodes=<num_nodes> --nproc_per_node=<num_GPUs> train.py 
 python inference.py +experiment=water \
     data.data_dir=./data/Water \
     data.test.num_sequences=4 \
-    resume_dir=./model /water \
+    resume_dir=./model/Water \
     output=./result/water/inference
 ```
 

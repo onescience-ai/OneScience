@@ -13,8 +13,7 @@ from ase.db import connect
 from ase.io import read
 from tqdm import tqdm
 
-from onescience.datapipes.uma import AseDBDataset
-
+from onescience.datapipes.materials.custom_stack.storage import AseDBDataset
 logging.basicConfig(level=logging.INFO)
 
 

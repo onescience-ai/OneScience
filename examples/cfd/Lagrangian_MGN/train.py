@@ -1,146 +1,130 @@
 import logging
 import time
 
-from dgl.dataloading import GraphDataLoader
-
-import hydra
-from hydra.utils import instantiate, to_absolute_path
-from omegaconf import DictConfig, OmegaConf
-
 import torch
+import hydra
+from omegaconf import DictConfig, OmegaConf
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.amp import GradScaler, autocast
-from torch.nn.parallel import DistributedDataParallel
+from hydra.utils import to_absolute_path
+from tqdm import tqdm
 
 from onescience.distributed.manager import DistributedManager
+from onescience.datapipes import DeepMindLagrangianDatapipe
 from onescience.launch.utils import load_checkpoint, save_checkpoint
-
-from loggers import CompositeLogger, ExperimentLogger, get_gpu_info, init_python_logging
-
+from loggers import CompositeLogger, init_python_logging
 
 logger = logging.getLogger("lmgn")
-
-# Experiment logger will be set later during initialization.
-elogger: ExperimentLogger = None
+elogger = None
 
 
 class MGNTrainer:
     def __init__(self, cfg: DictConfig):
-        assert DistributedManager.is_initialized()
+        self.cfg = cfg
         self.dist = DistributedManager()
 
-        self.dt = cfg.data.train.dt
-        self.dim = cfg.dim
+        # 初始化数据管道
+        if self.dist.rank == 0:
+            logger.info("Initializing Datapipe...")
+        self.datapipe = DeepMindLagrangianDatapipe(
+            cfg, distributed=self.dist.distributed
+        )
+        self.dataloader = self.datapipe.train_dataloader()
+
+        # 数据集快捷引用
+        self.dataset = self.datapipe.train_dataset
+        self.dt = self.dataset.dt
+        self.dim = self.dataset.dim
 
         self.amp = cfg.amp.enabled
 
-        # MGN with recompute_activation currently supports only SiLU activation function.
+        # 模型配置合法性检查
         mlp_act = cfg.model.mlp_activation_fn
         if cfg.model.recompute_activation and mlp_act.lower() != "silu":
-            raise ValueError(
-                f"recompute_activation only supports SiLU activation function, "
-                f"but got {mlp_act}. Please either set activation='silu' "
-                f"or disable recompute_activation."
-            )
+            raise ValueError("recompute_activation only supports SiLU.")
 
-        # instantiate dataset
-        logger.info("Loading the training dataset...")
-        self.dataset = instantiate(cfg.data.train)
-        logger.info(f"Using {len(self.dataset)} training samples.")
-
-        # instantiate dataloader
-        self.dataloader = GraphDataLoader(
-            self.dataset,
-            **cfg.train.dataloader,
-            use_ddp=self.dist.world_size > 1,
-        )
-
-        # instantiate the model
-        logger.info("Creating the model...")
-        # instantiate the model
-        self.model = instantiate(cfg.model)
+        # 初始化模型
+        if self.dist.rank == 0:
+            logger.info("Creating model...")
+        self.model = hydra.utils.instantiate(cfg.model)
 
         if cfg.compile.enabled:
-            self.model = torch.compile(self.model, **cfg.compile.args).to(
-                self.dist.device
-            )
+            self.model = torch.compile(
+                self.model, **cfg.compile.args
+            ).to(self.dist.device)
         else:
             self.model = self.model.to(self.dist.device)
-            elogger.watch_model(self.model)
 
-        # distributed data parallel for multi-node training
+        # 分布式数据并行
         if self.dist.distributed:
-            self.model = DistributedDataParallel(
+            self.model = DDP(
                 self.model,
                 device_ids=[self.dist.local_rank],
                 output_device=self.dist.device,
-                broadcast_buffers=self.dist.broadcast_buffers,
-                find_unused_parameters=self.dist.find_unused_parameters,
+                find_unused_parameters=False,
             )
 
-        # enable train mode
         self.model.train()
 
-        # instantiate loss
-        self.criterion = instantiate(cfg.loss)
-
-        # instantiate optimizer, and scheduler
-        self.optimizer = instantiate(cfg.optimizer, self.model.parameters())
+        # 损失函数、优化器与学习率调度器
+        self.criterion = hydra.utils.instantiate(cfg.loss)
+        self.optimizer = hydra.utils.instantiate(
+            cfg.optimizer, self.model.parameters()
+        )
 
         num_iterations = cfg.train.epochs * len(self.dataloader)
         lrs_cfg = cfg.lr_scheduler
-        lrs_with_num_iter = {
-            "torch.optim.lr_scheduler.CosineAnnealingLR": "T_max",
-            "torch.optim.lr_scheduler.OneCycleLR": "total_steps",
-        }
-        if (num_iter_key := lrs_with_num_iter.get(lrs_cfg._target_)) is not None:
-            if lrs_cfg[num_iter_key] is None:
-                lrs_cfg[num_iter_key] = num_iterations
-        self.scheduler = instantiate(cfg.lr_scheduler, self.optimizer)
 
-        self.scaler = GradScaler()
+        # 自动补全学习率调度参数
+        if lrs_cfg._target_ == "torch.optim.lr_scheduler.CosineAnnealingLR":
+            if "T_max" not in lrs_cfg or lrs_cfg.T_max is None:
+                lrs_cfg.T_max = num_iterations
+        elif lrs_cfg._target_ == "torch.optim.lr_scheduler.OneCycleLR":
+            if "total_steps" not in lrs_cfg or lrs_cfg.total_steps is None:
+                lrs_cfg.total_steps = num_iterations
 
-        # load checkpoint
-        if self.dist.world_size > 1:
-            torch.distributed.barrier()
-        self.epoch_init = load_checkpoint(
-            to_absolute_path(cfg.resume_dir),
-            models=self.model,
-            optimizer=self.optimizer,
-            scheduler=self.scheduler,
-            scaler=self.scaler,
-            device=self.dist.device,
-        )
-        self.epoch_init += 1
+        self.scheduler = hydra.utils.instantiate(lrs_cfg, self.optimizer)
+        self.scaler = GradScaler(enabled=self.amp)
 
-    def train(self, graph):
+        # 断点加载
+        self.epoch_init = 0
+        if cfg.resume_dir:
+            try:
+                self.epoch_init = load_checkpoint(
+                    to_absolute_path(cfg.resume_dir),
+                    models=self.model,
+                    optimizer=self.optimizer,
+                    scheduler=self.scheduler,
+                    scaler=self.scaler,
+                    device=self.dist.device,
+                )
+                self.epoch_init += 1
+            except Exception as e:
+                if self.dist.rank == 0:
+                    logger.warning(f"Could not load checkpoint: {e}")
+
+    def train_step(self, graph):
         graph = graph.to(self.dist.device)
         self.optimizer.zero_grad()
-        loss_pos, loss_vel, loss_acc, loss_acc_norm = self.forward(graph)
-        self.backward(loss_acc_norm)
-        self.scheduler.step()
-        loss = loss_acc + loss_vel + loss_pos
-        return {
-            "loss": loss.item(),
-            "loss_pos": loss_pos.item(),
-            "loss_vel": loss_vel.item(),
-            "loss_acc": loss_acc.item(),
-            "loss_acc_norm": loss_acc_norm.item(),
-        }
 
-    def forward(self, graph):
-        # forward pass
         with autocast(device_type="cuda", enabled=self.amp):
             gt_pos, gt_vel, gt_acc = self.dataset.unpack_targets(graph)
-            # Predict the acceleration using normalized inputs and targets.
-            pred_acc = self.model(graph.ndata["x"], graph.edata["x"], graph)
+
+            pred_acc = self.model(
+                graph.ndata["x"], graph.edata["x"], graph
+            )
+
             mask = graph.ndata["mask"].unsqueeze(-1)
             num_nz = mask.sum() * self.dim
-            loss_acc_norm = mask * self.criterion(pred_acc, gt_acc)
-            loss_acc_norm = loss_acc_norm.sum() / num_nz
 
+            # 主损失：归一化加速度
+            loss_acc_norm = (
+                mask * self.criterion(pred_acc, gt_acc)
+            ).sum() / num_nz
+
+            # 辅助损失，仅用于监控
             with torch.no_grad():
                 pos, vel, _ = self.dataset.unpack_inputs(graph)
-                # Use the integrator to get the next position and velocity.
                 pred_pos, pred_vel = self.dataset.time_integrator(
                     position=pos,
                     velocity=vel[-1],
@@ -149,88 +133,142 @@ class MGNTrainer:
                     denormalize=True,
                 )
 
-                # Position loss.
-                loss_pos = mask * self.criterion(pred_pos, gt_pos)
-                loss_pos = loss_pos.sum() / num_nz
-                # loss_vel and loss_acc are denormalized.
-                loss_vel = mask * self.criterion(
-                    pred_vel, self.dataset.denormalize_velocity(gt_vel)
+                loss_pos = (
+                    mask * self.criterion(pred_pos, gt_pos)
+                ).sum() / num_nz
+
+                loss_vel = (
+                    mask
+                    * self.criterion(
+                        pred_vel,
+                        self.dataset.denormalize_velocity(gt_vel),
+                    )
+                ).sum() / num_nz
+
+                loss_acc = (
+                    mask
+                    * self.criterion(
+                        self.dataset.denormalize_acceleration(pred_acc),
+                        self.dataset.denormalize_acceleration(gt_acc),
+                    )
+                ).sum() / num_nz
+
+        # 反向传播与参数更新
+        self.scaler.scale(loss_acc_norm).backward()
+        self.scaler.step(self.optimizer)
+        self.scaler.update()
+        self.scheduler.step()
+
+        return {
+            "loss": loss_acc_norm.item()
+            + loss_pos.item()
+            + loss_vel.item(),
+            "loss_acc_norm": loss_acc_norm.item(),
+            "loss_pos": loss_pos.item(),
+            "loss_vel": loss_vel.item(),
+            "loss_acc": loss_acc.item(),
+        }
+
+    def run(self):
+        global elogger
+
+        if self.dist.rank == 0:
+            logger.info("Training started...")
+
+        for epoch in range(self.epoch_init, self.cfg.train.epochs + 1):
+            epoch_losses = {}
+            start = time.time()
+
+            if (
+                self.dist.distributed
+                and hasattr(self.dataloader.sampler, "set_epoch")
+            ):
+                self.dataloader.sampler.set_epoch(epoch)
+
+            if self.dist.rank == 0:
+                pbar = tqdm(
+                    total=len(self.dataloader),
+                    desc=f"Epoch [{epoch}/{self.cfg.train.epochs}]",
+                    dynamic_ncols=True,
+                    leave=True,
                 )
-                loss_vel = loss_vel.sum() / num_nz
+            else:
+                pbar = None
 
-                loss_acc = mask * self.criterion(
-                    self.dataset.denormalize_acceleration(pred_acc),
-                    self.dataset.denormalize_acceleration(gt_acc),
+            for graph in self.dataloader:
+                iter_start = time.time()
+                losses = self.train_step(graph)
+
+                for k, v in losses.items():
+                    epoch_losses.setdefault(k, []).append(v)
+
+                if pbar is not None:
+                    pbar.set_postfix(
+                        {
+                            "loss": f"{losses['loss']:.3e}",
+                            "acc": f"{losses['loss_acc_norm']:.3e}",
+                            "lr": f"{self.scheduler.get_last_lr()[0]:.1e}",
+                            "t": f"{time.time() - iter_start:.2f}s",
+                        }
+                    )
+                    pbar.update(1)
+
+            if pbar is not None:
+                pbar.close()
+
+            if self.dist.rank == 0:
+                mean_losses = {
+                    k: sum(v) / len(v) for k, v in epoch_losses.items()
+                }
+                last_lr = self.scheduler.get_last_lr()[0]
+
+                logger.info(
+                    f"Epoch: {epoch:3d} | "
+                    f"Loss: {mean_losses['loss']:.4e} | "
+                    f"Acc Norm: {mean_losses['loss_acc_norm']:.4e} | "
+                    f"LR: {last_lr:.2e} | "
+                    f"Time: {time.time() - start:.2f}s"
                 )
-                loss_acc = loss_acc.sum() / num_nz
 
-            return loss_pos, loss_vel, loss_acc, loss_acc_norm
+                if elogger:
+                    elogger.log(mean_losses, epoch)
+                    elogger.log_scalar("lr", last_lr, epoch)
 
-    def backward(self, loss):
-        # backward pass
-        if self.amp:
-            self.scaler.scale(loss).backward()
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
-        else:
-            loss.backward()
-            self.optimizer.step()
+                if epoch % self.cfg.train.checkpoint_save_freq == 0:
+                    save_checkpoint(
+                        to_absolute_path(self.cfg.resume_dir),
+                        models=self.model,
+                        optimizer=self.optimizer,
+                        scheduler=self.scheduler,
+                        scaler=self.scaler,
+                        epoch=epoch,
+                    )
+
+            if self.dist.distributed:
+                torch.distributed.barrier()
 
 
 @hydra.main(version_base="1.3", config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> None:
-    # initialize distributed manager
     DistributedManager.initialize()
     dist = DistributedManager()
-    init_python_logging(cfg, dist.rank)
-    logger.info(f"Config summary:\n{OmegaConf.to_yaml(cfg, sort_keys=True)}")
-    logger.info(get_gpu_info())
 
-    # Initialize loggers.
+    init_python_logging(cfg, dist.rank)
+
+    if dist.rank == 0:
+        logger.info(f"Config:\n{OmegaConf.to_yaml(cfg)}")
+
     global elogger
-    elogger = CompositeLogger(cfg)
+    if dist.rank == 0:
+        elogger = CompositeLogger(cfg)
 
     trainer = MGNTrainer(cfg)
-    start = time.time()
-    logger.info("Training started...")
-    for epoch in range(trainer.epoch_init, cfg.train.epochs + 1):
-        epoch_losses = {}
-        for graph in trainer.dataloader:
-            losses = trainer.train(graph)
-            for k, l in losses.items():
-                epoch_losses.setdefault(k, []).append(l)
+    trainer.run()
 
-        mean_losses = {k: sum(v) / len(v) for k, v in epoch_losses.items()}
+    if dist.rank == 0 and elogger:
+        elogger.close()
 
-        last_lr = trainer.scheduler.get_last_lr()[0]
-        logger.info(
-            f"epoch: {epoch:5,}, loss: {mean_losses['loss']:10.3e}, "
-            f"position loss: {mean_losses['loss_pos']:10.3e}, "
-            f"velocity loss: {mean_losses['loss_vel']:10.3e}, "
-            f"accel loss: {mean_losses['loss_acc']:10.3e}, "
-            f"accel loss (norm): {mean_losses['loss_acc_norm']:10.3e}, "
-            f"lr: {last_lr:10.3e}, "
-            f"time per epoch: {(time.time() - start):10.3e}"
-        )
-        elogger.log(mean_losses, epoch)
-        elogger.log_scalar("lr", last_lr, epoch)
-
-        # save checkpoint
-        if dist.world_size > 1:
-            torch.distributed.barrier()
-        if dist.rank == 0 and epoch % cfg.train.checkpoint_save_freq == 0:
-            save_checkpoint(
-                cfg.output,
-                models=trainer.model,
-                optimizer=trainer.optimizer,
-                scheduler=trainer.scheduler,
-                scaler=trainer.scaler,
-                epoch=epoch,
-            )
-            logger.info(f"Saved model on rank {dist.rank}")
-        start = time.time()
-    logger.info("Training completed!")
-    elogger.close()
+    dist.cleanup()
 
 
 if __name__ == "__main__":

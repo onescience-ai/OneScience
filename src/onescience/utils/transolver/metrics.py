@@ -59,6 +59,7 @@ def WallShearStress(Jacob_U, normals):
 @torch.no_grad()
 def Infer_test(device, models, hparams, data, coef_norm=None):
     # Inference procedure on new simulation
+    data = data.to('cpu')
     outs = [torch.zeros_like(data.y)] * len(models)
     n_out = torch.zeros_like(data.y[:, :1])
     idx_points = set(map(tuple, data.pos[:, :2].numpy()))
@@ -81,7 +82,7 @@ def Infer_test(device, models, hparams, data, coef_norm=None):
         for n, model in enumerate(models):
             try:
                 data_sampled.edge_index = nng.radius_graph(x=data_sampled.pos.to(device), r=hparams[n]['r'], loop=True,
-                                                           max_num_neighbors=int(hparams[n]['max_neighbors'])).cpu()
+                                                           max_num_neighbors=int(hparams[n]['max_neighbors']))
             except KeyError:
                 data_sampled.edge_index = None
 
@@ -291,6 +292,7 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
     times = [] #推理时间
     true_coefs = [] #真实力学系数
     pred_coefs = [] #预测力学系数
+    
     for i in range(len(models[0])):
         model = [models[n][i] for n in range(len(models))]
         avg_loss_per_var = np.zeros((len(model), 4))

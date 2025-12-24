@@ -1,130 +1,119 @@
-import torch
-import random
-import argparse
-import numpy as np
-import torch.nn as nn
+# train_graphvit_eagle.py
 
+import os
+import sys
+import logging
+import time
+import random
+import numpy as np
+
+import torch
+import torch.nn as nn
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel
 from tqdm import tqdm
-from pathlib import Path
 from torch.utils.data import DataLoader
 
-from onescience.models.graphvit import GraphViT
-from onescience.datapipes.eagle import EagleDataset, collate
-
 from onescience.distributed.manager import DistributedManager
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data.distributed import DistributedSampler
+from onescience.utils.YParams import YParams
+from onescience.datapipes import EagleDatapipe
+from onescience.models.graphvit import GraphViT
 
 
-# 参数解析器设置
-parser = argparse.ArgumentParser(description="Train GraphViT model on Eagle dataset")
+def save_best_model(model, optimizer, scheduler, ckp_dir, model_name="best_model.pth"):
+    """保存当前最优模型"""
+    if not os.path.exists(ckp_dir):
+        os.makedirs(ckp_dir, exist_ok=True)
 
-# 数据集相关参数
-parser.add_argument(
-    "--dataset-path",
-    default="./Eagle_dataset/",
-    type=Path,
-    help="Path to the Eagle dataset directory",
-)
-parser.add_argument(
-    "--cluster-path",
-    default="./Eagle_dataset/",
-    type=Path,
-    help="Path to cluster data directory",
-)
-parser.add_argument(
-    "--splits-path", default="./splits/", type=Path, help="Path to dataset split files"
-)
-parser.add_argument(
-    "--model-name",
-    type=str,
-    required=True,
-    help="Name for the saved model checkpoint (without extension)",
-)
-parser.add_argument(
-    "--output-path", type=Path, required=True, help="Path to save model checkpoints"
-)
+    model_to_save = model.module if hasattr(model, "module") else model
+    state = {
+        "model_state_dict": model_to_save.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+    }
+    if scheduler:
+        state["scheduler_state_dict"] = scheduler.state_dict()
 
-# 模型与训练参数
-parser.add_argument(
-    "--n-cluster",
-    type=int,
-    required=True,
-    help="Number of clusters for graph partitioning",
-)
-parser.add_argument("--epoch", default=1000, type=int, help="Number of training epochs")
-parser.add_argument(
-    "--lr", default=1e-4, type=float, help="Learning rate for optimizer"
-)
-parser.add_argument(
-    "--horizon-val",
-    default=25,
-    type=int,
-    help="Time window length for validation sequences",
-)
-parser.add_argument(
-    "--horizon-train",
-    default=6,
-    type=int,
-    help="Time window length for training sequences",
-)
-parser.add_argument(
-    "--w-size",
-    default=512,
-    type=int,
-    help="Window size/embedding dimension for GraphViT model",
-)
-parser.add_argument(
-    "--alpha",
-    default=0.1,
-    type=float,
-    help="Weighting factor for pressure loss component",
-)
-parser.add_argument("--batch-size", default=2, type=int, help="Batch size for training")
-
-args = parser.parse_args()
+    torch.save(state, os.path.join(ckp_dir, model_name))
 
 
-def get_loss(velocity, pressure, output, state_hat, target, mask):
+def load_best_model(model, ckp_dir, device, model_name="best_model.pth"):
+    """加载最优模型权重"""
+    ckpt_path = os.path.join(ckp_dir, model_name)
+    if os.path.exists(ckpt_path):
+        checkpoint = torch.load(ckpt_path, map_location=device)
+        model_to_load = model.module if hasattr(model, "module") else model
+        try:
+            model_to_load.load_state_dict(checkpoint["model_state_dict"])
+        except KeyError:
+            model_to_load.load_state_dict(checkpoint)
+        logging.info(f"Successfully loaded model from {ckpt_path}")
+    else:
+        logging.warning(f"Checkpoint file not found: {ckpt_path}. Model training from scratch.")
+
+
+def setup_logging(rank):
+    level = logging.INFO if rank == 0 else logging.WARNING
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    logging.getLogger("torch.distributed").setLevel(logging.WARNING)
+    logger = logging.getLogger()
+    logger.setLevel(level)
+    return logger
+
+
+def get_loss(velocity, pressure, output, state_hat, target, mask, alpha):
+    """计算速度、压力与联合损失"""
     velocity = velocity[:, 1:]
     pressure = pressure[:, 1:]
+
     velocity_hat = state_hat[:, 1:, :, :2]
+    pressure_hat = state_hat[:, 1:, :, 2:]
+
     mask = mask[:, 1:].unsqueeze(-1)
 
     rmse_velocity = torch.sqrt(
         ((velocity * mask - velocity_hat * mask) ** 2).mean(dim=(-1))
     )
     loss_velocity = torch.mean(rmse_velocity)
-    losses = {}
 
-    pressure_hat = state_hat[:, 1:, :, 2:]
     rmse_pressure = torch.sqrt(
         ((pressure * mask - pressure_hat * mask) ** 2).mean(dim=(-1))
     )
     loss_pressure = torch.mean(rmse_pressure)
-    MSE = nn.MSELoss()
-    loss = MSE(target[..., :2] * mask, output[..., :2] * mask) + args.alpha * MSE(
+
+    mse = nn.MSELoss()
+    loss = mse(target[..., :2] * mask, output[..., :2] * mask) + alpha * mse(
         target[..., 2:] * mask, output[..., 2:] * mask
     )
-    loss = loss
 
-    losses["MSE_pressure"] = loss_pressure
-    losses["loss"] = loss
-    losses["MSE_velocity"] = loss_velocity
-
-    return losses
+    return {
+        "loss": loss,
+        "MSE_velocity": loss_velocity,
+        "MSE_pressure": loss_pressure,
+    }
 
 
 def validate(
     model: nn.Module,
     dataloader: DataLoader,
-    epoch: int = 0,
-    device: torch.device = None,
+    epoch: int,
+    device: torch.device,
+    alpha: float,
+    manager: DistributedManager,
 ):
+    """验证阶段"""
+    model.eval()
+    total_loss, cpt = 0.0, 0
+
     with torch.no_grad():
-        total_loss, cpt = 0, 0
-        model.eval()
-        for i, x in enumerate(tqdm(dataloader, desc="Validation")):
+        pbar = tqdm(dataloader, desc="Validation", disable=(manager.rank != 0))
+        for x in pbar:
+            if not x:
+                continue
+
             mesh_pos = x["mesh_pos"].to(device)
             edges = x["edges"].to(device).long()
             velocity = x["velocity"].to(device)
@@ -135,6 +124,7 @@ def validate(
             clusters_mask = x["cluster_mask"].to(device).long()
 
             state = torch.cat([velocity, pressure], dim=-1)
+
             state_hat, output, target = model(
                 mesh_pos,
                 edges,
@@ -145,102 +135,104 @@ def validate(
                 apply_noise=False,
             )
 
-            state_hat[..., :2], state_hat[..., 2:] = dataloader.dataset.denormalize(
+            dataset = dataloader.dataset
+            state_hat[..., :2], state_hat[..., 2:] = dataset.denormalize(
                 state_hat[..., :2], state_hat[..., 2:]
             )
-            velocity, pressure = dataloader.dataset.denormalize(velocity, pressure)
+            velocity, pressure = dataset.denormalize(velocity, pressure)
 
-            costs = get_loss(velocity, pressure, output, state_hat, target, mask)
+            costs = get_loss(
+                velocity, pressure, output, state_hat, target, mask, alpha
+            )
+
+            if manager.world_size > 1:
+                dist.all_reduce(costs["loss"], op=dist.ReduceOp.AVG)
+
             total_loss += costs["loss"].item()
-            cpt += mesh_pos.shape[0]
-    results = total_loss / cpt
-    print(f"=== EPOCH {epoch + 1} ===\n{results}")
-    return results
+            cpt += 1
+
+        if manager.world_size > 1:
+            dist.barrier()
+
+    return total_loss / cpt if cpt > 0 else 0.0
 
 
 def main():
     DistributedManager.initialize()
-    dist = DistributedManager()
-    if dist.rank == 0:
-        print(
-            f"Initialized process group: rank {dist.rank}, world size {dist.world_size}"
-        )
-        print(args)
-    device = dist.device
+    manager = DistributedManager()
+    logger = setup_logging(manager.rank)
+
     torch.manual_seed(0)
     random.seed(0)
     np.random.seed(0)
 
-    train_dataset = EagleDataset(
-        args.dataset_path,
-        cluster_path=args.cluster_path,
-        splits_path=args.splits_path,
-        split="train",
-        window_length=args.horizon_train,
-        n_cluster=args.n_cluster,
-        normalized=True,
-    )
-    valid_dataset = EagleDataset(
-        args.dataset_path,
-        cluster_path=args.cluster_path,
-        splits_path=args.splits_path,
-        split="valid",
-        window_length=args.horizon_val,
-        n_cluster=args.n_cluster,
-        normalized=True,
-    )
+    config_file_path = "conf/graphvit_eagle.yaml"
+    cfg = YParams(config_file_path, "model")
+    cfg_data = YParams(config_file_path, "datapipe")
+    cfg_train = YParams(config_file_path, "training")
 
-    # 创建分布式采样器
-    train_sampler = DistributedSampler(train_dataset) if dist.world_size > 1 else None
-    valid_sampler = (
-        DistributedSampler(valid_dataset, shuffle=False)
-        if dist.world_size > 1
-        else None
-    )
+    model_name = cfg.name
+    if manager.rank == 0:
+        logger.info(f"=====  Preparing model: {model_name} =====")
+        logger.info(f"Loading config from: {config_file_path}")
 
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=args.batch_size,
-        shuffle=(train_sampler is None),
-        num_workers=1,
-        pin_memory=False,
-        collate_fn=collate,
-        sampler=train_sampler,
-    )
-    valid_dataloader = DataLoader(
-        valid_dataset,
-        batch_size=args.batch_size,
-        shuffle=False,
-        num_workers=1,
-        pin_memory=True,
-        collate_fn=collate,
-        sampler=valid_sampler,
-    )
+    logger.info("Initializing datapipe...")
+    datapipe = EagleDatapipe(params=cfg_data, distributed=(manager.world_size > 1))
+    train_dataloader, train_sampler = datapipe.train_dataloader()
+    val_dataloader, val_sampler = datapipe.val_dataloader()
 
-    model = GraphViT(state_size=4, w_size=args.w_size).to(device)
-    if dist.world_size > 1:
-        model = DDP(model, device_ids=[dist.device])
+    device = manager.device
 
-    optim = torch.optim.Adam(model.parameters(), lr=args.lr)
+    logger.info(f"Initializing model architecture: {model_name}")
+    model = GraphViT(state_size=cfg.state_size, w_size=cfg.w_size).to(device)
 
-    if dist.rank == 0:
-        model_parameters = filter(lambda p: p.requires_grad, model.parameters())
-        params = sum([np.prod(p.size()) for p in model_parameters])
-        print("#params:", params)
+    if manager.rank == 0:
+        total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        logger.info(
+            f"Model: {model_name}, Trainable Params: {total_params / 1e6:.2f}M"
+        )
 
-    memory = torch.inf
-    output_ckpt = args.output_path / args.model_name
-    output_ckpt = output_ckpt.with_suffix(".nn")
-    if dist.rank == 0:
-        output_ckpt.parent.mkdir(parents=True, exist_ok=True)
-    for epoch in range(args.epoch):
-        if dist.world_size > 1:
+    if manager.world_size > 1:
+        model = DistributedDataParallel(
+            model,
+            device_ids=[manager.local_rank],
+            output_device=manager.local_rank,
+            find_unused_parameters=True,
+        )
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg_train.lr)
+    scheduler = None
+    loss_alpha = cfg_train.loss_alpha
+
+    checkpoint_dir = cfg_train.checkpoint_dir
+    if manager.rank == 0:
+        os.makedirs(checkpoint_dir, exist_ok=True)
+
+    best_valid_loss = 1.0e6
+    best_epoch = 0
+
+    logger.info("Starting training...")
+    for epoch in range(cfg_train.max_epoch):
+        epoch_start_time = time.time()
+
+        if manager.world_size > 1:
             train_sampler.set_epoch(epoch)
-        model.train()
+            if val_sampler:
+                val_sampler.set_epoch(epoch)
 
-        for i, x in enumerate(
-            tqdm(train_dataloader, desc="Training", disable=dist.rank != 0)
-        ):
+        model.train()
+        train_loss, train_cpt = 0.0, 0
+
+        pbar = tqdm(
+            train_dataloader,
+            desc=f"Epoch {epoch+1}/{cfg_train.max_epoch} Training",
+            disable=(manager.rank != 0),
+        )
+
+        for i, x in enumerate(pbar):
+            if not x:
+                continue
+
             mesh_pos = x["mesh_pos"].to(device)
             edges = x["edges"].to(device).long()
             velocity = x["velocity"].to(device)
@@ -251,6 +243,7 @@ def main():
             clusters_mask = x["cluster_mask"].to(device).long()
 
             state = torch.cat([velocity, pressure], dim=-1)
+
             state_hat, output, target = model(
                 mesh_pos,
                 edges,
@@ -261,33 +254,91 @@ def main():
                 apply_noise=True,
             )
 
-            state_hat[..., :2], state_hat[..., 2:] = train_dataset.denormalize(
+            state_hat[..., :2], state_hat[..., 2:] = train_dataloader.dataset.denormalize(
                 state_hat[..., :2], state_hat[..., 2:]
             )
-            velocity, pressure = train_dataset.denormalize(velocity, pressure)
+            velocity, pressure = train_dataloader.dataset.denormalize(
+                velocity, pressure
+            )
 
-            costs = get_loss(velocity, pressure, output, state_hat, target, mask)
+            costs = get_loss(
+                velocity, pressure, output, state_hat, target, mask, loss_alpha
+            )
 
-            optim.zero_grad()
+            optimizer.zero_grad()
             costs["loss"].backward()
-            optim.step()
-        if dist.rank == 0:
-            error = validate(model, valid_dataloader, epoch=epoch, device=dist.device)
-            if error < memory:
-                memory = error
-                model_to_save = model.module if hasattr(model, "module") else model
-                torch.save(model_to_save.state_dict(), output_ckpt)
-                print("Saved!")
-        else:
-            error = float("inf")
+            optimizer.step()
 
-        # 同步所有进程
-        if dist.world_size > 1:
-            torch.distributed.barrier()
-    if dist.rank == 0:
-        validate(model, valid_dataloader, device=dist.device)
-    # 清理分布式进程
-    dist.cleanup()
+            train_loss += costs["loss"].item()
+            train_cpt += 1
+
+        train_loss /= train_cpt if train_cpt > 0 else 1.0
+
+        valid_loss = validate(
+            model, val_dataloader, epoch, device, loss_alpha, manager
+        )
+
+        if manager.rank == 0:
+            epoch_time = time.time() - epoch_start_time
+            logger.info(
+                f"Epoch [{epoch + 1}/{cfg_train.max_epoch}] | Time: {epoch_time:.2f}s | "
+                f"Train Loss: {train_loss:.6f} | Valid Loss: {valid_loss:.6f}"
+            )
+
+            if valid_loss < best_valid_loss:
+                best_valid_loss = valid_loss
+                best_epoch = epoch
+                save_best_model(
+                    model=model,
+                    optimizer=optimizer,
+                    scheduler=scheduler,
+                    ckp_dir=checkpoint_dir,
+                    model_name="best_model.pth",
+                )
+                logger.info(
+                    "   -> New best validation loss. Checkpoint saved as best_model.pth."
+                )
+
+            if epoch - best_epoch > cfg_train.patience:
+                logger.warning(
+                    f"Validation loss has not improved for {cfg_train.patience} epochs. "
+                    "Stopping training."
+                )
+                break
+
+        if manager.world_size > 1:
+            dist.barrier()
+
+    if manager.rank == 0:
+        logger.info("=====  Training finished. Starting final validation... =====")
+
+        final_model = GraphViT(
+            state_size=cfg.state_size, w_size=cfg.w_size
+        ).to(device)
+
+        load_best_model(
+            model=final_model,
+            ckp_dir=checkpoint_dir,
+            device=device,
+            model_name="best_model.pth",
+        )
+
+        test_dataloader, _ = datapipe.test_dataloader()
+        final_test_loss = validate(
+            final_model,
+            test_dataloader,
+            best_epoch,
+            device,
+            loss_alpha,
+            manager,
+        )
+
+        logger.info(
+            f"=====  Final Test Loss (from best model at epoch {best_epoch}): "
+            f"{final_test_loss:.6f} ====="
+        )
+
+    manager.cleanup()
 
 
 if __name__ == "__main__":
