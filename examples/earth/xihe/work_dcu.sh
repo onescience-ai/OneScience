@@ -9,7 +9,7 @@ source ~/.bashrc
 ##### Activate Conda env #####
 conda activate xihe
 ##### Launch DTK #####
-module load sghpc-mpi-gcc/25.8
+# module load sghpc-mpi-gcc/25.8
 ##### Show env #####
 which python
 which hipcc

@@ -132,7 +132,7 @@ class  ERA5HDF5Dataset(BaseDataset):
             print('Train/Val/Test settings must use ratio or digital numbers')
             print('If using ratio, please ensure the sum of all ratios equal to 1')
             print(f'If using digital number, please ensure the sum of number equal to total years {len(y)}')
-            # print(f'❌❌ Now settings are {self.params.dataset['train_ratio']}-{self.params.dataset['val_ratio']}-{self.params.dataset['test_ratio']}, please check.')
+            print(f'❌ ❌ Now settings are {self.params.train_ratio}-{self.params.val_ratio}-{self.params.test_ratio}, please check.')
             print('-' * 30)
             print('\n\n')
             exit()

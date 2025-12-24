@@ -10,7 +10,7 @@ import torch.optim as optim
 
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.xihe.xihe import Xihe  # 你的 XiHe 模型定义路径
-from onescience.datapipes import CMEMSDatapipe
+from onescience.datapipes.climate import CMEMSDatapipe
 from onescience.utils.YParams import YParams
 from onescience.utils.fcn.darcy_loss import LpLoss
 

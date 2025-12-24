@@ -34,8 +34,8 @@ with torch.no_grad():
         invar = data[0].to("cuda:0", dtype=torch.float32)
         outvar = data[1].to("cuda:0", dtype=torch.float32)
 
-        invar = invar[:, :, :-1, :]
-        outvar = outvar[:, :, :-1, :]
+        # invar = invar[:, :, :-1, :]
+        # outvar = outvar[:, :, :-1, :]
 
         outvar_pred = xihe_model(invar)
 

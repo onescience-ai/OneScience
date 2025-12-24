@@ -1,7 +1,7 @@
 model:
 
     start_epoch: 0
-    max_epoch: 50
+    max_epoch: 1
     lr: 1E-3
     num_blocks: 8
     patch_size: [4, 4]
@@ -10,6 +10,7 @@ model:
     window_size: [2, 6, 12]
     pressure_level: 37
     checkpoint_dir: "./data/checkpoints"
+    patience: 50
 
  # 整个数据读取流程
 datapipe:
@@ -19,9 +20,9 @@ datapipe:
   # dataset设定
   dataset:
     type: "hdf5"
-    stats_dir: "/public/onestore/onedatasets/ERA5/newh5/stats/" 
-    static_dir: "/public/onestore/onedatasets/ERA5/newh5/static/" 
-    data_dir: "/public/onestore/onedatasets/ERA5/newh5/" 
+    stats_dir: './data/stats/' # "/public/onestore/onedatasets/ERA5/newh5/stats/" 
+    static_dir: './data/statc/' # "/public/onestore/onedatasets/ERA5/newh5/static/" 
+    data_dir: './data/' # "/public/onestore/onedatasets/ERA5/newh5/" 
     
     train_ratio: 15
     val_ratio: 3
@@ -36,7 +37,7 @@ datapipe:
                 'geopotential_1', 'geopotential_2', 'geopotential_3', 'geopotential_5', 'geopotential_7', 
                 'geopotential_10', 'geopotential_20', 'geopotential_30', 'geopotential_50', 'geopotential_70', 
                 'geopotential_100', 'geopotential_125', 'geopotential_150', 'geopotential_175', 'geopotential_200', 
-                'geopotential_225', geopotential_250', 'geopotential_300', 'geopotential_350', 'geopotential_400', 
+                'geopotential_225', 'geopotential_250', 'geopotential_300', 'geopotential_350', 'geopotential_400', 
                 'geopotential_450', 'geopotential_500', 'geopotential_550', 'geopotential_600', 'geopotential_650', 
                 'geopotential_700', 'geopotential_750', 'geopotential_775', 'geopotential_800', 'geopotential_825', 
                 'geopotential_850', 'geopotential_875', 'geopotential_900', 'geopotential_925', 'geopotential_950', 

@@ -257,7 +257,8 @@ class Xihe(Module):
         
         x=self.block2(x,mask=mask2)                      
         x=self.block3(x,mask=mask2)                                   
-        x=self.block4(x,mask=mask2)                       
+        x=self.block4(x,mask=mask2)  
+        print("x.shape---261",x.shape)
         x=self.upsample(x) 
         x=self.block5(x,mask=mask1)
         x_out = torch.cat([x, x1], dim=-1)         # (B, N, 2C)

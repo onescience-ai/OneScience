@@ -7,7 +7,7 @@ import h5py
 from tqdm import tqdm
 from onescience.models.fengwu import Fengwu
 from onescience.utils.YParams import YParams
-from onescience.datapipes import ERA5Datapipe
+from onescience.datapipes.climate import ERA5Datapipe
 
 
 def get_stats(cfg):
@@ -108,3 +108,5 @@ if __name__ == "__main__":
             pred_var = pred_var * stds + means
             np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var)
             j += 1
+            if j == 10:
+                break

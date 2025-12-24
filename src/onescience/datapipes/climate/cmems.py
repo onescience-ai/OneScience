@@ -162,7 +162,7 @@ class  CMEMSHDF5Dataset(BaseDataset):
 
     def _init_shape(self):
         # print("self.files",self.files)
-        print("selected_years",self.selected_years[0])
+        # print("selected_years",self.selected_years[0])
         sample_file = self.files[self.selected_years[0]][0]
         with h5py.File(sample_file, "r") as f:
             shape = f["fields"].shape  # [N, H, W]
