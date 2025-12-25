@@ -14,7 +14,7 @@ from onescience.models.graphcast.graph_cast_net import GraphCastNet
 from onescience.utils.graphcast.loss import GraphCastLossFunction
 from onescience.utils.YParams import YParams
 from onescience.launch.utils import load_checkpoint, save_checkpoint
-from onescience.datapipes import ERA5Datapipe
+from onescience.datapipes.climate import ERA5Datapipe
 from onescience.utils.graphcast.data_utils import StaticData
 from onescience.utils.graphcast.graph_utils import deg2rad
 from ruamel.yaml.scalarfloat import ScalarFloat
@@ -151,8 +151,11 @@ if __name__ == "__main__":
             invar = torch.concat((invar, cos_zenith, static_data, sin_day_of_year, cos_day_of_year, sin_time_of_day, cos_time_of_day), dim=1)
 
             invar = invar.to(dtype=model_dtype)
-            pred_var = model(invar).cpu().numpy()
+            pred_var = model(invar).to(dtype=torch.float32)
+            pred_var = pred_var.cpu().numpy()
             pred_var = pred_var * stds + means
             
-            np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var.float())
+            np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var)
             j += 1
+            if j == 10:
+                break

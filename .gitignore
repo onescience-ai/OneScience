@@ -27,4 +27,5 @@ debug
 *.h5
 examples/biosciences/simplefold/artifacts/
 examples/earth/xihe/data/
-src/onescience/models/xihe/H5FileProcess/
+label.npy
+pred.npy

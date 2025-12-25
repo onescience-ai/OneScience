@@ -8,7 +8,7 @@ import time
 
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR, LambdaLR
-from onescience.datapipes import ERA5Datapipe
+from onescience.datapipes.climate import ERA5Datapipe
 from onescience.utils.YParams import YParams
 from onescience.utils.graphcast.data_utils import StaticData
 from onescience.utils.graphcast.graph_utils import deg2rad
@@ -195,7 +195,7 @@ def main():
                             outpred = model(invar)
                             invar = outpred
                             loss += criterion(outpred, outvar[:, t])
-
+                        
                         loss /= outvar.shape[1]
                         if cfg.world_size > 1:
                             loss_tensor = loss.detach().to(local_rank)  # torch.tensor(loss, device=local_rank)
@@ -210,7 +210,7 @@ def main():
                                     f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                                     f'[{(time.time()-start_time)/(k+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                                     f'loss:{valid_loss / (k+1): .04f}')
-                    
+                        
                     valid_loss /= len(val_dataloader)
                     is_save_ckp = False
                     if valid_loss < best_valid_loss:
@@ -228,7 +228,7 @@ def main():
                                 )
                     train_losses = np.append(train_losses, train_loss)
                     np.save(train_loss_file, train_losses)
-
+                   
 
         if epoch - best_loss_epoch > cfg.patience:
             print(f"Loss has not decrease in {cfg.patience} epochs, stopping training...")

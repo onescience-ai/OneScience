@@ -8,8 +8,8 @@ from onescience.utils.YParams import YParams
 
 def generate_debug_sample(cfg):
     years = list(range(1951, 1971))
-    timestamp=f'{years[0]}020100'
-    total_files = 1400
+    timestamp=f'{years[0]}010100'
+    total_files = 1460
     variables = cfg.channels
     M = len(variables)
     shape = (M, 721, 1440)
@@ -28,7 +28,7 @@ def generate_debug_sample(cfg):
 
     # 当前年份其余时间步软链
     for i in range(total_files):
-        ts = (np.datetime64(f"{real_year}-02-01T00") + np.timedelta64(i * 6, "h")).astype(str).replace("-", "").replace("T", "")[:10]
+        ts = (np.datetime64(f"{real_year}-01-01T00") + np.timedelta64(i * 6, "h")).astype(str).replace("-", "").replace("T", "")[:10]
         path = os.path.join(real_dir, f"{ts}.h5")
         if path != real_path and not os.path.exists(path):
             os.symlink(f"{timestamp}.h5", path)
@@ -38,7 +38,7 @@ def generate_debug_sample(cfg):
         y_dir = os.path.join(data_root, str(y))
         os.makedirs(y_dir, exist_ok=True)
         for i in range(total_files):
-            ts = (np.datetime64(f"{y}-02-01T00") + np.timedelta64(i * 6, "h")).astype(str).replace("-", "").replace("T", "")[:10]
+            ts = (np.datetime64(f"{y}-01-01T00") + np.timedelta64(i * 6, "h")).astype(str).replace("-", "").replace("T", "")[:10]
             path = os.path.join(y_dir, f"{ts}.h5")
             if not os.path.exists(path):
                 rel = os.path.relpath(real_path, y_dir)

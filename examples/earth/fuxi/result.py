@@ -58,10 +58,10 @@ def get_rmse(mode, total_files, channel_indices):
     channel_rmse = np.zeros(len(channel_indices))
     if not os.path.exists(f'result/{mode}_rmse.npy'):
         for file in tqdm(total_files, unit="files"):
-            with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}', "r") as f:
+            with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}.h5', "r") as f:
                 label = f["fields"][:]  # [N, H, W]
                 label = label[channel_indices]
-            pred = np.load(f'result/{mode}/data/{file[:4]}/{file[:-3]}.npy').squeeze()
+            pred = np.load(f'result/{mode}/data/{file[:4]}/{file}.npy').squeeze()
             channel_rmse += np.sqrt(np.mean((label - pred) ** 2, axis=(1, 2)))
         channel_rmse /= len(total_files)
         np.save(f'result/{mode}_rmse.npy', channel_rmse)
@@ -141,7 +141,7 @@ if __name__ == "__main__":
     # Compute RMSE per channel and total
     
     ##### You can choose the date to plot #####
-    total_files = ['2019011812.h5', '2019011612.h5', '2019011012.h5']
+    total_files = ['1969010118', '1969010112', '1969010106']
     channel_index = [cfg_data.dataset.channels.index(v) for v in ['2m_temperature', 'u_component_of_wind_500', 'geopotential_1000']]
     selected_files = total_files
 
@@ -157,12 +157,12 @@ if __name__ == "__main__":
     print(f"seleted date: {selected_files}")
     print(f"selected channels: {selected_var}")
     for file in selected_files:
-        with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}', "r") as f:
+        with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}.h5', "r") as f:
             label = f["fields"][:]  # [N, H, W]
             label = label[channel_indices]
 
-        pred = np.load(f'result/{mode}/data/{file[:4]}/{file[:-3]}.npy').squeeze()
+        pred = np.load(f'result/{mode}/data/{file[:4]}/{file}.npy').squeeze()
         for i in range(len(selected_var)):
-            filename = f'./result/{mode}/{file[:-3]}_{selected_var[i]}.png'
+            filename = f'./result/{mode}/{file}_{selected_var[i]}.png'
             plot(label[channel_index[i]], pred[channel_index[i]], selected_var[i], filename)
             print(f'✅plot {filename}')

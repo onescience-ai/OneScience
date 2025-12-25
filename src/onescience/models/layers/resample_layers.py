@@ -132,7 +132,6 @@ class UpSample(nn.Module):
 
     def forward(self, x):
         B, N, C = x.shape
-        print("~~~~~~x.shape",x.shape)
         in_lat, in_lon = self.input_resolution
         out_lat, out_lon = self.output_resolution
 
@@ -140,7 +139,7 @@ class UpSample(nn.Module):
         x = x.reshape(B, in_lat, in_lon, 2, 2, C // 2).permute(0, 1, 3, 2, 4, 5)
         x = x.reshape(B, in_lat * 2, in_lon * 2, -1)
 
-        print("x.shape",x.shape)
+       
 
         pad_h = in_lat * 2 - out_lat
         pad_w = in_lon * 2 - out_lon
@@ -150,27 +149,29 @@ class UpSample(nn.Module):
 
         pad_left = pad_w // 2
         pad_right = pad_w - pad_left
+        # print("in_lat, in_lon,out_lat, out_lon",in_lat, in_lon,out_lat, out_lon)
+        # print(" pad_top,pad_bottom,pad_left,pad_right",pad_top,pad_bottom,pad_left,pad_right)
 
-        x = x[
-            :, pad_top : 2 * in_lat - pad_bottom, pad_left : 2 * in_lon - pad_right, :
-        ]
-        x = x.reshape(x.shape[0], x.shape[1] * x.shape[2], x.shape[3])
+        # x = x[:, pad_top : 2 * in_lat - pad_bottom, pad_left : 2 * in_lon - pad_right, :]
+        # print("x.shape",x.shape)
+        # x = x.reshape(x.shape[0], x.shape[1] * x.shape[2], x.shape[3])
+        # x = self.norm(x)
+        # x = self.linear2(x)
+        # print("x.shape",x.shape)
+        # return x
+
+        # ✅ 用插值精确拉伸到目标分辨率，更利于处理奇数输出
+        x = F.interpolate(
+            x.permute(0, 3, 1, 2),
+            size=(out_lat, out_lon),
+            mode="bilinear",
+            align_corners=False
+        )
+        x = x.permute(0, 2, 3, 1).reshape(B, out_lat * out_lon, -1)
+
         x = self.norm(x)
         x = self.linear2(x)
         return x
-
-        # # ✅ 用插值精确拉伸到目标分辨率
-        # x = F.interpolate(
-        #     x.permute(0, 3, 1, 2),
-        #     size=(out_lat, out_lon),
-        #     mode="bilinear",
-        #     align_corners=False
-        # )
-        # x = x.permute(0, 2, 3, 1).reshape(B, out_lat * out_lon, -1)
-
-        # x = self.norm(x)
-        # x = self.linear2(x)
-        # return x
 
 
 class DownSample3D(nn.Module):

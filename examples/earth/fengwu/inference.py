@@ -39,7 +39,7 @@ def get_stats(cfg):
         print('Train/Val/Test settings must use ratio or digital numbers')
         print('If using ratio, please ensure the sum of all ratios equal to 1')
         print(f'If using digital number, please ensure the sum of number equal to total years {len(y)}')
-        print(f'❌❌ Now settings are {cfg.train_ratio}-{cfg.val_ratio}-{cfg.test_ratio}, please check.')
+        print(f'❌ ❌ Now settings are {cfg.train_ratio}-{cfg.val_ratio}-{cfg.test_ratio}, please check.')
         print('-' * 30)
         print('\n\n')
         exit()
@@ -108,5 +108,3 @@ if __name__ == "__main__":
             pred_var = pred_var * stds + means
             np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var)
             j += 1
-            if j == 10:
-                break

@@ -9,7 +9,7 @@ import time
 from tqdm import tqdm
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.fuxi import Fuxi
-from onescience.datapipes import ERA5Datapipe
+from onescience.datapipes.climate import ERA5Datapipe
 from onescience.utils.YParams import YParams
 from onescience.metrics.climate.loss import LatitudeWeightedLoss
 from onescience.memory.checkpoint import replace_function
@@ -122,7 +122,7 @@ def main():
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{train_loss / (j+1): .04f}')
-
+            
         train_loss /= len(train_dataloader)
 
         model.eval()

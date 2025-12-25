@@ -16,13 +16,13 @@ datapipe:
   # dataset设定
   dataset:
     type: "hdf5"
-    stats_dir: "/public/onestore/onedatasets/ERA5/newh5/stats/" 
-    static_dir: "/public/onestore/onedatasets/ERA5/newh5/static/" 
-    data_dir: "/public/onestore/onedatasets/ERA5/newh5/" 
+    stats_dir: './data/stats/' # "/public/onestore/onedatasets/ERA5/newh5/stats/" 
+    static_dir: './data/statc/' # "/public/onestore/onedatasets/ERA5/newh5/static/" 
+    data_dir: './data/' # "/public/onestore/onedatasets/ERA5/newh5/"
     
-    train_ratio: 3
-    val_ratio: 1
-    test_ratio: 16
+    train_ratio: 15
+    val_ratio: 3
+    test_ratio: 2
     img_size: [721, 1440]
     verbose: true
     cache: false

@@ -25,7 +25,6 @@ def main():
     config_file_path = os.path.join(current_path, "conf/config.yaml")
     cfg = YParams(config_file_path, "model")
 
-
     ## Distributed config init
     cfg.world_size = 1
     if "WORLD_SIZE" in os.environ:
@@ -99,11 +98,13 @@ def main():
         train_loss = 0
         start_time = time.time()
         for j, data in enumerate(train_dataloader):
+            if j>=10:
+                break
             # print("一个epoch的batch数量 =", len(train_dataloader))
             invar = data[0].to(local_rank, dtype=torch.float32)
             outvar = data[1].to(local_rank, dtype=torch.float32)  #做对比的真实数据
             outvar_pred = model(invar)           #输出的预测数据
-            
+            # print("invar,outvar,outvar_pred",invar.shape,outvar.shape,outvar_pred.shape)
             # if torch.isnan(outvar).any():
             #     print("❌ outvar 中包含 NaN！")
             # else:
@@ -132,6 +133,8 @@ def main():
         with torch.no_grad():
             start_time = time.time()
             for j, data in enumerate(val_dataloader):
+                if j>=10:
+                    break
                 invar = data[0].to(local_rank, dtype=torch.float32)
                 outvar = data[1].to(local_rank, dtype=torch.float32)
                 # invar = invar[:, :, :-1, :]

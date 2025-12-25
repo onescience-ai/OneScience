@@ -3,7 +3,7 @@ import os
 import sys
 import numpy as np
 from tqdm import tqdm
-from onescience.datapipes import ERA5Datapipe
+from onescience.datapipes.climate import ERA5Datapipe
 from onescience.utils.YParams import YParams
 
 
@@ -34,6 +34,7 @@ def main():
 
     variance = mean_sqr - mean**2  # [1,num_channel, 1,1]
     std = torch.sqrt(variance)
+
     np.save("time_diff_std.npy", std.numpy())
 
     print(f"saving time_diff_std.npy, shapes are {std.numpy().shape}")

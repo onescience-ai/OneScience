@@ -2,29 +2,33 @@
 
 echo "START TIME: $(date)"
 module purge
+
 ##### Launch Conda #####
-# module load sghpcdas/25.6 
-# conda init bash
-# source ~/.bashrc
+module load sghpcdas/25.8
+conda init bash
+source ~/.bashrc
+
 ##### Activate Conda env #####
 conda activate earth
+
 ##### Launch DTK #####
-#module load sghpc-mpi-gcc/25.8
-source /root/private_data/zhaozn1/dtk-25.04.3/env.sh
+module load sghpc-mpi-gcc/25.8
+
 ##### Show env #####
 which python
 which hipcc
+
 ##### Set DCU #####
-export HIP_VISIBLE_DEVICES=0
+export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 ##### 1 DCU Train #####
-# python train.py
+python train.py
 
 ##### 8 DCU Train(change nproc_per_node to set DCU numbers) #####
-# torchrun --nproc_per_node=1 --nnodes=1 --rdzv_id=1000 --rdzv_backend=c10d --max_restarts=0 --master_addr="localhost" --master_port=29500 train.py
+# torchrun --nproc_per_node=8 --nnodes=1 --rdzv_id=1000 --rdzv_backend=c10d --max_restarts=0 --master_addr="localhost" --master_port=29500 train.py
 
 ##### 1 DCU Inference #####
-python inference.py
+# python inference.py
 
 ##### Result and Visualization #####
 # python result.py

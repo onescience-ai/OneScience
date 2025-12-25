@@ -17,6 +17,7 @@ from onescience.datapipes.core import BaseDataset
 
 class CMEMSDatapipe(Datapipe):
     def __init__(self, params, distributed, output_steps=1, input_steps=1):
+        print("params",params)
         self.params = params
         self.dataset = params.dataset
         self.distributed = distributed
