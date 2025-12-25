@@ -157,5 +157,3 @@ if __name__ == "__main__":
             
             np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var)
             j += 1
-            if j == 10:
-                break
