@@ -89,6 +89,7 @@ class  ERA5HDF5Dataset(BaseDataset):
         self._init_shape()
         super().__init__(self.params)
 
+
     def _init_paths(self):
         meta_path = os.path.join(self.data_dir, 'metadata.json')
         with open(meta_path, "r") as f:
@@ -101,12 +102,14 @@ class  ERA5HDF5Dataset(BaseDataset):
         if missing:
             raise ValueError(f"❌ Missing required variables in metadata: {missing}")
 
+
     def _init_normalization(self):
         self.channel_indices = [self.variables.index(v) for v in self.params.channels]
         mu = np.load(os.path.join(self.params.stats_dir, "global_means.npy"))  # shape: [1, M, 1, 1]
         std = np.load(os.path.join(self.params.stats_dir, "global_stds.npy"))
         self.mu = mu[:, self.channel_indices, :, :]
         self.sd = std[:, self.channel_indices, :, :]
+
 
     def _init_split(self):
         y = sorted(self.years)
@@ -154,6 +157,7 @@ class  ERA5HDF5Dataset(BaseDataset):
                 }
             else:
                 error = True
+
         if error:
             print('\n')
             print('-' * 50)
@@ -193,9 +197,11 @@ class  ERA5HDF5Dataset(BaseDataset):
             print(f'📂 {len(self.selected_years)} years * {self.samples_per_year} samples = Total {len(self.selected_years) * self.samples_per_year} usable samples.')
             print('-' * 50, '\n')
 
+
     def _init_latlon(self):
         latlon = latlon_grid(bounds=((90, -90), (0, 360)), shape=self.params.img_size[-2:])
         self.latlon_torch = torch.tensor(np.stack(latlon, axis=0), dtype=torch.float32)
+
 
     def _init_shape(self):
         sample_file = self.files[self.selected_years[0]][0]
@@ -203,8 +209,10 @@ class  ERA5HDF5Dataset(BaseDataset):
             shape = f["fields"].shape  # [N, H, W]
             self.img_shape = [s - s % self.patch_size[i] for i, s in enumerate(shape[-2:])]
 
+
     def __len__(self):
         return self.total_samples
+
 
     def __getitem__(self, idx):
         year_idx = idx // self.samples_per_year
