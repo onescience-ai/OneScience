@@ -195,7 +195,7 @@ class  ERA5HDF5Dataset(BaseDataset):
             print(f'📂 each years contains {self.samples_per_year} (Each year contains {len(files)}, input {self.input_steps}, output {self.output_steps})')
             print(f'📂 whole dataset contains {len(self.variables)} variables, this model use {len(self.channel_indices)} variables.')
             print(f'📂 {len(self.selected_years)} years * {self.samples_per_year} samples = Total {len(self.selected_years) * self.samples_per_year} usable samples.')
-            print('-' * 50, '\n')
+            print('-' * 50, '\n')1
 
 
     def _init_latlon(self):
