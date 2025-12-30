@@ -110,34 +110,71 @@ class  ERA5HDF5Dataset(BaseDataset):
 
     def _init_split(self):
         y = sorted(self.years)
-        if self.params.train_ratio + self.params.val_ratio + self.params.test_ratio == 1:
-            n_train = int(len(y) * self.params.train_ratio)
-            n_val = int(len(y) * self.params.val_ratio)
+        tips = False
+        error = False
+        # 1. use ratio to select data
+        if isinstance(self.params.train_data, float): 
+            if self.params.train_data + self.params.val_data + self.params.test_data > 1:
+                error = True
+            if self.params.train_data + self.params.val_data + self.params.test_data != 1:
+                tips = True
+            n_train = int(len(y) * self.params.train_data)
+            n_val = int(len(y) * self.params.val_data)
             year_splits = {
                 "train": y[:n_train],
                 "val": y[n_train:n_train + n_val],
                 "test": y[n_train + n_val:]
             }
-        elif self.params.train_ratio + self.params.val_ratio + self.params.test_ratio == len(y):
-            n_train =  self.params.train_ratio
-            n_val = self.params.val_ratio
+        # 2. use number to select years
+        if isinstance(self.params.train_data, int):
+            if self.params.train_data + self.params.val_data + self.params.test_data > len(y):
+                error = True
+            if self.params.train_data + self.params.val_data + self.params.test_data != len(y):
+                tips = True
+            n_train =  self.params.train_data
+            n_val = self.params.val_data
             year_splits = {
                 "train": y[:n_train],
                 "val": y[n_train:n_train + n_val],
                 "test": y[n_train + n_val:]
             }
-        else:
-            print('\n\n')
-            print('-' * 30)
-            print('Train/Val/Test settings must use ratio or digital numbers')
-            print('If using ratio, please ensure the sum of all ratios equal to 1')
-            print(f'If using digital number, please ensure the sum of number equal to total years {len(y)}')
-            # print(f'❌❌ Now settings are {self.params.dataset['train_ratio']}-{self.params.dataset['val_ratio']}-{self.params.dataset['test_ratio']}, please check.')
-            print('-' * 30)
-            print('\n\n')
+        if isinstance(self.params.train_data, (list, tuple, set)):
+            self.params.train_data = set(self.params.train_data)
+            self.params.val_data = set(self.params.val_data)
+            self.params.test_data = set(self.params.test_data)
+            if len(self.params.train_data)+len(self.params.val_data)+len(self.params.test_data) > len(y):
+                error = True
+            if len(self.params.train_data)+len(self.params.val_data)+len(self.params.test_data) != len(y):
+                tips = True
+            if self.params.train_data.issubset(set(self.years)) and self.params.val_data.issubset(set(self.years)) and self.params.test_data.issubset(set(self.years)):
+                year_splits = {
+                    "train": self.params.train_data,
+                    "val": self.params.val_data,
+                    "test": self.params.test_data
+                }
+            else:
+                error = True
+        if error:
+            print('\n')
+            print('-' * 50)
+            print(f'❌ ❌ Train/Val/Test settings must use 1.ratio or 2.digital numbers or 3.specific years.')
+            print(f'If using ratio, please ensure the sum of all ratios less than 1.')
+            print(f'If using digital number, please ensure the sum of number less than total years {len(y)}.')
+            print(f'If using specific years, please ensure the years are exist in provided dataset.')
+            print(f'We provided {len(y)} years data, which are {y}')
+            print(f'❌ ❌ Now settings are train: {self.params.train_data}  val: {self.params.val_data}  test: {self.params.test_data}, please check.')
+            print('-' * 50)
             exit()
 
-        self.selected_years = year_splits[self.mode]
+        if tips:
+            print('\n')
+            print('-' * 50)
+            print(f'⚠️ ⚠️ Current Train/Val/Test settings can use this ERA5 dataset. But you may not use the whole dataset.')
+            print(f'⚠️ ⚠️ This is not an error, you can still train the model, or change the config to use whole dataset.')
+            print(f'⚠️ ⚠️ We provided {len(y)} years data, which are {y}.')
+            print(f'⚠️ ⚠️ Now settings are train: {self.params.train_data}  val: {self.params.val_data}  test: {self.params.test_data}, please ensure.')
+            print('-' * 50)
+        self.selected_years = list(year_splits[self.mode])
         
 
     def _init_files(self):
@@ -148,7 +185,7 @@ class  ERA5HDF5Dataset(BaseDataset):
         self.samples_per_year = len(files) - self.output_steps - (self.input_steps - 1)
         self.total_samples = len(self.selected_years) * self.samples_per_year
         if not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0:
-            print('\n\n')
+            print('\n')
             print('-' * 50)
             print(f"📂 Mode: {self.mode}, used: {self.selected_years} years")
             print(f'📂 each years contains {self.samples_per_year} (Each year contains {len(files)}, input {self.input_steps}, output {self.output_steps})')
