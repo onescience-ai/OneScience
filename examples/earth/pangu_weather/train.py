@@ -163,7 +163,7 @@ def main():
                 loss = loss1 + loss2
 
                 if cfg.world_size > 1:
-                    loss_tensor = loss.clone().detach()
+                    loss_tensor = loss.detach()
                     dist.all_reduce(loss_tensor)
                     loss = loss_tensor.item() / cfg.world_size
                 valid_loss += loss
