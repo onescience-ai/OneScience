@@ -184,10 +184,10 @@ def main():
         scheduler.step()
 
         if world_rank == 0:
-            logger.info(f"Epoch [{epoch + 1}/{cfg.max_epoch}], "
+            logger.info(f"Epoch [{epoch}/{cfg.max_epoch}], "
                         f"Train Loss: {train_loss:.4f}, "
                         f"Valid Loss: {valid_loss:.4f}, "
-                        f"Best loss at Epoch: {best_loss_epoch + 1}"
+                        f"Best loss at Epoch: {best_loss_epoch}"
                         + (", saving checkpoint" if is_save_ckp else "")
                         )
             train_losses = np.append(train_losses, train_loss)
