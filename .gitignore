@@ -26,7 +26,6 @@ debug
 *.pth
 *.h5
 examples/biosciences/simplefold/artifacts/
-<<<<<<< HEAD
-=======
-
->>>>>>> 09328ad50aa71561f4a4749cba9f63881eed2c84
+examples/earth/xihe/data/
+label.npy
+pred.npy

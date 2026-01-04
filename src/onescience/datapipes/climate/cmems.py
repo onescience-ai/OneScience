@@ -17,6 +17,7 @@ from onescience.datapipes.core import BaseDataset
 
 class CMEMSDatapipe(Datapipe):
     def __init__(self, params, distributed, output_steps=1, input_steps=1):
+        print("params",params)
         self.params = params
         self.dataset = params.dataset
         self.distributed = distributed
@@ -161,6 +162,8 @@ class  CMEMSHDF5Dataset(BaseDataset):
         self.latlon_torch = torch.tensor(np.stack(latlon, axis=0), dtype=torch.float32)
 
     def _init_shape(self):
+        # print("self.files",self.files)
+        # print("selected_years",self.selected_years[0])
         sample_file = self.files[self.selected_years[0]][0]
         with h5py.File(sample_file, "r") as f:
             shape = f["fields"].shape  # [N, H, W]

@@ -8,7 +8,7 @@ import time
 
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.afno.afnonet import AFNONet
-from onescience.datapipes import ERA5Datapipe
+from onescience.datapipes.climate import ERA5Datapipe
 from onescience.utils.YParams import YParams
 from onescience.utils.fcn.darcy_loss import LpLoss
 
@@ -110,7 +110,7 @@ def main():
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{train_loss / (j+1): .04f}')
-
+            
         train_loss /= len(train_dataloader)
 
         model.eval()
@@ -137,7 +137,7 @@ def main():
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{valid_loss / (j+1): .04f}')
-
+                
         valid_loss /= len(val_dataloader)
         is_save_ckp = False
         if valid_loss < best_valid_loss:

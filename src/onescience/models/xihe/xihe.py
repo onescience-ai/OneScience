@@ -18,7 +18,7 @@ from onescience.models.utils import (
 
 
 import torch.nn as nn
-from onescience.models.xihe.layers import GlobalSIE,OceanSpecificBlock
+from onescience.models.xihe.oceanspecificblock import OceanSpecificBlock
 from ..layers.resample_layers import DownSample2D, UpSample
 
 
@@ -243,10 +243,10 @@ class Xihe(Module):
         # print("海洋区域占比:", ratio)
         # print("mask1",mask1.shape)
         # print("x.shape-patch------", tuple(x.shape))
-      
+
         x=self.block1(x,mask=mask1)          # (B, N, C) 经过 3D 全局注意力
         x1=x
-                
+        # print("x.shape---249",x.shape)
         x=self.downsample(x)                 # (B, N, C) 经过 2D 下采样
         
         if mask_full is not None:            #  mask2
@@ -254,11 +254,12 @@ class Xihe(Module):
             mask2 = self.change_mask(mask_full, x, h_out=H_out, w_out=W_out)
         else:
             mask2 = None
-        
         x=self.block2(x,mask=mask2)                      
         x=self.block3(x,mask=mask2)                                   
-        x=self.block4(x,mask=mask2)                       
+        x=self.block4(x,mask=mask2)  
+        # print("x.shape---261",x.shape)
         x=self.upsample(x) 
+        # print("x.shape---263",x.shape)
         x=self.block5(x,mask=mask1)
         x_out = torch.cat([x, x1], dim=-1)         # (B, N, 2C)
         x_out = self.skip_proj(x_out)

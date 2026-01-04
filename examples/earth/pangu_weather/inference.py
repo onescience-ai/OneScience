@@ -7,7 +7,7 @@ import h5py
 from tqdm import tqdm
 from onescience.models.pangu import Pangu
 from onescience.utils.YParams import YParams
-from onescience.datapipes import ERA5Datapipe
+from onescience.datapipes.climate import ERA5Datapipe
 
 def get_stats(cfg):
     meta_path = os.path.join(cfg.data_dir, 'metadata.json')

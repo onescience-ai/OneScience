@@ -2,14 +2,17 @@
 
 echo "START TIME: $(date)"
 module purge
-##### Launch Conda #####
+# ##### Launch Conda #####
 module load sghpcdas/25.6 
 conda init bash
 source ~/.bashrc
-##### Activate Conda env #####
-conda activate era5newdata
-##### Launch DTK #####
+
+# ##### Activate Conda env #####
+conda activate earth
+
+# ##### Launch DTK #####
 module load sghpc-mpi-gcc/25.8
+
 ##### Show env #####
 which python
 which hipcc

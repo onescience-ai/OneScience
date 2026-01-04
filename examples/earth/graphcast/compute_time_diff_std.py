@@ -3,7 +3,7 @@ import os
 import sys
 import numpy as np
 from tqdm import tqdm
-from onescience.datapipes import ERA5Datapipe
+from onescience.datapipes.climate import ERA5Datapipe
 from onescience.utils.YParams import YParams
 
 
@@ -21,21 +21,21 @@ def main():
     area = area.unsqueeze(1)
 
     mean, mean_sqr = 0, 0
+    k = 0
     for data in tqdm(train_dataloader):
         invar = data[0]  # [b, N, h, w]
         outvar = data[1]  # [b, N, h, w]
         diff = outvar - invar
         weighted_diff = area * diff
         weighted_diff_sqr = torch.square(weighted_diff)
-
         mean += torch.mean(weighted_diff, dim=(2, 3)) / len(train_dataloader)
         mean_sqr += torch.mean(weighted_diff_sqr, dim=(2, 3)) / len(train_dataloader)
-
+        k += 1
 
     variance = mean_sqr - mean**2  # [1,num_channel, 1,1]
     std = torch.sqrt(variance)
-    np.save("time_diff_std.npy", std.numpy())
 
+    np.save("time_diff_std.npy", std.numpy())
     print(f"saving time_diff_std.npy, shapes are {std.numpy().shape}")
 
 

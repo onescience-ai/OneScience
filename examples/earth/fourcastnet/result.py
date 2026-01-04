@@ -58,11 +58,11 @@ def get_rmse(total_files, channel_indices):
     channel_rmse = np.zeros(len(channel_indices))
     if not os.path.exists('result/rmse.npy'):
         for file in tqdm(total_files, unit="files"):
-            with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}', "r") as f:
+            with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}.h5', "r") as f:
                 label = f["fields"][:]  # [N, H, W]
                 label = label[channel_indices]
-            pred = np.load(f'result/output/{file[:-3]}.npy').squeeze()
-            channel_rmse += np.sqrt(np.mean((label - pred) ** 2, axis=(1, 2)))
+            pred = np.load(f'result/output/{file}.npy').squeeze()
+            channel_rmse += np.sqrt(np.mean((label[:, :-1, :] - pred) ** 2, axis=(1, 2)))
         channel_rmse /= len(total_files)
         np.save('result/rmse.npy', channel_rmse)
     else:
@@ -103,8 +103,8 @@ def plot(label, pred, var, filename):
     cbar1 = plt.colorbar(im1, ax=axes[1], orientation='horizontal')
 
     # Row 3: Diff
-    im2 = axes[2].imshow(label - pred, cmap='RdBu_r')
-    rmse = np.sqrt(np.mean((label - pred) ** 2))
+    im2 = axes[2].imshow(label[:-1, :] - pred, cmap='RdBu_r')
+    rmse = np.sqrt(np.mean((label[:-1, :] - pred) ** 2))
     axes[2].set_title(f'diff, RMSE={rmse: .2f}')
     axes[2].set_xlabel('Longitude')
     axes[2].set_ylabel('Latitude')
@@ -131,9 +131,9 @@ if __name__ == "__main__":
     # Load data
     # Compute RMSE per channel and total
     
-    ##### You can choose the date to plot #####
-    total_files = ['2019011812.h5', '2019011612.h5', '2019011012.h5']
-    channel_index = [cfg_data.dataset.channels.index(v) for v in ['v_component_of_wind_150', 'u_component_of_wind_500', 'temperature_1000']]
+    ##### You can choose the date to plot (must exist in ./result/output/)#####
+    total_files = ['1969010118', '1969010112', '1969010106']
+    channel_index = [cfg_data.dataset.channels.index(v) for v in ['10m_u_component_of_wind', '2m_temperature', 'geopotential_500']]
     selected_files = total_files
 
     get_rmse(total_files, channel_indices)
@@ -148,12 +148,12 @@ if __name__ == "__main__":
     print(f"seleted date: {selected_files}")
     print(f"selected channels: {selected_var}")
     for file in selected_files:
-        with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}', "r") as f:
+        with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}.h5', "r") as f:
             label = f["fields"][:]  # [N, H, W]
             label = label[channel_indices]
 
-        pred = np.load(f'result/output/{file[:-3]}.npy').squeeze()
+        pred = np.load(f'result/output/{file}.npy').squeeze()
         for i in range(len(selected_var)):
-            filename = f'./result/{file[:-3]}_{selected_var[i]}.png'
+            filename = f'./result/{file}_{selected_var[i]}.png'
             plot(label[channel_index[i]], pred[channel_index[i]], selected_var[i], filename)
             print(f'✅plot {filename}')

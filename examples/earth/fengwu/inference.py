@@ -7,7 +7,7 @@ import h5py
 from tqdm import tqdm
 from onescience.models.fengwu import Fengwu
 from onescience.utils.YParams import YParams
-from onescience.datapipes import ERA5Datapipe
+from onescience.datapipes.climate import ERA5Datapipe
 
 
 def get_stats(cfg):
@@ -39,7 +39,7 @@ def get_stats(cfg):
         print('Train/Val/Test settings must use ratio or digital numbers')
         print('If using ratio, please ensure the sum of all ratios equal to 1')
         print(f'If using digital number, please ensure the sum of number equal to total years {len(y)}')
-        print(f'❌❌ Now settings are {cfg.train_ratio}-{cfg.val_ratio}-{cfg.test_ratio}, please check.')
+        print(f'❌ ❌ Now settings are {cfg.train_ratio}-{cfg.val_ratio}-{cfg.test_ratio}, please check.')
         print('-' * 30)
         print('\n\n')
         exit()

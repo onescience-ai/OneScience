@@ -89,7 +89,7 @@ basic_requires = [
     "xarray",
     "s3fs",
     "netcdf4",
-    "tensorflow",
+
 ]
 
 
@@ -103,6 +103,7 @@ cfd_requires = [
     "seaborn",
     "deepxde",
     "gpytorch",
+    "tensorflow",
 ]
 
 quantum_requires = [

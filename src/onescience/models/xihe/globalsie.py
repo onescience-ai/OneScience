@@ -65,7 +65,7 @@ class FeatureGrouping(nn.Module):
 #GLOBAL 2   
 class GroupPropagation(nn.Module):
     """
-    Global SIE - Step 2: Group Propagation (论文公式 (6)(7) 实现)
+    Global SIE - Step 2: Group Propagation (论文公式(6)(7))
     ------------------------------------------------------------
     输入:  G_prime (B, G, C)   # 来自 Feature Grouping 的 group vectors
     输出:  G_tilde (B, G, C)   # 融合全局信息后的 group vectors

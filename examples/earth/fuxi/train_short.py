@@ -9,7 +9,7 @@ import time
 from tqdm import tqdm
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.fuxi import Fuxi
-from onescience.datapipes import ERA5Datapipe
+from onescience.datapipes.climate import ERA5Datapipe
 from onescience.utils.YParams import YParams
 from onescience.metrics.climate.loss import LatitudeWeightedLoss
 from onescience.memory.checkpoint import replace_function

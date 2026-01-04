@@ -8,7 +8,7 @@ import time
 import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.pangu import Pangu
-from onescience.datapipes import ERA5Datapipe
+from onescience.datapipes.climate import ERA5Datapipe
 from onescience.utils.YParams import YParams
 from onescience.memory.checkpoint import replace_function
 from apex import optimizers
@@ -137,7 +137,7 @@ def main():
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{train_loss / (j+1): .04f}')
-
+            
         train_loss /= len(train_dataloader)
 
         model.eval()
@@ -157,8 +157,8 @@ def main():
                     out_surface, out_upper_air = model(invar)
 
                 out_upper_air = out_upper_air.reshape(tar_upper_air.shape)
-                loss1 = loss_func(out_surface, tar_surface, surface_weights,  level_weight=0.25)
-                loss2 = loss_func(out_upper_air, tar_upper_air, pressure_weights, level_weight=1.0)
+                loss1 = loss_func(out_surface, tar_surface, surface_weights,  level_weight=0.25).item()
+                loss2 = loss_func(out_upper_air, tar_upper_air, pressure_weights, level_weight=1.0).item()
                 # 总 loss
                 loss = loss1 + loss2
 
@@ -172,7 +172,7 @@ def main():
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{valid_loss / (j+1): .04f}')
-
+                
         valid_loss /= len(val_dataloader)
         is_save_ckp = False
         if valid_loss < best_valid_loss:

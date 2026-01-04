@@ -2,17 +2,22 @@
 
 echo "START TIME: $(date)"
 module purge
+
 ##### Launch Conda #####
-module load sghpcdas/25.6 
+module load sghpcdas/25.8
 conda init bash
 source ~/.bashrc
+
 ##### Activate Conda env #####
-conda activate era5newdata
+conda activate earth
+
 ##### Launch DTK #####
 module load sghpc-mpi-gcc/25.8
+
 ##### Show env #####
 which python
 which hipcc
+
 ##### Set DCU #####
 export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
