@@ -94,14 +94,7 @@ basic_requires = [
 
 
 earth_requires = [
-    "pytz",
-    "xarray",
-    "zarr",
-    "s3fs",
-    "netcdf4",
-    "cftime",
-    "dask",
-    "opencv-python",
+
 ]
 
 
