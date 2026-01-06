@@ -80,7 +80,7 @@ if __name__ == "__main__":
     cfg_data.dataloader.batch_size = 1
     total_files, means, stds = get_stats(cfg_data.dataset)
 
-    if mode == 'base':
+    if mode == 'base' or mode == 'short':
         from onescience.datapipes.climate import ERA5Datapipe
         datapipe = ERA5Datapipe(params = cfg_data, distributed = False, input_steps=2)
         train_dataloader, train_sampler = datapipe.train_dataloader()
