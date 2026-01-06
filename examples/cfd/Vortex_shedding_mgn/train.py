@@ -14,7 +14,7 @@ from onescience.distributed.manager import DistributedManager
 from tqdm import tqdm
 
 from onescience.utils.YParams import YParams
-from onescience.datapipes import DeepMind_CylinderFlowDatapipe
+from onescience.datapipes.cfd import DeepMind_CylinderFlowDatapipe
 from onescience.launch.utils import load_checkpoint, save_checkpoint 
 from onescience.models.meshgraphnet import MeshGraphNet
 

@@ -17,7 +17,7 @@ from tqdm import tqdm
 import scipy.stats as sc
 
 from onescience.distributed.manager import DistributedManager
-from onescience.datapipes import AirfRANSDatapipe
+from onescience.datapipes.cfd import AirfRANSDatapipe
 from onescience.utils.YParams import YParams
 
 from onescience.models.transolver import Transolver2D

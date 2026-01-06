@@ -15,7 +15,7 @@ matplotlib.use("Agg")
 # OneScience imports
 from onescience.distributed.manager import DistributedManager
 from onescience.datapipes.cfd import graph_update
-from onescience.datapipes import DeepMindLagrangianDatapipe
+from onescience.datapipes.cfd import DeepMindLagrangianDatapipe
 from onescience.launch.utils import load_checkpoint
 from loggers import get_gpu_info, init_python_logging
 

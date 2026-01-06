@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from onescience.utils.YParams import YParams
 from onescience.distributed.manager import DistributedManager
-from onescience.datapipes import BENODatapipe
+from onescience.datapipes.cfd import BENODatapipe
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 # 模型与工具函数

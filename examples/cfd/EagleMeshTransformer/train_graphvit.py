@@ -13,7 +13,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from onescience.distributed.manager import DistributedManager
 from onescience.utils.YParams import YParams
-from onescience.datapipes import EagleDatapipe
+from onescience.datapipes.cfd import EagleDatapipe
 from onescience.models.graphvit import GraphViT
 
 
