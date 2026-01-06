@@ -95,8 +95,7 @@ class ERA5Dataset(BaseDataset):
         meta_path = os.path.join(self.data_dir, 'metadata.json')
         with open(meta_path, "r") as f:
             self.metadata = json.load(f)
-        # self.years = list(map(int, self.metadata["years"]))
-        self.years = list(range(1951, 1971))
+        self.years = list(map(int, self.metadata["years"]))
         self.variables = self.metadata["variables"]
 
         # 检查 channels 是否都在 metadata.variables 中
