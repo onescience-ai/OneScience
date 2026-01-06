@@ -10,7 +10,7 @@ from tqdm import tqdm
 import argparse
 from onescience.utils.YParams import YParams
 from onescience.distributed.manager import DistributedManager
-from onescience.datapipes import PDEBenchUNODatapipe
+from onescience.datapipes.cfd.PDENNEval import PDEBenchUNODatapipe
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 # UNO Models

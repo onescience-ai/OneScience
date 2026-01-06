@@ -21,7 +21,7 @@ from matplotlib.patches import Rectangle
 
 from onescience.distributed.manager import DistributedManager 
 from onescience.utils.YParams import YParams
-from onescience.datapipes import DeepMind_CylinderFlowDatapipe
+from onescience.datapipes.cfd import DeepMind_CylinderFlowDatapipe
 from onescience.launch.utils import load_checkpoint
 from onescience.models.meshgraphnet import MeshGraphNet
 

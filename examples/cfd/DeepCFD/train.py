@@ -10,7 +10,7 @@ from copy import deepcopy
 # Onescience imports
 from onescience.utils.YParams import YParams
 from onescience.distributed.manager import DistributedManager
-from onescience.datapipes import DeepCFDDatapipe
+from onescience.datapipes.cfd import DeepCFDDatapipe
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 # 动态导入模型
@@ -54,7 +54,6 @@ def loss_func(output, target, weights):
     lossp = torch.abs((output[:, 2, :, :] - target[:, 2, :, :]))
     
     # Stack back to (B, 3, H, W) to apply weights
-    # 注意：原始代码 reshape 有点复杂，这里简化逻辑但保持数学等价
     loss_stack = torch.stack([lossu, lossv, lossp], dim=1)
     
     # Apply weights
@@ -90,11 +89,7 @@ def evaluate(model, loader, device, weights, dist):
             
             num_batches += 1
             
-    # DDP Reduce logic could be added here for exact metrics across all GPUs
-    # For now, we return metrics from local process (or avg if we implemented AllReduce)
-    
-    avg_loss = total_loss / num_batches # 注意：这是 sum loss，可能很大
-    # 原始代码 metrics 计算比较简单，这里返回 sum
+    avg_loss = total_loss / num_batches 
     return avg_loss, total_ux_mse, total_uy_mse, total_p_mse
 
 def main():
@@ -191,7 +186,7 @@ def main():
                     model_to_save = model.module if hasattr(model, "module") else model
                     ckpt = {
                         "model_state": model_to_save.state_dict(),
-                        "config": cfg.model.to_dict(), # 保存模型配置以便推理重建
+                        "config": cfg.model.to_dict(), 
                         "epoch": epoch
                     }
                     torch.save(ckpt, output_dir / "best_model.pt")

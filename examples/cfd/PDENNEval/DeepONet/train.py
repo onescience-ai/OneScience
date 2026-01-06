@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from onescience.utils.YParams import YParams
 from onescience.distributed.manager import DistributedManager
-from onescience.datapipes import PDEBenchDeepONetDatapipe
+from onescience.datapipes.cfd.PDENNEval import PDEBenchDeepONetDatapipe
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 # 引用现有 DeepONet 模型

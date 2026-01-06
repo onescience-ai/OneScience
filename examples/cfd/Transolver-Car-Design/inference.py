@@ -10,7 +10,7 @@ from torch import nn
 import scipy as sc
 
 from onescience.utils.YParams import YParams
-from onescience.datapipes import ShapeNetCarDatapipe
+from onescience.datapipes.cfd import ShapeNetCarDatapipe
 from onescience.models.transolver import Transolver3D
 from onescience.models.transolver import Transolver3D_plus
 from onescience.distributed.manager import DistributedManager

@@ -8,7 +8,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from onescience.utils.YParams import YParams
 from onescience.distributed.manager import DistributedManager
-from onescience.datapipes import BENODatapipe
+from onescience.datapipes.cfd import BENODatapipe
 from onescience.launch.utils import load_checkpoint
 from onescience.utils.beno.util import to_np_array, record_data
 from onescience.utils.beno.utilities import LpLoss, plot_data

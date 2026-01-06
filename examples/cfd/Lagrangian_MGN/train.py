@@ -10,7 +10,7 @@ from hydra.utils import to_absolute_path
 from tqdm import tqdm
 
 from onescience.distributed.manager import DistributedManager
-from onescience.datapipes import DeepMindLagrangianDatapipe
+from onescience.datapipes.cfd import DeepMindLagrangianDatapipe
 from onescience.launch.utils import load_checkpoint, save_checkpoint
 from loggers import CompositeLogger, init_python_logging
 
