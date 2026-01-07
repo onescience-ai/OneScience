@@ -96,7 +96,6 @@ class ERA5Dataset(BaseDataset):
         with open(meta_path, "r") as f:
             self.metadata = json.load(f)
         self.years = list(map(int, self.metadata["years"]))
-        # self.years = list(range(1951, 1971))
         self.variables = self.metadata["variables"]
 
         # 检查 channels 是否都在 metadata.variables 中
@@ -135,7 +134,6 @@ class ERA5Dataset(BaseDataset):
             print('Train/Val/Test settings must use ratio or digital numbers')
             print('If using ratio (e.g. 0.5/0.3/0.2), please ensure the sum of all ratios equal to 1')
             print(f'If using digital number (e.g. 15/3/2), please ensure the sum of usable years {len(y)}')
-            # print(f'❌❌ Now settings are {self.params.dataset['train_ratio']}-{self.params.dataset['val_ratio']}-{self.params.dataset['test_ratio']}, please check.')
             print('-' * 90)
             print('\n')
             exit()
@@ -169,9 +167,10 @@ class ERA5Dataset(BaseDataset):
 
     def _init_shape(self):
         sample_file = self.files[self.selected_years[0]][0]
-        with h5py.File(sample_file, "r") as f:
-            shape = f["fields"].shape  # [N, H, W]
-            self.img_shape = [s - s % self.patch_size[i] for i, s in enumerate(shape[-2:])]
+        data = np.load(sample_file)
+        shape = data.shape
+        self.img_shape = [s - s % self.patch_size[i] for i, s in enumerate(shape[-2:])]
+
 
     def __len__(self):
         return self.total_samples
@@ -185,13 +184,10 @@ class ERA5Dataset(BaseDataset):
         for i in range(step_idx, step_idx + self.input_steps):
             data = np.load(files[i])
             invar_list.append(data)
-            # with h5py.File(files[i], "r") as f:
-            #     data = f["fields"][:]  # [N, H, W]
-            #     invar_list.append(data)
         
         outvar_list = []
         for i in range(step_idx + self.input_steps, step_idx + self.input_steps + self.output_steps):
-            with h5py.File(f'{self.data_dir}/data/{year}/{files[i][-13:-4]}.h5', "r") as f:
+            with h5py.File(f'{self.data_dir}/data/{year}/{files[i][-15:-4]}.h5', "r") as f:
                 data = f["fields"][:]  # [N, H, W]
                 data = data[self.channel_indices]
                 outvar_list.append(data)
