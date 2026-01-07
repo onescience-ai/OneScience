@@ -51,7 +51,7 @@ def get_stats(cfg):
         samples_per_year = len(files) - 1
         total_train_files.extend(files[-samples_per_year:])
 
-    selected_years = year_splits['valid']
+    selected_years = year_splits['val']
     total_valid_files = []
     for year in selected_years:
         path = os.path.join(cfg.data_dir, 'data', str(year))
