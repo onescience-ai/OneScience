@@ -44,6 +44,65 @@ def generate_debug_sample(cfg):
                 rel = os.path.relpath(real_path, y_dir)
                 os.symlink(rel, path)
 
+    # ----------------------- # 
+    data_root = "./result/short/data/"
+    os.makedirs(data_root, exist_ok=True)
+    real_year = years[0]
+    real_dir = os.path.join(data_root, str(real_year))
+    os.makedirs(real_dir, exist_ok=True)
+
+    real_path = os.path.join(real_dir, f"{timestamp}.npy")
+    np.save(real_path, real_data)
+    print(f"✅ Real data file: {real_path}")
+
+    # 当前年份其余时间步软链
+    for i in range(total_files):
+        ts = (np.datetime64(f"{real_year}-01-01T00") + np.timedelta64(i * 6, "h")).astype(str).replace("-", "").replace("T", "")[:10]
+        path = os.path.join(real_dir, f"{ts}.npy")
+        if path != real_path and not os.path.exists(path):
+            os.symlink(f"{timestamp}.npy", path)
+
+    # 其他年份软链所有时间步
+    for y in years[1:]:
+        y_dir = os.path.join(data_root, str(y))
+        os.makedirs(y_dir, exist_ok=True)
+        for i in range(total_files):
+            ts = (np.datetime64(f"{y}-01-01T00") + np.timedelta64(i * 6, "h")).astype(str).replace("-", "").replace("T", "")[:10]
+            path = os.path.join(y_dir, f"{ts}.npy")
+            if not os.path.exists(path):
+                rel = os.path.relpath(real_path, y_dir)
+                os.symlink(rel, path)
+    
+    # ----------------------- # 
+    data_root = "./result/medium/data/"
+    os.makedirs(data_root, exist_ok=True)
+    real_year = years[0]
+    real_dir = os.path.join(data_root, str(real_year))
+    os.makedirs(real_dir, exist_ok=True)
+
+    real_path = os.path.join(real_dir, f"{timestamp}.npy")
+    np.save(real_path, real_data)
+    print(f"✅ Real data file: {real_path}")
+
+    # 当前年份其余时间步软链
+    for i in range(total_files):
+        ts = (np.datetime64(f"{real_year}-01-01T00") + np.timedelta64(i * 6, "h")).astype(str).replace("-", "").replace("T", "")[:10]
+        path = os.path.join(real_dir, f"{ts}.npy")
+        if path != real_path and not os.path.exists(path):
+            os.symlink(f"{timestamp}.npy", path)
+
+    # 其他年份软链所有时间步
+    for y in years[1:]:
+        y_dir = os.path.join(data_root, str(y))
+        os.makedirs(y_dir, exist_ok=True)
+        for i in range(total_files):
+            ts = (np.datetime64(f"{y}-01-01T00") + np.timedelta64(i * 6, "h")).astype(str).replace("-", "").replace("T", "")[:10]
+            path = os.path.join(y_dir, f"{ts}.npy")
+            if not os.path.exists(path):
+                rel = os.path.relpath(real_path, y_dir)
+                os.symlink(rel, path)
+    
+    # ----------------------- # 
     print("✅ Soft links for all years generated.")
 
     # 生成 metadata.json
