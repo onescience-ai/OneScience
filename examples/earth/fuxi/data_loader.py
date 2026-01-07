@@ -96,6 +96,7 @@ class ERA5Dataset(BaseDataset):
         with open(meta_path, "r") as f:
             self.metadata = json.load(f)
         self.years = list(map(int, self.metadata["years"]))
+        # self.years = list(range(1951, 1971))
         self.variables = self.metadata["variables"]
 
         # 检查 channels 是否都在 metadata.variables 中
@@ -148,7 +149,7 @@ class ERA5Dataset(BaseDataset):
                 path = os.path.join('./result/short/data/', str(year))
             else:
                 path = os.path.join('./result/medium/data', str(year))
-            files = sorted(glob.glob(os.path.join(path, "*.h5")))
+            files = sorted(glob.glob(os.path.join(path, "*.npy")))
             self.files[year] = files
 
         self.samples_per_year = len(files) - self.output_steps - (self.input_steps - 1)
@@ -182,13 +183,15 @@ class ERA5Dataset(BaseDataset):
         files = self.files[year]
         invar_list = []
         for i in range(step_idx, step_idx + self.input_steps):
-            with h5py.File(files[i], "r") as f:
-                data = f["fields"][:]  # [N, H, W]
-                invar_list.append(data)
+            data = np.load(files[i])
+            invar_list.append(data)
+            # with h5py.File(files[i], "r") as f:
+            #     data = f["fields"][:]  # [N, H, W]
+            #     invar_list.append(data)
         
         outvar_list = []
         for i in range(step_idx + self.input_steps, step_idx + self.input_steps + self.output_steps):
-            with h5py.File(f'{self.data_dir}/data/{year}/{files[i][-13:]}', "r") as f:
+            with h5py.File(f'{self.data_dir}/data/{year}/{files[i][-13:-4]}.h5', "r") as f:
                 data = f["fields"][:]  # [N, H, W]
                 data = data[self.channel_indices]
                 outvar_list.append(data)
