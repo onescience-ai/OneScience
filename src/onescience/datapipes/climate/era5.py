@@ -16,15 +16,16 @@ from onescience.datapipes.climate.utils.zenith_angle import cos_zenith_angle
 from onescience.datapipes.core import BaseDataset
 
 class ERA5Datapipe(Datapipe):
-    def __init__(self, params, distributed, output_steps=1, input_steps=1):
+    def __init__(self, params, distributed, output_steps=1, input_steps=1, normalize=True):
         self.params = params
         self.dataset = params.dataset
         self.distributed = distributed
         self.output_steps = output_steps
         self.input_steps = input_steps
+        self.normalize = normalize
 
     def train_dataloader(self):
-        data = ERA5HDF5Dataset(dataset=self.dataset, mode='train', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = ERA5HDF5Dataset(dataset=self.dataset, mode='train', output_steps=self.output_steps, input_steps=self.input_steps, normalize=self.normalize)
         sampler = DistributedSampler(data, shuffle=True) if self.distributed else None
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
@@ -36,7 +37,7 @@ class ERA5Datapipe(Datapipe):
         return data_loader, sampler
 
     def val_dataloader(self):
-        data = ERA5HDF5Dataset(dataset=self.dataset, mode='val', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = ERA5HDF5Dataset(dataset=self.dataset, mode='val', output_steps=self.output_steps, input_steps=self.input_steps, normalize=self.normalize)
         sampler = DistributedSampler(data, shuffle=False) if self.distributed else None
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
@@ -48,7 +49,7 @@ class ERA5Datapipe(Datapipe):
         return data_loader, sampler
 
     def test_dataloader(self):
-        data = ERA5HDF5Dataset(dataset=self.dataset, mode='test', output_steps=self.output_steps, input_steps=self.input_steps)
+        data = ERA5HDF5Dataset(dataset=self.dataset, mode='test', output_steps=self.output_steps, input_steps=self.input_steps, normalize=self.normalize)
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
@@ -59,7 +60,7 @@ class ERA5Datapipe(Datapipe):
     
     
 class  ERA5HDF5Dataset(BaseDataset):
-    def __init__(self, dataset, mode='train', output_steps=1, input_steps=1, patch_size=[1, 1]):
+    def __init__(self, dataset, mode='train', output_steps=1, input_steps=1, normalize=True, patch_size=[1, 1]):
         self.params = dataset
         self.data_dir = self.params.data_dir
         self.mode = mode
@@ -67,6 +68,7 @@ class  ERA5HDF5Dataset(BaseDataset):
         self.input_steps = input_steps
         self.patch_size = patch_size
         self.dt = self.params.time_res
+        self.normalize = normalize
 
         self.metadata = None
         self.years = []
@@ -220,13 +222,15 @@ class  ERA5HDF5Dataset(BaseDataset):
         year = self.selected_years[year_idx]
         files = self.files[year]
         file_indices = range(step_idx, step_idx + self.input_steps + self.output_steps)
-
+        
         data_list = []
+        time_index = []
         for i in file_indices:
             with h5py.File(files[i], "r") as f:
                 data = f["fields"][:]  # [N, H, W]
                 data = data[self.channel_indices]
                 data_list.append(data)
+                time_index.append(files[i][-13:-3])
 
         data = np.stack(data_list, axis=0)  # [T, N, H, W]
         invar = torch.as_tensor(data[:self.input_steps])
@@ -234,13 +238,14 @@ class  ERA5HDF5Dataset(BaseDataset):
         h, w = self.img_shape
         invar = invar[:, :, :h, :w]
         outvar = outvar[:, :, :h, :w]
-        invar = (invar - self.mu) / self.sd
-        outvar = (outvar - self.mu) / self.sd
-
+        if self.normalize:
+            invar = (invar - self.mu) / self.sd
+            outvar = (outvar - self.mu) / self.sd
+        
         start_time = datetime(year, 1, 1, tzinfo=pytz.utc)
         timestamps = np.array([(start_time + timedelta(hours=(step_idx + t) * self.dt)).timestamp()
                                for t in range(self.output_steps)])
         timestamps = torch.from_numpy(timestamps)
         cos_zenith = cos_zenith_angle(timestamps, latlon=self.latlon_torch).float()
 
-        return invar.squeeze(0), outvar.squeeze(0), cos_zenith, step_idx
+        return invar.squeeze(0), outvar.squeeze(0), cos_zenith, step_idx, time_index
