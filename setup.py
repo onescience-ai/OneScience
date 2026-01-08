@@ -94,7 +94,16 @@ basic_requires = [
 
 
 earth_requires = [
-
+    "dm-haiku",
+    "dm-tree",
+    "chex",
+    "dask",
+    "jraph",
+    "trimesh",
+    "dinosaur",
+    "optax",
+    "flax",
+    "rtree",
 ]
 
 
