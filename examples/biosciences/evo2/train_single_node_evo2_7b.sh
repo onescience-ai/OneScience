@@ -25,8 +25,8 @@ done
 # --dataset-dir $PROJECT_ROOT/biosciences/evo2/data/data_evo2_612\
 python  $PROJECT_ROOT/examples/biosciences/evo2/train_one_node.py\
     -d $PROJECT_ROOT/examples/biosciences/evo2/config/genome_data_config.yaml\
-    --dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data/genome_data\
-    --model-size 7b_arc_longcontext\
+    --dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data_ren/genome_data\
+    --model-size 1b\
     --devices 4 \
     --num-nodes 1 \
     --seq-length 8192 \
