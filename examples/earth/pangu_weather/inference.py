@@ -75,6 +75,7 @@ if __name__ == "__main__":
     land_mask = torch.from_numpy(np.load(os.path.join(cfg_data.dataset.static_dir, "land_mask.npy")).astype(np.float32))
     soil_type = torch.from_numpy(np.load(os.path.join(cfg_data.dataset.static_dir, "soil_type.npy")).astype(np.float32))
     topography = torch.from_numpy(np.load(os.path.join(cfg_data.dataset.static_dir, "topography.npy")).astype(np.float32))
+    topography = (topography - topography.mean()) / (topography.std(unbiased=False) + 1e-6)
     surface_mask = torch.stack([land_mask, soil_type, topography], dim=0).to('cuda:0')
     surface_mask = surface_mask.unsqueeze(0).repeat(cfg_data.dataloader.batch_size, 1, 1, 1)
 
