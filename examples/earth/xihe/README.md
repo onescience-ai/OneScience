@@ -20,7 +20,7 @@ data_dir：为曙光新一代机器平台(BW1000)数据集存放路径(真实CME
 
 stats_dir：为数据Z-Score归一化，提供的均值和标准差
 
-static_dir：海陆掩码存放地址
+static_dir：海陆真实掩码存放地址
 
 ```
   dataset:
@@ -36,28 +36,38 @@ static_dir：海陆掩码存放地址
 
 同时需要注意提供海陆掩码在对应目录下，模型在训练中需加载海陆掩码，目前工程内提供一份海陆掩码可直接使用；
 
-**训练**
+**运行**
 
-用户如需指定可用卡号，需在终端内根据下述命令指定可用卡号(以使用0号卡和2、3号卡为例，展示2个示例命令)，随后再通过修改sh脚本对应代码进行单机单卡、单机多卡训练；
+work_dcu.sh脚本中，包含训练(单机单卡、单机多卡)、推理过程。
 
-```
-export HIP_VISIBLE_DEVICES=0
-export HIP_VISIBLE_DEVICES=2,3
-```
+相关参数以曙光新一代机器平台(BW1000)为例设置，例如**DTK加载、conda环境激活等**，若在其他平台运行请注意**按照相应平台进行修改**；
 
-单机单卡训练：
+单机单卡训练时，激活python train.py；
 
-```
-#### 1 DCU Train #####
-python train_xihe2f.py
-```
+单机多卡训练时，激活torchrun --nproc_per_node=8 --nnodes=1 --rdzv_id=1000 --rdzv_backend=c10d --max_restarts=0 --master_addr="localhost" --master_port=29500 train.py
 
-单机多卡训练(默认4卡，可将--nproc_per_node=4中的4改为需要卡数即可)：
+推理时(单机单卡)，激活python inference.py (结果存放在./result/文件夹下)
+
+结果验证时，激活python result.py，支持通过指定日期及变量进行可视化(需确保'./result/'内包含改日期以及config内包含该变量)。
+
+激活(即取消注释)相应模块后，通过下述命令运行
 
 ```
-##### 8 DCU Train(change nproc_per_node to set DCU numbers) #####
-torchrun --nproc_per_node=4 --nnodes=1 --rdzv_id=1000 --rdzv_backend=c10d --max_restarts=0 --master_addr="localhost" --master_port=29500 train_xihe2f.py
+bash work_dcu.sh
 ```
+
+work_slurm.sh脚本负责集群训练，DTK加载、conda激活等同单机运行脚本，队列名以新一代集群为例设置；
+
+请注意，在使用集群训练时，**请确保#SBATCH -o 后的路径存在**，默认为logs，需手动创建文件夹，提交作业方式如下：
+
+```
+sbatch work_slurm.sh
+```
+
+**模型快速部署测试方法**
+
+1. 在train.py中的第113、140行附近(即训练、验证循环的最后一行)添加break快速跳过一轮训练，同时，将config中model/max_epoch设为1实现快速得到模型权重文件。
+2. 在inference最后添加if j == 10: break实现快速退出得到推理结果
 
 **许可证**
 
