@@ -1,12 +1,13 @@
 #!/bin/bash
 #SBATCH -p newlarge
+#SBATCH -x b09r2n03,b09r1n09
 #SBATCH -N 8
 #SBATCH --gres=dcu:8
 #SBATCH --cpus-per-task=16
-#SBATCH --ntasks-per-node=8
-#SBATCH -J Pangu_weather
+#SBATCH --ntasks-per-node=6
+#SBATCH -J Xihe_8_6
 #SBATCH --time=72:00:00
-#SBATCH -o logs/%j.out
+#SBATCH -o logs/%x.out
 #SBATCH --exclusive
 
 echo "START TIME: $(date)"
@@ -16,7 +17,7 @@ module load sghpcdas/25.6
 conda init bash
 source ~/.bashrc
 ##### Activate Conda env #####
-conda activate era5newdata
+conda activate xiheh
 ##### Launch DTK #####
 module load sghpc-mpi-gcc/25.8
 ##### Show env #####

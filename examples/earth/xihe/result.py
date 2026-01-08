@@ -12,8 +12,9 @@ def get_metadata(cfg):
     with open(meta_path, "r") as f:
         metadata = json.load(f)
     years = list(map(int, metadata["years"]))
-    variables = metadata['variables']
+    variables = metadata['variables'] #读取配置变量
     y = sorted(years)
+    #划分模型数据
     if cfg.train_ratio + cfg.val_ratio + cfg.test_ratio == 1:
         n_train = int(len(y) * cfg.train_ratio)
         n_val = int(len(y) * cfg.val_ratio)
@@ -44,12 +45,12 @@ def get_metadata(cfg):
     selected_years = year_splits['test']
     total_files = []
     for year in selected_years:
-        path = os.path.join(cfg.data_dir, 'data', str(year))
+        path = os.path.join(cfg.data_dir, 'h5', str(year))
         files = sorted(os.listdir(path))
         samples_per_year = len(files) - 1
         total_files.extend(files[-samples_per_year:])
     
-    channel_indices = [variables.index(v) for v in cfg.channels]
+    channel_indices = [variables.index(v) for v in cfg.channels] #
     return total_files, channel_indices
 
 
@@ -58,7 +59,7 @@ def get_rmse(total_files, channel_indices):
     channel_rmse = np.zeros(len(channel_indices))
     if not os.path.exists('result/rmse.npy'):
         for file in tqdm(total_files, unit="files"):
-            with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}', "r") as f:
+            with h5py.File(f'{cfg_data.dataset.data_dir}/h5/{file[:4]}/{file}', "r") as f:
                 label = f["fields"][:]  # [N, H, W]
                 label = label[channel_indices]
             pred = np.load(f'result/output/{file[:-3]}.npy').squeeze()
@@ -73,8 +74,11 @@ def get_rmse(total_files, channel_indices):
 
 
 def plot(label, pred, var, filename):
+    truth =np.where(mask,truth,np.nan)
+    pred =np.where(mask,pred,np.nan)
     # Plot for each A ID
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    
     # Row 1: True
     global_xtick_labels = ['180°W', '90°W', '0°', '90°E', '180°E']
     global_ytick_labels = ['90°S', '45°S', '0°', '45°N', '90°N']
@@ -127,11 +131,12 @@ if __name__ == "__main__":
     config_file_path = os.path.join(current_path, 'conf/config.yaml')
     cfg = YParams(config_file_path, 'model')
     cfg_data = YParams(config_file_path, "datapipe")
-    total_files, channel_indices = get_metadata(cfg_data.dataset)
+    total_files, channel_indices = get_metadata(cfg_data.dataset)  #需要展示哪天以及变量
+    mask=np.load(cfg_data.mask) #读取mask
     # Load data
     # Compute RMSE per channel and total
     
-    ##### You can choose the date to plot #####
+    ##### You can choose the date to plot #####自己选择要画的图
     total_files = ['2019011812.h5', '2019011612.h5', '2019011012.h5']
     channel_index = [cfg_data.dataset.channels.index(v) for v in ['v_component_of_wind_150', 'u_component_of_wind_500', 'temperature_1000']]
     selected_files = total_files
@@ -148,12 +153,13 @@ if __name__ == "__main__":
     print(f"seleted date: {selected_files}")
     print(f"selected channels: {selected_var}")
     for file in selected_files:
-        with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}', "r") as f:
-            label = f["fields"][:]  # [N, H, W]
+        with h5py.File(f'{cfg_data.dataset.data_dir}/h5/{file[:4]}/{file}', "r") as f:
+            label = f["fields"][:]  # [N, H, W] 真实值
             label = label[channel_indices]
 
-        pred = np.load(f'result/output/{file[:-3]}.npy').squeeze()
+        # pred = np.load(f'result/output/{file[:-3]}.npy').squeeze() #预测值
+        pred = truth
         for i in range(len(selected_var)):
             filename = f'./result/{file[:-3]}_{selected_var[i]}.png'
-            plot(label[channel_index[i]], pred[channel_index[i]], selected_var[i], filename)
+            plot(label[channel_index[i]], pred[channel_index[i]], selected_var[i], filename) #真实值，预测值，变量，保存的文件名
             print(f'✅plot {filename}')
