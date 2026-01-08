@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 # Imports
 from onescience.utils.YParams import YParams
 from onescience.distributed.manager import DistributedManager
-from onescience.datapipes import DeepCFDDatapipe
+from onescience.datapipes.cfd import DeepCFDDatapipe
 from onescience.utils.deepcfd.functions import visualize # 假设此可视化函数保留
 
 def init_model_from_config(model_config_dict):

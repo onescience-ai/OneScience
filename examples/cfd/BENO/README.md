@@ -19,7 +19,7 @@ BENO模型架构如下所示：
 
 10 个 4-Corners 例题的样本数据集文件位于 "data/" 目录下。完整的数据集文件可以通过[此链接](https://drive.google.com/file/d/11PbUrzJ-b18VhFGY_uICSciCkeGrsaTZ/view)下载。要在特定边界类型上运行实验，请将链接中的文件下载到本地仓库的 "data/" 文件夹中。**BC_Nxx_xc_all.npy**/**RHS_Nxx_xc_all.npy**/**SOL_Nxx_xc_all.npy** 分别代表特定分辨率和形状的**边界信息**/**源项**/**解项**。
 
-除此之外，我们还提供了精简的数据集，它位于data目录下，仅包含10组数据，用于做快速训练和推理。
+曙光新一代机器平台数据集统一存放在：/public/onestore/onedatasets/BENO
 
 将数据集解压后放入当前目录下的data文件夹中，就像这样
 
@@ -33,9 +33,10 @@ run_beno.ipynb
 README.md
 ```
 
+
 ## 训练
 
-详细的训练参数可以参考transolver_car.yaml文件中的参数注释
+详细的训练参数可以参考beno.yaml文件中的参数注释
 
 单卡训练：
 

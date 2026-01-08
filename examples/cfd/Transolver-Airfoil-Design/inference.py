@@ -17,10 +17,11 @@ from tqdm import tqdm
 import scipy.stats as sc
 
 from onescience.distributed.manager import DistributedManager
-from onescience.datapipes import AirfRANSDatapipe
+from onescience.datapipes.cfd import AirfRANSDatapipe
 from onescience.utils.YParams import YParams
 
-from onescience.models.transolver.Transolver2D import Transolver2D
+from onescience.models.transolver import Transolver2D
+from onescience.models.transolver import Transolver2D_plus
 from onescience.models.transolver.MLP import MLP
 from onescience.models.transolver.GraphSAGE import GraphSAGE
 from onescience.models.transolver.PointNet import PointNet
@@ -90,8 +91,10 @@ def main():
 
     # 模型构建
     logger.info(f"Initializing model architecture: {model_name}")
-    if model_name == 'Transolver':
-        model = Transolver2D(
+    if model_name in ['Transolver', 'Transolver_plus']:
+        # 动态选择模型类
+        ModelClass = Transolver2D if model_name == 'Transolver' else Transolver2D_plus   
+        model = ModelClass(
             n_hidden=model_params.n_hidden,
             n_layers=model_params.n_layers,
             space_dim=model_params.space_dim,

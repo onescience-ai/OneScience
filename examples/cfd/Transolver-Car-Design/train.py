@@ -15,8 +15,8 @@ from onescience.distributed.manager import DistributedManager
 
 from onescience.utils.YParams import YParams
 from onescience.datapipes import ShapeNetCarDatapipe
-from onescience.models.transolver.Transolver3D import Transolver3D
-
+from onescience.models.transolver import Transolver3D
+from onescience.models.transolver import Transolver3D_plus
 
 def setup_logging(rank):
     """设置日志，只在 rank 0 输出 INFO"""
@@ -87,9 +87,11 @@ def main():
     # 初始化模型
     logger.info(f"Initializing model architecture: {model_name}")
     
-    if model_name == 'Transolver':
+    if model_name in ['Transolver', 'Transolver_plus']:
+        # 动态选择模型类
+        ModelClass = Transolver3D if model_name == 'Transolver' else Transolver3D_plus
         # Transolver 3D
-        model = Transolver3D(
+        model = ModelClass(
             n_hidden=model_params.n_hidden,
             n_layers=model_params.n_layers,
             space_dim=model_params.space_dim,

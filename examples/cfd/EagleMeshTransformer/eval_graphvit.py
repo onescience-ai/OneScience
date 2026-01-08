@@ -12,7 +12,7 @@ from matplotlib.tri import Triangulation
 import matplotlib.animation as animation
 from onescience.distributed.manager import DistributedManager
 from onescience.utils.YParams import YParams
-from onescience.datapipes import EagleDatapipe
+from onescience.datapipes.cfd import EagleDatapipe
 from onescience.models.graphvit import GraphViT
 
 def load_best_model(model, ckp_dir, device, model_name="best_model.pth"):

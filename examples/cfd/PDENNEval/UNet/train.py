@@ -11,7 +11,7 @@ import argparse
 
 from onescience.utils.YParams import YParams
 from onescience.distributed.manager import DistributedManager
-from onescience.datapipes import PDEBenchUNetDatapipe
+from onescience.datapipes.cfd.PDENNEval import PDEBenchUNetDatapipe
 from torch.nn.parallel import DistributedDataParallel as DDP
 from onescience.models.pdenneval.unet import UNet1d, UNet2d, UNet3d
 

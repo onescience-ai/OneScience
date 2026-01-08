@@ -1,92 +1,167 @@
 # conf/cfdbench.yaml
 root:
-    datapipe:
-      source:
-        data_dir: "./data"
-        # 可选: tube_prop, cavity_geo, cylinder_bc, dam_prop, etc.
-        data_name: "tube_prop_bc_geo" 
-      verbose: True
-      data:
-        # 任务类型: "auto" (自回归) 或 "static" (非自回归)
-        task_type: "auto" 
-        
-        # 物理属性归一化
-        norm_props: true
-        norm_bc: true
-        
-        # Auto 模式特定参数
-        delta_time: 0.1 
-        stable_state_diff: 0.001
-        
-        # 数据集通用参数
-        split_ratios: [0.8, 0.1, 0.1]
-        seed: 0
-        num_rows: 64
-        num_cols: 64
+  # ==========================================
+  # 1. 数据管道配置 (Datapipe)
+  # ==========================================
+  datapipe:
+    source:
+      # 数据集所在的根目录
+      data_dir: "./data"
+      # 具体使用的数据集名称子集
+      # 选项包括: 
+      # - tube_prop_bc_geo (管道流，变化的物性/边界/几何)
+      # - cavity_geo (顶盖驱动流)
+      # - cylinder_bc (圆柱绕流)
+      # - dam_prop (溃坝问题) 等
+      data_name: "tube_prop_bc_geo" 
     
-      dataloader:
-        batch_size: 128
-        eval_batch_size: 16
-        num_workers: 4
+    # 是否打印详细的数据加载日志
+    verbose: True
+
+    data:
+      # 核心任务类型设置：
+      # "auto" (Autoregressive/自回归): 输入 t 时刻，预测 t+dt 时刻 (适用于瞬态问题)
+      # "static" (Non-autoregressive/非自回归): 输入边界条件/几何，预测最终稳态场 (适用于稳态问题)
+      task_type: "auto" 
+      
+      # 数据预处理：是否归一化物理属性 (如粘度、密度)
+      norm_props: true
+      # 数据预处理：是否归一化边界条件 (如入口速度)
+      norm_bc: true
+      
+      # --- Auto (自回归) 模式特定参数 ---
+      # 时间步长 (用于计算物理时间推进)
+      delta_time: 0.1 
+      # 稳态判断阈值 (当相邻时间步差异小于此值时认为达到稳态)
+      stable_state_diff: 0.001
+      
+      # --- 通用数据参数 ---
+      # 数据集划分比例 [训练集, 验证集, 测试集]
+      split_ratios: [0.8, 0.1, 0.1]
+      # 随机种子，保证数据划分的可复现性
+      seed: 0
+      # 网格分辨率：行数 (高度方向网格点)
+      num_rows: 64
+      # 网格分辨率：列数 (宽度方向网格点)
+      num_cols: 64
     
-    model:
-      # 模型选择 (auto_deeponet, auto_ffn, auto_edeeponet, deeponet, ffn, etc.)
-      name: "fno" 
-      
-      # Auto 模型通用
-      in_chan: 2
-      out_chan: 2
-      
-      # FFN 参数
-      ffn_depth: 8
-      ffn_width: 100
-      
-      # Auto-FFN 参数
-      autoffn_depth: 8
-      autoffn_width: 200
+    dataloader:
+      # 训练时的批次大小
+      batch_size: 128
+      # 验证和测试时的批次大小
+      eval_batch_size: 16
+      # 数据加载的工作进程数 (CPU workers)
+      num_workers: 4
+  
+  # ==========================================
+  # 2. 模型架构配置 (Model)
+  # ==========================================
+  model:
+    # 模型选择，决定使用哪个具体的神经网络架构
+    # 支持列表 (取决于代码实现): 
+    # - 自回归类: "auto_deeponet", "auto_ffn", "auto_edeeponet", "fno", "resnet", "unet"
+    # - 静态类: "deeponet", "ffn"
+    name: "fno" 
     
-      # DeepONet / Auto-DeepONet 参数
-      deeponet_width: 100
-      branch_depth: 8
-      trunk_depth: 8
-      act_fn: "relu"
-      act_scale_invariant: true
-      act_on_output: false
-      
-      # Auto-EDeepONet 参数
-      autoedeeponet_width: 100
-      autoedeeponet_depth: 8
-      autoedeeponet_act_fn: "relu"
+    # --- Auto (自回归) 模型通用参数 ---
+    # 输入通道数 (例如: u速度, v速度)
+    in_chan: 2
+    # 输出通道数 (例如: 下一时刻的 u速度, v速度)
+    out_chan: 2
     
-      # FNO 参数
-      fno_depth: 4
-      fno_hidden_dim: 32
-      fno_modes_x: 12
-      fno_modes_y: 12
+    # --- FFN (Feed-Forward Network) / MLP 参数 ---
+    # 全连接网络的深度 (层数)
+    ffn_depth: 8
+    # 全连接网络的宽度 (每层神经元数)
+    ffn_width: 100
     
-      # UNet 参数
-      unet_dim: 12
-      unet_insert_case_params_at: "input"
+    # --- Auto-FFN (自回归全连接网络) 参数 ---
+    # 自回归 FFN 的深度
+    autoffn_depth: 8
+    # 自回归 FFN 的宽度
+    autoffn_width: 200
     
-      # ResNet 参数
-      resnet_depth: 4
-      resnet_hidden_chan: 16
-      resnet_kernel_size: 7
-      resnet_padding: 3
+    # --- DeepONet / Auto-DeepONet 参数 ---
+    # DeepONet 的宽度 (Branch 和 Trunk 网络共用)
+    deeponet_width: 100
+    # Branch Net (分支网络，处理输入参数) 的深度
+    branch_depth: 8
+    # Trunk Net (主干网络，处理坐标) 的深度
+    trunk_depth: 8
+    # 激活函数类型 (如 "relu", "tanh", "silu")
+    act_fn: "relu"
+    # 是否使激活函数具备尺度不变性 (Scale Invariant)
+    act_scale_invariant: true
+    # 是否在输出层也应用激活函数
+    act_on_output: false
     
-    training:
-      output_dir: "./result"
-      #既训练又推理
-      mode: "train_test" # train, test, train_test
-      
-      num_epochs: 200
-      lr: 1.0e-3
-      lr_step_size: 20
-      lr_gamma: 0.9
-      
-      log_interval: 100
-      eval_interval: 20
-      
-      loss_name: "nmse" # mse, nmse, mae, nmae
-      
-      gpuid: 0
+    # --- Auto-EDeepONet (增强型自回归 DeepONet) 参数 ---
+    # 增强型 DeepONet 的宽度
+    autoedeeponet_width: 100
+    # 增强型 DeepONet 的深度
+    autoedeeponet_depth: 8
+    # 增强型 DeepONet 的激活函数
+    autoedeeponet_act_fn: "relu"
+    
+    # --- FNO (Fourier Neural Operator) 参数 ---
+    # FNO 的深度 (傅里叶层的数量)
+    fno_depth: 4
+    # 提升维度后的隐藏层通道数 (Lifting dimension)
+    fno_hidden_dim: 32
+    # X 方向保留的傅里叶模态数量 (低频分量数)
+    fno_modes_x: 12
+    # Y 方向保留的傅里叶模态数量
+    fno_modes_y: 12
+    
+    # --- U-Net 参数 ---
+    # UNet 的基础特征维度 (控制网络容量)
+    unet_dim: 12
+    # 物理参数 (如雷诺数) 插入网络的位置 ("input" 表示拼接到输入通道)
+    unet_insert_case_params_at: "input"
+    
+    # --- ResNet 参数 ---
+    # ResNet 的深度 (残差块数量)
+    resnet_depth: 4
+    # ResNet 隐藏层的通道数
+    resnet_hidden_chan: 16
+    # 卷积核大小 (通常为奇数，如 3, 5, 7)
+    resnet_kernel_size: 7
+    # 卷积填充大小 (通常为 (kernel_size - 1) / 2 以保持尺寸不变)
+    resnet_padding: 3
+  
+  # ==========================================
+  # 3. 训练流程配置 (Training)
+  # ==========================================
+  training:
+    # 训练结果 (日志、模型权重、预测图) 的保存根目录
+    output_dir: "./result"
+    
+    # 运行模式:
+    # "train": 仅训练
+    # "test": 仅加载现有模型测试
+    # "train_test": 训练完成后立即进行测试
+    mode: "train_test" 
+    
+    # 最大训练轮数 (Epochs)
+    num_epochs: 200
+    # 初始学习率 (Adam 优化器)
+    lr: 1.0e-3
+    # 学习率衰减步长 (每隔多少个 epoch 衰减一次)
+    lr_step_size: 20
+    # 学习率衰减系数 (StepLR: lr = lr * gamma)
+    lr_gamma: 0.9
+    
+    # 日志打印频率 (每隔多少个 Step/Batch 打印一次 Loss)
+    log_interval: 100
+    # 评估与模型保存频率 (每隔多少个 Epoch 在验证集上评估并保存 Checkpoint)
+    eval_interval: 20
+    
+    # 损失函数名称:
+    # "nmse": 归一化均方误差 (Normalized MSE) - CFD 常用
+    # "mse": 均方误差
+    # "mae": 平均绝对误差
+    # "nmae": 归一化平均绝对误差
+    loss_name: "nmse" 
+    
+    # 单卡训练时使用的 GPU ID (多卡 DDP 时此参数通常由启动脚本覆盖)
+    gpuid: 0

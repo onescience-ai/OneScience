@@ -8,7 +8,7 @@ from pathlib import Path
 import argparse
 from onescience.utils.YParams import YParams
 from onescience.distributed.manager import DistributedManager
-from onescience.datapipes import PDEBenchFNODatapipe
+from onescience.datapipes.cfd.PDENNEval import PDEBenchFNODatapipe
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from onescience.utils.pdenneval.fno_utils import *

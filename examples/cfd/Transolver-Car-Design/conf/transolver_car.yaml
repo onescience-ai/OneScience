@@ -1,8 +1,8 @@
 # 模型配置
 model:
-  name: "Transolver"  # 模型名称，对应特定模型实现
+  name: "Transolver"  # <--- 修改这里来切换模型 (Transolver 或 Transolver_plus)
   specific_params:    # 各模型独有参数
-    Transolver:       # Transolver 模型参数
+    Transolver: &params   # Transolver 模型参数
       n_hidden: 256   # 隐藏层维度
       n_layers: 8     # Transformer 层数
       space_dim: 7    # 空间特征维度 (位置 + SDF + 法向量)
@@ -14,7 +14,7 @@ model:
       unified_pos: 0  # 是否使用统一位置编码
       cfd_mesh: False # 是否使用 CFD 网格
       r: 0.2          # 图构建时的邻域半径 (cfd_mesh=False 时使用)
-
+    Transolver_plus: *params #引用上面的参数 (*params)
 # 数据处理配置
 datapipe:
   name: "ShapeNetCar"      # 数据管道名称

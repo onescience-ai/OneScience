@@ -10,7 +10,7 @@ from copy import deepcopy
 # Onescience imports
 from onescience.utils.YParams import YParams
 from onescience.distributed.manager import DistributedManager
-from onescience.datapipes import CFDBenchDatapipe
+from onescience.datapipes.cfd import CFDBenchDatapipe
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from onescience.utils.cfdbench.utils import (

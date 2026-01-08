@@ -10,8 +10,9 @@ from torch import nn
 import scipy as sc
 
 from onescience.utils.YParams import YParams
-from onescience.datapipes import ShapeNetCarDatapipe
-from onescience.models.transolver.Transolver3D import Transolver3D
+from onescience.datapipes.cfd import ShapeNetCarDatapipe
+from onescience.models.transolver import Transolver3D
+from onescience.models.transolver import Transolver3D_plus
 from onescience.distributed.manager import DistributedManager
 
 from onescience.utils.transolver import cal_coefficient
@@ -72,18 +73,24 @@ def main():
 
     # 初始化模型并加载权重
     logger.info(f"Initializing model architecture: {model_name}")
-    model = Transolver3D(
-        n_hidden=model_params.n_hidden,
-        n_layers=model_params.n_layers,
-        space_dim=model_params.space_dim,
-        fun_dim=model_params.fun_dim,
-        n_head=model_params.n_head,
-        mlp_ratio=model_params.mlp_ratio,
-        out_dim=model_params.out_dim,
-        slice_num=model_params.slice_num,
-        unified_pos=model_params.unified_pos,
-    )
-
+    if model_name in ['Transolver', 'Transolver_plus']:
+        # 动态选择模型类
+        ModelClass = Transolver3D if model_name == 'Transolver' else Transolver3D_plus
+        # Transolver 3D
+        model = ModelClass(
+            n_hidden=model_params.n_hidden,
+            n_layers=model_params.n_layers,
+            space_dim=model_params.space_dim,
+            fun_dim=model_params.fun_dim,
+            n_head=model_params.n_head,
+            mlp_ratio=model_params.mlp_ratio,
+            out_dim=model_params.out_dim,
+            slice_num=model_params.slice_num,
+            unified_pos=model_params.unified_pos
+        ).to(device)
+    else:
+        raise NotImplementedError(f"Model {model_name} initialization not implemented.")
+        
     checkpoint_path = os.path.join(
         cfg_train.checkpoint_dir, f"{model_name}.pth"
     )
