@@ -95,8 +95,7 @@ class ERA5Dataset(BaseDataset):
         meta_path = os.path.join(self.data_dir, 'metadata.json')
         with open(meta_path, "r") as f:
             self.metadata = json.load(f)
-        # self.years = list(map(int, self.metadata["years"]))
-        self.years = list(range(1951, 1971))
+        self.years = list(map(int, self.metadata["years"]))
         self.variables = self.metadata["variables"]
 
         # 检查 channels 是否都在 metadata.variables 中
@@ -113,7 +112,14 @@ class ERA5Dataset(BaseDataset):
 
     def _init_split(self):
         y = sorted(self.years)
-        if self.params.train_ratio + self.params.val_ratio + self.params.test_ratio == 1:
+        tips = False
+        error = False
+        # 1. use ratio to select data
+        if isinstance(self.params.train_ratio, float): 
+            if self.params.train_ratio + self.params.val_ratio + self.params.test_ratio > 1:
+                error = True
+            if self.params.train_ratio + self.params.val_ratio + self.params.test_ratio != 1:
+                tips = True
             n_train = int(len(y) * self.params.train_ratio)
             n_val = int(len(y) * self.params.val_ratio)
             year_splits = {
@@ -121,7 +127,12 @@ class ERA5Dataset(BaseDataset):
                 "val": y[n_train:n_train + n_val],
                 "test": y[n_train + n_val:]
             }
-        elif self.params.train_ratio + self.params.val_ratio + self.params.test_ratio == len(y):
+        # 2. use number to select years
+        if isinstance(self.params.train_ratio, int):
+            if self.params.train_ratio + self.params.val_ratio + self.params.test_ratio > len(y):
+                error = True
+            if self.params.train_ratio + self.params.val_ratio + self.params.test_ratio != len(y):
+                tips = True
             n_train =  self.params.train_ratio
             n_val = self.params.val_ratio
             year_splits = {
@@ -129,18 +140,44 @@ class ERA5Dataset(BaseDataset):
                 "val": y[n_train:n_train + n_val],
                 "test": y[n_train + n_val:]
             }
-        else:
+        if isinstance(self.params.train_ratio, (list, tuple, set)):
+            self.params.train_ratio = set(self.params.train_ratio)
+            self.params.val_ratio = set(self.params.val_ratio)
+            self.params.test_ratio = set(self.params.test_ratio)
+            if len(self.params.train_ratio)+len(self.params.val_ratio)+len(self.params.test_ratio) > len(y):
+                error = True
+            if len(self.params.train_ratio)+len(self.params.val_ratio)+len(self.params.test_ratio) != len(y):
+                tips = True
+            if self.params.train_ratio.issubset(set(self.years)) and self.params.val_ratio.issubset(set(self.years)) and self.params.test_ratio.issubset(set(self.years)):
+                year_splits = {
+                    "train": self.params.train_ratio,
+                    "val": self.params.val_ratio,
+                    "test": self.params.test_ratio
+                }
+            else:
+                error = True
+
+        if error:
             print('\n')
-            print('-' * 90)
-            print('Train/Val/Test settings must use ratio or digital numbers')
-            print('If using ratio (e.g. 0.5/0.3/0.2), please ensure the sum of all ratios equal to 1')
-            print(f'If using digital number (e.g. 15/3/2), please ensure the sum of usable years {len(y)}')
-            # print(f'❌❌ Now settings are {self.params.dataset['train_ratio']}-{self.params.dataset['val_ratio']}-{self.params.dataset['test_ratio']}, please check.')
-            print('-' * 90)
-            print('\n')
+            print('-' * 50)
+            print(f'❌ ❌ Train/Val/Test settings must use 1.ratio or 2.digital numbers or 3.specific years.')
+            print(f'If using ratio, please ensure the sum of all ratios less than 1.')
+            print(f'If using digital number, please ensure the sum of number less than total years {len(y)}.')
+            print(f'If using specific years, please ensure the years are exist in provided dataset.')
+            print(f'We provided {len(y)} years data, which are {y}')
+            print(f'❌ ❌ Now settings are train: {self.params.train_ratio}  val: {self.params.val_ratio}  test: {self.params.test_ratio}, please check.')
+            print('-' * 50)
             exit()
 
-        self.selected_years = year_splits[self.mode]
+        if tips:
+            print('\n')
+            print('-' * 50)
+            print(f'⚠️ ⚠️ Current Train/Val/Test settings can use this ERA5 dataset. But you may not use the whole dataset.')
+            print(f'⚠️ ⚠️ This is not an error, you can still train the model, or change the config to use whole dataset.')
+            print(f'⚠️ ⚠️ We provided {len(y)} years data, which are {y}.')
+            print(f'⚠️ ⚠️ Now settings are train: {self.params.train_ratio}  val: {self.params.val_ratio}  test: {self.params.test_ratio}, please ensure.')
+            print('-' * 50)
+        self.selected_years = list(year_splits[self.mode])
         
 
     def _init_files(self):
@@ -149,7 +186,7 @@ class ERA5Dataset(BaseDataset):
                 path = os.path.join('./result/short/data/', str(year))
             else:
                 path = os.path.join('./result/medium/data', str(year))
-            files = sorted(glob.glob(os.path.join(path, "*.h5")))
+            files = sorted(glob.glob(os.path.join(path, "*.npy")))
             self.files[year] = files
 
         self.samples_per_year = len(files) - self.output_steps - (self.input_steps - 1)
@@ -169,9 +206,10 @@ class ERA5Dataset(BaseDataset):
 
     def _init_shape(self):
         sample_file = self.files[self.selected_years[0]][0]
-        with h5py.File(sample_file, "r") as f:
-            shape = f["fields"].shape  # [N, H, W]
-            self.img_shape = [s - s % self.patch_size[i] for i, s in enumerate(shape[-2:])]
+        data = np.load(sample_file)
+        shape = data.shape
+        self.img_shape = [s - s % self.patch_size[i] for i, s in enumerate(shape[-2:])]
+
 
     def __len__(self):
         return self.total_samples
@@ -183,13 +221,12 @@ class ERA5Dataset(BaseDataset):
         files = self.files[year]
         invar_list = []
         for i in range(step_idx, step_idx + self.input_steps):
-            with h5py.File(files[i], "r") as f:
-                data = f["fields"][:]  # [N, H, W]
-                invar_list.append(data)
+            data = np.load(files[i])
+            invar_list.append(data)
         
         outvar_list = []
         for i in range(step_idx + self.input_steps, step_idx + self.input_steps + self.output_steps):
-            with h5py.File(f'{self.data_dir}/data/{year}/{files[i][-13:]}', "r") as f:
+            with h5py.File(f'{self.data_dir}/data/{year}/{files[i][-15:-4]}.h5', "r") as f:
                 data = f["fields"][:]  # [N, H, W]
                 data = data[self.channel_indices]
                 outvar_list.append(data)
