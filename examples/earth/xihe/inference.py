@@ -17,10 +17,6 @@ sys.path.append(current_path)
 config_file_path = os.path.join(current_path, "conf/config.yaml")
 cfg = YParams(config_file_path, "model")
 cfg_data = YParams(config_file_path, "datapipe")
-# print("cfg_data",cfg_data.dataset)
-# cfg['N_in_channels'] = len(cfg.channels)
-# cfg['N_out_channels'] = len(cfg.channels)
-cfg['batch_size'] = 16
 test_dataset = CMEMSDatapipe(params = cfg_data, distributed = False)
 test_dataloader = test_dataset.test_dataloader()
 
@@ -33,17 +29,11 @@ label = []
 xihe_model.eval()
 with torch.no_grad():
     for j, data in enumerate(test_dataloader):
-        if j>=1:
+        if j>=10:
             break
         invar = data[0].to("cuda:0", dtype=torch.float32)
-        print("invar",invar.shape)
         outvar = data[1].to("cuda:0", dtype=torch.float32)
-
-        # invar = invar[:, :, :-1, :]
-        # outvar = outvar[:, :, :-1, :]
-
         outvar_pred = xihe_model(invar)
-
         print(f'infer process: {j+1}/{len(test_dataloader)}')
         pred.append(outvar_pred.cpu().numpy())
         label.append(outvar.cpu().numpy())

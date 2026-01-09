@@ -31,7 +31,7 @@ class CMEMSDatapipe(Datapipe):
                                  batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
                                  num_workers=self.params.dataloader.num_workers,
-                                 pin_memory=True,
+                                 pin_memory=self.params.dataloader.pin_memory,
                                  shuffle=False,
                                  sampler=sampler)
         return data_loader, sampler
@@ -43,7 +43,7 @@ class CMEMSDatapipe(Datapipe):
                                  batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
                                  num_workers=self.params.dataloader.num_workers,
-                                 pin_memory=True,
+                                 pin_memory=self.params.dataloader.pin_memory,
                                  shuffle=False,
                                  sampler=sampler)
         return data_loader, sampler
@@ -54,7 +54,7 @@ class CMEMSDatapipe(Datapipe):
                                  batch_size=self.params.dataloader.batch_size,
                                  drop_last=True if self.distributed else False,
                                  num_workers=self.params.dataloader.num_workers,
-                                 pin_memory=True,
+                                 pin_memory=self.params.dataloader.pin_memory,
                                  shuffle=False)
         return data_loader
     
@@ -143,7 +143,8 @@ class  CMEMSHDF5Dataset(BaseDataset):
 
     def _init_files(self):
         for year in self.selected_years:
-            path = os.path.join(self.data_dir, 'data', str(year))
+            path = os.path.join(self.data_dir, 'h5', str(year))
+            print("----data_str",path)
             files = sorted(glob.glob(os.path.join(path, "*.h5")))
             self.files[year] = files
         self.samples_per_year = len(files) - self.output_steps - (self.input_steps - 1)
@@ -193,31 +194,31 @@ class  CMEMSHDF5Dataset(BaseDataset):
         invar = invar[:, :, :h, :w]
         outvar = outvar[:, :, :h, :w]
         
-        #替换NaN
+        #NaN to mu 
         mu_t = torch.as_tensor(self.mu)        
         invar=torch.where(torch.isnan(invar), mu_t, invar)
         outvar=torch.where(torch.isnan(outvar), mu_t, outvar)
         invar = (invar - self.mu) / self.sd
         outvar = (outvar - self.mu) / self.sd
         
-        #NaN检查
-        if torch.isnan(invar).any():
-            nan_count = torch.isnan(invar).sum().item()
-            print(f"❌严重警告: invar 归一化后出现 {nan_count} 个 NaN!")
-        elif torch.isinf(invar).any():
-            inf_count = torch.isinf(invar).sum().item()
-            print(f"⚠️警告: invar 归一化后出现 {inf_count} 个 Inf (无穷大)!")
-        else:
-            print("✅invar 归一化正常")
+        #check NaN
+        # if torch.isnan(invar).any():
+        #     nan_count = torch.isnan(invar).sum().item()
+        #     print(f"❌严重警告: invar 归一化后出现 {nan_count} 个 NaN!")
+        # elif torch.isinf(invar).any():
+        #     inf_count = torch.isinf(invar).sum().item()
+        #     print(f"⚠️警告: invar 归一化后出现 {inf_count} 个 Inf (无穷大)!")
+        # else:
+        #     print("✅invar 归一化正常")
 
-        if torch.isnan(outvar).any():
-            nan_count = torch.isnan(outvar).sum().item()
-            print(f"❌严重警告: outvar 归一化后出现 {nan_count} 个 NaN!")
-        elif torch.isinf(outvar).any():
-            inf_count = torch.isinf(outvar).sum().item()
-            print(f"⚠️警告: outvar 归一化后出现 {inf_count} 个 Inf (无穷大)!")
-        else:
-            print("✅outvar 归一化正常")
+        # if torch.isnan(outvar).any():
+        #     nan_count = torch.isnan(outvar).sum().item()
+        #     print(f"❌严重警告: outvar 归一化后出现 {nan_count} 个 NaN!")
+        # elif torch.isinf(outvar).any():
+        #     inf_count = torch.isinf(outvar).sum().item()
+        #     print(f"⚠️警告: outvar 归一化后出现 {inf_count} 个 Inf (无穷大)!")
+        # else:
+        #     print("✅outvar 归一化正常")
 
         start_time = datetime(year, 1, 1, tzinfo=pytz.utc)
         timestamps = np.array([(start_time + timedelta(hours=(step_idx + t) * self.dt)).timestamp()

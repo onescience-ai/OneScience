@@ -19,8 +19,8 @@ model:
   depth: 2
   num_heads:  [6, 12, 12, 6]
   img_size: [2041, 4320]
-  #mask: "/public/onestore/onedatasets/CMEMS/static/20210628_zos_ocean_mask.npy"
-  mask: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/static/20210628_zos_ocean_mask.npy"
+  mask: "/public/onestore/onedatasets/CMEMS/static/20210628_zos_ocean_mask.npy"
+  #mask: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/static/20210628_zos_ocean_mask.npy"
 
  # 整个数据读取流程
 datapipe:
@@ -30,19 +30,19 @@ datapipe:
   # dataset设定
   dataset:
     type: "hdf5"
-    #stats_dir: "/public/onestore/onedatasets/CMEMS/stats/" 
-    #static_dir: "/public/onestore/onedatasets/CMEMS/static/" 
-    #data_dir: "/public/onestore/onedatasets/CMEMS" #10-14
-    stats_dir: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/stats/" 
-    static_dir: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/static/" 
-    data_dir: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/cmems/" #10-14
+    stats_dir: "/public/onestore/onedatasets/CMEMS/stats/" 
+    static_dir: "/public/onestore/onedatasets/CMEMS/static/" 
+    data_dir: "/public/onestore/onedatasets/CMEMS/newdata/" #10-14
+    #stats_dir: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/stats/" 
+    #static_dir: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/static/" 
+    #data_dir: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/cmems/" #10-14
     
     #数据拆分
-    # train_ratio: 0.5
-    # val_ratio: 0.25
-    # test_ratio: 0.25
-    train_ratio: 1
-    val_ratio: 1
+    # train_ratio: 0.7
+    # val_ratio: 0.2
+    # test_ratio: 0.1
+    train_ratio: 7
+    val_ratio: 2
     test_ratio: 1
     img_size: [2041, 4320]
     verbose: true
@@ -69,7 +69,7 @@ datapipe:
              
     
     # 时间配置
-    time_range: ["2010-01-01", "2012-12-31"] 
+    time_range: ["2010-01-01", "2019-12-31"] 
     time_steps: 1
     time_res: 24
     
@@ -106,12 +106,12 @@ datapipe:
   dataloader:
     mask_dtype: "float32"
     batch_size: 1
-    num_workers: 1
-    pin_memory: true
+    num_workers: 0
+    pin_memory: false
     drop_last: true
     shuffle: false  # 使用sampler时设为false
-    prefetch_factor: 2
-    persistent_workers: true
+    # prefetch_factor: 2
+    persistent_workers: false 
   
   # 分布式配置
   distributed:

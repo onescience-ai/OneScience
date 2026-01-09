@@ -9,12 +9,11 @@ import torch.nn as nn
 import torch.optim as optim
 
 from torch.nn.parallel import DistributedDataParallel
-from onescience.models.xihe.xihe import Xihe  # 你的 XiHe 模型定义路径
+from onescience.models.xihe.xihe import Xihe 
 from onescience.datapipes.climate import CMEMSDatapipe
 from onescience.utils.YParams import YParams
 from onescience.utils.fcn.darcy_loss import LpLoss
 
-# from apex import optimizers
 
 
 def main():
@@ -42,6 +41,14 @@ def main():
     datapipe = CMEMSDatapipe(params=cfg_data, distributed=dist.is_initialized()) #config中的配置读取数据
     train_dataloader, train_sampler = datapipe.train_dataloader()
     val_dataloader, val_sampler = datapipe.val_dataloader()
+    world_rank == 0 and print("train num_workers =", train_dataloader.num_workers)
+    world_rank == 0 and print("val   num_workers =", val_dataloader.num_workers)
+    world_rank == 0 and print("batch_size =", train_dataloader.batch_size)
+    world_rank == 0 and print("prefetch_factor =", getattr(train_dataloader, "prefetch_factor", None))
+    world_rank == 0 and print("persistent_workers =", getattr(train_dataloader, "persistent_workers", None))
+    world_rank == 0 and print("pin_memory =", getattr(train_dataloader, "pin_memory", None))
+
+
 
     # Model init
     model = Xihe(config=cfg).to(local_rank) #根据cfg的model构建模型
@@ -67,7 +74,7 @@ def main():
         print(f"📂 now params is {total_params}, {total_params / 1e6:.2f}M, {total_params / 1e9:.2f}B")
         print("-" * 50, "\n")
 
-    ## Load model weight if there exist well-trained model 保证可以断点重续
+    ## Load model weight if there exist well-trained model 断点重续
     if os.path.exists(f"{cfg.checkpoint_dir}/model_bak.pth"):
         if world_rank == 0:
             print("\n\n")
@@ -84,61 +91,43 @@ def main():
         train_losses = np.load(train_loss_file)
         valid_losses = np.load(valid_loss_file)
 
-    ## Distributed model 并行训练
+    ## Distributed model 
     if cfg.world_size > 1:
         model = DistributedDataParallel(model, device_ids=[local_rank], output_device=local_rank)
     world_rank == 0 and logger.info(f"start training ...")
     
     for epoch in range(cfg.max_epoch):
-        print("epoch:",cfg.max_epoch)
         if dist.is_initialized():
             train_sampler.set_epoch(epoch)
             val_sampler.set_epoch(epoch)
-        model.train()        #训练模型
+            
+        model.train()       
         train_loss = 0
         start_time = time.time()
         for j, data in enumerate(train_dataloader):
-            if j>=10:
-                break
-            # print("一个epoch的batch数量 =", len(train_dataloader))
             invar = data[0].to(local_rank, dtype=torch.float32)
-            outvar = data[1].to(local_rank, dtype=torch.float32)  #做对比的真实数据
-            outvar_pred = model(invar)           #输出的预测数据
-            # print("invar,outvar,outvar_pred",invar.shape,outvar.shape,outvar_pred.shape)
-            # if torch.isnan(outvar).any():
-            #     print("❌ outvar 中包含 NaN！")
-            # else:
-            #     print("✅ outvar 正常")
-            # # --- 检查 outvar_pred (预测值) ---
-            # if torch.isnan(outvar_pred).any():
-            #     print("❌ outvar_pred 中包含 NaN！")
-            # else:
-            #     print("✅ outvar_pred 正常")               
-                
-            loss = loss_obj(outvar, outvar_pred) #loss计算
-            optimizer.zero_grad()                #梯度归0
-            loss.backward()                      #反向传播
-            optimizer.step()                     #优化器
+            outvar = data[1].to(local_rank, dtype=torch.float32)  #truth
+            outvar_pred = model(invar)                            #pred                       
+            loss = loss_obj(outvar, outvar_pred) 
+            optimizer.zero_grad()              
+            loss.backward()                      
+            optimizer.step()                     
             train_loss += loss.item()           
             if world_rank == 0:
                 logger.info(f'Train: Epoch {epoch}-{j+1}/{len(train_dataloader)} '
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{train_loss / (j+1): .04f}')
-
         train_loss /= len(train_dataloader) 
 
-        model.eval() #关闭 dropout（不丢弃）
+
+        model.eval() 
         valid_loss = 0
         with torch.no_grad():
             start_time = time.time()
             for j, data in enumerate(val_dataloader):
-                if j>=10:
-                    break
                 invar = data[0].to(local_rank, dtype=torch.float32)
                 outvar = data[1].to(local_rank, dtype=torch.float32)
-                # invar = invar[:, :, :-1, :]
-                # outvar = outvar[:, :, :-1, :]
                 outvar_pred = model(invar)
                 loss = loss_obj(outvar, outvar_pred)
 
