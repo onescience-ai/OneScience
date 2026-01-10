@@ -15,10 +15,10 @@ export PATH=/xxx/hmmer/bin:${PATH}
 which jackhmmer
 
 DIR="./inputs"
-mode_path="/public/onestore/onemodels/AlphaFold3/"
+mode_path="${ONESCIENCE_MODELS_DIR}/AlphaFold3/"
 
 # 定义数据库路径
-DB_DIRS="/public/onestore/onedatasets/alphafold3/public_databases/"
+DB_DIRS="${ONESCIENCE_DATASETS_DIR}/alphafold3/public_databases/"
 export HIP_VISIBLE_DEVICES=7
 
 output_dir="./outputs/"

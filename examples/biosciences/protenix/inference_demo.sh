@@ -5,11 +5,11 @@ seed=101
 use_deepspeed_evo_attention=false
 input_json_path="./infer_datasets/example.json"
 # wget -P /af3-dev/release_model/ https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.5.0.pt
-load_checkpoint_path="/public/onestore/onemodels/Protenix/model_v0.5.0.pt"
+load_checkpoint_path="${ONESCIENCE_MODELS_DIR}/Protenix/model_v0.5.0.pt"
 dump_dir="./output"
 
 export PYTHONPATH=$(pwd):$PYTHONPATH
-export DATA_ROOT_DIR=/public/onestore/onedatasets/protenix/
+export DATA_ROOT_DIR=${ONESCIENCE_DATASETS_DIR}/protenix/
 export HIP_VISIBLE_DEVICES=0 # 指定运行gpu
 python3 runner/inference.py \
 --seeds ${seed} \

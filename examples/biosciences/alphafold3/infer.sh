@@ -10,7 +10,7 @@ export TRITON_DEFAULT_ENABLE_NUM_VGPRS512=1
 
 DIR="./inputs"
 FILE="$DIR/7r6r_data.json"
-mode_path="/public/onestore/onemodels/AlphaFold3/"
+mode_path="${ONESCIENCE_MODELS_DIR}/AlphaFold3/"
 output_dir="./outputs"
 mkdir -p ${output_dir}
 python run_alphafold.py \

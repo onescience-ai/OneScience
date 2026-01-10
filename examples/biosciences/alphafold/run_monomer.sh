@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export TF_CPP_MIN_LOG_LEVEL=2
-download_dir=/public/onestore/onedatasets/alphafold2.3.0
+download_dir=${ONESCIENCE_DATASETS_DIR}/alphafold2.3.0
 
 python3 run_alphafold.py \
  --fasta_paths=fasta/af2-monomer-protein.fasta \

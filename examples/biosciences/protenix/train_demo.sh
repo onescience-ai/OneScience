@@ -1,6 +1,6 @@
 
 export PYTHONPATH=$(pwd):$PYTHONPATH
-export DATA_ROOT_DIR=/public/onestore/onedatasets/protenix/
+export DATA_ROOT_DIR=${ONESCIENCE_DATASETS_DIR}/protenix/
 export HIP_VISIBLE_DEVICES=2 # 指定运行gpu
 
 

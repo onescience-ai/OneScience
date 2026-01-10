@@ -12,15 +12,15 @@ export TRITON_USE_MAKE_BLOCK_PTR=1
 export TRITON_DEFAULT_ENABLE_NUM_VGPRS512=1
 
 DIR="./inputs"
-mode_path="/public/onestore/onemodels/AlphaFold3/"
+mode_path="${ONESCIENCE_MODELS_DIR}/AlphaFold3/"
 
 # 定义数据库路径
-DB_DIRS="/public/onestore/onedatasets/alphafold3/public_databases/"
-MMSEQS_DB_DIRS="/public/onestore/onedatasets/alphafold3/mmseqsDB"
+DB_DIRS="${ONESCIENCE_DATASETS_DIR}/alphafold3/public_databases/"
+MMSEQS_DB_DIRS="${ONESCIENCE_DATASETS_DIR}/alphafold3/mmseqsDB"
 
 export HIP_VISIBLE_DEVICES=1
-export PATH=/public/onestore/onedatasets/alphafold3/mmseqs/bin:${PATH}
-export LD_LIBRARY_PATH=/public/onestore/onedatasets/alphafold3/mmseqs/lib:${LD_LIBRARY_PATH}
+export PATH=${ONESCIENCE_DATASETS_DIR}/alphafold3/mmseqs/bin:${PATH}
+export LD_LIBRARY_PATH=${ONESCIENCE_DATASETS_DIR}/alphafold3/mmseqs/lib:${LD_LIBRARY_PATH}
 
 
 output_dir="./outputs/"
