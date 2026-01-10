@@ -17,7 +17,7 @@ datapipe:
   dataset:
     type: "hdf5"
     stats_dir: './data/stats/' # "/public/onestore/onedatasets/ERA5/newh5/stats/" 
-    static_dir: './data/statc/' # "/public/onestore/onedatasets/ERA5/newh5/static/" 
+    static_dir: './data/static/' # "/public/onestore/onedatasets/ERA5/newh5/static/" 
     data_dir: './data/' # "/public/onestore/onedatasets/ERA5/newh5/" 
     
     train_ratio: 15

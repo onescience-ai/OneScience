@@ -225,11 +225,13 @@ class ERA5Dataset(BaseDataset):
             invar_list.append(data)
         
         outvar_list = []
+        time_index = []
         for i in range(step_idx + self.input_steps, step_idx + self.input_steps + self.output_steps):
             with h5py.File(f'{self.data_dir}/data/{year}/{files[i][-15:-4]}.h5', "r") as f:
                 data = f["fields"][:]  # [N, H, W]
                 data = data[self.channel_indices]
                 outvar_list.append(data)
+                time_index.append(files[i][-13:-3])
 
         invar = np.stack(invar_list, axis=0)  # [T, N, H, W]
         outvar = np.stack(outvar_list, axis=0)  # [T, N, H, W]
@@ -247,4 +249,4 @@ class ERA5Dataset(BaseDataset):
         timestamps = torch.from_numpy(timestamps)
         cos_zenith = cos_zenith_angle(timestamps, latlon=self.latlon_torch).float()
 
-        return invar.squeeze(0), outvar.squeeze(0), cos_zenith, step_idx
+        return invar.squeeze(0), outvar.squeeze(0), cos_zenith, step_idx, time_index
