@@ -1,7 +1,8 @@
 
+source ../../../env.sh
 export PYTHONPATH=$(pwd):$PYTHONPATH
 export DATA_ROOT_DIR=${ONESCIENCE_DATASETS_DIR}/protenix/
-export HIP_VISIBLE_DEVICES=2 # 指定运行gpu
+export HIP_VISIBLE_DEVICES=0 # 指定运行gpu
 
 
 python3 ./runner/train.py \

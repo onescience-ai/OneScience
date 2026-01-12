@@ -1,3 +1,4 @@
+source ../../../env.sh
 N_sample=5
 N_step=200
 N_cycle=10

@@ -2,6 +2,7 @@
 module purge
 module load sghpc-mpi-gcc/25.8
 source ${ROCM_PATH}/cuda/env.sh
+source ../../../env.sh
 
 export TF_CPP_MIN_LOG_LEVEL=0
 export JAX_TRACEBACK_FILTERING=off

@@ -1,6 +1,7 @@
 #!/bin/bash
 module load sghpc-mpi-gcc/25.8
 source ${ROCM_PATH}/cuda/env.sh
+source ../../../env.sh
 
 export TF_CPP_MIN_LOG_LEVEL=0
 export JAX_TRACEBACK_FILTERING=off
@@ -10,7 +11,7 @@ export XLA_CLIENT_MEM_FRACTION=0.95
 export TRITON_ENABLE_GLOBAL_TO_LOCAL=1
 export TRITON_USE_MAKE_BLOCK_PTR=1
 export TRITON_DEFAULT_ENABLE_NUM_VGPRS512=1
-export HOME=/public/onestore/onedatasets/alphafold3
+export HOME=${ONESCIENCE_DATASETS_DIR}/alphafold3
 export PATH=/xxx/hmmer/bin:${PATH}
 which jackhmmer
 

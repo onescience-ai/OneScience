@@ -1,9 +1,10 @@
+source ../../../env.sh
 # wget -P /af3-dev/release_model/ https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.5.0.pt
 checkpoint_path="${ONESCIENCE_MODELS_DIR}/Protenix/model_v0.5.0.pt"
 
 export PYTHONPATH=$(pwd):$PYTHONPATH
 export DATA_ROOT_DIR=${ONESCIENCE_DATASETS_DIR}/protenix/
-export HIP_VISIBLE_DEVICES=1 # 指定运行gpu
+export HIP_VISIBLE_DEVICES=0 # 指定运行gpu
 
 python3 ./runner/train.py \
 --run_name protenix_finetune \
