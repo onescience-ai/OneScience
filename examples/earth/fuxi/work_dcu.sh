@@ -2,6 +2,7 @@
 
 echo "START TIME: $(date)"
 module purge
+
 ##### Launch Conda #####
 module load sghpcdas/25.6 
 conda init bash
@@ -12,6 +13,9 @@ conda activate earth
 
 ##### Launch DTK #####
 module load sghpc-mpi-gcc/25.8
+
+##### Launch env #####
+source ../../../env.sh
 
 ##### Show env #####
 which python
