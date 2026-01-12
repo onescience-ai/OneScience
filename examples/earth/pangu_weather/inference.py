@@ -58,7 +58,7 @@ if __name__ == "__main__":
     # 4️⃣ 设置为 eval 模式
     model.eval()
     os.makedirs('result/output/', exist_ok=True)
-    print(f"📂 Total {len(total_files)} samples will be generated to './result/output/'")
+    print(f"📂 samples will be generated to './result/output/'")
     with torch.no_grad():
         j = 0
         for data in tqdm(test_dataloader, desc="Inferring testset", unit="batch"):
