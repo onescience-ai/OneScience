@@ -13,6 +13,9 @@ conda activate earth
 # ##### Launch DTK #####
 module load sghpc-mpi-gcc/25.8
 
+##### Launch env #####
+source ../../../env.sh
+
 ##### Show env #####
 which python
 which hipcc
