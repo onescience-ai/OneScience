@@ -27,9 +27,9 @@ datapipe:
   # dataset设定
   dataset:
     type: "hdf5"
-    stats_dir: './data/stats/' # "/public/onestore/onedatasets/ERA5/newh5/stats/" 
-    static_dir: './data/static/' # "/public/onestore/onedatasets/ERA5/newh5/static/" 
-    data_dir: './data/' # "/public/onestore/onedatasets/ERA5/newh5/"
+    stats_dir: './data/stats/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/stats/"  
+    static_dir: './data/static/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/static/" 
+    data_dir: './data/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/" 
     train_ratio: 15
     val_ratio: 3
     test_ratio: 2
