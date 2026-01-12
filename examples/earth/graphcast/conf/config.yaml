@@ -52,9 +52,9 @@ datapipe:
   # dataset设定
   dataset:
     type: "hdf5"
-    stats_dir: './data/stats/' # "/public/onestore/onedatasets/ERA5/newh5/stats/" 
-    static_dir: './data/static/' # "/public/onestore/onedatasets/ERA5/newh5/static/" 
-    data_dir: './data/' # "/public/onestore/onedatasets/ERA5/newh5/"
+    stats_dir: './data/stats/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/stats/"  
+    static_dir: './data/static/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/static/" 
+    data_dir: './data/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/" 
     dataset_metadata_path: './data.json'  # Path to the dataset metadata, containing channel names.
     time_diff_std_path: './time_diff_std.npy'  # Path to the .npy file with standard deviation of normalized per-variable per-pressure level time differences.
     train_ratio: 15
