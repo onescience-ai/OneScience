@@ -13,67 +13,15 @@ def get_stats(cfg):
     meta_path = os.path.join(cfg.data_dir, 'metadata.json')
     with open(meta_path, "r") as f:
         metadata = json.load(f)
-    years = list(map(int, metadata["years"]))
     variables = metadata['variables']
-    y = sorted(years)
-    if cfg.train_ratio + cfg.val_ratio + cfg.test_ratio == 1:
-        n_train = int(len(y) * cfg.train_ratio)
-        n_val = int(len(y) * cfg.val_ratio)
-        year_splits = {
-            "train": y[:n_train],
-            "val": y[n_train:n_train + n_val],
-            "test": y[n_train + n_val:]
-        }
-    elif cfg.train_ratio + cfg.val_ratio + cfg.test_ratio == len(y):
-        n_train =  cfg.train_ratio
-        n_val = cfg.val_ratio
-        year_splits = {
-            "train": y[:n_train],
-            "val": y[n_train:n_train + n_val],
-            "test": y[n_train + n_val:]
-        }
-    else:
-        print('\n\n')
-        print('-' * 30)
-        print('Train/Val/Test settings must use ratio or digital numbers')
-        print('If using ratio, please ensure the sum of all ratios equal to 1')
-        print(f'If using digital number, please ensure the sum of number equal to total years {len(y)}')
-        print(f'❌❌ Now settings are {cfg.train_ratio}-{cfg.val_ratio}-{cfg.test_ratio}, please check.')
-        print('-' * 30)
-        print('\n\n')
-        exit()
-
-    selected_years = year_splits['train']
-    total_train_files = []
-    for year in selected_years:
-        path = os.path.join(cfg.data_dir, 'data', str(year))
-        files = sorted(os.listdir(path))
-        samples_per_year = len(files) - 1
-        total_train_files.extend(files[-samples_per_year:])
-
-    selected_years = year_splits['val']
-    total_valid_files = []
-    for year in selected_years:
-        path = os.path.join(cfg.data_dir, 'data', str(year))
-        files = sorted(os.listdir(path))
-        samples_per_year = len(files) - 1
-        total_valid_files.extend(files[-samples_per_year:])
-
-    selected_years = year_splits['test']
-    total_test_files = []
-    for year in selected_years:
-        path = os.path.join(cfg.data_dir, 'data', str(year))
-        files = sorted(os.listdir(path))
-        samples_per_year = len(files) - 1
-        total_test_files.extend(files[-samples_per_year:])
-    
     channel_indices = [variables.index(v) for v in cfg.channels]
     mu = np.load(os.path.join(cfg.stats_dir, "global_means.npy"))  # shape: [1, M, 1, 1]
     std = np.load(os.path.join(cfg.stats_dir, "global_stds.npy"))
     means = mu[:, channel_indices, :, :]
     stds = std[:, channel_indices, :, :]
         
-    return total_train_files, total_valid_files, total_test_files, means, stds
+    return means, stds
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
@@ -94,7 +42,7 @@ if __name__ == "__main__":
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
     cfg_data.dataloader.batch_size = 1
-    total_train_files, total_valid_files, total_test_files, means, stds = get_stats(cfg_data.dataset)
+    means, stds = get_stats(cfg_data.dataset)
 
     if mode == 'base' or mode == 'short':
         from onescience.datapipes.climate import ERA5Datapipe
@@ -122,41 +70,42 @@ if __name__ == "__main__":
 
     # 4️⃣ 设置为 eval 模式
     model.eval()
-    save_path = f'result/{mode}/data/'
+    save_path = f'./result/{mode}/data/'
     if mode != 'base' and mode != 'long':
         
         with torch.no_grad():
-            print(f"📂 Total {len(total_train_files)} samples will be generated to '{save_path}'")
+            print(f"📂 infer results will be generated to './result/output/'")
             j = 0
             for data in tqdm(train_dataloader, desc="Inferring trainset", unit="batch"):
                 invar = data[0].to("cuda:0", dtype=torch.float32) # B, T, C, H, W
                 invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
+                filename = data[4][-1][0]
                 pred_var = model(invar).cpu().numpy()
                 pred_var = pred_var * stds + means
-                os.makedirs(f'{save_path}/{total_train_files[j][:4]}', exist_ok=True)
-                np.save(f"{save_path}/{total_train_files[j][:4]}/{total_train_files[j][:-3]}.npy", pred_var)
+                os.makedirs(f'{save_path}/{filename[:4]}', exist_ok=True)
+                np.save(f"{save_path}/{filename[:4]}/{filename}.npy", pred_var)
                 j += 1
 
         with torch.no_grad():
-            print(f"📂 Total {len(total_valid_files)} samples will be generated to '{save_path}'")
+            print(f"📂 infer results will be generated to './result/output/'")
             j = 0
             for data in tqdm(val_dataloader, desc="Inferring validset", unit="batch"):
                 invar = data[0].to("cuda:0", dtype=torch.float32) # B, T, C, H, W
                 invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
+                filename = data[4][-1][0]
                 pred_var = model(invar).cpu().numpy()
                 pred_var = pred_var * stds + means
-                os.makedirs(f'{save_path}/{total_valid_files[j][:4]}', exist_ok=True)
-                np.save(f"{save_path}/{total_valid_files[j][:4]}/{total_valid_files[j][:-3]}.npy", pred_var)
+                np.save(f"{save_path}/{filename[:4]}/{filename}.npy", pred_var)
                 j += 1
 
     with torch.no_grad():
-        print(f"📂 Total {len(total_test_files)} samples will be generated to '{save_path}'")
+        print(f"📂 infer results will be generated to './result/output/'")
         j = 0
         for data in tqdm(test_dataloader, desc="Inferring testset", unit="batch"):
             invar = data[0].to("cuda:0", dtype=torch.float32) # B, T, C, H, W
             invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
+            filename = data[4][-1][0]
             pred_var = model(invar).cpu().numpy()
             pred_var = pred_var * stds + means
-            os.makedirs(f'{save_path}/{total_test_files[j][:4]}', exist_ok=True)
-            np.save(f"{save_path}/{total_test_files[j][:4]}/{total_test_files[j][:-3]}.npy", pred_var)
+            np.save(f"{save_path}/{filename[:4]}/{filename}.npy", pred_var)
             j += 1

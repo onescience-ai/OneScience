@@ -27,51 +27,14 @@ def get_stats(cfg):
     meta_path = os.path.join(cfg.data_dir, 'metadata.json')
     with open(meta_path, "r") as f:
         metadata = json.load(f)
-    years = list(map(int, metadata["years"]))
     variables = metadata['variables']
-    y = sorted(years)
-    if cfg.train_ratio + cfg.val_ratio + cfg.test_ratio == 1:
-        n_train = int(len(y) * cfg.train_ratio)
-        n_val = int(len(y) * cfg.val_ratio)
-        year_splits = {
-            "train": y[:n_train],
-            "val": y[n_train:n_train + n_val],
-            "test": y[n_train + n_val:]
-        }
-    elif cfg.train_ratio + cfg.val_ratio + cfg.test_ratio == len(y):
-        n_train =  cfg.train_ratio
-        n_val = cfg.val_ratio
-        year_splits = {
-            "train": y[:n_train],
-            "val": y[n_train:n_train + n_val],
-            "test": y[n_train + n_val:]
-        }
-    else:
-        print('\n\n')
-        print('-' * 30)
-        print('Train/Val/Test settings must use ratio or digital numbers')
-        print('If using ratio, please ensure the sum of all ratios equal to 1')
-        print(f'If using digital number, please ensure the sum of number equal to total years {len(y)}')
-        print(f'❌❌ Now settings are {cfg.train_ratio}-{cfg.val_ratio}-{cfg.test_ratio}, please check.')
-        print('-' * 30)
-        print('\n\n')
-        exit()
-
-    selected_years = year_splits['test']
-    total_files = []
-    for year in selected_years:
-        path = os.path.join(cfg.data_dir, 'data', str(year))
-        files = sorted(os.listdir(path))
-        samples_per_year = len(files) - 1
-        total_files.extend(files[-samples_per_year:])
-    
     channel_indices = [variables.index(v) for v in cfg.channels]
     mu = np.load(os.path.join(cfg.stats_dir, "global_means.npy"))  # shape: [1, M, 1, 1]
     std = np.load(os.path.join(cfg.stats_dir, "global_stds.npy"))
     means = mu[:, channel_indices, :, :]
     stds = std[:, channel_indices, :, :]
         
-    return total_files, means, stds
+    return means, stds
 
 
 if __name__ == "__main__":
@@ -83,10 +46,10 @@ if __name__ == "__main__":
     cfg = YParams(config_file_path, "model")
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
-    cfg_data.dataloader.batch_size = 1
+
     test_dataset = ERA5Datapipe(params = cfg_data, distributed = False)
     test_dataloader = test_dataset.test_dataloader()
-    total_files, means, stds = get_stats(cfg_data.dataset)
+    means, stds = get_stats(cfg_data.dataset)
 
     ckpt = torch.load(f"{cfg.checkpoint_dir}/model_finetune_bak.pth", map_location="cuda:0", weights_only=True)
     model_dtype = torch.bfloat16 if cfg.full_bf16 else torch.float32
@@ -130,15 +93,16 @@ if __name__ == "__main__":
 
     # 4️⃣ 设置为 eval 模式
     model.eval()
-    os.makedirs('result/output/', exist_ok=True)
-    print(f"📂 Total {len(total_files)} samples will be generated to './result/output/'")
+    os.makedirs('./result/output/', exist_ok=True)
+    print(f"📂 samples will be generated to './result/output/'")
     with torch.no_grad():
         j = 0
         for data in tqdm(test_dataloader, desc="Inferring testset", unit="batch"):
             invar = data[0].to(device="cuda:0")
             cos_zenith = data[2].to(device="cuda:0")
             in_idx = data[3].item()
-
+            filename = data[4][-1][0]
+            
             cos_zenith = torch.squeeze(cos_zenith, dim=2)
             cos_zenith = torch.clamp(cos_zenith, min=0.0) - 1.0 / torch.pi
             day_of_year, time_of_day = divmod(in_idx * cfg.dt, 24)
@@ -155,5 +119,5 @@ if __name__ == "__main__":
             pred_var = pred_var.cpu().numpy()
             pred_var = pred_var * stds + means
             
-            np.save(f"result/output/{total_files[j][:-3]}.npy", pred_var)
+            np.save(f"result/output/{filename}.npy", pred_var)
             j += 1
