@@ -72,9 +72,8 @@ if __name__ == "__main__":
     model.eval()
     save_path = f'./result/{mode}/data/'
     if mode != 'base' and mode != 'long':
-        
         with torch.no_grad():
-            print(f"📂 infer results will be generated to './result/output/'")
+            print(f"📂 infer results will be generated to './result/output/{mode}'")
             j = 0
             for data in tqdm(train_dataloader, desc="Inferring trainset", unit="batch"):
                 invar = data[0].to("cuda:0", dtype=torch.float32) # B, T, C, H, W
@@ -87,7 +86,7 @@ if __name__ == "__main__":
                 j += 1
 
         with torch.no_grad():
-            print(f"📂 infer results will be generated to './result/output/'")
+            print(f"📂 infer results will be generated to './result/output/{mode}'")
             j = 0
             for data in tqdm(val_dataloader, desc="Inferring validset", unit="batch"):
                 invar = data[0].to("cuda:0", dtype=torch.float32) # B, T, C, H, W
@@ -95,11 +94,12 @@ if __name__ == "__main__":
                 filename = data[4][-1][0]
                 pred_var = model(invar).cpu().numpy()
                 pred_var = pred_var * stds + means
+                os.makedirs(f'{save_path}/{filename[:4]}', exist_ok=True)
                 np.save(f"{save_path}/{filename[:4]}/{filename}.npy", pred_var)
                 j += 1
 
     with torch.no_grad():
-        print(f"📂 infer results will be generated to './result/output/'")
+        print(f"📂 infer results will be generated to './result/output/{mode}'")
         j = 0
         for data in tqdm(test_dataloader, desc="Inferring testset", unit="batch"):
             invar = data[0].to("cuda:0", dtype=torch.float32) # B, T, C, H, W
@@ -107,5 +107,6 @@ if __name__ == "__main__":
             filename = data[4][-1][0]
             pred_var = model(invar).cpu().numpy()
             pred_var = pred_var * stds + means
+            os.makedirs(f'{save_path}/{filename[:4]}', exist_ok=True)
             np.save(f"{save_path}/{filename[:4]}/{filename}.npy", pred_var)
             j += 1

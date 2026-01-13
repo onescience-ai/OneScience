@@ -16,48 +16,97 @@ rcParams['xtick.major.width'] = 0.9
 rcParams['ytick.major.width'] = 0.9
 
 
-def get_metadata(cfg):
+def get_metadata(cfg, mode):
     meta_path = os.path.join(cfg.data_dir, 'metadata.json')
     with open(meta_path, "r") as f:
         metadata = json.load(f)
     variables = metadata['variables']
-    channel_indices = [variables.index(v) for v in cfg.channels]
+    years = metadata['years']
+    y = sorted(years)
+    error = False
+    # 1. use ratio to select data
+    if isinstance(cfg.train_ratio, float): 
+        if cfg.train_ratio + cfg.val_ratio + cfg.test_ratio > 1:
+            error = True
+        n_train = int(len(y) * cfg.train_ratio)
+        n_val = int(len(y) * cfg.val_ratio)
+        selected_years = y[n_train + n_val:]
+    # 2. use number to select years
+    if isinstance(cfg.train_ratio, int):
+        if cfg.train_ratio + cfg.val_ratio + cfg.test_ratio > len(y):
+            error = True
+        n_train =  cfg.train_ratio
+        n_val = cfg.val_ratio
+        selected_years = y[n_train + n_val:]
+    if isinstance(cfg.train_ratio, (list, tuple, set)):
+        cfg.train_ratio = set(cfg.train_ratio)
+        cfg.val_ratio = set(cfg.val_ratio)
+        cfg.test_ratio = set(cfg.test_ratio)
+        if len(cfg.train_ratio)+len(cfg.val_ratio)+len(cfg.test_ratio) > len(y):
+            error = True
+        if cfg.train_ratio.issubset(set(y)) and cfg.val_ratio.issubset(set(y)) and cfg.test_ratio.issubset(set(y)):
+            selected_years = cfg.test_ratio
+        else:
+            error = True
 
-    total_files = [f for f in os.listdir('./result/output/') if f.endswith('.npy')]
+    if error:
+        print(f'❌ ❌ Wrong configuration for train/val/test years selection! Please ensure the configuration is correct.')
+        exit()
+
+
+    channel_indices = [variables.index(v) for v in cfg.channels]
+    total_files = []
+    for year in selected_years:
+        files = [f for f in os.listdir(f'./result/{mode}/data/{year}/') if f.endswith('.npy')]
+        total_files.extend(files)
     total_files.sort()
     return total_files, channel_indices
 
 
-def get_rmse(total_files, channel_indices):
+def get_result(total_files, channel_indices, clim_mean, mode):
     channel_rmse = np.zeros(len(channel_indices))
-    if not os.path.exists('result/rmse.npy'):
+    channel_acc = np.zeros(len(channel_indices))
+    clim_mean = clim_mean[0, :, :, :]
+    if not os.path.exists(f'./result/{mode}_rmse.npy') or not os.path.exists(f'./result/{mode}_acc.npy'):
+        numerator = np.zeros(len(channel_indices))
+        pred_sq_sum = np.zeros(len(channel_indices))
+        label_sq_sum = np.zeros(len(channel_indices))
         for file in tqdm(total_files, unit="files"):
             with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file[:-4]}.h5', "r") as f:
                 label = f["fields"][:]  # [N, H, W]
                 label = label[channel_indices]
-            pred = np.load(f'result/output/{file}').squeeze()
+            pred = np.load(f'result/{mode}/data/{file[:4]}/{file}').squeeze()
+
+            label_anom = label - clim_mean
+            pred_anom = pred - clim_mean
+            # 累加
+            numerator += np.sum(pred_anom * label_anom, axis=(1, 2))
+            pred_sq_sum += np.sum(pred_anom ** 2, axis=(1, 2))
+            label_sq_sum += np.sum(label_anom ** 2, axis=(1, 2))
             channel_rmse += np.sqrt(np.mean((label - pred) ** 2, axis=(1, 2)))
         channel_rmse /= len(total_files)
-        np.save('result/rmse.npy', channel_rmse)
-    else:
-        channel_rmse = np.load('result/rmse.npy')
-    
-    for i in range(len(channel_indices)):
-        print(f"📂 Channel: {cfg_data.dataset.channels[i]} RMSE: {channel_rmse[i]: .4f},")
-    
+        channel_acc = numerator / (np.sqrt(pred_sq_sum * label_sq_sum) + 1e-8)
+        np.save(f'./result/{mode}_acc.npy', channel_acc)
+        np.save(f'./result/{mode}_rmse.npy', channel_rmse)
+
+
+def show_result(mode):
+    channel_rmse = np.load(f'./result/{mode}_rmse.npy')
+    channel_acc = np.load(f'./result/{mode}_acc.npy')
+
     channels = [cfg_data.dataset.channels[i] for i in range(len(channel_indices))]
     w = 24  # 最长 channel 名宽度
     
     # 表头
-    print(f"┌{'─' * (w + 2)}┬{'─' * 14}┐")
-    print(f"│ {'Channel':<{w}} │ {'OneScience':>12} |")
-    print(f"├{'─' * (w + 2)}┼{'─' * 14}┤")
+    print(f"┌{'─' * (w + 2)}┬{'─' * 14}┬{'─' * 14}┐")
+    print(f"│ {'Channel':<{w}} │ {'RMSE':>12} │ {'ACC':>12} │")
+    print(f"├{'─' * (w + 2)}┼{'─' * 14}┼{'─' * 14}┤")
     # 数据行
     for i, ch in enumerate(channels):
-        print(f"│ {ch:<{w}} │ {channel_rmse[i]:>12.4f} |")
-    print(f"├{'─' * (w + 2)}┼{'─' * 14}┤")
-
-    print(f"✅ Avg RMSE is : {np.mean(channel_rmse): .4f}")
+        print(f"│ {ch:<{w}} │ {channel_rmse[i]:>12.4f} | {channel_acc[i]:>12.4f} |")
+    print(f"├{'─' * (w + 2)}┼{'─' * 14}┼{'─' * 14}┤")
+    print(f"│ {'Average':<{w}} │ {np.mean(channel_rmse):>12.4f} │ {np.mean(channel_acc):>12.4f} │")
+    print(f"└{'─' * (w + 2)}┴{'─' * 14}┴{'─' * 14}┘")
 
 
 def plot(label, pred, var, filename):
@@ -143,41 +192,46 @@ def plot_loss(train_loss, valid_loss):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: input the mode: : base, short, medium, or long...")
+        sys.exit(1)
+    
+    mode = sys.argv[1]
+    if mode not in ['base', 'short', 'medium', 'long']:
+        print(f'❌ ❌ Please input the mode: base, short, medium, or long...')
+        exit()
+
     current_path = os.getcwd()
     sys.path.append(current_path)
     config_file_path = os.path.join(current_path, 'conf/config.yaml')
     cfg = YParams(config_file_path, 'model')
     cfg_data = YParams(config_file_path, "datapipe")
 
-    train_loss = np.load('./data/checkpoints/trloss.npy')
-    valid_loss = np.load('./data/checkpoints/valoss.npy')
+    train_loss = np.load(f'./data/checkpoints/tr_{mode}_loss.npy')
+    valid_loss = np.load(f'./data/checkpoints/va_{mode}_loss.npy')
     plot_loss(train_loss, valid_loss)
-    total_files, channel_indices = get_metadata(cfg_data.dataset)
+    total_files, channel_indices = get_metadata(cfg_data.dataset, mode)
 
     # Load data
     # Compute RMSE per channel and total
-    get_rmse(total_files, channel_indices)
+    mu = np.load(os.path.join(cfg_data.dataset.stats_dir, "global_means.npy"))
+    clim_mean = mu[:, channel_indices, :, :]
+    get_result(total_files, channel_indices, clim_mean, mode)
+    show_result(mode)
 
     ##### You can choose the date to plot (must exist in ./result/output/)#####
-    total_files = ['2020100100']
-    channel_index = [cfg_data.dataset.channels.index(v) for v in ['2m_temperature', 'geopotential_500', 'temperature_500']] # '2m_temperature', 'geopotential_500', 'temperature_500'
-
-    ##### Or use random index to plot #####
-    # np.random.seed(42) # use a fix seed ensure to get same result
-    # sample_index = np.random.choice(len(total_files), 3, replace=False)
-    # channel_index = np.random.choice(len(cfg_data.dataset.channels), 3, replace=False)
-    # selected_files = [total_files[int(i)] for i in sample_index]
-
+    eg_files = ['1969100100']
+    channel_index = [cfg_data.dataset.channels.index(v) for v in ['2m_temperature', 'geopotential_500', 'temperature_500']]
     
     selected_var = [cfg_data.dataset.channels[int(i)] for i in channel_index]
-    print(f"seleted date: {total_files}")
+    print(f"seleted date: {eg_files}")
     print(f"selected channels: {selected_var}")
-    for file in total_files:
+    for file in eg_files:
         with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}.h5', "r") as f:
             label = f["fields"][:]  # [N, H, W]
             label = label[channel_indices]
-        pred = np.load(f'result/output/{file}.npy').squeeze()
+        pred = np.load(f'result/{mode}/data/{file[:4]}/{file}.npy').squeeze()
         for i in range(len(selected_var)):
-            filename = f'./result/{file}_{selected_var[i]}.png'
+            filename = f'./result/{mode}_{file}_{selected_var[i]}.png'
             plot(label[channel_index[i]], pred[channel_index[i]], selected_var[i], filename)
             print(f'✅plot {filename}')

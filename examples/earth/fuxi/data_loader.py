@@ -222,16 +222,17 @@ class ERA5Dataset(BaseDataset):
         invar_list = []
         for i in range(step_idx, step_idx + self.input_steps):
             data = np.load(files[i])
+            data = np.squeeze(data)  # [N, H, W]
             invar_list.append(data)
         
         outvar_list = []
         time_index = []
         for i in range(step_idx + self.input_steps, step_idx + self.input_steps + self.output_steps):
-            with h5py.File(f'{self.data_dir}/data/{year}/{files[i][-15:-4]}.h5', "r") as f:
+            with h5py.File(f'{self.data_dir}/data/{year}/{files[i][-14:-4]}.h5', "r") as f:
                 data = f["fields"][:]  # [N, H, W]
                 data = data[self.channel_indices]
                 outvar_list.append(data)
-                time_index.append(files[i][-13:-3])
+                time_index.append(files[i][-14:-4])
 
         invar = np.stack(invar_list, axis=0)  # [T, N, H, W]
         outvar = np.stack(outvar_list, axis=0)  # [T, N, H, W]
