@@ -20,6 +20,10 @@ BENO模型架构如下所示：
 10 个 4-Corners 例题的样本数据集文件位于 "data/" 目录下。完整的数据集文件可以通过[此链接](https://drive.google.com/file/d/11PbUrzJ-b18VhFGY_uICSciCkeGrsaTZ/view)下载。要在特定边界类型上运行实验，请将链接中的文件下载到本地仓库的 "data/" 文件夹中。**BC_Nxx_xc_all.npy**/**RHS_Nxx_xc_all.npy**/**SOL_Nxx_xc_all.npy** 分别代表特定分辨率和形状的**边界信息**/**源项**/**解项**。
 
 曙光新一代机器平台数据集统一存放在：/public/onestore/onedatasets/BENO
+，使用前需要
+```bash
+source ../../../env.sh
+```
 
 将数据集解压后放入当前目录下的data文件夹中，就像这样
 

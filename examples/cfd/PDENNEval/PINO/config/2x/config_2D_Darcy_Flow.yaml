@@ -1,7 +1,7 @@
 pino_config:
   datapipe:
     source:
-      data_dir: "../data"
+      data_dir: "${ONESCIENCE_DATASETS_DIR}/PDENNEval/data/" 
       file_name: "2D_DarcyFlow_beta1.0_Train.hdf5"
     verbose: True    
     data:

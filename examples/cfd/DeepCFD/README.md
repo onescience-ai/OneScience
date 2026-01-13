@@ -10,6 +10,10 @@
 此项目的数据集可以使用以此链接[下载](https://zenodo.org/record/3666056/files/DeepCFD.zip?download=1)
 
 曙光新一代机器平台数据集统一存放在：/public/onestore/onedatasets/DeepCFD
+，使用前需要
+```bash
+source ../../../env.sh
+```
 
 数据集包含两个文件：
 - `dataX.pkl`: 981个管道流样本的几何输入信息

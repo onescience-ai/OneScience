@@ -31,6 +31,10 @@ pip install -r requirements.txt
 实验数据由[AirfRANS](https://github.com/Extrality/AirfRANS)提供。您可以通过此[链接](https://data.isir.upmc.fr/extrality/NeurIPS_2022/Dataset.zip)直接下载（9.3GB），可以通过此通过此[链接](https://airfrans.readthedocs.io/en/latest/notes/introduction.html)查看数据集的一些描述。
 
 曙光新一代机器平台数据集统一存放在 /public/onestore/onedatasets/Transolver-Airfoil-Design
+，使用前需要
+```bash
+source ../../../env.sh
+```
 
 dataset目录下的dataset_stats.ipynb可以绘制数据的各种信息
 
