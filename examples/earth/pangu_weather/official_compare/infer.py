@@ -89,9 +89,9 @@ if __name__ == "__main__":
     cfg_data = YParams(config_file_path, "datapipe")
     channels = cfg_data.dataset.channels
     datapath = cfg_data.dataset.data_dir
+    
     # data = data_prepare("2019010206", channels, datapath)
     # single_data_infer(data)
-
 
     test_dataset = ERA5Datapipe(params = cfg_data, distributed = False, normalize=False)
     test_dataloader = test_dataset.test_dataloader()

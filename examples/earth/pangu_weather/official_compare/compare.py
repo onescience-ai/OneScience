@@ -15,10 +15,8 @@ from onescience.utils.YParams import YParams
 
 
 def data_prepare(date, channels, datapath):
-    print('preparing data... ', end=' ')
     with open(f'{datapath}/metadata.json', "r") as f:
         metadata = json.load(f)
-
     variables = metadata['variables']
     channel_indices = [variables.index(v) for v in channels]
     with h5py.File(f'{datapath}/data/{date[:4]}/{date}.h5', "r") as f:
@@ -85,8 +83,7 @@ def plot(date, label, pth_pred, onnx_pred, var, filename):
     plt.close()
 
 
-def get_rmse(channel_indices):
-    channel_rmse = np.zeros(len(channel_indices))
+def show_rmse(channel_indices):
     pth_rmse =  np.load('../result/rmse.npy')
     onnx_rmse = np.load('./result/rmse.npy')
     
@@ -101,6 +98,41 @@ def get_rmse(channel_indices):
     # 数据行
     for i, ch in enumerate(channels):
         print(f"│ {ch:<{w}} │ {pth_rmse[i]:>12.4f} │ {onnx_rmse[i]:>12.4f} │")
+    print(f"├{'─' * (w + 2)}┼{'─' * 14}┼{'─' * 14}┤")
+    print(f"│ {'Average':<{w}} │ {np.mean(pth_rmse):>12.4f} │ {np.mean(onnx_rmse):>12.4f} │")
+    print(f"├{'─' * (w + 2)}┼{'─' * 14}┼{'─' * 14}┤")
+
+
+def plot_rmse_comparison(channel_indices, filename='./result/rmse_comparison.png'):
+    channels = [cfg_data.dataset.channels[i] for i in range(len(channel_indices))]
+    pth_rmse =  np.load('../result/rmse.npy')
+    onnx_rmse = np.load('./result/rmse.npy')
+    fig, ax = plt.subplots(figsize=(15, 5))
+    
+    x = np.arange(len(channels))
+    colors = {'pth': '#2563EB', 'onnx': '#EA580C'}
+
+    # 绑定折线图
+    ax.plot(x, pth_rmse, color=colors['pth'], linewidth=1.5, label=f'OneScience (avg rmse: {np.mean(pth_rmse):.2f})', marker='o', markersize=4)
+    ax.plot(x, onnx_rmse, color=colors['onnx'], linewidth=1.5, label=f'Official (avg rmse: {np.mean(onnx_rmse):.2f})', marker='s', markersize=4)
+
+    # 坐标轴设置
+    ax.set_ylabel('RMSE (log scale)', fontsize=12)
+    ax.set_xticks(x)
+    ax.set_xticklabels(channels, rotation=45, ha='right', fontsize=8)
+    ax.set_yscale('log')
+    ax.set_xlim(-0.5, len(channels) - 0.5)
+
+    ax.set_title('RMSE (log scale) of each variable comparison between OneScience and Official', fontsize=14, fontweight='bold', pad=10)
+
+    # 样式
+    ax.legend(frameon=False, loc='upper right', fontsize=16)
+    ax.grid(True, linestyle='--', alpha=0.3)
+    ax.spines[['top', 'right']].set_visible(False)
+    
+    plt.tight_layout()
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.close()
 
 
 if __name__ == "__main__":
@@ -111,13 +143,13 @@ if __name__ == "__main__":
     channels = cfg_data.dataset.channels
     datapath = cfg_data.dataset.data_dir
 
-    meta_path = os.path.join(cfg.data_dir, 'metadata.json')
+    meta_path = os.path.join(datapath, 'metadata.json')
     with open(meta_path, "r") as f:
         metadata = json.load(f)
     variables = metadata['variables']
-    channel_indices = [variables.index(v) for v in cfg.channels]
-    get_rmse(channel_indices)
-
+    channel_indices = [variables.index(v) for v in cfg_data.dataset.channels]
+    show_rmse(channel_indices)
+    plot_rmse_comparison(channel_indices, filename='./result/rmse_comparison.png')
     date = "2020010212"
     truth_data = data_prepare(date, channels, datapath)
     pth_pred = np.load(f'../result/output/{date}.npy')[0]
@@ -132,4 +164,5 @@ if __name__ == "__main__":
          var, 
          f'{date}_{var}_compare1.png')
     print(f'plot {var} compare result...')
+    
     
