@@ -172,16 +172,6 @@ def main():
         model.train()
         train_loss_sum = 0.0
     
-        if manager.rank == 0:
-            pbar = tqdm(
-                total=len(train_dataloader),
-                desc=f"Epoch [{epoch + 1}/{cfg_train.max_epoch}]",
-                dynamic_ncols=True,
-                leave=True
-            )
-        else:
-            pbar = None
-    
         for idx, data in enumerate(train_dataloader):
             iter_start = time.time()
     
@@ -207,15 +197,6 @@ def main():
             train_loss_sum += current_batch_loss
             avg_loss_so_far = train_loss_sum / (idx + 1)
     
-            if pbar is not None:
-                pbar.set_postfix({
-                    "loss": f"{current_batch_loss:.3e}",
-                    "avg": f"{avg_loss_so_far:.3e}",
-                    "lr": f"{scheduler.get_last_lr()[0]:.1e}",
-                    "t": f"{time.time() - iter_start:.2f}s"
-                })
-                pbar.update(1)
-    
             if manager.rank == 0 and (idx + 1) % log_interval == 0:
                 total_batches = len(train_dataloader)
                 logger.info(
@@ -225,10 +206,6 @@ def main():
                     f"Epoch Avg Loss: {avg_loss_so_far:.6f}"
                 )
     
-        if pbar is not None:
-            pbar.close()
-
-            
         train_loss_avg = train_loss_sum / len(train_dataloader)
         
         # --- 验证 ---

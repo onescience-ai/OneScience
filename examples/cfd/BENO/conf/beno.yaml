@@ -1,7 +1,7 @@
 beno_config:
   datapipe:
     source:
-      data_dir: "./data/Dirichlet/"        # 数据集根目录
+      data_dir: "${ONESCIENCE_DATASETS_DIR}/BENO/data/Dirichlet/"        # 数据集根目录
       file_prefix: "N32_4c"                # 数据文件名前缀（如 RHS_N32_4c_all.npy）
     verbose: True                          # 是否打印 datapipe 详细日志
 

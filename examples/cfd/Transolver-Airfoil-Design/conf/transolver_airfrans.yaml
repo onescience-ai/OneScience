@@ -81,8 +81,8 @@ datapipe:
   
   # 数据源设置
   source:
-    data_dir: './data/Dataset'  # 原始数据目录
-    stats_dir: './data'               # 统计信息保存目录
+    data_dir: "${ONESCIENCE_DATASETS_DIR}/Transolver-Airfoil-Design/Dataset"   # 原始数据目录 
+    stats_dir: './dataset'               # 统计信息保存目录
   
   # 数据划分和采样设置
   data:

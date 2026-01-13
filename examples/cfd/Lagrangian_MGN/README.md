@@ -16,13 +16,13 @@
 其中一些数据集包含基于粒子的流体飞溅和反弹模拟在盒子或立方体内，而其他人则使用沙子或粘稠物等材料。
 总共有17个数据集，其中一些如下：
 
-| Datasets     | Num Particles | Num Time Steps |    dt    | Ground Truth Simulator |
-|--------------|---------------|----------------|----------|------------------------|
-| Water-3D     | 14k           | 800            | 5ms      | SPH                    |
-| Water        | 2k            | 1000           | 2.5ms    | MPM                    |
-| WaterRamp    | 2.5k          | 600            | 2.5ms    | MPM                    |
-| Sand         | 2k            | 320            | 2.5ms    | MPM                    |
-| Goop         | 1.9k          | 400            | 2.5ms    | MPM                    |
+| Datasets  | Num Particles | Num Time Steps | dt    | Ground Truth Simulator |
+| --------- | ------------- | -------------- | ----- | ---------------------- |
+| Water-3D  | 14k           | 800            | 5ms   | SPH                    |
+| Water     | 2k            | 1000           | 2.5ms | MPM                    |
+| WaterRamp | 2.5k          | 600            | 2.5ms | MPM                    |
+| Sand      | 2k            | 320            | 2.5ms | MPM                    |
+| Goop      | 1.9k          | 400            | 2.5ms | MPM                    |
 
 请参阅[原始论文]中的**B.1**节(https://arxiv.org/abs/2002.09405).
 
@@ -60,7 +60,8 @@ pip install "tensorflow<=2.17.1"
 cd raw_dataset
 bash download_dataset.sh Water ./data/
 ```
-曙光新一代机器平台数据集统一存放在 = /public/onestore/onedatasets/Lagrangian_MGN
+
+我们下载了water子数据集，曙光新一代机器平台数据集统一存放在 = /public/onestore/onedatasets/Lagrangian_MGN
 
 
 此示例使用[Hydra](https://hydra.cc/docs/intro/)用于[实验](https://hydra.cc/docs/patterns/configuring_experiments/)
@@ -80,19 +81,14 @@ HYDRA_FULL_ERROR=1 python train.py ...
 ```bash
 python train.py +experiment=water data.data_dir=./data/Water resume_dir=./model/Water
 ```
+必须需要使用data.data_dir指定数据的路径，resume_dir指定模型的保存路径，默认为outputs子目录。 ${ONESCIENCE_DATASETS_DIR}/Lagrangian_MGN/data/Water
 
-可以使用 Weights & Biases 监控训练进度和损失日志。要启用该功能，请在命令行中将 `loggers.wandb.mode` 设置为 `online`：
-
+如果使用新一代体验区可以使用下载好的water子数据集：
 ```bash
-python train.py +experiment=water data.data_dir=./data/Water resume_dir=./model/Water loggers.wandb.mode=online
-
+source ../../../env.sh
+python train.py +experiment=water data.data_dir=${ONESCIENCE_DATASETS_DIR}/Lagrangian_MGN/data/Water resume_dir=./model/Water
 ```
-需要一个有效的 Weights & Biases 账户。您还需要通过命令行选项 `loggers.wandb.wandb_key` 设置您的 API 密钥，或者使用环境变量 `WANDB_API_KEY`：
 
-```bash
-export WANDB_API_KEY=key
-python train.py ...
-```
 多卡训练：
 
 ```bash

@@ -1,10 +1,10 @@
 datapipe:
   # --- 数据源配置 ---
   source:
-    # 原始数据集所在的根目录路径（代码中 DeepMind_CylinderFlowDatapipe 会读取此路径）
-    data_dir: /public/onestore/onedatasets/vortex_shedding_mgn/cylinder_flow
+    # 原始数据集所在的根目录路径（代码中 DeepMind_CylinderFlowDatapipe 会读取此路径） ${ONESCIENCE_DATASETS_DIR}/vortex_shedding_mgn/cylinder_flow
+    data_dir: ${ONESCIENCE_DATASETS_DIR}/vortex_shedding_mgn/cylinder_flow
     # 统计数据（用于归一化的均值/标准差）的保存或读取路径
-    stats_dir: /public/onestore/onedatasets/vortex_shedding_mgn/cylinder_flow/stats 
+    stats_dir: ${ONESCIENCE_DATASETS_DIR}/vortex_shedding_mgn/cylinder_flow/stats 
 
   # 是否在数据管道初始化时打印详细信息
   verbose: True
@@ -78,7 +78,7 @@ training:
   # 早停机制（Early Stopping）：如果验证集 Loss 连续 50 个 Epoch 不下降，则停止训练
   patience: 50 
   # 日志打印频率：每隔 100 个 Batch 打印一次 Loss 信息
-  log_interval: 100
+  log_interval: 1000
   # 单卡训练时使用的 GPU ID（例如使用 cuda:0）
   gpuid: 0
 

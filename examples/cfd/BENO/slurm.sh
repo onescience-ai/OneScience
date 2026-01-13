@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -p km64 # 指定使用的队列名
+#SBATCH -p largedev # 指定使用的队列名
 #SBATCH -N 1      # 申请 1 个计算节点
 #SBATCH --gres=dcu:4  # 申请 4 个 DCU 资源，
 #SBATCH --cpus-per-task=32 # 每个任务分配 32 个 CPU 核心
@@ -11,8 +11,8 @@
 echo "START TIME: $(date)"
 
 module purge
-module load mpi/hpcx/2.12.0/gcc-8.3.1
-module load compiler/dtk/25.04
+module load sghpc-mpi-gcc/25.8
+source ../../../env.sh
 
 source ~/conda.env # 替换为自己的conda路径
 conda activate onescience # 替换为自己的conda环境

@@ -33,13 +33,18 @@
 
 ## 数据集
 
-下面是对流方程和纳维-斯托克斯方程所需要数据集，用于读取初始状态和作为真实值对比：
+下面是对流方程（convection）和纳维-斯托克斯方程（navier_stokes）所需要数据集，用于读取初始状态和作为真实值对比：（convection和navier_stokes对应的项目才需要数据集）
 
 [Baidu Drive (百度网盘)](https://pan.baidu.com/s/1pM4ICc6FJX5pLF7WEoozxQ?pwd=5gha) (提取码: 5gha)
 
 下载完数据放入对应的文件夹即可。
 
 曙光新一代机器平台数据集统一存放在：/public/onestore/onedatasets/pinnsformer
+
+使用以下命令可以将对应的数据集拷贝到对应的子目录下
+```bash
+bash data.sh
+```
 
 ## 训练
 

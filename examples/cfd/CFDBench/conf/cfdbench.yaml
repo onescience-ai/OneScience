@@ -6,7 +6,7 @@ root:
   datapipe:
     source:
       # 数据集所在的根目录
-      data_dir: "./data"
+      data_dir: "${ONESCIENCE_DATASETS_DIR}/CFDBench/" 
       # 具体使用的数据集名称子集
       # 选项包括: 
       # - tube_prop_bc_geo (管道流，变化的物性/边界/几何)
