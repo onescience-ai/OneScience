@@ -47,7 +47,7 @@ python-hostlist
 configargparse
 opt_einsum
 prettytable
-lmdb
+lmdb==1.6.2
 orjson
 matplotlib
 contextlib2
@@ -88,3 +88,14 @@ mashumaro==3.16
 ihm==2.7
 modelcif==1.4
 py3Dmol==2.5.2
+
+#chem
+opt_einsum-fx
+importlib_metadata
+requests
+huggingface_hub
+torchtnt
+ase_db_backends
+clusterscope
+numba
+submitit

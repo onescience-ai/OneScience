@@ -89,7 +89,6 @@ basic_requires = [
     "xarray",
     "s3fs",
     "netcdf4",
-
 ]
 
 
@@ -123,6 +122,17 @@ chemistry_requires = [
     "lmdb",
     "orjson",
     "pymatgen",
+    #新赠
+    "ase_db_backends",
+    "submitit",
+    "clusterscope",
+    "requests",
+    "importlib_metadata",
+    "huggingface_hub",
+    "numba",
+    "opt_einsum-fx",
+    "torchtnt",
+    
 ]
 
 biology_requires = [
@@ -184,7 +194,6 @@ extras["chem"] = resolve(chemistry_requires, deps)
 extras["quantum"] = resolve(quantum_requires, deps)
 extras["dev"] = resolve(dev_requires, deps)
 extras["all"] = one_deps
-
 setup(
     name="onescience",
     version="0.2.0",
