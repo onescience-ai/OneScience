@@ -24,9 +24,9 @@ datapipe:
   
   # 数据源设置
   source:
-    data_dir: "/path/to/training_data"         # 原始数据目录
-    preprocessed_save_dir: "/path/to/preprocessed_data"  # 预处理数据保存目录
-    stats_dir: "/path/to/stats"      # 统计信息目录 (存储 mean/std.npy)
+    data_dir: "${ONESCIENCE_DATASETS_DIR}/Transolver-Car-Design/mlcfd_data/training_data"         # 原始数据目录  
+    preprocessed_save_dir: "${ONESCIENCE_DATASETS_DIR}/Transolver-Car-Design/mlcfd_data/preprocessed_data"  # 预处理数据保存目录
+    stats_dir: "${ONESCIENCE_DATASETS_DIR}/Transolver-Car-Design/mlcfd_data/stats"   # 统计信息目录 (存储 mean/std.npy)
     preprocessed: 1                  # 是否使用预处理数据 (1: 是, 0: 否)
   
   # 数据划分

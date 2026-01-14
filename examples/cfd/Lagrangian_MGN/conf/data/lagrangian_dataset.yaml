@@ -1,15 +1,15 @@
-# conf/data/drivaerml.yaml
-
-_target_: onescience.datapipes.cfd.DrivAerML_FigConvUnet.DrivAerML_FigConvUnetDatapipe
+_target_: onescience.datapipes.gnn.lagrangian_dataset.LagrangianDataset
 _convert_: all
 
-source:
-  # BaseDataset 默认读取 config.source.data_dir
-  data_dir: /public/home/onescience2025404/songzhl/physicsnemo-main/examples/cfd/external_aerodynamics/xaeronet/surface_dgl/
-  origin_data_path: /public/home/songzhl/dataset/DrivAerML/drivaer_data/
-  stats_filename: global_stats.json  # 显式指定统计文件名，防止代码报错
-
-data:
-  name: DrivAerML
-  num_points: 100_000
-  NUM_SAMPLES_TO_SAVE: 2
+# Note: values that are not set will be populated from dataset metadata.
+name: ${data.name}
+data_dir: ${data.data_dir}
+split: ???
+num_sequences: ???
+num_history: ${..num_history}
+num_steps:
+num_node_types: ${..num_node_types}
+noise_std: 0.0003
+radius:
+dt:
+bounds:

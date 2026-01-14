@@ -5,10 +5,10 @@ datapipe:
   # 数据相关配置模块
   source:
     # Eagle 数据集根目录，包含原始流场与几何数据
-    data_dir: "/public/onestore/onedatasets/Eagle/Eagle_dataset"
+    data_dir: "${ONESCIENCE_DATASETS_DIR}/Eagle/Eagle_dataset"
 
     # 聚类结果存放目录（GraphViT 使用的节点聚类信息）
-    cluster_dir: "/public/onestore/onedatasets/Eagle/Eagle_dataset"
+    cluster_dir: "${ONESCIENCE_DATASETS_DIR}/Eagle/Eagle_dataset"
 
     # 训练 / 验证 / 测试数据划分文件所在目录
     splits_dir: "./splits/"

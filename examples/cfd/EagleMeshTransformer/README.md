@@ -25,6 +25,10 @@ Eagle数据集中模拟了一架二维无人机在具有不同地面轮廓的二
 你可以从[此链接](https://datasets.liris.cnrs.fr/eagle-version1)下载数据集。
 
 曙光新一代机器平台数据集统一存放在：/public/onestore/onedatasets/Eagle
+，使用前需要
+```bash
+source ../../../env.sh
+```
 
 模拟数据存储在单个numpy文件(.npz)中，包含二维节点位置、类型、速度和压力信息。边信息存储在另一个文件(`triangles.npy`)中，为三角形顶点三元组。以下为各文件对应的SHA256校验和：
 

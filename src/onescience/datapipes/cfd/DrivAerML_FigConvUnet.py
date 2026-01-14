@@ -148,18 +148,19 @@ class DrivAerML_FigConvUnetDatapipe:
         self.test_dataset = DrivAerML_FigConvUnetDataset(dataset_cfg, mode='test')
 
     def _create_dataloader(self, dataset: BaseDataset, **kwargs) -> DataLoader:
+        # 1. 提取基础参数
         shuffle = kwargs.pop("shuffle", False)
         sampler = kwargs.pop("sampler", None)
         
-        if sampler is None and self.distributed:
-            sampler = DistributedSampler(dataset, shuffle=shuffle)
+        # 2. 提取 DataLoader 核心参数 (优先 kwargs，否则使用默认值)
+        # 注意：这里不再尝试去 self.config 里找，因为由调用者(train_dataloader)负责传入
+        batch_size = kwargs.pop("batch_size", 1) 
+        num_workers = kwargs.pop("num_workers", 0)
+        pin_memory = kwargs.pop("pin_memory", True)
 
-        # Extract dataloader params from config if not provided in kwargs
-        # Assuming config structure: config.dataloader.batch_size etc.
-        # Adjust based on your specific yaml structure.
-        batch_size = kwargs.pop("batch_size", self.config.dataloader.batch_size)
-        num_workers = kwargs.pop("num_workers", self.config.dataloader.get("num_workers", 0))
-        pin_memory = kwargs.pop("pin_memory", self.config.dataloader.get("pin_memory", True))
+        if sampler is None and self.distributed:
+            from torch.utils.data.distributed import DistributedSampler
+            sampler = DistributedSampler(dataset, shuffle=shuffle)
 
         return DataLoader(
             dataset,
@@ -172,14 +173,67 @@ class DrivAerML_FigConvUnetDatapipe:
         )
 
     def train_dataloader(self, **kwargs) -> DataLoader:
-        return self._create_dataloader(self.train_dataset, shuffle=True, **kwargs)
+        # 清理 kwargs 防止冲突
+        kwargs.pop("shuffle", None) 
+        cfg_train = self.config.train
+        
+        # 提取参数，如果有 kwargs 传入则覆盖 config
+        batch_size = kwargs.pop("batch_size", cfg_train.get("batch_size", 1))
+        
+        # 安全获取 dataloader 下的参数
+        dl_cfg = cfg_train.get("dataloader", {})
+        num_workers = kwargs.pop("num_workers", dl_cfg.get("num_workers", 0))
+        pin_memory = kwargs.pop("pin_memory", dl_cfg.get("pin_memory", True))
 
+        return self._create_dataloader(
+            self.train_dataset, 
+            shuffle=True, 
+            batch_size=batch_size, 
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            **kwargs
+        )
     def val_dataloader(self, **kwargs) -> DataLoader:
-        return self._create_dataloader(self.val_dataset, shuffle=False, **kwargs)
+        kwargs.pop("shuffle", None)
+        
+        # --- 核心修改：从 self.config.eval 读取配置 ---
+        cfg_eval = self.config.eval
+        
+        batch_size = kwargs.pop("batch_size", cfg_eval.get("batch_size", 1))
+        
+        dl_cfg = cfg_eval.get("dataloader", {})
+        num_workers = kwargs.pop("num_workers", dl_cfg.get("num_workers", 0))
+        pin_memory = kwargs.pop("pin_memory", dl_cfg.get("pin_memory", True))
+
+        return self._create_dataloader(
+            self.val_dataset, 
+            shuffle=False, 
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            **kwargs
+        )
 
     def test_dataloader(self, **kwargs) -> DataLoader:
-        return self._create_dataloader(self.test_dataset, shuffle=False, **kwargs)
+        # 测试集配置通常与验证集相同，也可以单独读取
+        kwargs.pop("shuffle", None)
+        
+        cfg_eval = self.config.eval
+        
+        batch_size = kwargs.pop("batch_size", cfg_eval.get("batch_size", 1))
+        
+        dl_cfg = cfg_eval.get("dataloader", {})
+        num_workers = kwargs.pop("num_workers", dl_cfg.get("num_workers", 0))
+        pin_memory = kwargs.pop("pin_memory", dl_cfg.get("pin_memory", True))
 
+        return self._create_dataloader(
+            self.test_dataset, 
+            shuffle=False, 
+            batch_size=batch_size,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
+            **kwargs
+        )
     @staticmethod
     def set_epoch(dataloader: DataLoader, epoch: int):
         """Sets the epoch for DistributedSampler."""

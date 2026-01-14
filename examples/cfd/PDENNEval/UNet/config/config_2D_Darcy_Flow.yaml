@@ -1,9 +1,7 @@
 unet_config:
   datapipe:
     source:
-      # 原 saved_folder 移到这里
-      data_dir: "../data/"
-      # 原 dataset.file_name
+      data_dir: "${ONESCIENCE_DATASETS_DIR}/PDENNEval/data/" 
       file_name: "2D_DarcyFlow_beta0.1_Train.hdf5"
     verbose: True    
     data:

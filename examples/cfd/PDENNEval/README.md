@@ -16,30 +16,35 @@ PDENNEval 对 8 种用于偏微分方程（PDE）的神经网络（NN）方法�
 
 PDEBench 提供了涵盖广泛偏微分方程（PDE）的大规模数据集。可以从 [DaRUS 数据库](https://darus.uni-stuttgart.de/dataset.xhtml?persistentId=doi:10.18419/darus-2986) 下载这些数据集。我们工作中使用的数据文件如下：
 
-曙光新一代机器平台数据集统一存放在：/public/onestore/onedatasets/PDENNEval
+我们提供了Advection和Darcy_Flow数据集，曙光新一代机器平台数据集统一存放在：/public/onestore/onedatasets/PDENNEval
+，使用前需要
+```bash
+source ../../../env.sh
+```
 
-| PDE | 文件名 | 文件大小 | 
-| :--- | :---: | :---: |
-| 1D Advection | 1D_Advection_Sols_beta0.1.hdf5 | 7.7G |
-| 1D Diffusion-Reaction | ReacDiff_Nu0.5_Rho1.0.hdf5 | 3.9G | 
-| 1D Burgers| 1D_Burgers_Sols_Nu0.001.hdf5 | 7.7G |
-| 1D Diffusion-Sorption | 1D_diff-sorp_NA_NA.h5 | 4.0G |
-| 1D Compressible NS | 1D_CFD_Rand_Eta0.1_Zeta0.1_periodic_Train.hdf5 | 12G | 
-| 2D Compressible NS | 2D_CFD_Rand_M0.1_Eta0.1_Zeta0.1_periodic_128_Train.hdf5 | 52G | 
-| 2D Darcy Flow | 2D_DarcyFlow_beta1.0_Train.hdf5 | 1.3G |
-| 2D Shallow Water | 2D_rdb_NA_NA.h5 | 6.2G |
-| 3D Compressible NS | 3D_CFD_Rand_M1.0_Eta1e-08_Zeta1e-08 _periodic_Train.hdf5 | 83G |
+
+| PDE                   |                          文件名                          | 文件大小 |
+| :-------------------- | :------------------------------------------------------: | :------: |
+| 1D Advection          |              1D_Advection_Sols_beta0.1.hdf5              |   7.7G   |
+| 1D Diffusion-Reaction |                ReacDiff_Nu0.5_Rho1.0.hdf5                |   3.9G   |
+| 1D Burgers            |               1D_Burgers_Sols_Nu0.001.hdf5               |   7.7G   |
+| 1D Diffusion-Sorption |                  1D_diff-sorp_NA_NA.h5                   |   4.0G   |
+| 1D Compressible NS    |      1D_CFD_Rand_Eta0.1_Zeta0.1_periodic_Train.hdf5      |   12G    |
+| 2D Compressible NS    | 2D_CFD_Rand_M0.1_Eta0.1_Zeta0.1_periodic_128_Train.hdf5  |   52G    |
+| 2D Darcy Flow         |             2D_DarcyFlow_beta1.0_Train.hdf5              |   1.3G   |
+| 2D Shallow Water      |                     2D_rdb_NA_NA.h5                      |   6.2G   |
+| 3D Compressible NS    | 3D_CFD_Rand_M1.0_Eta1e-08_Zeta1e-08 _periodic_Train.hdf5 |   83G    |
 
 #### 自生成数据
 
-| PDE | 文件大小 | 下载链接 | 
-| :--- | :--- | :---: |
-| 1D Allen-Cahn 方程 | 3.9G | [链接](http://aisccc.cn/database/data-details?id=52&type=resource) |
-| 1D Cahn-Hilliard 方程 | 3.9G | [链接](http://aisccc.cn/database/data-details?id=48&type=resource) | 
-| 2D Allen-Cahn 方程 | 6.2G | [链接](http://aisccc.cn/database/data-details?id=56&type=resource) |
-| 2D Black-Scholes-Barenblatt 方程 | 6.2G | [链接](http://aisccc.cn/database/data-details?id=53&type=resource) |
-| 3D Euler 方程 | 83G | [链接](http://aisccc.cn/database/data-details?id=54&type=resource) | 
-| 3D Maxwell 方程 | 5.9G | [链接](http://aisccc.cn/database/data-details?id=55&type=resource) |
+| PDE                              | 文件大小 |                              下载链接                              |
+| :------------------------------- | :------- | :----------------------------------------------------------------: |
+| 1D Allen-Cahn 方程               | 3.9G     | [链接](http://aisccc.cn/database/data-details?id=52&type=resource) |
+| 1D Cahn-Hilliard 方程            | 3.9G     | [链接](http://aisccc.cn/database/data-details?id=48&type=resource) |
+| 2D Allen-Cahn 方程               | 6.2G     | [链接](http://aisccc.cn/database/data-details?id=56&type=resource) |
+| 2D Black-Scholes-Barenblatt 方程 | 6.2G     | [链接](http://aisccc.cn/database/data-details?id=53&type=resource) |
+| 3D Euler 方程                    | 83G      | [链接](http://aisccc.cn/database/data-details?id=54&type=resource) |
+| 3D Maxwell 方程                  | 5.9G     | [链接](http://aisccc.cn/database/data-details?id=55&type=resource) |
 
 ### 训练与测试
 

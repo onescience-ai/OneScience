@@ -299,7 +299,7 @@ def load_checkpoint(
                 path, name, index=epoch
             )
             if not Path(file_name).exists():
-                checkpoint_logging.error(
+                checkpoint_logging.warning(
                     f"Could not find valid model file {file_name}, skipping load"
                 )
                 continue

@@ -5,7 +5,7 @@ root:
   datapipe:
     verbose: False  # 是否显示详细信息
     source:
-      data_dir: "./data"  # 存放 dataX.pkl 和 dataY.pkl 的目录
+      data_dir: "${ONESCIENCE_DATASETS_DIR}/DeepCFD"  # 存放 dataX.pkl 和 dataY.pkl 的目录
       data_x_name: "dataX.pkl"  # 输入数据文件名
       data_y_name: "dataY.pkl"  # 输出数据文件名
     
