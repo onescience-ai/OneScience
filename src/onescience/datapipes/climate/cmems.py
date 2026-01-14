@@ -144,7 +144,7 @@ class  CMEMSHDF5Dataset(BaseDataset):
     def _init_files(self):
         for year in self.selected_years:
             path = os.path.join(self.data_dir, 'h5', str(year))
-            print("----data_str",path)
+            # print("----data_str",path)
             files = sorted(glob.glob(os.path.join(path, "*.h5")))
             self.files[year] = files
         self.samples_per_year = len(files) - self.output_steps - (self.input_steps - 1)
@@ -181,11 +181,14 @@ class  CMEMSHDF5Dataset(BaseDataset):
         file_indices = range(step_idx, step_idx + self.input_steps + self.output_steps)
 
         data_list = []
+        time_index=[] #inference
         for i in file_indices:
             with h5py.File(files[i], "r") as f:
                 data = f["fields"][:]  # [N, H, W]
                 data = data[self.channel_indices]
                 data_list.append(data)
+                 #inference
+                time_index.append(files[i][-11:-3])
 
         data = np.stack(data_list, axis=0)  # [T, N, H, W]
         invar = torch.as_tensor(data[:self.input_steps])
@@ -226,4 +229,4 @@ class  CMEMSHDF5Dataset(BaseDataset):
         timestamps = torch.from_numpy(timestamps)
         cos_zenith = cos_zenith_angle(timestamps, latlon=self.latlon_torch).float()
 
-        return invar.squeeze(0), outvar.squeeze(0), cos_zenith, step_idx
+        return invar.squeeze(0), outvar.squeeze(0), cos_zenith, step_idx , time_index

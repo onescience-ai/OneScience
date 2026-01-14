@@ -13,6 +13,10 @@ module load sghpc-mpi-gcc/25.8
 ##### Show env #####
 which python
 which hipcc
+
+####Launch env ####
+source  ../../../env.sh
+
 ##### Set DCU #####
 export HIP_VISIBLE_DEVICES=3
 
