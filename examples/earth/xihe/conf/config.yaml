@@ -1,7 +1,7 @@
 # ERA5数据集配置示例
 model:
   start_epoch: 0
-  max_epoch: 1
+  max_epoch: 99999
   lr: 5E-5          #学习率
   
   betas: [0.9, 0.95]
@@ -13,29 +13,26 @@ model:
   patience: 50 
   checkpoint_dir: "./data/checkpoints" #相对路径
 
-  in_chans: 96
-  out_chans: 96
+  in_chans: 100
+  out_chans: 100
   num_groups: 64
   depth: 2
   num_heads:  [6, 12, 12, 6]
   img_size: [2041, 4320]
-  mask: "/public/onestore/onedatasets/CMEMS/static/20210628_zos_ocean_mask.npy"
-  #mask: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/static/20210628_zos_ocean_mask.npy"
+  mask: "$ONESCIENCE_DATASETS_DIR/CMEMS/static/20210628_zos_ocean_mask.npy"
+  
 
- # 整个数据读取流程
+
 datapipe:
   name: "CMEMS"
   task: "ocean_forecasting"
 
-  # dataset设定
   dataset:
     type: "hdf5"
-    stats_dir: "/public/onestore/onedatasets/CMEMS/stats/" 
-    static_dir: "/public/onestore/onedatasets/CMEMS/static/" 
-    data_dir: "/public/onestore/onedatasets/CMEMS/newdata/" #10-14
-    #stats_dir: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/stats/" 
-    #static_dir: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/static/" 
-    #data_dir: "/public/home/easyscience2024/hanym/onescience/examples/earth/xihe/data/cmems/" #10-14
+    stats_dir: "$ONESCIENCE_DATASETS_DIR/CMEMS/stats/" 
+    static_dir: "$ONESCIENCE_DATASETS_DIR/CMEMS/static/" 
+    data_dir: "$ONESCIENCE_DATASETS_DIR/CMEMS/newdata/" #10-14
+
     
     #数据拆分
     # train_ratio: 0.7
@@ -50,12 +47,36 @@ datapipe:
 
     # 气象变量
 
-    channels: ["sea_surface_temperature","sea_surface_height_above_geoid","10m_u_component_of_wind","10m_v_component_of_wind",
-        "eastward_sea_water_velocity_1","eastward_sea_water_velocity_2","eastward_sea_water_velocity_3","eastward_sea_water_velocity_4","eastward_sea_water_velocity_5","eastward_sea_water_velocity_6","eastward_sea_water_velocity_7","eastward_sea_water_velocity_8","eastward_sea_water_velocity_9","eastward_sea_water_velocity_10","eastward_sea_water_velocity_11","eastward_sea_water_velocity_12","eastward_sea_water_velocity_13","eastward_sea_water_velocity_14","eastward_sea_water_velocity_15","eastward_sea_water_velocity_16","eastward_sea_water_velocity_17","eastward_sea_water_velocity_18","eastward_sea_water_velocity_19","eastward_sea_water_velocity_20","eastward_sea_water_velocity_21","eastward_sea_water_velocity_22","eastward_sea_water_velocity_23",
-        "northward_sea_water_velocity_1","northward_sea_water_velocity_2","northward_sea_water_velocity_3","northward_sea_water_velocity_4","northward_sea_water_velocity_5","northward_sea_water_velocity_6","northward_sea_water_velocity_7","northward_sea_water_velocity_8","northward_sea_water_velocity_9","northward_sea_water_velocity_10","northward_sea_water_velocity_11","northward_sea_water_velocity_12","northward_sea_water_velocity_13","northward_sea_water_velocity_14","northward_sea_water_velocity_15","northward_sea_water_velocity_16","northward_sea_water_velocity_17","northward_sea_water_velocity_18","northward_sea_water_velocity_19","northward_sea_water_velocity_20","northward_sea_water_velocity_21","northward_sea_water_velocity_22","northward_sea_water_velocity_23",
-        "sea_water_salinity_1","sea_water_salinity_2","sea_water_salinity_3","sea_water_salinity_4","sea_water_salinity_5","sea_water_salinity_6","sea_water_salinity_7","sea_water_salinity_8","sea_water_salinity_9","sea_water_salinity_10","sea_water_salinity_11","sea_water_salinity_12","sea_water_salinity_13","sea_water_salinity_14","sea_water_salinity_15","sea_water_salinity_16","sea_water_salinity_17","sea_water_salinity_18","sea_water_salinity_19","sea_water_salinity_20","sea_water_salinity_21","sea_water_salinity_22","sea_water_salinity_23",
-        "sea_water_potential_temperature_1","sea_water_potential_temperature_2","sea_water_potential_temperature_3","sea_water_potential_temperature_4","sea_water_potential_temperature_5","sea_water_potential_temperature_6","sea_water_potential_temperature_7","sea_water_potential_temperature_8","sea_water_potential_temperature_9","sea_water_potential_temperature_10","sea_water_potential_temperature_11","sea_water_potential_temperature_12","sea_water_potential_temperature_13","sea_water_potential_temperature_14","sea_water_potential_temperature_15","sea_water_potential_temperature_16","sea_water_potential_temperature_17","sea_water_potential_temperature_18","sea_water_potential_temperature_19","sea_water_potential_temperature_20","sea_water_potential_temperature_21","sea_water_potential_temperature_22","sea_water_potential_temperature_23"]
+    channels: ["sea_surface_height_above_geoid","10m_u_component_of_wind","10m_v_component_of_wind", "sea_surface_temperature",
+      "sea_water_potential_temperature_1",sea_water_salinity_1,"eastward_sea_water_velocity_1","northward_sea_water_velocity_1",
+      "sea_water_potential_temperature_2",sea_water_salinity_2,"eastward_sea_water_velocity_2","northward_sea_water_velocity_2",
+      "sea_water_potential_temperature_3",sea_water_salinity_3,"eastward_sea_water_velocity_3","northward_sea_water_velocity_3",
+      "sea_water_potential_temperature_4",sea_water_salinity_4,"eastward_sea_water_velocity_4","northward_sea_water_velocity_4",
+      "sea_water_potential_temperature_5",sea_water_salinity_5,"eastward_sea_water_velocity_5","northward_sea_water_velocity_5",
+      "sea_water_potential_temperature_6",sea_water_salinity_6,"eastward_sea_water_velocity_6","northward_sea_water_velocity_6",
+      "sea_water_potential_temperature_7",sea_water_salinity_7,"eastward_sea_water_velocity_7","northward_sea_water_velocity_7",
+      "sea_water_potential_temperature_8",sea_water_salinity_8,"eastward_sea_water_velocity_8","northward_sea_water_velocity_8",
+      "sea_water_potential_temperature_9",sea_water_salinity_9,"eastward_sea_water_velocity_9","northward_sea_water_velocity_9",
+      "sea_water_potential_temperature_10",sea_water_salinity_10,"eastward_sea_water_velocity_10","northward_sea_water_velocity_10",
+      "sea_water_potential_temperature_11",sea_water_salinity_11,"eastward_sea_water_velocity_11","northward_sea_water_velocity_11",
+      "sea_water_potential_temperature_12",sea_water_salinity_12,"eastward_sea_water_velocity_12","northward_sea_water_velocity_12",
+      "sea_surface_height_above_geoid","10m_u_component_of_wind","10m_v_component_of_wind", "sea_surface_temperature",
+      "sea_water_potential_temperature_13",sea_water_salinity_13,"eastward_sea_water_velocity_13","northward_sea_water_velocity_13",
+      "sea_water_potential_temperature_14",sea_water_salinity_14,"eastward_sea_water_velocity_14","northward_sea_water_velocity_14",
+      "sea_water_potential_temperature_15",sea_water_salinity_15,"eastward_sea_water_velocity_15","northward_sea_water_velocity_15",
+      "sea_water_potential_temperature_16",sea_water_salinity_16,"eastward_sea_water_velocity_16","northward_sea_water_velocity_16",      
+      "sea_water_potential_temperature_17",sea_water_salinity_17,"eastward_sea_water_velocity_17","northward_sea_water_velocity_17",
+      "sea_water_potential_temperature_18",sea_water_salinity_18,"eastward_sea_water_velocity_18","northward_sea_water_velocity_18",
+      "sea_water_potential_temperature_19",sea_water_salinity_19,"eastward_sea_water_velocity_19","northward_sea_water_velocity_19",
+      "sea_water_potential_temperature_20",sea_water_salinity_20,"eastward_sea_water_velocity_20","northward_sea_water_velocity_20",
+      "sea_water_potential_temperature_21",sea_water_salinity_21,"eastward_sea_water_velocity_21","northward_sea_water_velocity_21",
+      "sea_water_potential_temperature_22",sea_water_salinity_22,"eastward_sea_water_velocity_21","northward_sea_water_velocity_22",
+      "sea_water_potential_temperature_23",sea_water_salinity_23,"eastward_sea_water_velocity_23","northward_sea_water_velocity_23",
+    ]
+
+     
     
+
     
     variables:
       - "u10"        # 10m U wind component

@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH -p newlarge
+#SBATCH -p large_ai4s
 #SBATCH -x b09r2n03,b09r1n09
 #SBATCH -N 8
 #SBATCH --gres=dcu:8
 #SBATCH --cpus-per-task=16
 #SBATCH --ntasks-per-node=6
-#SBATCH -J Xihe_8_6
+#SBATCH -J Xihe_16_6
 #SBATCH --time=72:00:00
 #SBATCH -o logs/%x.out
 #SBATCH --exclusive
@@ -23,6 +23,9 @@ module load sghpc-mpi-gcc/25.8
 ##### Show env #####
 which python
 which hipcc
+####Launch env ####
+source  ../../../env.sh
+
 ##### Set DCU #####
 export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
