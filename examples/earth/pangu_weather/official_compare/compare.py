@@ -83,24 +83,27 @@ def plot(date, label, pth_pred, onnx_pred, var, filename):
     plt.close()
 
 
-def show_rmse(channel_indices):
+def show_compare(channel_indices):
     pth_rmse =  np.load('../result/rmse.npy')
     onnx_rmse = np.load('./result/rmse.npy')
+
+    pth_acc = np.load('../result/acc.npy')
+    onnx_acc = np.load('./result/acc.npy')  
     
     channels = [cfg_data.dataset.channels[i] for i in range(len(channel_indices))]
     w = 24  # 最长 channel 名宽度
     
     # 表头
-    print(f"┌{'─' * (w + 2)}┬{'─' * 14}┬{'─' * 14}┐")
-    print(f"│ {'Channel':<{w}} │ {'OneScience':>12} │ {'Official':>12} │")
-    print(f"├{'─' * (w + 2)}┼{'─' * 14}┼{'─' * 14}┤")
-    
+    print(f"┌{'─' * (w + 2)}┬{'─' * 14}┬{'─' * 14}┬{'─' * 14}┬{'─' * 14}┐")
+    print(f"│ {'Channel':<{w}} │ {'OneSci RMSE':>12} │ {'Official RMSE':>12} │ {'OneSci ACC':>12} │ {'Official ACC':>12} │")
+    print(f"├{'─' * (w + 2)}┼{'─' * 14}┼{'─' * 14}┼{'─' * 14}┼{'─' * 14}┤")
+
     # 数据行
     for i, ch in enumerate(channels):
-        print(f"│ {ch:<{w}} │ {pth_rmse[i]:>12.4f} │ {onnx_rmse[i]:>12.4f} │")
-    print(f"├{'─' * (w + 2)}┼{'─' * 14}┼{'─' * 14}┤")
-    print(f"│ {'Average':<{w}} │ {np.mean(pth_rmse):>12.4f} │ {np.mean(onnx_rmse):>12.4f} │")
-    print(f"├{'─' * (w + 2)}┼{'─' * 14}┼{'─' * 14}┤")
+        print(f"│ {ch:<{w}} │ {pth_rmse[i]:>12.4f} │ {onnx_rmse[i]:>12.4f} │ {pth_acc[i]:>12.4f} │ {onnx_acc[i]:>12.4f} │")
+    print(f"├{'─' * (w + 2)}┼{'─' * 14}┼{'─' * 14}┼{'─' * 14}┼{'─' * 14}┤")
+    print(f"│ {'Average':<{w}} │ {np.mean(pth_rmse):>12.4f} │ {np.mean(onnx_rmse):>12.4f} │ {np.mean(pth_acc):>12.4f} │ {np.mean(onnx_acc):>12.4f} │")
+    print(f"└{'─' * (w + 2)}┴{'─' * 14}┴{'─' * 14}┴{'─' * 14}┴{'─' * 14}┘")
 
 
 def plot_rmse_comparison(channel_indices, filename='./result/rmse_comparison.png'):
@@ -148,7 +151,7 @@ if __name__ == "__main__":
         metadata = json.load(f)
     variables = metadata['variables']
     channel_indices = [variables.index(v) for v in cfg_data.dataset.channels]
-    show_rmse(channel_indices)
+    show_compare(channel_indices)
     plot_rmse_comparison(channel_indices, filename='./result/rmse_comparison.png')
     date = "2020010212"
     truth_data = data_prepare(date, channels, datapath)
