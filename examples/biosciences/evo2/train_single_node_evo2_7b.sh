@@ -4,7 +4,11 @@ PROJECT_ROOT=$(python -c "from pathlib import Path; print(Path(__name__).resolve
 
 echo "ONESCIENCE_PATH:" $PROJECT_ROOT
 
-cd $PROJECT_ROOT/examples/biosciences/evo2/checkpoint/evo2_nemo_7b
+source ${PROJECT_ROOT}/env.sh
+echo ${ONESCIENCE_DATASETS_DIR}
+echo ${ONESCIENCE_MODELS_DIR}
+
+cd $ONESCIENCE_MODELS_DIR/evo2/evo2_nemo_7b
 
 DIRS=(
     "./lightning_logs"
@@ -20,12 +24,11 @@ for DIR in "${DIRS[@]}"; do
     fi
 done
 
-# srun -N1 --ntasks-per-node=8 python $PROJECT_ROOT/examples/evo2/example/train_one_node.py\\
-# -d $PROJECT_ROOT/biosciences/evo2/config/training_data_config.yaml\
-# --dataset-dir $PROJECT_ROOT/biosciences/evo2/data/data_evo2_612\
-python  $PROJECT_ROOT/examples/biosciences/evo2/train_one_node.py\
-    -d $PROJECT_ROOT/examples/biosciences/evo2/config/genome_data_config.yaml\
-    --dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data_ren/genome_data\
+cd -
+
+python  ./train_one_node.py\
+    -d ./config/genome_data_config.yaml\
+    --dataset-dir ${ONESCIENCE_DATASETS_DIR}/evo2/data_mini/genome_data\
     --model-size 1b\
     --devices 4 \
     --num-nodes 1 \

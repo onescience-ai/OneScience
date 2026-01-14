@@ -1,56 +1,29 @@
 #!/bin/bash
 
-MODEL_SIZE=1b
-CP_SIZE=1
-TP_SIZE=1
-PP_SIZE=1
-MICRO_BATCH_SIZE=2
-GRAD_ACC_BATCHES=1
-SEQ_LEN=512
-MAX_STEPS=100
-VAL_CHECK=50
-CLIP_GRAD=250 # 梯度剪裁
-EXTRA_ARGS="--enable-preemption --use-megatron-comm-overlap-llama3-8k --ckpt-async-save --overlap-grad-reduce --clip-grad $CLIP_GRAD --eod-pad-in-loss-mask"
-EXTRA_ARG_DESC="BF16_perf_cg250_continue"
-LR=0.0003
-MIN_LR=0.00003
-WU_STEPS=2500
-# 0xDEADBEEF
-SEED=1234
-WD=0.1
-ADO=0.01
-HDO=0.01
-
-# DEVICES=${SLURM_GPUS_PER_NODE:-4}
-# echo "SLURM_JOB_NUM_NODES: $SLURM_JOB_NUM_NODES"
-# echo "SLURM_NTASKS_PER_NODE: $SLURM_NTASKS_PER_NODE" 
-
 PROJECT_ROOT=$(python -c "from pathlib import Path; print(Path(__name__).resolve().parents[3])")
 
 echo "ONESCIENCE_PATH:" $PROJECT_ROOT
+echo "SLURM_JOB_NUM_NODES: $SLURM_JOB_NUM_NODES"
 
-cd $PROJECT_ROOT/examples/biosciences/evo2/checkpoint/evo2-7b
+source ${PROJECT_ROOT}/env.sh
+echo ${ONESCIENCE_DATASETS_DIR}
+echo ${ONESCIENCE_MODELS_DIR}
 
-DIRS=(
-    "./lightning_logs"
-    "./results"
-)
 
-for DIR in "${DIRS[@]}"; do
-    if [ -d "$DIR" ]; then
-        echo "Del Files: $DIR"
-        rm -rf "$DIR"
-    else
-        echo "Files Not Exist: $DIR"
-    fi
-done
 
-python $PROJECT_ROOT/examples/biosciences/evo2/train_slurm.py\
-    -d $PROJECT_ROOT/examples/biosciences/evo2/config/genome_data_config.yaml\
-    --dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data/genome_data\
+# --dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data/genome_data
+torchrun \
+    --nproc_per_node=${SLURM_GPUS_PER_NODE:-8} \
+    --nnodes=${SLURM_JOB_NUM_NODES} \
+    --node_rank=${SLURM_NODEID} \
+    --master_addr=${MASTER_ADDR} \
+    --master_port=${MASTER_PORT} \
+    train_slurm.py\
+    -d ./config/genome_data_config.yaml\
+    --dataset-dir ${ONESCIENCE_DATASETS_DIR}/evo2/data_mini/genome_data\
     --model-size 7b_arc_longcontext \
-    --devices 4 \
-    --num-nodes 4 \
+    --devices ${SLURM_GPUS_PER_NODE:-8} \
+    --num-nodes ${SLURM_JOB_NUM_NODES} \
     --seq-length 1024 \
     --micro-batch-size 4 \
     --lr 0.0001 \
