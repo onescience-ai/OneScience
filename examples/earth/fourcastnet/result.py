@@ -40,6 +40,7 @@ def get_result(total_files, channel_indices, clim_mean):
             with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file[:-4]}.h5', "r") as f:
                 label = f["fields"][:]  # [N, H, W]
                 label = label[channel_indices]
+                label = label[:, :-1, :]
             pred = np.load(f'result/output/{file}').squeeze()
 
             label_anom = label - clim_mean
@@ -187,6 +188,7 @@ if __name__ == "__main__":
         with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}.h5', "r") as f:
             label = f["fields"][:]  # [N, H, W]
             label = label[channel_indices]
+            label = label[:, :-1, :]
         pred = np.load(f'result/output/{file}.npy').squeeze()
         for i in range(len(selected_var)):
             filename = f'./result/{file}_{selected_var[i]}.png'
