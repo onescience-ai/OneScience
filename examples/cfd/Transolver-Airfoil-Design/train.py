@@ -12,7 +12,7 @@ from torch.nn.parallel import DistributedDataParallel
 
 from onescience.distributed.manager import DistributedManager
 from onescience.utils.YParams import YParams
-from onescience.datapipes import AirfRANSDatapipe
+from onescience.datapipes.cfd import AirfRANSDatapipe
 import onescience.utils.transolver.metrics as metrics
 
 from onescience.models.transolver import Transolver2D

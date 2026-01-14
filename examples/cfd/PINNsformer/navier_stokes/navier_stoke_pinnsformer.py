@@ -161,8 +161,8 @@ psi_and_p = model(x_star, y_star, t_star)
 psi = psi_and_p[:,:,0:1]
 p_pred = psi_and_p[:,:,1:2]
 
-u_pred = torch.autograd.grad(psi, x_star, grad_outputs=torch.ones_like(psi), retain_graph=True, create_graph=True)[0]
-v_pred = - torch.autograd.grad(psi, y_star, grad_outputs=torch.ones_like(psi), retain_graph=True, create_graph=True)[0]
+u_pred = torch.autograd.grad(psi, y_star, grad_outputs=torch.ones_like(psi), retain_graph=True, create_graph=True)[0]
+v_pred = - torch.autograd.grad(psi, x_star, grad_outputs=torch.ones_like(psi), retain_graph=True, create_graph=True)[0]
 
 u_pred = u_pred.cpu().detach().numpy()[:,0]
 v_pred = v_pred.cpu().detach().numpy()[:,0]
