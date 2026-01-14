@@ -14,9 +14,9 @@ torchrun \
     --num_channels=32 \
     --max_L=0 \
     --r_max=4.0 \
-    --train_file='/public/onestore/onedatasets/MaterialsChemistry/solvent/solvent_xtb_train_200.xyz' \
+    --train_file='./data/solvent_xtb_train_200.xyz' \
     --valid_fraction=0.10 \
-    --test_file='/public/onestore/onedatasets/MaterialsChemistry/solvent/solvent_xtb_test.xyz' \
+    --test_file='./data/solvent_xtb_test.xyz' \
     --energy_key='energy_xtb' \
     --forces_key='forces_xtb' \
     --batch_size=10 \
