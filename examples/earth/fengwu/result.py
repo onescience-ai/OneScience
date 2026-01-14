@@ -6,118 +6,154 @@ import sys
 import h5py
 from tqdm import tqdm
 from onescience.utils.fcn.YParams import YParams
+from matplotlib import rcParams
+
+# rcParams['font.family'] = 'serif'
+# rcParams['font.serif'] = ['DejaVu Serif']
+rcParams['mathtext.fontset'] = 'stix'
+rcParams['axes.linewidth'] = 0.9
+rcParams['xtick.major.width'] = 0.9
+rcParams['ytick.major.width'] = 0.9
+
 
 def get_metadata(cfg):
     meta_path = os.path.join(cfg.data_dir, 'metadata.json')
     with open(meta_path, "r") as f:
         metadata = json.load(f)
-    years = list(map(int, metadata["years"]))
     variables = metadata['variables']
-    y = sorted(years)
-    if cfg.train_ratio + cfg.val_ratio + cfg.test_ratio == 1:
-        n_train = int(len(y) * cfg.train_ratio)
-        n_val = int(len(y) * cfg.val_ratio)
-        year_splits = {
-            "train": y[:n_train],
-            "val": y[n_train:n_train + n_val],
-            "test": y[n_train + n_val:]
-        }
-    elif cfg.train_ratio + cfg.val_ratio + cfg.test_ratio == len(y):
-        n_train =  cfg.train_ratio
-        n_val = cfg.val_ratio
-        year_splits = {
-            "train": y[:n_train],
-            "val": y[n_train:n_train + n_val],
-            "test": y[n_train + n_val:]
-        }
-    else:
-        print('\n\n')
-        print('-' * 30)
-        print('Train/Val/Test settings must use ratio or digital numbers')
-        print('If using ratio, please ensure the sum of all ratios equal to 1')
-        print(f'If using digital number, please ensure the sum of number equal to total years {len(y)}')
-        print(f'❌❌ Now settings are {cfg.train_ratio}-{cfg.val_ratio}-{cfg.test_ratio}, please check.')
-        print('-' * 30)
-        print('\n\n')
-        exit()
-
-    selected_years = year_splits['test']
-    total_files = []
-    for year in selected_years:
-        path = os.path.join(cfg.data_dir, 'data', str(year))
-        files = sorted(os.listdir(path))
-        samples_per_year = len(files) - 1
-        total_files.extend(files[-samples_per_year:])
-    
     channel_indices = [variables.index(v) for v in cfg.channels]
+
+    total_files = [f for f in os.listdir('./result/output/') if f.endswith('.npy')]
+    total_files.sort()
     return total_files, channel_indices
 
 
-def get_rmse(total_files, channel_indices):
-    total_rmse = 0
+def get_result(total_files, channel_indices, clim_mean):
     channel_rmse = np.zeros(len(channel_indices))
-    if not os.path.exists('result/rmse.npy'):
+    channel_acc = np.zeros(len(channel_indices))
+    clim_mean = clim_mean[0, :, :, :]
+    if not os.path.exists('./result/rmse.npy') or not os.path.exists('result/acc.npy'):
+        numerator = np.zeros(len(channel_indices))
+        pred_sq_sum = np.zeros(len(channel_indices))
+        label_sq_sum = np.zeros(len(channel_indices))
         for file in tqdm(total_files, unit="files"):
-            with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}.h5', "r") as f:
+            with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file[:-4]}.h5', "r") as f:
                 label = f["fields"][:]  # [N, H, W]
                 label = label[channel_indices]
-            pred = np.load(f'result/output/{file}.npy').squeeze()
+            pred = np.load(f'result/output/{file}').squeeze()
+
+            label_anom = label - clim_mean
+            pred_anom = pred - clim_mean
+            # 累加
+            numerator += np.sum(pred_anom * label_anom, axis=(1, 2))
+            pred_sq_sum += np.sum(pred_anom ** 2, axis=(1, 2))
+            label_sq_sum += np.sum(label_anom ** 2, axis=(1, 2))
+
             channel_rmse += np.sqrt(np.mean((label - pred) ** 2, axis=(1, 2)))
         channel_rmse /= len(total_files)
-        np.save('result/rmse.npy', channel_rmse)
-    else:
-        channel_rmse = np.load('result/rmse.npy')
-    for i in range(len(channel_indices)):
-        print(f"📂 Channel: {cfg_data.dataset.channels[i]} RMSE: {channel_rmse[i]: .4f},")
-    print(f"✅ Avg RMSE is : {np.mean(channel_rmse): .4f}")
+        channel_acc = numerator / (np.sqrt(pred_sq_sum * label_sq_sum) + 1e-8)
+        np.save('./result/acc.npy', channel_acc)
+        np.save('./result/rmse.npy', channel_rmse)
+
+
+def show_result():
+    channel_rmse = np.load('./result/rmse.npy')
+    channel_acc = np.load('./result/acc.npy')
+
+    channels = [cfg_data.dataset.channels[i] for i in range(len(channel_indices))]
+    w = 24  # 最长 channel 名宽度
+    
+    # 表头
+    print(f"┌{'─' * (w + 2)}┬{'─' * 14}┬{'─' * 14}┐")
+    print(f"│ {'Channel':<{w}} │ {'RMSE':>12} │ {'ACC':>12} │")
+    print(f"├{'─' * (w + 2)}┼{'─' * 14}┼{'─' * 14}┤")
+    # 数据行
+    for i, ch in enumerate(channels):
+        print(f"│ {ch:<{w}} │ {channel_rmse[i]:>12.4f} | {channel_acc[i]:>12.4f} |")
+    print(f"├{'─' * (w + 2)}┼{'─' * 14}┼{'─' * 14}┤")
+    print(f"│ {'Average':<{w}} │ {np.mean(channel_rmse):>12.4f} │ {np.mean(channel_acc):>12.4f} │")
+    print(f"└{'─' * (w + 2)}┴{'─' * 14}┴{'─' * 14}┘")
 
 
 def plot(label, pred, var, filename):
-    # Plot for each A ID
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    # Row 1: True
-    global_xtick_labels = ['180°W', '90°W', '0°', '90°E', '180°E']
-    global_ytick_labels = ['90°S', '45°S', '0°', '45°N', '90°N']
+    # 基础设置
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    
+    # 坐标轴标签
+    xtick_labels = ['180°W', '90°W', '0°', '90°E', '180°E']
+    ytick_labels = ['90°S', '45°S', '0°', '45°N', '90°N']
     xticks = np.linspace(0, label.shape[-1] - 1, 5)
     yticks = np.linspace(0, label.shape[-2] - 1, 5)
+    
+    # 计算统一色条范围
+    vmin = min(label.min(), pred.min())
+    vmax = max(label.max(), pred.max())
+    
+    # 计算差异和 RMSE
+    diff = label - pred
+    rmse = np.sqrt(np.mean(diff ** 2))
+    diff_abs_max = np.abs(diff).max()
+    
+    # 绘图配置
+    plot_configs = [
+        {'data': label, 'title': 'Truth', 'cmap': 'viridis', 'vmin': vmin, 'vmax': vmax},
+        {'data': pred,  'title': 'Prediction', 'cmap': 'viridis', 'vmin': vmin, 'vmax': vmax},
+        {'data': diff,  'title': f'Difference (RMSE={rmse:.2f})', 'cmap': 'RdBu_r', 'vmin': -diff_abs_max, 'vmax': diff_abs_max},
+    ]
+    
+    # 统一绘制
+    for ax, cfg in zip(axes, plot_configs):
+        im = ax.imshow(cfg['data'], cmap=cfg['cmap'], vmin=cfg['vmin'], vmax=cfg['vmax'])
+        ax.set_title(cfg['title'], fontsize=12, pad=4)
+        ax.set_xlabel('Longitude')  # 继续增大
+        ax.set_ylabel('Latitude')
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xtick_labels)
+        ax.set_yticks(yticks)
+        ax.set_yticklabels(ytick_labels)
+        plt.colorbar(im, ax=ax, orientation='horizontal')# , pad=0.04, aspect=30, shrink=0.85
+    
+    # 总标题 - 降低位置
+    fig.suptitle(var, fontsize=14, fontweight='bold', y=0.98)
+    
+    # plt.tight_layout(rect=[0, 0.08, 1, 0.95])  # 底部也留空间
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.close()
 
-    im0 = axes[0].imshow(label, cmap='viridis')
-    axes[0].set_title(f'Truth')
-    axes[0].set_xlabel('Longitude')
-    axes[0].set_ylabel('Latitude')
-    axes[0].set_xticks(xticks)
-    axes[0].set_xticklabels(global_xtick_labels)
-    axes[0].set_yticks(yticks)
-    axes[0].set_yticklabels(global_ytick_labels)
-    cbar0 = plt.colorbar(im0, ax=axes[0], orientation='horizontal')
 
-    # Row 2: Pred
-    im1 = axes[1].imshow(pred, cmap='viridis')
-    axes[1].set_title(f'Pred')
-    axes[1].set_xlabel('Longitude')
-    axes[1].set_ylabel('Latitude')
-    axes[1].set_xticks(xticks)
-    axes[1].set_xticklabels(global_xtick_labels)
-    axes[1].set_yticks(yticks)
-    axes[1].set_yticklabels(global_ytick_labels)
-    cbar1 = plt.colorbar(im1, ax=axes[1], orientation='horizontal')
+def plot_loss(train_loss, valid_loss):
 
-    # Row 3: Diff
-    im2 = axes[2].imshow(label - pred, cmap='RdBu_r')
-    rmse = np.sqrt(np.mean((label - pred) ** 2))
-    axes[2].set_title(f'diff, RMSE={rmse: .2f}')
-    axes[2].set_xlabel('Longitude')
-    axes[2].set_ylabel('Latitude')
-    axes[2].set_xticks(xticks)
-    axes[2].set_xticklabels(global_xtick_labels)
-    axes[2].set_yticks(yticks)
-    axes[2].set_yticklabels(global_ytick_labels)
-    cbar2 = plt.colorbar(im2, ax=axes[2], orientation='horizontal')
-    # Add row labels for each variable
-    axes[1].annotate(var, xy=(0.5, 1.2), xycoords='axes fraction', fontsize=14, ha='center')
+    mask = ~(np.isnan(train_loss) | np.isnan(valid_loss))
+    train_loss = train_loss[mask]
+    valid_loss = valid_loss[mask]
 
+    fig, ax = plt.subplots(figsize=(5, 3.5))
+    # 配置
+    colors = {'train': '#2563EB', 'valid': '#EA580C'}
+    epochs = np.arange(1, len(train_loss) + 1)
+    
+    # 绑定曲线
+    ax.plot(epochs, train_loss, color=colors['train'], linewidth=1.5, label='Train')
+    ax.plot(epochs, valid_loss, color=colors['valid'], linewidth=1.5, label='Valid', linestyle='--')
+    # 标注最小值
+    min_idx = np.argmin(valid_loss)
+    ax.scatter(epochs[min_idx], valid_loss[min_idx], 
+               color=colors['valid'], s=40, zorder=5, edgecolors='white')
+    ax.annotate(f'Best: {valid_loss[min_idx]:.3f}', 
+                xy=(epochs[min_idx], valid_loss[min_idx]),
+                xytext=(10, 10), textcoords='offset points', fontsize=8, color=colors['valid'],
+                arrowprops=dict(arrowstyle='-', color=colors['valid'], lw=0.5))
+    
+    # 坐标轴
+    ax.set(xlabel='Epoch', ylabel='Loss', xlim=(0, len(train_loss) + 1))
+    
+    # 样式
+    ax.legend(frameon=False, loc='upper right')
+    ax.grid(True, linestyle='--', alpha=0.3)
+    ax.spines[['top', 'right']].set_visible(False)
+    
     plt.tight_layout()
-    plt.savefig(filename, dpi=300)
+    plt.savefig('./result/loss.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 
@@ -127,31 +163,30 @@ if __name__ == "__main__":
     config_file_path = os.path.join(current_path, 'conf/config.yaml')
     cfg = YParams(config_file_path, 'model')
     cfg_data = YParams(config_file_path, "datapipe")
+
+    train_loss = np.load('./data/checkpoints/trloss.npy')
+    valid_loss = np.load('./data/checkpoints/valoss.npy')
+    plot_loss(train_loss, valid_loss)
     total_files, channel_indices = get_metadata(cfg_data.dataset)
+
     # Load data
     # Compute RMSE per channel and total
-    
+    mu = np.load(os.path.join(cfg_data.dataset.stats_dir, "global_means.npy"))
+    clim_mean = mu[:, channel_indices, :, :]
+    get_result(total_files, channel_indices, clim_mean)
+    show_result()
+
     ##### You can choose the date to plot (must exist in ./result/output/)#####
-    total_files = ['1969010118', '1969010112', '1969010106']
-    channel_index = [cfg_data.dataset.channels.index(v) for v in ['v_component_of_wind_150', 'u_component_of_wind_500', 'temperature_1000']]
-    selected_files = total_files
-
-    get_rmse(total_files, channel_indices)
-    ##### Or use random index to plot #####
-    # np.random.seed(42) # use a fix seed ensure to get same result
-    # sample_index = np.random.choice(len(total_files), 3, replace=False)
-    # channel_index = np.random.choice(len(cfg_data.dataset.channels), 3, replace=False)
-    # selected_files = [total_files[int(i)] for i in sample_index]
-
+    eg_files = ['2020100100']
+    channel_index = [cfg_data.dataset.channels.index(v) for v in ['2m_temperature', 'geopotential_500', 'temperature_500']]
     
     selected_var = [cfg_data.dataset.channels[int(i)] for i in channel_index]
-    print(f"seleted date: {selected_files}")
+    print(f"seleted date: {eg_files}")
     print(f"selected channels: {selected_var}")
-    for file in selected_files:
+    for file in eg_files:
         with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}.h5', "r") as f:
             label = f["fields"][:]  # [N, H, W]
             label = label[channel_indices]
-
         pred = np.load(f'result/output/{file}.npy').squeeze()
         for i in range(len(selected_var)):
             filename = f'./result/{file}_{selected_var[i]}.png'

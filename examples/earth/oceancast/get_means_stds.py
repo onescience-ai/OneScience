@@ -30,7 +30,10 @@ def process_data():
     for data_type in types:
         print(f'Processing type: {data_type}')
         all_data = []
-        files = glob.glob(os.path.join(data_dir, data_type, '*.h5'))
+        if data_type == 'Wind_Strength':
+            files = glob.glob(os.path.join(params.wind_data_path, data_type, '*.h5'))
+        else:
+            files = glob.glob(os.path.join(data_dir, data_type, '*.h5'))
         for file_path in files:
             with h5py.File(file_path, 'r') as f:
                 dataset_name = list(f.keys())[0]  

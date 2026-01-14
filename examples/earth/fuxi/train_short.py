@@ -95,8 +95,8 @@ def main():
         scheduler.load_state_dict(ckpt["scheduler_state_dict"])
         best_valid_loss = ckpt["best_valid_loss"]
         best_loss_epoch = ckpt["best_loss_epoch"]
-        train_losses = np.load(f"{cfg.checkpoint_dir}/tr_base_loss.npy")
-        valid_losses = np.load(f"{cfg.checkpoint_dir}/tr_base_loss.npy")
+        train_losses = np.load(f"{cfg.checkpoint_dir}/tr_short_loss.npy")
+        valid_losses = np.load(f"{cfg.checkpoint_dir}/va_short_loss.npy")
     else:
         if world_rank == 0:
             print("\n\n")
@@ -107,8 +107,7 @@ def main():
         model.load_state_dict(ckpt["model_state_dict"])
         optimizer.load_state_dict(ckpt["optimizer_state_dict"])
         scheduler.load_state_dict(ckpt["scheduler_state_dict"])
-        best_valid_loss = ckpt["best_valid_loss"]
-        best_loss_epoch = ckpt["best_loss_epoch"]
+
 
      ## Distributed model
     if cfg.world_size > 1:
@@ -134,6 +133,8 @@ def main():
         start_time = time.time()
         for j, data in enumerate(train_dataloader):
             invar = data[0].to(local_rank, dtype=torch.float32) # B, T, C, H, W
+            print(invar.shape)
+            exit()
             invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
             outvar = data[1].to(local_rank, dtype=torch.float32)
             for t in range(outvar.shape[1]):
@@ -157,7 +158,7 @@ def main():
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{train_loss / (j+1): .04f}')
-
+            
         train_loss /= len(train_dataloader)
 
         model.eval()
@@ -187,7 +188,7 @@ def main():
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{valid_loss / (j+1): .04f}')
-
+                
         valid_loss /= len(val_dataloader)
         is_save_ckp = False
         if valid_loss < best_valid_loss:

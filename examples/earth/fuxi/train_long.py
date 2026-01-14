@@ -96,22 +96,17 @@ def main():
         best_valid_loss = ckpt["best_valid_loss"]
         best_loss_epoch = ckpt["best_loss_epoch"]
         train_losses = np.load(f"{cfg.checkpoint_dir}/tr_long_loss.npy")
-        valid_losses = np.load(f"{cfg.checkpoint_dir}/tr_long_loss.npy")
+        valid_losses = np.load(f"{cfg.checkpoint_dir}/va_long_loss.npy")
     else:
         if world_rank == 0:
             print("\n\n")
             print("-" * 50)
             print(f"✅ Load medium model and continue to finetune...")
-            print(f'If you want to train a new model, ensure there is no *.pth file in {cfg.checkpoint_dir}')
             print("-" * 50, "\n")
         ckpt = torch.load(f"{cfg.checkpoint_dir}/model_medium_bak.pth", map_location=f'cuda:{local_rank}', weights_only=False)
         model.load_state_dict(ckpt["model_state_dict"])
         optimizer.load_state_dict(ckpt["optimizer_state_dict"])
         scheduler.load_state_dict(ckpt["scheduler_state_dict"])
-        best_valid_loss = ckpt["best_valid_loss"]
-        best_loss_epoch = ckpt["best_loss_epoch"]
-        train_losses = np.load(f"{cfg.checkpoint_dir}/tr_medium_loss.npy")
-        valid_losses = np.load(f"{cfg.checkpoint_dir}/tr_medium_loss.npy")
 
      ## Distributed model
     if cfg.world_size > 1:
@@ -160,7 +155,7 @@ def main():
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{train_loss / (j+1): .04f}')
-
+            
         train_loss /= len(train_dataloader)
 
         model.eval()
@@ -190,7 +185,7 @@ def main():
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{valid_loss / (j+1): .04f}')
-
+                
         valid_loss /= len(val_dataloader)
         is_save_ckp = False
         if valid_loss < best_valid_loss:

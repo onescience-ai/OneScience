@@ -41,14 +41,12 @@ def get_result(total_files, channel_indices, clim_mean):
                 label = f["fields"][:]  # [N, H, W]
                 label = label[channel_indices]
             pred = np.load(f'result/output/{file}').squeeze()
-
             label_anom = label - clim_mean
             pred_anom = pred - clim_mean
             # 累加
             numerator += np.sum(pred_anom * label_anom, axis=(1, 2))
             pred_sq_sum += np.sum(pred_anom ** 2, axis=(1, 2))
             label_sq_sum += np.sum(label_anom ** 2, axis=(1, 2))
-
             channel_rmse += np.sqrt(np.mean((label - pred) ** 2, axis=(1, 2)))
         channel_rmse /= len(total_files)
         channel_acc = numerator / (np.sqrt(pred_sq_sum * label_sq_sum) + 1e-8)
@@ -57,7 +55,7 @@ def get_result(total_files, channel_indices, clim_mean):
 
 
 def show_result():
-    channel_rmse = np.load('result/rmse.npy')
+    channel_rmse = np.load('./result/rmse.npy')
     channel_acc = np.load('./result/acc.npy')
 
     channels = [cfg_data.dataset.channels[i] for i in range(len(channel_indices))]
@@ -121,52 +119,13 @@ def plot(label, pred, var, filename):
     plt.close()
 
 
-def plot_loss(train_loss, valid_loss):
-
-    mask = ~(np.isnan(train_loss) | np.isnan(valid_loss))
-    train_loss = train_loss[mask]
-    valid_loss = valid_loss[mask]
-
-    fig, ax = plt.subplots(figsize=(5, 3.5))
-    # 配置
-    colors = {'train': '#2563EB', 'valid': '#EA580C'}
-    epochs = np.arange(1, len(train_loss) + 1)
-    
-    # 绑定曲线
-    ax.plot(epochs, train_loss, color=colors['train'], linewidth=1.5, label='Train')
-    ax.plot(epochs, valid_loss, color=colors['valid'], linewidth=1.5, label='Valid', linestyle='--')
-    # 标注最小值
-    min_idx = np.argmin(valid_loss)
-    ax.scatter(epochs[min_idx], valid_loss[min_idx], 
-               color=colors['valid'], s=40, zorder=5, edgecolors='white')
-    ax.annotate(f'Best: {valid_loss[min_idx]:.3f}', 
-                xy=(epochs[min_idx], valid_loss[min_idx]),
-                xytext=(10, 10), textcoords='offset points', fontsize=8, color=colors['valid'],
-                arrowprops=dict(arrowstyle='-', color=colors['valid'], lw=0.5))
-    
-    # 坐标轴
-    ax.set(xlabel='Epoch', ylabel='Loss', xlim=(0, len(train_loss) + 1))
-    
-    # 样式
-    ax.legend(frameon=False, loc='upper right')
-    ax.grid(True, linestyle='--', alpha=0.3)
-    ax.spines[['top', 'right']].set_visible(False)
-    
-    plt.tight_layout()
-    plt.savefig('./result/loss.png', dpi=300, bbox_inches='tight')
-    plt.close()
-
-
 if __name__ == "__main__":
     current_path = os.getcwd()
     sys.path.append(current_path)
-    config_file_path = os.path.join(current_path, 'conf/config.yaml')
+    config_file_path = os.path.join(current_path, '../conf/config.yaml')
     cfg = YParams(config_file_path, 'model')
     cfg_data = YParams(config_file_path, "datapipe")
 
-    train_loss = np.load('./data/checkpoints/trloss.npy')
-    valid_loss = np.load('./data/checkpoints/valoss.npy')
-    plot_loss(train_loss, valid_loss)
     total_files, channel_indices = get_metadata(cfg_data.dataset)
 
     # Load data
