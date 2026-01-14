@@ -32,7 +32,7 @@ source ../../../env.sh
 
 dataset目录下的dataset_stats.ipynb可以绘制数据的各种信息
 
-3. 训练
+2. 训练
 
 详细的训练参数可以参考transolver_airfrans.yaml文件中的参数注释
 
@@ -50,13 +50,13 @@ torchrun --standalone --nnodes=<num_nodes> --nproc_per_node=<num_GPUs> train.py
 
 具体参数可以通过conf目录下的transolver_airfrans.yaml配置
 
-4. 推理和可视化:
+3. 推理和可视化:
 
 ```bash
 python inference.py
 ```
 
-5. 使用不同设置测试模型。此基准支持四种类型的设置。
+4. 使用不同设置测试模型。此基准支持四种类型的设置。
 
 | Settings                                     | Argument      |
 | -------------------------------------------- | ------------- |
