@@ -14,7 +14,7 @@ from torch.nn.parallel import DistributedDataParallel
 from onescience.distributed.manager import DistributedManager
 
 from onescience.utils.YParams import YParams
-from onescience.datapipes import ShapeNetCarDatapipe
+from onescience.datapipes.cfd import ShapeNetCarDatapipe
 from onescience.models.transolver import Transolver3D
 from onescience.models.transolver import Transolver3D_plus
 

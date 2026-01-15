@@ -9,7 +9,6 @@ import scipy.io
 import sys
 import os
 from onescience.utils.pinnsformer_util import *
-from onescience.models.pinnsformer import PINNs
 from onescience.models.pinnsformer import PINNsformer1D
 
 seed = 0

@@ -44,7 +44,7 @@
 本示例依赖 `tensorflow` 库以加载 `.tfrecord` 格式数据。安装命令：
 
 ```bash
-pip install tensorflow
+pip install "tensorflow==2.20.0"
 ```
 
 从 DeepMind 仓库下载数据：

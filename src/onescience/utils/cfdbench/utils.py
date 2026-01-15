@@ -8,9 +8,6 @@ from torch import Tensor
 import numpy as np
 import matplotlib.pyplot as plt
 
-from args import Args
-
-
 def plot_contour(points):
     x = points[:, 0]
     y = points[:, 1]
@@ -181,92 +178,6 @@ def load_ckpt(model, ckpt_path: Path) -> None:
     print(f"Loading checkpoint from {ckpt_path}")
     model.load_state_dict(torch.load(ckpt_path, map_location="cpu", weights_only=True))
 
-
-# def get_output_dir(args: Args, is_auto: bool = False) -> Path:
-#     output_dir = Path(
-#         args.output_dir,
-#         "auto" if is_auto else "non-auto",
-#         args.data_name,
-#         f"dt{args.delta_time}",
-#         args.model,
-#     )
-#     if args.model == "deeponet":
-#         dir_name = (
-#             f"lr{args.lr}"
-#             + f"_width{args.deeponet_width}"
-#             + f"_depthb{args.branch_depth}"
-#             + f"_deptht{args.trunk_depth}"
-#             + f"_normprop{args.norm_props}"
-#             + f"_act{args.act_fn}"
-#             + f"-{args.act_scale_invariant}"
-#             + f"-{args.act_on_output}"
-#         )
-#         output_dir /= dir_name
-#         return output_dir
-#     elif args.model == "unet":
-#         dir_name = (
-#             f"lr{args.lr}"
-#             f"_d{args.unet_dim}"
-#             f"_cp{args.unet_insert_case_params_at}"
-#         )
-#         output_dir /= dir_name
-#         return output_dir
-#     elif args.model == "fno":
-#         dir_name = (
-#             f"lr{args.lr}"
-#             + f"_d{args.fno_depth}"
-#             + f"_h{args.fno_hidden_dim}"
-#             + f"_m1{args.fno_modes_x}"
-#             + f"_m2{args.fno_modes_y}"
-#         )
-#         output_dir /= dir_name
-#         return output_dir
-#     elif args.model == "resnet":
-#         dir_name = (
-#             f"lr{args.lr}"
-#             f"_d{args.resnet_depth}"
-#             f"_w{args.resnet_hidden_chan}"
-#         )
-#         return output_dir / dir_name
-#     elif args.model == "auto_edeeponet":
-#         dir_name = (
-#             f"lr{args.lr}"
-#             + f"_width{args.autoedeeponet_width}"
-#             + f"_depthb{args.autoedeeponet_depth}"
-#             + f"_deptht{args.autoedeeponet_depth}"
-#             + f"_normprop{args.norm_props}"
-#             + f"_act{args.autoedeeponet_act_fn}"
-#             # + f"-{args.act_scale_invariant}"
-#             # + f"-{args.act_on_output}"
-#         )
-#         return output_dir / dir_name
-#     elif args.model == "auto_deeponet":
-#         dir_name = (
-#             f"lr{args.lr}"
-#             f"_width{args.deeponet_width}"
-#             f"_depthb{args.branch_depth}"
-#             f"_deptht{args.trunk_depth}"
-#             f"_normprop{args.norm_props}"
-#             f"_act{args.act_fn}"
-#         )
-#         return output_dir / dir_name
-#     elif args.model == "auto_ffn":
-#         dir_name = (
-#             f"lr{args.lr}"
-#             f"_width{args.autoffn_width}"
-#             f"_depth{args.autoffn_depth}"
-#         )
-#         return output_dir / dir_name
-#     elif args.model == "auto_deeponet_cnn":
-#         dir_name = f"lr{args.lr}" f"_depth{args.autoffn_depth}"
-#         return output_dir / dir_name
-#     elif args.model == "ffn":
-#         dir_name = (
-#             f"lr{args.lr}" f"_width{args.ffn_width}" f"_depth{args.ffn_depth}"
-#         )
-#         return output_dir / dir_name
-#     else:
-#         raise NotImplementedError
 
 
 def get_output_dir(cfg, is_auto: bool = False) -> Path:
