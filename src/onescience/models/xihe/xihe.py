@@ -270,5 +270,6 @@ class Xihe(Module):
         W_ = math.ceil(self.img_size[1] / self.patch_size[1])
         x_out = x_out.transpose(1, 2).reshape(B, C, H_, W_)
         x=self.patchrecovery2d(x_out)
+        # print("x.shape---273",x.shape)
         return x
 

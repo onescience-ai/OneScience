@@ -71,20 +71,21 @@ def get_result(total_files, channel_indices, clim_mean):
         numerator = np.zeros(len(channel_indices))
         pred_sq_sum = np.zeros(len(channel_indices))
         label_sq_sum = np.zeros(len(channel_indices))
+
         for file in tqdm(total_files, unit="files"):
             with h5py.File(f'{cfg_data.dataset.data_dir}/h5/{file[:4]}/{file[:-4]}.h5', "r") as f:
-                label = f["fields"][:]  # [N, H, W]
+                label = f["fields"][:]  # [N, H, W]           #real
                 label = label[channel_indices]
-            pred = np.load(f'result/output/{file}').squeeze()
+            pred = np.load(f'result/output/{file}').squeeze() #pred
 
             label_anom = label - clim_mean
             pred_anom = pred - clim_mean
             # 累加
-            numerator += np.sum(pred_anom * label_anom, axis=(1, 2))
-            pred_sq_sum += np.sum(pred_anom ** 2, axis=(1, 2))
-            label_sq_sum += np.sum(label_anom ** 2, axis=(1, 2))
+            numerator += np.nansum(pred_anom * label_anom, axis=(1, 2))
+            pred_sq_sum += np.nansum(pred_anom ** 2, axis=(1, 2))
+            label_sq_sum += np.nansum(label_anom ** 2, axis=(1, 2))
 
-            channel_rmse += np.sqrt(np.mean((label - pred) ** 2, axis=(1, 2)))
+            channel_rmse += np.sqrt(np.nanmean((label - pred) ** 2, axis=(1, 2)))
         channel_rmse /= len(total_files)
         channel_acc = numerator / (np.sqrt(pred_sq_sum * label_sq_sum) + 1e-8)
         np.save('./result/acc.npy', channel_acc)
