@@ -30,10 +30,9 @@ UMA 是一种等变 GNN，它利用一种称为线性专家混合 （MoLE） 的
 ```
   cd onescience-main  
 
-  pip install .  
+  pip install  .[chem]
   ##安装其他依赖
   cd examples/MaterialsChemistry/UMA
-  pip install -r requirements.txt
 ```
 
 ## 3.模型训练的数据集
