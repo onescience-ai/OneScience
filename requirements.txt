@@ -64,6 +64,12 @@ flax==0.10.4
 megatron-core==0.14.0rc2
 tensorflow==2.20.0
 
+jraph==0.0.6.dev0
+trimesh==4.11.0
+dinosaur==1.3.5
+optax==0.2.6
+rtree==1.4.1
+
 # evo2
 fiddle==0.3.0
 lightning==2.5.4
