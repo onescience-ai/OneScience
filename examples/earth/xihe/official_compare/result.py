@@ -8,6 +8,7 @@ from tqdm import tqdm
 from onescience.utils.fcn.YParams import YParams
 from matplotlib import rcParams
 
+
 rcParams['mathtext.fontset'] = 'stix'
 rcParams['axes.linewidth'] = 0.9
 rcParams['xtick.major.width'] = 0.9
@@ -19,7 +20,7 @@ def get_metadata(cfg):
     with open(meta_path, "r") as f:
         metadata = json.load(f)
     variables = metadata['variables']
-    channel_indices = [variables.index(v) for v in cfg.channels]
+    channel_indices = [variables.index(v) for v in cfg.channels_out] #输出通道在变量（metadata）中下标
 
     total_files = [f for f in os.listdir('./result/output/') if f.endswith('.npy')]
     total_files.sort()
@@ -81,6 +82,7 @@ def get_result(total_files, channel_indices, clim_mean):
             numerator += np.nansum(pred_anom * label_anom, axis=(1, 2))
             pred_sq_sum += np.nansum(pred_anom ** 2, axis=(1, 2))
             label_sq_sum += np.nansum(label_anom ** 2, axis=(1, 2))
+
             channel_rmse += np.sqrt(np.nanmean((label - pred) ** 2, axis=(1, 2)))
         channel_rmse /= len(total_files)
         channel_acc = numerator / (np.sqrt(pred_sq_sum * label_sq_sum) + 1e-8)
@@ -88,12 +90,13 @@ def get_result(total_files, channel_indices, clim_mean):
         np.save('./result/rmse.npy', channel_rmse)
 
 #终端结果展示均方根误差
-def show_result():
+def show_result(channel_indices):
+    
     channel_rmse = np.load('./result/rmse.npy')
     channel_acc = np.load('./result/acc.npy')
 
-    channels = [cfg_data.dataset.channels[i] for i in range(len(channel_indices))]
-    w = 24  # 最长 channel 名宽度
+    channels = [cfg_data.dataset.channels_out[i] for i in range(len(channel_indices))]
+    w = 36  # 最长 channel 名宽度
     
     # 表头
     print(f"┌{'─' * (w + 2)}┬{'─' * 14}┬{'─' * 14}┐")
@@ -112,7 +115,6 @@ def plot(label, pred, var, filename,mask):
     H, W = pred.shape
     mask_truth = np.zeros((H, W), dtype=bool)
     mask_truth[:mask.shape[0], :mask.shape[1]] = mask
-  
     pred=np.where(mask_truth,pred,np.nan)
     pred=np.ma.masked_invalid(pred)
     # 基础设置
@@ -167,14 +169,11 @@ def plot(label, pred, var, filename,mask):
 if __name__ == "__main__":
     current_path = os.getcwd()
     sys.path.append(current_path)
-    config_file_path = os.path.join(current_path, 'conf/config.yaml')
+    config_file_path = os.path.join(current_path, 'conf.yaml')
     cfg = YParams(config_file_path, 'model')
     mask=np.load(cfg.mask)
     cfg_data = YParams(config_file_path, "datapipe")
 
-    train_loss = np.load('./data/checkpoints/trloss.npy')
-    valid_loss = np.load('./data/checkpoints/valoss.npy')
-    plot_loss(train_loss, valid_loss) #loss图
     total_files, channel_indices = get_metadata(cfg_data.dataset)
 
     # Load data
@@ -182,13 +181,17 @@ if __name__ == "__main__":
     mu = np.load(os.path.join(cfg_data.dataset.stats_dir, "global_means.npy"))
     clim_mean = mu[:, channel_indices, :, :]
     get_result(total_files, channel_indices, clim_mean)
-    show_result()
+    show_result(channel_indices)
 
-    ##### You can choose the date to plot (must exist in ./result/output/)#####
-    eg_files = ['20191128',"20190301"]
-    channel_index = [cfg_data.dataset.channels.index(v) for v in ["sea_surface_height_above_geoid","sea_water_potential_temperature_1", 'sea_water_salinity_4']]
+#计算rmse和acc
+
+    ### You can choose the date to plot (must exist in ./result/output/)#####
+    eg_files = ['20190108',"20190113"]
+    channel_index = [cfg_data.dataset.channels_out.index(v) for v in ["sea_surface_height_above_geoid","sea_water_potential_temperature_1", 'sea_water_salinity_4']]
     
-    selected_var = [cfg_data.dataset.channels[int(i)] for i in channel_index]
+    selected_var = [cfg_data.dataset.channels_out[int(i)] for i in channel_index]
+    print(f"seleted date: {eg_files}")
+    print(f"selected channels: {selected_var}")
     for file in eg_files:
         with h5py.File(f'{cfg_data.dataset.data_dir}/h5/{file[:4]}/{file}.h5', "r") as f:
             label = f["fields"][:]  # [N, H, W]
