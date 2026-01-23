@@ -213,12 +213,13 @@ def main():
         valid_loss = 0
         
         with torch.no_grad():
-            for data in val_dataloader:
-                data = data.to(device)
+            for batch_data in val_dataloader:
+                graph = batch_data[0]
+                graph = graph.to(device)
                 
                 with autocast(device_type=device.type, enabled=cfg_train.amp):
-                    out = model(data.ndata["x"], data.edata["x"], data)
-                    targets = data.ndata["y"]
+                    out = model(graph.ndata["x"], graph.edata["x"], graph)
+                    targets = graph.ndata["y"]
                     loss = loss_criterion(out, targets)
                 
                 if manager.world_size > 1:
