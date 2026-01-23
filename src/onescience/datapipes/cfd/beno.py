@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import copy
 import logging
+from pathlib import Path
 from typing import Any, Dict, Optional, Union
 from torch_geometric.data import Data, HeteroData
 from torch_geometric.loader import DataLoader as GeoDataLoader
@@ -47,11 +48,16 @@ class BENODataset(BaseDataset):
             self.logger.setLevel(logging.WARNING)
 
         self._init_paths()
-        
+
+        cache_dir = Path(self.source_cfg.cache_dir)
+        if self.dist.rank == 0:
+            os.makedirs(cache_dir, exist_ok=True)
         # 检查是否有缓存文件
         cache_name = f"cached_{self.source_cfg.file_prefix}_{mode}_{self.ntrain if mode=='train' else self.ntest}.pt"
-        self.cache_path = self.data_path / cache_name
         
+        self.cache_path = cache_dir / cache_name
+        if self.dist.rank == 0:
+            self.logger.info(f"Cache path set to: {self.cache_path}")       
         if self.cache_path.exists():
             self._load_from_cache()
         else:
@@ -286,7 +292,7 @@ class BENODataset(BaseDataset):
             
             self.data_list.append(data)
             
-        # [优化] 保存缓存
+        # 保存缓存
         if self.dist.rank == 0:
             torch.save({
                 'data_list': self.data_list,
