@@ -4,7 +4,7 @@ import torch
 from timm.layers import to_2tuple
 from timm.models.swin_transformer import SwinTransformerStage
 from torch import nn
-from ..utils import DropPath, Mlp, get_pad3d, crop3d, window_partition, window_reverse, get_shift_window_mask
+from ..func_utils.pangu_utils import DropPath, Mlp, get_pad3d, crop3d, window_partition, window_reverse, get_shift_window_mask
 
 from onescience.modules import EarthAttention3D
 

@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 
-from ..utils import (
+from ..func_utils.pangu_utils import (
     get_earth_position_index,
     trunc_normal_,
 )
