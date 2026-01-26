@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from onescience.models.meta import ModelMetaData
-from onescience.models.module import Module
+from onescience.modules.module import Module
 
 from onescience.modules import (
     PatchRecovery2D,
