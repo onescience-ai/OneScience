@@ -377,7 +377,7 @@ _BUCKETS = flags.DEFINE_list(
 _FLASH_ATTENTION_IMPLEMENTATION = flags.DEFINE_enum(
     'flash_attention_implementation',
     default='triton',
-    enum_values=['triton', 'cudnn', 'xla'],
+    enum_values=['triton', 'cudnn', 'xla', 'cutlass',],
     help=(
         "Flash attention implementation to use. 'triton' and 'cudnn' uses a"
         ' Triton and cuDNN flash attention implementation, respectively. The'

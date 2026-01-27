@@ -17,7 +17,7 @@ from jaxtyping import Bool  # pylint: disable=g-importing-member
 from jaxtyping import Float  # pylint: disable=g-importing-member
 import typeguard
 
-Implementation: TypeAlias = Literal["cudnn", "xla", "triton"]
+Implementation: TypeAlias = Literal["cudnn", "xla", "triton","cutlass"]
 
 
 @jaxtyping.jaxtyped(typechecker=typeguard.typechecked)
@@ -101,6 +101,25 @@ def dot_product_attention(
         bias=bias,
         mask=mask,
         implementation="cudnn",
+    )
+
+  if implementation == "cutlass":
+    if logits_dtype is not None:
+      raise ValueError(
+          "logits_dtype is not supported for cudnn implementation."
+      )
+    if precision is not None:
+      raise NotImplementedError(
+          "precision is not supported for cudnn implementation."
+      )
+
+    return jax.nn.dot_product_attention(
+        query=query,
+        key=key,
+        value=value,
+        bias=bias,
+        mask=mask,
+        implementation="cutlass",
     )
 
   logits_dtype = base.AUTO if logits_dtype is None else logits_dtype
