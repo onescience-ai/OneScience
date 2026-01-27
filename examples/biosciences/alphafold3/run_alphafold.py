@@ -164,15 +164,36 @@ _SMALL_BFD_DATABASE_PATH = flags.DEFINE_string(
     '${DB_DIR}/bfd-first_non_consensus_sequences.fasta',
     'Small BFD database path, used for protein MSA search.',
 )
+_SMALL_BFD_Z_VALUE = flags.DEFINE_integer(
+    'small_bfd_z_value',
+    None,
+    'The Z-value representing the database size in number of sequences for'
+    ' E-value calculation. Must be set for sharded databases.',
+    lower_bound=0,
+)
 _MGNIFY_DATABASE_PATH = flags.DEFINE_string(
     'mgnify_database_path',
     '${DB_DIR}/mgy_clusters_2022_05.fa',
     'Mgnify database path, used for protein MSA search.',
 )
+_MGNIFY_Z_VALUE = flags.DEFINE_integer(
+    'mgnify_z_value',
+    None,
+    'The Z-value representing the database size in number of sequences for'
+    ' E-value calculation. Must be set for sharded databases.',
+    lower_bound=0,
+)
 _UNIPROT_CLUSTER_ANNOT_DATABASE_PATH = flags.DEFINE_string(
     'uniprot_cluster_annot_database_path',
     '${DB_DIR}/uniprot_all_2021_04.fa',
     'UniProt database path, used for protein paired MSA search.',
+)
+_UNIPROT_CLUSTER_ANNOT_Z_VALUE = flags.DEFINE_integer(
+    'uniprot_cluster_annot_z_value',
+    None,
+    'The Z-value representing the database size in number of sequences for'
+    ' E-value calculation. Must be set for sharded databases.',
+    lower_bound=0,
 )
 _UNIREF90_DATABASE_PATH = flags.DEFINE_string(
     'uniref90_database_path',
@@ -180,20 +201,48 @@ _UNIREF90_DATABASE_PATH = flags.DEFINE_string(
     'UniRef90 database path, used for MSA search. The MSA obtained by '
     'searching it is used to construct the profile for template search.',
 )
+_UNIREF90_Z_VALUE = flags.DEFINE_integer(
+    'uniref90_z_value',
+    None,
+    'The Z-value representing the database size in number of sequences for'
+    ' E-value calculation. Must be set for sharded databases.',
+    lower_bound=0,
+)
 _NTRNA_DATABASE_PATH = flags.DEFINE_string(
     'ntrna_database_path',
     '${DB_DIR}/nt_rna_2023_02_23_clust_seq_id_90_cov_80_rep_seq.fasta',
     'NT-RNA database path, used for RNA MSA search.',
+)
+_NTRNA_Z_VALUE = flags.DEFINE_float(
+    'ntrna_z_value',
+    None,
+    'The Z-value representing the database size in megabases for E-value'
+    ' calculation. Must be set for sharded databases.',
+    lower_bound=0.0,
 )
 _RFAM_DATABASE_PATH = flags.DEFINE_string(
     'rfam_database_path',
     '${DB_DIR}/rfam_14_9_clust_seq_id_90_cov_80_rep_seq.fasta',
     'Rfam database path, used for RNA MSA search.',
 )
+_RFAM_Z_VALUE = flags.DEFINE_float(
+    'rfam_z_value',
+    None,
+    'The Z-value representing the database size in megabases for E-value'
+    ' calculation. Must be set for sharded databases.',
+    lower_bound=0.0,
+)
 _RNA_CENTRAL_DATABASE_PATH = flags.DEFINE_string(
     'rna_central_database_path',
     '${DB_DIR}/rnacentral_active_seq_id_90_cov_80_linclust.fasta',
     'RNAcentral database path, used for RNA MSA search.',
+)
+_RNA_CENTRAL_Z_VALUE = flags.DEFINE_float(
+    'rna_central_z_value',
+    None,
+    'The Z-value representing the database size in megabases for E-value'
+    ' calculation. Must be set for sharded databases.',
+    lower_bound=0.0,
 )
 _PDB_DATABASE_PATH = flags.DEFINE_string(
     'pdb_database_path',
@@ -232,15 +281,46 @@ _MMSEQS_UNIREF90_DATABASE_PATH = flags.DEFINE_string(
 # Number of CPUs to use for MSA tools.
 _JACKHMMER_N_CPU = flags.DEFINE_integer(
     'jackhmmer_n_cpu',
-    min(multiprocessing.cpu_count(), 8),
-    'Number of CPUs to use for Jackhmmer. Default to min(cpu_count, 8). Going'
-    ' beyond 8 CPUs provides very little additional speedup.',
+    # Unfortunately, os.process_cpu_count() is only available in Python 3.13+.
+    min(len(os.sched_getaffinity(0)), 8),
+    'Number of CPUs to use for Jackhmmer. Defaults to min(cpu_count, 8). Going'
+    ' above 8 CPUs provides very little additional speedup.',
+    lower_bound=0,
+)
+_JACKHMMER_MAX_PARALLEL_SHARDS = flags.DEFINE_integer(
+    'jackhmmer_max_parallel_shards',
+    None,
+    'Maximum number of shards to search against in parallel. If unset, one'
+    ' Jackhmmer instance will be run per shard. Only applicable if the'
+    ' database is sharded.',
+    lower_bound=1,
 )
 _NHMMER_N_CPU = flags.DEFINE_integer(
     'nhmmer_n_cpu',
-    min(multiprocessing.cpu_count(), 8),
-    'Number of CPUs to use for Nhmmer. Default to min(cpu_count, 8). Going'
-    ' beyond 8 CPUs provides very little additional speedup.',
+    # Unfortunately, os.process_cpu_count() is only available in Python 3.13+.
+    min(len(os.sched_getaffinity(0)), 8),
+    'Number of CPUs to use for Nhmmer. Defaults to min(cpu_count, 8). Going'
+    ' above 8 CPUs provides very little additional speedup.',
+    lower_bound=0,
+)
+_NHMMER_MAX_PARALLEL_SHARDS = flags.DEFINE_integer(
+    'nhmmer_max_parallel_shards',
+    None,
+    'Maximum number of shards to search against in parallel. If unset, one'
+    ' Nhmmer instance will be run per shard. Only applicable if the'
+    ' database is sharded.',
+    lower_bound=1,
+)
+
+# Data pipeline configuration.
+_RESOLVE_MSA_OVERLAPS = flags.DEFINE_bool(
+    'resolve_msa_overlaps',
+    True,
+    'Whether to deduplicate unpaired MSA against paired MSA. The default'
+    ' behaviour matches the method described in the AlphaFold 3 paper. Set this'
+    ' to false if providing custom paired MSA using the unpaired MSA field to'
+    ' keep it exactly as is as deduplication against the paired MSA could break'
+    ' the manually crafted pairing between MSA sequences.',
 )
 _MMSEQS_N_CPU = flags.DEFINE_integer(
     'mmseqs_n_cpu',
@@ -266,6 +346,7 @@ _CONFORMER_MAX_ITERATIONS = flags.DEFINE_integer(
     None,  # Default to RDKit default parameters value.
     'Optional override for maximum number of iterations to run for RDKit '
     'conformer search.',
+    lower_bound=0,
 )
 
 # JAX inference performance tuning.
@@ -277,9 +358,11 @@ _JAX_COMPILATION_CACHE_DIR = flags.DEFINE_string(
 _GPU_DEVICE = flags.DEFINE_integer(
     'gpu_device',
     0,
-    'Optional override for the GPU device to use for inference. Defaults to the'
-    ' 1st GPU on the system. Useful on multi-GPU systems to pin each run to a'
-    ' specific GPU.',
+    'Optional override for the GPU device to use for inference, uses zero-based'
+    ' indexing. Defaults to the 0th GPU on the system. Useful on multi-GPU'
+    ' systems to pin each run to a specific GPU. Note that if GPUs are already'
+    ' pre-filtered by the environment (e.g. by using CUDA_VISIBLE_DEVICES),'
+    ' this flag refers to the GPU index after the filtering has been done.',
 )
 _BUCKETS = flags.DEFINE_list(
     'buckets',
@@ -332,7 +415,15 @@ _NUM_SEEDS = flags.DEFINE_integer(
 _SAVE_EMBEDDINGS = flags.DEFINE_bool(
     'save_embeddings',
     False,
-    'Whether to save the final trunk single and pair embeddings in the output.',
+    'Whether to save the final trunk single and pair embeddings in the output.'
+    ' Note that the embeddings are large float16 arrays: num_tokens * 384'
+    ' + num_tokens * num_tokens * 128.',
+)
+_SAVE_DISTOGRAM = flags.DEFINE_bool(
+    'save_distogram',
+    False,
+    'Whether to save the final distogram in the output. Note that the distogram'
+    ' is a large float16 array: num_tokens * num_tokens * 64.',
 )
 _FORCE_OUTPUT_DIR = flags.DEFINE_bool(
     'force_output_dir',
@@ -349,6 +440,7 @@ def make_model_config(
     num_diffusion_samples: int = 5,
     num_recycles: int = 10,
     return_embeddings: bool = False,
+    return_distogram: bool = False,
 ) -> model.Model.Config:
   """Returns a model config with some defaults overridden."""
   config = model.Model.Config()
@@ -358,6 +450,7 @@ def make_model_config(
   config.heads.diffusion.eval.num_samples = num_diffusion_samples
   config.num_recycles = num_recycles
   config.return_embeddings = return_embeddings
+  config.return_distogram = return_distogram
   return config
 
 
@@ -415,27 +508,42 @@ class ModelRunner:
     result['__identifier__'] = identifier
     return result
 
-  def extract_inference_results_and_maybe_embeddings(
+  def extract_inference_results(
       self,
       batch: features.BatchDict,
       result: model.ModelResult,
       target_name: str,
-  ) -> tuple[list[model.InferenceResult], dict[str, np.ndarray] | None]:
-    """Extracts inference results and embeddings (if set) from model outputs."""
-    inference_results = list(
+  ) -> list[model.InferenceResult]:
+    """Extracts inference results from model outputs."""
+    return list(
         model.Model.get_inference_result(
             batch=batch, result=result, target_name=target_name
         )
     )
-    num_tokens = len(inference_results[0].metadata['token_chain_ids'])
+
+  def extract_embeddings(
+      self, result: model.ModelResult, num_tokens: int
+  ) -> dict[str, np.ndarray] | None:
+    """Extracts embeddings from model outputs."""
     embeddings = {}
     if 'single_embeddings' in result:
-      embeddings['single_embeddings'] = result['single_embeddings'][:num_tokens]
+      embeddings['single_embeddings'] = result['single_embeddings'][
+          :num_tokens
+      ].astype(np.float16)
     if 'pair_embeddings' in result:
       embeddings['pair_embeddings'] = result['pair_embeddings'][
           :num_tokens, :num_tokens
-      ]
-    return inference_results, embeddings or None
+      ].astype(np.float16)
+    return embeddings or None
+
+  def extract_distogram(
+      self, result: model.ModelResult, num_tokens: int
+  ) -> np.ndarray | None:
+    """Extracts distogram from model outputs."""
+    if 'distogram' not in result['distogram']:
+      return None
+    distogram = result['distogram']['distogram'][:num_tokens, :num_tokens, :]
+    return distogram
 
 
 @dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
@@ -448,12 +556,14 @@ class ResultsForSeed:
     full_fold_input: The fold input that must also include the results of
       running the data pipeline - MSA and templates.
     embeddings: The final trunk single and pair embeddings, if requested.
+    distogram: The token distance histogram, if requested.
   """
 
   seed: int
   inference_results: Sequence[model.InferenceResult]
   full_fold_input: folding_input.Input
   embeddings: dict[str, np.ndarray] | None = None
+  distogram: np.ndarray | None = None
 
 
 def predict_structure(
@@ -462,12 +572,13 @@ def predict_structure(
     buckets: Sequence[int] | None = None,
     ref_max_modified_date: datetime.date | None = None,
     conformer_max_iterations: int | None = None,
+    resolve_msa_overlaps: bool = True,
 ) -> Sequence[ResultsForSeed]:
   """Runs the full inference pipeline to predict structures for each seed."""
 
   print(f'Featurising data with {len(fold_input.rng_seeds)} seed(s)...')
   featurisation_start_time = time.time()
-  ccd = chemical_components.cached_ccd(user_ccd=fold_input.user_ccd)
+  ccd = chemical_components.Ccd(user_ccd=fold_input.user_ccd)
   featurised_examples = featurisation.featurise_input(
       fold_input=fold_input,
       buckets=buckets,
@@ -475,6 +586,7 @@ def predict_structure(
       verbose=True,
       ref_max_modified_date=ref_max_modified_date,
       conformer_max_iterations=conformer_max_iterations,
+      resolve_msa_overlaps=resolve_msa_overlaps,
   )
   print(
       f'Featurising data with {len(fold_input.rng_seeds)} seed(s) took'
@@ -497,10 +609,15 @@ def predict_structure(
     )
     print(f'Extracting inference results with seed {seed}...')
     extract_structures = time.time()
-    inference_results, embeddings = (
-        model_runner.extract_inference_results_and_maybe_embeddings(
-            batch=example, result=result, target_name=fold_input.name
-        )
+    inference_results = model_runner.extract_inference_results(
+        batch=example, result=result, target_name=fold_input.name
+    )
+    num_tokens = len(inference_results[0].metadata['token_chain_ids'])
+    embeddings = model_runner.extract_embeddings(
+        result=result, num_tokens=num_tokens
+    )
+    distogram = model_runner.extract_distogram(
+        result=result, num_tokens=num_tokens
     )
     print(
         f'Extracting {len(inference_results)} inference samples with'
@@ -513,6 +630,7 @@ def predict_structure(
             inference_results=inference_results,
             full_fold_input=fold_input,
             embeddings=embeddings,
+            distogram=distogram,
         )
     )
   print(
@@ -575,6 +693,15 @@ def write_outputs(
           output_dir=embeddings_dir,
           name=f'{job_name}_seed-{seed}',
       )
+
+    if (distogram := results_for_seed.distogram) is not None:
+      distogram_dir = os.path.join(output_dir, f'seed-{seed}_distogram')
+      os.makedirs(distogram_dir, exist_ok=True)
+      distogram_path = os.path.join(
+          distogram_dir, f'{job_name}_seed-{seed}_distogram.npz'
+      )
+      with open(distogram_path, 'wb') as f:
+        np.savez_compressed(f, distogram=distogram.astype(np.float16))
 
   if max_ranking_result is not None:  # True iff ranking_scores non-empty.
     post_processing.write_output(
@@ -689,6 +816,7 @@ def process_fold_input(
     buckets: Sequence[int] | None = None,
     ref_max_modified_date: datetime.date | None = None,
     conformer_max_iterations: int | None = None,
+    resolve_msa_overlaps: bool = True,
     force_output_dir: bool = False,
 ) -> folding_input.Input:
   ...
@@ -703,6 +831,7 @@ def process_fold_input(
     buckets: Sequence[int] | None = None,
     ref_max_modified_date: datetime.date | None = None,
     conformer_max_iterations: int | None = None,
+    resolve_msa_overlaps: bool = True,
     force_output_dir: bool = False,
 ) -> Sequence[ResultsForSeed]:
   ...
@@ -716,6 +845,7 @@ def process_fold_input(
     buckets: Sequence[int] | None = None,
     ref_max_modified_date: datetime.date | None = None,
     conformer_max_iterations: int | None = None,
+    resolve_msa_overlaps: bool = True,
     force_output_dir: bool = False,
 ) -> folding_input.Input | Sequence[ResultsForSeed]:
   """Runs data pipeline and/or inference on a single fold input.
@@ -738,6 +868,11 @@ def process_fold_input(
       date the model coordinates can be used as a fallback.
     conformer_max_iterations: Optional override for maximum number of iterations
       to run for RDKit conformer search.
+    resolve_msa_overlaps: Whether to deduplicate unpaired MSA against paired
+      MSA. The default behaviour matches the method described in the AlphaFold 3
+      paper. Set this to false if providing custom paired MSA using the unpaired
+      MSA field to keep it exactly as is as deduplication against the paired MSA
+      could break the manually crafted pairing between MSA sequences.
     force_output_dir: If True, do not create a new output directory even if the
       existing one is non-empty. Instead use the existing output directory and
       potentially overwrite existing files. If False, create a new timestamped
@@ -800,6 +935,7 @@ def process_fold_input(
         buckets=buckets,
         ref_max_modified_date=ref_max_modified_date,
         conformer_max_iterations=conformer_max_iterations,
+        resolve_msa_overlaps=resolve_msa_overlaps,
     )
     print(f'Writing outputs with {len(fold_input.rng_seeds)} seed(s)...')
     write_outputs(
@@ -896,30 +1032,39 @@ def main(_):
     if not _USE_MMSEQS.value:
       expand_path = lambda x: replace_db_dir(x, DB_DIR.value)
       data_pipeline_config = pipeline.DataPipelineConfig(
-        jackhmmer_binary_path=_JACKHMMER_BINARY_PATH.value,
-        nhmmer_binary_path=_NHMMER_BINARY_PATH.value,
-        hmmalign_binary_path=_HMMALIGN_BINARY_PATH.value,
-        hmmsearch_binary_path=_HMMSEARCH_BINARY_PATH.value,
-        hmmbuild_binary_path=_HMMBUILD_BINARY_PATH.value,
-        mmseqs_binary_path=_MMSEQS_BINARY_PATH.value,
-        small_bfd_database_path=expand_path(_SMALL_BFD_DATABASE_PATH.value),
-        mgnify_database_path=expand_path(_MGNIFY_DATABASE_PATH.value),
-        uniprot_cluster_annot_database_path=expand_path(
-            _UNIPROT_CLUSTER_ANNOT_DATABASE_PATH.value
-        ),
-        uniref90_database_path=expand_path(_UNIREF90_DATABASE_PATH.value),
-        ntrna_database_path=expand_path(_NTRNA_DATABASE_PATH.value),
-        rfam_database_path=expand_path(_RFAM_DATABASE_PATH.value),
-        rna_central_database_path=expand_path(_RNA_CENTRAL_DATABASE_PATH.value),
-        pdb_database_path=expand_path(_PDB_DATABASE_PATH.value),
-        seqres_database_path=expand_path(_SEQRES_DATABASE_PATH.value),
-        jackhmmer_n_cpu=_JACKHMMER_N_CPU.value,
-        nhmmer_n_cpu=_NHMMER_N_CPU.value,
-        max_template_date=max_template_date,
-        use_mmseqs=_USE_MMSEQS.value,
-        mmseqs_options=_MMSEQS_OPTIONS.value,
-        result2msa_options=_R2MSA_OPTIONS.value,
-    )
+          jackhmmer_binary_path=_JACKHMMER_BINARY_PATH.value,
+          nhmmer_binary_path=_NHMMER_BINARY_PATH.value,
+          hmmalign_binary_path=_HMMALIGN_BINARY_PATH.value,
+          hmmsearch_binary_path=_HMMSEARCH_BINARY_PATH.value,
+          hmmbuild_binary_path=_HMMBUILD_BINARY_PATH.value,
+          mmseqs_binary_path=_MMSEQS_BINARY_PATH.value,
+          small_bfd_database_path=expand_path(_SMALL_BFD_DATABASE_PATH.value),
+          small_bfd_z_value=_SMALL_BFD_Z_VALUE.value,
+          mgnify_database_path=expand_path(_MGNIFY_DATABASE_PATH.value),
+          mgnify_z_value=_MGNIFY_Z_VALUE.value,
+          uniprot_cluster_annot_database_path=expand_path(
+              _UNIPROT_CLUSTER_ANNOT_DATABASE_PATH.value
+          ),
+          uniprot_cluster_annot_z_value=_UNIPROT_CLUSTER_ANNOT_Z_VALUE.value,
+          uniref90_database_path=expand_path(_UNIREF90_DATABASE_PATH.value),
+          uniref90_z_value=_UNIREF90_Z_VALUE.value,
+          ntrna_database_path=expand_path(_NTRNA_DATABASE_PATH.value),
+          ntrna_z_value=_NTRNA_Z_VALUE.value,
+          rfam_database_path=expand_path(_RFAM_DATABASE_PATH.value),
+          rfam_z_value=_RFAM_Z_VALUE.value,
+          rna_central_database_path=expand_path(_RNA_CENTRAL_DATABASE_PATH.value),
+          rna_central_z_value=_RNA_CENTRAL_Z_VALUE.value,
+          pdb_database_path=expand_path(_PDB_DATABASE_PATH.value),
+          seqres_database_path=expand_path(_SEQRES_DATABASE_PATH.value),
+          jackhmmer_n_cpu=_JACKHMMER_N_CPU.value,
+          jackhmmer_max_parallel_shards=_JACKHMMER_MAX_PARALLEL_SHARDS.value,
+          nhmmer_n_cpu=_NHMMER_N_CPU.value,
+          nhmmer_max_parallel_shards=_NHMMER_MAX_PARALLEL_SHARDS.value,
+          max_template_date=max_template_date,
+          use_mmseqs=_USE_MMSEQS.value,
+          mmseqs_options=_MMSEQS_OPTIONS.value,
+          result2msa_options=_R2MSA_OPTIONS.value,
+      )
     else:
       expand_path = lambda x: replace_mmseqs_db_dir(x, DB_DIR.value, MMSEQS_DB_DIR.value)
       data_pipeline_config = pipeline.DataPipelineConfig(
@@ -947,7 +1092,7 @@ def main(_):
           use_mmseqs_gpu=_USE_MMSEQS_GPU.value,
           mmseqs_options=_MMSEQS_OPTIONS.value,
           result2msa_options=_R2MSA_OPTIONS.value,
-      )
+      )      
   else:
     data_pipeline_config = None
 
@@ -967,6 +1112,7 @@ def main(_):
             num_diffusion_samples=_NUM_DIFFUSION_SAMPLES.value,
             num_recycles=_NUM_RECYCLES.value,
             return_embeddings=_SAVE_EMBEDDINGS.value,
+            return_distogram=_SAVE_DISTOGRAM.value,
         ),
         device=devices[_GPU_DEVICE.value],
         model_dir=pathlib.Path(MODEL_DIR.value),
@@ -990,6 +1136,7 @@ def main(_):
         buckets=tuple(int(bucket) for bucket in _BUCKETS.value),
         ref_max_modified_date=max_template_date,
         conformer_max_iterations=_CONFORMER_MAX_ITERATIONS.value,
+        resolve_msa_overlaps=_RESOLVE_MSA_OVERLAPS.value,
         force_output_dir=_FORCE_OUTPUT_DIR.value,
     )
     num_fold_inputs += 1
