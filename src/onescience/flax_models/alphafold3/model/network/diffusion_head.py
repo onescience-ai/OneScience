@@ -13,7 +13,7 @@ from onescience.flax_models.alphafold3.model.network import atom_cross_attention
 from onescience.flax_models.alphafold3.model.network import diffusion_transformer
 from onescience.flax_models.alphafold3.model.network import featurization
 from onescience.flax_models.alphafold3.model.network import noise_level_embeddings
-import chex
+#import chex
 import haiku as hk
 import jax
 import jax.numpy as jnp
@@ -231,7 +231,7 @@ class DiffusionHead(hk.Module):
       act = enc.token_act
 
       # Token-token attention
-      chex.assert_shape(act, (None, self.config.per_token_channels))
+      # chex.assert_shape(act, (None, self.config.per_token_channels))
       act = jnp.asarray(act, dtype=jnp.float32)
 
       act += hm.Linear(

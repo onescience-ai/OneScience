@@ -202,15 +202,18 @@ def _gated_linear_unit(
   else:
     input_output_aliases = {3: 0}
 
+  compiler_params = dict(
+      triton=dict(num_warps=config.num_warps, num_stages=config.num_stages)
+  )
+
   return pl.pallas_call(
       kernel,
       name=name,
       grid=(pl.cdiv(m, config.block_m) * pl.cdiv(n, config.block_n),),
       out_shape=jax.ShapeDtypeStruct((m, n), x.dtype) if dst is None else dst,
       input_output_aliases=input_output_aliases,
-      compiler_params=dict(
-          triton=dict(num_warps=config.num_warps, num_stages=config.num_stages)
-      ),
+      compiler_params=compiler_params,
+      backend='triton',
   )(x, weights_projection, weights_gate, dst, epilogue_args)
 
 
