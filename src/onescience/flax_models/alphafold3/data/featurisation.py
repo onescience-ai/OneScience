@@ -33,6 +33,7 @@ def featurise_input(
     buckets: Sequence[int] | None,
     ref_max_modified_date: datetime.date | None = None,
     conformer_max_iterations: int | None = None,
+    resolve_msa_overlaps: bool = True,
     verbose: bool = False,
 ) -> Sequence[features.BatchDict]:
   """Featurise the folding input.
@@ -52,6 +53,11 @@ def featurise_input(
       date the model coordinates can be used as a fallback.
     conformer_max_iterations: Optional override for maximum number of iterations
       to run for RDKit conformer search.
+    resolve_msa_overlaps: Whether to deduplicate unpaired MSA against paired
+      MSA. The default behaviour matches the method described in the AlphaFold 3
+      paper. Set this to false if providing custom paired MSA using the unpaired
+      MSA field to keep it exactly as is as deduplication against the paired MSA
+      could break the manually crafted pairing between MSA sequences.
     verbose: Whether to print progress messages.
 
   Returns:
@@ -65,6 +71,7 @@ def featurise_input(
           buckets=buckets,
           ref_max_modified_date=ref_max_modified_date,
           conformer_max_iterations=conformer_max_iterations,
+          resolve_msa_overlaps=resolve_msa_overlaps,
       ),
   )
 
