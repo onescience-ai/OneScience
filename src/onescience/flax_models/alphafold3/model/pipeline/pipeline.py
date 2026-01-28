@@ -110,6 +110,12 @@ class WholePdbPipeline:
         symmetric polymer chains.
       deterministic_frames: Whether to use fixed-seed reference positions to
         construct deterministic frames.
+      resolve_msa_overlaps: Whether to deduplicate unpaired MSA against paired
+        MSA. The default behaviour matches the method described in the AlphaFold
+        3 paper. Set this to false if providing custom paired MSA using the
+        unpaired MSA field to keep it exactly as is as deduplication against
+        the paired MSA could break the manually crafted pairing between MSA
+        sequences.
     """
 
     max_atoms_per_token: int = 24
@@ -132,6 +138,7 @@ class WholePdbPipeline:
     remove_nonsymmetric_bonds: bool = False
     deterministic_frames: bool = True
     conformer_max_iterations: int | None = None
+    resolve_msa_overlaps: bool = True
 
   def __init__(self, *, config: Config):
     """Initializes WholePdb data pipeline.
@@ -330,6 +337,7 @@ class WholePdbPipeline:
         fold_input=fold_input,
         logging_name=logging_name,
         max_paired_sequence_per_species=self._config.max_paired_sequence_per_species,
+        resolve_msa_overlaps=self._config.resolve_msa_overlaps,
     )
 
     # Create template features

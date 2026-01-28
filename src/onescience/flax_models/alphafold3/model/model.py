@@ -216,6 +216,7 @@ class Model(hk.Module):
     heads: 'Model.HeadsConfig' = base_config.autocreate()
     num_recycles: int = 10
     return_embeddings: bool = False
+    return_distogram: bool = False
 
   def __init__(self, config: Config, name: str = 'diffuser'):
     super().__init__(name=name)
@@ -319,7 +320,7 @@ class Model(hk.Module):
 
     distogram = distogram_head.DistogramHead(
         self.config.heads.distogram, self.global_config
-    )(batch, embeddings)
+    )(batch, embeddings, return_distogram=self.config.return_distogram)
 
     output = {
         'diffusion_samples': samples,

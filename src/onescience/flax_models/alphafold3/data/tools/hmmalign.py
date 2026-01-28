@@ -78,7 +78,7 @@ class Hmmalign:
         f.write(a3m_str)
 
       cmd = [
-          self.binary_path,
+          self._binary_path,
           *('-o', output_a3m_path),
           *('--outformat', 'A2M'),  # A2M is A3M in the HMMER suite.
       ]
