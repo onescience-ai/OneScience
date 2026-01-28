@@ -1,5 +1,5 @@
 #!/bin/bash
-source ../../../../env.sh
+source ../../../env.sh
 export FASTA_DIR=./monomer/fasta_dir
 export OUTPUT_DIR=./monomer/
 export PRECOMPUTED_ALIGNMENT_DIR=./monomer/alignments
