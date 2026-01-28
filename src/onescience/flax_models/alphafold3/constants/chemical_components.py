@@ -17,6 +17,15 @@ _CCD_PICKLE_FILE = resources.filename(
 )
 
 
+@functools.cache
+def _load_ccd_pickle_cached(
+    path: os.PathLike[str],
+) -> dict[str, Mapping[str, Sequence[str]]]:
+  """Loads the CCD pickle file and caches it so that it is only loaded once."""
+  with open(path, 'rb') as f:
+    return pickle.loads(f.read())
+
+
 class Ccd(Mapping[str, Mapping[str, Sequence[str]]]):
   """Chemical Components found in PDB (CCD) constants.
 
@@ -44,8 +53,7 @@ class Ccd(Mapping[str, Mapping[str, Sequence[str]]]):
         be used to override specific entries in the CCD if desired.
     """
     self._ccd_pickle_path = ccd_pickle_path or _CCD_PICKLE_FILE
-    with open(self._ccd_pickle_path, 'rb') as f:
-      self._dict = pickle.loads(f.read())
+    self._dict = _load_ccd_pickle_cached(self._ccd_pickle_path)
 
     if user_ccd is not None:
       if not user_ccd:
@@ -84,11 +92,6 @@ class Ccd(Mapping[str, Mapping[str, Sequence[str]]]):
 
   def keys(self) -> KeysView[str]:
     return self._dict.keys()
-
-
-@functools.cache
-def cached_ccd(user_ccd: str | None = None) -> Ccd:
-  return Ccd(user_ccd=user_ccd)
 
 
 @dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
