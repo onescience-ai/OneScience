@@ -8,7 +8,7 @@ from Bio.PDB import PDBIO
 from Bio.PDB import MMCIFParser, Superimposer
 import time
 
-from onescience.models.simplefold.wrapper import ModelWrapper, InferenceWrapper
+from wrapper import ModelWrapper, InferenceWrapper
 
 # sys.path.append(str(Path("./src/simplefold").resolve()))
 
