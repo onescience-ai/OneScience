@@ -4,7 +4,7 @@ from .resample.DownSample import *
 from .resample.UpSample import *
 from .patch.patch_embed import *
 from .patch.patch_recovery import *
-from .utils import *
+from .func_utils.pangu_utils import *
 
 __all__ = [
     "EarthAttention2D",
