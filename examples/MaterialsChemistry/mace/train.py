@@ -6,6 +6,7 @@ import glob
 import json
 import logging
 import os
+import shutil
 from copy import deepcopy
 from pathlib import Path
 from typing import List, Optional
@@ -97,6 +98,7 @@ def run(args) -> None:
     """
     This script runs the training/fine tuning for mace
     """
+
     tag = tools.get_tag(name=args.name, seed=args.seed)
     args, input_log_messages = tools.check_args(args)
 
@@ -727,7 +729,7 @@ def run(args) -> None:
         logging.info("Optimzing model and optimzier for XPU")
         model, optimizer = ipex.optimize(model, optimizer=optimizer)
     logger = tools.MetricsLogger(
-        directory=args.results_dir, tag=tag + "_train"
+        directory=args.plot_dir, tag=tag + "_train"
     )  # pylint: disable=E1123
 
     lr_scheduler = LRScheduler(optimizer, args)
