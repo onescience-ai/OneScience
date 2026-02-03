@@ -1,13 +1,15 @@
 
 
 """Batch dataclass."""
+import dataclasses
 from typing import Self
 
 from onescience.flax_models.alphafold3.model import features
-import chex
+#import chex
+import jax
 
 
-@chex.dataclass(mappable_dataclass=False, frozen=True)
+@dataclasses.dataclass(frozen=True)
 class Batch:
   """Dataclass containing batch."""
 
@@ -66,3 +68,10 @@ class Batch:
         **self.frames.as_data_dict(),
     }
     return output
+
+
+jax.tree_util.register_dataclass(
+    Batch,
+    data_fields=[f.name for f in dataclasses.fields(Batch)],
+    meta_fields=[],
+)
