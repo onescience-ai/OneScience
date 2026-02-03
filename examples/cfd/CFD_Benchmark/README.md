@@ -64,6 +64,14 @@ CFD_Benchmark 是一个面向深度学习研究者的开源库，特别适用于
 
 请参考 [特性](#特性) 一节中对应基准测试下的数据集下载链接，下载所需数据集。
 
+来自 [[FNO]](https://arxiv.org/abs/2010.08895) 和 [[geo-FNO]](https://arxiv.org/abs/2207.05209) 的六个标准基准数据集，可以通过[此链接](https://drive.google.com/drive/folders/1YBuaoTdOSr_qzaow-G-iwvbUI7fiUzu8)下载。
+
+PDEBench [[NeurIPS 2022 Track 数据集与基准]](https://arxiv.org/abs/2210.07182)用于自回归任务的基准测试数据集，可以通过[此链接](https://darus.uni-stuttgart.de/dataset.xhtml?persistentId=doi:10.18419/darus-2986)下载。
+
+ShapeNet-Car [[TOG 2018]](https://dl.acm.org/doi/abs/10.1145/3197517.3201325)，用于工业设计任务的基准测试数据集，可以通过[[此链接]](http://www.nobuyuki-umetani.com/publication/mlcfd_data.zip)下载。
+
+BubbleML [[Multiphase Multiphysics Dataset]](https://arxiv.org/abs/2307.14623)用于研究多物理相变现象数据集，可以通过[[此链接]](https://github.com/HPCForge/BubbleML/blob/main/bubbleml_data/README.md)下载。
+
 曙光新一代机器平台数据集统一存放在：/public/onestore/onedatasets/CFD_Benchmark
 
 2. 训练和评估模型。我们在 `./scripts/` 文件夹下提供了所有基准的实验脚本。你可以通过如下命令复现实验结果：

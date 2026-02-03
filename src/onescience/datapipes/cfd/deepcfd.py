@@ -43,7 +43,6 @@ class DeepCFDDataset(BaseDataset):
 
     def _init_data(self):
         """加载 Pickle 数据，打乱顺序并根据模式划分"""
-        # 1. 加载原始数据
         if self.dist.rank == 0:
             self.logger.info(f"Loading raw data from {self.data_path}...")
             
@@ -54,13 +53,10 @@ class DeepCFDDataset(BaseDataset):
             
         total_samples = len(raw_x)
         
-        # 2. 打乱数据 (设置固定种子以保证分布式环境下的一致性)
         indices = list(range(total_samples))
         seed = self.config.data.seed
         random.Random(seed).shuffle(indices)
         
-        # 3. 计算通道权重 (用于损失函数)
-        # 注意：此处假设数据量可放入内存。若数据量过大，需改为 Map-style 懒加载
         self.full_y = torch.FloatTensor(raw_y) 
         
         batch = self.full_y.shape[0]
@@ -74,7 +70,7 @@ class DeepCFDDataset(BaseDataset):
             .view(1, -1, 1, 1)
         )
         
-        # 4. 划分数据集
+        # 划分数据集
         split_ratio = self.config.data.split_ratio
         split_idx = int(total_samples * split_ratio)
         
@@ -110,9 +106,7 @@ class DeepCFDDatapipe:
         self.config = config
         self.distributed = distributed
         
-        # 使用深拷贝初始化不同模式的数据集
         self.train_dataset = DeepCFDDataset(copy.deepcopy(config), mode='train')
-        # DeepCFD 原始逻辑中，剩余数据同时用作测试集和验证集
         self.test_dataset = DeepCFDDataset(copy.deepcopy(config), mode='test')
 
     def get_loss_weights(self):
