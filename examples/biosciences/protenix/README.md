@@ -1,9 +1,9 @@
-# 技术报告
-
-https://github.com/bytedance/Protenix/blob/main/Protenix_Technical_Report.pdf
-
 # 模型简介
-该项目由字节跳动的 AML AI4Science 团队基于PyTorch的AlphaFold3开发，目标是改进复杂生物分子结构的预测实现可训练复现。该模型的推出打破了Alphafold3在应用中的局限性，Protenix作为一个完全开源项目，研究人员可以生成新预测并针对特定应用进行微调。该模型在不同分子类型的结构预测中表现出色，与 AlphaFold3、AlphaFold-Multimer 2.3 和 RoseTTAFold2NA 相比具有竞争力。
+[Protenix](https://github.com/bytedance/Protenix/blob/main/Protenix_Technical_Report.pdf)是由字节跳动的 AML AI4Science 团队基于PyTorch的AlphaFold3开发，目标是改进复杂生物分子结构的预测实现可训练复现。该模型的推出打破了Alphafold3在应用中的局限性，Protenix作为一个完全开源项目，研究人员可以生成新预测并针对特定应用进行微调。该模型在不同分子类型的结构预测中表现出色，与 AlphaFold3、AlphaFold-Multimer 2.3 和 RoseTTAFold2NA 相比具有竞争力。
+
+# 应用场景
+
+蛋白质结构预测，药物研发，抗体设计等领域
 
 # 模型结构
 主要参考AlphaFold3网络结构：
@@ -60,65 +60,153 @@ wget -P <数据存放目录> https://af3-dev.tos-cn-beijing.volces.com/release_d
 ```
 
 微调数据集示例列表可查看`examples/alphafold/protenix/ft_datasets/finetune_subset.txt`文件
+推理需要输入json文件可参考文件 *./infer_datasets/example.json*。
+
+# 预训练权重
+
+权重下载方式：
+
+```shell
+wget -P <下载目标路径> https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.5.0.pt
+```
 
 # 训练
 
-单卡训练：
+## 单卡训练
 
 ```shell
 sh train_demo.sh
 ```
+脚本内容：
+```shell
+source ../../../env.sh
+export PYTHONPATH=$(pwd):$PYTHONPATH
+export DATA_ROOT_DIR=${ONESCIENCE_DATASETS_DIR}/protenix/
+export HIP_VISIBLE_DEVICES=0 # 指定运行gpu
 
+python3 ./runner/train.py \
+--run_name protenix_train \
+--seed 42 \
+--base_dir ./output \
+--dtype bf16 \
+--project protenix \
+--use_wandb false \
+--diffusion_batch_size 48 \
+--eval_interval 400 \
+--log_interval 50 \
+--checkpoint_interval 400 \
+--ema_decay 0.999 \
+--train_crop_size 384 \
+--max_steps 100000 \
+--warmup_steps 2000 \
+--lr 0.001 \
+--sample_diffusion.N_step 20 \
+--data.train_sets weightedPDB_before2109_wopb_nometalc_0925 \
+--data.test_sets recentPDB_1536_sample384_0925,posebusters_0925 \
+--data.posebusters_0925.base_info.max_n_token 768
+
+```
 `train_demo.sh`脚本主要参数设置说明，暂不支持`USE_DEEPSPEED_EVO_ATTTENTION`和`fast_layernorm`功能，默认不开启。
-
+`source ../../../env.sh`: 加载`ONESCIENCE_DATASETS_DIR`和`ONESCIENCE_MODELS_DIR`环境变量。
 DATA_ROOT_DIR：设置数据集路径
 PYTHONPATH：添加当前路径到PYTHONPATH路径中
 HIP_VISIBLE_DEVICES：指定在哪张显卡上运行，默认0号显卡
 
 - run_name：模型名称，训练阶段名称为`protenix_train`
-
 - seed：随机种子，确保训练过程可复现。默认42
-
 - base_dir：输出保存路径，默认`output`
-
 - dtype：训练精度，`bf16`和`fp32`可选
-
 - project：项目名称，默认`protenix`
-
 - use_wandb：是否使用`wandb`在线记录训练过程，`True`或`False`
-
 - diffusion_batch_size：`diffusion`模块输入批次，默认48
-
 - eval_interval：每`eval_interval`个step进行一次`eval`
-
 - log_interval：每`log_interval`个step输出一次`loss`相关信息
-
 - checkpoint_interval：每`checkpoint_interval`个step保存一次模型权重
-
 - ema_decay：EMA 的衰减率，默认值为 0.999
-
 - train_crop_size：训练裁剪大小，默认384
-
 - max_steps：最大训练步数
-
 - sample_diffusion.N_step：评估过程中，扩散过程的步数，默认设置 20，以提高效率
-
 - data.train_sets：训练数据集，详细设置可参考文件`examples/biosciences/protenix/configs/configs_data.py`
-
 - data.test_sets：评估数据集，多个数据集可用逗号分开
-
 - data.posebusters_0925.base_info.max_n_token 768：限制`posebusters_0925`数据集只对`token<=768`的数据进行评估，加快评估过程
 
   
+## 单节点多卡训练
+
+可参考以下脚本进行：
+```shell
+source ../../../env.sh
+export PYTHONPATH=$(pwd):$PYTHONPATH
+export DATA_ROOT_DIR=${ONESCIENCE_DATASETS_DIR}/protenix/
+
+# 指定运行gpu，比如使用四张卡
+nproc_per_node=4
+export HIP_VISIBLE_DEVICES=0,1,2,3
+
+torchrun --nnodes=1 --nproc_per_node=$nproc_per_node --master_port=25003 ./runner/train.py \
+--run_name protenix_train \
+--seed 42 \
+--base_dir ./output \
+--dtype bf16 \
+--project protenix \
+--use_wandb false \
+--diffusion_batch_size 48 \
+--eval_interval 400 \
+--log_interval 50 \
+--checkpoint_interval 400 \
+--ema_decay 0.999 \
+--train_crop_size 384 \
+--max_steps 100000 \
+--warmup_steps 2000 \
+--lr 0.001 \
+--sample_diffusion.N_step 20 \
+--data.train_sets weightedPDB_before2109_wopb_nometalc_0925 \
+--data.test_sets recentPDB_1536_sample384_0925,posebusters_0925 \
+--data.posebusters_0925.base_info.max_n_token 768
+
+```
 
 # 微调
 
-单卡微调：
+## 单卡微调
 
 ```shell
 sh finetune_demo.sh
 ```
+脚本内容：
+```shell
+source ../../../env.sh
+# wget -P /af3-dev/release_model/ https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.5.0.pt
+checkpoint_path="${ONESCIENCE_MODELS_DIR}/Protenix/model_v0.5.0.pt"
 
+export PYTHONPATH=$(pwd):$PYTHONPATH
+export DATA_ROOT_DIR=${ONESCIENCE_DATASETS_DIR}/protenix/
+export HIP_VISIBLE_DEVICES=0 # 指定运行gpu
+
+python3 ./runner/train.py \
+--run_name protenix_finetune \
+--seed 42 \
+--base_dir ./output \
+--dtype bf16 \
+--project protenix \
+--use_wandb false \
+--diffusion_batch_size 48 \
+--eval_interval 400 \
+--log_interval 50 \
+--checkpoint_interval 400 \
+--ema_decay 0.999 \
+--train_crop_size 384 \
+--max_steps 100000 \
+--warmup_steps 2000 \
+--lr 0.001 \
+--sample_diffusion.N_step 20 \
+--load_checkpoint_path ${checkpoint_path} \
+--load_ema_checkpoint_path ${checkpoint_path} \
+--data.train_sets weightedPDB_before2109_wopb_nometalc_0925 \
+--data.weightedPDB_before2109_wopb_nometalc_0925.base_info.pdb_list ft_datasets/finetune_subset.txt \
+--data.test_sets recentPDB_1536_sample384_0925,posebusters_0925
+
+```
 `finetune_demo.sh`暂不支持`USE_DEEPSPEED_EVO_ATTTENTION`和`fast_layernorm`功能，默认不开启。微调过程大多参数与训练脚本中设置一致，下面仅介绍不同于训练过程的参数设置：
 
 - checkpoint_path：预训练权重文件路径
@@ -128,6 +216,44 @@ sh finetune_demo.sh
 - load_ema_checkpoint_path：设置同`load_checkpoint_path`
 - data.weightedPDB_before2109_wopb_nometalc_0925.base_info.pdb_list：微调数据集列表
 
+## 单节点多卡微调
+可参考以下脚本进行：
+```shell
+source ../../../env.sh
+# wget -P /af3-dev/release_model/ https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.5.0.pt
+checkpoint_path="${ONESCIENCE_MODELS_DIR}/Protenix/model_v0.5.0.pt"
+
+export PYTHONPATH=$(pwd):$PYTHONPATH
+export DATA_ROOT_DIR=${ONESCIENCE_DATASETS_DIR}/protenix/
+
+# 指定运行gpu，比如使用四张卡
+nproc_per_node=4
+export HIP_VISIBLE_DEVICES=0,1,2,3
+
+torchrun --nnodes=1 --nproc_per_node=$nproc_per_node --master_port=25003 ./runner/train.py \
+--run_name protenix_finetune \
+--seed 42 \
+--base_dir ./output \
+--dtype bf16 \
+--project protenix \
+--use_wandb false \
+--diffusion_batch_size 48 \
+--eval_interval 400 \
+--log_interval 50 \
+--checkpoint_interval 400 \
+--ema_decay 0.999 \
+--train_crop_size 384 \
+--max_steps 100000 \
+--warmup_steps 2000 \
+--lr 0.001 \
+--sample_diffusion.N_step 20 \
+--load_checkpoint_path ${checkpoint_path} \
+--load_ema_checkpoint_path ${checkpoint_path} \
+--data.train_sets weightedPDB_before2109_wopb_nometalc_0925 \
+--data.weightedPDB_before2109_wopb_nometalc_0925.base_info.pdb_list ft_datasets/finetune_subset.txt \
+--data.test_sets recentPDB_1536_sample384_0925,posebusters_0925
+
+```
 # 推理
 
 单卡推理：
@@ -135,9 +261,36 @@ sh finetune_demo.sh
 ```shell
 sh inference_demo.sh
 ```
+脚本内容:
+```shell
+source ../../../env.sh
+N_sample=5
+N_step=200
+N_cycle=10
+seed=101
+use_deepspeed_evo_attention=false
+input_json_path="./infer_datasets/example.json"
+# wget -P /af3-dev/release_model/ https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.5.0.pt
+load_checkpoint_path="${ONESCIENCE_MODELS_DIR}/Protenix/model_v0.5.0.pt"
+dump_dir="./output"
 
+export PYTHONPATH=$(pwd):$PYTHONPATH
+export DATA_ROOT_DIR=${ONESCIENCE_DATASETS_DIR}/protenix/
+export HIP_VISIBLE_DEVICES=0 # 指定运行gpu
+python3 runner/inference.py \
+--seeds ${seed} \
+--dtype bf16 \
+--num_workers 8 \
+--load_checkpoint_path ${load_checkpoint_path} \
+--dump_dir ${dump_dir} \
+--input_json_path ${input_json_path} \
+--model.N_cycle ${N_cycle} \
+--sample_diffusion.N_sample ${N_sample} \
+--sample_diffusion.N_step ${N_step}
+
+```
 `inference_demo.sh`脚本主要参数设置说明，暂不支持`USE_DEEPSPEED_EVO_ATTTENTION`和`fast_layernorm`功能，默认不开启。
-
+`source ../../../env.sh`: 加载`ONESCIENCE_DATASETS_DIR`和`ONESCIENCE_MODELS_DIR`环境变量。
 DATA_ROOT_DIR：设置数据集路径
 PYTHONPATH：添加当前路径到PYTHONPATH路径中
 HIP_VISIBLE_DEVICES：指定在哪张显卡上运行，默认0号显卡
@@ -174,7 +327,7 @@ HIP_VISIBLE_DEVICES：指定在哪张显卡上运行，默认0号显卡
 
 # 推理结果可视化
 
-• 可使用Pymol工具对输出结果进行可视化。工具下载链接：https://pymol.org 
+• 可使用[Pymol](https://pymol.org )工具对输出结果进行可视化。
 
 • 具体使用：将推理输出cif文件加载到pymol工具。如下图所示。
 
@@ -185,20 +338,9 @@ HIP_VISIBLE_DEVICES：指定在哪张显卡上运行，默认0号显卡
 ![protenix_infer_rmsd.png](../../../doc/protenix_infer_rmsd.png)
 
 
+# 在超算互联网使用
 
-# 应用场景
-
-蛋白质结构预测，药物研发，抗体设计等领域
-
-# 预训练权重
-
-权重下载方式：
-
-```shell
-wget -P <下载目标路径> https://af3-dev.tos-cn-beijing.volces.com/release_model/model_v0.5.0.pt
-```
-
-
+商品地址：[Protenix训练推理](https://www.scnet.cn/ui/mall/detail/goods?type=software&common1=MODEL&shopId=1846026866430099458&id=1870497197062049794&resource=MODEL&keyword=Protenix%E8%AE%AD%E7%BB%83%E6%8E%A8%E7%90%86)
 
 # 参考资料
 https://github.com/bytedance/Protenix

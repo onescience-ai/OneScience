@@ -1,25 +1,17 @@
-
-
-
 # CFD_Benchmark
 
-CFD_Benchmark 是一个面向深度学习研究者的开源库，特别适用于神经偏微分方程（PDE）求解器。该库基于清华大学开源的 GitHub 项目 [Neural-Solver-Library](https://github.com/thuml/Neural-Solver-Library/) 进行了扩展，支持了DDP并行，加入了新的模型和数据集。
+## 模型简介
 
+CFD_Benchmark 是一个面向深度学习研究者的开源库，特别适用于神经偏微分方程（PDE）求解器。该库基于清华大学开源的 GitHub 项目 [Neural-Solver-Library](https://github.com/thuml/Neural-Solver-Library/) 进行了扩展，支持DDP并行，加入了新的模型和数据集。
 
----
-
-## 特性
-
-本库目前支持以下基准测试：
+本库目前支持以下基准测试,且未来：
 
 - 来自 [[FNO]](https://arxiv.org/abs/2010.08895) 和 [[geo-FNO]](https://arxiv.org/abs/2207.05209) 的六个标准基准
 - PDEBench [[NeurIPS 2022 Track 数据集与基准]](https://arxiv.org/abs/2210.07182)，用于自回归任务的基准测试
 - ShapeNet-Car 数据集 [[TOG 2018]](https://dl.acm.org/doi/abs/10.1145/3197517.3201325)，用于工业设计任务的基准测试
 - BubbleML 数据集[[Multiphase Multiphysics Dataset]](https://arxiv.org/abs/2307.14623),用于研究多物理相变现象
 
----
-
-## 支持的神经求解器
+**模型结构**
 
 以下是支持的神经 PDE 求解器列表：
 
@@ -54,19 +46,15 @@ CFD_Benchmark 是一个面向深度学习研究者的开源库，特别适用于
 
 - **MeshGraphNet** LEARNING MESH-BASED SIMULATION WITH GRAPH NETWORKS[ICLR 2021](https://arxiv.org/abs/2010.03409) [[Code]](https://github.com/google-deepmind/deepmind-research/tree/master/meshgraphnets)
 
+**数据集准备**
 
----
+请参考对应基准测试下的数据集下载链接，下载所需数据集。
 
-## 使用说明
+**训练**
 
+**单卡训练**
 
-1. 准备数据。
-
-请参考 [特性](#特性) 一节中对应基准测试下的数据集下载链接，下载所需数据集。
-
-曙光新一代机器平台数据集统一存放在：/public/onestore/onedatasets/CFD_Benchmark
-
-2. 训练和评估模型。我们在 `./scripts/` 文件夹下提供了所有基准的实验脚本。你可以通过如下命令复现实验结果：
+训练和评估模型。我们在 `./scripts/` 文件夹下提供了所有基准的实验脚本。你可以通过如下命令复现实验结果：
 
 ```bash
 bash ./scripts/StandardBench/airfoil/Transolver.sh
@@ -74,19 +62,20 @@ bash ./scripts/StandardBench/airfoil/Transolver.sh
 
 运行`python run.py -h`可以查看各参数作用
 
-多卡训练：
+**多卡训练**
 
 可以在`./scripts/` 文件夹下的脚本中加入mpirun 的方式实现多卡训练
 
 ```bash
-mpirun -np <num_GPUs> --allow-run-as-root python run.py
+mpirun -np <num_GPUs> --allow-run-as-root python run.py ...
 ```
+
 若在 Docker 容器内运行，多GPU命令可能需加 `--allow-run-as-root`。
 
 torchrun启动多节点多卡训练：
 
 ```bash
-torchrun --standalone --nnodes=<num_nodes> --nproc_per_node=<num_GPUs> run.py
+torchrun --standalone --nnodes=<num_nodes> --nproc_per_node=<num_GPUs> run.py ...
 ```
 
 如果在支持slurm作业调度系统的环境下进行跨节点并行训练，根据实际需求更改slurm脚本，可以执行如下脚本：
@@ -94,15 +83,11 @@ torchrun --standalone --nnodes=<num_nodes> --nproc_per_node=<num_GPUs> run.py
 ```bash
 sbatch slurm.sh
 ```
-3.推理和评估
 
-需要在对应的脚本中将--eval 参数改为1即可，然后继续执行此脚本
+**推理**
 
-3. 开发你自己的模型。
+将脚本中的`--eval`参数设置为1即可
 
-- 将模型文件添加到 `./models` 目录，可参考 `./models/Transolver.py`。
-- 在 `./models/model_factory.py` 的 `model_dict` 中加入新模型。
-- 在 `./scripts` 目录下创建对应的脚本，可参考已有模型脚本设置超参数。
+许可证 ****
 
----
-
+CFD_Benchmark 项目（包括代码和模型参数）在[Apache 2.0](https://github.com/thuml/Neural-Solver-Library/blob/main/LICENSE)许可下提供，可免费用于学术研究和商业用途。

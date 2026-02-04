@@ -38,7 +38,9 @@ current_data_path: 'xx/'===========》进行洋流预测时存放洋流数据的
 
 随后通过"python get_means_stds.py"计算均值和标准差，用于数据Z-Score归一化，结果自动存放于工程目录下的means_stds中，目前工程内提供一份均值和标准差，可直接用于训练。
 
-## 训练
+
+
+**训练**
 
 用户如需指定可用卡号，需在终端内根据下述命令指定可用卡号(以使用0号卡和2、3号卡为例，展示2个示例命令)，随后再通过sh脚本进行单机单卡、单机多卡以及多机多卡训练；
 
@@ -124,10 +126,10 @@ srun --nodes=$SLURM_NNODES --ntasks=$SLURM_NNODES torchrun \
             train_oceancast.py
 ```
 
-## 在超算互联网使用
+**在超算互联网使用**
 
 商品地址： https://www.scnet.cn/ui/mall/detail/goods?type=software&common1=MODEL&id=1870277805564973058
 
-## 许可证
+**许可证**
 
 Oceancast 项目（包括代码和模型参数）在[Apache 2.0](https://github.com/bytedance/Protenix/blob/main/LICENSE)许可下提供，可免费用于学术研究和商业用途。
