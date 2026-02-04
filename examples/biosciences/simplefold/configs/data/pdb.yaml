@@ -1,32 +1,32 @@
-_target_: datasets.train_datamodule.SimpleFoldTrainingDataModule
+_target_: onescience.datapipes.simplefold.train_datamodule.SimpleFoldTrainingDataModule
 
 datasets:
-  - _target_: datasets.train_datamodule.DatasetConfig
+  - _target_: onescience.datapipes.simplefold.train_datamodule.DatasetConfig
     data_name: rcsb_protein
     tokenized_dir: /mnt/task_runtime/data/rcsb_protein_tokenized
     target_dir: /mnt/task_runtime/data/rcsb_processed_targets
     manifest_path: /mnt/task_runtime/data/rcsb_protein_tokenized/manifest.json
     cropper:
-      _target_: boltz_data_pipeline.crop.boltz.BoltzCropper
+      _target_: onescience.datapipes.boltz_data_pipeline.crop.boltz.BoltzCropper
       min_neighborhood: 0
       max_neighborhood: 40
     filters:
-      - _target_: boltz_data_pipeline.filter.dynamic.resolution.ResolutionFilter
+      - _target_: onescience.datapipes.boltz_data_pipeline.filter.dynamic.resolution.ResolutionFilter
         resolution: 5.0
-      - _target_: boltz_data_pipeline.filter.dynamic.date.DateFilter
+      - _target_: onescience.datapipes.boltz_data_pipeline.filter.dynamic.date.DateFilter
         date: "2020-05-01"
         ref: released
 
 filters:
-    - _target_: boltz_data_pipeline.filter.dynamic.size.SizeFilter
+    - _target_: onescience.datapipes.boltz_data_pipeline.filter.dynamic.size.SizeFilter
       min_chains: 1
       max_chains: 300
 
 tokenizer:
-  _target_: boltz_data_pipeline.tokenize.boltz_protein.BoltzTokenizer
+  _target_: onescience.datapipes.boltz_data_pipeline.tokenize.boltz_protein.BoltzTokenizer
 
 featurizer:
-  _target_: boltz_data_pipeline.feature.featurizer.BoltzFeaturizer
+  _target_: onescience.datapipes.boltz_data_pipeline.feature.featurizer.BoltzFeaturizer
 
 symmetries: /mnt/task_runtime/data/symmetry.pkl
 max_tokens: 256
