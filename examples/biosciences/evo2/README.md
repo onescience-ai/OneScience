@@ -1,26 +1,15 @@
-# <div align="center"><strong>Onescience for Evo2</strong></div>
-## <div align="center">使用说明</div>
-
-
-### 模型简介
+# 模型简介
 
 Evo2 是一款面向基因组的基础模型，基于 **StripedHyena 2** 架构，支持**最长百万碱基上下文**，在大规模基因组数据集 **OpenGenome2** 上训练，覆盖细菌、古菌和真核等多类物种。模型提供 **7B** 和 **40B** 等版本，具备强大的长序列建模能力，可应用于变异效应预测、基因组设计和跨尺度序列分析。Evo2 已集成至本项目，支持高性能推理和微调，适合科研与实际生物学应用场景。  
 论文链接 ["Genome modeling and design across all domains of life with Evo 2"](https://www.biorxiv.org/content/10.1101/2025.02.18.638918v1)
 
-### 模型结构
+# 模型结构
 ![](../../../doc/evo2.jpg)
 
-### 环境安装
-```shell
-conda create -n your-name python=3.11 -y
-# 下载适配包脚本，自动下载 constraints.txt 中的包
-sh /tools/install_envs_constraints.sh
-pip install -c constraints.txt .[bio]
-```
+# 数据集准备
+OpenGenome2 官方提供了两种格式的数据，该数据集大小约 2.5T，OpenGenome2数据[下载地址](https://modelscope.cn/datasets/arcinstitute/opengenome2)；
 
-### 数据集准备
-OpenGenome2 官方提供了两种格式的数据，该数据集大小约 2.5T，OpenGenome2[数据下载地址](https://modelscope.cn/datasets/arcinstitute/opengenome2)：
-#### 1. 原始 FASTA 文件
+## 1. 原始 FASTA 文件
   - 包含原始基因组序列，需要用户自行进行转录、反转录、序列互补、序列反转等预处理操作。
   - 适合需要 灵活处理 DNA 序列的研究场景。
 
@@ -38,7 +27,7 @@ bash tools/data_process/preprocess_data_fasta.sh
 # Python 脚本
 python tools/data_process/preprocess_data_fasta.py -c <CONFIG_PATH>
 ```
-#### 2. 预处理好的 JSON 文件
+## 2. 预处理的 JSON 文件
   - 官方已经对原始数据做了初步处理。
   - 仅需进行轻量级处理，例如数据读取、tokenizer 转换、样本长度填充（padding）等操作。
   - 适合快速实验。
@@ -54,7 +43,7 @@ python preprocess_data_json.py \
     --log-interval 100
 ```
 
-### 模型转换
+## 模型转换
 
 - 将单个 PyTorch 或 ZeRO-1 的 checkpoint（.pt 文件）转换为 NeMo2 格式
 - 模型转化的脚本位置
@@ -89,16 +78,14 @@ srun python tools/checkpoint_convert/convert_to_nemo.py \
    | `40b_arc_longcontext`| `savanna_evo2_40b`     |
 
 
- ### 训练
+ # 训练
 `onescience/examples/biosciences/evo2/checkpoint` 和 `onescience/examples/biosciences/evo2/data`分别用于存放模型与数据，可以通过软链接的方式将目标路径指向这里。
 
 **单节点多卡训练**
 
-1. 需要加载dtk相关环境(以612为例)：
+1. 需要加载dtk相关环境(以508为例)：
     ```bash
-    source ~/dtk/dtk-25.04.1/env.sh
-    source ~/dtk/dtk-25.04.1/cuda/env.sh
-    module load compiler/gcc/12.2.0
+    module load sghpc-mpi-gcc/25.8
     ```
 2. 运行脚本进行训练或微调
     ```bash
@@ -148,15 +135,13 @@ train_multi_node_slurm_evo2.sh
 #SBATCH --gres=dcu:4 # 单节点使用显卡数
 #SBATCH -o evo2/logs%j.out     # log地址，如需要二级目标，需要先手动建立文件夹 
 
-# 612集群激活相关环境，508有所不同
-source ~/dtk/dtk-25.04.1/env.sh
-source ~/dtk/dtk-25.04.1/cuda/env.sh
-module load compilers/gcc/12.2.0
+# 508集群激活相关环境
+module load sghpc-mpi-gcc/25.8
 source ~/conda.env
-conda activate test-evo2env
+conda activate conda-env
 unset ROCBLAS_TENSILE_LIBPATH 
 
-DEVICES=${SLURM_GPUS_PER_NODE:-4}
+DEVICES=${SLURM_GPUS_PER_NODE:-8}
 echo "SLURM_JOB_NUM_NODES: $SLURM_JOB_NUM_NODES"
 echo "SLURM_NTASKS_PER_NODE: $SLURM_NTASKS_PER_NODE" 
 
@@ -164,7 +149,7 @@ export NCCL_IB_HCA=mlx5_0
 export NCCL_SOCKET_IFNAME=ib0
 export HSA_FORCE_FINE_GRAIN_PCIE=1
 export OMP_NUM_THREADS=1
-export HIP_VISIBLE_DEVICES=0,1,2,3 # 单节点卡数
+export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 # 单节点卡数
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 
 nodes=$(scontrol show hostnames $SLURM_JOB_NODELIST)
@@ -238,7 +223,7 @@ python $PROJECT_ROOT/examples/biosciences/evo2/train_slurm.py\
     -d $PROJECT_ROOT/examples/biosciences/evo2/config/training_data_config.yaml\
     --dataset-dir $PROJECT_ROOT/examples/biosciences/evo2/data/data_evo2_612\
     --model-size 7b_arc_longcontext \
-    --devices 4 \
+    --devices 8 \
     --num-nodes 4 \
     --seq-length 1024 \
     --micro-batch-size 4 \
@@ -250,28 +235,6 @@ python $PROJECT_ROOT/examples/biosciences/evo2/train_slurm.py\
     --activation-checkpoint-recompute-num-layers 1 \
     --val-check-interval 50 \
     --ckpt-async-save\
-    # --num-nodes=${SLURM_JOB_NUM_NODES} \
-    # --devices=${DEVICES} \
-    # --grad-acc-batches $GRAD_ACC_BATCHES \
-    # --max-steps=$MAX_STEPS \
-    # --seed $SEED \
-    # ${EXTRA_ARGS} \
-    # --lr $LR \
-    # --wd $WD \
-    # --min-lr $MIN_LR \
-    # --warmup-steps $WU_STEPS \
-    # --attention-dropout $ADO \
-    # --hidden-dropout $HDO \
-    # --limit-val-batches=20 \
-    # --val-check-interval=${VAL_CHECK} \
-    # --seq-length=${SEQ_LEN} \
-    # --tensor-parallel-size=${TP_SIZE} \
-    # --context-parallel-size=${CP_SIZE} \
-    # --pipeline-model-parallel-size=${PP_SIZE} \
-    # --micro-batch-size=${MICRO_BATCH_SIZE} \
-    # --model-size=${MODEL_SIZE} \
-    # --workers 10
-
 ```
 
  ### 推理

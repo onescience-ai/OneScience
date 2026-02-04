@@ -17,6 +17,15 @@ from onescience.datapipes.climate.utils.zenith_angle import cos_zenith_angle
 
 class ERA5HDF5Datapipe(Datapipe):
     def __init__(self, params, distributed, output_steps=1, input_steps=1):
+        """
+        初始化ERA5HDF5Datapipe数据管道。
+
+        Args:
+            params: 配置参数对象，包含数据加载的相关配置
+            distributed: 是否启用分布式训练
+            output_steps: 输出时间步数，默认为1
+            input_steps: 输入时间步数，默认为1
+        """
         self.params = params
         self.distributed = distributed
         self.output_steps = output_steps
