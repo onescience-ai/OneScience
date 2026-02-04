@@ -37,7 +37,7 @@ class Hmmbuild(object):
     self._singlemx = singlemx
     self._alphabet = alphabet
 
-    subprocess_utils.check_binary_exists(path=self.binary_path, name='hmmbuild')
+    subprocess_utils.check_binary_exists(path=self._binary_path, name='hmmbuild')
 
   def build_profile_from_sto(self, sto: str, model_construction='fast') -> str:
     """Builds a HHM for the aligned sequences given as an A3M string.

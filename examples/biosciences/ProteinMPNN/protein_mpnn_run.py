@@ -39,9 +39,9 @@ def main(args):
         if model_folder_path[-1] != '/':
             model_folder_path = model_folder_path + '/'
     else: 
-        # file_path = os.path.realpath(__file__)
-        # k = file_path.rfind("/")
-        file_path = '/public/onestore/onemodels/ProteinMPNN'
+        file_path = os.path.realpath(__file__)
+        k = file_path.rfind("/")
+        # file_path = '/public/onestore/onemodels/ProteinMPNN'
         if args.ca_only:
             print("Using CA-ProteinMPNN!")
             model_folder_path = file_path + '/ca_model_weights/'
