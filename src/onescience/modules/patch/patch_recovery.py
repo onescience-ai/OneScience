@@ -4,14 +4,30 @@ from torch import nn
 
 class PatchRecovery2D(nn.Module):
     """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    Patch 嵌入恢复为二维图像
+        将 patch 嵌入恢复为二维图像。
 
-    参数:
-        img_size (tuple[int]): 图像的空间尺寸，格式为 (Lat, Lon)，即纬度和经度方向的大小
-        patch_size (tuple[int]): 每个 patch 的大小，格式为 (Lat, Lon)
-        in_chans (int): 输入特征的通道数
-        out_chans (int): 输出图像的通道数
+        Args:
+            img_size (tuple[int, int]): 目标图像尺寸 (H, W)
+            patch_size (tuple[int, int]): 每个 patch 的大小 (patch_h, patch_w)
+            in_chans (int): 输入特征通道数
+            out_chans (int): 输出图像通道数
+
+        形状:
+            输入: (B, in_chans, H', W')
+            输出: (B, out_chans, H, W)
+
+        Example:
+            >>> patch_recovery = PatchRecovery2D(
+            ...     img_size=(128, 256),
+            ...     patch_size=(4, 4),
+            ...     in_chans=96,
+            ...     out_chans=3
+            ... )
+            >>> x = torch.randn(8, 96, 32, 64)
+            >>> out = patch_recovery(x)
+            >>> out.shape
+            torch.Size([8, 3, 128, 256])
+
     """
 
     def __init__(self, img_size, patch_size, in_chans, out_chans):
@@ -38,14 +54,30 @@ class PatchRecovery2D(nn.Module):
 
 class PatchRecovery3D(nn.Module):
     """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    PPatch 嵌入恢复为三维图像
+        将 patch 嵌入恢复为二维图像。
 
-    参数:
-        img_size (tuple[int]): 图像的空间尺寸，格式为 (Lat, Lon)，即纬度和经度方向的大小
-        patch_size (tuple[int]): 每个 patch 的大小，格式为 (Lat, Lon)
-        in_chans (int): 输入特征的通道数
-        out_chans (int): 输出图像的通道数
+        Args:
+            img_size (tuple[int, int, int]): 目标图像尺寸 (P, H, W)
+            patch_size (tuple[int, int, int]): 每个 patch 的大小 (patch_p, patch_h, patch_w)
+            in_chans (int): 输入特征通道数
+            out_chans (int): 输出图像通道数
+
+        形状:
+            输入: (B, in_chans, P', H', W')
+            输出: (B, out_chans, P, H, W)
+
+        Example:
+            >>> patch_recovery = PatchRecovery3D(
+            ...     img_size=(13, 128, 256),
+            ...     patch_size=(1, 4, 4),
+            ...     in_chans=192,
+            ...     out_chans=5
+            ... )
+            >>> x = torch.randn(4, 192, 13, 32, 64)
+            >>> out = patch_recovery(x)
+            >>> out.shape
+            torch.Size([4, 5, 13, 128, 256])
+
     """
 
     def __init__(self, img_size, patch_size, in_chans, out_chans):

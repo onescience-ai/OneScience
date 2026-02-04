@@ -2,26 +2,48 @@ import torch
 from torch import nn
 
 
-from ..func_utils.pangu_utils import (
+from onescience.modules.func_utils.pangu_utils import (
     get_earth_position_index,
     trunc_normal_,
 )
 
 class EarthAttention3D(nn.Module):
     """
-        改编自 WeatherLearn（https://github.com/lizhuoq/WeatherLearn）
-        具有地球位置偏置（Earth Position Bias）的三维窗口注意力机制（3D Window Attention）。
-        该模块同时支持 移位（shifted） 和 非移位（non-shifted） 窗口机制。
+        具有地球位置偏置的三维窗口注意力机制。
 
-        参数说明：
-        dim (int)：输入通道数。
-        input_resolution (tuple[int])：输入的空间分辨率，格式为 [气压层数, 纬度, 经度]。
-        window_size (tuple[int])：窗口大小，格式为 [气压层数, 纬度, 经度]。
-        num_heads (int)：注意力头（Attention Heads）的数量。
-        qkv_bias (bool, 可选)：如果为 True，则在 Query、Key、Value 上添加可学习偏置项。默认值：True。
-        qk_scale (float | None, 可选)：如果设置该参数，则会覆盖默认的缩放比例（head_dim ** -0.5）。
-        attn_drop (float, 可选)：注意力权重的 dropout 比例。默认值：0.0。
-        proj_drop (float, 可选)：输出的 dropout 比例。默认值：0.0。
+        Args:
+            dim (int) : 输入通道数
+            input_resolution (*tuple[int, int, int]): 输入空间分辨率 (pressure_levels, lat, lon)
+            window_size (tuple[int, int, int]): 窗口大小 (Wpl, Wlat, Wlon)
+            num_heads (int): 注意力头数量
+            qkv_bias (bool, optional): 是否在 QKV 上添加偏置，默认为 True
+            qk_scale (float, optional): 覆盖默认的 QK 缩放系数 (head_dim ** -0.5)，默认为 None
+            attn_drop (float, optional): 注意力权重的 dropout 比例，默认为 0.0
+            proj_drop (float, optional): 输出的 dropout 比例，默认为 0.0
+
+        形状:
+            输入 x: (B × num_lon, num_pl × num_lat, N, C)，其中 N = Wpl × Wlat × Wlon
+            输入 mask (可选): (num_lon, num_pl × num_lat, N, N)，值为 0 或 -∞
+            输出: (B × num_lon, num_pl × num_lat, N, C)
+
+        Example:
+            >>> attn = EarthAttention3D(
+            ...     dim=192,
+            ...     input_resolution=(13, 128, 256), 
+            ...     window_size=(1, 8, 8),
+            ...     num_heads=6
+            ... )
+            >>> # num_pl=pressure_levels // window_size_1 = 13//1=13
+            >>> # num_lat=lat // window_size_2 = 128//8=16
+            >>> # num_lon=lon // window_size_3 = 256//8=32
+            >>> # 输入: (B*num_lon, num_pl*num_lat, Wpl*Wlat*Wlon, C)
+            >>> #      = (4*32, 13*16, 1*8*8, 192)
+            >>> #      = (128, 208, 64, 192)
+            >>> x = torch.randn(128, 208, 64, 192)
+            >>> out = attn(x)
+            >>> out.shape
+            torch.Size([128, 208, 64, 192])
+
     """
 
     def __init__(
@@ -72,11 +94,6 @@ class EarthAttention3D(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x: torch.Tensor, mask=None):
-        """
-        参数:
-            x: 输入特征张量，形状为 (B * num_lon, num_pl*num_lat, N, C)
-            mask: 取值为 0 或 -∞，形状为 (num_lon, num_pl*num_lat, Wpl*Wlat*Wlon, Wpl*Wlat*Wlon)
-        """
         B_, nW_, N, C = x.shape
         qkv = (
             self.qkv(x)
@@ -121,19 +138,41 @@ class EarthAttention3D(nn.Module):
 
 class EarthAttention2D(nn.Module):
     """
-    改编自 WeatherLearn https://github.com/lizhuoq/WeatherLearn
-    功能描述：
-        这是一个带有地球位置偏置（earth position bias）的二维窗口注意力（2D window attention）模块。
-        该模块同时支持带位移（shifted）和不带位移（non-shifted）的窗口机制。
-    参数:
-        dim (int): 输入通道数。
-        输入特征图的空间尺寸，格式为: [latitude, longitude]
-        窗口大小，格式为: [latitude, longitude]
-        num_heads (int): 注意力头（multi-head attention）的数量。
-        qkv_bias (bool, optional):  若为True，则在Query、Key、Value向量中添加可学习的偏置项。默认值为True。
-        qk_scale (float | None, optional): 若设置该值，则使用此值替代默认的缩放系数 head_dim ** -0.5 if set
-        attn_drop (float, optional): 注意力权重的 dropout 比例。默认值为 0.0。
-        proj_drop (float, optional): 注意力输出的 dropout 比例。默认值为 0.0
+        具有地球位置偏置的二维窗口注意力机制。
+
+        Args:
+            dim (int): 输入通道数
+            input_resolution (tuple[int, int]): 输入空间分辨率 (lat, lon)
+            window_size (tuple[int, int]): 窗口大小 (Wlat, Wlon)
+            num_heads (int): 注意力头数量
+            qkv_bias (bool, optional): 是否在 QKV 上添加偏置，默认为 True
+            qk_scale (float, optional): 覆盖默认的 QK 缩放系数，默认为 None
+            attn_drop (float, optional): 注意力权重的 dropout 比例，默认为 0.0
+            proj_drop (float, optional): 输出的 dropout 比例，默认为 0.0
+
+        形状:
+            输入 x: (B × num_lon, num_lat, N, C)，其中 N = Wlat × Wlon
+            输入 mask (可选): (num_lon, num_lat, N, N)，值为 0 或 -∞
+            输出: (B × num_lon, num_lat, N, C)
+
+        Example:
+            >>> # 地表变量的注意力计算
+            >>> attn = EarthAttention2D(
+            ...     dim=128,
+            ...     input_resolution=(128, 256),
+            ...     window_size=(8, 8),
+            ...     num_heads=4
+            ... )
+            >>> # num_lat=lat // window_size_2 = 128//8=16
+            >>> # num_lon=lon // window_size_3 = 256//8=32
+            >>> # 输入: (B*num_lon, num_lat, Wlat*Wlon, C)
+            >>> #      = (4*32, 16, 8*8, 128)
+            >>> #      = (128, 16, 64, 128)
+            >>> x = torch.randn(128, 16, 64, 128)
+            >>> out = attn(x)
+            >>> out.shape
+            torch.Size([128, 16, 64, 128])
+
     """
 
     def __init__(
@@ -180,11 +219,6 @@ class EarthAttention2D(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x: torch.Tensor, mask=None):
-        """
-        参数:
-            x: 输入特征张量，形状为 (B * num_lon, num_lat, N, C)
-            取值为 0 或 -∞，形状为 (num_lon, num_lat, Wlat*Wlon, Wlat*Wlon)
-        """
         B_, nW_, N, C = x.shape
         qkv = (
             self.qkv(x)
