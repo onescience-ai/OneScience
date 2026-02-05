@@ -1,261 +1,266 @@
+from collections.abc import Sequence
+
 import torch
+from timm.layers import to_2tuple
+from timm.models.swin_transformer import SwinTransformerStage
 from torch import nn
+from ..func_utils.pangu_utils import get_pad3d, crop3d, window_partition, window_reverse, get_shift_window_mask
+from ..layer.pangu_layer import DropPath, Mlp
 
+from onescience.modules import EarthAttention3D
 
-from onescience.modules.func_utils.pangu_utils import (
-    get_earth_position_index,
-    trunc_normal_,
-)
-
-class EarthAttention3D(nn.Module):
+class Transformer3DBlock(nn.Module):
     """
-        具有地球位置偏置的三维窗口注意力机制。
+        带有移位窗口机制的三维 Transformer 块。
 
         Args:
-            dim (int) : 输入通道数
-            input_resolution (*tuple[int, int, int]): 输入空间分辨率 (pressure_levels, lat, lon)
-            window_size (tuple[int, int, int]): 窗口大小 (Wpl, Wlat, Wlon)
-            num_heads (int): 注意力头数量
-            qkv_bias (bool, optional): 是否在 QKV 上添加偏置，默认为 True
-            qk_scale (float, optional): 覆盖默认的 QK 缩放系数 (head_dim ** -0.5)，默认为 None
-            attn_drop (float, optional): 注意力权重的 dropout 比例，默认为 0.0
-            proj_drop (float, optional): 输出的 dropout 比例，默认为 0.0
+            dim (int) – 输入特征通道数
+            input_resolution (tuple[int, int, int]) – 输入空间分辨率 (pressure_levels, lat, lon)
+            num_heads (int) – 注意力头数量
+            window_size (tuple[int, int, int], optional) – 窗口大小 (Wpl, Wlat, Wlon)，默认为 (2, 6, 12)
+            shift_size (tuple[int, int, int], optional) – 窗口移位大小 (shift_pl, shift_lat, shift_lon)，默认为 (1, 3, 6)
+            mlp_ratio (float, optional) – MLP 隐藏层维度与嵌入维度的比例，默认为 4.0
+            qkv_bias (bool, optional) – 是否在 QKV 上添加偏置，默认为 True
+            qk_scale (float, optional) – 覆盖默认的 QK 缩放系数，默认为 None
+            drop (float, optional) – Dropout 比例，默认为 0.0
+            attn_drop (float, optional) – 注意力权重的 dropout 比例，默认为 0.0
+            drop_path (float, optional) – 随机深度比例，默认为 0.0
+            act_layer (nn.Module, optional) – 激活函数层，默认为 nn.GELU
+            norm_layer (nn.Module, optional) – 归一化层，默认为 nn.LayerNorm
 
         形状:
-            输入 x: (B × num_lon, num_pl × num_lat, N, C)，其中 N = Wpl × Wlat × Wlon
-            输入 mask (可选): (num_lon, num_pl × num_lat, N, N)，值为 0 或 -∞
-            输出: (B × num_lon, num_pl × num_lat, N, C)
+            输入: (B, L, C)，其中 L = Pl × Lat × Lon
+            输出: (B, L, C)
 
         Example:
-            >>> attn = EarthAttention3D(
+            >>> # 基础用法
+            >>> # input_resolution=(13, 128, 256), L=13*128*256=425984
+            >>> block = Transformer3DBlock(
             ...     dim=192,
-            ...     input_resolution=(13, 128, 256), 
-            ...     window_size=(1, 8, 8),
-            ...     num_heads=6
+            ...     input_resolution=(13, 128, 256),
+            ...     num_heads=6,
+            ...     window_size=(2, 6, 12),
+            ...     shift_size=(1, 3, 6)
             ... )
-            >>> # num_pl=pressure_levels // window_size_1 = 13//1=13
-            >>> # num_lat=lat // window_size_2 = 128//8=16
-            >>> # num_lon=lon // window_size_3 = 256//8=32
-            >>> # 输入: (B*num_lon, num_pl*num_lat, Wpl*Wlat*Wlon, C)
-            >>> #      = (4*32, 13*16, 1*8*8, 192)
-            >>> #      = (128, 208, 64, 192)
-            >>> x = torch.randn(128, 208, 64, 192)
-            >>> out = attn(x)
+            >>> # 输入序列格式: (B, L, C)
+            >>> x = torch.randn(4, 425984, 192)
+            >>> out = block(x)
             >>> out.shape
-            torch.Size([128, 208, 64, 192])
-
+            torch.Size([4, 425984, 192])
     """
 
     def __init__(
         self,
         dim,
         input_resolution,
-        window_size,
         num_heads,
+        window_size=None,
+        shift_size=None,
+        mlp_ratio=4.0,
         qkv_bias=True,
         qk_scale=None,
+        drop=0.0,
         attn_drop=0.0,
-        proj_drop=0.0,
+        drop_path=0.0,
+        act_layer=nn.GELU,
+        norm_layer=nn.LayerNorm,
     ):
         super().__init__()
+        window_size = (2, 6, 12) if window_size is None else window_size
+        shift_size = (1, 3, 6) if shift_size is None else shift_size
         self.dim = dim
-        self.window_size = window_size  # Wpl, Wlat, Wlon
+        self.input_resolution = input_resolution
         self.num_heads = num_heads
-        head_dim = dim // num_heads
-        self.scale = qk_scale or head_dim**-0.5
+        self.window_size = window_size
+        self.shift_size = shift_size
+        self.mlp_ratio = mlp_ratio
 
-        self.type_of_windows = (input_resolution[0] // window_size[0]) * (
-            input_resolution[1] // window_size[1]
+        self.norm1 = norm_layer(dim)
+        padding = get_pad3d(input_resolution, window_size)
+        self.pad = nn.ZeroPad3d(padding)
+
+        pad_resolution = list(input_resolution)
+        pad_resolution[0] += padding[-1] + padding[-2]
+        pad_resolution[1] += padding[2] + padding[3]
+        pad_resolution[2] += padding[0] + padding[1]
+
+        self.attn = EarthAttention3D(
+            dim=dim,
+            input_resolution=pad_resolution,
+            window_size=window_size,
+            num_heads=num_heads,
+            qkv_bias=qkv_bias,
+            qk_scale=qk_scale,
+            attn_drop=attn_drop,
+            proj_drop=drop,
         )
 
-        self.earth_position_bias_table = nn.Parameter(
-            torch.zeros(
-                (window_size[0] ** 2)
-                * (window_size[1] ** 2)
-                * (window_size[2] * 2 - 1),
-                self.type_of_windows,
-                num_heads,
-            )
-        )  # Wpl**2 * Wlat**2 * Wlon*2-1, Npl//Wpl * Nlat//Wlat, nH
-
-        earth_position_index = get_earth_position_index(
-            window_size
-        )  # Wpl*Wlat*Wlon, Wpl*Wlat*Wlon
-        self.register_buffer("earth_position_index", earth_position_index)
-
-        self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
-        self.attn_drop = nn.Dropout(attn_drop)
-        self.proj = nn.Linear(dim, dim)
-        self.proj_drop = nn.Dropout(proj_drop)
-
-        self.earth_position_bias_table = trunc_normal_(
-            self.earth_position_bias_table, std=0.02
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.norm2 = norm_layer(dim)
+        mlp_hidden_dim = int(dim * mlp_ratio)
+        self.mlp = Mlp(
+            in_features=dim,
+            hidden_features=mlp_hidden_dim,
+            act_layer=act_layer,
+            drop=drop,
         )
-        self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x: torch.Tensor, mask=None):
-        B_, nW_, N, C = x.shape
-        qkv = (
-            self.qkv(x)
-            .reshape(B_, nW_, N, 3, self.num_heads, C // self.num_heads)
-            .permute(3, 0, 4, 1, 2, 5)
-        )
-        q, k, v = qkv[0], qkv[1], qkv[2]
+        shift_pl, shift_lat, shift_lon = self.shift_size
+        self.roll = shift_pl and shift_lon and shift_lat
 
-        q = q * self.scale
-        attn = q @ k.transpose(-2, -1)
-
-        earth_position_bias = self.earth_position_bias_table[
-            self.earth_position_index.view(-1)
-        ].view(
-            self.window_size[0] * self.window_size[1] * self.window_size[2],
-            self.window_size[0] * self.window_size[1] * self.window_size[2],
-            self.type_of_windows,
-            -1,
-        )  # Wpl*Wlat*Wlon, Wpl*Wlat*Wlon, num_pl*num_lat, nH
-        earth_position_bias = earth_position_bias.permute(
-            3, 2, 0, 1
-        ).contiguous()  # nH, num_pl*num_lat, Wpl*Wlat*Wlon, Wpl*Wlat*Wlon
-        attn = attn + earth_position_bias.unsqueeze(0)
-
-        if mask is not None:
-            nLon = mask.shape[0]
-            attn = attn.view(
-                B_ // nLon, nLon, self.num_heads, nW_, N, N
-            ) + mask.unsqueeze(1).unsqueeze(0)
-            attn = attn.view(-1, self.num_heads, nW_, N, N)
-            attn = self.softmax(attn)
+        if self.roll:
+            attn_mask = get_shift_window_mask(pad_resolution, window_size, shift_size)
         else:
-            attn = self.softmax(attn)
+            attn_mask = None
 
-        attn = self.attn_drop(attn)
+        self.register_buffer("attn_mask", attn_mask)
 
-        x = (attn @ v).permute(0, 2, 3, 1, 4).reshape(B_, nW_, N, C)
-        x = self.proj(x)
-        x = self.proj_drop(x)
+    def forward(self, x: torch.Tensor):
+        Pl, Lat, Lon = self.input_resolution
+        B, L, C = x.shape
+
+        shortcut = x
+        x = self.norm1(x)
+        x = x.view(B, Pl, Lat, Lon, C)
+
+        # start pad
+        x = self.pad(x.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1)
+
+        _, Pl_pad, Lat_pad, Lon_pad, _ = x.shape
+
+        shift_pl, shift_lat, shift_lon = self.shift_size
+        if self.roll:
+            shifted_x = torch.roll(
+                x, shifts=(-shift_pl, -shift_lat, -shift_lat), dims=(1, 2, 3)
+            )
+            x_windows = window_partition(shifted_x, self.window_size)
+            # B*num_lon, num_pl*num_lat, win_pl, win_lat, win_lon, C
+        else:
+            shifted_x = x
+            x_windows = window_partition(shifted_x, self.window_size)
+            # B*num_lon, num_pl*num_lat, win_pl, win_lat, win_lon, C
+
+        win_pl, win_lat, win_lon = self.window_size
+        x_windows = x_windows.view(
+            x_windows.shape[0], x_windows.shape[1], win_pl * win_lat * win_lon, C
+        )
+        # B*num_lon, num_pl*num_lat, win_pl*win_lat*win_lon, C
+
+        attn_windows = self.attn(
+            x_windows, mask=self.attn_mask
+        )  # B*num_lon, num_pl*num_lat, win_pl*win_lat*win_lon, C
+
+        attn_windows = attn_windows.view(
+            attn_windows.shape[0], attn_windows.shape[1], win_pl, win_lat, win_lon, C
+        )
+
+        if self.roll:
+            shifted_x = window_reverse(
+                attn_windows, self.window_size, Pl=Pl_pad, Lat=Lat_pad, Lon=Lon_pad
+            )
+            # B * Pl * Lat * Lon * C
+            x = torch.roll(
+                shifted_x, shifts=(shift_pl, shift_lat, shift_lon), dims=(1, 2, 3)
+            )
+        else:
+            shifted_x = window_reverse(
+                attn_windows, self.window_size, Pl=Pl_pad, Lat=Lat_pad, Lon=Lon_pad
+            )
+            x = shifted_x
+
+        # crop, end pad
+        x = crop3d(x.permute(0, 4, 1, 2, 3), self.input_resolution).permute(
+            0, 2, 3, 4, 1
+        )
+
+        x = x.reshape(B, Pl * Lat * Lon, C)
+        x = shortcut + self.drop_path(x)
+
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+
         return x
 
-
-class EarthAttention2D(nn.Module):
+class FuserLayer(nn.Module):
     """
-        具有地球位置偏置的二维窗口注意力机制。
+        由多个Transformer3DBlock组成的基础三维 Transformer 层。
 
         Args:
-            dim (int): 输入通道数
-            input_resolution (tuple[int, int]): 输入空间分辨率 (lat, lon)
-            window_size (tuple[int, int]): 窗口大小 (Wlat, Wlon)
-            num_heads (int): 注意力头数量
-            qkv_bias (bool, optional): 是否在 QKV 上添加偏置，默认为 True
-            qk_scale (float, optional): 覆盖默认的 QK 缩放系数，默认为 None
-            attn_drop (float, optional): 注意力权重的 dropout 比例，默认为 0.0
-            proj_drop (float, optional): 输出的 dropout 比例，默认为 0.0
+            dim (int) – 输入特征通道数
+            input_resolution (tuple[int, int, int]) – 输入空间分辨率 (pressure_levels, lat, lon)
+            depth (int) – Transformer 块的数量
+            num_heads (int) – 注意力头数量
+            window_size (tuple[int, int, int]) – 窗口大小 (Wpl, Wlat, Wlon)
+            mlp_ratio (float, optional) – MLP 隐藏层维度与嵌入维度的比例，默认为 4.0
+            qkv_bias (bool, optional) – 是否在 QKV 上添加偏置，默认为 True
+            qk_scale (float, optional) – 覆盖默认的 QK 缩放系数，默认为 None
+            drop (float, optional) – Dropout 比例，默认为 0.0
+            attn_drop (float, optional) – 注意力权重的 dropout 比例，默认为 0.0
+            drop_path (float or tuple[float], optional) – 随机深度比例，可为单个值或每层不同值的元组，默认为 0.0
+            norm_layer (nn.Module, optional) – 归一化层，默认为 nn.LayerNorm
 
         形状:
-            输入 x: (B × num_lon, num_lat, N, C)，其中 N = Wlat × Wlon
-            输入 mask (可选): (num_lon, num_lat, N, N)，值为 0 或 -∞
-            输出: (B × num_lon, num_lat, N, C)
+            输入: (B, L, C)，其中 L = Pl × Lat × Lon
+            输出: (B, L, C)
 
         Example:
-            >>> # 地表变量的注意力计算
-            >>> attn = EarthAttention2D(
-            ...     dim=128,
-            ...     input_resolution=(128, 256),
-            ...     window_size=(8, 8),
-            ...     num_heads=4
+            >>> # 6 层 Transformer
+            >>> # input_resolution=(13, 128, 256), L=13*128*256=425984
+            >>> layer = FuserLayer(
+            ...     dim=192,
+            ...     input_resolution=(13, 128, 256),
+            ...     depth=6,
+            ...     num_heads=6,
+            ...     window_size=(2, 6, 12)
             ... )
-            >>> # num_lat=lat // window_size_2 = 128//8=16
-            >>> # num_lon=lon // window_size_3 = 256//8=32
-            >>> # 输入: (B*num_lon, num_lat, Wlat*Wlon, C)
-            >>> #      = (4*32, 16, 8*8, 128)
-            >>> #      = (128, 16, 64, 128)
-            >>> x = torch.randn(128, 16, 64, 128)
-            >>> out = attn(x)
+            >>> x = torch.randn(4, 425984, 192)
+            >>> out = layer(x)
             >>> out.shape
-            torch.Size([128, 16, 64, 128])
-
+            torch.Size([4, 425984, 192])
     """
 
     def __init__(
         self,
         dim,
         input_resolution,
-        window_size,
+        depth,
         num_heads,
+        window_size,
+        mlp_ratio=4.0,
         qkv_bias=True,
         qk_scale=None,
+        drop=0.0,
         attn_drop=0.0,
-        proj_drop=0.0,
+        drop_path=0.0,
+        norm_layer=nn.LayerNorm,
     ):
         super().__init__()
         self.dim = dim
-        self.window_size = window_size  # Wlat, Wlon
-        self.num_heads = num_heads
-        head_dim = dim // num_heads
-        self.scale = qk_scale or head_dim**-0.5
+        self.input_resolution = input_resolution
+        self.depth = depth
 
-        self.type_of_windows = input_resolution[0] // window_size[0]
-
-        self.earth_position_bias_table = nn.Parameter(
-            torch.zeros(
-                (window_size[0] ** 2) * (window_size[1] * 2 - 1),
-                self.type_of_windows,
-                num_heads,
-            )
-        )  # Wlat**2 * Wlon*2-1, Nlat//Wlat, nH
-
-        earth_position_index = get_earth_position_index(
-            window_size, ndim=2
-        )  # Wlat*Wlon, Wlat*Wlon
-        self.register_buffer("earth_position_index", earth_position_index)
-
-        self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
-        self.attn_drop = nn.Dropout(attn_drop)
-        self.proj = nn.Linear(dim, dim)
-        self.proj_drop = nn.Dropout(proj_drop)
-
-        self.earth_position_bias_table = trunc_normal_(
-            self.earth_position_bias_table, std=0.02
+        self.blocks = nn.ModuleList(
+            [
+                Transformer3DBlock(
+                    dim=dim,
+                    input_resolution=input_resolution,
+                    num_heads=num_heads,
+                    window_size=window_size,
+                    shift_size=(0, 0, 0) if i % 2 == 0 else None,
+                    mlp_ratio=mlp_ratio,
+                    qkv_bias=qkv_bias,
+                    qk_scale=qk_scale,
+                    drop=drop,
+                    attn_drop=attn_drop,
+                    drop_path=drop_path[i]
+                    if isinstance(drop_path, Sequence)
+                    else drop_path,
+                    norm_layer=norm_layer,
+                )
+                for i in range(depth)
+            ]
         )
-        self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x: torch.Tensor, mask=None):
-        B_, nW_, N, C = x.shape
-        qkv = (
-            self.qkv(x)
-            .reshape(B_, nW_, N, 3, self.num_heads, C // self.num_heads)
-            .permute(3, 0, 4, 1, 2, 5)
-        )
-        q, k, v = qkv[0], qkv[1], qkv[2]
-
-        q = q * self.scale
-        attn = q @ k.transpose(-2, -1)
-
-        earth_position_bias = self.earth_position_bias_table[
-            self.earth_position_index.view(-1)
-        ].view(
-            self.window_size[0] * self.window_size[1],
-            self.window_size[0] * self.window_size[1],
-            self.type_of_windows,
-            -1,
-        )  # Wlat*Wlon, Wlat*Wlon, num_lat, nH
-        earth_position_bias = earth_position_bias.permute(
-            3, 2, 0, 1
-        ).contiguous()  # nH, num_lat, Wlat*Wlon, Wlat*Wlon
-        attn = attn + earth_position_bias.unsqueeze(0)
-
-        if mask is not None:
-            nLon = mask.shape[0]
-            attn = attn.view(
-                B_ // nLon, nLon, self.num_heads, nW_, N, N
-            ) + mask.unsqueeze(1).unsqueeze(0)
-            attn = attn.view(-1, self.num_heads, nW_, N, N)
-            attn = self.softmax(attn)
-        else:
-            attn = self.softmax(attn)
-
-        attn = self.attn_drop(attn)
-
-        x = (attn @ v).permute(0, 2, 3, 1, 4).reshape(B_, nW_, N, C)
-        x = self.proj(x)
-        x = self.proj_drop(x)
+    def forward(self, x):
+        for blk in self.blocks:
+            x = blk(x)
         return x
