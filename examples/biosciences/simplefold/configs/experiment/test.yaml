@@ -14,7 +14,7 @@ seed: 12345
 data:
   num_repeats: 1
   filters:
-    - _target_: boltz.data.filter.dynamic.max_residues.MaxResiduesFilter
+    - _target_: onescience.datapipes.boltz_data_pipeline.filter.dynamic.max_residues.MaxResiduesFilter
       min_residues: 1
       max_residues: 1000 # filter out T1044 in CASP14
 

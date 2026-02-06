@@ -4,15 +4,31 @@ from torch import nn
 
 class PatchEmbed2D(nn.Module):
     """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    二维图像到 Patch 嵌入.
+        将二维图像分割为不重叠的 patch 并嵌入到向量空间。
 
-    Args:
-        img_size (tuple[int]): 输入图像的尺寸.
-        patch_size (tuple[int]): 每个 Patch 的大小.
-        in_chans (int): 输入图像的通道数.
-        embed_dim(int): 每个 Patch 嵌入后的向量维度.
-        norm_layer (nn.Module, optional): 对 Patch 嵌入结果进行归一化的层，默认值为 None。常见选项：nn.LayerNorm 或 nn.BatchNorm2d.
+        Args:
+            img_size (tuple[int, int]): 输入图像尺寸 (H, W)
+            patch_size (tuple[int, int]): 每个 patch 的大小 (patch_h, patch_w)
+            in_chans (int): 输入图像通道数
+            embed_dim (int): 每个 patch 嵌入后的向量维度
+            norm_layer (nn.Module, optional): 归一化层，默认为 None。常用: nn.LayerNorm
+
+        形状:
+            输入: (B, C, H, W)
+            输出: (B, embed_dim, H', W')，其中 H' = ⌈H / patch_h⌉, W' = ⌈W / patch_w⌉
+
+        Example:
+            >>> patch_embed = PatchEmbed2D(
+            ...     img_size=(128, 256),
+            ...     patch_size=(4, 4),
+            ...     in_chans=3,
+            ...     embed_dim=96
+            ... )
+            >>> x = torch.randn(8, 3, 128, 256)
+            >>> out = patch_embed(x)
+            >>> out.shape
+            torch.Size([8, 96, 32, 64])
+
     """
 
     def __init__(self, img_size, patch_size, in_chans, embed_dim, norm_layer=None):
@@ -57,15 +73,31 @@ class PatchEmbed2D(nn.Module):
 
 class PatchEmbed3D(nn.Module):
     """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    三维图像到 Patch 嵌入
+        将三维图像分割为不重叠的 patch 并嵌入到向量空间。
 
-    Args:
-        img_size (tuple[int]): 输入图像的尺寸.
-        patch_size (tuple[int]): 每个 Patch 的大小.
-        in_chans (int): 输入图像的通道数.
-        embed_dim(int): 每个 Patch 嵌入后的向量维度.
-        norm_layer (nn.Module, optional): 对 Patch 嵌入结果进行归一化的层，默认值为 None.
+        Args:
+            img_size (tuple[int, int, int]): 输入图像尺寸 (P, H, W)
+            patch_size (tuple[int, int, int]): 每个 patch 的大小 (patch_p, patch_h, patch_w)
+            in_chans (int): 输入图像通道数
+            embed_dim (int): 每个 patch 嵌入后的向量维度
+            norm_layer (nn.Module, optional): 归一化层，默认为 None
+
+        形状:
+            输入: (B, C, P, H, W)
+            输出: (B, embed_dim, P', H', W'), 其中 P' = ⌈P / patch_p⌉, H' = ⌈H / patch_h⌉, W' = ⌈W / patch_w⌉
+
+        Example:
+            >>> patch_embed = PatchEmbed3D(
+            ...     img_size=(13, 128, 256),
+            ...     patch_size=(1, 4, 4),
+            ...     in_chans=5,
+            ...     embed_dim=192
+            ... )
+            >>> x = torch.randn(4, 5, 13, 128, 256)
+            >>> out = patch_embed(x)
+            >>> out.shape
+            torch.Size([4, 192, 13, 32, 64])
+
     """
 
     def __init__(self, img_size, patch_size, in_chans, embed_dim, norm_layer=None):
@@ -119,80 +151,3 @@ class PatchEmbed3D(nn.Module):
         if self.norm:
             x = self.norm(x.permute(0, 2, 3, 4, 1)).permute(0, 4, 1, 2, 3)
         return x
-
-
-class PatchRecovery2D(nn.Module):
-    """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    Patch 嵌入恢复为二维图像.
-
-    参数:
-        img_size (tuple[int]): 图像的空间尺寸，格式为 (Lat, Lon)，即纬度和经度方向的大小
-        patch_size (tuple[int]): 每个 patch 的大小，格式为 (Lat, Lon)
-        in_chans (int): 输入特征的通道数
-        out_chans (int): 输出图像的通道数
-    """
-
-    def __init__(self, img_size, patch_size, in_chans, out_chans):
-        super().__init__()
-        self.img_size = img_size
-        self.conv = nn.ConvTranspose2d(in_chans, out_chans, patch_size, patch_size)
-
-    def forward(self, x):
-        output = self.conv(x)
-        _, _, H, W = output.shape
-        h_pad = H - self.img_size[0]
-        w_pad = W - self.img_size[1]
-
-        padding_top = h_pad // 2
-        padding_bottom = int(h_pad - padding_top)
-
-        padding_left = w_pad // 2
-        padding_right = int(w_pad - padding_left)
-
-        return output[
-            :, :, padding_top : H - padding_bottom, padding_left : W - padding_right
-        ]
-
-
-class PatchRecovery3D(nn.Module):
-    """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    Patch 嵌入恢复为三维图像.
-
-    参数:
-        img_size (tuple[int]): 图像的空间尺寸，格式为 (Lat, Lon)，即纬度和经度方向的大小
-        patch_size (tuple[int]): 每个 patch 的大小，格式为 (Lat, Lon)
-        in_chans (int): 输入特征的通道数
-        out_chans (int): 输出图像的通道数
-    """
-
-    def __init__(self, img_size, patch_size, in_chans, out_chans):
-        super().__init__()
-        self.img_size = img_size
-        self.conv = nn.ConvTranspose3d(in_chans, out_chans, patch_size, patch_size)
-
-    def forward(self, x: torch.Tensor):
-        output = self.conv(x)
-        _, _, Pl, Lat, Lon = output.shape
-
-        pl_pad = Pl - self.img_size[0]
-        lat_pad = Lat - self.img_size[1]
-        lon_pad = Lon - self.img_size[2]
-
-        padding_front = pl_pad // 2
-        padding_back = pl_pad - padding_front
-
-        padding_top = lat_pad // 2
-        padding_bottom = lat_pad - padding_top
-
-        padding_left = lon_pad // 2
-        padding_right = lon_pad - padding_left
-
-        return output[
-            :,
-            :,
-            padding_front : Pl - padding_back,
-            padding_top : Lat - padding_bottom,
-            padding_left : Lon - padding_right,
-        ]

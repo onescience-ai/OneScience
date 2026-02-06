@@ -168,7 +168,7 @@ class Mmseqs(msa_tool.MsaTool):
 
     def _parse_hysmi_vram_total_gb(self, text: str, device_id: Optional[str]) -> Optional[float]:
         # Match lines like: HCU[0]          : vram Total Memory (MiB): 65520
-        pattern = re.compile(r"HCU\[(\d+)\].*?vram\s+Total\s+Memory\s*\(MiB\)\s*:\s*(\d+)", re.IGNORECASE)
+        pattern = re.compile(r"(?:DCU|HCU)\[(\d+)\].*?vram\s+Total\s+Memory\s*\(MiB\)\s*:\s*(\d+)", re.IGNORECASE)
         matches = pattern.findall(text)
         if not matches:
             return None

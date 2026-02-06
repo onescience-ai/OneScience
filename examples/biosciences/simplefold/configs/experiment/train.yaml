@@ -33,14 +33,14 @@ data:
   num_workers: 16
 
 model:
-  _target_: model.simplefold.SimpleFold
+  _target_: onescience.models.simplefold.simplefold.SimpleFold
   ema_decay: 0.999
   clip_grad_norm_val: 2.0
   esm_model: "esm2_3B"
   lddt_weight_schedule: False # set to True in finetuning phase
 
   scheduler:
-    _target_: utils.lr_scheduler.LinearWarmup
+    _target_: onescience.utils.simplefold.lr_scheduler.LinearWarmup
     _partial_: true
     min_lr: 1e-6
     max_lr: ${model.optimizer.lr}
