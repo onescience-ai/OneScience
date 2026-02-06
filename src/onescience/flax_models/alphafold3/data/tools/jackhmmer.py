@@ -13,6 +13,7 @@ import time
 
 from absl import logging
 from onescience.flax_models.alphafold3.data import parsers
+from onescience.flax_models.alphafold3.data.tools import shards
 from onescience.flax_models.alphafold3.data.tools import msa_tool
 from onescience.flax_models.alphafold3.data.tools import subprocess_utils
 

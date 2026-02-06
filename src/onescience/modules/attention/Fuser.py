@@ -11,22 +11,42 @@ from onescience.modules import EarthAttention3D
 
 class Transformer3DBlock(nn.Module):
     """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    3D Transformer Block
-    参数:
-        dim (int): 输入特征的通道数。
-        input_resolution (tuple[int]): 输入特征的空间分辨率。
-        num_heads (int): 多头注意力的头数。
-        window_size (tuple[int]): 局部注意力窗口大小， [pressure levels, latitude, longitude].
-        shift_size (tuple[int]): 在 “Shifted Window Multi-Head Self-Attention (SW-MSA)” 模式下的窗口平移大小 [pressure levels, latitude, longitude].
-        mlp_ratio (float): MLP 隐藏层维度与嵌入维度的比例。
-        qkv_bias (bool, optional): 若为 True，则在 Query、Key、Value 的线性层中添加可学习偏置项（bias）。默认 True。
-        qk_scale (float | None, optional): 若设置该值，则覆盖默认的缩放因子 head_dim ** -0.5。通常用于调整注意力计算的数值范围。
-        drop (float, optional): Dropout 比例，作用于前向传播中的全连接层输出。默认 0.0。
-        attn_drop (float, optional): 注意力权重的 Dropout 比例。默认 0.0。
-        drop_path (float, optional): 随机深度（Stochastic Depth）比例，用于防止过拟合。默认 0.0。
-        act_layer (nn.Module, optional): 激活函数层，默认使用 nn.GELU。
-        norm_layer (nn.Module, optional): 归一化层类型，默认使用 nn.LayerNorm。
+        带有移位窗口机制的三维 Transformer 块。
+
+        Args:
+            dim (int) – 输入特征通道数
+            input_resolution (tuple[int, int, int]) – 输入空间分辨率 (pressure_levels, lat, lon)
+            num_heads (int) – 注意力头数量
+            window_size (tuple[int, int, int], optional) – 窗口大小 (Wpl, Wlat, Wlon)，默认为 (2, 6, 12)
+            shift_size (tuple[int, int, int], optional) – 窗口移位大小 (shift_pl, shift_lat, shift_lon)，默认为 (1, 3, 6)
+            mlp_ratio (float, optional) – MLP 隐藏层维度与嵌入维度的比例，默认为 4.0
+            qkv_bias (bool, optional) – 是否在 QKV 上添加偏置，默认为 True
+            qk_scale (float, optional) – 覆盖默认的 QK 缩放系数，默认为 None
+            drop (float, optional) – Dropout 比例，默认为 0.0
+            attn_drop (float, optional) – 注意力权重的 dropout 比例，默认为 0.0
+            drop_path (float, optional) – 随机深度比例，默认为 0.0
+            act_layer (nn.Module, optional) – 激活函数层，默认为 nn.GELU
+            norm_layer (nn.Module, optional) – 归一化层，默认为 nn.LayerNorm
+
+        形状:
+            输入: (B, L, C)，其中 L = Pl × Lat × Lon
+            输出: (B, L, C)
+
+        Example:
+            >>> # 基础用法
+            >>> # input_resolution=(13, 128, 256), L=13*128*256=425984
+            >>> block = Transformer3DBlock(
+            ...     dim=192,
+            ...     input_resolution=(13, 128, 256),
+            ...     num_heads=6,
+            ...     window_size=(2, 6, 12),
+            ...     shift_size=(1, 3, 6)
+            ... )
+            >>> # 输入序列格式: (B, L, C)
+            >>> x = torch.randn(4, 425984, 192)
+            >>> out = block(x)
+            >>> out.shape
+            torch.Size([4, 425984, 192])
     """
 
     def __init__(
@@ -162,22 +182,40 @@ class Transformer3DBlock(nn.Module):
 
 class FuserLayer(nn.Module):
     """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    一个阶段（stage）的基础3D Transformer层（Basic 3D Transformer Layer）
+        由多个Transformer3DBlock组成的基础三维 Transformer 层。
 
-    参数:
-        dim (int): 输入特征的通道数.
-        input_resolution (tuple[int]): 输入数据的分辨率.
-        depth (int): 当前阶段包含的 Transformer Block 数量.
-        num_heads (int): 多头注意力（Multi-Head Attention）的头数.
-        window_size (tuple[int]): 局部窗口的大小.
-        mlp_ratio (float): MLP 隐藏层的维度与输入嵌入维度的比例.
-        qkv_bias (bool, optional): 若为 True，则在 Query、Key、Value 的线性层中添加可学习偏置项。默认值：True
-        qk_scale (float | None, optional): 若指定该值，则覆盖默认缩放因子 head_dim ** -0.5，用于调整注意力分数的缩放.
-        drop (float, optional): Dropout 比例，用于防止过拟合。默认值：0.0
-        attn_drop (float, optional): 注意力权重的 Dropout 比例。默认值：0.0
-        drop_path (float | tuple[float], optional): 随机深度（Stochastic Depth）比例，可为单个数或一个不同层对应不同值的元组。默认值：0.0
-        norm_layer (nn.Module, optional): 归一化层类型，默认使用 nn.LayerNorm
+        Args:
+            dim (int) – 输入特征通道数
+            input_resolution (tuple[int, int, int]) – 输入空间分辨率 (pressure_levels, lat, lon)
+            depth (int) – Transformer 块的数量
+            num_heads (int) – 注意力头数量
+            window_size (tuple[int, int, int]) – 窗口大小 (Wpl, Wlat, Wlon)
+            mlp_ratio (float, optional) – MLP 隐藏层维度与嵌入维度的比例，默认为 4.0
+            qkv_bias (bool, optional) – 是否在 QKV 上添加偏置，默认为 True
+            qk_scale (float, optional) – 覆盖默认的 QK 缩放系数，默认为 None
+            drop (float, optional) – Dropout 比例，默认为 0.0
+            attn_drop (float, optional) – 注意力权重的 dropout 比例，默认为 0.0
+            drop_path (float or tuple[float], optional) – 随机深度比例，可为单个值或每层不同值的元组，默认为 0.0
+            norm_layer (nn.Module, optional) – 归一化层，默认为 nn.LayerNorm
+
+        形状:
+            输入: (B, L, C)，其中 L = Pl × Lat × Lon
+            输出: (B, L, C)
+
+        Example:
+            >>> # 6 层 Transformer
+            >>> # input_resolution=(13, 128, 256), L=13*128*256=425984
+            >>> layer = FuserLayer(
+            ...     dim=192,
+            ...     input_resolution=(13, 128, 256),
+            ...     depth=6,
+            ...     num_heads=6,
+            ...     window_size=(2, 6, 12)
+            ... )
+            >>> x = torch.randn(4, 425984, 192)
+            >>> out = layer(x)
+            >>> out.shape
+            torch.Size([4, 425984, 192])
     """
 
     def __init__(
