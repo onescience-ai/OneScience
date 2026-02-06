@@ -33,7 +33,7 @@ class PatchEmbed2D(nn.Module):
 
     def __init__(self, img_size, patch_size, in_chans, embed_dim, norm_layer=None):
         super().__init__()
-        self.img_size = img_size
+        self.img_size = img_size  # [721 ,1440]   [160, 320]
         height, width = img_size
         h_patch_size, w_path_size = patch_size
         padding_left = padding_right = padding_top = padding_bottom = 0

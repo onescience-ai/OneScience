@@ -3,24 +3,14 @@ from torch import nn
 
 class DownSample3D(nn.Module):
     """
-        通过空间合并和线性变换实现三维空间下采样。
+    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
+    三维下采样操作
+    实现参考: https://github.com/198808xc/Pangu-Weather/blob/main/pseudocode.py
 
-        Args:
-            in_dim (int): 输入通道数
-            input_resolution (tuple[int, int, int]): 输入空间维度 (P, H, W)
-            output_resolution (tuple[int, int, int]): 输出空间维度 (P', H', W')，其中 P' ≤ P
-
-        形状:
-            输入: (B, N, C_in)，其中 N = P × H × W
-            输出: (B, M, C_out)，其中 M = P' × H' × W', C_out = 2 × C_in
-
-        Example:
-            >>> downsample = DownSample3D(128, (13, 128, 256), (13, 64, 128))
-            >>> x = torch.randn(4, 425984, 128)
-            >>> out = downsample(x)
-            >>> out.shape
-            torch.Size([4, 106496, 256])
-
+    参数:
+        in_dim (int): 输入特征的通道数.
+        input_resolution (tuple[int]): 输入数据的分辨率[pressure levels, latitude, longitude]
+        output_resolution (tuple[int]): 输出数据的分辨率[pressure levels, latitude, longitude]
     """
 
     def __init__(self, in_dim, input_resolution, output_resolution):
@@ -66,24 +56,13 @@ class DownSample3D(nn.Module):
 
 class DownSample2D(nn.Module):
     """
-        通过空间合并和线性变换实现二维空间下采样。
+    改编自 WeatherLearn https://github.com/lizhuoq/WeatherLearn
+    2D 下采样操作
 
-        Args:
-            in_dim (int): 输入通道数
-            input_resolution (tuple[int, int]): 输入空间维度 (H, W)
-            output_resolution (tuple[int, int]): 输出空间维度 (H', W')
-
-        形状:
-            输入: (B, N, C_in)，其中 N = H × W
-            输出: (B, M, C_out)，其中 M = H' × W', C_out = 2 × C_in
-
-        Example:
-            >>> downsample = DownSample2D(64, (128, 256), (64, 128))
-            >>> x = torch.randn(8, 32768, 64)
-            >>> out = downsample(x)
-            >>> out.shape
-            torch.Size([8, 8192, 128])
-
+    参数:
+        in_dim (int): 输入特征的通道数.
+        input_resolution (tuple[int]): 输入数据的分辨率[pressure levels, latitude, longitude]
+        output_resolution (tuple[int]): 输出数据的分辨率[pressure levels, latitude, longitude]
     """
 
     def __init__(self, in_dim, input_resolution, output_resolution):
