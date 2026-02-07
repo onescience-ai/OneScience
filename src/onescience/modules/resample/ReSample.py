@@ -55,7 +55,7 @@ class OneReSample:
     def list_styles(cls):
         return list(cls._registry.keys())
 
-
+        
 @OneReSample.register('pangu')
 class PanguReSample(nn.Module):
     """

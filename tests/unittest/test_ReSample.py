@@ -1,6 +1,9 @@
 import torch
 from onescience.modules.resample.ReSample import OneReSample
+import warnings
 
+# 忽略有关 'torch.meshgrid' 的警告
+warnings.filterwarnings("ignore", message=".*torch.meshgrid.*")
 # 2D上采样 - 对应原UpSample2D
 resample = OneReSample(128, 64, (64, 128), (128, 256), style='pangu')
 x = torch.randn(8, 8192, 128)

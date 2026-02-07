@@ -7,7 +7,7 @@ from torch import nn
 from ..func_utils.pangu_utils import get_pad3d, crop3d, window_partition, window_reverse, get_shift_window_mask
 from ..layer.pangu_layer import DropPath, Mlp
 
-from onescience.modules import EarthAttention3D
+from onescience.modules import OneEarthAttention
 
 class Transformer3DBlock(nn.Module):
     """

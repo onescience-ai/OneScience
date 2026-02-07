@@ -1,6 +1,9 @@
 import torch
 from onescience.modules.patch.PatchRecovery import OnePatchRecovery
+import warnings
 
+# 忽略有关 'torch.meshgrid' 的警告
+warnings.filterwarnings("ignore", message=".*torch.meshgrid.*")
 # 2D图像恢复
 patch_recovery = OnePatchRecovery(
     img_size=(128, 256),

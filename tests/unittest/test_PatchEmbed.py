@@ -1,6 +1,9 @@
 import torch
 from onescience.modules.patch.PatchEmbed import OnePatchEmbed
+import warnings
 
+# 忽略有关 'torch.meshgrid' 的警告
+warnings.filterwarnings("ignore", message=".*torch.meshgrid.*")
 # 2D patch嵌入
 patch_embed = OnePatchEmbed(
     img_size=(128, 256),
