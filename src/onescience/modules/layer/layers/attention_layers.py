@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from ..utils import get_earth_position_index, trunc_normal_
+from onescience.modules.func_utils.pangu_utils import get_earth_position_index, trunc_normal_
 
 
 class EarthAttention3D(nn.Module):

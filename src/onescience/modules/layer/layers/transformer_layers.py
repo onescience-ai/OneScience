@@ -4,10 +4,9 @@ import torch
 from timm.layers import to_2tuple
 from timm.models.swin_transformer import SwinTransformerStage
 from torch import nn
-
-from ..utils import (
-    PatchEmbed2D,
-    PatchRecovery2D,
+from onescience.modules.patch.patch_embed import PatchEmbed2D
+from onescience.modules.patch.patch_recovery import PatchRecovery2D
+from onescience.modules.func_utils.pangu_utils import (
     crop2d,
     crop3d,
     get_pad2d,
