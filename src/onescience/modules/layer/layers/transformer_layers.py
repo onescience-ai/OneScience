@@ -4,8 +4,10 @@ import torch
 from timm.layers import to_2tuple
 from timm.models.swin_transformer import SwinTransformerStage
 from torch import nn
-from onescience.modules.patch.patch_embed import PatchEmbed2D
-from onescience.modules.patch.patch_recovery import PatchRecovery2D
+# from onescience.modules.patch.patch_embed import PatchEmbed2D
+# from onescience.modules.patch.patch_recovery import PatchRecovery2D
+from onescience.modules.patch.PatchRecovery import OnePatchRecovery
+from onescience.modules.patch.PatchEmbed import OnePatchEmbed
 from onescience.modules.func_utils.pangu_utils import (
     crop2d,
     crop3d,
@@ -446,11 +448,12 @@ class EncoderLayer(nn.Module):
         else:
             num_heads_middle = num_heads
 
-        self.patchembed2d = PatchEmbed2D(
+        self.patchembed2d =  OnePatchEmbed(
             img_size=img_size,
             patch_size=patch_size,
             in_chans=in_chans,
             embed_dim=dim,
+             style='pangu'
         )
         self.blocks = nn.ModuleList(
             [
@@ -626,7 +629,7 @@ class DecoderLayer(nn.Module):
             ]
         )
 
-        self.patchrecovery2d = PatchRecovery2D(img_size, patch_size, 2 * dim, out_chans)
+        self.patchrecovery2d = OnePatchRecovery(img_size, patch_size, 2 * dim, out_chans, style='pangu')
 
     def forward(self, x, skip):
         B, Lat, Lon, C = skip.shape
