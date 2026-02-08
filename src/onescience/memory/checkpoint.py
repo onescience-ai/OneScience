@@ -7,14 +7,33 @@ class part(torch.nn.Module):
     '''
     2025-01-09 wangxian
     这个类主要是为了避免pytorch的类别检查，为了兼容原生pytorch而设计
+    
+    2025-02-08 修复：添加 __iter__ 和 __len__ 支持，使其兼容 ModuleList
     '''
     def __init__(self, ch, ori):
         super().__init__()
-        self.ch  = ch   # checkpoint 函数
-        self.ori = ori  # 原始子模块
+        self.ch = ch
+        self.ori = ori
+    
     def __call__(self, *args, **kwargs):
-        f = partial(self.ch, self.ori, use_reentrant=True)
-        return f(*args, **kwargs)
+        return self.ch(self.ori, *args, **kwargs, use_reentrant=True)
+    
+    def __iter__(self):
+        if hasattr(self.ori, '__iter__'):
+            for item in self.ori:
+                yield lambda x, m=item: checkpoint(m, x, use_reentrant=True)
+        else:
+            raise TypeError(f"'{type(self.ori).__name__}' object is not iterable")
+    
+    def __len__(self):
+        return len(self.ori) if hasattr(self.ori, '__len__') else 0
+    
+    def __getitem__(self, idx):
+        if hasattr(self.ori, '__getitem__'):
+            item = self.ori[idx]
+            return lambda x, m=item: checkpoint(m, x, use_reentrant=True)
+        raise TypeError(f"'{type(self.ori).__name__}' object is not subscriptable")
+    
 
 @contextmanager
 def replace_function(module, replace_layers_list, ddp_flag=False):
