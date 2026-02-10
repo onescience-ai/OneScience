@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from .sample import PanGuDownSample2D
+from .pangudownsample2d import PanGuDownSample2D
 
 class OneSample(nn.module):
    
