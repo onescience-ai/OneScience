@@ -12,8 +12,12 @@ class PanGuDownSample2D(nn.Module):
         output_resolution (tuple[int]): [latitude, longitude]
     """
 
-    def __init__(self, in_dim, input_resolution, output_resolution):
+    def __init__(self, 
+                 input_resolution, 
+                 output_resolution,
+                 in_dim=192):
         super().__init__()
+        
         self.linear = nn.Linear(in_dim * 4, in_dim * 2, bias=False)
         self.norm = nn.LayerNorm(4 * in_dim)
         self.input_resolution = input_resolution

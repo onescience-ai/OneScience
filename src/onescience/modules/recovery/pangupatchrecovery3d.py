@@ -13,7 +13,10 @@ class PanGuPatchRecovery3D(nn.Module):
         out_chans (int): 输出图像的通道数
     """
 
-    def __init__(self, img_size, patch_size, in_chans, out_chans):
+    def __init__(self, img_size = (13, 721, 1440), 
+                 patch_size = (2, 4, 4),
+                 in_chans = 192*2, 
+                 out_chans = 5):
         super().__init__()
         self.img_size = img_size
         self.conv = nn.ConvTranspose3d(in_chans, out_chans, patch_size, patch_size)

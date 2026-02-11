@@ -1,5 +1,5 @@
 from .pangu_utils import (
-    drop_path,
+    Drop_path,
     crop2d,
     crop3d,
     get_earth_position_index,
@@ -9,5 +9,6 @@ from .pangu_utils import (
     window_partition,
     window_reverse,
     trunc_normal_,
-    save_checkpoint
+    save_checkpoint,
+    Mlp
 )

@@ -1,11 +1,23 @@
-import torch
 from torch import nn
+
 from .earthattention2d import EarthAttention2D
+from .earthattention3d import EarthAttention3D
+
+_ATTENTIONER_REGISTRY = {
+    "EarthAttention2D": EarthAttention2D,
+    "EarthAttention3D": EarthAttention3D,
+}
 
 class OneAttention(nn.Module):
-    def __init__(self, style="Earth"):
+    def __init__(self, style: str, **kwargs):
+        super().__init__()
+
+        if style not in _ATTENTIONER_REGISTRY:
+            raise NotImplementedError(f"Unknown style: {style}")
         
-        if style == "Earth":
-            self.EarthAttention2D = EarthAttention2D( dim, input_resolution, window_size, num_heads,)
-        else:
-            raise NotImplementedError
+        self.attentioner = _ATTENTIONER_REGISTRY[style](**kwargs)
+
+    def forward(self, x):
+        return self.attentioner(x) 
+
+    
