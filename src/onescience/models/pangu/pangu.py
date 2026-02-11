@@ -1,15 +1,16 @@
 import math
-from dataclasses import dataclass
-
-import numpy as np
 import torch
+import numpy as np
 
+from torch import nn
+from dataclasses import dataclass
 from onescience.models.meta import ModelMetaData
-from onescience.modules.module import Module
 
 from onescience.modules import (
-   OneEmbedding,
-   Onefuser
+    OneEmbedding,
+    OneFuser,
+    OneRecovery,
+    OneSample,
 )
 
 @dataclass
@@ -29,7 +30,7 @@ class MetaData(ModelMetaData):
     auto_grad: bool = False
 
 
-class Pangu(Module):
+class Pangu(nn.Module):
     """
     Pangu A PyTorch impl of: `Pangu-Weather: A 3D High-Resolution Model for Fast and Accurate Global Weather Forecast`
     - https://arxiv.org/abs/2211.02556
@@ -50,7 +51,7 @@ class Pangu(Module):
         num_heads=(6, 12, 12, 6),
         window_size=(2, 6, 12),
     ):
-        super().__init__(meta=MetaData())
+        super().__init__()
         drop_path = np.linspace(0, 0.2, 8).tolist()
         # In addition, three constant masks(the topography mask, land-sea mask and soil type mask)
         
@@ -68,7 +69,7 @@ class Pangu(Module):
             math.ceil(img_size[1] / patch_size[2]),
         )
 
-        self.layer1 = Onefuser(
+        self.layer1 = OneFuser(
             style="PanGuFuser",
             dim=embed_dim,
             input_resolution=patched_inp_shape,
@@ -83,12 +84,15 @@ class Pangu(Module):
             math.ceil(patched_inp_shape[1] / 2),
             math.ceil(patched_inp_shape[2] / 2),
         )
-        self.downsample = DownSample3D(
+        
+        self.downsample = OneSample(
+            style="PanGuDownSample3D",
             in_dim=embed_dim,
             input_resolution=patched_inp_shape,
             output_resolution=patched_inp_shape_downsample,
         )
-        self.layer2 = FuserLayer(
+        self.layer2 = OneFuser(
+            style="PanGuFuser",
             dim=embed_dim * 2,
             input_resolution=patched_inp_shape_downsample,
             depth=6,
@@ -96,7 +100,8 @@ class Pangu(Module):
             window_size=window_size,
             drop_path=drop_path[2:],
         )
-        self.layer3 = FuserLayer(
+        self.layer3 = OneFuser(
+            style="PanGuFuser",
             dim=embed_dim * 2,
             input_resolution=patched_inp_shape_downsample,
             depth=6,
@@ -104,10 +109,15 @@ class Pangu(Module):
             window_size=window_size,
             drop_path=drop_path[2:],
         )
-        self.upsample = UpSample3D(
-            embed_dim * 2, embed_dim, patched_inp_shape_downsample, patched_inp_shape
+        self.upsample = OneSample(
+            style="PanGuUpSample3D",
+            in_dim=embed_dim * 2,
+            out_dim=embed_dim,
+            input_resolution=patched_inp_shape_downsample,
+            output_resolution=patched_inp_shape
         )
-        self.layer4 = FuserLayer(
+        self.layer4 = OneFuser(
+            style="PanGuFuser",
             dim=embed_dim,
             input_resolution=patched_inp_shape,
             depth=2,
@@ -116,11 +126,11 @@ class Pangu(Module):
             drop_path=drop_path[:2],
         )
         # The outputs of the 2nd encoder layer and the 7th decoder layer are concatenated along the channel dimension.
-        self.patchrecovery2d = PatchRecovery2D(
-            img_size, patch_size[1:], 2 * embed_dim, 4
+        self.patchrecovery2d = OneRecovery(
+            style="pangupatchrecovery2d"
         )
-        self.patchrecovery3d = PatchRecovery3D(
-            (13, img_size[0], img_size[1]), patch_size, 2 * embed_dim, 5
+        self.patchrecovery3d = OneRecovery(
+            style="pangupatchrecovery3d"
         )
 
     # def prepare_input(self, surface, surface_mask, upper_air):

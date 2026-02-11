@@ -6,21 +6,21 @@ from ..func_utils import (
     trunc_normal_,
 )
 
-class EarthAttention2D(nn.Module):
+class EarthAttention3D(nn.Module):
     """
-    Revise from WeatherLearn https://github.com/lizhuoq/WeatherLearn
-    2D window attention with earth position bias.
-    It supports both of shifted and non-shifted window.
+        改编自 WeatherLearn（https://github.com/lizhuoq/WeatherLearn）
+        具有地球位置偏置（Earth Position Bias）的三维窗口注意力机制（3D Window Attention）。
+        该模块同时支持 移位（shifted） 和 非移位（non-shifted） 窗口机制。
 
-    Args:
-        dim (int): Number of input channels.
-        input_resolution (tuple[int]): [latitude, longitude]
-        window_size (tuple[int]): [latitude, longitude]
-        num_heads (int): Number of attention heads.
-        qkv_bias (bool, optional):  If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set
-        attn_drop (float, optional): Dropout ratio of attention weight. Default: 0.0
-        proj_drop (float, optional): Dropout ratio of output. Default: 0.0
+        参数说明：
+        dim (int)：输入通道数。
+        input_resolution (tuple[int])：输入的空间分辨率，格式为 [气压层数, 纬度, 经度]。
+        window_size (tuple[int])：窗口大小，格式为 [气压层数, 纬度, 经度]。
+        num_heads (int)：注意力头（Attention Heads）的数量。
+        qkv_bias (bool, 可选)：如果为 True，则在 Query、Key、Value 上添加可学习偏置项。默认值：True。
+        qk_scale (float | None, 可选)：如果设置该参数，则会覆盖默认的缩放比例（head_dim ** -0.5）。
+        attn_drop (float, 可选)：注意力权重的 dropout 比例。默认值：0.0。
+        proj_drop (float, 可选)：输出的 dropout 比例。默认值：0.0。
     """
 
     def __init__(
@@ -36,24 +36,28 @@ class EarthAttention2D(nn.Module):
     ):
         super().__init__()
         self.dim = dim
-        self.window_size = window_size  # Wlat, Wlon
+        self.window_size = window_size  # Wpl, Wlat, Wlon
         self.num_heads = num_heads
         head_dim = dim // num_heads
         self.scale = qk_scale or head_dim**-0.5
 
-        self.type_of_windows = input_resolution[0] // window_size[0]
+        self.type_of_windows = (input_resolution[0] // window_size[0]) * (
+            input_resolution[1] // window_size[1]
+        )
 
         self.earth_position_bias_table = nn.Parameter(
             torch.zeros(
-                (window_size[0] ** 2) * (window_size[1] * 2 - 1),
+                (window_size[0] ** 2)
+                * (window_size[1] ** 2)
+                * (window_size[2] * 2 - 1),
                 self.type_of_windows,
                 num_heads,
             )
-        )  # Wlat**2 * Wlon*2-1, Nlat//Wlat, nH
+        )  # Wpl**2 * Wlat**2 * Wlon*2-1, Npl//Wpl * Nlat//Wlat, nH
 
         earth_position_index = get_earth_position_index(
-            window_size, ndim=2
-        )  # Wlat*Wlon, Wlat*Wlon
+            window_size
+        )  # Wpl*Wlat*Wlon, Wpl*Wlat*Wlon
         self.register_buffer("earth_position_index", earth_position_index)
 
         self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
@@ -68,9 +72,9 @@ class EarthAttention2D(nn.Module):
 
     def forward(self, x: torch.Tensor, mask=None):
         """
-        Args:
-            x: input features with shape of (B * num_lon, num_lat, N, C)
-            mask: (0/-inf) mask with shape of (num_lon, num_lat, Wlat*Wlon, Wlat*Wlon)
+        参数:
+            x: 输入特征张量，形状为 (B * num_lon, num_pl*num_lat, N, C)
+            mask: 取值为 0 或 -∞，形状为 (num_lon, num_pl*num_lat, Wpl*Wlat*Wlon, Wpl*Wlat*Wlon)
         """
         B_, nW_, N, C = x.shape
         qkv = (
@@ -86,14 +90,14 @@ class EarthAttention2D(nn.Module):
         earth_position_bias = self.earth_position_bias_table[
             self.earth_position_index.view(-1)
         ].view(
-            self.window_size[0] * self.window_size[1],
-            self.window_size[0] * self.window_size[1],
+            self.window_size[0] * self.window_size[1] * self.window_size[2],
+            self.window_size[0] * self.window_size[1] * self.window_size[2],
             self.type_of_windows,
             -1,
-        )  # Wlat*Wlon, Wlat*Wlon, num_lat, nH
+        )  # Wpl*Wlat*Wlon, Wpl*Wlat*Wlon, num_pl*num_lat, nH
         earth_position_bias = earth_position_bias.permute(
             3, 2, 0, 1
-        ).contiguous()  # nH, num_lat, Wlat*Wlon, Wlat*Wlon
+        ).contiguous()  # nH, num_pl*num_lat, Wpl*Wlat*Wlon, Wpl*Wlat*Wlon
         attn = attn + earth_position_bias.unsqueeze(0)
 
         if mask is not None:
