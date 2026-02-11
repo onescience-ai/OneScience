@@ -1,97 +1,67 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.nn.utils import weight_norm
-from onescience.models.deepcfd.AutoEncoder import create_layer
-
-
-def create_encoder_block(in_channels, out_channels, kernel_size, wn=True, bn=True,
-                 activation=nn.ReLU, layers=2):
-    encoder = []
-    for i in range(layers):
-        _in = out_channels
-        _out = out_channels
-        if i == 0:
-            _in = in_channels
-        encoder.append(create_layer(_in, _out, kernel_size, wn, bn, activation, nn.Conv2d))
-    return nn.Sequential(*encoder)
-
-
-def create_decoder_block(in_channels, out_channels, kernel_size, wn=True, bn=True,
-                 activation=nn.ReLU, layers=2, final_layer=False):
-    decoder = []
-    for i in range(layers):
-        _in = in_channels
-        _out = in_channels
-        _bn = bn
-        _activation = activation
-        if i == 0:
-            _in = in_channels * 2
-        if i == layers - 1:
-            _out = out_channels
-            if final_layer:
-                _bn = False
-                _activation = None
-        decoder.append(create_layer(_in, _out, kernel_size, wn, _bn, _activation, nn.ConvTranspose2d))
-    return nn.Sequential(*decoder)
-
-
-def create_encoder(in_channels, filters, kernel_size, wn=True, bn=True, activation=nn.ReLU, layers=2):
-    encoder = []
-    for i in range(len(filters)):
-        if i == 0:
-            encoder_layer = create_encoder_block(in_channels, filters[i], kernel_size, wn, bn, activation, layers)
-        else:
-            encoder_layer = create_encoder_block(filters[i-1], filters[i], kernel_size, wn, bn, activation, layers)
-        encoder = encoder + [encoder_layer]
-    return nn.Sequential(*encoder)
-
-
-def create_decoder(out_channels, filters, kernel_size, wn=True, bn=True, activation=nn.ReLU, layers=2):
-    decoder = []
-    for i in range(len(filters)):
-        if i == 0:
-            decoder_layer = create_decoder_block(filters[i], out_channels, kernel_size, wn, bn, activation, layers, final_layer=True)
-        else:
-            decoder_layer = create_decoder_block(filters[i], filters[i-1], kernel_size, wn, bn, activation, layers, final_layer=False)
-        decoder = [decoder_layer] + decoder
-    return nn.Sequential(*decoder)
-
+import onescience.modules.layer.layers import DoubleConv2D, Down2D, Up2D, OutConv2D
 
 class UNet(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, filters=[16, 32, 64], layers=2,
-                 weight_norm=True, batch_norm=True, activation=nn.ReLU, final_activation=None):
-        super().__init__()
-        assert len(filters) > 0
-        self.final_activation = final_activation
-        self.encoder = create_encoder(in_channels, filters, kernel_size, weight_norm, batch_norm, activation, layers)
-        self.decoder = create_decoder(out_channels, filters, kernel_size, weight_norm, batch_norm, activation, layers)
+    """
+    基于模块化组件重构的 U-Net 模型。
 
-    def encode(self, x):
-        tensors = []
-        indices = []
-        sizes = []
-        for encoder in self.encoder:
-            x = encoder(x)
-            sizes.append(x.size())
-            tensors.append(x)
-            x, ind = F.max_pool2d(x, 2, 2, return_indices=True)
-            indices.append(ind)
-        return x, tensors, indices, sizes
+    该模型由编码器（下采样路径）、瓶颈层和解码器（上采样路径）组成。
+    编码器逐步降低特征图的空间分辨率并增加通道数。
+    解码器逐步恢复空间分辨率，并通过跳跃连接（Skip Connections）融合编码器的高分辨率特征。
 
-    def decode(self, x, tensors, indices, sizes):
-        for decoder in self.decoder:
-            tensor = tensors.pop()
-            size = sizes.pop()
-            ind = indices.pop()
-            x = F.max_unpool2d(x, ind, 2, 2, output_size=size)
-            x = torch.cat([tensor, x], dim=1)
-            x = decoder(x)
-        return x
+    Args:
+        in_channels (int): 输入图像的通道数。
+        out_channels (int): 输出图像的通道数。
+        features (list[int]): 每个层级的特征通道数列表。默认值: [16, 32, 64]。
+        normtype (str): 归一化类型 ('bn' 或 'in')。默认值: 'bn'。
+    """
+    def __init__(self, in_channels, out_channels, features=[16, 32, 64], normtype="bn"):
+        super(UNet, self).__init__()
+        
+        self.encoders = nn.ModuleList()
+        self.decoders = nn.ModuleList()
+        self.pool = nn.MaxPool2d(kernel_size=2, stride=2) # 显式定义池化层，配合 Down2D 使用或单独使用
+
+        # --- Encoder Path ---
+        # 初始双卷积层 (不进行下采样)
+        self.inc = DoubleConv2D(in_channels, features[0], normtype=normtype)
+        
+        # 下采样层
+        for i in range(len(features) - 1):
+            # Down2D 包含 MaxPool + DoubleConv
+            self.encoders.append(
+                Down2D(features[i], features[i+1], normtype=normtype)
+            )
+        for i in range(len(features) - 1, 0, -1):
+            self.decoders.append(
+                Up2D(features[i] + features[i-1], features[i-1], bilinear=True, normtype=normtype)
+            )
+
+        # --- Output Path ---
+        self.outc = OutConv2D(features[0], out_channels)
 
     def forward(self, x):
-        x, tensors, indices, sizes = self.encode(x)
-        x = self.decode(x, tensors, indices, sizes)
-        if self.final_activation is not None:
-            x = self.final_activation(x)
-        return x
+        # 存储跳跃连接的特征
+        skips = []
+        
+        # 初始卷积
+        x = self.inc(x)
+        skips.append(x)
+        
+        # 编码器路径
+        for encoder in self.encoders:
+            x = encoder(x)
+            skips.append(x)
+        
+        x = skips.pop() 
+        
+        # 解码器路径
+        for decoder in self.decoders:
+            skip = skips.pop() # 获取对应的跳跃连接特征
+            x = decoder(x, skip) # x 是深层特征，skip 是浅层特征
+            
+        # 输出层
+        logits = self.outc(x)
+        return logits

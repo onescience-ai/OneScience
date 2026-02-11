@@ -2,76 +2,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 from timm.layers import trunc_normal_
-from onescience.models.layers.Basic import MLP
-from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
-from onescience.models.layers.Physics_Attention import Physics_Attention_Irregular_Mesh
-from onescience.models.layers.Physics_Attention import (
-    Physics_Attention_Structured_Mesh_1D,
-)
-from onescience.models.layers.Physics_Attention import (
-    Physics_Attention_Structured_Mesh_2D,
-)
-from onescience.models.layers.Physics_Attention import (
-    Physics_Attention_Structured_Mesh_3D,
-)
-
-PHYSICS_ATTENTION = {
-    "unstructured": Physics_Attention_Irregular_Mesh,
-    "structured_1D": Physics_Attention_Structured_Mesh_1D,
-    "structured_2D": Physics_Attention_Structured_Mesh_2D,
-    "structured_3D": Physics_Attention_Structured_Mesh_3D,
-}
-
-
-class Transolver_block(nn.Module):
-    """Transolver encoder block."""
-
-    def __init__(
-        self,
-        num_heads: int,
-        hidden_dim: int,
-        dropout: float,
-        act="gelu",
-        mlp_ratio=4,
-        last_layer=False,
-        out_dim=1,
-        slice_num=32,
-        geotype="unstructured",
-        shapelist=None,
-    ):
-        super().__init__()
-        self.last_layer = last_layer
-        self.ln_1 = nn.LayerNorm(hidden_dim)
-
-        self.Attn = PHYSICS_ATTENTION[geotype](
-            hidden_dim,
-            heads=num_heads,
-            dim_head=hidden_dim // num_heads,
-            dropout=dropout,
-            slice_num=slice_num,
-            shapelist=shapelist,
-        )
-        self.ln_2 = nn.LayerNorm(hidden_dim)
-        self.mlp = MLP(
-            hidden_dim,
-            hidden_dim * mlp_ratio,
-            hidden_dim,
-            n_layers=0,
-            res=False,
-            act=act,
-        )
-        if self.last_layer:
-            self.ln_3 = nn.LayerNorm(hidden_dim)
-            self.mlp2 = nn.Linear(hidden_dim, out_dim)
-
-    def forward(self, fx):
-        fx = self.Attn(self.ln_1(fx)) + fx
-        fx = self.mlp(self.ln_2(fx)) + fx
-        if self.last_layer:
-            return self.mlp2(self.ln_3(fx))
-        else:
-            return fx
-
+from onescience.modules.layer.layers.Basic import MLP
+from onescience.modules.embedding import timestep_embedding, unified_pos_embeddingg
+from onescience.modules.block import Transolver_block
 
 class Model(nn.Module):
     def __init__(self, args, device):

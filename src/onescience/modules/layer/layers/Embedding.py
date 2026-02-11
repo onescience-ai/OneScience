@@ -6,6 +6,45 @@ import numpy as np
 
 
 def unified_pos_embedding(shapelist, ref, batchsize=1, device='cuda'):
+    """
+    计算统一位置编码 (Unified Positional Embedding)。
+
+    
+
+    该函数在 [0, 1] 的归一化坐标空间内，计算输入网格（由 shapelist 定义）中每个点与参考网格（由 ref 定义）中每个点之间的欧几里得距离。
+    该函数支持 1D、2D 和 3D 空间。它通常用于构建基于距离的相对位置编码或注意力偏置，将不同分辨率的物理网格映射到一组固定分辨率的参考锚点上。
+
+    Args:
+        shapelist (list[int]): 输入网格的形状列表。
+            - 1D: [L]
+            - 2D: [H, W]
+            - 3D: [D, H, W]
+        ref (int): 参考网格在每个维度上的分辨率。
+            - 1D: 参考点数量为 ref
+            - 2D: 参考点数量为 ref * ref
+            - 3D: 参考点数量为 ref * ref * ref
+        batchsize (int, optional): 批次大小。默认值: 1。
+        device (str or torch.device, optional): 计算设备。默认值: 'cuda'。
+
+    形状:
+        输出: (B, N_input, N_ref)
+            - B 为 batchsize。
+            - N_input 为输入网格的总点数（即 prod(shapelist)）。
+            - N_ref 为参考网格的总点数（即 ref ** len(shapelist)）。
+
+    Example:
+        >>> # 2D 示例: 输入网格 32x32, 参考网格 4x4
+        >>> pos_embed = unified_pos_embedding([32, 32], ref=4, batchsize=2)
+        >>> # 输入点数 N = 32*32 = 1024
+        >>> # 参考点数 M = 4*4 = 16
+        >>> pos_embed.shape
+        torch.Size([2, 1024, 16])
+
+        >>> # 1D 示例: 序列长度 100, 参考点 10
+        >>> pos_embed_1d = unified_pos_embedding([100], ref=10, batchsize=1)
+        >>> pos_embed_1d.shape
+        torch.Size([1, 100, 10])
+    """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if device is None else device
     if len(shapelist) == 1:
         size_x = shapelist[0]
@@ -73,25 +112,6 @@ class RotaryEmbedding(nn.Module):
         return torch.cat((freqs, freqs), dim=-1)  # [b, n, d]
 
 
-def rotate_half(x):
-    x = rearrange(x, '... (j d) -> ... j d', j=2)
-    x1, x2 = x.unbind(dim=-2)
-    return torch.cat((-x2, x1), dim=-1)
-
-
-def apply_rotary_pos_emb(t, freqs):
-    return (t * freqs.cos()) + (rotate_half(t) * freqs.sin())
-
-
-def apply_2d_rotary_pos_emb(t, freqs_x, freqs_y):
-    # split t into first half and second half
-    # t: [b, h, n, d]
-    # freq_x/y: [b, n, d]
-    d = t.shape[-1]
-    t_x, t_y = t[..., :d // 2], t[..., d // 2:]
-
-    return torch.cat((apply_rotary_pos_emb(t_x, freqs_x),
-                      apply_rotary_pos_emb(t_y, freqs_y)), dim=-1)
 
 
 class PositionalEncoding(nn.Module):
@@ -119,12 +139,28 @@ class PositionalEncoding(nn.Module):
 
 def timestep_embedding(timesteps, dim, max_period=10000, repeat_only=False):
     """
-    Create sinusoidal timestep embeddings.
-    :param timesteps: a 1-D Tensor of N indices, one per batch element.
-                      These may be fractional.
-    :param dim: the dimension of the output.
-    :param max_period: controls the minimum frequency of the embeddings.
-    :return: an [N x dim] Tensor of positional embeddings.
+        创建正弦时间步长嵌入 (Sinusoidal Timestep Embeddings)。
+
+        该函数类似于 Transformer 中的位置编码，用于将标量时间步（或噪声水平）转换为高维向量表示。它使用不同频率的正弦和余弦函数对输入进行编码。
+        计算公式如下：
+        PE(t, 2i) = sin(t / 10000^(2i/dim))
+        PE(t, 2i+1) = cos(t / 10000^(2i/dim))
+
+        Args:
+            timesteps (Tensor): 一维张量，包含 N 个时间步索引（可以是分数）。形状为 (N,)。
+            dim (int): 输出嵌入的维度。
+            max_period (int, optional): 控制嵌入的最小频率（最大周期）。默认值: 10000。
+            repeat_only (bool, optional): 代码中保留参数，但在当前实现中未使用。默认值: False。
+
+        形状:
+            输入: (N,)
+            输出: (N, dim)
+
+        Example:
+            >>> t = torch.arange(0, 10)
+            >>> emb = timestep_embedding(t, dim=128)
+            >>> emb.shape
+            torch.Size([10, 128])
     """
 
     half = dim // 2

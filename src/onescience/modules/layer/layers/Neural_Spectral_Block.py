@@ -11,6 +11,35 @@ import torch.nn.functional as F
 # Patchify and Neural Spectral Block 1D
 ################################################################
 class NeuralSpectralBlock1D(nn.Module):
+    """
+    一维神经谱块 (Neural Spectral Block 1D)。
+
+    
+
+    该模块结合了 Patchify（分块）策略和神经谱处理机制。
+    它首先将输入的一维序列分割成局部补丁（Patches），通过交叉注意力机制将这些补丁编码到低维隐空间（Latent Space）。
+    在隐空间中，利用正弦和余弦基函数进行谱变换和线性处理，从而在降低计算复杂度的同时捕捉频域特征和长程依赖。
+    最后，通过解码器注意力机制将处理后的隐变量映射回物理空间，并还原分块。
+
+    Args:
+        width (int): 输入和输出的特征通道数。
+        num_basis (int): 谱处理中使用的基函数（模态）数量。
+        patch_size (list[int], optional): 分块大小。列表第一个元素用于一维分块。默认值: [3, 3]。
+        num_token (int, optional): 隐空间中潜在 Token 的数量。默认值: 4。
+        n_heads (int, optional): 注意力机制的头数。默认值: 8。
+
+    形状:
+        输入 x: (B, C, L)，其中 L 必须能被 patch_size[0] 整除。
+        输出: (B, C, L)，形状与输入保持一致。
+
+    Example:
+        >>> # 定义一个通道数为64，基函数数为10，分块大小为5的1D谱块
+        >>> block = NeuralSpectralBlock1D(width=64, num_basis=10, patch_size=[5])
+        >>> x = torch.randn(8, 64, 100)
+        >>> out = block(x)
+        >>> out.shape
+        torch.Size([8, 64, 100])
+    """
     def __init__(self, width, num_basis, patch_size=[3, 3], num_token=4, n_heads=8):
         super(NeuralSpectralBlock1D, self).__init__()
         self.patch_size = patch_size
@@ -140,6 +169,34 @@ class NeuralSpectralBlock1D(nn.Module):
 # Patchify and Neural Spectral Block 2D
 ################################################################
 class NeuralSpectralBlock2D(nn.Module):
+    """
+    二维神经谱块 (Neural Spectral Block 2D)。
+
+    
+
+    适用于图像或二维网格数据。该模块将输入的二维特征图在高度和宽度方向上进行分块（Patchify），
+    将每个补丁展平后映射到隐空间。在隐空间内利用谱方法处理全局依赖关系，最后还原回二维物理网格。
+    相比于全局 Transformer，这种方法在保持全局感受野的同时显著降低了计算量。
+
+    Args:
+        width (int): 输入和输出的特征通道数。
+        num_basis (int): 谱处理中使用的基函数数量。
+        patch_size (list[int], optional): 分块大小 [H_patch, W_patch]。默认值: [3, 3]。
+        num_token (int, optional): 隐空间中潜在 Token 的数量。默认值: 4。
+        n_heads (int, optional): 注意力机制的头数。默认值: 8。
+
+    形状:
+        输入 x: (B, C, H, W)，其中 H, W 必须分别能被 patch_size 对应的维度整除。
+        输出: (B, C, H, W)。
+
+    Example:
+        >>> # 处理 64x64 的输入，分块大小为 4x4
+        >>> block = NeuralSpectralBlock2D(width=32, num_basis=12, patch_size=[4, 4])
+        >>> x = torch.randn(4, 32, 64, 64)
+        >>> out = block(x)
+        >>> out.shape
+        torch.Size([4, 32, 64, 64])
+    """
     def __init__(self, width, num_basis, patch_size=[3, 3], num_token=4, n_heads=8):
         super(NeuralSpectralBlock2D, self).__init__()
         self.patch_size = patch_size
@@ -283,6 +340,31 @@ class NeuralSpectralBlock2D(nn.Module):
 # Patchify and Neural Spectral Block 3D
 ################################################################
 class NeuralSpectralBlock3D(nn.Module):
+    """
+    三维神经谱块 (Neural Spectral Block 3D)。
+
+    适用于三维体数据或时空数据（视频、流体模拟等）。该模块在三个维度上对输入进行分块（Patchify），
+    通过隐空间谱处理机制有效地捕捉三维空间中的长程依赖和频率特征，计算效率优于直接在 3D 空间进行全量注意力计算。
+
+    Args:
+        width (int): 输入和输出的特征通道数。
+        num_basis (int): 谱处理中使用的基函数数量。
+        patch_size (list[int], optional): 分块大小 [H_patch, W_patch, T_patch]（对应输入的最后三个维度）。默认值: [8, 8, 4]。
+        num_token (int, optional): 隐空间中潜在 Token 的数量。默认值: 4。
+        n_heads (int, optional): 注意力机制的头数。默认值: 8。
+
+    形状:
+        输入 x: (B, C, D1, D2, D3)，通常对应 (B, C, H, W, T) 或 (B, C, X, Y, Z)。三个空间维度必须分别能被 patch_size 整除。
+        输出: (B, C, D1, D2, D3)。
+
+    Example:
+        >>> # 处理 32x32x16 的 3D 数据
+        >>> block = NeuralSpectralBlock3D(width=16, num_basis=8, patch_size=[4, 4, 2])
+        >>> x = torch.randn(2, 16, 32, 32, 16)
+        >>> out = block(x)
+        >>> out.shape
+        torch.Size([2, 16, 32, 32, 16])
+    """
     def __init__(self, width, num_basis, patch_size=[8, 8, 4], num_token=4, n_heads=8):
         super(NeuralSpectralBlock3D, self).__init__()
         self.patch_size = patch_size

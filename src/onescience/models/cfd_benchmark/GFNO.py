@@ -1,8 +1,3 @@
-"""
-Taken and modified from AIRS/OpenPDE
-https://github.com/divelab/AIRS/blob/main/OpenPDE/G-FNO/models/GFNO.py
-"""
-
 import torch.nn.functional as F
 import torch
 import torch.nn as nn

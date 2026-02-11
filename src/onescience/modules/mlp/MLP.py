@@ -616,7 +616,7 @@ if __name__ == "__main__":
         dropout_rate=0.2
     )
     print(f"参数数量: {mlp1.get_num_parameters():,}")
-    
+    print(mlp1)
     # 示例2: 带残差连接的深度MLP
     print("\n示例2: 带残差连接的深度MLP")
     mlp2 = DeepResMLP(
