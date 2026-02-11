@@ -6,9 +6,9 @@ from timm.layers import trunc_normal_
 from onescience.models.layers.Basic import (
     MLP,
     LinearAttention,
-    FlashAttention,
     SelfAttention as LinearSelfAttention,
 )
+from onescience.modules.attention.FlashAttention import FlashAttention
 from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
 from einops import rearrange, repeat
 import warnings

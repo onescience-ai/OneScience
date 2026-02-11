@@ -1,156 +1,35 @@
 import torch
-import numpy as np
 import torch.nn as nn
+import numpy as np
 from timm.layers import trunc_normal_
-from einops import rearrange
-import torch.distributed.nn as dist_nn
-from torch.utils.checkpoint import checkpoint
-import torch.nn.functional as F
-
-ACTIVATION = {'gelu': nn.GELU, 'tanh': nn.Tanh, 'sigmoid': nn.Sigmoid, 'relu': nn.ReLU, 'leaky_relu': nn.LeakyReLU(0.1),
-              'softplus': nn.Softplus, 'ELU': nn.ELU, 'silu': nn.SiLU}
-
-def matmul_single(fx_mid, slice_weights):
-    return fx_mid.T @ slice_weights
-
-def gumbel_softmax(logits, tau=1, hard=False):
-    u = torch.rand_like(logits)
-    gumbel_noise = -torch.log(-torch.log(u + 1e-8) + 1e-8)
-
-    y = logits + gumbel_noise
-    y = y / tau
-    
-    y = F.softmax(y, dim=-1)
-    
-    if hard:
-        _, y_hard = y.max(dim=-1)
-        y_one_hot = torch.zeros_like(y).scatter_(-1, y_hard.unsqueeze(-1), 1.0)
-        y = (y_one_hot - y).detach() + y
-    return y
-
-class Physics_Attention_1D_Eidetic(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0., slice_num=64):
-        super().__init__()
-        inner_dim = dim_head * heads
-        self.dim_head = dim_head
-        self.heads = heads
-        self.scale = dim_head ** -0.5
-        self.softmax = nn.Softmax(dim=-1)
-        self.dropout = nn.Dropout(dropout)
-        self.bias = nn.Parameter(torch.ones([1, heads, 1, 1]) * 0.5)
-        self.proj_temperature = nn.Sequential(
-            nn.Linear(dim_head, slice_num),
-            nn.GELU(),
-            nn.Linear(slice_num, 1),
-            nn.GELU()
-        )
-
-        self.in_project_x = nn.Linear(dim, inner_dim)
-        self.in_project_slice = nn.Linear(dim_head, slice_num)
-        for l in [self.in_project_slice]:
-            torch.nn.init.orthogonal_(l.weight)  # use a principled initialization
-        self.to_q = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_k = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_v = nn.Linear(dim_head, dim_head, bias=False)
-        self.to_out = nn.Sequential(
-            nn.Linear(inner_dim, dim),
-            nn.Dropout(dropout)
-        )
-    
-    def forward(self, x):
-        # B N C
-        B, N, C = x.shape
-
-        x_mid = self.in_project_x(x).reshape(B, N, self.heads, self.dim_head) \
-            .permute(0, 2, 1, 3).contiguous()  # B H N C
-        
-        temperature = self.proj_temperature(x_mid) + self.bias
-        temperature = torch.clamp(temperature, min=0.01)
-        slice_weights = gumbel_softmax(self.in_project_slice(x_mid), temperature)
-        slice_norm = slice_weights.sum(2)  # B H G
-        if dist.is_available() and dist.is_initialized():
-            dist_nn.all_reduce(slice_norm, op=dist_nn.ReduceOp.SUM)            
-        slice_token = torch.einsum("bhnc,bhng->bhgc", x_mid, slice_weights).contiguous()
-        if dist.is_available() and dist.is_initialized():
-            dist_nn.all_reduce(slice_token, op=dist_nn.ReduceOp.SUM)          
-        slice_token = slice_token / ((slice_norm + 1e-5)[:, :, :, None].repeat(1, 1, 1, self.dim_head))
-
-        q_slice_token = self.to_q(slice_token)
-        k_slice_token = self.to_k(slice_token)
-        v_slice_token = self.to_v(slice_token)
-        out_slice_token = F.scaled_dot_product_attention(q_slice_token, k_slice_token, v_slice_token)
-
-        out_x = torch.einsum("bhgc,bhng->bhnc", out_slice_token, slice_weights)
-        out_x = rearrange(out_x, 'b h n d -> b n (h d)')
-        return self.to_out(out_x)
-
-class MLP(nn.Module):
-    def __init__(self, n_input, n_hidden, n_output, n_layers=1, act='gelu', res=True):
-        super(MLP, self).__init__()
-
-        if act in ACTIVATION.keys():
-            act = ACTIVATION[act]
-        else:
-            raise NotImplementedError
-        self.n_input = n_input
-        self.n_hidden = n_hidden
-        self.n_output = n_output
-        self.n_layers = n_layers
-        self.res = res
-        self.linear_pre = nn.Sequential(nn.Linear(n_input, n_hidden), act())
-        self.linear_post = nn.Linear(n_hidden, n_output)
-        self.linears = nn.ModuleList([nn.Sequential(nn.Linear(n_hidden, n_hidden), act()) for _ in range(n_layers)])
-
-    def forward(self, x):
-        x = self.linear_pre(x)
-        for i in range(self.n_layers):
-            if self.res:
-                x = self.linears[i](x) + x
-            else:
-                x = self.linears[i](x)
-        x = self.linear_post(x)
-        return x
-
-
-class Transolver_plus_block(nn.Module):
-    def __init__(
-            self,
-            num_heads: int,
-            hidden_dim: int,
-            dropout: float,
-            act='gelu',
-            mlp_ratio=4,
-            last_layer=False,
-            out_dim=1,
-            slice_num=32,
-    ):
-        super().__init__()
-        self.last_layer = last_layer
-        self.ln_1 = nn.LayerNorm(hidden_dim)
-        self.Attn = Physics_Attention_1D_Eidetic(hidden_dim, heads=num_heads, dim_head=hidden_dim // num_heads,
-                                         dropout=dropout, slice_num=slice_num)
-        self.ln_2 = nn.LayerNorm(hidden_dim)
-        self.mlp = MLP(hidden_dim, hidden_dim * mlp_ratio, hidden_dim, n_layers=0, res=False, act=act)
-        if self.last_layer:
-            self.ln_3 = nn.LayerNorm(hidden_dim)
-            self.mlp2 = nn.Linear(hidden_dim, out_dim)
-
-    def forward(self, fx):
-        if self.training:
-            fx = checkpoint(self.Attn, self.ln_1(fx), use_reentrant=False) + fx
-        else:
-            fx += self.Attn(self.ln_1(fx))
-        if self.training:
-            fx = checkpoint(self.mlp, self.ln_2(fx), use_reentrant=False) + fx
-        else:
-            fx = self.mlp(self.ln_2(fx)) + fx
-        if self.last_layer:
-            return self.mlp2(self.ln_3(fx))
-        else:
-            return fx
+from einops import rearrange, repeat
+# 导入模块化组件
+from onescience.modules.transolver_block import Transolver_block
+from onescience.modules.mlp import StandardMLP as MLP
 
 
 class Transolver3D_plus(nn.Module):
+    """
+    Transolver3D_plus 模型。
+
+    这是 Transolver3D 的增强版本。
+    它使用了 'unstructured_plus' 类型的注意力机制，
+    这种机制引入了更复杂的特征交互（如 Gumbel Softmax 加权切片），旨在提升对三维不规则网格物理场的建模能力。
+
+    Args:
+        space_dim (int): 空间维度。默认值: 1。
+        n_layers (int): Block 层数。默认值: 5。
+        n_hidden (int): 隐藏层维度。默认值: 256。
+        dropout (float): Dropout 概率。默认值: 0。
+        n_head (int): 注意力头数。默认值: 8。
+        act (str): 激活函数。默认值: 'gelu'。
+        mlp_ratio (float): MLP 膨胀比率。默认值: 1。
+        fun_dim (int): 输入物理场特征维度。默认值: 1。
+        out_dim (int): 输出特征维度。默认值: 1。
+        slice_num (int): 切片数量。默认值: 32。
+        ref (int): 统一位置编码参考分辨率。默认值: 8。
+        unified_pos (bool): 是否使用统一位置编码。默认值: False。
+    """
     def __init__(self,
                  space_dim=1,
                  n_layers=5,
@@ -169,23 +48,40 @@ class Transolver3D_plus(nn.Module):
         self.__name__ = 'Transolver3D'
         self.ref = ref
         self.unified_pos = unified_pos
+        
         if self.unified_pos:
-            self.preprocess = MLP(fun_dim + self.ref * self.ref * self.ref, n_hidden * 2, n_hidden, n_layers=0,
-                                  res=False, act=act)
+            input_dim = fun_dim + self.ref * self.ref * self.ref
         else:
-            self.preprocess = MLP(fun_dim + space_dim, n_hidden * 2, n_hidden, n_layers=0, res=False, act=act)
+            input_dim = fun_dim + space_dim
+
+        self.preprocess = MLP(
+            input_dim=input_dim,
+            hidden_dims=[n_hidden * 2], 
+            output_dim=n_hidden,
+            activation=act,
+            use_bias=True,
+            use_skip_connection=False
+        )
 
         self.n_hidden = n_hidden
         self.space_dim = space_dim
 
-        self.blocks = nn.ModuleList([Transolver_plus_block(num_heads=n_head, hidden_dim=n_hidden,
-                                                      dropout=dropout,
-                                                      act=act,
-                                                      mlp_ratio=mlp_ratio,
-                                                      out_dim=out_dim,
-                                                      slice_num=slice_num,
-                                                      last_layer=(_ == n_layers - 1))
-                                     for _ in range(n_layers)])
+        # === Transolver Blocks ===
+        self.blocks = nn.ModuleList([
+            Transolver_block(
+                num_heads=n_head,
+                hidden_dim=n_hidden,
+                dropout=dropout,
+                act=act,
+                mlp_ratio=mlp_ratio,
+                out_dim=out_dim,
+                slice_num=slice_num,
+                last_layer=(_ == n_layers - 1),
+                geotype='unstructured_plus' 
+            )
+            for _ in range(n_layers)
+        ])
+        
         self.initialize_weights()
         self.placeholder = nn.Parameter((1 / (n_hidden)) * torch.rand(n_hidden, dtype=torch.float))
 
@@ -202,16 +98,17 @@ class Transolver3D_plus(nn.Module):
             nn.init.constant_(m.weight, 1.0)
 
     def get_grid(self, my_pos):
-        # my_pos 1 N 3
         batchsize = my_pos.shape[0]
 
+        # 3D Grid Generation Logic
         gridx = torch.tensor(np.linspace(-1.5, 1.5, self.ref), dtype=torch.float)
         gridx = gridx.reshape(1, self.ref, 1, 1, 1).repeat([batchsize, 1, self.ref, self.ref, 1])
         gridy = torch.tensor(np.linspace(0, 2, self.ref), dtype=torch.float)
         gridy = gridy.reshape(1, 1, self.ref, 1, 1).repeat([batchsize, self.ref, 1, self.ref, 1])
         gridz = torch.tensor(np.linspace(-4, 4, self.ref), dtype=torch.float)
         gridz = gridz.reshape(1, 1, 1, self.ref, 1).repeat([batchsize, self.ref, self.ref, 1, 1])
-        grid_ref = torch.cat((gridx, gridy, gridz), dim=-1).cuda().reshape(batchsize, self.ref ** 3, 3)  # B 4 4 4 3
+        
+        grid_ref = torch.cat((gridx, gridy, gridz), dim=-1).to(my_pos.device).reshape(batchsize, self.ref ** 3, 3)
 
         pos = torch.sqrt(
             torch.sum((my_pos[:, :, None, :] - grid_ref[:, None, :, :]) ** 2,
@@ -223,6 +120,7 @@ class Transolver3D_plus(nn.Module):
         cfd_data = data
         x, fx, T = cfd_data.x, None, None
         x = x[None, :, :]
+        
         if self.unified_pos:
             new_pos = self.get_grid(cfd_data.pos[None, :, :])
             x = torch.cat((x, new_pos), dim=-1)

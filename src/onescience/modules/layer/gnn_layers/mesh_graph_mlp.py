@@ -84,30 +84,32 @@ class CustomSiLuLinearAutogradFunction(torch.autograd.Function):
 
 
 class MeshGraphMLP(nn.Module):
-    """MLP layer which is commonly used in building blocks
-    of models operating on the union of grids and meshes. It
-    consists of a number of linear layers followed by an activation
-    and a norm layer following the last linear layer.
+    """
+    一种通用的多层感知机（MLP）层。
 
-    Parameters
-    ----------
-    input_dim : int
-        dimensionality of the input features
-    output_dim : int, optional
-        dimensionality of the output features, by default 512
-    hidden_dim : int, optional
-        number of neurons in each hidden layer, by default 512
-    hidden_layers : Union[int, None], optional
-        number of hidden layers, by default 1
-        if None is provided, the MLP will collapse to a Identity function
-    activation_fn : nn.Module, optional
-        , by default nn.SiLU()
-    norm_type : str, optional
-        Normalization type ["TELayerNorm", "LayerNorm"].
-        Use "TELayerNorm" for optimal performance. By default "LayerNorm".
-    recompute_activation : bool, optional
-        Flag for recomputing recompute_activation in backward to save memory, by default False.
-        Currently, only SiLU is supported.
+    常作为在网格（Mesh）和栅格（Grid）联合数据上运行的模型的基本构建块。
+    该模块包含若干线性层，除最后一层外，每层后接激活函数。最后一层线性层之后接归一化层。
+    支持通过自定义的 Autograd Function 在反向传播时重计算激活函数值，以节省显存。
+
+    Args:
+        input_dim (int): 输入特征的维度。
+        output_dim (int, optional): 输出特征的维度。默认值: 512。
+        hidden_dim (int, optional): 隐藏层的神经元数量。默认值: 512。
+        hidden_layers (Union[int, None], optional): 隐藏层的数量。如果为 None，则退化为恒等映射（Identity）。默认值: 1。
+        activation_fn (nn.Module, optional): 激活函数模块。默认值: nn.SiLU()。
+        norm_type (str, optional): 归一化类型，可选 ["LayerNorm", "TELayerNorm"]。使用 "TELayerNorm" 可获得最佳性能（需安装 transformer_engine）。默认值: "LayerNorm"。
+        recompute_activation (bool, optional): 是否在反向传播中重计算激活值以节省内存（目前仅支持 SiLU）。默认值: False。
+
+    形状:
+        输入: (..., C_in)，任意维度的张量，最后一维为输入特征维度。
+        输出: (..., C_out)，形状与输入相同，仅最后一维变为输出特征维度。
+
+    Example:
+        >>> mlp = MeshGraphMLP(input_dim=64, output_dim=128, hidden_dim=64, hidden_layers=2)
+        >>> x = torch.randn(10, 64)
+        >>> out = mlp(x)
+        >>> out.shape
+        torch.Size([10, 128])
     """
 
     def __init__(
@@ -186,39 +188,39 @@ class MeshGraphMLP(nn.Module):
 
 
 class MeshGraphEdgeMLPConcat(MeshGraphMLP):
-    """MLP layer which is commonly used in building blocks
-    of models operating on the union of grids and meshes. It
-    consists of a number of linear layers followed by an activation
-    and a norm layer following the last linear layer. It first
-    concatenates the input edge features and the node features of the
-    corresponding source and destination nodes of the corresponding edge
-    to create new edge features. These then are transformed through the
-    transformations mentioned above.
+    """
+    用于处理图边特征的 MLP 层（拼接模式）。
 
-    Parameters
-    ----------
-    efeat_dim: int
-        dimension of the input edge features
-    src_dim: int
-        dimension of the input src-node features
-    dst_dim: int
-        dimension of the input dst-node features
-    output_dim : int, optional
-        dimensionality of the output features, by default 512
-    hidden_dim : int, optional
-        number of neurons in each hidden layer, by default 512
-    hidden_layers : int, optional
-        number of hidden layers, by default 1
-    activation_fn : nn.Module, optional
-        type of activation function, by default nn.SiLU()
-    norm_type : str, optional
-        Normalization type ["TELayerNorm", "LayerNorm"].
-        Use "TELayerNorm" for optimal performance. By default "LayerNorm".
-    bias : bool, optional
-        whether to use bias in the MLP, by default True
-    recompute_activation : bool, optional
-        Flag for recomputing activation in backward to save memory, by default False.
-        Currently, only SiLU is supported.
+    该模块首先将输入的边特征、对应的源节点特征和目标节点特征进行拼接（Concatenate），形成新的组合特征。
+    随后，该组合特征通过由线性层、激活函数和归一化层组成的 MLP 进行变换。
+
+    Args:
+        efeat_dim (int): 输入边特征的维度。
+        src_dim (int): 输入源节点（Source Node）特征的维度。
+        dst_dim (int): 输入目标节点（Destination Node）特征的维度。
+        output_dim (int, optional): 输出特征的维度。默认值: 512。
+        hidden_dim (int, optional): 隐藏层维度。默认值: 512。
+        hidden_layers (int, optional): 隐藏层数量。默认值: 2。
+        activation_fn (nn.Module, optional): 激活函数类型。默认值: nn.SiLU()。
+        norm_type (str, optional): 归一化类型 ("LayerNorm" 或 "TELayerNorm")。默认值: "LayerNorm"。
+        bias (bool, optional): 线性层是否使用偏置。默认值: True。
+        recompute_activation (bool, optional): 是否启用激活重计算以节省显存。默认值: False。
+
+    形状:
+        输入 efeat: (E, C_edge)，其中 E 为边的数量。
+        输入 nfeat: (N, C_node) 或 Tuple[(N_src, C_src), (N_dst, C_dst)]，节点特征。
+        输入 graph: DGLGraph 或 CuGraphCSC 对象，定义图的拓扑结构。
+        输出: (E, C_out)，变换后的边特征。
+
+    Example:
+        >>> # 假设有 100 个节点，500 条边
+        >>> model = MeshGraphEdgeMLPConcat(efeat_dim=32, src_dim=64, dst_dim=64, output_dim=32)
+        >>> efeat = torch.randn(500, 32)
+        >>> nfeat = torch.randn(100, 64)
+        >>> # graph 为预定义的图结构对象
+        >>> out = model(efeat, nfeat, graph)
+        >>> out.shape
+        torch.Size([500, 32])
     """
 
     def __init__(
@@ -257,41 +259,41 @@ class MeshGraphEdgeMLPConcat(MeshGraphMLP):
 
 
 class MeshGraphEdgeMLPSum(nn.Module):
-    """MLP layer which is commonly used in building blocks
-    of models operating on the union of grids and meshes. It
-    consists of a number of linear layers followed by an activation
-    and a norm layer following the last linear layer. It transform
-    edge features - which originally are intended to be a concatenation
-    of previous edge features, and the node features of the corresponding
-    source and destinationn nodes - by transorming these three features
-    individually through separate linear transformations and then sums
-    them for each edge accordingly. The result of this is transformed
-    through the remaining linear layers and activation or norm functions.
+    """
+    用于处理图边特征的 MLP 层（求和模式）。
 
-    Parameters
-    ----------
-    efeat_dim: int
-        dimension of the input edge features
-    src_dim: int
-        dimension of the input src-node features
-    dst_dim: int
-        dimension of the input dst-node features
-    output_dim : int, optional
-        dimensionality of the output features, by default 512
-    hidden_dim : int, optional
-        number of neurons in each hidden layer, by default 512
-    hidden_layers : int, optional
-        number of hidden layers, by default 1
-    activation_fn : nn.Module, optional
-        type of activation function, by default nn.SiLU()
-    norm_type : str, optional
-        Normalization type ["TELayerNorm", "LayerNorm"].
-        Use "TELayerNorm" for optimal performance. By default "LayerNorm".
-    bias : bool, optional
-        whether to use bias in the MLP, by default True
-    recompute_activation : bool, optional
-        Flag for recomputing activation in backward to save memory, by default False.
-        Currently, only SiLU is supported.
+    另一种用于处理图边特征的 MLP 层，通常比 MeshGraphEdgeMLPConcat 更节省显存。
+    该模块旨在处理由边特征、源节点特征和目标节点特征组成的组合信息。
+    不同于直接拼接，它通过三个独立的线性变换分别处理这三种特征，然后将变换结果对应相加（Sum）。
+    相加后的结果再通过后续的 MLP 层（线性层+激活/归一化）进行处理。这种设计避免了在内存中构建巨大的拼接张量。
+
+    Args:
+        efeat_dim (int): 输入边特征的维度。
+        src_dim (int): 输入源节点特征的维度。
+        dst_dim (int): 输入目标节点特征的维度。
+        output_dim (int, optional): 输出特征的维度。默认值: 512。
+        hidden_dim (int, optional): 隐藏层维度。默认值: 512。
+        hidden_layers (int, optional): 隐藏层数量。默认值: 1。
+        activation_fn (nn.Module, optional): 激活函数类型。默认值: nn.SiLU()。
+        norm_type (str, optional): 归一化类型 ("LayerNorm" 或 "TELayerNorm")。默认值: "LayerNorm"。
+        bias (bool, optional): 是否使用偏置。默认值: True。
+        recompute_activation (bool, optional): 是否启用激活重计算。默认值: False。
+
+    形状:
+        输入 efeat: (E, C_edge)。
+        输入 nfeat: (N, C_node) 或 Tuple[(N_src, C_src), (N_dst, C_dst)]。
+        输入 graph: DGLGraph 或 CuGraphCSC 对象。
+        输出: (E, C_out)。
+
+    Example:
+        >>> # 优化显存占用的边特征更新
+        >>> model = MeshGraphEdgeMLPSum(efeat_dim=32, src_dim=64, dst_dim=64, output_dim=32)
+        >>> efeat = torch.randn(500, 32)
+        >>> nfeat = torch.randn(100, 64)
+        >>> # graph 为预定义的图结构对象
+        >>> out = model(efeat, nfeat, graph)
+        >>> out.shape
+        torch.Size([500, 32])
     """
 
     def __init__(

@@ -8,7 +8,32 @@ import math
 # 1d fourier layer
 ################################################################
 class SpectralConv1d(nn.Module):
+    """
+    一维分解傅里叶卷积层 (Factorized Fourier Layer)。
 
+    
+
+    该层通过一维快速傅里叶变换 (FFT)、频域复数线性变换和逆变换实现卷积操作。
+    在 1D 情况下，因子化 FNO (FFNO) 退化为标准的 FNO。其核心思想是在频域中对低频模态进行线性变换，
+    从而有效地捕捉序列数据中的全局特征和长程依赖。
+
+    Args:
+        in_channels (int): 输入通道数
+        out_channels (int): 输出通道数
+        modes1 (int): 截断的傅里叶模态数量（保留的低频分量数），最多为 floor(L/2) + 1
+
+    形状:
+        输入 x: (B, Cin, L)，其中 B 是批量大小，Cin 是输入通道数，L 是序列长度
+        输出: (B, Cout, L)，其中 Cout 是输出通道数
+
+    Example:
+        >>> # 假设序列长度 L=100，保留低频模态数 16
+        >>> spec_conv1d = SpectralConv1d(in_channels=64, out_channels=32, modes1=16)
+        >>> x = torch.randn(20, 64, 100)
+        >>> out = spec_conv1d(x)
+        >>> out.shape
+        torch.Size([20, 32, 100])
+    """
     ## FFNO degenerate to FNO in 1D space
     def __init__(self, in_channels, out_channels, modes1):
         super(SpectralConv1d, self).__init__()
@@ -47,6 +72,33 @@ class SpectralConv1d(nn.Module):
 # 2d fourier layer
 ################################################################
 class SpectralConv2d(nn.Module):
+    """
+    二维分解傅里叶卷积层 (Factorized Fourier Layer)。
+
+    
+
+    不同于标准的二维 FNO，该层采用分解策略：分别在 X 维度和 Y 维度上独立进行 1D FFT 操作、频域加权和逆变换，
+    最后将两个维度的处理结果相加 (x = x_out_x + x_out_y)。这种方法通常能减少参数量并提高计算效率，
+    同时保留了捕捉全局特征的能力。
+
+    Args:
+        in_dim (int): 输入通道数
+        out_dim (int): 输出通道数
+        modes_x (int): X 维度（dim=-2）上保留的傅里叶模态数量
+        modes_y (int): Y 维度（dim=-1）上保留的傅里叶模态数量
+
+    形状:
+        输入 x: (B, Cin, H, W)，其中 H 对应 X 维度，W 对应 Y 维度
+        输出: (B, Cout, H, W)，输出的空间分辨率与输入保持一致
+
+    Example:
+        >>> # 假设输入分辨率为 64x64
+        >>> spec_conv2d = SpectralConv2d(in_dim=32, out_dim=64, modes_x=12, modes_y=12)
+        >>> x = torch.randn(10, 32, 64, 64)
+        >>> out = spec_conv2d(x)
+        >>> out.shape
+        torch.Size([10, 64, 64, 64])
+    """
     def __init__(self, in_dim, out_dim, modes_x, modes_y):
         super().__init__()
         self.in_dim = in_dim
@@ -105,6 +157,32 @@ class SpectralConv2d(nn.Module):
 ################################################################
 
 class SpectralConv3d(nn.Module):
+    """
+    三维分解傅里叶卷积层 (Factorized Fourier Layer)。
+
+    该层针对三维数据（或 2D+Time 数据），采用分解策略：分别在 X、Y、Z 三个维度上独立执行谱卷积。
+    具体流程为：对每个维度分别进行 RFFT、复数权重收缩、IRFFT，最终将三个分支的输出结果叠加
+    (x = x_out_x + x_out_y + x_out_z)。这种设计避免了全维 3D FFT 的高计算成本。
+
+    Args:
+        in_dim (int): 输入通道数
+        out_dim (int): 输出通道数
+        modes_x (int): X 维度（dim=-3）上保留的傅里叶模态数量
+        modes_y (int): Y 维度（dim=-2）上保留的傅里叶模态数量
+        modes_z (int): Z 维度（dim=-1）上保留的傅里叶模态数量
+
+    形状:
+        输入 x: (B, Cin, D, H, W)，也就是 (Batch, Channel, X, Y, Z)
+        输出: (B, Cout, D, H, W)，输出尺寸与输入尺寸相同
+
+    Example:
+        >>> # 假设输入尺寸为 32x32x32
+        >>> spec_conv3d = SpectralConv3d(in_dim=4, out_dim=8, modes_x=8, modes_y=8, modes_z=8)
+        >>> x = torch.randn(2, 4, 32, 32, 32)
+        >>> out = spec_conv3d(x)
+        >>> out.shape
+        torch.Size([2, 8, 32, 32, 32])
+    """
     def __init__(self, in_dim, out_dim, modes_x, modes_y, modes_z):
         super().__init__()
         self.in_dim = in_dim
