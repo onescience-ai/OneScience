@@ -2,15 +2,13 @@ import torch.nn.functional as F
 import torch
 import torch.nn as nn
 import math
-from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
-from onescience.models.layers.Basic import MLP
-from onescience.models.layers.GeoFNO_Projection import SpectralConv2d_IrregularGeo, IPHI
+# from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
+# from onescience.models.layers.Basic import MLP
+# from onescience.models.layers.GeoFNO_Projection import SpectralConv2d_IrregularGeo, IPHI
 
 # ----------------------------------------------------------------------------------------------------------------------
 # GFNO2d
 # ----------------------------------------------------------------------------------------------------------------------
-
-
 class GConv2d(nn.Module):
     def __init__(
         self,

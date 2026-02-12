@@ -33,10 +33,3 @@ class MaskedMSAHead(nn.Module):
         logits = self.linear(m)
         return logits
 
-
-class OneHead(nn.module):
-    def __inin__(self, style="MaskMsAHead"):
-        if style == "MaskMsAHead":
-            self.MaskMsAHead = MaskedMSAHead()
-        else:
-            raise NotImplementedError
