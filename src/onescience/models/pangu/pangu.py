@@ -8,13 +8,8 @@ from onescience.models.meta import ModelMetaData
 from onescience.modules.module import Module
 
 from onescience.modules import (
-    PatchRecovery2D,
-    PatchRecovery3D,
-    FuserLayer,
-    DownSample3D,
-    UpSample3D,
-    PatchEmbed2D,
-    PatchEmbed3D,
+   OneEmbedding,
+   Onefuser
 )
 
 @dataclass
@@ -58,25 +53,23 @@ class Pangu(Module):
         super().__init__(meta=MetaData())
         drop_path = np.linspace(0, 0.2, 8).tolist()
         # In addition, three constant masks(the topography mask, land-sea mask and soil type mask)
-        self.patchembed2d = PatchEmbed2D(
-            img_size=img_size,
-            patch_size=patch_size[1:],
-            in_chans=4 + 3,  # add
-            embed_dim=embed_dim,
+        
+        self.patchembed2d = OneEmbedding(
+            style="PanguEmbedding2D",
         )
-        self.patchembed3d = PatchEmbed3D(
-            img_size=(13, img_size[0], img_size[1]),
-            patch_size=patch_size,
-            in_chans=5,
-            embed_dim=embed_dim,
+
+        self.patchembed3d = OneEmbedding(
+            style="PanguEmbedding3D",
         )
+        
         patched_inp_shape = (
             8,
             math.ceil(img_size[0] / patch_size[1]),
             math.ceil(img_size[1] / patch_size[2]),
         )
 
-        self.layer1 = FuserLayer(
+        self.layer1 = Onefuser(
+            style="PanGuFuser",
             dim=embed_dim,
             input_resolution=patched_inp_shape,
             depth=2,
