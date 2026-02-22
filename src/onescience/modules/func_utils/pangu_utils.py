@@ -28,8 +28,7 @@ class Mlp(nn.Module):
         x = self.drop(x)
         return x
 
-
-def Drop_path(
+def drop_path(
     x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True
 ):
     """改编自 timm master
@@ -51,6 +50,21 @@ def Drop_path(
     return x * random_tensor
 
 
+class DropPath(nn.Module):
+    """摘自 timm 仓库
+    按样本丢弃路径（Drop paths / 随机深度 Stochastic Depth）当应用于残差块的主路径时）
+    """
+
+    def __init__(self, drop_prob: float = 0.0, scale_by_keep: bool = True):
+        super(DropPath, self).__init__()
+        self.drop_prob = drop_prob
+        self.scale_by_keep = scale_by_keep
+
+    def forward(self, x):
+        return drop_path(x, self.drop_prob, self.training, self.scale_by_keep)
+
+    def extra_repr(self):
+        return f"drop_prob={round(self.drop_prob,3):0.3f}"
 
 def get_earth_position_index(window_size, ndim=3):
     """

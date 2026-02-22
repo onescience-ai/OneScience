@@ -1,7 +1,5 @@
 import torch
 import os
-import torch
-import os
 import sys
 import numpy as np
 import torch.distributed as dist
@@ -55,7 +53,7 @@ def main():
     surface_mask = surface_mask.unsqueeze(0).repeat(cfg_data.dataloader.batch_size, 1, 1, 1)
 
     pangu_model = Pangu(
-        img_size=[2, 721, 1440],
+        img_size=[721, 1440],
         patch_size=cfg.patch_size,
         embed_dim=cfg.embed_dim,
         num_heads=cfg.num_heads,
@@ -109,8 +107,8 @@ def main():
 
             out_upper_air = out_upper_air.reshape(tar_upper_air.shape)
 
-            loss1 = loss_func(tar_surface, out_surface)
-            loss2 = loss_func(tar_upper_air, out_upper_air)
+            loss1 = loss_func(tar_surface, out_surface, surface_weights,  level_weight=0.25)
+            loss2 = loss_func(tar_upper_air, out_upper_air, pressure_weights, level_weight=1.0)
             loss = loss1 * 0.25 + loss2
 
             optimizer.zero_grad()
@@ -147,8 +145,8 @@ def main():
                 out_surface, out_upper_air = pangu_model(invar)
                 out_upper_air = out_upper_air.reshape(tar_upper_air.shape)
 
-                loss1 = loss_func(tar_surface, out_surface).item()
-                loss2 = loss_func(tar_upper_air, out_upper_air).item()
+                loss1 = loss_func(tar_surface, out_surface, surface_weights,  level_weight=0.25).item()
+                loss2 = loss_func(tar_upper_air, out_upper_air, pressure_weights, level_weight=1.0).item()
                 loss = loss1 * 0.25 + loss2
 
                 if cfg.world_size > 1:

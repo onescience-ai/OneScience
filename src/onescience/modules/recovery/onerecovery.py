@@ -20,4 +20,4 @@ class OneRecovery(nn.Module):
         
     def forward(self, x):
         
-        return self.Recovery(x) 
+        return self.Reconvery(x) 

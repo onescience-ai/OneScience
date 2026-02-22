@@ -4,7 +4,7 @@ import torch
 from timm.layers import to_2tuple
 from timm.models.swin_transformer import SwinTransformerStage
 from torch import nn
-from ..func_utils import Drop_path, Mlp, get_pad3d, crop3d, window_partition, window_reverse, get_shift_window_mask
+from ..func_utils import DropPath, Mlp, get_pad3d, crop3d, window_partition, window_reverse, get_shift_window_mask
 
 from ..attention.oneattention import OneAttention
 
@@ -75,7 +75,7 @@ class Transformer3DBlock(nn.Module):
             proj_drop=drop,
         )
 
-        self.drop_path = Drop_path(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(

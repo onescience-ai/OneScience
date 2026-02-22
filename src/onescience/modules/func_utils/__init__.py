@@ -1,5 +1,5 @@
 from .pangu_utils import (
-    Drop_path,
+    DropPath,
     crop2d,
     crop3d,
     get_earth_position_index,
