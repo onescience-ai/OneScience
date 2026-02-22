@@ -1,7 +1,5 @@
 
 # Parsing functionalities
-
-
 import argparse
 import os
 from typing import Optional
@@ -33,15 +31,11 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", help="random seed", type=int, default=123)
        
     # Directories
-    parser.add_argument(
-        "--work_dir",
-        help="set work directory for all files and folders",
-        type=str,
-        default=".",
-    )
-    parser.add_argument("--output_dir",help="output directory",
-                        type=str,default="./outputs/")
+    parser.add_argument("--work_dir", help="set work directory for all files and folders",
+                        type=str, default="./")
 
+    parser.add_argument("--output_dir",help="output directory",
+                        type=str,default="./")
     parser.add_argument("--log_dir", help="log directory", type=str, default=None)
     parser.add_argument("--model_dir", help="final model directory", type=str, default=None)
     parser.add_argument("--checkpoints_dir", help="checkpoints directory", type=str, default=None)
