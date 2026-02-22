@@ -17,7 +17,7 @@ class OneAttention(nn.Module):
         
         self.attentioner = _ATTENTIONER_REGISTRY[style](**kwargs)
 
-    def forward(self, x):
-        return self.attentioner(x) 
+    def forward(self, x, mask=None):
+        return self.attentioner(x, mask) 
 
     

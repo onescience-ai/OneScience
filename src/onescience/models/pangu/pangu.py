@@ -133,33 +133,20 @@ class Pangu(nn.Module):
             style="pangupatchrecovery3d"
         )
 
-    # def prepare_input(self, surface, surface_mask, upper_air):
-    #     """Prepares the input to the model in the required shape.
-    #     Args:
-    #         surface (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=4.
-    #         surface_mask (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=3.
-    #         upper_air (torch.Tensor): 3D n_pl=13, n_lat=721, n_lon=1440, chans=5.
-    #     """
-    #     upper_air = upper_air.reshape(
-    #         upper_air.shape[0], -1, upper_air.shape[3], upper_air.shape[4]
-    #     )
-    #     surface_mask = surface_mask.unsqueeze(0).repeat(surface.shape[0], 1, 1, 1)
-    #     return torch.concat([surface, surface_mask, upper_air], dim=1)
-
     def forward(self, x):
         """
         Args:
             x (torch.Tensor): [batch, 4+3+5*13, lat, lon]
         """
-        surface = x[:, :7, :, :]
-        upper_air = x[:, 7:, :, :].reshape(x.shape[0], 5, 13, x.shape[2], x.shape[3])
-        surface = self.patchembed2d(surface)
-        upper_air = self.patchembed3d(upper_air)
+        surface = x[:, :7, :, :] # 1, 72, 721, 1440
+        upper_air = x[:, 7:, :, :].reshape(x.shape[0], 5, 13, x.shape[2], x.shape[3]) # torch.Size([1, 5, 13, 721, 1440])
+        surface = self.patchembed2d(surface) # torch.Size([1, 192, 181, 360])
+        upper_air = self.patchembed3d(upper_air) #torch.Size([1, 192, 7, 181, 360])
 
-        x = torch.concat([surface.unsqueeze(2), upper_air], dim=2)
+        x = torch.concat([surface.unsqueeze(2), upper_air], dim=2) # torch.Size([1, 192, 8, 181, 360])
         B, C, Pl, Lat, Lon = x.shape
-        x = x.reshape(B, C, -1).transpose(1, 2)
-
+        x = x.reshape(B, C, -1).transpose(1, 2) # torch.Size([1, 521280, 192])
+        
         x = self.layer1(x)
 
         skip = x
