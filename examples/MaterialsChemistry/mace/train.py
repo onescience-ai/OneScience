@@ -137,6 +137,7 @@ def run(args) -> None:
 
     if args.distributed:
         torch.cuda.set_device(local_rank)
+        logging.info(f"!!!!!!!!!Set device {local_rank}")
         logging.info(f"Process group initialized: {torch.distributed.is_initialized()}")
         logging.info(f"Processes: {world_size}")
 
@@ -328,7 +329,7 @@ def run(args) -> None:
                 head_config.config_type_weights
             )
             collections, atomic_energies_dict = get_dataset_from_xyz(
-                work_dir=args.work_dir,
+                work_dir=os.path.join(args.output_dir,args.name),
                 train_path=train_files_ase_list,
                 valid_path=valid_files_ase_list,
                 valid_fraction=head_config.valid_fraction,

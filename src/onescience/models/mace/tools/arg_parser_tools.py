@@ -2,7 +2,8 @@ import logging
 import os
 import shutil
 from e3nn import o3
-
+import torch.distributed as dist
+import time
 
 def check_args(args):
     """
@@ -10,25 +11,31 @@ def check_args(args):
     the (potentially) modified args and a list of log messages.
     """
     log_messages = []
-
+    global_rank = int(os.environ.get("RANK",0))
+    
     # Directories
     # Use work_dir for all other directories as well, unless they were specified by the user
     exp_path = os.path.join(args.output_dir,args.name)
-    if os.path.exists(exp_path):
-        print(f"!!!Removing existing experiment directory: {exp_path}")
-        shutil.rmtree(exp_path)  # 递归删除文件夹及内部所有文件
-    os.makedirs(exp_path)        # 重新建立空文件夹
+    if global_rank == 0:
+        if os.path.exists(exp_path):
+            print(f"!!!Removing existing experiment directory: {exp_path}")
+            shutil.rmtree(exp_path)  # 递归删除文件夹及内部所有文件
+        os.makedirs(exp_path, exist_ok=True)        # 重新建立空文件夹
+    else:
+        time.sleep(3)
+
     dir_map = {
-    "log_dir": "logs",
-    "model_dir": "final_model",
-    "checkpoints_dir": "checkpoints",
-    "plot_dir": "plots",
-    "downloads_dir": "downloads"}
+        "log_dir": "logs",
+        "model_dir": "final_model",
+        "checkpoints_dir": "checkpoints",
+        "plot_dir": "plots",
+        "downloads_dir": "downloads"}
 
     for attr, folder_name in dir_map.items():
         if getattr(args, attr) is None:
             setattr(args, attr, os.path.join(exp_path, folder_name))
-        os.makedirs(getattr(args,attr))
+            if global_rank == 0:
+                os.makedirs(getattr(args,attr), exist_ok=True)
 
     # Model
     # Check if hidden_irreps, num_channels and max_L are consistent
