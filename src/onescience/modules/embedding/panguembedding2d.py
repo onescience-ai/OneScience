@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 
-
 class PanguEmbedding2D(nn.Module):
     """
         将二维图像分割为不重叠的 patch 并嵌入到向量空间。
@@ -28,7 +27,6 @@ class PanguEmbedding2D(nn.Module):
             >>> out = patch_embed(x)
             >>> out.shape
             torch.Size([8, 96, 32, 64])
-
     """
         
     def __init__(self, img_size=(721, 1440),
@@ -36,19 +34,14 @@ class PanguEmbedding2D(nn.Module):
                     embed_dim=192,
                     in_chans = 4+3,
                     norm_layer=None,
-                    **kwargs):
+                    ):
         
         super().__init__()
-       
-        self.img_size = img_size,
-        height, width = img_size,
-        h_patch_size, w_path_size = patch_size,
-        in_chans = in_chans
-        embed_dim = 192
-        stride = patch_size,
-        
+        print(img_size)
+        height, width = img_size
+        h_patch_size, w_path_size = patch_size
+        stride = patch_size
         padding_left = padding_right = padding_top = padding_bottom = 0
-
         h_remainder = height % h_patch_size
         w_remainder = width % w_path_size
 
