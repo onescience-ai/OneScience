@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-class PanGuUpSample2D(nn.Module):
+class PanguUpSample2D(nn.Module):
     """
     改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
     二维上采样操作

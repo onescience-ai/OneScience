@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-class PanGuDownSample2D(nn.Module):
+class PanguDownSample2D(nn.Module):
     """
     Revise from WeatherLearn https://github.com/lizhuoq/WeatherLearn
     2D Down-sampling operation
