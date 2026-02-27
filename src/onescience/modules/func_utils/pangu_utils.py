@@ -2,16 +2,36 @@ from torch import nn
 import torch
 import math
 
-def drop_path(
-    x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True
-):
-    """改编自 timm master
-    按样本丢弃路径（Drop paths / 随机深度 Stochastic Depth）（当应用于残差块的主路径时）
-    这与我为 EfficientNet 等网络实现的 DropConnect 功能相同，但原来的命名容易引起误解，因为 “Drop Connect” 
-    在另一篇论文中指的是不同形式的 Dropout，参见讨论：https://github.com/tensorflow/tpu/issues/494#issuecomment-532968956，
-    选择将层和参数名称改为 Drop Path，而不是沿用 DropConnect 作为层名，同时将参数命名为 survival rate（存活率）。
-
-    """
+def drop_path(x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True):
+    # DropPath（随机深度）正则化，在训练时随机丢弃整个样本的路径。
+    
+    # 与 Dropout 逐元素丢弃不同，DropPath 在 batch 维度上操作，
+    # 每个样本要么完全保留要么完全丢弃（所有通道/空间位置同时丢弃）。
+    
+    # Args:
+    #     x (Tensor): 输入张量
+    #     drop_prob (float): 路径丢弃概率，默认 0.0
+    #     training (bool): 是否处于训练模式，默认 False
+    #     scale_by_keep (bool): 是否按保留概率缩放以保持期望不变，默认 True
+    
+    # 形状:
+    #     输入: (B, ...) 任意维度张量
+    #     输出: (B, ...) 与输入形状相同
+        
+    #     说明：随机掩码形状为 (B, 1, 1, ...)，在 batch 维度上变化，
+    #          其他维度广播，确保每个样本的所有元素同时保留或丢弃
+    
+    # Example:
+    #     >>> x = torch.randn(4, 64, 32, 32)
+    #     >>> # 训练时：以 0.2 概率丢弃整个样本
+    #     >>> out = drop_path(x, drop_prob=0.2, training=True)
+    #     >>> out.shape
+    #     torch.Size([4, 64, 32, 32])
+    #     >>> # 推理时：直接返回输入
+    #     >>> out = drop_path(x, drop_prob=0.2, training=False)
+    #     >>> torch.equal(out, x)
+    #     True
+    
     if drop_prob == 0.0 or not training:
         return x
     keep_prob = 1 - drop_prob
@@ -26,18 +46,6 @@ def drop_path(
 
 
 def get_earth_position_index(window_size, ndim=3):
-    """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    构建位置索引（Position Index）以复用位置偏置的对称参数
-    实现参考: https://github.com/198808xc/Pangu-Weather/blob/main/pseudocode.py
-
-    参数:
-        window_size (tuple[int]): 窗口大小，三维为 [pressure levels, latitude, longitude] or [latitude, longitude]
-        ndim (int): 张量维度，2 表示二维窗口，3 表示三维窗口
-
-    返回值:
-        position_index (torch.Tensor): 位置索引矩阵，形状为：[win_pl * win_lat * win_lon, win_pl * win_lat * win_lon] or [win_lat * win_lon, win_lat * win_lon]
-    """
     if ndim == 3:
         win_pl, win_lat, win_lon = window_size
     elif ndim == 2:
@@ -82,6 +90,7 @@ def get_earth_position_index(window_size, ndim=3):
     position_index = coords.sum(-1)
 
     return position_index
+
 
 def save_checkpoint(
     model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path
