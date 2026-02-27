@@ -70,7 +70,7 @@ class Pangu(nn.Module):
         )
 
         self.layer1 = OneFuser(
-            style="PanGuFuser",
+            style="PanguFuser",
             dim=embed_dim,
             input_resolution=patched_inp_shape,
             depth=2,
@@ -86,13 +86,13 @@ class Pangu(nn.Module):
         )
         
         self.downsample = OneSample(
-            style="PanGuDownSample3D",
+            style="PanguDownSample3D",
             in_dim=embed_dim,
             input_resolution=patched_inp_shape,
             output_resolution=patched_inp_shape_downsample,
         )
         self.layer2 = OneFuser(
-            style="PanGuFuser",
+            style="PanguFuser",
             dim=embed_dim * 2,
             input_resolution=patched_inp_shape_downsample,
             depth=6,
@@ -101,7 +101,7 @@ class Pangu(nn.Module):
             drop_path=drop_path[2:],
         )
         self.layer3 = OneFuser(
-            style="PanGuFuser",
+            style="PanguFuser",
             dim=embed_dim * 2,
             input_resolution=patched_inp_shape_downsample,
             depth=6,
@@ -110,14 +110,14 @@ class Pangu(nn.Module):
             drop_path=drop_path[2:],
         )
         self.upsample = OneSample(
-            style="PanGuUpSample3D",
+            style="PanguUpSample3D",
             in_dim=embed_dim * 2,
             out_dim=embed_dim,
             input_resolution=patched_inp_shape_downsample,
             output_resolution=patched_inp_shape
         )
         self.layer4 = OneFuser(
-            style="PanGuFuser",
+            style="PanguFuser",
             dim=embed_dim,
             input_resolution=patched_inp_shape,
             depth=2,

@@ -158,7 +158,7 @@ class Transformer3DBlock(nn.Module):
         x = x + self.drop_path(self.mlp(self.norm2(x)))
         return x
 
-class PanGuFuser(nn.Module):
+class PanguFuser(nn.Module):
     """
     改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
     一个阶段（stage）的基础3D Transformer层（Basic 3D Transformer Layer）
