@@ -4,17 +4,26 @@ from torch import nn
 
 class UpSample3D(nn.Module):
     """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    三维上采样操作
-    实现参考: https://github.com/198808xc/Pangu-Weather/blob/main/pseudocode.py
+        通过可学习的线性变换和像素重排实现三维空间上采样。
 
-    Args:
-        in_dim (int): 输入特征的通道数
-        out_dim (int): 输出特征的通道数
-        input_resolution (tuple[int]): 输入特征的分辨率 [pressure levels, latitude, longitude]
-        output_resolution (tuple[int]): 输出特征的分辨率 [pressure levels, latitude, longitude]
+        Args:
+            in_dim (int): 输入通道数
+            out_dim (int): 输出通道数
+            input_resolution (tuple[int, int, int]): 输入空间维度 (P, H, W)
+            output_resolution (tuple[int, int, int]): 输出空间维度 (P', H', W'), 其中 P' ≤ P
+
+        形状:
+            输入: (B, N, C_in)，其中 N = P × H × W
+            输出: (B, M, C_out)，其中 M = P' × H' × W'
+
+        Example:
+            >>> upsample = UpSample3D(256, 128, (13, 32, 64), (13, 64, 128))
+            >>> x = torch.randn(4, 26624, 256)
+            >>> out = upsample(x)
+            >>> out.shape
+            torch.Size([4, 106496, 128])
+
     """
-
     def __init__(self, in_dim, out_dim, input_resolution, output_resolution):
         super().__init__()
         self.linear1 = nn.Linear(in_dim, out_dim * 4, bias=False)
@@ -24,10 +33,6 @@ class UpSample3D(nn.Module):
         self.output_resolution = output_resolution
 
     def forward(self, x: torch.Tensor):
-        """
-        Args:
-            x (torch.Tensor): (B, N, C)
-        """
         B, N, C = x.shape
         in_pl, in_lat, in_lon = self.input_resolution
         out_pl, out_lat, out_lon = self.output_resolution
@@ -62,16 +67,27 @@ class UpSample3D(nn.Module):
 
 class UpSample2D(nn.Module):
     """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    二维上采样操作
+        通过可学习的线性变换和像素重排实现二维空间上采样。
 
-    参数:
-        in_dim (int): 输入特征的通道数
-        out_dim (int): 输出特征的通道数
-        input_resolution (tuple[int]): 输入特征的分辨率 [pressure levels, latitude, longitude]
-        output_resolution (tuple[int]): 输出特征的分辨率 [pressure levels, latitude, longitude]
+        Args:
+            in_dim (int): 输入通道数
+            out_dim (int): 输出通道数
+            input_resolution (tuple[int, int]): 输入空间维度 (H, W)
+            output_resolution (tuple[int, int]): 输出空间维度 (H', W')
+
+        形状:
+            输入: (B, N, C_in)，其中 N = H × W
+            输出: (B, M, C_out)，其中 M = H' × W'
+
+        Example:
+            >>> upsample = UpSample2D(128, 64, (64, 128), (128, 256))
+            >>> x = torch.randn(8, 8192, 128)
+            >>> out = upsample(x)
+            >>> out.shape
+            torch.Size([8, 32768, 64])
+
     """
-
+    
     def __init__(self, in_dim, out_dim, input_resolution, output_resolution):
         super().__init__()
         self.linear1 = nn.Linear(in_dim, out_dim * 4, bias=False)
@@ -81,10 +97,7 @@ class UpSample2D(nn.Module):
         self.output_resolution = output_resolution
 
     def forward(self, x: torch.Tensor):
-        """
-        Args:
-            x (torch.Tensor): (B, N, C)
-        """
+
         B, N, C = x.shape
         in_lat, in_lon = self.input_resolution
         out_lat, out_lon = self.output_resolution
