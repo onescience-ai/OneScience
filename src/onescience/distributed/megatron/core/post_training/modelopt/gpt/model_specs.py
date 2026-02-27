@@ -1,31 +1,31 @@
 # Copyright (c) 2024, NVIDIA CORPORATION. All rights reserved.
 
-from megatron.core.extensions.transformer_engine import TEDotProductAttention
-from megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
-from megatron.core.models.gpt.gpt_layer_specs import get_mlp_module_spec
-from megatron.core.post_training.modelopt.layers import (
+from onescience.distributed.megatron.core.extensions.transformer_engine import TEDotProductAttention
+from onescience.distributed.megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
+from onescience.distributed.megatron.core.models.gpt.gpt_layer_specs import get_mlp_module_spec
+from onescience.distributed.megatron.core.post_training.modelopt.layers import (
     BlockwiseFP8WeightTransformerLayer,
     FP8WeightTransformerLayer,
     Linear,
     Norm,
 )
-from megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
-from megatron.core.transformer.attention import SelfAttention, SelfAttentionSubmodules
-from megatron.core.transformer.dot_product_attention import DotProductAttention
-from megatron.core.transformer.enums import AttnMaskType
-from megatron.core.transformer.identity_op import IdentityOp
-from megatron.core.transformer.multi_latent_attention import (
+from onescience.distributed.megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
+from onescience.distributed.megatron.core.transformer.attention import SelfAttention, SelfAttentionSubmodules
+from onescience.distributed.megatron.core.transformer.dot_product_attention import DotProductAttention
+from onescience.distributed.megatron.core.transformer.enums import AttnMaskType
+from onescience.distributed.megatron.core.transformer.identity_op import IdentityOp
+from onescience.distributed.megatron.core.transformer.multi_latent_attention import (
     MLASelfAttention,
     MLASelfAttentionSubmodules,
 )
-from megatron.core.transformer.spec_utils import ModuleSpec
-from megatron.core.transformer.torch_norm import L2Norm
-from megatron.core.transformer.transformer_block import (
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec
+from onescience.distributed.megatron.core.transformer.torch_norm import L2Norm
+from onescience.distributed.megatron.core.transformer.transformer_block import (
     TransformerBlockSubmodules,
     get_num_layers_to_build,
 )
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.transformer.transformer_layer import (
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.transformer_layer import (
     TransformerLayer,
     TransformerLayerSubmodules,
     get_transformer_layer_offset,

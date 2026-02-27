@@ -7,8 +7,8 @@ from typing import Callable, Optional
 import torch
 from torch.autograd import Variable
 
-from megatron.core import parallel_state
-from megatron.core.utils import get_pg_rank, get_pg_size, make_viewless_tensor
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.utils import get_pg_rank, get_pg_size, make_viewless_tensor
 
 
 def is_pp_first_stage(pp_group: torch.distributed.ProcessGroup):

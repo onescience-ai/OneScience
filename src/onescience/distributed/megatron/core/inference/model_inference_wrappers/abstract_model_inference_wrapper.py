@@ -7,20 +7,20 @@ from typing import Any, Dict, Iterable, Optional, Union
 
 import torch
 
-from megatron.core import parallel_state
-from megatron.core.fp8_utils import prepare_model_for_fp8_inference
-from megatron.core.inference.communication_utils import (
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.fp8_utils import prepare_model_for_fp8_inference
+from onescience.distributed.megatron.core.inference.communication_utils import (
     is_pipeline_first_stage,
     is_pipeline_last_stage,
     recv_from_prev_pipeline_rank_,
     send_to_next_pipeline_rank,
 )
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.inference.model_inference_wrappers.inference_wrapper_config import (
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.inference.model_inference_wrappers.inference_wrapper_config import (
     InferenceWrapperConfig,
 )
-from megatron.core.models.gpt.gpt_model import GPTModel
-from megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.models.gpt.gpt_model import GPTModel
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
 
 
 # pylint: disable=line-too-long
@@ -63,7 +63,7 @@ class AbstractModelInferenceWrapper(abc.ABC):
             warnings.warn(
                 "`inference_context` must be passed in as an argument starting in `megatron-core` 0.13."
             )
-            from megatron.core.inference.contexts import StaticInferenceContext
+            from onescience.distributed.megatron.core.inference.contexts import StaticInferenceContext
 
             inference_context = StaticInferenceContext.from_config(inference_wrapper_config)
 

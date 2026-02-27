@@ -2,7 +2,7 @@
 
 import torch
 
-from megatron.core.models.huggingface import HuggingFaceModule
+from onescience.distributed.megatron.core.models.huggingface import HuggingFaceModule
 
 try:
     from transformers.models.qwen2 import Qwen2ForCausalLM

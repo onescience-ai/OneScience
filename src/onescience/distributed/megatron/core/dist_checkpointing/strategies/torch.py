@@ -83,7 +83,7 @@ try:
 except ImportError:
     HAVE_DTENSOR = False
 
-from megatron.core.msc_utils import MultiStorageClientFeature
+from onescience.distributed.megatron.core.msc_utils import MultiStorageClientFeature
 
 MSC_PREFIX = "msc://"
 

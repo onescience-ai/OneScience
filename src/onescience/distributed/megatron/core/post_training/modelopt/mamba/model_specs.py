@@ -1,18 +1,18 @@
 # Copyright (c) 2025, NVIDIA CORPORATION. All rights reserved.
 
-from megatron.core.extensions.transformer_engine import TEDotProductAttention
-from megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
-from megatron.core.post_training.modelopt.layers import Norm
-from megatron.core.ssm.mamba_block import MambaStack, MambaStackSubmodules
-from megatron.core.ssm.mamba_layer import MambaLayer, MambaLayerSubmodules
-from megatron.core.ssm.mamba_mixer import MambaMixer, MambaMixerSubmodules
-from megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
-from megatron.core.transformer.attention import SelfAttention, SelfAttentionSubmodules
-from megatron.core.transformer.dot_product_attention import DotProductAttention
-from megatron.core.transformer.enums import AttnMaskType
-from megatron.core.transformer.mlp import MLP, MLPSubmodules
-from megatron.core.transformer.spec_utils import ModuleSpec
-from megatron.core.transformer.transformer_layer import TransformerLayer, TransformerLayerSubmodules
+from onescience.distributed.megatron.core.extensions.transformer_engine import TEDotProductAttention
+from onescience.distributed.megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
+from onescience.distributed.megatron.core.post_training.modelopt.layers import Norm
+from onescience.distributed.megatron.core.ssm.mamba_block import MambaStack, MambaStackSubmodules
+from onescience.distributed.megatron.core.ssm.mamba_layer import MambaLayer, MambaLayerSubmodules
+from onescience.distributed.megatron.core.ssm.mamba_mixer import MambaMixer, MambaMixerSubmodules
+from onescience.distributed.megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
+from onescience.distributed.megatron.core.transformer.attention import SelfAttention, SelfAttentionSubmodules
+from onescience.distributed.megatron.core.transformer.dot_product_attention import DotProductAttention
+from onescience.distributed.megatron.core.transformer.enums import AttnMaskType
+from onescience.distributed.megatron.core.transformer.mlp import MLP, MLPSubmodules
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec
+from onescience.distributed.megatron.core.transformer.transformer_layer import TransformerLayer, TransformerLayerSubmodules
 
 
 # Use this spec for ModelOpt PTQ and TensorRT-LLM export

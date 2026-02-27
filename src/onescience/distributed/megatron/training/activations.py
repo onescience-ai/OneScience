@@ -2,7 +2,7 @@
 import torch
 import torch.nn.functional as F
 
-from megatron.core.jit import jit_fuser
+from onescience.distributed.megatron.core.jit import jit_fuser
 
 
 @jit_fuser

@@ -24,9 +24,9 @@ except ImportError:
         # See https://github.com/NVIDIA/apex/blob/7b73b12361068a10b0f44844534613f252a5ea75/apex/optimizers/fused_adam.py#L16.
         from torch.optim import AdamW as Adam, SGD
 
-from megatron.core import parallel_state
-from megatron.core.optimizer.cpu_offloading.hybrid_optimizer import HybridDeviceOptimizer
-from megatron.core.process_groups_config import GradCommProcessGroups, ModelCommProcessGroups
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.optimizer.cpu_offloading.hybrid_optimizer import HybridDeviceOptimizer
+from onescience.distributed.megatron.core.process_groups_config import GradCommProcessGroups, ModelCommProcessGroups
 
 from ..distributed.param_and_grad_buffer import _ParamAndGradBuffer
 from ..transformer.module import MegatronModule

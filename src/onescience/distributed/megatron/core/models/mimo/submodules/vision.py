@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 import torch
 import torch.nn as nn
 
-from megatron.core.models.mimo.submodules.base import ModalitySubmodules
+from onescience.distributed.megatron.core.models.mimo.submodules.base import ModalitySubmodules
 
 # Initialize logger
 logger = logging.getLogger(__name__)

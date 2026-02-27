@@ -5,23 +5,23 @@ from typing import List, Literal, Optional, Tuple
 import torch
 from torch import Tensor
 
-from megatron.core import tensor_parallel
-from megatron.core.config_logger import has_config_logger_enabled, log_config_to_disk
-from megatron.core.dist_checkpointing.mapping import ShardedStateDict
-from megatron.core.enums import ModelType
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.models.common.embeddings.language_model_embedding import LanguageModelEmbedding
-from megatron.core.models.common.embeddings.relative_pos_embedding import RelativePositionEmbedding
-from megatron.core.models.common.embeddings.rotary_pos_embedding import RotaryEmbedding
-from megatron.core.models.common.language_module.language_module import LanguageModule
-from megatron.core.packed_seq_params import PackedSeqParams
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.tensor_parallel.mappings import scatter_to_tensor_model_parallel_region
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.spec_utils import ModuleSpec
-from megatron.core.transformer.transformer_block import TransformerBlock
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.utils import deprecate_inference_params, get_tensor_model_parallel_group_if_none
+from onescience.distributed.megatron.core import tensor_parallel
+from onescience.distributed.megatron.core.config_logger import has_config_logger_enabled, log_config_to_disk
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedStateDict
+from onescience.distributed.megatron.core.enums import ModelType
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.models.common.embeddings.language_model_embedding import LanguageModelEmbedding
+from onescience.distributed.megatron.core.models.common.embeddings.relative_pos_embedding import RelativePositionEmbedding
+from onescience.distributed.megatron.core.models.common.embeddings.rotary_pos_embedding import RotaryEmbedding
+from onescience.distributed.megatron.core.models.common.language_module.language_module import LanguageModule
+from onescience.distributed.megatron.core.packed_seq_params import PackedSeqParams
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.tensor_parallel.mappings import scatter_to_tensor_model_parallel_region
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec
+from onescience.distributed.megatron.core.transformer.transformer_block import TransformerBlock
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.utils import deprecate_inference_params, get_tensor_model_parallel_group_if_none
 
 
 class T5LMHead(MegatronModule):

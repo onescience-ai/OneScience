@@ -9,13 +9,13 @@ import numpy
 import torch
 from packaging.version import Version as PkgVersion
 
-from megatron.core.datasets.indexed_dataset import IndexedDataset
-from megatron.core.datasets.masked_dataset import (
+from onescience.distributed.megatron.core.datasets.indexed_dataset import IndexedDataset
+from onescience.distributed.megatron.core.datasets.masked_dataset import (
     MaskedWordPieceDataset,
     MaskedWordPieceDatasetConfig,
 )
-from megatron.core.datasets.utils import Split
-from megatron.core.utils import get_te_version
+from onescience.distributed.megatron.core.datasets.utils import Split
+from onescience.distributed.megatron.core.utils import get_te_version
 
 
 @dataclass

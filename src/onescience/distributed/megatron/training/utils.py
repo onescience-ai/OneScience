@@ -8,7 +8,7 @@ from datetime import datetime
 
 import torch
 
-from megatron.core.msc_utils import MultiStorageClientFeature, open_file
+from onescience.distributed.megatron.core.msc_utils import MultiStorageClientFeature, open_file
 
 try:
     from transformer_engine.pytorch.optimizers import multi_tensor_applier, multi_tensor_l2norm
@@ -26,22 +26,22 @@ except ImportError:
             'multi_tensor_applier and multi_tensor_l2norm'
         )
 
-        from megatron.core.utils import (
+        from onescience.distributed.megatron.core.utils import (
             local_multi_tensor_l2_norm as multi_tensor_l2norm,
             local_multi_tensor_applier as multi_tensor_applier,
         )
 
-from megatron.training import get_args, get_adlr_autoresume
-from megatron.core import mpu
-from megatron.core.datasets.utils import get_blend_from_list
-from megatron.core.tensor_parallel import param_is_not_tensor_parallel_duplicate
-from megatron.core.utils import (
+from onescience.distributed.megatron.training import get_args, get_adlr_autoresume
+from onescience.distributed.megatron.core import mpu
+from onescience.distributed.megatron.core.datasets.utils import get_blend_from_list
+from onescience.distributed.megatron.core.tensor_parallel import param_is_not_tensor_parallel_duplicate
+from onescience.distributed.megatron.core.utils import (
     get_batch_on_this_cp_rank,
     get_data_parallel_group_if_dtensor,
     to_local_if_dtensor,
     unwrap_model,
 )
-from megatron.legacy.model.module import param_is_not_shared
+from onescience.distributed.megatron.legacy.model.module import param_is_not_shared
 
 
 def calc_params_l2_norm(model, force_create_fp32_copy=False):
@@ -261,7 +261,7 @@ def print_params_min_max_norm(optimizer, iteration):
 
 def check_adlr_autoresume_termination(iteration, model, optimizer, opt_param_scheduler):
     """Check for autoresume signal and exit if it is received."""
-    from megatron.training.checkpointing import save_checkpoint
+    from onescience.distributed.megatron.training.checkpointing import save_checkpoint
 
     args = get_args()
     autoresume = get_adlr_autoresume()

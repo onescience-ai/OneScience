@@ -7,9 +7,9 @@ from typing import Optional
 import torch
 from torch import Tensor
 
-from megatron.core.enums import Fp8Recipe
-from megatron.core.fp8_utils import get_fp8_context
-from megatron.core.pipeline_parallel.utils import (
+from onescience.distributed.megatron.core.enums import Fp8Recipe
+from onescience.distributed.megatron.core.fp8_utils import get_fp8_context
+from onescience.distributed.megatron.core.pipeline_parallel.utils import (
     AbstractSchedulePlan,
     NoopScheduleNode,
     get_comm_stream,
@@ -63,7 +63,7 @@ class TransformerLayerSchedulePlan:
         The event and chunk_state are binded to the TransformerModelChunkSchedulePlan
         and shared across all layers in the model chunk.
         """
-        from megatron.core.models.gpt.fine_grained_callables import TransformerLayerState
+        from onescience.distributed.megatron.core.models.gpt.fine_grained_callables import TransformerLayerState
 
         self.layer_state = TransformerLayerState()
         self.chunk_state = chunk_state
@@ -80,11 +80,11 @@ class TransformerLayerSchedulePlan:
         Builds the callable nodes for the transformer/mtp layer:
             attn, post_attn, mlp, moe_dispatch and moe_combine.
         """
-        from megatron.core.models.gpt.fine_grained_callables import (
+        from onescience.distributed.megatron.core.models.gpt.fine_grained_callables import (
             TransformerLayerNode,
             build_layer_callables,
         )
-        from megatron.core.transformer.moe.moe_layer import MoELayer
+        from onescience.distributed.megatron.core.transformer.moe.moe_layer import MoELayer
 
         # build the forward and backward callables for the transformer/mtp layer
         fwd_callables, bwd_dw_callable_map = build_layer_callables(self.layer)
@@ -268,7 +268,7 @@ class TransformerModelChunkSchedulePlan(AbstractSchedulePlan):
         Returns:
             The model chunk schedule plan.
         """
-        from megatron.core.models.gpt.fine_grained_callables import PostProcessNode, PreProcessNode
+        from onescience.distributed.megatron.core.models.gpt.fine_grained_callables import PostProcessNode, PreProcessNode
 
         self._model_chunk_state = ModelChunkState()
         self._transformer_layers = []

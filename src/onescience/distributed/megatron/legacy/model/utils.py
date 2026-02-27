@@ -6,9 +6,9 @@ import math
 
 import torch
 
-from megatron.training import get_args
-from megatron.legacy.model import LayerNorm, RMSNorm
-from megatron.core.jit import jit_fuser
+from onescience.distributed.megatron.training import get_args
+from onescience.distributed.megatron.legacy.model import LayerNorm, RMSNorm
+from onescience.distributed.megatron.core.jit import jit_fuser
 
 def init_method_normal(sigma):
     """Init method based on N(0, sigma)."""

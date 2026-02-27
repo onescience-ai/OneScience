@@ -8,10 +8,10 @@ from typing import Dict, Optional, Type, Union
 
 import torch
 
-from megatron.core.inference.async_stream import AsyncStream
-from megatron.core.inference.inference_request import InferenceRequest, Status
-from megatron.core.inference.sampling_params import SamplingParams
-from megatron.core.inference.utils import Counter
+from onescience.distributed.megatron.core.inference.async_stream import AsyncStream
+from onescience.distributed.megatron.core.inference.inference_request import InferenceRequest, Status
+from onescience.distributed.megatron.core.inference.sampling_params import SamplingParams
+from onescience.distributed.megatron.core.inference.utils import Counter
 
 
 class Scheduler:

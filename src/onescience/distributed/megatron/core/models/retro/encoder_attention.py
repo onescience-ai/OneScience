@@ -8,13 +8,13 @@ from typing import Callable, List, Optional, Tuple, Type
 import torch
 from torch import Tensor
 
-from megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.models.retro.base_attention import BaseRetroCrossAttention
-from megatron.core.models.retro.config import RetroConfig
-from megatron.core.models.retro.utils import get_all_true_mask
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.utils import deprecate_inference_params
+from onescience.distributed.megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.models.retro.base_attention import BaseRetroCrossAttention
+from onescience.distributed.megatron.core.models.retro.config import RetroConfig
+from onescience.distributed.megatron.core.models.retro.utils import get_all_true_mask
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.utils import deprecate_inference_params
 
 
 class RetroEncoderCrossAttention(BaseRetroCrossAttention):

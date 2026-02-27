@@ -7,7 +7,7 @@ import os
 import torch
 import torch.nn as nn
 
-from megatron.core import parallel_state
+from onescience.distributed.megatron.core import parallel_state
 
 
 def get_config_logger_path(config):

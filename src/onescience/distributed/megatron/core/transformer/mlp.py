@@ -9,19 +9,19 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from megatron.core.dist_checkpointing import ShardedTensor
-from megatron.core.dist_checkpointing.mapping import (
+from onescience.distributed.megatron.core.dist_checkpointing import ShardedTensor
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import (
     ReplicaId,
     ShardedStateDict,
     ShardedTensorFactory,
 )
-from megatron.core.fusions.fused_bias_geglu import bias_geglu_impl
-from megatron.core.fusions.fused_bias_gelu import bias_gelu_impl
-from megatron.core.fusions.fused_bias_swiglu import bias_swiglu_impl, weighted_bias_swiglu_impl
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.spec_utils import ModuleSpec, build_module
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.utils import (
+from onescience.distributed.megatron.core.fusions.fused_bias_geglu import bias_geglu_impl
+from onescience.distributed.megatron.core.fusions.fused_bias_gelu import bias_gelu_impl
+from onescience.distributed.megatron.core.fusions.fused_bias_swiglu import bias_swiglu_impl, weighted_bias_swiglu_impl
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec, build_module
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.utils import (
     get_tensor_model_parallel_group_if_none,
     nvtx_range_pop,
     nvtx_range_push,

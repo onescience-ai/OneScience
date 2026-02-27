@@ -5,12 +5,12 @@ from typing import Optional
 
 import torch
 
-from megatron.core.export.data_type import DataType
-from megatron.core.export.export_config import ExportConfig
-from megatron.core.export.trtllm.trtllm_layers import NON_TRANSFORMER_LAYERS_NAMES, TRTLLMLayers
-from megatron.core.export.trtllm.trtllm_layers import get_layer_name_without_prefix as suffix
-from megatron.core.export.trtllm.trtllm_weights_converter.utils import is_gated_activation
-from megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.export.data_type import DataType
+from onescience.distributed.megatron.core.export.export_config import ExportConfig
+from onescience.distributed.megatron.core.export.trtllm.trtllm_layers import NON_TRANSFORMER_LAYERS_NAMES, TRTLLMLayers
+from onescience.distributed.megatron.core.export.trtllm.trtllm_layers import get_layer_name_without_prefix as suffix
+from onescience.distributed.megatron.core.export.trtllm.trtllm_weights_converter.utils import is_gated_activation
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
 
 try:
     from tqdm import tqdm

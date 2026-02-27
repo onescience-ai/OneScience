@@ -3,11 +3,11 @@ from typing import OrderedDict
 
 import torch
 
-from megatron.core.inference.inference_request import InferenceRequest, VLMInferenceRequest
-from megatron.core.inference.text_generation_controllers.text_generation_controller import (
+from onescience.distributed.megatron.core.inference.inference_request import InferenceRequest, VLMInferenceRequest
+from onescience.distributed.megatron.core.inference.text_generation_controllers.text_generation_controller import (
     TextGenerationController,
 )
-from megatron.core.inference.utils import get_attention_mask
+from onescience.distributed.megatron.core.inference.utils import get_attention_mask
 
 
 class VLMTextGenerationController(TextGenerationController):

@@ -5,11 +5,11 @@ from typing import Optional
 
 import torch
 
-from megatron.core import tensor_parallel
-from megatron.core.pipeline_parallel.utils import ScheduleNode, make_viewless
-from megatron.core.transformer.module import float16_to_fp32
-from megatron.core.transformer.moe.moe_layer import MoELayer
-from megatron.core.transformer.transformer_layer import TransformerLayer, make_viewless_tensor
+from onescience.distributed.megatron.core import tensor_parallel
+from onescience.distributed.megatron.core.pipeline_parallel.utils import ScheduleNode, make_viewless
+from onescience.distributed.megatron.core.transformer.module import float16_to_fp32
+from onescience.distributed.megatron.core.transformer.moe.moe_layer import MoELayer
+from onescience.distributed.megatron.core.transformer.transformer_layer import TransformerLayer, make_viewless_tensor
 
 
 def weak_method(method):

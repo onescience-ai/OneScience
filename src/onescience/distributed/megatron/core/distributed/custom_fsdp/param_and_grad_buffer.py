@@ -16,11 +16,11 @@ from typing import Any, Callable, List, Optional, Tuple
 import torch
 from torch.distributed import _coalescing_manager
 
-from megatron.core import parallel_state
-from megatron.core.distributed.distributed_data_parallel_config import DistributedDataParallelConfig
-from megatron.core.fp8_utils import is_float8tensor, modify_underlying_storage, quantize_param_shard
-from megatron.core.tensor_parallel import get_cuda_rng_tracker
-from megatron.core.utils import is_submodule, is_te_min_version, log_on_each_pipeline_stage
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.distributed.distributed_data_parallel_config import DistributedDataParallelConfig
+from onescience.distributed.megatron.core.fp8_utils import is_float8tensor, modify_underlying_storage, quantize_param_shard
+from onescience.distributed.megatron.core.tensor_parallel import get_cuda_rng_tracker
+from onescience.distributed.megatron.core.utils import is_submodule, is_te_min_version, log_on_each_pipeline_stage
 
 try:
     from transformer_engine.pytorch import fp8_model_init

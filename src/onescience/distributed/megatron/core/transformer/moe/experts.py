@@ -11,30 +11,30 @@ import torch
 import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 
-from megatron.core import parallel_state, tensor_parallel
-from megatron.core.dist_checkpointing import ShardedTensor
-from megatron.core.dist_checkpointing.mapping import (
+from onescience.distributed.megatron.core import parallel_state, tensor_parallel
+from onescience.distributed.megatron.core.dist_checkpointing import ShardedTensor
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import (
     LocalNonpersistentObject,
     ReplicaId,
     ShardedStateDict,
     ShardedTensorFactory,
 )
-from megatron.core.dist_checkpointing.utils import replace_prefix_for_sharding
-from megatron.core.fp8_utils import get_fp8_align_size
-from megatron.core.fusions.fused_bias_swiglu import weighted_bias_swiglu_impl
-from megatron.core.jit import jit_fuser
-from megatron.core.tensor_parallel.layers import (
+from onescience.distributed.megatron.core.dist_checkpointing.utils import replace_prefix_for_sharding
+from onescience.distributed.megatron.core.fp8_utils import get_fp8_align_size
+from onescience.distributed.megatron.core.fusions.fused_bias_swiglu import weighted_bias_swiglu_impl
+from onescience.distributed.megatron.core.jit import jit_fuser
+from onescience.distributed.megatron.core.tensor_parallel.layers import (
     _initialize_affine_weight_cpu,
     _initialize_affine_weight_gpu,
 )
-from megatron.core.tensor_parallel.utils import divide
-from megatron.core.transformer.mlp import MLP, MLPSubmodules, apply_swiglu_sharded_factory
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.moe import grouped_gemm_util as gg
-from megatron.core.transformer.moe.moe_utils import ModelCommProcessGroups
-from megatron.core.transformer.spec_utils import build_module
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.transformer.utils import (
+from onescience.distributed.megatron.core.tensor_parallel.utils import divide
+from onescience.distributed.megatron.core.transformer.mlp import MLP, MLPSubmodules, apply_swiglu_sharded_factory
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.moe import grouped_gemm_util as gg
+from onescience.distributed.megatron.core.transformer.moe.moe_utils import ModelCommProcessGroups
+from onescience.distributed.megatron.core.transformer.spec_utils import build_module
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.utils import (
     make_sharded_object_for_checkpoint,
     sharded_state_dict_default,
 )
@@ -42,7 +42,7 @@ from megatron.core.transformer.utils import (
 try:
     import transformer_engine as te  # pylint: disable=unused-import
 
-    from megatron.core.extensions.transformer_engine import Fp8Padding, Fp8Unpadding
+    from onescience.distributed.megatron.core.extensions.transformer_engine import Fp8Padding, Fp8Unpadding
 
     HAVE_TE = True
 

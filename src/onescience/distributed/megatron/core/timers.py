@@ -8,7 +8,7 @@ from typing import List
 
 import torch
 
-from megatron.core.utils import is_torch_min_version
+from onescience.distributed.megatron.core.utils import is_torch_min_version
 
 try:
     if is_torch_min_version("1.13.0"):

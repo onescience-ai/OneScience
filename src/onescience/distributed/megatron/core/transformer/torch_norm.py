@@ -1,9 +1,9 @@
 # Copyright (c) 2024, NVIDIA CORPORATION. All rights reserved.
 import torch
 
-from megatron.core.jit import jit_fuser
-from megatron.core.transformer import TransformerConfig
-from megatron.core.utils import is_torch_min_version
+from onescience.distributed.megatron.core.jit import jit_fuser
+from onescience.distributed.megatron.core.transformer import TransformerConfig
+from onescience.distributed.megatron.core.utils import is_torch_min_version
 
 
 class WrappedTorchNorm:

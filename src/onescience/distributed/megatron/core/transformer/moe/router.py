@@ -6,8 +6,8 @@ from typing import Callable, Optional
 
 import torch
 
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.moe.moe_utils import (
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.moe.moe_utils import (
     ModelCommProcessGroups,
     MoEAuxLossAutoScaler,
     apply_random_logits,
@@ -19,7 +19,7 @@ from megatron.core.transformer.moe.moe_utils import (
     topk_softmax_with_capacity,
     z_loss_func,
 )
-from megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
 
 
 class Router(ABC, MegatronModule):

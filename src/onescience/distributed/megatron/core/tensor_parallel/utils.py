@@ -4,7 +4,7 @@ from typing import List, Sequence
 
 import torch
 
-from megatron.core.utils import (
+from onescience.distributed.megatron.core.utils import (
     divide,
     get_tensor_model_parallel_group_if_none,
     is_torch_min_version,

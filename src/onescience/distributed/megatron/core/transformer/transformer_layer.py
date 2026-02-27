@@ -10,19 +10,19 @@ import torch
 import torch.distributed
 from torch import Tensor
 
-from megatron.core import parallel_state, tensor_parallel
-from megatron.core.dist_checkpointing.mapping import ShardedStateDict
-from megatron.core.dist_checkpointing.utils import apply_prefix_mapping
-from megatron.core.packed_seq_params import PackedSeqParams
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.transformer.cuda_graphs import CudaGraphManager
-from megatron.core.transformer.enums import LayerType
-from megatron.core.transformer.identity_op import IdentityFuncOp, IdentityOp
-from megatron.core.transformer.mlp import MLP
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.spec_utils import ModuleSpec, build_module
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.utils import (
+from onescience.distributed.megatron.core import parallel_state, tensor_parallel
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedStateDict
+from onescience.distributed.megatron.core.dist_checkpointing.utils import apply_prefix_mapping
+from onescience.distributed.megatron.core.packed_seq_params import PackedSeqParams
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.transformer.cuda_graphs import CudaGraphManager
+from onescience.distributed.megatron.core.transformer.enums import LayerType
+from onescience.distributed.megatron.core.transformer.identity_op import IdentityFuncOp, IdentityOp
+from onescience.distributed.megatron.core.transformer.mlp import MLP
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec, build_module
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.utils import (
     deprecate_inference_params,
     is_te_min_version,
     log_single_rank,
@@ -365,8 +365,8 @@ class TransformerLayer(MegatronModule, BaseTransformerLayer):
         # [Module 8: MLP block]
         additional_mlp_kwargs = {}
         # import here to avoid circular import
-        from megatron.core.transformer.moe.experts import GroupedMLP, SequentialMLP, TEGroupedMLP
-        from megatron.core.transformer.moe.moe_layer import MoELayer
+        from onescience.distributed.megatron.core.transformer.moe.experts import GroupedMLP, SequentialMLP, TEGroupedMLP
+        from onescience.distributed.megatron.core.transformer.moe.moe_layer import MoELayer
 
         # MLP expects tp_group but MoELayer expects model_comm_pgs to be passed in.
         # We can change MLP to accept model_comm_pgs but it makes the logic implicit
@@ -586,7 +586,7 @@ class TransformerLayer(MegatronModule, BaseTransformerLayer):
         if self.recompute_mlp:
             if self.config.fp8:
                 # import here to avoid circular import
-                from megatron.core.extensions.transformer_engine import te_checkpoint
+                from onescience.distributed.megatron.core.extensions.transformer_engine import te_checkpoint
 
                 mlp_output_with_bias = te_checkpoint(
                     self.mlp,
