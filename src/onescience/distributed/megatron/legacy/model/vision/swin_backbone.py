@@ -12,7 +12,7 @@ import torch.utils.checkpoint as checkpoint
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from math import sqrt
 
-from megatron.training import get_args
+from onescience.distributed.megatron.training import get_args
 from functools import partial
 
 

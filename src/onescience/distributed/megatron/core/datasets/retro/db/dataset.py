@@ -11,7 +11,7 @@ from typing import List
 import numpy as np
 import torch
 
-from megatron.core.datasets.indexed_dataset import IndexedDataset
+from onescience.distributed.megatron.core.datasets.indexed_dataset import IndexedDataset
 
 try:
     from tqdm import tqdm

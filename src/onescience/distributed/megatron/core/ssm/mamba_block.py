@@ -14,23 +14,23 @@ from typing import Optional, Union
 import torch
 from torch import Tensor, nn
 
-from megatron.core.dist_checkpointing.mapping import ShardedStateDict
-from megatron.core.dist_checkpointing.utils import replace_prefix_for_sharding
-from megatron.core.enums import Fp8Recipe
-from megatron.core.extensions.transformer_engine import TENorm
-from megatron.core.fp8_utils import get_fp8_context
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.ssm.mamba_hybrid_layer_allocation import Symbols as LayerSymbols
-from megatron.core.ssm.mamba_hybrid_layer_allocation import allocate_layers
-from megatron.core.tensor_parallel import get_cuda_rng_tracker
-from megatron.core.transformer import TransformerConfig
-from megatron.core.transformer.identity_op import IdentityOp
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.spec_utils import ModuleSpec, build_module
-from megatron.core.transformer.transformer_layer import TransformerLayer
-from megatron.core.transformer.utils import sharded_state_dict_default
-from megatron.core.utils import WrappedTensor, deprecate_inference_params, make_viewless_tensor
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedStateDict
+from onescience.distributed.megatron.core.dist_checkpointing.utils import replace_prefix_for_sharding
+from onescience.distributed.megatron.core.enums import Fp8Recipe
+from onescience.distributed.megatron.core.extensions.transformer_engine import TENorm
+from onescience.distributed.megatron.core.fp8_utils import get_fp8_context
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.ssm.mamba_hybrid_layer_allocation import Symbols as LayerSymbols
+from onescience.distributed.megatron.core.ssm.mamba_hybrid_layer_allocation import allocate_layers
+from onescience.distributed.megatron.core.tensor_parallel import get_cuda_rng_tracker
+from onescience.distributed.megatron.core.transformer import TransformerConfig
+from onescience.distributed.megatron.core.transformer.identity_op import IdentityOp
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec, build_module
+from onescience.distributed.megatron.core.transformer.transformer_layer import TransformerLayer
+from onescience.distributed.megatron.core.transformer.utils import sharded_state_dict_default
+from onescience.distributed.megatron.core.utils import WrappedTensor, deprecate_inference_params, make_viewless_tensor
 
 
 # https://github.com/huggingface/transformers/blob/c28d04e9e252a1a099944e325685f14d242ecdcd/src/transformers/models/gpt2/modeling_gpt2.py#L454

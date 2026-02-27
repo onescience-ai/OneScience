@@ -9,4 +9,4 @@ warnings.warn(
     DeprecationWarning,
     stacklevel=2,
 )
-from megatron.core.extensions.transformer_engine import *
+from onescience.distributed.megatron.core.extensions.transformer_engine import *

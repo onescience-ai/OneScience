@@ -4,11 +4,11 @@ from typing import Callable, List, Optional
 
 import torch
 
-from megatron.core.extensions.transformer_engine import _get_extra_te_kwargs
-from megatron.core.model_parallel_config import ModelParallelConfig
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.transformer.transformer_layer import TransformerLayer
-from megatron.core.transformer.utils import make_sharded_tensors_for_checkpoint
+from onescience.distributed.megatron.core.extensions.transformer_engine import _get_extra_te_kwargs
+from onescience.distributed.megatron.core.model_parallel_config import ModelParallelConfig
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.transformer_layer import TransformerLayer
+from onescience.distributed.megatron.core.transformer.utils import make_sharded_tensors_for_checkpoint
 
 try:
     import transformer_engine as te

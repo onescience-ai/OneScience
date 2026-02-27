@@ -5,10 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
-    from megatron.core.transformer.transformer_config import TransformerConfig
-    from megatron.core.transformer.transformer_block import TransformerBlock
-    from megatron.core.inference.contexts import BaseInferenceContext
-    from megatron.core.packed_seq_params import PackedSeqParams
+    from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+    from onescience.distributed.megatron.core.transformer.transformer_block import TransformerBlock
+    from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+    from onescience.distributed.megatron.core.packed_seq_params import PackedSeqParams
 
 import logging
 import math
@@ -17,15 +17,15 @@ from functools import lru_cache
 import torch
 from torch import Tensor, nn
 
-from megatron.core import parallel_state
-from megatron.core.models.common.embeddings.rope_utils import (  # for backward compatibility; pylint: disable=unused-import
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.models.common.embeddings.rope_utils import (  # for backward compatibility; pylint: disable=unused-import
     _apply_rotary_pos_emb_bshd,
     _apply_rotary_pos_emb_thd,
     _rotate_half,
     apply_rotary_pos_emb,
     get_pos_emb_on_this_cp_rank,
 )
-from megatron.core.utils import deprecate_inference_params
+from onescience.distributed.megatron.core.utils import deprecate_inference_params
 
 logger = logging.getLogger(__name__)
 

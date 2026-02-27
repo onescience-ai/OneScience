@@ -5,9 +5,9 @@
 import os
 from dataclasses import dataclass
 
-from megatron.core.transformer import TransformerConfig
-from megatron.core.transformer.enums import AttnBackend
-from megatron.core.utils import is_te_min_version
+from onescience.distributed.megatron.core.transformer import TransformerConfig
+from onescience.distributed.megatron.core.transformer.enums import AttnBackend
+from onescience.distributed.megatron.core.utils import is_te_min_version
 
 
 @dataclass

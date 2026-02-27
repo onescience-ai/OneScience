@@ -4,21 +4,21 @@
 
 import typing
 
-from megatron.core.models.gpt.gpt_layer_specs import (
+from onescience.distributed.megatron.core.models.gpt.gpt_layer_specs import (
     get_gpt_layer_local_spec,
     get_gpt_layer_with_transformer_engine_spec,
 )
-from megatron.core.models.retro.config import RetroConfig
-from megatron.core.models.retro.decoder_attention import (
+from onescience.distributed.megatron.core.models.retro.config import RetroConfig
+from onescience.distributed.megatron.core.models.retro.decoder_attention import (
     RetroDecoderBiasDropoutAdd,
     RetroDecoderCrossAttention,
 )
-from megatron.core.models.retro.encoder_spec import get_retro_encoder_block_spec
-from megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
-from megatron.core.transformer import ModuleSpec
-from megatron.core.transformer.attention import CrossAttentionSubmodules
-from megatron.core.transformer.dot_product_attention import DotProductAttention
-from megatron.core.transformer.transformer_block import (
+from onescience.distributed.megatron.core.models.retro.encoder_spec import get_retro_encoder_block_spec
+from onescience.distributed.megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
+from onescience.distributed.megatron.core.transformer import ModuleSpec
+from onescience.distributed.megatron.core.transformer.attention import CrossAttentionSubmodules
+from onescience.distributed.megatron.core.transformer.dot_product_attention import DotProductAttention
+from onescience.distributed.megatron.core.transformer.transformer_block import (
     TransformerBlockSubmodules,
     get_num_layers_to_build,
 )
@@ -26,14 +26,14 @@ from megatron.core.transformer.transformer_block import (
 try:
     import apex  # pylint: disable=unused-import
 
-    from megatron.core.fusions.fused_layer_norm import FusedLayerNorm
+    from onescience.distributed.megatron.core.fusions.fused_layer_norm import FusedLayerNorm
 
     HAVE_APEX = True
     LNImpl = FusedLayerNorm
 except ImportError:
     import warnings
 
-    from megatron.core.transformer.torch_norm import WrappedTorchNorm
+    from onescience.distributed.megatron.core.transformer.torch_norm import WrappedTorchNorm
 
     warnings.warn(f"Apex is not installed. Falling back to Torch Norm")
     LNImpl = WrappedTorchNorm
@@ -42,7 +42,7 @@ except ImportError:
 try:
     import transformer_engine as te  # pylint: disable=unused-import
 
-    from megatron.core.extensions.transformer_engine import (
+    from onescience.distributed.megatron.core.extensions.transformer_engine import (
         TEColumnParallelLinear,
         TEDotProductAttention,
         TENorm,

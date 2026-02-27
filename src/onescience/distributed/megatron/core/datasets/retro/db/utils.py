@@ -9,9 +9,9 @@ from typing import Dict, List, Optional
 
 import numpy as np
 
-from megatron.core.datasets.indexed_dataset import IndexedDataset
-from megatron.core.datasets.retro.config import RetroPreprocessingConfig
-from megatron.core.models.retro.utils import get_gpt_data_dir
+from onescience.distributed.megatron.core.datasets.indexed_dataset import IndexedDataset
+from onescience.distributed.megatron.core.datasets.retro.config import RetroPreprocessingConfig
+from onescience.distributed.megatron.core.models.retro.utils import get_gpt_data_dir
 
 from .dataset import DBDataset
 

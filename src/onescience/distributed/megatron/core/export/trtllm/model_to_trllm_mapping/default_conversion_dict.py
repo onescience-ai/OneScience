@@ -1,5 +1,5 @@
 # Copyright (c) 2024, NVIDIA CORPORATION. All rights reserved.
-from megatron.core.export.trtllm.trtllm_layers import TRTLLMLayers
+from onescience.distributed.megatron.core.export.trtllm.trtllm_layers import TRTLLMLayers
 
 # Map the most common mcore layers to TRTLLM layers
 # pylint: disable=line-too-long

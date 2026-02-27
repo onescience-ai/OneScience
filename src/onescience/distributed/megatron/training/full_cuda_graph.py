@@ -4,7 +4,7 @@
 
 import os
 import torch
-from megatron.core.tensor_parallel.random import get_all_rng_states
+from onescience.distributed.megatron.core.tensor_parallel.random import get_all_rng_states
 from .utils import print_rank_0
 
 # The below functions traverse through nested data structures (tuples, lists, dicts)

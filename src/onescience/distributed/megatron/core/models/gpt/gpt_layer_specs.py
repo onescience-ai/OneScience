@@ -3,31 +3,31 @@
 import warnings
 from typing import Optional, Union
 
-from megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
-from megatron.core.models.backends import BackendSpecProvider, LocalSpecProvider
-from megatron.core.models.gpt.moe_module_specs import get_moe_module_spec_for_backend
-from megatron.core.transformer.attention import SelfAttention, SelfAttentionSubmodules
-from megatron.core.transformer.enums import AttnMaskType, LayerType
-from megatron.core.transformer.identity_op import IdentityOp
-from megatron.core.transformer.mlp import MLP, MLPSubmodules
-from megatron.core.transformer.multi_latent_attention import (
+from onescience.distributed.megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
+from onescience.distributed.megatron.core.models.backends import BackendSpecProvider, LocalSpecProvider
+from onescience.distributed.megatron.core.models.gpt.moe_module_specs import get_moe_module_spec_for_backend
+from onescience.distributed.megatron.core.transformer.attention import SelfAttention, SelfAttentionSubmodules
+from onescience.distributed.megatron.core.transformer.enums import AttnMaskType, LayerType
+from onescience.distributed.megatron.core.transformer.identity_op import IdentityOp
+from onescience.distributed.megatron.core.transformer.mlp import MLP, MLPSubmodules
+from onescience.distributed.megatron.core.transformer.multi_latent_attention import (
     MLASelfAttention,
     MLASelfAttentionSubmodules,
 )
-from megatron.core.transformer.multi_token_prediction import (
+from onescience.distributed.megatron.core.transformer.multi_token_prediction import (
     MultiTokenPredictionBlockSubmodules,
     get_mtp_layer_offset,
     get_mtp_layer_spec_for_backend,
     get_mtp_num_layers_to_build,
 )
-from megatron.core.transformer.spec_utils import ModuleSpec
-from megatron.core.transformer.torch_norm import L2Norm
-from megatron.core.transformer.transformer_block import (
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec
+from onescience.distributed.megatron.core.transformer.torch_norm import L2Norm
+from onescience.distributed.megatron.core.transformer.transformer_block import (
     TransformerBlockSubmodules,
     get_num_layers_to_build,
 )
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.transformer.transformer_layer import (
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.transformer_layer import (
     TransformerLayer,
     TransformerLayerSubmodules,
     get_transformer_layer_offset,
@@ -36,8 +36,8 @@ from megatron.core.transformer.transformer_layer import (
 try:
     import transformer_engine as te  # pylint: disable=unused-import
 
-    from megatron.core.extensions.transformer_engine import TEFusedMLP, TENorm
-    from megatron.core.extensions.transformer_engine_spec_provider import TESpecProvider
+    from onescience.distributed.megatron.core.extensions.transformer_engine import TEFusedMLP, TENorm
+    from onescience.distributed.megatron.core.extensions.transformer_engine_spec_provider import TESpecProvider
 
     HAVE_TE = True
 except ImportError:
@@ -46,7 +46,7 @@ except ImportError:
 try:
     import nvidia_kitchen  # pylint: disable=unused-import
 
-    from megatron.core.extensions.kitchen import KitchenSpecProvider
+    from onescience.distributed.megatron.core.extensions.kitchen import KitchenSpecProvider
 
     HAVE_KITCHEN = True
 except ImportError:
@@ -55,14 +55,14 @@ except ImportError:
 try:
     import apex  # pylint: disable=unused-import
 
-    from megatron.core.fusions.fused_layer_norm import FusedLayerNorm
+    from onescience.distributed.megatron.core.fusions.fused_layer_norm import FusedLayerNorm
 
     HAVE_APEX = True
     LNImpl = FusedLayerNorm
 except ImportError:
     import warnings
 
-    from megatron.core.transformer.torch_norm import WrappedTorchNorm
+    from onescience.distributed.megatron.core.transformer.torch_norm import WrappedTorchNorm
 
     warnings.warn("Apex is not installed. Falling back to Torch Norm")
     LNImpl = WrappedTorchNorm

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 import torch
 
-from megatron.core.utils import to_local_if_dtensor
+from onescience.distributed.megatron.core.utils import to_local_if_dtensor
 
 from .dict_utils import nested_values
 from .mapping import (

@@ -4,12 +4,12 @@
 
 import torch
 
-from megatron.training import get_args
-from megatron.core import tensor_parallel
-from megatron.legacy.model.enums import AttnMaskType
-from megatron.legacy.model.language_model import parallel_lm_logits, get_language_model
-from megatron.legacy.model import LayerNorm
-from megatron.legacy.model.utils import (
+from onescience.distributed.megatron.training import get_args
+from onescience.distributed.megatron.core import tensor_parallel
+from onescience.distributed.megatron.legacy.model.enums import AttnMaskType
+from onescience.distributed.megatron.legacy.model.language_model import parallel_lm_logits, get_language_model
+from onescience.distributed.megatron.legacy.model import LayerNorm
+from onescience.distributed.megatron.legacy.model.utils import (
     openai_gelu,
     get_linear_layer
 )

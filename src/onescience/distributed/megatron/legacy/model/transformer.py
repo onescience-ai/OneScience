@@ -10,36 +10,36 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from megatron import core
-from megatron.core import mpu, tensor_parallel
-from megatron.core.enums import ModelType
-from megatron.core.utils import deprecate_inference_params
-from megatron.legacy.model.enums import AttnMaskType, LayerType, AttnType
-from megatron.legacy.model.fused_softmax import FusedScaleMaskSoftmax
-from megatron.legacy.model.fused_bias_gelu import bias_gelu_impl
-from megatron.core.models.common.embeddings import apply_rotary_pos_emb
-from megatron.core.jit import jit_fuser
-from megatron.core.num_microbatches_calculator import get_num_microbatches
-from megatron.core.parallel_state import (
+from onescience.distributed.megatron import core
+from onescience.distributed.megatron.core import mpu, tensor_parallel
+from onescience.distributed.megatron.core.enums import ModelType
+from onescience.distributed.megatron.core.utils import deprecate_inference_params
+from onescience.distributed.megatron.legacy.model.enums import AttnMaskType, LayerType, AttnType
+from onescience.distributed.megatron.legacy.model.fused_softmax import FusedScaleMaskSoftmax
+from onescience.distributed.megatron.legacy.model.fused_bias_gelu import bias_gelu_impl
+from onescience.distributed.megatron.core.models.common.embeddings import apply_rotary_pos_emb
+from onescience.distributed.megatron.core.jit import jit_fuser
+from onescience.distributed.megatron.core.num_microbatches_calculator import get_num_microbatches
+from onescience.distributed.megatron.core.parallel_state import (
     get_expert_tensor_and_model_parallel_group,
     get_tensor_model_parallel_group,
 )
-from megatron.core.tensor_parallel import (
+from onescience.distributed.megatron.core.tensor_parallel import (
     gather_from_sequence_parallel_region,
     reduce_scatter_to_sequence_parallel_region,
     get_cuda_rng_tracker,
     get_data_parallel_rng_tracker_name,
 )
-from megatron.legacy.model.enums import AttnMaskType, AttnType, LayerType
-from megatron.legacy.model.fused_bias_gelu import bias_gelu_impl
-from megatron.legacy.model.fused_softmax import FusedScaleMaskSoftmax
-from megatron.legacy.model.utils import (
+from onescience.distributed.megatron.legacy.model.enums import AttnMaskType, AttnType, LayerType
+from onescience.distributed.megatron.legacy.model.fused_bias_gelu import bias_gelu_impl
+from onescience.distributed.megatron.legacy.model.fused_softmax import FusedScaleMaskSoftmax
+from onescience.distributed.megatron.legacy.model.utils import (
     attention_mask_func,
     erf_gelu,
     get_norm,
     openai_gelu,
 )
-from megatron.training import get_args, get_timers
+from onescience.distributed.megatron.training import get_args, get_timers
 
 from .module import MegatronModule
 

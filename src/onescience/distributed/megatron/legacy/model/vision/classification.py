@@ -4,11 +4,11 @@
 
 import torch
 from torch.nn.init import trunc_normal_
-from megatron.training import get_args
-from megatron.legacy.model.utils import get_linear_layer
-from megatron.legacy.model.vision.vit_backbone import VitBackbone, VitMlpHead
-from megatron.legacy.model.vision.mit_backbone import mit_b3_avg
-from megatron.legacy.model.module import MegatronModule
+from onescience.distributed.megatron.training import get_args
+from onescience.distributed.megatron.legacy.model.utils import get_linear_layer
+from onescience.distributed.megatron.legacy.model.vision.vit_backbone import VitBackbone, VitMlpHead
+from onescience.distributed.megatron.legacy.model.vision.mit_backbone import mit_b3_avg
+from onescience.distributed.megatron.legacy.model.module import MegatronModule
 
 class VitClassificationModel(MegatronModule):
     """Vision Transformer Model."""

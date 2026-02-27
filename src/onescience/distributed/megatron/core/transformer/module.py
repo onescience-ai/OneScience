@@ -7,10 +7,10 @@ import torch
 from torch.autograd import Variable
 from torch.nn.parameter import Parameter
 
-from megatron.core import parallel_state
-from megatron.core.dist_checkpointing.mapping import ShardedStateDict
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.transformer.utils import (
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedStateDict
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.utils import (
     make_sharded_tensors_for_checkpoint,
     sharded_state_dict_default,
 )

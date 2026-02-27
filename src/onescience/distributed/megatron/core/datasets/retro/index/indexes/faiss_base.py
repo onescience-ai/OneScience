@@ -12,13 +12,13 @@ import os
 import numpy as np
 import torch
 
-from megatron.core.datasets.retro.config import RetroPreprocessingConfig
-from megatron.core.datasets.retro.index.index import Index
-from megatron.core.datasets.retro.index.utils import (
+from onescience.distributed.megatron.core.datasets.retro.config import RetroPreprocessingConfig
+from onescience.distributed.megatron.core.datasets.retro.index.index import Index
+from onescience.distributed.megatron.core.datasets.retro.index.utils import (
     get_training_data_merged_path,
     num_samples_to_block_ranges,
 )
-from megatron.core.datasets.retro.utils import GPTToTextDataset, log_retro_rank_0
+from onescience.distributed.megatron.core.datasets.retro.utils import GPTToTextDataset, log_retro_rank_0
 
 try:
     import faiss

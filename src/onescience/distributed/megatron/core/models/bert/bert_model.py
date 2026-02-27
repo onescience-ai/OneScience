@@ -6,25 +6,25 @@ from typing import Literal, Optional
 import torch
 from torch import Tensor
 
-from megatron.core import parallel_state, tensor_parallel
-from megatron.core.config_logger import has_config_logger_enabled, log_config_to_disk
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.models.bert.bert_lm_head import BertLMHead
-from megatron.core.models.bert.pooler import Pooler
-from megatron.core.models.common.embeddings.language_model_embedding import LanguageModelEmbedding
-from megatron.core.models.common.embeddings.rotary_pos_embedding import RotaryEmbedding
-from megatron.core.models.common.language_module.language_module import LanguageModule
-from megatron.core.transformer.dot_product_attention import (
+from onescience.distributed.megatron.core import parallel_state, tensor_parallel
+from onescience.distributed.megatron.core.config_logger import has_config_logger_enabled, log_config_to_disk
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.models.bert.bert_lm_head import BertLMHead
+from onescience.distributed.megatron.core.models.bert.pooler import Pooler
+from onescience.distributed.megatron.core.models.common.embeddings.language_model_embedding import LanguageModelEmbedding
+from onescience.distributed.megatron.core.models.common.embeddings.rotary_pos_embedding import RotaryEmbedding
+from onescience.distributed.megatron.core.models.common.language_module.language_module import LanguageModule
+from onescience.distributed.megatron.core.transformer.dot_product_attention import (
     DotProductAttention as MCoreDotProductAttention,
 )
-from megatron.core.transformer.enums import AttnBackend, AttnMaskType, ModelType
-from megatron.core.transformer.spec_utils import ModuleSpec
-from megatron.core.transformer.transformer_block import TransformerBlock
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.transformer.utils import get_linear_layer
-from megatron.core.utils import deprecate_inference_params
-from megatron.core.utils import get_te_version as _get_te_version
-from megatron.core.utils import is_te_min_version
+from onescience.distributed.megatron.core.transformer.enums import AttnBackend, AttnMaskType, ModelType
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec
+from onescience.distributed.megatron.core.transformer.transformer_block import TransformerBlock
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.utils import get_linear_layer
+from onescience.distributed.megatron.core.utils import deprecate_inference_params
+from onescience.distributed.megatron.core.utils import get_te_version as _get_te_version
+from onescience.distributed.megatron.core.utils import is_te_min_version
 
 
 def get_te_version():

@@ -6,12 +6,12 @@ import os
 import sys
 import torch
 
-from megatron.core import Timers
-from megatron.core.config import set_experimental_flag
-from megatron.core.energy_monitor import EnergyMonitor
-from megatron.core.num_microbatches_calculator import init_num_microbatches_calculator, unset_num_microbatches_calculator
-from megatron.training import dist_signal_handler
-from megatron.training.tokenizer import build_tokenizer
+from onescience.distributed.megatron.core import Timers
+from onescience.distributed.megatron.core.config import set_experimental_flag
+from onescience.distributed.megatron.core.energy_monitor import EnergyMonitor
+from onescience.distributed.megatron.core.num_microbatches_calculator import init_num_microbatches_calculator, unset_num_microbatches_calculator
+from onescience.distributed.megatron.training import dist_signal_handler
+from onescience.distributed.megatron.training.tokenizer import build_tokenizer
 
 _GLOBAL_ARGS = None
 _GLOBAL_TOKENIZER = None

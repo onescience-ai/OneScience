@@ -10,11 +10,11 @@ from typing import List, Optional, Tuple
 import numpy
 import torch
 
-from megatron.core.datasets.blended_megatron_dataset_config import BlendedMegatronDatasetConfig
-from megatron.core.datasets.indexed_dataset import IndexedDataset
-from megatron.core.datasets.megatron_dataset import MegatronDataset
-from megatron.core.datasets.utils import Split
-from megatron.core.utils import log_single_rank
+from onescience.distributed.megatron.core.datasets.blended_megatron_dataset_config import BlendedMegatronDatasetConfig
+from onescience.distributed.megatron.core.datasets.indexed_dataset import IndexedDataset
+from onescience.distributed.megatron.core.datasets.megatron_dataset import MegatronDataset
+from onescience.distributed.megatron.core.datasets.utils import Split
+from onescience.distributed.megatron.core.utils import log_single_rank
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +183,7 @@ class MaskedWordPieceDataset(MegatronDataset):
                 f"\tBuild and save the sample index to {os.path.basename(path_to_sample_index)}",
             )
             t_beg = time.time()
-            from megatron.core.datasets import helpers
+            from onescience.distributed.megatron.core.datasets import helpers
 
             # Add +1 for access to document upper bound
             indices = numpy.append(self.indices, self.indices[-1] + 1)

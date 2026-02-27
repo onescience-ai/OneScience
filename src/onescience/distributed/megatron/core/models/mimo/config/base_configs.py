@@ -4,7 +4,7 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Dict
 
-from megatron.core.transformer.spec_utils import ModuleSpec
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec
 
 
 @dataclass

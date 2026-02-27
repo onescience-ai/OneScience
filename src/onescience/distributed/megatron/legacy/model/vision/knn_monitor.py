@@ -1,10 +1,10 @@
 # Copyright (c) 2024, NVIDIA CORPORATION. All rights reserved.
 import torch.nn.functional as F
 import torch
-from megatron.training import print_rank_0, get_args
-from megatron.core import mpu
-from megatron.legacy.data.vit_dataset import ClassificationTransform
-from megatron.legacy.data.image_folder import ImageFolder
+from onescience.distributed.megatron.training import print_rank_0, get_args
+from onescience.distributed.megatron.core import mpu
+from onescience.distributed.megatron.legacy.data.vit_dataset import ClassificationTransform
+from onescience.distributed.megatron.legacy.data.image_folder import ImageFolder
 
 _FEATURE_BANK = None
 

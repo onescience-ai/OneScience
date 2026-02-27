@@ -2,7 +2,7 @@
 
 import torch
 
-from megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
 
 try:
     from transformers import AutoConfig, AutoModel
@@ -84,11 +84,11 @@ def build_hf_model(config, model_path):
     model_type = get_hf_model_type(model_path)
 
     if "qwen" in model_type:
-        from megatron.core.models.huggingface.qwen_model import QwenHuggingFaceModel
+        from onescience.distributed.megatron.core.models.huggingface.qwen_model import QwenHuggingFaceModel
 
         model = QwenHuggingFaceModel(config)
     elif "siglip" in model_type:
-        from megatron.core.models.huggingface.clip_model import SiglipHuggingFaceModel
+        from onescience.distributed.megatron.core.models.huggingface.clip_model import SiglipHuggingFaceModel
 
         model = SiglipHuggingFaceModel(config)
     else:

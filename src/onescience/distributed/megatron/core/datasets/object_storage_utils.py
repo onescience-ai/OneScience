@@ -11,7 +11,7 @@ try:
 except ModuleNotFoundError:
     pass
 
-from megatron.core.msc_utils import MultiStorageClientFeature
+from onescience.distributed.megatron.core.msc_utils import MultiStorageClientFeature
 
 S3_PREFIX = "s3://"
 MSC_PREFIX = "msc://"

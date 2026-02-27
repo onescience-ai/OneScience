@@ -5,8 +5,8 @@ from enum import Enum
 
 import torch
 
-from megatron.core.transformer.moe.experts import SequentialMLP, TEGroupedMLP
-from megatron.core.transformer.moe.moe_layer import BaseMoELayer
+from onescience.distributed.megatron.core.transformer.moe.experts import SequentialMLP, TEGroupedMLP
+from onescience.distributed.megatron.core.transformer.moe.moe_layer import BaseMoELayer
 
 ExpertsType = Enum('ExpertsType', ('SequentialMLP', 'TEGroupedMLP'))
 ActivationFuncName = Enum('ActivationFuncName', ('gelu', 'silu', 'squared_relu'))

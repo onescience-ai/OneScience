@@ -12,23 +12,23 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch.distributed import ProcessGroup
 
-from megatron.core.inference.async_stream import AsyncStream
-from megatron.core.inference.communication_utils import (
+from onescience.distributed.megatron.core.inference.async_stream import AsyncStream
+from onescience.distributed.megatron.core.inference.communication_utils import (
     broadcast_from_last_pipeline_stage,
     is_pipeline_first_stage,
     is_pipeline_last_stage,
 )
-from megatron.core.inference.contexts.dynamic_context import MaxSequenceLengthOverflowError
-from megatron.core.inference.inference_request import InferenceRequest, Status
-from megatron.core.inference.model_inference_wrappers.abstract_model_inference_wrapper import (
+from onescience.distributed.megatron.core.inference.contexts.dynamic_context import MaxSequenceLengthOverflowError
+from onescience.distributed.megatron.core.inference.inference_request import InferenceRequest, Status
+from onescience.distributed.megatron.core.inference.model_inference_wrappers.abstract_model_inference_wrapper import (
     AbstractModelInferenceWrapper,
 )
-from megatron.core.inference.sampling_params import SamplingParams
-from megatron.core.inference.utils import get_attention_mask
-from megatron.core.transformer.cuda_graphs import create_cudagraphs
-from megatron.core.transformer.moe.moe_layer import BaseMoELayer
-from megatron.core.transformer.utils import set_model_to_sequence_parallel
-from megatron.core.utils import get_model_config
+from onescience.distributed.megatron.core.inference.sampling_params import SamplingParams
+from onescience.distributed.megatron.core.inference.utils import get_attention_mask
+from onescience.distributed.megatron.core.transformer.cuda_graphs import create_cudagraphs
+from onescience.distributed.megatron.core.transformer.moe.moe_layer import BaseMoELayer
+from onescience.distributed.megatron.core.transformer.utils import set_model_to_sequence_parallel
+from onescience.distributed.megatron.core.utils import get_model_config
 
 try:
     import transformer_engine as te  # pylint: disable=unused-import

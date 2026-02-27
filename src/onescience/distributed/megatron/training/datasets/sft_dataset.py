@@ -5,9 +5,9 @@ from typing import Any, Dict, Optional
 import numpy as np
 import torch
 
-from megatron.core.datasets.gpt_dataset import GPTDatasetConfig
-from megatron.core.datasets.megatron_dataset import LowLevelDataset, MegatronDataset
-from megatron.core.datasets.utils import Split
+from onescience.distributed.megatron.core.datasets.gpt_dataset import GPTDatasetConfig
+from onescience.distributed.megatron.core.datasets.megatron_dataset import LowLevelDataset, MegatronDataset
+from onescience.distributed.megatron.core.datasets.utils import Split
 
 IGNORE_INDEX = -100
 

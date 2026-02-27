@@ -7,10 +7,10 @@ from typing import Callable, Optional
 import torch
 from torch import Tensor, nn
 
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.transformer.transformer_block import TransformerBlock
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.utils import deprecate_inference_params, nvtx_decorator
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.transformer.transformer_block import TransformerBlock
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.utils import deprecate_inference_params, nvtx_decorator
 
 logger = logging.getLogger(__name__)
 

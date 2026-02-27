@@ -14,7 +14,7 @@ except ImportError:
 
 from torch.distributed import ProcessGroup
 
-from megatron.core.fp8_utils import is_float8tensor
+from onescience.distributed.megatron.core.fp8_utils import is_float8tensor
 
 from .. import parallel_state, tensor_parallel
 from ..models.common.embeddings.language_model_embedding import LanguageModelEmbedding

@@ -18,14 +18,14 @@ from time import time
 
 import torch
 
-from megatron.core import mpu, tensor_parallel, dist_checkpointing
-from megatron.core.dist_checkpointing.mapping import ShardedObject
-from megatron.core.dist_checkpointing.serialization import get_default_load_sharded_strategy
-from megatron.core.dist_checkpointing.strategies.fully_parallel import \
+from onescience.distributed.megatron.core import mpu, tensor_parallel, dist_checkpointing
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedObject
+from onescience.distributed.megatron.core.dist_checkpointing.serialization import get_default_load_sharded_strategy
+from onescience.distributed.megatron.core.dist_checkpointing.strategies.fully_parallel import \
     FullyParallelSaveStrategyWrapper, FullyParallelLoadStrategyWrapper
-from megatron.core.num_microbatches_calculator import update_num_microbatches
-from megatron.core.fp8_utils import is_float8tensor, dequantize_fp8_tensor
-from megatron.core.rerun_state_machine import get_rerun_state_machine
+from onescience.distributed.megatron.core.num_microbatches_calculator import update_num_microbatches
+from onescience.distributed.megatron.core.fp8_utils import is_float8tensor, dequantize_fp8_tensor
+from onescience.distributed.megatron.core.rerun_state_machine import get_rerun_state_machine
 from .async_utils import schedule_async_save, is_empty_async_queue
 from .global_vars import get_args
 from .utils import unwrap_model, print_rank_0, append_to_progress_log, is_last_rank
@@ -36,7 +36,7 @@ from . import wandb_utils
 
 from . import ft_integration
 
-from megatron.core.msc_utils import MultiStorageClientFeature, open_file
+from onescience.distributed.megatron.core.msc_utils import MultiStorageClientFeature, open_file
 
 
 # [ModelOpt]: Import
@@ -519,7 +519,7 @@ def save_checkpoint(iteration, model, optimizer, opt_param_scheduler, num_floati
             logger.debug(f"rank: {rank}, takes {end_ckpt - start_ckpt} to prepare state dict for ckpt ")
             if ckpt_type == CheckpointType.LOCAL:
                 try:
-                    from megatron.core.dist_checkpointing.tensor_aware_state_dict import MCoreTensorAwareStateDict
+                    from onescience.distributed.megatron.core.dist_checkpointing.tensor_aware_state_dict import MCoreTensorAwareStateDict
                 except ModuleNotFoundError:
                     raise RuntimeError("The 'nvidia_resiliency_ext' module is required for local "
                                        "checkpointing but was not found. Please ensure it is installed.")
@@ -1040,7 +1040,7 @@ def _load_base_checkpoint(
         try:
             state_dict = torch.load(checkpoint_name, map_location='cpu', weights_only=False)
         except ModuleNotFoundError:
-            from megatron.legacy.fp16_deprecated import loss_scaler
+            from onescience.distributed.megatron.legacy.fp16_deprecated import loss_scaler
 
             # For backward compatibility.
             if not rank0:
@@ -1243,7 +1243,7 @@ def load_checkpoint(ddp_model, optimizer, opt_param_scheduler, load_arg='load', 
     # Check for model-opt format loading
     if hasattr(args, 'load_model_opt_format') and args.load_model_opt_format:
         print_rank_0(f'Loading checkpoint using ModelOpt format from {load_dir}')
-        from megatron.post_training.checkpointing import load_modelopt_checkpoint
+        from onescience.distributed.megatron.post_training.checkpointing import load_modelopt_checkpoint
 
         # Call the ModelOpt checkpoint loading function
         load_modelopt_checkpoint(

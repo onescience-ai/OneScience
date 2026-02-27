@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 
 import torch
 
-from megatron.core.jit import jit_fuser
+from onescience.distributed.megatron.core.jit import jit_fuser
 
 # pylint: disable=missing-function-docstring
 

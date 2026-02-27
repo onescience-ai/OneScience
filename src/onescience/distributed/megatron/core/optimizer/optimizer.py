@@ -30,7 +30,7 @@ except ImportError:
             'multi_tensor_applier and multi_tensor_scale'
         )
 
-        from megatron.core.utils import local_multi_tensor_applier, local_multi_tensor_scale
+        from onescience.distributed.megatron.core.utils import local_multi_tensor_applier, local_multi_tensor_scale
 
         multi_tensor_applier = local_multi_tensor_applier
         multi_tensor_scale_impl = local_multi_tensor_scale

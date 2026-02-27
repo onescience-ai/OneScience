@@ -15,29 +15,29 @@ import torch
 import torch.nn.functional as F
 from packaging.version import Version as PkgVersion
 
-from megatron.core.dist_checkpointing.validation import StrictHandling
-from megatron.core.models.retro.utils import (
+from onescience.distributed.megatron.core.dist_checkpointing.validation import StrictHandling
+from onescience.distributed.megatron.core.models.retro.utils import (
     get_config_path as get_retro_config_path,
     get_gpt_data_dir as get_retro_data_dir,
 )
-from megatron.core.rerun_state_machine import RerunStateMachine
-from megatron.core.transformer import MLATransformerConfig, TransformerConfig
-from megatron.core.transformer.pipeline_parallel_layer_layout import PipelineParallelLayerLayout
-from megatron.core.transformer.enums import AttnBackend
-from megatron.core.transformer.heterogeneous.heterogeneous_config import (
+from onescience.distributed.megatron.core.rerun_state_machine import RerunStateMachine
+from onescience.distributed.megatron.core.transformer import MLATransformerConfig, TransformerConfig
+from onescience.distributed.megatron.core.transformer.pipeline_parallel_layer_layout import PipelineParallelLayerLayout
+from onescience.distributed.megatron.core.transformer.enums import AttnBackend
+from onescience.distributed.megatron.core.transformer.heterogeneous.heterogeneous_config import (
     HeterogeneousTransformerConfig,
     MLPConfig,
 )
-from megatron.core.utils import (
+from onescience.distributed.megatron.core.utils import (
     get_torch_version,
     is_te_min_version,
     is_torch_min_version,
 )
-from megatron.training.activations import squared_relu
-from megatron.training.utils import get_device_arch_version, update_use_dist_ckpt, print_rank_0
-from megatron.core.msc_utils import MultiStorageClientFeature
+from onescience.distributed.megatron.training.activations import squared_relu
+from onescience.distributed.megatron.training.utils import get_device_arch_version, update_use_dist_ckpt, print_rank_0
+from onescience.distributed.megatron.core.msc_utils import MultiStorageClientFeature
 
-from megatron.core.quantization.utils import (
+from onescience.distributed.megatron.core.quantization.utils import (
     kitchen_quantization_recipe_config,
     load_quantization_recipe,
 )
@@ -2977,7 +2977,7 @@ def _add_kitchen_quantization_arguments(parser: argparse.ArgumentParser):
     If kitchen isn't available, nothing to do here, return unchanged parser
     """
     try:
-        from megatron.core.extensions.kitchen import KitchenSpecProvider
+        from onescience.distributed.megatron.core.extensions.kitchen import KitchenSpecProvider
 
         have_kitchen = True
     except (ImportError, ModuleNotFoundError):

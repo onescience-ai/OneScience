@@ -3,7 +3,7 @@
 import warnings
 from typing import Optional, Tuple
 
-from megatron.core.extensions.transformer_engine import (
+from onescience.distributed.megatron.core.extensions.transformer_engine import (
     TEColumnParallelGroupedLinear,
     TEColumnParallelLinear,
     TEDotProductAttention,
@@ -13,12 +13,12 @@ from megatron.core.extensions.transformer_engine import (
     TERowParallelGroupedLinear,
     TERowParallelLinear,
 )
-from megatron.core.fusions.fused_layer_norm import FusedLayerNorm
-from megatron.core.models.backends import BackendSpecProvider
-from megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
-from megatron.core.transformer.mlp import MLPSubmodules
-from megatron.core.transformer.moe.experts import GroupedMLP, SequentialMLP, TEGroupedMLP
-from megatron.core.utils import get_te_version, is_te_min_version
+from onescience.distributed.megatron.core.fusions.fused_layer_norm import FusedLayerNorm
+from onescience.distributed.megatron.core.models.backends import BackendSpecProvider
+from onescience.distributed.megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
+from onescience.distributed.megatron.core.transformer.mlp import MLPSubmodules
+from onescience.distributed.megatron.core.transformer.moe.experts import GroupedMLP, SequentialMLP, TEGroupedMLP
+from onescience.distributed.megatron.core.utils import get_te_version, is_te_min_version
 
 
 class TESpecProvider(BackendSpecProvider):

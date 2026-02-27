@@ -10,8 +10,8 @@ from typing import Optional
 import torch
 from torch import Tensor
 
-from megatron.core.models.common.embeddings.rope_utils import get_pos_emb_on_this_cp_rank
-from megatron.core.models.common.embeddings.rotary_pos_embedding import RotaryEmbedding
+from onescience.distributed.megatron.core.models.common.embeddings.rope_utils import get_pos_emb_on_this_cp_rank
+from onescience.distributed.megatron.core.models.common.embeddings.rotary_pos_embedding import RotaryEmbedding
 
 logger = logging.getLogger(__name__)
 

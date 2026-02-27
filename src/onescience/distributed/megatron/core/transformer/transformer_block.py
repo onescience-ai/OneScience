@@ -7,25 +7,25 @@ from typing import List, Optional, Union
 import torch
 from torch import Tensor
 
-from megatron.core import parallel_state, tensor_parallel
-from megatron.core.dist_checkpointing.mapping import ShardedStateDict
-from megatron.core.dist_checkpointing.utils import replace_prefix_for_sharding
-from megatron.core.enums import Fp8Recipe
-from megatron.core.fp8_utils import get_fp8_context
-from megatron.core.fusions.fused_layer_norm import FusedLayerNorm
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.packed_seq_params import PackedSeqParams
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.transformer.enums import LayerType
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.spec_utils import ModuleSpec, build_module
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.transformer.transformer_layer import (
+from onescience.distributed.megatron.core import parallel_state, tensor_parallel
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedStateDict
+from onescience.distributed.megatron.core.dist_checkpointing.utils import replace_prefix_for_sharding
+from onescience.distributed.megatron.core.enums import Fp8Recipe
+from onescience.distributed.megatron.core.fp8_utils import get_fp8_context
+from onescience.distributed.megatron.core.fusions.fused_layer_norm import FusedLayerNorm
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.packed_seq_params import PackedSeqParams
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.transformer.enums import LayerType
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec, build_module
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.transformer_layer import (
     BaseTransformerLayer,
     get_transformer_layer_offset,
 )
-from megatron.core.transformer.utils import sharded_state_dict_default
-from megatron.core.utils import WrappedTensor, deprecate_inference_params, make_viewless_tensor
+from onescience.distributed.megatron.core.transformer.utils import sharded_state_dict_default
+from onescience.distributed.megatron.core.utils import WrappedTensor, deprecate_inference_params, make_viewless_tensor
 
 try:
     import transformer_engine.pytorch as te  # pylint: disable=unused-import
@@ -45,7 +45,7 @@ get_cpu_offload_context = None
 te_checkpoint = None
 
 if HAVE_TE:
-    from megatron.core.extensions.transformer_engine import (
+    from onescience.distributed.megatron.core.extensions.transformer_engine import (
         TENorm,
         get_cpu_offload_context,
         te_checkpoint,
@@ -57,7 +57,7 @@ elif HAVE_APEX:
     LayerNormImpl = FusedLayerNorm
 
 else:
-    from megatron.core.transformer.torch_norm import WrappedTorchNorm
+    from onescience.distributed.megatron.core.transformer.torch_norm import WrappedTorchNorm
 
     LayerNormImpl = WrappedTorchNorm
 

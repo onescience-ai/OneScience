@@ -2,10 +2,10 @@
 import torch
 from torch import Tensor
 
-from megatron.core.fusions.fused_layer_norm import HAVE_FUSED_LAYER_NORM, FusedLayerNorm
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.transformer.utils import get_linear_layer
+from onescience.distributed.megatron.core.fusions.fused_layer_norm import HAVE_FUSED_LAYER_NORM, FusedLayerNorm
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.utils import get_linear_layer
 
 if HAVE_FUSED_LAYER_NORM:
     LNImpl = FusedLayerNorm
@@ -13,7 +13,7 @@ else:
     import warnings
 
     warnings.warn(f'Apex is not installed. Falling back to Torch Norm')
-    from megatron.core.transformer.torch_norm import WrappedTorchNorm as LNImpl
+    from onescience.distributed.megatron.core.transformer.torch_norm import WrappedTorchNorm as LNImpl
 
 
 class BertLMHead(MegatronModule):

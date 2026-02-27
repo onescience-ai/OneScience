@@ -12,13 +12,13 @@ import numpy as np
 import torch
 from torch.distributed import ProcessGroup
 
-from megatron.core import parallel_state
-from megatron.core.datasets.retro.config import RetroPreprocessingConfig
-from megatron.core.datasets.retro.query.multi_split_gpt_dataset import (
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.datasets.retro.config import RetroPreprocessingConfig
+from onescience.distributed.megatron.core.datasets.retro.query.multi_split_gpt_dataset import (
     MultiSplitGPTDataset,
     MultiSplitGPTDatasetConfig,
 )
-from megatron.core.utils import log_single_rank
+from onescience.distributed.megatron.core.utils import log_single_rank
 
 logger = logging.getLogger(__name__)
 

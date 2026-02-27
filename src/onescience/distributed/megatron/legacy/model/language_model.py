@@ -6,12 +6,12 @@ import torch
 import torch.nn.functional as F
 from typing import Optional
 
-from megatron.core import mpu, tensor_parallel
-from megatron.core.enums import ModelType
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.models.common.embeddings.rotary_pos_embedding import RotaryEmbedding
-from megatron.core.utils import deprecate_inference_params
-from megatron.training import get_args
+from onescience.distributed.megatron.core import mpu, tensor_parallel
+from onescience.distributed.megatron.core.enums import ModelType
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.models.common.embeddings.rotary_pos_embedding import RotaryEmbedding
+from onescience.distributed.megatron.core.utils import deprecate_inference_params
+from onescience.distributed.megatron.training import get_args
 
 from .enums import AttnMaskType, LayerType
 from .module import MegatronModule
