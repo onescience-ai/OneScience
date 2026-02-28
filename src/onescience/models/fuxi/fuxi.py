@@ -28,9 +28,9 @@ class Fuxi(nn.Module):
                  window_size=7):
         super().__init__()
         input_resolution = int(img_size[1] / patch_size[1] / 2), int(img_size[2] / patch_size[2] / 2)
-        
+
         self.cube_embedding = OneEmbedding(style="FuxiEmbedding")
-        self.u_transformer = OneTransformer(style="FuxiTransformer"
+        self.u_transformer = OneTransformer(style="FuxiTransformer")
         self.fc = OneFC(style="FuxiFC")
 
         self.patch_size = patch_size
@@ -48,7 +48,6 @@ class Fuxi(nn.Module):
         x = self.fc(x.permute(0, 2, 3, 1))  # B Lat Lon C
         x = x.reshape(B, Lat, Lon, patch_lat, patch_lon, self.out_chans).permute(0, 1, 3, 2, 4, 5)
         # B, lat, patch_lat, lon, patch_lon, C
-
         x = x.reshape(B, Lat * patch_lat, Lon * patch_lon, self.out_chans)
         x = x.permute(0, 3, 1, 2)  # B C Lat Lon
 
