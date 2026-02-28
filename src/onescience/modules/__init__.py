@@ -3,9 +3,12 @@ from .fuser.onefuser import OneFuser
 from .sample.onesample import OneSample
 from .recovery.onerecovery import OneRecovery
 from .attention.oneattention import OneAttention
-
+from .transformer.onetransformer import OneTransformer
+from .fc.onefc import OneFC
 __all__ = ["OneEmbedding",
            "OneFuser",
            "OneSample",
            "OneRecovery",
-           "OneAttention",]
+           "OneAttention",
+           "OneTransformer",
+           "OneFC"]
