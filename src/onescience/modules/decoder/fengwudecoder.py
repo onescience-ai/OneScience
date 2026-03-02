@@ -33,8 +33,8 @@ class FengWuDecoder(nn.Module):
 
     def __init__(
         self,
-        input_resolution,
         output_resolution,
+        middle_resolution,
         out_chans=37,
         img_size=(721, 1440),
         patch_size=(4, 4),
@@ -87,7 +87,7 @@ class FengWuDecoder(nn.Module):
             style="PanguUpSample2D",
             in_dim=dim * 2,
             out_dim=dim,
-            input_resolution=input_resolution,
+            input_resolution=middle_resolution,
             output_resolution=output_resolution
         )
 
