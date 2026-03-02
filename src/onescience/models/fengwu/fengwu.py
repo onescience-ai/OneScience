@@ -50,94 +50,31 @@ class Fengwu(nn.Module):
         window_size=(2, 6, 12),
     ):
         super().__init__()
-        resolution_down1 = (
-            math.ceil(img_size[0] / patch_size[0]),
-            math.ceil(img_size[1] / patch_size[1]),
-        )
-        resolution_down2 = (
-            math.ceil(resolution_down1[0] / 2),
-            math.ceil(resolution_down1[1] / 2),
-        )
-        resolution = (resolution_down1, resolution_down2)
-        self.encoder_surface = OneEncoder(
-            style="FengWuEncoder",
-            in_chans=4,
-            input_resolution=resolution[0],
-            middle_resolution=resolution[1],
-        )
+        self.encoder_surface = OneEncoder(style="FengWuEncoder", in_chans=4)
 
-        self.encoder_z = OneEncoder(
-            style="FengWuEncoder",
-            input_resolution=resolution[0],
-            middle_resolution=resolution[1],
-        )
+        self.encoder_z = OneEncoder(style="FengWuEncoder")
 
-        self.encoder_r = OneEncoder(
-            style="FengWuEncoder",
-            input_resolution=resolution[0],
-            middle_resolution=resolution[1],
-        )
+        self.encoder_r = OneEncoder(style="FengWuEncoder")
 
-        self.encoder_u = OneEncoder(
-            style="FengWuEncoder",
-            in_chans=pressure_level,
-            input_resolution=resolution[0],
-            middle_resolution=resolution[1],
-        )
+        self.encoder_u = OneEncoder(style="FengWuEncoder")
 
-        self.encoder_v = OneEncoder(
-            style="FengWuEncoder",
-            input_resolution=resolution[0],
-            middle_resolution=resolution[1],
-        )
+        self.encoder_v = OneEncoder(style="FengWuEncoder")
 
-        self.encoder_t = OneEncoder(
-            style="FengWuEncoder",
-            input_resolution=resolution[0],
-            middle_resolution=resolution[1],
-        )
+        self.encoder_t = OneEncoder(style="FengWuEncoder")
 
-        self.fuser = OneFuser(
-            style="FengWuFuser",
-            input_resolution=(6, resolution[1][0], resolution[1][1])
-        )
+        self.fuser = OneFuser(style="FengWuFuser")
 
-        self.decoder_surface = OneDecoder(
-            style="FengWuDecoder",
-            output_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            out_chans=4
-        )
+        self.decoder_surface = OneDecoder(style="FengWuDecoder", out_chans=4)
 
-        self.decoder_z = OneDecoder(
-            style="FengWuDecoder",
-            output_resolution=resolution[0],
-            middle_resolution=resolution[1]
-        )
+        self.decoder_z = OneDecoder(style="FengWuDecoder")
 
-        self.decoder_r = OneDecoder(
-            style="FengWuDecoder",
-            output_resolution=resolution[0],
-            middle_resolution=resolution[1]
-        )
+        self.decoder_r = OneDecoder(style="FengWuDecoder")
 
-        self.decoder_u =OneDecoder(
-            style="FengWuDecoder",
-            output_resolution=resolution[0],
-            middle_resolution=resolution[1]
-        )
+        self.decoder_u =OneDecoder(style="FengWuDecoder")
 
-        self.decoder_v = OneDecoder(
-            style="FengWuDecoder",
-            output_resolution=resolution[0],
-            middle_resolution=resolution[1]
-        )
+        self.decoder_v = OneDecoder(style="FengWuDecoder")
 
-        self.decoder_t = OneDecoder(
-            style="FengWuDecoder",
-            output_resolution=resolution[0],
-            middle_resolution=resolution[1]
-        )
+        self.decoder_t = OneDecoder(style="FengWuDecoder")
 
     def forward(self, surface, z, r, u, v, t):
         """

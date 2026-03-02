@@ -28,7 +28,7 @@ class FengWuFuser(nn.Module):
 
     def __init__(
         self,
-        input_resolution,
+        input_resolution=(6, 91, 180),
         dim=192*2,
         depth=6,
         num_heads=12,

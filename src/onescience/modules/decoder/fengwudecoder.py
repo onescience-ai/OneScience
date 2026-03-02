@@ -33,8 +33,8 @@ class FengWuDecoder(nn.Module):
 
     def __init__(
         self,
-        output_resolution,
-        middle_resolution,
+        output_resolution=(181, 360),
+        middle_resolution=(91,180),
         out_chans=37,
         img_size=(721, 1440),
         patch_size=(4, 4),

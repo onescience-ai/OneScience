@@ -32,8 +32,8 @@ class FengWuEncoder(nn.Module):
 
     def __init__(
         self,
-        input_resolution,
-        middle_resolution,
+        input_resolution=(181, 360),
+        middle_resolution=(91,180),
         in_chans=37,
         img_size=(721, 1440),
         patch_size=(4, 4),

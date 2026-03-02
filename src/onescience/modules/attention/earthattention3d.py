@@ -8,21 +8,59 @@ from ..func_utils import (
 
 class EarthAttention3D(nn.Module):
     """
-        改编自 WeatherLearn（https://github.com/lizhuoq/WeatherLearn）
-        具有地球位置偏置（Earth Position Bias）的三维窗口注意力机制（3D Window Attention）。
-        该模块同时支持 移位（shifted） 和 非移位（non-shifted） 窗口机制。
-
-        参数说明：
-        dim (int)：输入通道数。
-        input_resolution (tuple[int])：输入的空间分辨率，格式为 [气压层数, 纬度, 经度]。
-        window_size (tuple[int])：窗口大小，格式为 [气压层数, 纬度, 经度]。
-        num_heads (int)：注意力头（Attention Heads）的数量。
-        qkv_bias (bool, 可选)：如果为 True，则在 Query、Key、Value 上添加可学习偏置项。默认值：True。
-        qk_scale (float | None, 可选)：如果设置该参数，则会覆盖默认的缩放比例（head_dim ** -0.5）。
-        attn_drop (float, 可选)：注意力权重的 dropout 比例。默认值：0.0。
-        proj_drop (float, 可选)：输出的 dropout 比例。默认值：0.0。
+    用于3D大气变量的地球位置偏置窗口注意力机制。
+    
+    EarthAttention2D 的三维扩展版本，在气压层（pressure level）维度上
+    额外引入位置偏置，用于同时捕捉垂直方向与水平方向的空间关系。适用于
+    处理多层大气变量（如位势高度、温度、风场等等压面数据）的注意力计算。
+    
+    Args:
+        dim (int): 输入通道数（嵌入维度）。
+        input_resolution (tuple[int, int, int]): 输入特征图的空间分辨率
+            (pl, lat, lon)，用于计算窗口数量：
+            - num_pl = pl // Wpl
+            - num_lat = lat // Wlat
+            其中 type_of_windows = num_pl * num_lat，经度方向折叠进 batch 维。
+        window_size (tuple[int, int, int]): 注意力窗口大小 (Wpl, Wlat, Wlon)。
+        num_heads (int): 多头注意力的头数。
+        qkv_bias (bool, optional): 是否为QKV投影添加偏置项，默认为True。
+        qk_scale (float, optional): QK点积的缩放系数，默认为None，
+            此时自动使用 head_dim ** -0.5。
+        attn_drop (float, optional): 注意力权重的Dropout比例，默认为0.0。
+        proj_drop (float, optional): 输出投影的Dropout比例，默认为0.0。
+    
+    形状:
+        - 输入 x: (B * num_lon, num_pl * num_lat, Wpl * Wlat * Wlon, C)
+            其中 num_pl = pl // Wpl，num_lat = lat // Wlat，num_lon = lon // Wlon
+        - 输入 mask: (num_lon, num_pl * num_lat, Wpl * Wlat * Wlon, Wpl * Wlat * Wlon) 或 None
+        - 输出: (B * num_lon, num_pl * num_lat, Wpl * Wlat * Wlon, C)
+    
+    Examples:
+        >>> # 典型Pangu-Weather大气变量配置
+        >>> # 分辨率: pl=13, lat=128, lon=256，窗口大小: 2×8×8
+        >>> # num_pl = 13 // 1 = 13（Pangu实际使用Wpl=2，此处取整需对齐）
+        >>> # num_lat = 128 // 8 = 16
+        >>> # num_lon = 256 // 8 = 32
+        >>> # type_of_windows = num_pl * num_lat = 13 * 16 = 208
+        >>> # B_ = B * num_lon = 4 * 32 = 128
+        >>> # N = Wpl * Wlat * Wlon = 2 * 8 * 8 = 128
+        >>> attn = EarthAttention3D(
+        ...     dim=192,
+        ...     input_resolution=(13, 128, 256),
+        ...     window_size=(2, 8, 8),
+        ...     num_heads=6,
+        ... )
+        >>> x = torch.randn(128, 208, 128, 192)  # (B*num_lon, num_pl*num_lat, N, C)
+        >>> out = attn(x)
+        >>> out.shape
+        torch.Size([128, 208, 128, 192])
+        
+        >>> # 带mask的前向传播（经度循环边界填充场景）
+        >>> mask = torch.zeros(32, 208, 128, 128)  # (num_lon, num_pl*num_lat, N, N)
+        >>> out = attn(x, mask=mask)
+        >>> out.shape
+        torch.Size([128, 208, 128, 192])
     """
-
     def __init__(
         self,
         dim,
@@ -98,6 +136,7 @@ class EarthAttention3D(nn.Module):
         earth_position_bias = earth_position_bias.permute(
             3, 2, 0, 1
         ).contiguous()  # nH, num_pl*num_lat, Wpl*Wlat*Wlon, Wpl*Wlat*Wlon
+        print(attn.shape, earth_position_bias.shape)
         attn = attn + earth_position_bias.unsqueeze(0)
 
         if mask is not None:
