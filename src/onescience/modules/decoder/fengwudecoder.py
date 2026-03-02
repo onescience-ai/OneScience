@@ -96,7 +96,7 @@ class FengWuDecoder(nn.Module):
                 OneTransformer(
                     style="EarthTransformer2DBlock",
                     dim=dim,
-                    input_resolution=input_resolution,
+                    input_resolution=output_resolution,
                     num_heads=num_heads,
                     window_size=window_size,
                     shift_size=(0, 0) if i % 2 == 0 else None,
