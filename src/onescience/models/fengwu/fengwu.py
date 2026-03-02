@@ -6,8 +6,7 @@ import torch
 
 from onescience.modules import OneEncoder, OneDecoder, OneFuser
 
-from ..meta import ModelMetaData
-from ..module import Module
+from onescience.models.meta import ModelMetaData
 
 
 @dataclass
