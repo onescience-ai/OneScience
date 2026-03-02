@@ -19,7 +19,7 @@ invar_upper_air = x[:, 4:, :, :]
 invar = torch.concat([invar_surface, surface_mask, invar_upper_air], dim=1)
 
 out_surface, out_upper_air = model(invar)
-out_upper_air = out_upper_air.reshape(tar_upper_air.shape)
+out_upper_air = out_upper_air.reshape(invar_upper_air.shape)
 print('Function: Pangu Model Forward Pass')
-print(f'output shape: {out.shape}')
-print( 'target shape: torch.Size([2, 70, 721, 1440])\n')
+print(f'output shape: {out_surface.shape}, {out_upper_air.shape}')
+print( 'target shape: torch.Size([2, 70, 721, 1440])\n')cd 
