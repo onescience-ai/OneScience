@@ -105,38 +105,38 @@ class Fengwu(nn.Module):
         self.decoder_surface = OneDecoder(
             style="FengWuDecoder",
             output_resolution=resolution[0],
-            middle_resolution=resolution[1],
+            output_resolution=resolution[1],
             out_chans=4
         )
 
         self.decoder_z = OneDecoder(
             style="FengWuDecoder",
             output_resolution=resolution[0],
-            middle_resolution=resolution[1]
+            output_resolution=resolution[1]
         )
 
         self.decoder_r = OneDecoder(
             style="FengWuDecoder",
             output_resolution=resolution[0],
-            middle_resolution=resolution[1]
+            output_resolution=resolution[1]
         )
 
         self.decoder_u =OneDecoder(
             style="FengWuDecoder",
             output_resolution=resolution[0],
-            middle_resolution=resolution[1]
+            output_resolution=resolution[1]
         )
 
         self.decoder_v = OneDecoder(
             style="FengWuDecoder",
             output_resolution=resolution[0],
-            middle_resolution=resolution[1]
+            output_resolution=resolution[1]
         )
 
         self.decoder_t = OneDecoder(
             style="FengWuDecoder",
             output_resolution=resolution[0],
-            middle_resolution=resolution[1]
+            output_resolution=resolution[1]
         )
 
     def forward(self, surface, z, r, u, v, t):
