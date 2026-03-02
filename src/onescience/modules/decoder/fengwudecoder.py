@@ -6,6 +6,7 @@ from torch import nn
 from onescience.modules.embedding.oneembedding import OneEmbedding
 from onescience.modules.sample.onesample import OneSample
 from onescience.modules.recovery.onerecovery import OneRecovery
+from onescience.modules.transformer.onetransformer import OneTransformer
 
 class FengWuDecoder(nn.Module):
     """A 2D Transformer Decoder Module for one stage
@@ -82,11 +83,18 @@ class FengWuDecoder(nn.Module):
             ]
         )
 
-        self.upsample = UpSample2D(
+        self.downsample = OneSample(
+                style="PanguDownSample2D",
+                in_dim=dim,
+                input_resolution=input_resolution,
+                output_resolution=middle_resolution,
+            )
+        self.upsample = OneSample(
+            style="PanguUpSample2D",
             in_dim=dim * 2,
             out_dim=dim,
             input_resolution=middle_resolution,
-            output_resolution=output_resolution,
+            output_resolution=output_resolution
         )
 
         self.blocks = nn.ModuleList(
