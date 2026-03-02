@@ -37,7 +37,6 @@ class PanguEmbedding2D(nn.Module):
                     ):
         
         super().__init__()
-        print(img_size)
         height, width = img_size
         h_patch_size, w_path_size = patch_size
         stride = patch_size

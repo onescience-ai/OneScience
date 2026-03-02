@@ -6,7 +6,7 @@ from timm.models.swin_transformer_v2 import SwinTransformerV2Stage
 
 from typing import Sequence
 from onescience.modules.func_utils.fuxi_utils import get_pad2d
-from onescience.modules import OneSample
+from onescience.modules.sample.onesample import OneSample
 
 
 

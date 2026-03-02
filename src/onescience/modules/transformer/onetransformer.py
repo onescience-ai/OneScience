@@ -2,9 +2,11 @@
 from torch import nn
 
 from .fuxitransformer import FuxiTransformer
+from .earthtransformer3Dblock import EarthTransformer3DBlock
 
 _TRANSFORMER_REGISTRY = {
     "FuxiTransformer": FuxiTransformer,
+    "EarthTransformer3DBlock": EarthTransformer3DBlock,
 }
 
 class OneTransformer(nn.Module):
