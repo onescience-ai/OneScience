@@ -22,4 +22,4 @@ out_surface, out_upper_air = model(invar)
 out_upper_air = out_upper_air.reshape(invar_upper_air.shape)
 print('Function: Pangu Model Forward Pass')
 print(f'output shape: {out_surface.shape}, {out_upper_air.shape}')
-print( 'target shape: torch.Size([2, 70, 721, 1440])\n')cd 
+print( 'target shape: torch.Size([2, 70, 721, 1440])\n')
