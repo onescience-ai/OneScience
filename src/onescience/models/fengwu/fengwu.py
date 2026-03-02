@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import torch
-
+from torch import nn
 from onescience.modules import OneEncoder, OneDecoder, OneFuser
 
 from onescience.models.meta import ModelMetaData
