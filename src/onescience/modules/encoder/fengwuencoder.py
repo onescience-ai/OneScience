@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 from onescience.modules.embedding.oneembedding import OneEmbedding
-from onescience.modules.sampler.onesample import OneSample
+from onescience.modules.sample.onesample import OneSample
 from onescience.modules.transformer.onetransformer import OneTransformer
 
 class FengWuEncoder(nn.Module):
