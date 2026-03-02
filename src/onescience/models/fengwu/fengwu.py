@@ -49,7 +49,7 @@ class Fengwu(nn.Module):
         num_heads=(6, 12, 12, 6),
         window_size=(2, 6, 12),
     ):
-        super().__init__(meta=MetaData())
+        super().__init__()
         resolution_down1 = (
             math.ceil(img_size[0] / patch_size[0]),
             math.ceil(img_size[1] / patch_size[1]),
