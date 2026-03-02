@@ -26,7 +26,7 @@ class MetaData(ModelMetaData):
     auto_grad: bool = False
 
 
-class Fengwu(Module):
+class Fengwu(nn.Module):
     """
     FengWu PyTorch impl of: `FengWu: Pushing the Skillful Global Medium-range Weather Forecast beyond 10 Days Lead`
     - https://arxiv.org/pdf/2304.02948.pdf
