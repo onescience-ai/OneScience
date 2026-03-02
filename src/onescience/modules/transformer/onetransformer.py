@@ -2,10 +2,12 @@
 from torch import nn
 
 from .fuxitransformer import FuxiTransformer
+from .earthtransformer2Dblock import EarthTransformer2DBlock
 from .earthtransformer3Dblock import EarthTransformer3DBlock
 
 _TRANSFORMER_REGISTRY = {
     "FuxiTransformer": FuxiTransformer,
+    "EarthTransformer2DBlock": EarthTransformer2DBlock,
     "EarthTransformer3DBlock": EarthTransformer3DBlock,
 }
 

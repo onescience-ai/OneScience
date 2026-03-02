@@ -1,9 +1,11 @@
 from torch import nn
 
 from .pangufuser import PanguFuser
+from .fengwufuser import FengWuFuser
 
 _FUSER_REGISTRY = {
     "PanguFuser": PanguFuser,
+    "FengWuFuser": FengWuFuser,
 }
 
 class OneFuser(nn.Module):

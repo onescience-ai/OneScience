@@ -21,12 +21,12 @@ class FuxiTransformer(nn.Module):
         depth (int): Number of blocks.
     """
     def __init__(self, 
-    embed_dim=1536,
-    num_groups=32, 
-    input_resolution=(90, 180),
-    num_heads=8, 
-    window_size=7, 
-    depth=48):
+                 embed_dim=1536,
+                 num_groups=32, 
+                 input_resolution=(90, 180),
+                 num_heads=8, 
+                 window_size=7, 
+                 depth=48):
         super().__init__()
         
         num_groups = to_2tuple(num_groups)

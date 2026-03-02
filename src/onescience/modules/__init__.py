@@ -5,6 +5,8 @@ from .recovery.onerecovery import OneRecovery
 from .attention.oneattention import OneAttention
 from .transformer.onetransformer import OneTransformer
 from .fc.onefc import OneFC
+from .encoder.oneencoder import OneEncoder
+from .decoder.onedecoder import OneDecoder
 
 __all__ = ["OneEmbedding",
            "OneFuser",
@@ -12,4 +14,6 @@ __all__ = ["OneEmbedding",
            "OneRecovery",
            "OneAttention",
            "OneTransformer",
-           "OneFC"]
+           "OneFC",
+           "OneEncoder",
+           "OneDecoder"]

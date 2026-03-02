@@ -15,10 +15,10 @@ class PatchRecovery2D(nn.Module):
     """
 
     def __init__(self, 
-                  img_size = (721, 1440),
-                  patch_size = (4, 4),
-                  in_chans = 192*2,
-                  out_chans = 4):
+                img_size = (721, 1440),
+                patch_size = (4, 4),
+                in_chans = 192*2,
+                out_chans = 4):
         super().__init__()
         self.img_size = img_size
         self.conv = nn.ConvTranspose2d(in_chans, out_chans, patch_size, patch_size)

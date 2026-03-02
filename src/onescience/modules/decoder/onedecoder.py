@@ -1,21 +1,21 @@
 # from .timestepembedder import TimestepEmbedder 
 from torch import nn
-from .fengwuencoder import FengWuEncoder
+from .fengwudecoder import FengWuDecoder
 
-_ENCODER_REGISTRY = {
-    "FengWuEncoder": FengWuEncoder,
+_DECODER_REGISTRY = {
+    "FengWuDecoder": FengWuDecoder,
 }
 
-class OneEncoder(nn.Module):
+class OneDecoder(nn.Module):
    
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _ENCODER_REGISTRY:
+        if style not in _DECODER_REGISTRY:
             raise NotImplementedError(f"Unknown style: {style}")
         
-        self.encoder = _ENCODER_REGISTRY[style](**kwargs)
+        self.decoder = _DECODER_REGISTRY[style](**kwargs)
 
     def forward(self, x):
         
-        return self.encoder(x) 
+        return self.decoder(x) 
