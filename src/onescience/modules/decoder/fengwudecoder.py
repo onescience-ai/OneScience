@@ -83,17 +83,11 @@ class FengWuDecoder(nn.Module):
             ]
         )
 
-        self.downsample = OneSample(
-                style="PanguDownSample2D",
-                in_dim=dim,
-                input_resolution=input_resolution,
-                output_resolution=middle_resolution,
-            )
         self.upsample = OneSample(
             style="PanguUpSample2D",
             in_dim=dim * 2,
             out_dim=dim,
-            input_resolution=middle_resolution,
+            input_resolution=input_resolution,
             output_resolution=output_resolution
         )
 
