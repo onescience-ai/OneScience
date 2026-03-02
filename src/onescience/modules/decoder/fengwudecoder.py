@@ -116,7 +116,8 @@ class FengWuDecoder(nn.Module):
         )
 
 
-    def forward(self, x, skip):
+    def forward(self, inp):
+        x, skip = inp[0], inp[1]
         B, Lat, Lon, C = skip.shape
         for blk in self.blocks_middle:
             x = blk(x)

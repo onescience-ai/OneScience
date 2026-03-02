@@ -182,10 +182,10 @@ class Fengwu(nn.Module):
             x[:, 5, :, :],
         )
 
-        surface = self.decoder_surface(surface, skip_surface)
-        z = self.decoder_z(z, skip_z)
-        r = self.decoder_r(r, skip_r)
-        u = self.decoder_u(u, skip_u)
-        v = self.decoder_v(v, skip_v)
-        t = self.decoder_t(t, skip_t)
+        surface = self.decoder_surface([surface, skip_surface])
+        z = self.decoder_z([z, skip_z])
+        r = self.decoder_r([r, skip_r])
+        u = self.decoder_u([u, skip_u])
+        v = self.decoder_v([v, skip_v])
+        t = self.decoder_t([t, skip_t])
         return surface, z, r, u, v, t
