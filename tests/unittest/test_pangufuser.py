@@ -19,6 +19,6 @@ B, T, H, W = 2, 10, 181, 360
 x = torch.randn(B, T * H * W, dim)
 out = fuser(x)
 
-print('Function: FengWuFuser Forward Pass')
+print('Function: FengWuFuser Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 651600, 256]))\n')

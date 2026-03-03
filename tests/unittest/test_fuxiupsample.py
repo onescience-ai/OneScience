@@ -15,6 +15,6 @@ down = OneSample(
 x = torch.randn(2, 1536*2, 90, 180)
 out = down(x)
 
-print('Function: Fuxi Down Sample Forward Pass')
+print('Function: Fuxi Down Sample Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 1536, 180, 360])\n')

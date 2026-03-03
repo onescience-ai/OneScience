@@ -20,6 +20,6 @@ embedding = OneEmbedding(
 x = torch.randn(2, 70, 2, 721, 1440)  # (B, C, T, lat, lon)
 out = embedding(x)
 
-print('Function: Fuxi Embedding Forward Pass')
+print('Function: Fuxi Embedding Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 1536, 1, 180, 360])\n')

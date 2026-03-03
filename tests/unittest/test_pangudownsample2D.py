@@ -19,7 +19,7 @@ downsample1 = OneSample(
 x = torch.randn(2, 65160, 192)  # (B, lat*lon, C)
 out = downsample1(x)
 
-print('Function: Pangu Down Sample 2D Forward Pass')
+print('Function: Pangu Down Sample 2D Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 16380, 384])\n')
 
@@ -31,6 +31,6 @@ downsample2 = OneSample(
 x = torch.randn(2, 32768, 192)  # (B, lat*lon, C)
 out = downsample2(x)
 
-print('Function: Pangu Down Sample 2D Forward Pass')
+print('Function: Pangu Down Sample 2D Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 8192, 384])\n')

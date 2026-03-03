@@ -15,6 +15,6 @@ patch_embed = OneEmbedding(
 x = torch.randn(8, 3, 128, 256)
 out = patch_embed(x)
 
-print('Function: Pangu Embedding 2D Forward Pass')
+print('Function: Pangu Embedding 2D Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([8, 96, 32, 64])\n')

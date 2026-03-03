@@ -15,7 +15,7 @@ EarthTransformer2DBlock = OneTransformer(
 )
 x = torch.randn(2, 181 * 360, 192)  # (B*num_lon, num_lat, N, C)
 out = EarthTransformer2DBlock(x)
-print('Function: EarthTransformer2DBlock Forward Pass')
+print('Function: EarthTransformer2DBlock Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 65160, 192])\n')
 
@@ -28,6 +28,6 @@ EarthTransformer2DBlock = OneTransformer(
     shift_size=(3, 6),  # 半窗口移位
 )
 out = EarthTransformer2DBlock(x)
-print('Function: EarthTransformer2DBlock Forward Pass')
+print('Function: EarthTransformer2DBlock Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 65160, 192])\n')

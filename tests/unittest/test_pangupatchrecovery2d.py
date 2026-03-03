@@ -16,6 +16,6 @@ recovery = OneRecovery(
 x = torch.randn(2, 384, 181, 360)
 out = recovery(x)
 
-print('Function: Pangu Patch Recovery 2D Forward Pass')
+print('Function: Pangu Patch Recovery 2D Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 4, 721, 1440])\n')

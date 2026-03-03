@@ -17,6 +17,6 @@ B, T, H, W, C = 2, 6, 91, 180, 192 * 2
 x = torch.randn(B, T * H * W, C)  # 已展平的三维网格特征
 out = fuser(x)
 
-print('Function: FengWuFuser Forward Pass')
+print('Function: FengWuFuser Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 98280, 384]))\n')

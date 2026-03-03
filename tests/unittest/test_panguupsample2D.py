@@ -20,7 +20,7 @@ upsample1 = OneSample(
 x = torch.randn(2, 16380, 384)  # (B, lat*lon, C)
 out = upsample1(x)
 
-print('Function: Pangu Up Sample 2D Forward Pass')
+print('Function: Pangu Up Sample 2D Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 65160, 192])\n')
 
@@ -33,6 +33,6 @@ upsample2 = OneSample(
 x = torch.randn(2, 8192, 384)  # (B, lat*lon, C)
 out = upsample2(x)
 
-print('Function: Pangu Up Sample 2D Forward Pass')
+print('Function: Pangu Up Sample 2D Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 32768, 192])\n')

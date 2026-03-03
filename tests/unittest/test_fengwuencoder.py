@@ -10,6 +10,6 @@ B = 2
 decoder = OneEncoder(style="FengWuEncoder")
 x = torch.randn(2, 37, 721, 1440)  # (B, middle_lat*middle_lon, dim*2)
 out, skip = decoder(x)
-print('Function: FengWuEncoder Forward Pass')
+print('Function: FengWuEncoder Forward')
 print(f'output shape: {out.shape}, skip shape: {skip.shape}')
 print( 'target shape: torch.Size([2, 16380, 384]), torch.Size([2, 181, 360, 192])\n')

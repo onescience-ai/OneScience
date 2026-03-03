@@ -17,6 +17,6 @@ model = Fuxi(
 x = torch.randn(2, 2, 70, 721, 1440)
 x = x.permute(0, 2, 1, 3, 4) 
 out = model(x)
-print('Function: FuXi Model Forward Pass')
+print('Function: FuXi Model Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 70, 721, 1440])\n')

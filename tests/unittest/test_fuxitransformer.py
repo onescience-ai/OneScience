@@ -16,6 +16,6 @@ FuxiTransformer = OneTransformer(
 )
 x = torch.randn(2, 256, 180, 360)  # (B*num_lon, num_lat, N, C)
 out = FuxiTransformer(x)
-print('Function: FuxiTransformer Forward Pass')
+print('Function: FuxiTransformer Forward')
 print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([2, 256, 180, 360])\n')
