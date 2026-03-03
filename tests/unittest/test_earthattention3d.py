@@ -21,7 +21,7 @@ print(f'output shape: {out.shape}')
 print( 'target shape: torch.Size([128, 112, 128, 192])\n')
 
 # 带mask的前向传播（用于循环边界填充场景）
-mask = torch.zeros(32, 112, 128, 128  # (num_lon, num_lat, N, N)
+mask = torch.zeros(32, 112, 128, 128)  # (num_lon, num_lat, N, N)
 out = EarthAttention3D(x, mask=mask)
 print('Function: masked-EarthAttention3D Forward Pass')
 print(f'output shape: {out.shape}')
