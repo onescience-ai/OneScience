@@ -8,28 +8,49 @@ from onescience.modules.sample.onesample import OneSample
 from onescience.modules.transformer.onetransformer import OneTransformer
 
 class FengWuEncoder(nn.Module):
-    """A 2D Transformer Encoder Module for one stage
-
-    Args:
-        img_size (tuple[int]): image size(Lat, Lon).
-        patch_size (tuple[int]): Patch token size of Patch Embedding.
-        in_chans (int): number of input channels of Patch Embedding.
-        dim (int): Number of input channels of transformer.
-        input_resolution (tuple[int]): Input resolution for transformer before downsampling.
-        middle_resolution (tuple[int]): Input resolution for transformer after downsampling.
-        depth (int): Number of blocks for transformer before downsampling.
-        depth_middle (int): Number of blocks for transformer after downsampling.
-        num_heads (int): Number of attention heads.
-        window_size (tuple[int]): Local window size.
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
-        qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        drop (float, optional): Dropout rate. Default: 0.0
-        attn_drop (float, optional): Attention dropout rate. Default: 0.0
-        drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
-        norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
     """
+        FengWu 模型的二维层次化编码器，对高分辨率气象场进行编码并输出中分辨率特征与高分辨率 skip 连接。
 
+        Args:
+            input_resolution (tuple[int, int]): 高分辨率编码阶段的空间分辨率 (H1, W1)
+            middle_resolution (tuple[int, int]): 下采样后中分辨率编码阶段的空间分辨率 (Hm, Wm)
+            in_chans (int): 输入气象变量通道数
+            img_size (tuple[int, int]): 原始输入场尺寸 (H, W)
+            patch_size (tuple[int, int]): Patch 大小 (patch_h, patch_w)
+            dim (int): 高分辨率阶段的特征维度
+            depth (int): 高分辨率 Transformer 块层数
+            depth_middle (int): 中分辨率 Transformer 块层数
+            num_heads (int | tuple[int, int]): 多头自注意力头数配置（单个或 (high, middle)）
+            window_size (int | tuple[int, int]): 窗口注意力窗口大小
+            mlp_ratio (float): 前馈网络隐藏层与特征维度的比例
+            qkv_bias (bool): 是否在 QKV 投影中使用偏置
+            qk_scale (float | None): QK 点积缩放因子
+            drop (float): 特征上的 dropout 比例
+            attn_drop (float): 注意力权重上的 dropout 比例
+            drop_path (float | Sequence[float]): DropPath / Stochastic Depth 比例
+            norm_layer (nn.Module): 归一化层类型
+
+        形状:
+            输入:  x 形状为 (B, C, H, W)
+            输出:  x 形状为 (B, middle_resolution[0] * middle_resolution[1], 2 * dim)
+                  skip 形状为 (B, input_resolution[0], input_resolution[1], dim)
+
+        Example:
+            >>> encoder = FengWuEncoder(
+            ...     input_resolution=(181, 360),
+            ...     middle_resolution=(91, 180),
+            ...     in_chans=37,
+            ...     img_size=(721, 1440),
+            ...     patch_size=(4, 4),
+            ...     dim=192,
+            ... )
+            >>> x = torch.randn(2, 37, 721, 1440)
+            >>> out, skip = encoder(x)
+            >>> out.shape
+            torch.Size([2, 91 * 180, 192 * 2])
+            >>> skip.shape
+            torch.Size([2, 181, 360, 192])
+    """
     def __init__(
         self,
         input_resolution=(181, 360),
