@@ -10,22 +10,64 @@ from ..attention.oneattention import OneAttention
 
 class EarthTransformer3DBlock(nn.Module):
     """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    3D Transformer Block
-    参数:
-        dim (int): 输入特征的通道数。
-        input_resolution (tuple[int]): 输入特征的空间分辨率。
-        num_heads (int): 多头注意力的头数。
-        window_size (tuple[int]): 局部注意力窗口大小， [pressure levels, latitude, longitude].
-        shift_size (tuple[int]): 在 “Shifted Window Multi-Head Self-Attention (SW-MSA)” 模式下的窗口平移大小 [pressure levels, latitude, longitude].
-        mlp_ratio (float): MLP 隐藏层维度与嵌入维度的比例。
-        qkv_bias (bool, optional): 若为 True，则在 Query、Key、Value 的线性层中添加可学习偏置项（bias）。默认 True。
-        qk_scale (float | None, optional): 若设置该值，则覆盖默认的缩放因子 head_dim ** -0.5。通常用于调整注意力计算的数值范围。
-        drop (float, optional): Dropout 比例，作用于前向传播中的全连接层输出。默认 0.0。
-        attn_drop (float, optional): 注意力权重的 Dropout 比例。默认 0.0。
-        drop_path (float, optional): 随机深度（Stochastic Depth）比例，用于防止过拟合。默认 0.0。
-        act_layer (nn.Module, optional): 激活函数层，默认使用 nn.GELU。
-        norm_layer (nn.Module, optional): 归一化层类型，默认使用 nn.LayerNorm。
+        用于3D大气变量的地球感知 Swin Transformer Block。
+
+        EarthTransformer2DBlock 的三维扩展版本，结合 EarthAttention3D 在气压层、
+        纬度、经度三个维度上同时进行窗口注意力计算。支持三维循环移位（Shifted Window）
+        以扩大跨窗口感受野，并通过 ZeroPad3d + crop3d 处理各维度与窗口大小不整除
+        的情况。每两个相邻 Block 交替使用普通窗口（shift_size=(0,0,0)）和移位窗口，
+        构成完整的 W-MSA + SW-MSA 配对。
+
+        Args:
+            dim (int): 输入 token 的通道数（嵌入维度）。
+            input_resolution (tuple[int, int, int]): 输入特征图的空间分辨率 (pl, lat, lon)，
+                不整除时模块内部自动 padding 后处理，输出分辨率与输入保持一致。
+            num_heads (int): 多头注意力的头数。
+            window_size (tuple[int, int, int], optional): 注意力窗口大小 (Wpl, Wlat, Wlon)，
+                默认为 (2, 6, 12)。
+            shift_size (tuple[int, int, int], optional): 循环移位的偏移量
+                (shift_pl, shift_lat, shift_lon)，设为 (0, 0, 0) 时为普通窗口注意力
+                （W-MSA），默认为 (1, 3, 6) 即各维度半窗口偏移（SW-MSA）。
+            mlp_ratio (float, optional): MLP 隐层相对于 dim 的扩展倍数，默认为 4.0。
+            qkv_bias (bool, optional): 是否为 QKV 投影添加偏置项，默认为 True。
+            qk_scale (float, optional): QK 点积的缩放系数，默认为 None，
+                自动使用 head_dim ** -0.5。
+            drop (float, optional): MLP 的 Dropout 比例，默认为 0.0。
+            attn_drop (float, optional): 注意力权重的 Dropout 比例，默认为 0.0。
+            drop_path (float, optional): Stochastic Depth 的比例，默认为 0.0。
+            act_layer (nn.Module, optional): MLP 的激活函数，默认为 nn.GELU。
+            norm_layer (nn.Module, optional): 归一化层类型，默认为 nn.LayerNorm。
+
+        形状:
+            - 输入 x: (B, pl * lat * lon, C)，其中 C = dim
+            - 输出:   (B, pl * lat * lon, C)，分辨率与通道数均不变
+
+        Examples:
+            >>> # W-MSA Block（偶数层，不做移位）
+            >>> # 气压层13经 padding 对齐为14（Wpl=2），lat=128，lon=256
+            >>> block_w = EarthTransformer3DBlock(
+            ...     dim=192,
+            ...     input_resolution=(13, 128, 256),
+            ...     num_heads=6,
+            ...     window_size=(2, 6, 12),
+            ...     shift_size=(0, 0, 0),   # 普通窗口
+            ... )
+            >>> x = torch.randn(2, 13 * 128 * 256, 192)  # (B, pl*lat*lon, C)
+            >>> out = block_w(x)
+            >>> out.shape
+            torch.Size([2, 425984, 192])
+
+            >>> # SW-MSA Block（奇数层，三维半窗口移位）
+            >>> block_sw = EarthTransformer3DBlock(
+            ...     dim=192,
+            ...     input_resolution=(13, 128, 256),
+            ...     num_heads=6,
+            ...     window_size=(2, 6, 12),
+            ...     shift_size=(1, 3, 6),   # 半窗口移位
+            ... )
+            >>> out = block_sw(x)
+            >>> out.shape
+            torch.Size([2, 425984, 192])
     """
 
     def __init__(

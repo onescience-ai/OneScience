@@ -9,17 +9,50 @@ from onescience.modules.func_utils.fuxi_utils import get_pad2d
 from onescience.modules.sample.onesample import OneSample
 
 
-
 class FuxiTransformer(nn.Module):
-    """U-Transformer
-    Args:
-        embed_dim (int): Patch embedding dimension.
-        num_groups (int | tuple[int]): number of groups to separate the channels into.
-        input_resolution (tuple[int]): Lat, Lon.
-        num_heads (int): Number of attention heads in different layers.
-        window_size (int | tuple[int]): Window size.
-        depth (int): Number of blocks.
     """
+        FuXi 模型的核心 Transformer 处理模块。
+
+        采用"下采样 → Swin Transformer V2 → 上采样"的 U 形结构，在低分辨率特征图上
+        进行深层注意力计算以降低计算量，并通过跳跃连接将下采样前的特征与注意力输出拼接
+        后恢复原始分辨率。使用 SwinTransformerV2Stage 作为主干，支持 ZeroPad + Crop
+        处理分辨率与窗口大小不整除的情况。
+
+        Args:
+            embed_dim (int, optional): 输入特征的通道数，默认为 1536。
+            num_groups (int 或 tuple[int, int], optional): GroupNorm 的分组数，
+                传入单个 int 时自动扩展为 2 元组，默认为 32。
+            input_resolution (tuple[int, int], optional): 下采样后的特征图分辨率
+                (lat, lon)，即 SwinTransformerV2Stage 的输入分辨率，
+                默认为 (90, 180)。
+            num_heads (int, optional): Swin Transformer 的注意力头数，默认为 8。
+            window_size (int 或 tuple[int, int], optional): 窗口注意力的窗口大小，
+                传入单个 int 时自动扩展为 2 元组，默认为 7。
+            depth (int, optional): SwinTransformerV2Stage 的 Block 层数，默认为 48。
+
+        形状:
+            - 输入 x: (B, embed_dim, lat, lon)
+                其中 lat, lon 为下采样前的原始分辨率（约为 input_resolution 的 2 倍）
+            - 输出:   (B, embed_dim, lat, lon)，分辨率与通道数均不变
+
+        Examples:
+            >>> # 典型 FuXi 配置
+            >>> # 原始输入分辨率: (180, 360)，下采样后: (90, 180)
+            >>> # depth=48 对应 FuXi 论文中的深层 Swin Transformer 堆叠
+            >>> transformer = FuxiTransformer(
+            ...     embed_dim=1536,
+            ...     num_groups=32,
+            ...     input_resolution=(90, 180),
+            ...     num_heads=8,
+            ...     window_size=7,
+            ...     depth=48,
+            ... )
+            >>> x = torch.randn(2, 1536, 180, 360)  # (B, C, lat, lon)
+            >>> out = transformer(x)
+            >>> out.shape
+            torch.Size([2, 1536, 180, 360])
+    """
+
     def __init__(self, 
                  embed_dim=1536,
                  num_groups=32, 
