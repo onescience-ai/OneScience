@@ -11,24 +11,42 @@ from onescience.modules.transformer.onetransformer import OneTransformer
 
 class PanguFuser(nn.Module):
     """
-    改编自 WeatherLearn 项目 https://github.com/lizhuoq/WeatherLearn
-    一个阶段（stage）的基础3D Transformer层（Basic 3D Transformer Layer）
+        Pangu-Weather 模型的三维特征融合模块，在给定三维网格上堆叠多层 3D Transformer 块以融合多时刻、多高度和空间信息。
 
-    参数:
-        dim (int): 输入特征的通道数.
-        input_resolution (tuple[int]): 输入数据的分辨率.
-        depth (int): 当前阶段包含的 Transformer Block 数量.
-        num_heads (int): 多头注意力（Multi-Head Attention）的头数.
-        window_size (tuple[int]): 局部窗口的大小.
-        mlp_ratio (float): MLP 隐藏层的维度与输入嵌入维度的比例.
-        qkv_bias (bool, optional): 若为 True，则在 Query、Key、Value 的线性层中添加可学习偏置项。默认值：True
-        qk_scale (float | None, optional): 若指定该值，则覆盖默认缩放因子 head_dim ** -0.5，用于调整注意力分数的缩放.
-        drop (float, optional): Dropout 比例，用于防止过拟合。默认值：0.0
-        attn_drop (float, optional): 注意力权重的 Dropout 比例。默认值：0.0
-        drop_path (float | tuple[float], optional): 随机深度（Stochastic Depth）比例，可为单个数或一个不同层对应不同值的元组。默认值：0.0
-        norm_layer (nn.Module, optional): 归一化层类型，默认使用 nn.LayerNorm
+        Args:
+            dim (int): 输入与输出特征的通道维度
+            input_resolution (tuple[int, int, int]): 三维输入特征的网格尺寸 (T, H, W)
+            depth (int): 3D Transformer 块的层数
+            num_heads (int): 多头自注意力的头数
+            window_size (tuple[int, int, int]): 三维窗口注意力的窗口大小 (Wt, Wh, Ww)
+            drop_path (float | Sequence[float]): DropPath / Stochastic Depth 比例或其序列
+            mlp_ratio (float): 前馈网络隐藏层与特征维度的比例
+            qkv_bias (bool): 是否在 QKV 投影中使用偏置
+            qk_scale (float | None): QK 点积缩放因子
+            drop (float): 特征上的 dropout 比例
+            attn_drop (float): 注意力权重上的 dropout 比例
+            norm_layer (nn.Module): 归一化层类型
+
+        形状:
+            输入:  x 形状为 (B, T * H * W, dim)，其中 (T, H, W) = input_resolution
+            输出:  x 形状为 (B, T * H * W, dim)，与输入相同
+
+        Example:
+            >>> dim = 256
+            >>> input_resolution = (10, 181, 360)
+            >>> fuser = PanguFuser(
+            ...     dim=dim,
+            ...     input_resolution=input_resolution,
+            ...     depth=4,
+            ...     num_heads=8,
+            ...     window_size=(2, 6, 12),
+            ... )
+            >>> B, T, H, W = 2, 10, 181, 360
+            >>> x = torch.randn(B, T * H * W, dim)
+            >>> out = fuser(x)
+            >>> out.shape
+            torch.Size([2, 10 * 181 * 360, 256])
     """
-
     def __init__(
         self,
         dim,

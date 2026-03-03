@@ -8,53 +8,53 @@ from ..func_utils import (
 
 class EarthAttention2D(nn.Module):
     """
-    用于2D地表变量的地球位置偏置窗口注意力机制。
-    
-    在标准窗口注意力基础上引入地球位置偏置（Earth Position Bias），
-    用于捕捉纬度方向窗口间的空间关系。适用于处理地表气象变量（如
-    2m温度、10m风速等）的Swin-Transformer风格注意力计算。
-    
-    Args:
-        dim (int): 输入通道数（嵌入维度）。
-        input_resolution (tuple[int, int]): 输入特征图的空间分辨率 (lat, lon)，
-            用于计算纬度方向的窗口数量 num_lat = lat // Wlat。
-        window_size (tuple[int, int]): 注意力窗口大小 (Wlat, Wlon)。
-        num_heads (int): 多头注意力的头数。
-        qkv_bias (bool, optional): 是否为QKV投影添加偏置项，默认为True。
-        qk_scale (float, optional): QK点积的缩放系数，默认为None，
-            此时自动使用 head_dim ** -0.5。
-        attn_drop (float, optional): 注意力权重的Dropout比例，默认为0.0。
-        proj_drop (float, optional): 输出投影的Dropout比例，默认为0.0。
-    
-    形状:
-        - 输入 x: (B * num_lon, num_lat, Wlat * Wlon, C)
-            其中 num_lat = lat // Wlat，num_lon = lon // Wlon
-        - 输入 mask: (num_lon, num_lat, Wlat * Wlon, Wlat * Wlon) 或 None
-        - 输出: (B * num_lon, num_lat, Wlat * Wlon, C)
-    
-    Examples:
-        >>> # 典型Pangu-Weather地表变量配置
-        >>> # 分辨率: lat=128, lon=256，窗口大小: 8×8
-        >>> # num_lat = 128 // 8 = 16
-        >>> # num_lon = 256 // 8 = 32
-        >>> # B_ = B * num_lon = 4 * 32 = 128
-        >>> # N = Wlat * Wlon = 8 * 8 = 64
-        >>> attn = EarthAttention2D(
-        ...     dim=192,
-        ...     input_resolution=(128, 256),
-        ...     window_size=(8, 8),
-        ...     num_heads=6,
-        ... )
-        >>> x = torch.randn(128, 16, 64, 192)  # (B*num_lon, num_lat, N, C)
-        >>> out = attn(x)
-        >>> out.shape
-        torch.Size([128, 16, 64, 192])
+        用于2D地表变量的地球位置偏置窗口注意力机制。
         
-        >>> # 带mask的前向传播（用于循环边界填充场景）
-        >>> mask = torch.zeros(32, 16, 64, 64)  # (num_lon, num_lat, N, N)
-        >>> out = attn(x, mask=mask)
-        >>> out.shape
-        torch.Size([128, 16, 64, 192])
+        在标准窗口注意力基础上引入地球位置偏置（Earth Position Bias），
+        用于捕捉纬度方向窗口间的空间关系。适用于处理地表气象变量（如
+        2m温度、10m风速等）的Swin-Transformer风格注意力计算。
+        
+        Args:
+            dim (int): 输入通道数（嵌入维度）。
+            input_resolution (tuple[int, int]): 输入特征图的空间分辨率 (lat, lon)，
+                用于计算纬度方向的窗口数量 num_lat = lat // Wlat。
+            window_size (tuple[int, int]): 注意力窗口大小 (Wlat, Wlon)。
+            num_heads (int): 多头注意力的头数。
+            qkv_bias (bool, optional): 是否为QKV投影添加偏置项，默认为True。
+            qk_scale (float, optional): QK点积的缩放系数，默认为None，
+                此时自动使用 head_dim ** -0.5。
+            attn_drop (float, optional): 注意力权重的Dropout比例，默认为0.0。
+            proj_drop (float, optional): 输出投影的Dropout比例，默认为0.0。
+        
+        形状:
+            - 输入 x: (B * num_lon, num_lat, Wlat * Wlon, C)
+                其中 num_lat = lat // Wlat，num_lon = lon // Wlon
+            - 输入 mask: (num_lon, num_lat, Wlat * Wlon, Wlat * Wlon) 或 None
+            - 输出: (B * num_lon, num_lat, Wlat * Wlon, C)
+        
+        Examples:
+            >>> # 典型Pangu-Weather地表变量配置
+            >>> # 分辨率: lat=128, lon=256，窗口大小: 8×8
+            >>> # num_lat = 128 // 8 = 16
+            >>> # num_lon = 256 // 8 = 32
+            >>> # B_ = B * num_lon = 4 * 32 = 128
+            >>> # N = Wlat * Wlon = 8 * 8 = 64
+            >>> attn = EarthAttention2D(
+            ...     dim=192,
+            ...     input_resolution=(128, 256),
+            ...     window_size=(8, 8),
+            ...     num_heads=6,
+            ... )
+            >>> x = torch.randn(128, 16, 64, 192)  # (B*num_lon, num_lat, N, C)
+            >>> out = attn(x)
+            >>> out.shape
+            torch.Size([128, 16, 64, 192])
+            
+            >>> # 带mask的前向传播（用于循环边界填充场景）
+            >>> mask = torch.zeros(32, 16, 64, 64)  # (num_lon, num_lat, N, N)
+            >>> out = attn(x, mask=mask)
+            >>> out.shape
+            torch.Size([128, 16, 64, 192])
     """
 
     def __init__(
