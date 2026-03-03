@@ -122,10 +122,10 @@ class Pangu(nn.Module):
         )
         # The outputs of the 2nd encoder layer and the 7th decoder layer are concatenated along the channel dimension.
         self.patchrecovery2d = OneRecovery(
-            style="pangupatchrecovery2d"
+            style="PanguPatchRecovery2D"
         )
         self.patchrecovery3d = OneRecovery(
-            style="pangupatchrecovery3d"
+            style="PanguPatchRecovery3D"
         )
 
     def forward(self, x):

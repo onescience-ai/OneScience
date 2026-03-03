@@ -1,12 +1,12 @@
 import torch
 from torch import nn
 
-from .pangupatchrecovery2d import PatchRecovery2D
-from .pangupatchrecovery3d import PanGuPatchRecovery3D
+from .pangupatchrecovery2d import PanguPatchRecovery2D
+from .pangupatchrecovery3d import PanguPatchRecovery3D
 
 _RECOVERY_REGISTRY = {
-    "pangupatchrecovery3d": PanGuPatchRecovery3D,
-    "pangupatchrecovery2d": PatchRecovery2D,
+    "PanguPatchRecovery3D": PanguPatchRecovery3D,
+    "PanguPatchRecovery2D": PanguPatchRecovery2D,
 }
 
 class OneRecovery(nn.Module):
