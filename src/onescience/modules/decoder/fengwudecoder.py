@@ -9,28 +9,69 @@ from onescience.modules.recovery.onerecovery import OneRecovery
 from onescience.modules.transformer.onetransformer import OneTransformer
 
 class FengWuDecoder(nn.Module):
-    """A 2D Transformer Decoder Module for one stage
-
-    Args:
-        img_size (tuple[int]): image size(Lat, Lon).
-        patch_size (tuple[int]): Patch token size of Patch Recovery.
-        out_chans (int): number of output channels of Patch Recovery.
-        dim (int): Number of input channels of transformer.
-        output_resolution (tuple[int]): Input resolution for transformer after upsampling.
-        middle_resolution (tuple[int]): Input resolution for transformer before upsampling.
-        depth (int): Number of blocks for transformer after upsampling.
-        depth_middle (int): Number of blocks for transformer before upsampling.
-        num_heads (int): Number of attention heads.
-        window_size (tuple[int]): Local window size.
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
-        qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        drop (float, optional): Dropout rate. Default: 0.0
-        attn_drop (float, optional): Attention dropout rate. Default: 0.0
-        drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
-        norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
     """
-
+    FengWu 模型的解码器模块。
+    
+    采用"中间层处理 → 上采样 → 精细层处理 → 跳跃连接融合 → Patch 恢复"的流水线结构。
+    接收编码器输出的中间分辨率特征与跳跃连接特征，经过多尺度 Transformer 处理后，
+    输出最终气象预报场。
+    
+    Args:
+        output_resolution (tuple[int, int], optional): 输出特征图分辨率 (lat, lon)，
+            默认为 (181, 360)。
+        middle_resolution (tuple[int, int], optional): 中间层特征图分辨率 (lat, lon)，
+            默认为 (91, 180)，约为 output_resolution 的 1/2。
+        out_chans (int, optional): 最终输出的气象变量通道数，默认为 37。
+        img_size (tuple[int, int], optional): 原始输入图像分辨率 (lat, lon)，
+            用于 PatchRecovery 还原，默认为 (721, 1440)。
+        patch_size (tuple[int, int], optional): Patch 大小，用于 PatchRecovery，
+            默认为 (4, 4)。
+        dim (int, optional): 基础嵌入维度，中间层使用 dim*2，默认为 192。
+        depth (int, optional): 输出分辨率处 Transformer Block 的层数，默认为 2。
+        depth_middle (int, optional): 中间分辨率处 Transformer Block 的层数，默认为 6。
+        num_heads (tuple[int, int] 或 int, optional): 各阶段注意力头数 (中间层, 输出层)，
+            默认为 (6, 12)。若为单个 int，则两阶段共用。
+        window_size (tuple[int, int], optional): 窗口注意力的窗口大小 (Wlat, Wlon)，
+            默认为 (6, 12)。
+        mlp_ratio (float, optional): MLP 隐层相对于嵌入维度的扩展倍数，默认为 4.0。
+        qkv_bias (bool, optional): 是否为 QKV 投影添加偏置项，默认为 True。
+        qk_scale (float, optional): QK 点积的缩放系数，默认为 None，
+            自动使用 head_dim ** -0.5。
+        drop (float, optional): MLP 的 Dropout 比例，默认为 0.0。
+        attn_drop (float, optional): 注意力权重的 Dropout 比例，默认为 0.0。
+        drop_path (float 或 Sequence[float], optional): 各 Block 的 DropPath 比例，
+            若为 Sequence，前 depth 个分配给输出层，剩余分配给中间层，默认为 0.0。
+        norm_layer (nn.Module, optional): 归一化层类型，默认为 nn.LayerNorm。
+    
+    形状:
+        - 输入 inp[0] (x):    (B, middle_lat * middle_lon, dim * 2)
+        - 输入 inp[1] (skip): (B, output_lat, output_lon, dim)
+        - 输出:               (B, out_chans, img_lat, img_lon)
+    
+    Examples:
+        >>> # 典型 FengWu 解码器配置
+        >>> # middle_resolution=(91, 180)，output_resolution=(181, 360)
+        >>> # middle_lat * middle_lon = 91 * 180 = 16380
+        >>> # output_lat * output_lon = 181 * 360 = 65160
+        >>> decoder = FengWuDecoder(
+        ...     output_resolution=(181, 360),
+        ...     middle_resolution=(91, 180),
+        ...     out_chans=37,
+        ...     img_size=(721, 1440),
+        ...     patch_size=(4, 4),
+        ...     dim=192,
+        ...     depth=2,
+        ...     depth_middle=6,
+        ...     num_heads=(6, 12),
+        ...     window_size=(6, 12),
+        ... )
+        >>> B = 2
+        >>> x    = torch.randn(B, 16380, 384)   # (B, middle_lat*middle_lon, dim*2)
+        >>> skip = torch.randn(B, 181, 360, 192) # (B, output_lat, output_lon, dim)
+        >>> out = decoder([x, skip])
+        >>> out.shape
+        torch.Size([2, 37, 721, 1440])
+    """
     def __init__(
         self,
         output_resolution=(181, 360),

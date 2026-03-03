@@ -137,7 +137,6 @@ class EarthAttention3D(nn.Module):
         earth_position_bias = earth_position_bias.permute(
             3, 2, 0, 1
         ).contiguous()  # nH, num_pl*num_lat, Wpl*Wlat*Wlon, Wpl*Wlat*Wlon
-        print(attn.shape, earth_position_bias.shape)
         attn = attn + earth_position_bias.unsqueeze(0)
 
         if mask is not None:
