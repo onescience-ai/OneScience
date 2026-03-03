@@ -51,7 +51,7 @@ class Fengwu(nn.Module):
     ):
         super().__init__()
         self.encoder_surface = OneEncoder(style="FengWuEncoder", in_chans=4)
-
+        
         self.encoder_z = OneEncoder(style="FengWuEncoder")
 
         self.encoder_r = OneEncoder(style="FengWuEncoder")

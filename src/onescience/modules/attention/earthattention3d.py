@@ -35,31 +35,32 @@ class EarthAttention3D(nn.Module):
         - 输入 mask: (num_lon, num_pl * num_lat, Wpl * Wlat * Wlon, Wpl * Wlat * Wlon) 或 None
         - 输出: (B * num_lon, num_pl * num_lat, Wpl * Wlat * Wlon, C)
     
-    Examples:
+        Examples:
         >>> # 典型Pangu-Weather大气变量配置
-        >>> # 分辨率: pl=13, lat=128, lon=256，窗口大小: 2×8×8
-        >>> # num_pl = 13 // 1 = 13（Pangu实际使用Wpl=2，此处取整需对齐）
+        >>> # 原始气压层数为13，经 get_pad3d padding 后 pl=14（对齐 Wpl=2）
+        >>> # pad_resolution = (14, 128, 256)，window_size = (2, 8, 8)
+        >>> # num_pl  = 14 // 2 = 7
         >>> # num_lat = 128 // 8 = 16
         >>> # num_lon = 256 // 8 = 32
-        >>> # type_of_windows = num_pl * num_lat = 13 * 16 = 208
+        >>> # type_of_windows = num_pl * num_lat = 7 * 16 = 112
         >>> # B_ = B * num_lon = 4 * 32 = 128
         >>> # N = Wpl * Wlat * Wlon = 2 * 8 * 8 = 128
         >>> attn = EarthAttention3D(
         ...     dim=192,
-        ...     input_resolution=(13, 128, 256),
+        ...     input_resolution=(14, 128, 256),  # 传入 padding 后的分辨率
         ...     window_size=(2, 8, 8),
         ...     num_heads=6,
         ... )
-        >>> x = torch.randn(128, 208, 128, 192)  # (B*num_lon, num_pl*num_lat, N, C)
+        >>> x = torch.randn(128, 112, 128, 192)  # (B*num_lon, num_pl*num_lat, N, C)
         >>> out = attn(x)
         >>> out.shape
-        torch.Size([128, 208, 128, 192])
+        torch.Size([128, 112, 128, 192])
         
         >>> # 带mask的前向传播（经度循环边界填充场景）
-        >>> mask = torch.zeros(32, 208, 128, 128)  # (num_lon, num_pl*num_lat, N, N)
+        >>> mask = torch.zeros(32, 112, 128, 128)  # (num_lon, num_pl*num_lat, N, N)
         >>> out = attn(x, mask=mask)
         >>> out.shape
-        torch.Size([128, 208, 128, 192])
+        torch.Size([128, 112, 128, 192])
     """
     def __init__(
         self,
