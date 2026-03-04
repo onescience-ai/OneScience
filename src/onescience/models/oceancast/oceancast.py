@@ -10,13 +10,13 @@ from onescience.modules.embedding.oneembedding import OneEmbedding
 from onescience.modules.fuser.onefuser import OneFuser
 
 
-class FourCastNet(nn.Module):
+class OceanCast(nn.Module):
     def __init__(
             self,
-            img_size=(720, 1440),
-            patch_size=(8, 8),
-            in_chans=19,
-            out_chans=19,
+            img_size=(160, 360),
+            patch_size=(4, 4),
+            in_chans=72,
+            out_chans=24,
             embed_dim=768,
             depth=12,
             mlp_ratio=4.,
@@ -40,7 +40,11 @@ class FourCastNet(nn.Module):
         self.h = img_size[0] // self.patch_size[0]
         self.w = img_size[1] // self.patch_size[1]
 
-        self.patch_embed = OneEmbedding(style="FourCastNetEmbedding")
+        self.patch_embed = OneEmbedding(style="FourCastNetEmbedding",
+            img_size=(160, 360), 
+            patch_size=(4, 4), 
+            in_chans=72, 
+            embed_dim=768)
         
         self.blocks = nn.ModuleList([
             OneFuser(style="FourCastNetFuser") 
