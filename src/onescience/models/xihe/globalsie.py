@@ -1,14 +1,30 @@
 import torch
 import torch.nn as nn
-from ..layers.mlp_layers import Mlp
+from onescience.modules.func_utils import Mlp
 
 #GLOBAL 1
 class FeatureGrouping(nn.Module):
     """
-    Global SIE - Step 1: Feature Grouping (论文公式 (5) 实现)
-    --------------------------------------------------------
-    输入: Z_tilde (B, N, C)  # Local SIE 输出的特征
-    输出: G_prime (B, G, C) # 更新后的 group vectors
+    Global SIE -Step 1: Feature Grouping
+    功能: 将高分辨率的局部 token 表示压缩为少量的 group 表示，用于构建全局上下文并缓解计算量；同时借助 mask_tokens 只让有效区域（如海洋）参与全局聚合，避免无效区域（如陆地）干扰
+
+    Args:
+        dim (int): 输入特征通道数.
+        num_groups (int): group vectors数量.
+        num_heads (int): 多头注意力的head数.
+        qkv_bias (bool): 是否使用QKV bias.
+        attn_drop (float): 注意力dropout.
+        proj_drop (float): 输出投影dropout.
+
+    形状:
+        输入:
+            x: (B, N, C),局部特征序列(N = H x W)
+            mask_tokens: (B, N)，有效 token 掩码(1=有效,0=忽略）
+        输出:
+            G_prime: (B, G, C)，聚合后的 group 特征
+
+    Returns:
+        Tensor: 更新后的 group vectors,形状为 (B, G, C)。
     """
 
     def __init__(
@@ -65,10 +81,25 @@ class FeatureGrouping(nn.Module):
 #GLOBAL 2   
 class GroupPropagation(nn.Module):
     """
-    Global SIE - Step 2: Group Propagation (论文公式(6)(7))
-    ------------------------------------------------------------
-    输入:  G_prime (B, G, C)   # 来自 Feature Grouping 的 group vectors
-    输出:  G_tilde (B, G, C)   # 融合全局信息后的 group vectors
+    Global SIE - Step 2: Group Propagation
+    目的: 在 group 空间内进行信息传播与融合，使各个 group 表示获得更强的全局一致性与互补性，为后续将全局信息回灌到 patch tokens（Ungrouping）提供更完整的全局上下文.
+
+    Args:
+        dim (int): 输入特征通道数 C.
+        num_groups (int): group vectors 数量 G.
+        mlp_ratio (float): MLP 隐层扩展比例.
+        drop (float): MLP dropout.
+        act_layer (nn.Module): 激活函数层类型（默认 GELU).
+        LN (nn.Module): 归一化层类型（默认 LayerNorm).
+
+    形状:
+        输入:
+            x: (B, G, C)，输入 group vectors.
+        输出:
+            G_tilde: (B, G, C)，传播并融合后的 group vectors.
+
+    Returns:
+        Tensor: 输出 group vectors,形状为 (B, G, C).
     """
 
     def __init__(
@@ -130,12 +161,27 @@ class GroupPropagation(nn.Module):
 class FeatureUngrouping(nn.Module):
     """
     Global SIE - Step 3: Feature Ungrouping
-    --------------------------------------------------------
-    输入: 
-      - x: (B, N, C) patch tokens (来自 Local SIE 输出)
-      - G_tilde: (B, G, C) group vectors (经过 Group Propagation)
-    输出: 
-      - x_out: (B, N, C) 融合全局信息的 patch tokens
+    目的: 将经过全局建模的 group 融合回高分辨率 patch tokens 中，使局部特征获得全局上下文约束，同时保持原有空间分辨率不变.
+
+    Args:
+        dim (int): 输入特征通道数.
+        num_heads (int): 多头注意力的head数.
+        qkv_bias (bool): 是否使用 QKV bias.
+        attn_drop (float): 注意力 dropout.
+        proj_drop (float): 输出投影 dropout.
+        LN (nn.Module): 归一化层类型（默认 LayerNorm).
+        drop_layer (nn.Module): dropout 层类型（默认 Dropout).
+
+    形状:
+        输入:
+            x: (B, N, C),patch tokens(N = H x W)
+            G_tilde: (B, G, C),group vectors
+            mask: (可选) 未使用/预留
+        输出:
+            x_out: (B, N, C)，融合全局信息后的 patch tokens
+
+    Returns:
+        Tensor: 输出 patch tokens,形状为 (B, N, C)。
     """
 
     def __init__(
@@ -202,6 +248,35 @@ class FeatureUngrouping(nn.Module):
         return x_out
 
 class GlobalSIE(nn.Module):
+    """
+    Global SIE (Global Spatial Information Exchange)
+    目的: 通过“分组 → 传播 → 回灌”的三阶段结构，在保持原始token空间分辨率不变的前提下，引入全局范围的信息交互，用于建模远距离依赖与大尺度一致性特征。
+
+    组成:
+        Step 1 - Feature Grouping:
+            将高分辨率 patch tokens 压缩为少量 group 表示，构建全局摘要.
+        Step 2 - Group Propagation:
+            在 group 空间内进行信息传播与融合，强化全局上下文.
+        Step 3 - Feature Ungrouping:
+            将全局信息回灌至 patch tokens,更新局部表示.
+
+    Args:
+        dim (int): 输入特征通道数.
+        num_heads (int): 注意力 head 数（与 Local SIE 对齐）.
+        qkv_bias (bool): 是否使用 QKV bias.
+        num_groups (int): group vectors 数量.
+        norm_layer (nn.Module): 归一化层类型（默认 LayerNorm).
+
+    形状:
+        输入:
+            x: (B, N, C),token 序列(N = H x W)
+            mask: (可选) (B, N)，有效区域掩码（如 ocean-land mask)
+        输出:
+            x: (B, N, C)，融合全局信息后的 token 序列
+
+    Returns:
+        Tensor: 输出特征，形状为 (B, N, C)。
+    """
     def __init__(
         self,
         dim,

@@ -3,23 +3,16 @@ import os
 import torch
 import sys
 import numpy as np
-from dataclasses import dataclass
-from onescience.models.meta import ModelMetaData
-from onescience.models.module import Module
-from onescience.utils.YParams import YParams
-
-
-from onescience.models.utils import (
-    PatchEmbed2D,
-    PatchEmbed3D,
-    PatchRecovery2D,
-    PatchRecovery3D,
-)
-
-
 import torch.nn as nn
+from dataclasses import dataclass
+from onescience.utils.YParams import YParams
+from onescience.models.meta import ModelMetaData
 from onescience.models.xihe.oceanspecificblock import OceanSpecificBlock
-from ..layers.resample_layers import DownSample2D, UpSample
+from onescience.modules import (
+    OneEmbedding,
+    OneRecovery,
+    OneSample,
+)
 
 
 
@@ -42,7 +35,7 @@ class MetaData(ModelMetaData):
     auto_grad: bool = False
        
    
-class Xihe(Module):
+class Xihe(nn.Module):
     """
     Xihe A PyTorch impl of: `XiHe: A Data-Driven Model for Global Ocean Eddy-Resolving Forecasting`
     https://arxiv.org/abs/2402.02995
@@ -62,7 +55,7 @@ class Xihe(Module):
         num_groups=32,
         
     ):
-        super().__init__(meta=MetaData())
+        super().__init__()
         self.img_size = config.img_size
         self.patch_size =config.patch_size
         # 正确初始化 mask_full
@@ -77,19 +70,10 @@ class Xihe(Module):
         
         self.skip_proj = nn.Linear(2*self.embed_dim, self.embed_dim)
 
-        
-        # 2D patch embedding
-        self.patchembed2d = PatchEmbed2D(
-            img_size=img_size,
-            patch_size=self.patch_size,
-            in_chans=self.in_chans,
-            embed_dim=self.embed_dim,
-        )
-        self.patchrecovery2d = PatchRecovery2D(
-            img_size=img_size,
-            patch_size=self.patch_size,
-            in_chans=self.embed_dim,
-            out_chans=self.out_chans,
+
+        self.patchembed2d = OneEmbedding(style="XiheEmbedding")
+        self.patchrecovery2d = OneRecovery(
+            style="XihePatchRecovery"
         )
 
         # patch 后的 3D 分辨率: (Pl=1, Lat_out, Lon_out)
@@ -123,7 +107,9 @@ class Xihe(Module):
             norm_layer=nn.LayerNorm
         )
         
-        self.downsample = DownSample2D(
+
+        self.downsample = OneSample(
+            style="PanguDownSample2D",
             in_dim=self.embed_dim,
             input_resolution=(H_out, W_out),
             output_resolution=(H_out // 2, W_out // 2),
@@ -179,12 +165,13 @@ class Xihe(Module):
             drop_path=drop_path,
             norm_layer=nn.LayerNorm
         )
-        self.upsample = UpSample(
-                in_dim=2*self.embed_dim,
-                out_dim=embed_dim,
-                input_resolution=(H_out // 2, W_out // 2),  
-                output_resolution=(H_out, W_out),         
-            )   
+        self.upsample = OneSample(
+            style="XiheUpSample",
+            in_dim=2*self.embed_dim,
+            out_dim=embed_dim,
+            input_resolution=(H_out // 2, W_out // 2),  
+            output_resolution=(H_out, W_out), 
+        )
         input_resolution = (1, H_out, W_out)
         self.block5=OceanSpecificBlock(
             dim=self.embed_dim,
@@ -226,7 +213,7 @@ class Xihe(Module):
             mask_coarse = mask_coarse.unsqueeze(0).unsqueeze(0).repeat(B, 1, 1, 1) #broadcast
             return mask_coarse  
         
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor):     
         x = self.patchembed2d(x)                  # (B, C=embed_dim, H', W')
         x = x.flatten(2).transpose(1, 2)          # (B, N=H'*W', C) 
         B, N, C = x.shape     
@@ -239,9 +226,6 @@ class Xihe(Module):
             mask1 = self.change_mask(mask_full, x, h_out=H_out, w_out=W_out)
         else:
             mask1 = None
-        # ratio = (mask1 == 1).float().mean().item()
-        # print("海洋区域占比:", ratio)
-        # print("mask1",mask1.shape)
         # print("x.shape-patch------", tuple(x.shape))
 
         x=self.block1(x,mask=mask1)          # (B, N, C) 经过 3D 全局注意力

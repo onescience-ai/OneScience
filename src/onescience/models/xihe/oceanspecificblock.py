@@ -3,33 +3,40 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-# from ..layers.transformer_layers import Transformer3DBlock
-from ..layers.mlp_layers import Mlp
-from collections.abc import Sequence
-from timm.layers import to_2tuple
-from timm.models.swin_transformer import SwinTransformerStage
 from onescience.models.xihe.localsie import LocalSIE
 from onescience.models.xihe.globalsie import GlobalSIE
 
-from ..utils import (
-    PatchEmbed2D,
-    PatchRecovery2D,
-    crop2d,
-    crop3d,
-    get_pad2d,
-    get_pad3d,
-    get_shift_window_mask,
-    window_partition,
-    window_reverse,
-)
+
 
 
 class OceanSpecificBlock(nn.Module):
     """
     Ocean-Specific Block
-    ---------------------
-    Block1 & Block5: 1 Local + 1 Global
-    Block2-Block4 : 2 Local + 1 Global
+
+    Args:
+        dim (int): 输入特征通道数.
+        input_resolution (tuple[int, int]): 输入特征分辨率(H, W).
+        num_heads_local (int): Local SIE的注意力head数.
+        num_heads_global (int): Global SIE的注意力head数.
+        window_size (int): Local SIE 的窗口大小.
+        mlp_ratio (float): MLP 隐层扩展比例.
+        qkv_bias (bool): 是否使用 QKV bias.
+        drop_path (float): DropPath 概率.
+        num_groups (int): Global SIE 的 group 数量 G.
+        num_local (int): Local SIE 块数.
+        num_global (int): Global SIE 快数.
+        depth_local (int): 每个 Local SIE 内 transformer block 深度.
+        norm_layer (nn.Module): 归一化层类型（默认 LayerNorm).
+
+    形状:
+        输入:
+            x: (B, N, C),token 序列(N = H x W)
+            mask: (可选) (B, N) 或可 reshape 为 (B, N) 的海陆掩码(1=有效,0=忽略）
+        输出:
+            x: (B, N, C)，经过若干 Local SIE 与 Global SIE 后的 token 序列
+
+    Returns:
+        Tensor: 输出特征，形状为 (B, N, C)。
     """
 
     def __init__(

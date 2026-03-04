@@ -5,6 +5,7 @@ from .panguembedding2d import PanguEmbedding2D
 from .panguembedding3d import PanguEmbedding3D
 from .fuxiembedding import FuxiEmbedding
 from .fourcastnetembedding import FourCastNetEmbedding
+from .xiheembedding import XiheEmbedding
 
 _EMBEDDER_REGISTRY = {
     "PanguEmbedding2D": PanguEmbedding2D,
@@ -12,6 +13,7 @@ _EMBEDDER_REGISTRY = {
     "FuxiEmbedding": FuxiEmbedding,
     "FourCastNetEmbedding": FourCastNetEmbedding,
     # "TimestepEmbedder": TimestepEmbedder,
+    "XiheEmbedding":XiheEmbedding,
 }
 
 class OneEmbedding(nn.Module):

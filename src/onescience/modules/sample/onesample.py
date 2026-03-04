@@ -6,6 +6,7 @@ from .pangudownsample3d import PanguDownSample3D
 from .panguupsample3d import PanguUpSample3D
 from .fuxidownsample import FuxiDownSample
 from .fuxiupsample import FuxiUpSample
+from .xiheupsample import XiheUpSample
 
 
 _SAMPLER_REGISTRY = {
@@ -14,7 +15,8 @@ _SAMPLER_REGISTRY = {
     "PanguUpSample2D": PanguUpSample2D,
     "PanguUpSample3D": PanguUpSample3D,
     "FuxiUpSample": FuxiUpSample,
-    "FuxiDownSample": FuxiDownSample
+    "FuxiDownSample": FuxiDownSample,
+    "XiheUpSample":XiheUpSample,
 }
 
 class OneSample(nn.Module):

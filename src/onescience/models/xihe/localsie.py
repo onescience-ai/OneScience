@@ -1,45 +1,48 @@
 from collections.abc import Sequence
 import torch
 import torch.nn as nn
-from ..layers.mlp_layers import Mlp
-from collections.abc import Sequence
-
-
-from ..utils import (
-    PatchEmbed2D,
-    PatchRecovery2D,
-    crop2d,
-    crop3d,
-    get_pad2d,
-    get_pad3d,
-    get_shift_window_mask,
-    window_partition,
-    window_reverse,
-)
-from ..layers.attention_layers import EarthAttention2D, EarthAttention3D
-from ..layers.drop import DropPath
-from ..layers.mlp_layers import Mlp
+from onescience.modules.func_utils import Mlp,crop3d,get_pad3d,window_partition,window_reverse,DropPath
+from onescience.modules.attention.oneattention import OneAttention
 
 
 
 class Transformer3DBlock(nn.Module):
     """
-    Revise from WeatherLearn https://github.com/lizhuoq/WeatherLearn
-    3D Transformer Block
+    具有地球位置偏置的三维 Swin-Transformer Block（基于窗口注意力 + 可选 Shift Window）。
+
     Args:
-        dim (int): Number of input channels.
-        input_resolution (tuple[int]): Input resulotion.
-        num_heads (int): Number of attention heads.
-        window_size (tuple[int]): Window size [pressure levels, latitude, longitude].
-        shift_size (tuple[int]): Shift size for SW-MSA [pressure levels, latitude, longitude].
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
-        qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        drop (float, optional): Dropout rate. Default: 0.0
-        attn_drop (float, optional): Attention dropout rate. Default: 0.0
-        drop_path (float, optional): Stochastic depth rate. Default: 0.0
-        act_layer (nn.Module, optional): Activation layer. Default: nn.GELU
-        norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
+        dim (int): 输入通道数 C。
+        input_resolution (tuple[int, int, int]): 输入空间分辨率 (Pl, Lat, Lon)。
+        num_heads (int): 注意力头数量。
+        window_size (tuple[int, int, int], optional): 窗口大小 (Wpl, Wlat, Wlon)，默认为 (2, 6, 12)。
+        shift_size (tuple[int, int, int], optional): Shift Window 偏移大小 (Spl, Slat, Slon)，默认为 (1, 3, 6)。
+        mlp_ratio (float, optional): MLP 隐层扩展比例，默认为 4.0。
+        qkv_bias (bool, optional): 是否在 QKV 上添加偏置，默认为 True。
+        qk_scale (float | None, optional): 覆盖默认 QK 缩放系数 (head_dim ** -0.5)，默认为 None。
+        drop (float, optional): 输出/MLP dropout 比例，默认为 0.0。
+        attn_drop (float, optional): 注意力权重 dropout 比例，默认为 0.0。
+        drop_path (float, optional): DropPath（随机深度）比例，默认为 0.0。
+        act_layer (nn.Module, optional): 激活函数层类型，默认为 nn.GELU。
+        norm_layer (nn.Module, optional): 归一化层类型，默认为 nn.LayerNorm。
+
+    形状:
+        输入 x: (B, L, C)，其中 L = Pl × Lat × Lon
+        输入 mask (可选): (B, 1, Pl, Lat, Lon) 或 (B, Pl, Lat, Lon)，值为 0/1（1=有效，0=忽略）
+        输出: (B, L, C)
+
+    Example:
+        >>> block = TransformerOceanBlock(
+        ...     dim=192,
+        ...     input_resolution=(13, 128, 256),
+        ...     num_heads=6,
+        ...     window_size=(1, 8, 8),
+        ...     shift_size=(0, 0, 0)
+        ... )
+        >>> B, Pl, Lat, Lon, C = 2, 13, 128, 256, 192
+        >>> x = torch.randn(B, Pl * Lat * Lon, C)
+        >>> out = block(x)
+        >>> out.shape
+        torch.Size([2, 425984, 192])
     """
 
     def __init__(
@@ -77,7 +80,8 @@ class Transformer3DBlock(nn.Module):
         pad_resolution[1] += padding[2] + padding[3]
         pad_resolution[2] += padding[0] + padding[1]
 
-        self.attn = EarthAttention3D(
+        self.attn = OneAttention(
+            style="EarthAttention3D",
             dim=dim,
             input_resolution=pad_resolution,
             window_size=window_size,
