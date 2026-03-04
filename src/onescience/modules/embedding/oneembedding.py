@@ -4,11 +4,13 @@ from torch import nn
 from .panguembedding2d import PanguEmbedding2D
 from .panguembedding3d import PanguEmbedding3D
 from .fuxiembedding import FuxiEmbedding
+from .fourcastnetembedding import FourCastNetEmbedding
 
 _EMBEDDER_REGISTRY = {
     "PanguEmbedding2D": PanguEmbedding2D,
     "PanguEmbedding3D": PanguEmbedding3D,
     "FuxiEmbedding": FuxiEmbedding,
+    "FourCastNetEmbedding": FourCastNetEmbedding,
     # "TimestepEmbedder": TimestepEmbedder,
 }
 

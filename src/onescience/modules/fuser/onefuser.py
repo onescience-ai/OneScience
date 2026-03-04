@@ -2,10 +2,12 @@ from torch import nn
 
 from .pangufuser import PanguFuser
 from .fengwufuser import FengWuFuser
+from .fourcastnetfuser import FourCastNetFuser
 
 _FUSER_REGISTRY = {
     "PanguFuser": PanguFuser,
     "FengWuFuser": FengWuFuser,
+    "FourCastNetFuser": FourCastNetFuser,
 }
 
 class OneFuser(nn.Module):

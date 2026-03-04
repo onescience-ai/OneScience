@@ -2,10 +2,11 @@ import torch
 from torch import nn
 
 from .fuxifc import FuxiFC
-
+from .fourcastnetfc import FourCastNetFC
 
 _FC_REGISTRY = {
     "FuxiFC": FuxiFC,
+    "FourCastNetFC": FourCastNetFC,
 }
 
 class OneFC(nn.Module):

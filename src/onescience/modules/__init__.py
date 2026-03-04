@@ -7,6 +7,7 @@ from .transformer.onetransformer import OneTransformer
 from .fc.onefc import OneFC
 from .encoder.oneencoder import OneEncoder
 from .decoder.onedecoder import OneDecoder
+from .afno.oneafno import OneAFNO
 
 __all__ = ["OneEmbedding",
            "OneFuser",
@@ -16,4 +17,5 @@ __all__ = ["OneEmbedding",
            "OneTransformer",
            "OneFC",
            "OneEncoder",
-           "OneDecoder"]
+           "OneDecoder",
+           "OneAFNO"]
