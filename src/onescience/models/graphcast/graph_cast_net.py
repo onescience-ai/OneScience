@@ -132,7 +132,7 @@ class GraphCastNet(nn.Module):
         multimesh_level: Optional[int] = None,
         multimesh: bool = True,
         input_res: tuple = (721, 1440),
-        input_dim_grid_nodes: int = 474,
+        input_dim_grid_nodes: int = 237,
         input_dim_mesh_nodes: int = 3,
         input_dim_edges: int = 4,
         output_dim_grid_nodes: int = 227,
