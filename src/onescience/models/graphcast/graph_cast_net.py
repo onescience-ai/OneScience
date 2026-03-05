@@ -564,10 +564,10 @@ class GraphCastNet(nn.Module):
 
         # encode lat/lon to multimesh
         grid_nfeat_encoded, mesh_nfeat_encoded = self.encoder(
-            g2m_efeat_embedded,
+            [g2m_efeat_embedded,
             grid_nfeat_embedded,
             mesh_nfeat_embedded,
-            self.g2m_graph,
+            self.g2m_graph],
         )
 
         # process multimesh graph
@@ -624,7 +624,7 @@ class GraphCastNet(nn.Module):
 
         # decode multimesh to lat/lon
         grid_nfeat_decoded = self.decoder(
-            m2g_efeat_embedded, grid_nfeat_encoded, mesh_nfeat_processed, self.m2g_graph
+            [m2g_efeat_embedded, grid_nfeat_encoded, mesh_nfeat_processed, self.m2g_graph]
         )
 
         # map to the target output dimension

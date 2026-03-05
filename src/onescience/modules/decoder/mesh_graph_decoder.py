@@ -105,13 +105,11 @@ class MeshGraphDecoder(nn.Module):
         )
 
     @torch.jit.ignore()
-    def forward(
-        self,
-        m2g_efeat: Tensor,
-        grid_nfeat: Tensor,
-        mesh_nfeat: Tensor,
-        graph: Union[DGLGraph, CuGraphCSC],
-    ) -> Tensor:
+    def forward(self, x) -> Tensor:
+        m2g_efeat = x[0]
+        grid_nfeat = x[1]
+        mesh_nfeat = x[2]
+        graph = x[3]
         # update edge features
         efeat = self.edge_mlp(m2g_efeat, (mesh_nfeat, grid_nfeat), graph)
         # aggregate messages (edge features) to obtain updated node features

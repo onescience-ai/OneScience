@@ -124,13 +124,13 @@ class MeshGraphEncoder(nn.Module):
         )
 
     @torch.jit.ignore()
-    def forward(
-        self,
-        g2m_efeat: Tensor,
-        grid_nfeat: Tensor,
-        mesh_nfeat: Tensor,
-        graph: Union[DGLGraph, CuGraphCSC],
-    ) -> Tuple[Tensor, Tensor]:
+    def forward(self, x) -> Tuple[Tensor, Tensor]:
+        
+        g2m_efeat = x[0]
+        grid_nfeat = x[1]
+        mesh_nfeat = x[2]
+        graph = x[3]
+
         # update edge features by concatenating node features (both mesh and grid) and existing edge featues
         # (or applying the concat trick instead)
         efeat = self.edge_mlp(g2m_efeat, (grid_nfeat, mesh_nfeat), graph)
