@@ -64,13 +64,13 @@ class PairformerBlock(nn.Module):
             c_hidden=c_hidden_pair_att,
             no_heads=no_heads_pair,
             bias=False
-        ) #ppy
+        )
         self.tri_att_end = TriangleAttention(
             c_in=c_z,
             c_hidden=c_hidden_pair_att,
             no_heads=no_heads_pair,
             bias=False
-        ) #ppy
+        )
         self.dropout_row = DropoutRowwise(dropout)
         self.pair_transition = Transition(c_in=c_z, n=4)
         self.c_s = c_s
@@ -569,7 +569,7 @@ class MSABlock(nn.Module):
         # Communication
         self.outer_product_mean_msa = OuterProductMean(
             c_m=self.c_m, c_z=self.c_z, c_hidden=self.c_hidden, bias=False
-        )#ppy
+        )
         if not self.is_last_block:
             # MSA stack
             self.msa_stack = MSAStack(

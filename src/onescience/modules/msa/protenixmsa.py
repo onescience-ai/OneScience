@@ -285,7 +285,7 @@ class ProtenixMSABlock(nn.Module):
         # Communication
         self.outer_product_mean_msa = OuterProductMean(
             c_m=self.c_m, c_z=self.c_z, c_hidden=self.c_hidden, bias=False
-        )#ppy
+        )
         if not self.is_last_block:
             # MSA stack
             self.msa_stack = ProtenixMSAStack(
