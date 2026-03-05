@@ -6,7 +6,7 @@ from onescience.modules.attention.oneattention import OneAttention
 
 
 
-class Transformer3DBlock(nn.Module):
+class XihelocalTransformer(nn.Module):
     """
     具有地球位置偏置的三维 Swin-Transformer Block（基于窗口注意力 + 可选 Shift Window）。
 
@@ -49,9 +49,9 @@ class Transformer3DBlock(nn.Module):
         self,
         dim,
         input_resolution,
-        num_heads,
-        window_size=None,
-        shift_size=None,
+        num_heads=6,
+        window_size=(1,6,12),
+        shift_size=(0,0,0),
         mlp_ratio=4.0,
         qkv_bias=True,
         qk_scale=None,
@@ -63,7 +63,7 @@ class Transformer3DBlock(nn.Module):
     ):
         super().__init__()
         window_size = (2, 6, 12) if window_size is None else window_size
-        shift_size = (1, 3, 6) if shift_size is None else shift_size
+        # shift_size = (1, 3, 6) if shift_size is None else shift_size
         self.dim = dim
         self.input_resolution = input_resolution
         self.num_heads = num_heads
@@ -113,10 +113,14 @@ class Transformer3DBlock(nn.Module):
         self.register_buffer("attn_mask", attn_mask)
         
 
-    def forward(self, x: torch.Tensor,mask: torch.Tensor = None):
+    # def forward(self, x: torch.Tensor,mask: torch.Tensor = None):
+    def forward(self, obj):
+        x=obj.x
+        mask=obj.mask
         Pl, Lat, Lon = self.input_resolution
         B, L, C = x.shape
-
+        
+        
         shortcut = x
         x = self.norm1(x)
         x = x.view(B, Pl, Lat, Lon, C)
@@ -125,7 +129,7 @@ class Transformer3DBlock(nn.Module):
 
         _, Pl_pad, Lat_pad, Lon_pad, _ = x.shape
 
-        shift_pl, shift_lat, shift_lon = self.shift_size
+        shift_pl, shift_lat, shift_lon =self.shift_size
         
         if self.roll:
             shifted_x = torch.roll(
@@ -205,71 +209,4 @@ class Transformer3DBlock(nn.Module):
         x = shortcut + self.drop_path(x)
         x = x + self.drop_path(self.mlp(self.norm2(x)))
 
-        return x
-
-
-class LocalSIE(nn.Module):
-    """Revise from WeatherLearn https://github.com/lizhuoq/WeatherLearn
-    A basic 3D Transformer layer for one stage
-
-    Args:
-        dim (int): Number of input channels.
-        input_resolution (tuple[int]): Input resolution.
-        depth (int): Number of blocks.
-        num_heads (int): Number of attention heads.
-        window_size (tuple[int]): Local window size.
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
-        qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        drop (float, optional): Dropout rate. Default: 0.0
-        attn_drop (float, optional): Attention dropout rate. Default: 0.0
-        drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
-        norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
-    """
-
-    def __init__(
-        self,
-        dim,
-        input_resolution,
-        depth,
-        num_heads,
-        window_size,
-        mlp_ratio=4.0,
-        qkv_bias=True,
-        qk_scale=None,
-        drop=0.0,
-        attn_drop=0.0,
-        drop_path=0.0,
-        norm_layer=nn.LayerNorm,
-    ):
-        super().__init__()
-        self.dim = dim
-        self.input_resolution = input_resolution
-        self.depth = depth
-
-        self.blocks = nn.ModuleList(
-            [
-                Transformer3DBlock(
-                    dim=dim,
-                    input_resolution=input_resolution, #3d windows
-                    num_heads=num_heads,
-                    window_size=window_size,
-                    shift_size=(0, 0, 0),             #不选择swin 
-                    mlp_ratio=mlp_ratio,
-                    qkv_bias=qkv_bias,
-                    qk_scale=qk_scale,
-                    drop=drop,
-                    attn_drop=attn_drop,
-                    drop_path=drop_path[i]
-                    if isinstance(drop_path, Sequence)
-                    else drop_path,
-                    norm_layer=norm_layer,
-                )
-                for i in range(depth)
-            ]
-        )
-
-    def forward(self, x,mask=None):
-        for blk in self.blocks:
-            x = blk(x) if mask is None else blk(x,mask=mask)
         return x

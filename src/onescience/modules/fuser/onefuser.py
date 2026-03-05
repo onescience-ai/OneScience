@@ -3,11 +3,17 @@ from torch import nn
 from .pangufuser import PanguFuser
 from .fengwufuser import FengWuFuser
 from .fourcastnetfuser import FourCastNetFuser
+from .xihelocalsiefuser import XiheLocalSIEFuser
+from .xiheglobalsiefuser import XiheGlobalSIEFuser
+from .xihefuse import XiheFuser
 
 _FUSER_REGISTRY = {
     "PanguFuser": PanguFuser,
     "FengWuFuser": FengWuFuser,
     "FourCastNetFuser": FourCastNetFuser,
+    "XiheLocalSIEFuser":XiheLocalSIEFuser,
+    "XiheGlobalSIEFuser":XiheGlobalSIEFuser,
+    "XiheFuser":XiheFuser,
 }
 
 class OneFuser(nn.Module):

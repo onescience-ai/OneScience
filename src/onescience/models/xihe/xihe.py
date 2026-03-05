@@ -13,6 +13,7 @@ from onescience.modules import (
     OneRecovery,
     OneSample,
 )
+from onescience.modules.fuser.onefuser import  OneFuser
 
 
 
@@ -33,7 +34,13 @@ class MetaData(ModelMetaData):
     var_dim: int = 1
     func_torch: bool = False
     auto_grad: bool = False
-       
+    
+class TensorWithMask:
+    def __init__(self, x, mask):
+        self.x = x
+        self.mask = mask
+        self.y=None
+
    
 class Xihe(nn.Module):
     """
@@ -51,7 +58,7 @@ class Xihe(nn.Module):
         in_chans=96,
         depth=1,
         mask_full=None,
-        out_chans=96,
+        out_chans=94,
         num_groups=32,
         
     ):
@@ -72,9 +79,7 @@ class Xihe(nn.Module):
 
 
         self.patchembed2d = OneEmbedding(style="XiheEmbedding")
-        self.patchrecovery2d = OneRecovery(
-            style="XihePatchRecovery"
-        )
+        self.patchrecovery2d = OneRecovery(style="XihePatchRecovery")
 
         # patch 后的 3D 分辨率: (Pl=1, Lat_out, Lon_out)
         H_out = math.ceil(img_size[0] / patch_size[0])
@@ -89,106 +94,23 @@ class Xihe(nn.Module):
         if depth > 1:
             drop_path = np.linspace(0, 0.2, depth).tolist()
         else:
-            drop_path = 0.0   
-     
-        self.block1=OceanSpecificBlock(
-            dim=self.embed_dim,
-            input_resolution=input_resolution,
-            num_local=1,
-            num_global=1,
-            depth_local=depth,#可以堆叠多个transformer3D
-            num_heads_local=num_heads[0],
-            num_heads_global=num_heads[1],
-            window_size=window_size_3d,
-            mlp_ratio=4.0,
-            qkv_bias=True,
-            num_groups=num_groups,
-            drop_path=drop_path,#支持 stochastic depth
-            norm_layer=nn.LayerNorm
-        )
-        
+            drop_path = 0.0
 
-        self.downsample = OneSample(
-            style="PanguDownSample2D",
-            in_dim=self.embed_dim,
-            input_resolution=(H_out, W_out),
-            output_resolution=(H_out // 2, W_out // 2),
-        )
+        self.block1=OneFuser(dim=self.embed_dim,input_resolution=input_resolution,num_local=1,style="XiheFuser")
+
+        self.downsample = OneSample(style="PanguDownSample2D",in_dim=self.embed_dim,input_resolution=(H_out, W_out),output_resolution=(H_out // 2, W_out // 2))
         
         input_resolution = (1, H_out // 2, W_out // 2)
         self.mask_h_w=input_resolution
-        # embed_dim=128
-        self.block2=OceanSpecificBlock(
-            dim=2*self.embed_dim,
-            input_resolution=input_resolution,
-            num_local=2,
-            num_global=1,
-            depth_local=depth,
-            num_heads_local=num_heads[0],
-            num_heads_global=num_heads[1],
-            window_size=window_size_3d,
-            mlp_ratio=4.0,
-            qkv_bias=True,
-            num_groups=num_groups,
-            drop_path=drop_path,
-            norm_layer=nn.LayerNorm
-        )
-        
-        self.block3=OceanSpecificBlock(
-            dim=2*self.embed_dim,
-            input_resolution=input_resolution,
-            num_local=2,
-            num_global=1,
-            depth_local=depth,
-            num_heads_local=num_heads[0],
-            num_heads_global=num_heads[1],
-            window_size=window_size_3d,
-            mlp_ratio=4.0,
-            qkv_bias=True,
-            num_groups=num_groups,
-            drop_path=drop_path,
-            norm_layer=nn.LayerNorm
-        )
-        
-        self.block4=OceanSpecificBlock(
-            dim=2*self.embed_dim,
-            input_resolution=input_resolution,
-            num_local=2,
-            num_global=1,
-            depth_local=depth,
-            num_heads_local=num_heads[0],
-            num_heads_global=num_heads[1],
-            window_size=window_size_3d,
-            mlp_ratio=4.0,
-            qkv_bias=True,
-            num_groups=num_groups,
-            drop_path=drop_path,
-            norm_layer=nn.LayerNorm
-        )
-        self.upsample = OneSample(
-            style="XiheUpSample",
-            in_dim=2*self.embed_dim,
-            out_dim=embed_dim,
-            input_resolution=(H_out // 2, W_out // 2),  
-            output_resolution=(H_out, W_out), 
-        )
+
+        self.block2=OneFuser(dim=2*self.embed_dim,input_resolution=input_resolution,num_local=2,style="XiheFuser")
+
+        self.block3=OneFuser(dim=2*self.embed_dim,input_resolution=input_resolution,num_local=2,style="XiheFuser")
+        self.block4=OneFuser(dim=2*self.embed_dim,input_resolution=input_resolution,num_local=2,style="XiheFuser")
+
+        self.upsample = OneSample(style="XiheUpSample",in_dim=2*self.embed_dim,out_dim=embed_dim,input_resolution=(H_out // 2, W_out // 2),  output_resolution=(H_out, W_out), )
         input_resolution = (1, H_out, W_out)
-        self.block5=OceanSpecificBlock(
-            dim=self.embed_dim,
-            input_resolution=input_resolution,
-            num_local=1,
-            num_global=1,
-            depth_local=depth,#可以堆叠多个transformer3D
-            num_heads_local=num_heads[0],
-            num_heads_global=num_heads[1],
-            window_size=window_size_3d,
-            mlp_ratio=4.0,
-            qkv_bias=True,
-            num_groups=num_groups,
-            drop_path=drop_path,#支持 stochastic depth
-            norm_layer=nn.LayerNorm
-        ) 
-   
+        self.block5=OneFuser(dim=self.embed_dim,input_resolution=input_resolution,num_local=1,style="XiheFuser")
     def change_mask(self,mask_full, x, h_out, w_out):
         #根据当前层特征分辨率，自动生成掩码（海洋=1，陆地=0）
             if not torch.is_tensor(mask_full):
@@ -226,11 +148,10 @@ class Xihe(nn.Module):
             mask1 = self.change_mask(mask_full, x, h_out=H_out, w_out=W_out)
         else:
             mask1 = None
-        # print("x.shape-patch------", tuple(x.shape))
-
-        x=self.block1(x,mask=mask1)          # (B, N, C) 经过 3D 全局注意力
+        
+        obj1 = TensorWithMask(x, mask1)
+        x=self.block1(obj1)          # (B, N, C) 经过 3D 全局注意力
         x1=x
-        # print("x.shape---249",x.shape)
         x=self.downsample(x)                 # (B, N, C) 经过 2D 下采样
         
         if mask_full is not None:            #  mask2
@@ -238,16 +159,17 @@ class Xihe(nn.Module):
             mask2 = self.change_mask(mask_full, x, h_out=H_out, w_out=W_out)
         else:
             mask2 = None
-        x=self.block2(x,mask=mask2)                      
-        x=self.block3(x,mask=mask2)                                   
-        x=self.block4(x,mask=mask2)  
-        # print("x.shape---261",x.shape)
+        obj2 = TensorWithMask(x, mask2)
+        x=self.block2(obj2)   
+        obj2 = TensorWithMask(x, mask2)
+        x=self.block3(obj2)  
+        obj2 = TensorWithMask(x, mask2)
+        x=self.block4(obj2) 
         x=self.upsample(x) 
-        # print("x.shape---263",x.shape)
-        x=self.block5(x,mask=mask1)
+        obj1 = TensorWithMask(x, mask1)
+        x=self.block5(obj1)
         x_out = torch.cat([x, x1], dim=-1)         # (B, N, 2C)
         x_out = self.skip_proj(x_out)
-
         # B, N, C = x.shape
         # H_, W_ = 341, 360   # 对应 patch grid 尺寸
         H_ = math.ceil(self.img_size[0] / self.patch_size[0])
