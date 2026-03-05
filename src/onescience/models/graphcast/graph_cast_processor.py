@@ -6,8 +6,8 @@ import torch.nn as nn
 from dgl import DGLGraph
 from torch import Tensor
 
-from onescience.models.gnn_layers.mesh_edge_block import MeshEdgeBlock
-from onescience.models.gnn_layers.mesh_node_block import MeshNodeBlock
+# from onescience.models.gnn_layers.mesh_edge_block import MeshEdgeBlock
+# from onescience.models.gnn_layers.mesh_node_block import MeshNodeBlock
 from onescience.modules import OneEdge
 from onescience.modules import OneNode
 from onescience.modules.utils.gnnlayer_utils import CuGraphCSC, set_checkpoint_fn
