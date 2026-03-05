@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import math
 from typing import Optional, Union, Tuple
 
-class GConv2d(nn.Module):
+class GroupEquivariantConv2d(nn.Module):
     """
     群等变 2D 卷积层 (Group Equivariant Conv2d).
 
@@ -28,7 +28,7 @@ class GConv2d(nn.Module):
 
     Example:
         >>> # 1. 第一层 (Lifting)
-        >>> gconv = GConv2d(32, 64, kernel_size=3, first_layer=True)
+        >>> gconv = GroupEquivariantConv2d(32, 64, kernel_size=3, first_layer=True)
         >>> x = torch.randn(2, 32, 64, 64)
         >>> out = gconv(x)
         >>> print(out.shape) # 32 -> 64*4
@@ -168,7 +168,7 @@ class GConv2d(nn.Module):
         return F.conv2d(input=x, weight=self.weights, bias=self.bias)
 
 
-class GConv3d(nn.Module):
+class GroupEquivariantConv3d(nn.Module):
     """
     群等变 3D 卷积层 (Group Equivariant Conv3d).
 
@@ -192,14 +192,14 @@ class GConv3d(nn.Module):
 
     Example:
         >>> # 1. 3D Lifting Layer (scalar -> group)
-        >>> gconv3d = GConv3d(16, 32, kernel_size=(3, 3, 3), first_layer=True)
+        >>> gconv3d = GroupEquivariantConv3d(16, 32, kernel_size=(3, 3, 3), first_layer=True)
         >>> x = torch.randn(2, 16, 10, 32, 32) # (B, C, D, H, W)
         >>> out = gconv3d(x)
         >>> print(out.shape) # 32 * 4 = 128
         torch.Size([2, 128, 10, 32, 32])
         >>>
         >>> # 2. 3D Group Conv (group -> group)
-        >>> gconv3d_mid = GConv3d(32, 32, kernel_size=3)
+        >>> gconv3d_mid = GroupEquivariantConv3d(32, 32, kernel_size=3)
         >>> out2 = gconv3d_mid(out)
         >>> print(out2.shape) # 32*4 -> 32*4
         torch.Size([2, 128, 10, 32, 32])
@@ -285,7 +285,6 @@ class GConv3d(nn.Module):
             for k in range(1, self.rt_group_size):
                 weights[:, k] = weights[:, k - 1].rot90(dims=[-2, -1]) # Rotate H, W
 
-                # 【核心修复】：群维度在索引 2，必须在 dim=2 上进行拼接，而不是 dim=3 (Depth)
                 if self.reflection:
                     weights[:, k] = torch.cat([
                         weights[:, k, :, self.rt_group_size - 1].unsqueeze(2),
@@ -300,8 +299,6 @@ class GConv3d(nn.Module):
                     ], dim=2)
 
             if self.reflection:
-                # 反射操作：翻转输出群，同时翻转输入群(dim 4 is G_in) 和 空间核
-                # 注意：3D中 G_in 是 dim 4，Kh 是 dim -2
                 weights[:, self.rt_group_size:] = torch.cat([
                     weights[:, :self.rt_group_size, :, self.rt_group_size:],
                     weights[:, :self.rt_group_size, :, :self.rt_group_size],

@@ -10,27 +10,27 @@ from typing import Optional, Callable
 
 class IPHI(nn.Module):
     """
-    逆映射网络 (Inverse Phi Mapping Network)。
+        逆映射网络 (Inverse Phi Mapping Network)。
 
-    该模块用于学习从物理坐标 $x$ 到计算坐标 $\xi$ 的逆映射。
-    它结合了极坐标特征工程和 NeRF 风格的傅里叶特征编码，以捕捉高频几何细节。
-    通常作为 `GeoSpectralConv` 的 `iphi` 参数传入，用于处理不规则几何。
+        该模块用于学习从物理坐标 x$到计算坐标 xi 的逆映射。
+        它结合了极坐标特征工程和 NeRF 风格的傅里叶特征编码，以捕捉高频几何细节。
+        通常作为 `GeoSpectralConv` 的 `iphi` 参数传入，用于处理不规则几何。
 
-    Args:
-        width (int): 网络隐藏层的宽度。默认值: 32。
+        Args:
+            width (int): 网络隐藏层的宽度。默认值: 32。
 
-    形状:
-        输入 x: (B, N, 2)，物理空间坐标。
-        输入 code (可选): (B, N_features)，条件编码（如几何参数、物理参数）。
-        输出: (B, N, 2)，变换后的坐标（残差形式）。
+        形状:
+            输入 x: (B, N, 2)，物理空间坐标。
+            输入 code (可选): (B, N_features)，条件编码（如几何参数、物理参数）。
+            输出: (B, N, 2)，变换后的坐标（残差形式）。
 
-    Example:
-        >>> iphi_net = IPHI(width=32).cuda()
-        >>> x = torch.rand(2, 1024, 2).cuda() # Batch=2, Points=1024, Dim=2
-        >>> # 简单的无条件映射
-        >>> x_transformed = iphi_net(x)
-        >>> print(x_transformed.shape)
-        torch.Size([2, 1024, 2])
+        Example:
+            >>> iphi_net = IPHI(width=32).cuda()
+            >>> x = torch.rand(2, 1024, 2).cuda() # Batch=2, Points=1024, Dim=2
+            >>> # 简单的无条件映射
+            >>> x_transformed = iphi_net(x)
+            >>> print(x_transformed.shape)
+            torch.Size([2, 1024, 2])
     """
     def __init__(self, width=32):
         super(IPHI, self).__init__()
@@ -106,7 +106,7 @@ class IPHI(nn.Module):
 # ==========================================
 
 class GeoSpectralConv2d(nn.Module):
-    """
+    r"""
     几何感知 2D 谱卷积层 (Geometry-Aware Spectral Conv 2D). 
 
     该模块实现了 Geo-FNO 的核心逻辑。与标准 FNO 不同，它不依赖标准 FFT 算法，而是通过显式构造

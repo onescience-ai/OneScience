@@ -1,15 +1,16 @@
 import math
-from dataclasses import dataclass
-
-import numpy as np
 import torch
+import numpy as np
 
+from torch import nn
+from dataclasses import dataclass
 from onescience.models.meta import ModelMetaData
-from onescience.modules.module import Module
 
 from onescience.modules import (
-   OneEmbedding,
-   Onefuser
+    OneEmbedding,
+    OneFuser,
+    OneRecovery,
+    OneSample,
 )
 
 @dataclass
@@ -29,7 +30,7 @@ class MetaData(ModelMetaData):
     auto_grad: bool = False
 
 
-class Pangu(Module):
+class Pangu(nn.Module):
     """
     Pangu A PyTorch impl of: `Pangu-Weather: A 3D High-Resolution Model for Fast and Accurate Global Weather Forecast`
     - https://arxiv.org/abs/2211.02556
@@ -50,7 +51,7 @@ class Pangu(Module):
         num_heads=(6, 12, 12, 6),
         window_size=(2, 6, 12),
     ):
-        super().__init__(meta=MetaData())
+        super().__init__()
         drop_path = np.linspace(0, 0.2, 8).tolist()
         # In addition, three constant masks(the topography mask, land-sea mask and soil type mask)
         
@@ -68,8 +69,8 @@ class Pangu(Module):
             math.ceil(img_size[1] / patch_size[2]),
         )
 
-        self.layer1 = Onefuser(
-            style="PanGuFuser",
+        self.layer1 = OneFuser(
+            style="PanguFuser",
             dim=embed_dim,
             input_resolution=patched_inp_shape,
             depth=2,
@@ -83,12 +84,15 @@ class Pangu(Module):
             math.ceil(patched_inp_shape[1] / 2),
             math.ceil(patched_inp_shape[2] / 2),
         )
-        self.downsample = DownSample3D(
+        
+        self.downsample = OneSample(
+            style="PanguDownSample3D",
             in_dim=embed_dim,
             input_resolution=patched_inp_shape,
             output_resolution=patched_inp_shape_downsample,
         )
-        self.layer2 = FuserLayer(
+        self.layer2 = OneFuser(
+            style="PanguFuser",
             dim=embed_dim * 2,
             input_resolution=patched_inp_shape_downsample,
             depth=6,
@@ -96,7 +100,8 @@ class Pangu(Module):
             window_size=window_size,
             drop_path=drop_path[2:],
         )
-        self.layer3 = FuserLayer(
+        self.layer3 = OneFuser(
+            style="PanguFuser",
             dim=embed_dim * 2,
             input_resolution=patched_inp_shape_downsample,
             depth=6,
@@ -104,10 +109,15 @@ class Pangu(Module):
             window_size=window_size,
             drop_path=drop_path[2:],
         )
-        self.upsample = UpSample3D(
-            embed_dim * 2, embed_dim, patched_inp_shape_downsample, patched_inp_shape
+        self.upsample = OneSample(
+            style="PanguUpSample3D",
+            in_dim=embed_dim * 2,
+            out_dim=embed_dim,
+            input_resolution=patched_inp_shape_downsample,
+            output_resolution=patched_inp_shape
         )
-        self.layer4 = FuserLayer(
+        self.layer4 = OneFuser(
+            style="PanguFuser",
             dim=embed_dim,
             input_resolution=patched_inp_shape,
             depth=2,
@@ -116,40 +126,27 @@ class Pangu(Module):
             drop_path=drop_path[:2],
         )
         # The outputs of the 2nd encoder layer and the 7th decoder layer are concatenated along the channel dimension.
-        self.patchrecovery2d = PatchRecovery2D(
-            img_size, patch_size[1:], 2 * embed_dim, 4
+        self.patchrecovery2d = OneRecovery(
+            style="pangupatchrecovery2d"
         )
-        self.patchrecovery3d = PatchRecovery3D(
-            (13, img_size[0], img_size[1]), patch_size, 2 * embed_dim, 5
+        self.patchrecovery3d = OneRecovery(
+            style="pangupatchrecovery3d"
         )
-
-    # def prepare_input(self, surface, surface_mask, upper_air):
-    #     """Prepares the input to the model in the required shape.
-    #     Args:
-    #         surface (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=4.
-    #         surface_mask (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=3.
-    #         upper_air (torch.Tensor): 3D n_pl=13, n_lat=721, n_lon=1440, chans=5.
-    #     """
-    #     upper_air = upper_air.reshape(
-    #         upper_air.shape[0], -1, upper_air.shape[3], upper_air.shape[4]
-    #     )
-    #     surface_mask = surface_mask.unsqueeze(0).repeat(surface.shape[0], 1, 1, 1)
-    #     return torch.concat([surface, surface_mask, upper_air], dim=1)
 
     def forward(self, x):
         """
         Args:
             x (torch.Tensor): [batch, 4+3+5*13, lat, lon]
         """
-        surface = x[:, :7, :, :]
-        upper_air = x[:, 7:, :, :].reshape(x.shape[0], 5, 13, x.shape[2], x.shape[3])
-        surface = self.patchembed2d(surface)
-        upper_air = self.patchembed3d(upper_air)
+        surface = x[:, :7, :, :] # 1, 72, 721, 1440
+        upper_air = x[:, 7:, :, :].reshape(x.shape[0], 5, 13, x.shape[2], x.shape[3]) # torch.Size([1, 5, 13, 721, 1440])
+        surface = self.patchembed2d(surface) # torch.Size([1, 192, 181, 360])
+        upper_air = self.patchembed3d(upper_air) #torch.Size([1, 192, 7, 181, 360])
 
-        x = torch.concat([surface.unsqueeze(2), upper_air], dim=2)
+        x = torch.concat([surface.unsqueeze(2), upper_air], dim=2) # torch.Size([1, 192, 8, 181, 360])
         B, C, Pl, Lat, Lon = x.shape
-        x = x.reshape(B, C, -1).transpose(1, 2)
-
+        x = x.reshape(B, C, -1).transpose(1, 2) # torch.Size([1, 521280, 192])
+        
         x = self.layer1(x)
 
         skip = x

@@ -1,11 +1,51 @@
-import torch
 from torch import nn
+
 from .earthattention2d import EarthAttention2D
+from .earthattention3d import EarthAttention3D
+from .physicsattention import Physics_Attention_Irregular_Mesh
+from .physicsattention import Physics_Attention_Irregular_Mesh_plus
+from .physicsattention import Physics_Attention_Structured_Mesh_1D
+from .physicsattention import Physics_Attention_Structured_Mesh_2D
+from .physicsattention import Physics_Attention_Structured_Mesh_3D
+from .factattention import FactAttention2D
+from .factattention import FactAttention3D
+from .flashattention import FlashAttention
+from .linearattention import LinearAttention
+from .linearattention import Vanilla_Linear_Attention
+from .multiheadattention import MultiHeadAttention
+from .selfattention import SelfAttention
+from .windowattention import WindowAttention
+
+_ATTENTIONER_REGISTRY = {
+    "EarthAttention2D": EarthAttention2D,
+    "EarthAttention3D": EarthAttention3D,
+    "Physics_Attention_Irregular_Mesh": Physics_Attention_Irregular_Mesh,
+    "Physics_Attention_Irregular_Mesh_plus": Physics_Attention_Irregular_Mesh_plus,
+    "Physics_Attention_Structured_Mesh_1D": Physics_Attention_Structured_Mesh_1D,
+    "Physics_Attention_Structured_Mesh_2D": Physics_Attention_Structured_Mesh_2D,
+    "Physics_Attention_Structured_Mesh_3D": Physics_Attention_Structured_Mesh_3D,
+    "FactAttention2D": FactAttention2D,
+    "FactAttention3D": FactAttention3D,
+    "FlashAttention": FlashAttention,
+    "LinearAttention": LinearAttention,
+    "Vanilla_Linear_Attention": Vanilla_Linear_Attention,
+    "MultiHeadAttention": MultiHeadAttention,
+    "SelfAttention": SelfAttention,
+    "WindowAttention": WindowAttention,
+}
 
 class OneAttention(nn.Module):
-    def __init__(self, style="Earth"):
+    def __init__(self, style: str, **kwargs):
+        super().__init__()
+
+        if style not in _ATTENTIONER_REGISTRY:
+            raise NotImplementedError(f"Unknown style: {style}")
         
-        if style == "Earth":
-            self.EarthAttention2D = EarthAttention2D( dim, input_resolution, window_size, num_heads,)
-        else:
-            raise NotImplementedError
+        self.attentioner = _ATTENTIONER_REGISTRY[style](**kwargs)
+
+    # def forward(self, x, mask=None):
+    #     return self.attentioner(x, mask) 
+
+    def forward(self, x, **kwargs):
+        return self.attentioner(x, **kwargs)
+    

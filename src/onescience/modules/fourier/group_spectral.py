@@ -2,14 +2,14 @@ import torch
 import torch.nn as nn
 import torch.fft
 from typing import Tuple, Union
-from onescience.modules.equivariant.group_conv import GConv2d, GConv3d
+from onescience.modules.equivariant.group_conv import GroupEquivariantConv2d, GroupEquivariantConv3d
 
 class GSpectralConv2d(nn.Module):
     """
     群等变 2D 谱卷积层 (Group Equivariant Spectral Conv2d).
 
     该模块结合了群卷积的几何对称性和 FNO 的全局感受野。
-    它首先将输入变换到频域 (FFT)，然后使用由 `GConv2d` 构造的**群等变权重**与频域特征进行复数乘法，最后变换回空域 (IFFT)。
+    它首先将输入变换到频域 (FFT)，然后使用由 `GroupEquivariantConv2d` 构造的**群等变权重**与频域特征进行复数乘法，最后变换回空域 (IFFT)。
 
     Args:
         in_channels (int): 输入通道数（基础通道数，不含群维度）。
@@ -43,7 +43,7 @@ class GSpectralConv2d(nn.Module):
         # 使用 kernel_size = 2*mode - 1 覆盖频谱
         kernel_size = 2 * max(self.modes) - 1
         
-        self.conv = GConv2d(
+        self.conv = GroupEquivariantConv2d(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=kernel_size,

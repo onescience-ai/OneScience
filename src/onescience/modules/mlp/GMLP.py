@@ -2,13 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional
-from onescience.modules.equivariant.group_conv import GConv2d, GConv3d 
+from onescience.modules.equivariant.group_conv import GroupEquivariantConv2d, GroupEquivariantConv3d 
 
-class GMLP2d(nn.Module):
+class GroupEquivariantMLP2d(nn.Module):
     """
     群等变 2D 多层感知机 (Group Equivariant MLP 2D).
-
-    
 
     该模块在群等变特征上执行逐点（Point-wise）的非线性变换。
     它实际上是由两个核大小为 1 的群卷积 (`GConv2d`) 组成的，中间夹着 GELU 激活函数。
@@ -27,7 +25,7 @@ class GMLP2d(nn.Module):
 
     Example:
         >>> # 假设 Group Size = 4 (C4 group)
-        >>> gmlp = GMLP2d(in_channels=32, out_channels=32, mid_channels=64, reflection=False)
+        >>> gmlp = GroupEquivariantMLP2d(in_channels=32, out_channels=32, mid_channels=64, reflection=False)
         >>> # 输入特征必须包含群维度 (32 * 4 = 128)
         >>> x = torch.randn(2, 128, 64, 64)
         >>> out = gmlp(x)
@@ -42,14 +40,14 @@ class GMLP2d(nn.Module):
         reflection: bool = False,
         last_layer: bool = False,
     ):
-        super(GMLP2d, self).__init__()
-        self.mlp1 = GConv2d(
+        super(GroupEquivariantMLP2d, self).__init__()
+        self.mlp1 = GroupEquivariantConv2d(
             in_channels=in_channels,
             out_channels=mid_channels,
             kernel_size=1,
             reflection=reflection,
         )
-        self.mlp2 = GConv2d(
+        self.mlp2 = GroupEquivariantConv2d(
             in_channels=mid_channels,
             out_channels=out_channels,
             kernel_size=1,
@@ -64,7 +62,7 @@ class GMLP2d(nn.Module):
         return x
 
 
-class GMLP3d(nn.Module):
+class GroupEquivariantMLP3d(nn.Module):
     """
     群等变 3D 多层感知机 (Group Equivariant MLP 3D).
 
@@ -84,7 +82,7 @@ class GMLP3d(nn.Module):
 
     Example:
         >>> # 假设存在 GConv3d 且 Group Size = 4
-        >>> gmlp3d = GMLP3d(in_channels=16, out_channels=16, mid_channels=32)
+        >>> gmlp3d = GroupEquivariantMLP3d(in_channels=16, out_channels=16, mid_channels=32)
         >>> # 输入特征 (Batch, Channels*Group, D, H, W)
         >>> x = torch.randn(2, 16*4, 32, 32, 32)
         >>> out = gmlp3d(x)
@@ -99,16 +97,14 @@ class GMLP3d(nn.Module):
         reflection: bool = False,
         last_layer: bool = False,
     ):
-        super(GMLP3d, self).__init__()
-        # 注意：这里需要您的库中实现了 GConv3d
-        # 如果尚未实现，需要参考 GConv2d 的逻辑将 F.conv2d 替换为 F.conv3d
-        self.mlp1 = GConv3d(
+        super(GroupEquivariantMLP3d, self).__init__()
+        self.mlp1 = GroupEquivariantConv3d(
             in_channels=in_channels,
             out_channels=mid_channels,
             kernel_size=1,
             reflection=reflection,
         )
-        self.mlp2 = GConv3d(
+        self.mlp2 = GroupEquivariantConv3d(
             in_channels=mid_channels,
             out_channels=out_channels,
             kernel_size=1,

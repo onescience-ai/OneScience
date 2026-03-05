@@ -5,48 +5,55 @@ import numpy as np
 import torch.distributed as dist
 import logging
 import time
-
+import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel
 from onescience.models.pangu import Pangu
-from onescience.datapipes.climate import ERA5HDF5Datapipe
+from onescience.datapipes.climate import ERA5Datapipe
 from onescience.utils.YParams import YParams
 from onescience.memory.checkpoint import replace_function
-from onescience.metrics import L1_loss
-from onescience.optimizers import FusedAdam
-from onescience.modules import save_checkpoint
+from apex import optimizers
+
+def loss_func(x, y, weights, level_weight=1.0):
+    return level_weight * (F.l1_loss(x, y, reduction='none') * weights).mean()
 
 def main():
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     logger = logging.getLogger()
 
+    ## Model config init
     config_file_path = os.path.join(current_path, "conf/config.yaml")
     cfg = YParams(config_file_path, "model")
+
+    ## Distributed config init
     cfg.world_size = 1
     if "WORLD_SIZE" in os.environ:
         cfg.world_size = int(os.environ["WORLD_SIZE"])
     world_rank = 0
     local_rank = 0
-
     if cfg.world_size > 1:
         dist.init_process_group(backend="nccl", init_method="env://")
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
 
-    land_mask = torch.from_numpy(np.load(os.path.join(cfg.static_dir, "land_mask.npy")).astype(np.float32))
-    soil_type = torch.from_numpy(np.load(os.path.join(cfg.static_dir, "soil_type.npy")).astype(np.float32))
-    topography = torch.from_numpy(np.load(os.path.join(cfg.static_dir, "topography.npy")).astype(np.float32))
+    ## DataLoader init
+    cfg_data = YParams(config_file_path, "datapipe")
+    datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized())
+    train_dataloader, train_sampler = datapipe.train_dataloader()
+    val_dataloader, val_sampler = datapipe.val_dataloader()
+
+    surface_weights = torch.as_tensor(cfg_data.dataset.weights[:4], device=local_rank, dtype=torch.float32).view(1, -1, 1, 1)
+    pressure_weights = torch.as_tensor(cfg_data.dataset.weights[4:], device=local_rank, dtype=torch.float32).view(1, -1, 1, 1)
+
+    land_mask = torch.from_numpy(np.load(os.path.join(cfg_data.dataset.static_dir, "land_mask.npy")).astype(np.float32))
+    soil_type = torch.from_numpy(np.load(os.path.join(cfg_data.dataset.static_dir, "soil_type.npy")).astype(np.float32))
+    topography = torch.from_numpy(np.load(os.path.join(cfg_data.dataset.static_dir, "topography.npy")).astype(np.float32))
+    topography = (topography - topography.mean()) / (topography.std(unbiased=False) + 1e-6)
     surface_mask = torch.stack([land_mask, soil_type, topography], dim=0).to(local_rank)
-    surface_mask = surface_mask.unsqueeze(0).repeat(cfg.batch_size, 1, 1, 1)
-
-    train_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
-    train_dataloader, train_sampler = train_dataset.train_dataloader()
-
-    val_dataset = ERA5HDF5Datapipe(params=cfg, distributed=dist.is_initialized())
-    val_dataloader, val_sampler = val_dataset.val_dataloader()
+    surface_mask = surface_mask.unsqueeze(0).repeat(cfg_data.dataloader.batch_size, 1, 1, 1)
 
     pangu_model = Pangu(
-        img_size=cfg.img_size,
+        img_size=[721, 1440],
         patch_size=cfg.patch_size,
         embed_dim=cfg.embed_dim,
         num_heads=cfg.num_heads,
@@ -56,7 +63,7 @@ def main():
     if cfg.world_size > 1:
         pangu_model = DistributedDataParallel(pangu_model, device_ids=[local_rank], output_device=local_rank)
 
-    optimizer = FusedAdam(pangu_model.parameters(), betas=(0.9, 0.999), lr=5e-4, weight_decay=3e-6)
+    optimizer = optimizers.FusedAdam(pangu_model.parameters(), betas=(0.9, 0.999), lr=5e-4, weight_decay=3e-6)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)
 
     os.makedirs(cfg.checkpoint_dir, exist_ok=True)
@@ -100,8 +107,8 @@ def main():
 
             out_upper_air = out_upper_air.reshape(tar_upper_air.shape)
 
-            loss1 = L1_loss(tar_surface, out_surface)
-            loss2 = L1_loss(tar_upper_air, out_upper_air)
+            loss1 = loss_func(tar_surface, out_surface, surface_weights,  level_weight=0.25)
+            loss2 = loss_func(tar_upper_air, out_upper_air, pressure_weights, level_weight=1.0)
             loss = loss1 * 0.25 + loss2
 
             optimizer.zero_grad()
@@ -138,8 +145,8 @@ def main():
                 out_surface, out_upper_air = pangu_model(invar)
                 out_upper_air = out_upper_air.reshape(tar_upper_air.shape)
 
-                loss1 = L1_loss(tar_surface, out_surface).item()
-                loss2 = L1_loss(tar_upper_air, out_upper_air).item()
+                loss1 = loss_func(tar_surface, out_surface, surface_weights,  level_weight=0.25).item()
+                loss2 = loss_func(tar_upper_air, out_upper_air, pressure_weights, level_weight=1.0).item()
                 loss = loss1 * 0.25 + loss2
 
                 if cfg.world_size > 1:
@@ -206,6 +213,17 @@ def main():
 #         "best_loss_epoch": best_loss_epoch,
 #     }
 #     torch.save(state, f"{model_path}/pangu_weather.pth")
+def save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path):
+    model_to_save = model.module if hasattr(model, "module") else model
+    state = {"model_state_dict": model_to_save.state_dict(),
+             "optimizer_state_dict": optimizer.state_dict(),
+             "scheduler_state_dict": scheduler.state_dict(),
+             "best_valid_loss": best_valid_loss,
+             "best_loss_epoch": best_loss_epoch,
+            }
+    torch.save(state, f"{model_path}/model.pth")
+    ### the weight file saving may interrupted due to DCU queue limit, get a backup to ensure there at least has one model 
+    os.system(f"mv {model_path}/model.pth {model_path}/model_bak.pth")
 
 
 if __name__ == "__main__":

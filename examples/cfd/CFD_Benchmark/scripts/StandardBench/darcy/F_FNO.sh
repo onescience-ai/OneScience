@@ -1,6 +1,6 @@
 python run.py \
 --gpu 0 \
---data_path ../Neural-Solver-Library/data/darcy \
+--data_path /public/onestore/onedatasets/CFD_Benchmark/darcy \
 --loader darcy \
 --geotype structured_2D \
 --task steady \

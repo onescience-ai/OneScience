@@ -5,9 +5,8 @@ import torch.nn as nn
 from dgl import DGLGraph
 from torch import Tensor
 
-from .mesh_graph_mlp import MeshGraphEdgeMLPConcat, MeshGraphEdgeMLPSum, MeshGraphMLP
-from .utils import CuGraphCSC, aggregate_and_concat
-
+from onescience.modules.mlp.mesh_graph_mlp import MeshGraphEdgeMLPConcat, MeshGraphEdgeMLPSum, MeshGraphMLP
+from onescience.modules.utils.gnnlayer_utils import CuGraphCSC, aggregate_and_concat
 
 class MeshGraphEncoder(nn.Module):
     """

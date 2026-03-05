@@ -4,9 +4,8 @@ import numpy as np
 from timm.layers import trunc_normal_
 from einops import rearrange, repeat
 # 导入模块化组件
-from onescience.modules.transolver_block import Transolver_block
-from onescience.modules.mlp import StandardMLP as MLP
-
+from onescience.modules.block.Transolver_block import Transolver_block
+from onescience.modules import OneMlp
 class Transolver2D(nn.Module):
     """
     Transolver2D 模型。
@@ -58,7 +57,8 @@ class Transolver2D(nn.Module):
         else:
             input_dim = fun_dim + space_dim
 
-        self.preprocess = MLP(
+        self.preprocess = OneMlp(
+            style="StandardMLP",
             input_dim=input_dim,
             hidden_dims=[n_hidden * 2], 
             output_dim=n_hidden,
@@ -66,7 +66,6 @@ class Transolver2D(nn.Module):
             use_bias=True,
             use_skip_connection=False
         )
-
         self.n_hidden = n_hidden
         self.space_dim = space_dim
 

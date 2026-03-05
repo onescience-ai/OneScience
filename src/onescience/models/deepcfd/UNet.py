@@ -1,67 +1,72 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import onescience.modules.layer.layers import DoubleConv2D, Down2D, Up2D, OutConv2D
+from onescience.modules import OneEncoder, OneDecoder, OneHead
 
 class UNet(nn.Module):
     """
-    基于模块化组件重构的 U-Net 模型。
+    基于模块化组件工厂重构的 U-Net 模型。
 
-    该模型由编码器（下采样路径）、瓶颈层和解码器（上采样路径）组成。
-    编码器逐步降低特征图的空间分辨率并增加通道数。
-    解码器逐步恢复空间分辨率，并通过跳跃连接（Skip Connections）融合编码器的高分辨率特征。
+
+    该模型彻底摒弃了底层算子的手动拼接，转而使用高度封装的编码器、解码器和预测头。
+    - OneEncoder: 自动执行多级下采样，并返回所有层级的特征列表。
+    - OneDecoder: 接收特征列表，自动匹配跳跃连接 (Skip Connections) 进行上采样融合。
+    - OneHead: 将解码后的深层特征映射为目标物理量。
 
     Args:
-        in_channels (int): 输入图像的通道数。
-        out_channels (int): 输出图像的通道数。
-        features (list[int]): 每个层级的特征通道数列表。默认值: [16, 32, 64]。
-        normtype (str): 归一化类型 ('bn' 或 'in')。默认值: 'bn'。
+        in_channels (int): 输入特征/图像的通道数。
+        out_channels (int): 输出预测场的通道数。
+        base_channels (int, optional): 初始特征通道数 (等价于原版的 features[0])。默认值: 16。
+        num_stages (int, optional): 下采样/上采样的层数 (等价于原版 len(features)-1)。默认值: 2。
+        bilinear (bool, optional): 是否使用双线性插值进行上采样。默认值: True。
+        normtype (str, optional): 归一化类型 ('bn' 或 'in')。默认值: 'bn'。
     """
-    def __init__(self, in_channels, out_channels, features=[16, 32, 64], normtype="bn"):
+    def __init__(
+        self, 
+        in_channels: int, 
+        out_channels: int, 
+        base_channels: int = 16, 
+        num_stages: int = 2, 
+        bilinear: bool = True,
+        normtype: str = "bn"
+    ):
         super(UNet, self).__init__()
         
-        self.encoders = nn.ModuleList()
-        self.decoders = nn.ModuleList()
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2) # 显式定义池化层，配合 Down2D 使用或单独使用
-
-        # --- Encoder Path ---
-        # 初始双卷积层 (不进行下采样)
-        self.inc = DoubleConv2D(in_channels, features[0], normtype=normtype)
+        # 1. 实例化编码器 (负责提取特征并保留跳跃连接)
+        self.encoder = OneEncoder(
+            style="UNetEncoder2D",
+            in_channels=in_channels,
+            base_channels=base_channels,
+            num_stages=num_stages,
+            bilinear=bilinear,
+            normtype=normtype
+        )
         
-        # 下采样层
-        for i in range(len(features) - 1):
-            # Down2D 包含 MaxPool + DoubleConv
-            self.encoders.append(
-                Down2D(features[i], features[i+1], normtype=normtype)
-            )
-        for i in range(len(features) - 1, 0, -1):
-            self.decoders.append(
-                Up2D(features[i] + features[i-1], features[i-1], bilinear=True, normtype=normtype)
-            )
-
-        # --- Output Path ---
-        self.outc = OutConv2D(features[0], out_channels)
+        # 2. 实例化解码器 (负责接收列表并逐层上采样融合)
+        self.decoder = OneDecoder(
+            style="UNetDecoder2D",
+            base_channels=base_channels,
+            num_stages=num_stages,
+            bilinear=bilinear,
+            normtype=normtype
+        )
+        
+        # 3. 实例化预测头 (负责输出通道映射)
+        self.head = OneHead(
+            style="UNetHead2D",
+            in_channels=base_channels,
+            out_channels=out_channels
+        )
 
     def forward(self, x):
-        # 存储跳跃连接的特征
-        skips = []
+        # 仅仅三行代码，完成了整个 U-Net 的前向传播！
         
-        # 初始卷积
-        x = self.inc(x)
-        skips.append(x)
+        # 1. 编码器提取多尺度特征 (返回特征列表 [x1, x2, x3...])
+        features = self.encoder(x)
         
-        # 编码器路径
-        for encoder in self.encoders:
-            x = encoder(x)
-            skips.append(x)
+        # 2. 解码器自动处理特征列表并融合
+        decoded = self.decoder(features)
         
-        x = skips.pop() 
+        # 3. 输出头映射到目标通道
+        logits = self.head(decoded)
         
-        # 解码器路径
-        for decoder in self.decoders:
-            skip = skips.pop() # 获取对应的跳跃连接特征
-            x = decoder(x, skip) # x 是深层特征，skip 是浅层特征
-            
-        # 输出层
-        logits = self.outc(x)
         return logits

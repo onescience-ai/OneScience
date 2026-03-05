@@ -1,104 +1,85 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import onescience.modules.layer.layers import DoubleConv2D, Down2D, Up2D, OutConv2D
+from onescience.modules import OneEncoder, OneDecoder, OneHead
 
 class DecoderPath(nn.Module):
     """
-    单个解码器路径辅助类。
-    
-    用于 UNetEx 中。它接收瓶颈层特征和跳跃连接，逐步上采样并输出单通道结果。
+    辅助类：单通道独立解码器路径。
+    包含一个 OneDecoder (负责上采样和特征融合) 和一个 OneHead (负责映射到单通道输出)。
     """
-    def __init__(self, features, normtype="bn"):
+    def __init__(self, base_channels, num_stages, bilinear, normtype):
         super().__init__()
-        self.layers = nn.ModuleList()
-        
-        # features 顺序例如 [16, 32, 64]
-        # 解码过程是倒序的 (Deep -> Shallow): 64 -> 32 -> 16
-        for i in range(len(features) - 1, 0, -1):
-            # Up2D(in_channels, out_channels, ...)
-            # in_channels = current_deep_channels + skip_connection_channels
-            # out_channels = next_shallow_channels
-            self.layers.append(
-                Up2D(features[i] + features[i-1], features[i-1], bilinear=True, normtype=normtype)
-            )
-        
-        # 按照原 UNetEx 逻辑，每个解码器头输出 1 个通道
-        self.outc = OutConv2D(features[0], 1)
+        self.decoder = OneDecoder(
+            style="UNetDecoder2D",
+            base_channels=base_channels,
+            num_stages=num_stages,
+            bilinear=bilinear,
+            normtype=normtype
+        )
+        self.head = OneHead(
+            style="UNetHead2D",
+            in_channels=base_channels,
+            out_channels=1
+        )
 
-    def forward(self, x, skips):
-        """
-        Args:
-            x: 瓶颈层特征 (Bottleneck feature)
-            skips: 编码器产生的跳跃连接列表 [feat0, feat1, ...]
-        """
-        # 跳跃连接列表是 [浅 -> 深]，解码需要 [深 -> 浅]
-        # 我们使用索引倒序访问，避免使用 pop() 破坏列表，从而允许被多个解码器复用
-        skip_idx = len(skips) - 1
-        
-        for layer in self.layers:
-            skip = skips[skip_idx]
-            x = layer(x, skip)
-            skip_idx -= 1
-            
-        return self.outc(x)
+    def forward(self, features):
+        """接收编码器输出的特征列表，完成解码并输出单通道预测。"""
+        decoded = self.decoder(features)
+        return self.head(decoded)
 
 
 class UNetEx(nn.Module):
     """
-    基于模块化组件重构的 UNetEx 模型。
+    基于模块化组件工厂 (OneXxx) 重构的多头 U-Net 模型 (UNetEx)。
 
     特点：
-    1. **共享编码器**: 提取通用的图像/物理场特征。
-    2. **多头解码器**: 针对 `out_channels` 中的每一个通道，都有一个完全独立的解码路径。
-       最后将所有解码器的输出在通道维度拼接。
+    1. 共享编码器 (Shared Encoder): 提取通用的物理场/图像特征。
+    2. 多头解码器 (Independent Decoders): 为每一个输出通道构建一条完全独立的解码和跳跃连接路径。
+       所有解码路径的输出最后在通道维度拼接。
 
     Args:
-        in_channels (int): 输入通道数。
-        out_channels (int): 总输出通道数（决定了解码器头的数量）。
-        features (list[int]): 特征通道列表。
-        normtype (str): 归一化类型。
+        in_channels (int): 输入图像/物理场的通道数。
+        out_channels (int): 总输出通道数（决定了独立解码器头的数量）。
+        base_channels (int, optional): 初始特征通道数。默认值: 16。
+        num_stages (int, optional): 下采样/上采样的层数。默认值: 2。
+        bilinear (bool, optional): 是否使用双线性插值进行上采样。默认值: True。
+        normtype (str, optional): 归一化类型 ('bn' 或 'in')。默认值: 'bn'。
     """
-    def __init__(self, in_channels, out_channels, features=[16, 32, 64], normtype="bn"):
+    def __init__(
+        self, 
+        in_channels: int, 
+        out_channels: int, 
+        base_channels: int = 16, 
+        num_stages: int = 2, 
+        bilinear: bool = True, 
+        normtype: str = "bn"
+    ):
         super(UNetEx, self).__init__()
         
-        # --- Encoder Path (Shared) ---
-        self.encoders = nn.ModuleList()
-        # 初始层
-        self.inc = DoubleConv2D(in_channels, features[0], normtype=normtype)
-        
-        # 下采样层
-        for i in range(len(features) - 1):
-            self.encoders.append(
-                Down2D(features[i], features[i+1], normtype=normtype)
-            )
+        # --- 1. Encoder Path (Shared) ---
+        self.encoder = OneEncoder(
+            style="UNetEncoder2D",
+            in_channels=in_channels,
+            base_channels=base_channels,
+            num_stages=num_stages,
+            bilinear=bilinear,
+            normtype=normtype
+        )
             
-        # --- Decoder Paths (Multiple Independent Heads) ---
-        # 为每个输出通道创建一个独立的解码路径
-        self.decoders = nn.ModuleList()
-        for _ in range(out_channels):
-            self.decoders.append(DecoderPath(features, normtype=normtype))
+        # --- 2. Decoder Paths (Multiple Independent Heads) ---
+        self.decoders = nn.ModuleList([
+            DecoderPath(base_channels, num_stages, bilinear, normtype)
+            for _ in range(out_channels)
+        ])
 
     def forward(self, x):
-        # --- Encode (Shared) ---
-        skips = []
-        x = self.inc(x)
-        skips.append(x)
+        # 共享编码提取多尺度特征 (返回特征列表 [x1, x2, x3...])
+        features = self.encoder(x)
         
-        for encoder in self.encoders:
-            x = encoder(x)
-            skips.append(x)
-            
-        # 此时 x 是最深层的特征 (Bottleneck)
-        # skips 包含了所有层的特征 [L0, L1, ..., Bottleneck]
-        # 我们需要把 Bottleneck 拿出来作为输入，剩下的作为跳跃连接
-        bottleneck = skips.pop() 
-        
-        # --- Decode (Parallel/Loop) ---
+        # 每个独立的解码器接收相同的特征列表进行解码
         outputs = []
-        for decoder in self.decoders:
-            # 每个解码器复用相同的 bottleneck 和 skips
-            out = decoder(bottleneck, skips)
+        for decoder_path in self.decoders:
+            out = decoder_path(features)
             outputs.append(out)
             
         # 拼接所有头的输出 (B, 1, H, W) -> (B, out_channels, H, W)

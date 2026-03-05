@@ -1,6 +1,11 @@
 import torch
 from torch import nn
 
+from ..func_utils import (
+    get_earth_position_index,
+    trunc_normal_,
+)
+
 class EarthAttention2D(nn.Module):
     """
     Revise from WeatherLearn https://github.com/lizhuoq/WeatherLearn

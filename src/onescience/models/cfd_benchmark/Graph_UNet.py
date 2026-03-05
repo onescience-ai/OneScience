@@ -1,12 +1,17 @@
+
 import torch
 import torch.nn as nn
 import torch_geometric.nn as nng
 import random
-from onescience.models.layers.Basic import MLP
-from onescience.modules.resample.SpatialGraphDownsample import SpatialGraphDownsample
-from onescience.modules.resample.SpatialGraphUpsample import SpatialGraphUpsample
+from onescience.modules import OneMlp, OneSample
 
 class Model(nn.Module):
+    """
+    Graph U-Net 模型。
+    
+    基于图神经网络的 U-Net 结构，包含 Encoder-Decoder 和 Skip Connections。
+    使用 SpatialGraphDownsample 进行图池化，使用 SpatialGraphUpsample 进行反池化。
+    """
     def __init__(
         self,
         args,
@@ -20,7 +25,7 @@ class Model(nn.Module):
         head=2,
     ):
         super(Model, self).__init__()
-        self.__name__ = "GUNet"
+        self.__name__ = "Graph_UNet"
         
         # 参数绑定
         self.L = scale
@@ -35,12 +40,22 @@ class Model(nn.Module):
         self.head = head
         self.activation = nn.ReLU()
         
-        # MLP Encoder / Decoder
-        self.encoder = MLP(
-            args.fun_dim, args.n_hidden * 2, args.n_hidden, n_layers=0, res=False, act=args.act
+        self.encoder = OneMlp(
+            style="StandardMLP",
+            input_dim=args.fun_dim,
+            output_dim=args.n_hidden,
+            hidden_dims=[args.n_hidden * 2],
+            activation=args.act,
+            use_bias=True
         )
-        self.decoder = MLP(
-            args.n_hidden, args.n_hidden * 2, args.out_dim, n_layers=0, res=False, act=args.act
+        
+        self.decoder = OneMlp(
+            style="StandardMLP",
+            input_dim=args.n_hidden,
+            output_dim=args.out_dim,
+            hidden_dims=[args.n_hidden * 2],
+            activation=args.act,
+            use_bias=True
         )
 
         # Down Path Layers
@@ -56,9 +71,9 @@ class Model(nn.Module):
         # Level 1 to L-1
         current_dim = self.size_hidden
         for n in range(self.L - 1):
-            # Downsample Module
             self.down_samples.append(
-                SpatialGraphDownsample(
+                OneSample(
+                    style="SpatialGraphDownsample",
                     in_channels=current_dim,
                     ratio=self.pool_ratio[n],
                     r=self.list_r[n],
@@ -78,7 +93,10 @@ class Model(nn.Module):
 
         # Up Path Layers
         self.up_convs = nn.ModuleList()
-        self.up_sampler = SpatialGraphUpsample()
+        
+        # --- 3. Upsample Module (使用 OneSample) ---
+        self.up_sampler = OneSample(style="SpatialGraphUpsample")
+        
         self.up_bns = nn.ModuleList()
         
         curr_h_init = args.n_hidden
@@ -116,16 +134,14 @@ class Model(nn.Module):
         dim = in_c * self.head if self.layer == "GAT" else in_c
         module_list.append(nng.BatchNorm(dim, track_running_stats=False))
 
-    def forward(self, x, fx, T=None, geo=None):.
+    def forward(self, x, fx, T=None, geo=None):
         if geo is None: raise ValueError("Edge index required")
         if fx.dim() == 3: fx = fx.squeeze(0)
         if geo.dim() == 3: edge_index = geo.squeeze(0)
         else: edge_index = geo
         
-        x = fx 
-        
         # Encoder
-        z = self.encoder(x)
+        z = self.encoder(fx)
         if self.res: z_res = z.clone()
 
         # Downsampling Path
@@ -139,41 +155,38 @@ class Model(nn.Module):
         z = self.activation(z)
         
         skip_connections.append(z.clone())
+        
+        # Assuming x contains coords in first 2 columns as per original code logic
         current_pos = x[:, :2] 
         pos_history.append(current_pos.clone())
 
         # Levels 1 to L-1
         for n in range(self.L - 1):
-            # A. 下采样
             z, current_pos, edge_index, _ = self.down_samples[n](z, current_pos, edge_index)
             
             pos_history.append(current_pos.clone())
-            edge_index_history.append(edge_index.clone()) # 记录新图结构
+            edge_index_history.append(edge_index.clone())
 
-            # B. 卷积
             z = self.down_convs[n+1](z, edge_index)
             if self.bn_bool: z = self.down_bns[n+1](z)
             z = self.activation(z)
             
             skip_connections.append(z.clone())
         
+        # Up Path
         for n in range(self.L - 1, 0, -1):
-            layer_idx = n - 1 # 对应 up_convs 的索引
+            layer_idx = n - 1
             
-            # 获取数据
             pos_low = pos_history[n]
             pos_high = pos_history[n-1]
             z_skip = skip_connections[n-1]
             
             target_edge_index = edge_index_history[n-1]
 
-            # 上采样
             z = self.up_sampler(z, pos_low, pos_high)
             
-            # 拼接
             z = torch.cat([z, z_skip], dim=1)
             
-            # 卷积 (使用正确的 edge_index)
             z = self.up_convs[layer_idx](z, target_edge_index)
             
             if self.bn_bool: 

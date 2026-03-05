@@ -1,27 +1,25 @@
-import torch
 from torch import nn
 
-from pangufuser import PanGuFuser
+from .pangufuser import PanguFuser
 
-class Onefuser(nn.Module):
+_FUSER_REGISTRY = {
+    "PanguFuser": PanguFuser,
+}
+
+class OneFuser(nn.Module):
+    """OneFuser module for fusing operations."""
    
-    def __inin__(self, *args, **kwargs):
+    def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if "style" not in kwargs:
-           raise ValueError("style must be specified")
+        if style not in _FUSER_REGISTRY:
+            raise NotImplementedError(f"Unknown style: {style}")
         
-        style = kwargs.pop("style")
-
-        if style not in ["PanGuFuser"]:
-         raise ValueError(f"Unknown style: {style}")
-        
-        if style == "PanGuFuser":
-           self.Fuser = PanGuFuser(args, kwargs)
-        
-        else:
-           raise NotImplementedError
-        
+        self.Fuser = _FUSER_REGISTRY[style](**kwargs)
+         
     def forward(self, x):
         
         return self.Fuser(x) 
+
+
+      

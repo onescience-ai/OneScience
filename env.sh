@@ -1,5 +1,6 @@
 export ONESCIENCE_DATASETS_DIR="/public/onestore/onedatasets"
 export ONESCIENCE_MODELS_DIR="/public/onestore/onemodels"
+export device="gpu" # gpu or dcu
 
 # check datasets path
 if [ ! -d "$ONESCIENCE_DATASETS_DIR" ]; then
@@ -12,3 +13,5 @@ if [ ! -d "$ONESCIENCE_MODELS_DIR" ]; then
   echo "❌❌️ ERROR: ONESCIENCE_MODELS_DIR does not exist:"
   echo "    $ONESCIENCE_MODELS_DIR"
 fi
+
+echo "✅️✅️ Device Variables Are Set: ${device}"
