@@ -7,7 +7,7 @@ from dgl import DGLGraph
 from torch import Tensor
 from torch.autograd.function import once_differentiable
 
-from .utils import CuGraphCSC, concat_efeat, sum_efeat
+from onescience.modules.utils.gnnlayer_utils import CuGraphCSC, concat_efeat, sum_efeat
 
 # try:
 #     from transformer_engine import pytorch as te

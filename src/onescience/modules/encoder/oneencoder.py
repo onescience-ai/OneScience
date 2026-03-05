@@ -1,9 +1,13 @@
 # from .timestepembedder import TimestepEmbedder 
 from torch import nn
 from .fengwuencoder import FengWuEncoder
+from .graphvitencoder import GraphViTEncoder
+from .meshgraphencoder import MeshGraphEncoder
 
 _ENCODER_REGISTRY = {
     "FengWuEncoder": FengWuEncoder,
+    "GraphViTEncoder": GraphViTEncoder,
+    "MeshGraphEncoder":MeshGraphEncoder,
 }
 
 class OneEncoder(nn.Module):

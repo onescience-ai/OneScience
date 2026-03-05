@@ -6,7 +6,7 @@ import torch.nn as nn
 from torch import Tensor
 
 import onescience  # noqa: F401 for docs
-from onescience.models.layer.layers import FCLayer, get_activation
+from onescience.modules.layer.layers import FCLayer, get_activation
 
 from ..meta import ModelMetaData
 from ..module import Module

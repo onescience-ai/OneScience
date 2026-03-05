@@ -8,6 +8,9 @@ from .fc.onefc import OneFC
 from .encoder.oneencoder import OneEncoder
 from .decoder.onedecoder import OneDecoder
 from .afno.oneafno import OneAFNO
+from .mlp.onemlp import OneMlp
+from .edge.oneedge import OneEdge
+from .node.onenode import OneNode
 
 __all__ = ["OneEmbedding",
            "OneFuser",
@@ -18,4 +21,7 @@ __all__ = ["OneEmbedding",
            "OneFC",
            "OneEncoder",
            "OneDecoder",
-           "OneAFNO"]
+           "OneAFNO",
+           "OneMlp",
+           "OneEdge",
+           "OneNode"]

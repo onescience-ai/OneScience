@@ -6,14 +6,17 @@ from .panguembedding3d import PanguEmbedding3D
 from .fuxiembedding import FuxiEmbedding
 from .fourcastnetembedding import FourCastNetEmbedding
 from .xiheembedding import XiheEmbedding
+from .graphcastencoderembedder import GraphCastEncoderEmbedder
+from .graphcastdecoderembedder import GraphCastDecoderEmbedder
 
 _EMBEDDER_REGISTRY = {
     "PanguEmbedding2D": PanguEmbedding2D,
     "PanguEmbedding3D": PanguEmbedding3D,
     "FuxiEmbedding": FuxiEmbedding,
     "FourCastNetEmbedding": FourCastNetEmbedding,
-    # "TimestepEmbedder": TimestepEmbedder,
     "XiheEmbedding":XiheEmbedding,
+    "GraphCastEncoderEmbedder": GraphCastEncoderEmbedder,
+    "GraphCastDecoderEmbedder": GraphCastDecoderEmbedder,
 }
 
 class OneEmbedding(nn.Module):

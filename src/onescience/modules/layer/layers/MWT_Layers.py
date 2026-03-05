@@ -200,6 +200,31 @@ def compl_mul1d(x, weights):
 
 
 class sparseKernelFT1d(nn.Module):
+    """
+        一维傅里叶稀疏核层 (1D Fourier Sparse Kernel)。
+
+        该模块在频域中执行线性变换。它首先对输入进行一维实数快速傅里叶变换（RFFT），然后对低频模态（Modes）进行复数权重乘法，最后通过逆变换（IRFFT）还原回物理空间。
+        这相当于在物理空间中进行全局卷积，能够有效捕捉长程依赖。
+
+        Args:
+            k (int): 多小波的元素数量或块大小。
+            alpha (int): 保留的傅里叶模态数量（频率分量数）。
+            c (int, optional): 通道缩放因子。
+            nl (int, optional): 未在代码中使用，保留参数。
+            initializer (callable, optional): 初始化函数（未在代码中使用）。
+
+        形状:
+            输入: (B, N, c, k)，其中 N 是序列长度。
+            输出: (B, N, c, k)。
+
+        Example:
+            >>> # 假设多小波块大小 k=3
+            >>> layer = sparseKernelFT1d(k=3, alpha=16, c=1)
+            >>> x = torch.randn(10, 128, 1, 3)
+            >>> out = layer(x)
+            >>> out.shape
+            torch.Size([10, 128, 1, 3])
+    """
     def __init__(self,
                  k, alpha, c=1,
                  nl=1,
@@ -231,6 +256,31 @@ class sparseKernelFT1d(nn.Module):
 
 
 class MWT_CZ1d(nn.Module):
+    """
+        一维多小波变换层 (1D Multiwavelet Transform Layer)。
+
+        该模块实现了基于多小波变换的非标准形式（Non-standard form）分解和重构。它将输入信号分解为不同尺度的近似系数和细节系数。
+        在每个尺度上，分别使用稀疏核（A, B, C）对系数进行处理，最后进行重构。这种分层结构有助于捕捉多尺度的物理特征。
+
+        Args:
+            k (int, optional): 多小波基的阶数/块大小。默认值: 3。
+            alpha (int, optional): 稀疏核中的模态数量或中间通道控制参数。默认值: 5。
+            L (int, optional): 保持不分解的最粗糙层级数。变换将进行到 log_2(N) - L 层。默认值: 0。
+            c (int, optional): 通道缩放因子。默认值: 1。
+            base (str, optional): 多小波基的类型，例如 'legendre'。需要外部 get_filter 函数支持。默认值: 'legendre'。
+            initializer (callable, optional): 参数初始化函数。
+
+        形状:
+            输入: (B, N, c, k)，其中 N 通常需要是 2 的幂。
+            输出: (B, N, c, k)。
+
+        Example:
+            >>> model = MWT_CZ1d(k=3, alpha=8, L=0, c=1)
+            >>> x = torch.randn(8, 256, 1, 3)
+            >>> out = model(x)
+            >>> out.shape
+            torch.Size([8, 256, 1, 3])
+    """
     def __init__(self,
                  k=3, alpha=5,
                  L=0, c=1,
@@ -312,6 +362,29 @@ class MWT_CZ1d(nn.Module):
 
 
 class sparseKernel2d(nn.Module):
+    """
+        二维空间稀疏核层 (2D Spatial Sparse Kernel)。
+
+        该模块在物理空间中使用标准的二维卷积（Conv2d）来处理多小波系数。
+        它先通过卷积层（包含 ReLU 激活）提取特征，然后通过线性层进行投影。通常用于处理多小波变换中的高频细节系数或不需要全局傅里叶变换的部分。
+
+        Args:
+            k (int): 多小波块大小参数。输入特征的最后一个维度应为 k^2。
+            alpha (int): 控制卷积层输出通道数的倍率因子。
+            c (int, optional): 通道缩放因子。
+
+        形状:
+            输入: (B, N_x, N_y, c, k^2)。
+            输出: (B, N_x, N_y, c, k^2)。
+
+        Example:
+            >>> # k=3, 输入最后维度为 3*3=9
+            >>> layer = sparseKernel2d(k=3, alpha=4, c=1)
+            >>> x = torch.randn(4, 64, 64, 1, 9)
+            >>> out = layer(x)
+            >>> out.shape
+            torch.Size([4, 64, 64, 1, 9])
+    """
     def __init__(self,
                  k, alpha, c=1,
                  nl=1,
@@ -349,6 +422,33 @@ def compl_mul2d(x, weights):
 
 
 class sparseKernelFT2d(nn.Module):
+    """
+        二维多小波变换层 (2D Multiwavelet Transform Layer)。
+
+        
+
+        对二维图像或网格数据进行多尺度的多小波分解与重构。
+        在每个尺度上，利用 sparseKernelFT2d 处理细节系数（通常对应低频部分或需要全局信息的系数），利用 sparseKernel2d 处理近似系数（或其他高频系数）。
+        包含 2D 小波变换（分解为 LL, LH, HL, HH）及相应的重组逻辑，实现了多尺度特征提取。
+
+        Args:
+            k (int, optional): 多小波基阶数。默认值: 3。
+            alpha (int, optional): 核函数模态数/宽度控制。默认值: 5。
+            L (int, optional): 粗糙层级保留数。默认值: 0。
+            c (int, optional): 通道因子。默认值: 1。
+            base (str, optional): 小波基类型。默认值: 'legendre'。
+
+        形状:
+            输入: (B, N_x, N_y, c, k^2)。
+            输出: (B, N_x, N_y, c, k^2)。
+
+        Example:
+            >>> mwt_2d = MWT_CZ2d(k=3, alpha=8)
+            >>> x = torch.randn(2, 64, 64, 1, 9)
+            >>> out = mwt_2d(x)
+            >>> out.shape
+            torch.Size([2, 64, 64, 1, 9])
+    """
     def __init__(self,
                  k, alpha, c=1,
                  nl=1,
@@ -395,6 +495,26 @@ class sparseKernelFT2d(nn.Module):
 
 
 class MWT_CZ2d(nn.Module):
+    """
+        三维空间稀疏核层 (3D Spatial Sparse Kernel)。
+
+        类似于 sparseKernel2d，但在三维空间上使用 Conv3d 进行局部特征提取。
+        适用于处理 3D 体数据中的局部高频特征，通常作为多小波变换中处理细节系数的一部分。
+
+        Args:
+            k (int): 多小波参数。输入最后维度应为 k^2。
+            alpha (int): 通道倍率因子。
+            c (int, optional): 通道因子。
+
+        形状:
+            输入: (B, N_x, N_y, T, c, k^2)，通常用于 2D 空间 + 1D 时间的数据。
+            输出: (B, N_x, N_y, T, c, k^2)。
+
+        Example:
+            >>> layer = sparseKernel3d(k=3, alpha=4)
+            >>> x = torch.randn(2, 32, 32, 10, 1, 9)
+            >>> out = layer(x)
+    """
     def __init__(self,
                  k=3, alpha=5,
                  L=0, c=1,
@@ -542,6 +662,26 @@ class sparseKernel(nn.Module):
 
 
 class sparseKernel3d(nn.Module):
+    """
+        三维傅里叶稀疏核层 (3D Fourier Sparse Kernel)。
+
+        在三维频域内操作。该层使用 rfftn 计算三维频谱，并针对 3D 频谱的 8 个角（通过共轭对称性简化为 4 组权重）进行复数加权处理。
+        这允许模型捕捉体数据或时空数据（如流体演化）中的全局模式和周期性特征。
+
+        Args:
+            k (int): 多小波参数。
+            alpha (int): 傅里叶模态数。
+            c (int, optional): 通道因子。
+
+        形状:
+            输入: (B, N_x, N_y, T, c, k^2)。
+            输出: (B, N_x, N_y, T, c, k^2)。
+
+        Example:
+            >>> layer = sparseKernelFT3d(k=3, alpha=8)
+            >>> x = torch.randn(2, 16, 16, 16, 1, 9)
+            >>> out = layer(x)
+    """
     def __init__(self,
                  k, alpha, c=1,
                  nl=1,
@@ -578,6 +718,26 @@ def compl_mul3d(input, weights):
 
 
 class sparseKernelFT3d(nn.Module):
+    """
+        三维傅里叶稀疏核层 (3D Fourier Sparse Kernel)。
+
+        在三维频域内操作。该层使用 rfftn 计算三维频谱，并针对 3D 频谱的 8 个角（通过共轭对称性简化为 4 组权重）进行复数加权处理。
+        这允许模型捕捉体数据或时空数据（如流体演化）中的全局模式和周期性特征。
+
+        Args:
+            k (int): 多小波参数。
+            alpha (int): 傅里叶模态数。
+            c (int, optional): 通道因子。
+
+        形状:
+            输入: (B, N_x, N_y, T, c, k^2)。
+            输出: (B, N_x, N_y, T, c, k^2)。
+
+        Example:
+            >>> layer = sparseKernelFT3d(k=3, alpha=8)
+            >>> x = torch.randn(2, 16, 16, 16, 1, 9)
+            >>> out = layer(x)
+    """
     def __init__(self,
                  k, alpha, c=1,
                  nl=1,
@@ -635,6 +795,31 @@ class sparseKernelFT3d(nn.Module):
 
 
 class MWT_CZ3d(nn.Module):
+    """
+        三维多小波变换层 (3D Multiwavelet Transform Layer)。
+
+        针对三维数据（如流体模拟的 3D 场或 2D+T 序列）进行多尺度分析。
+        通过三维小波变换分解数据，并在不同尺度上应用 3D 稀疏核（包括频域和空域核）进行特征变换。
+        这种分层处理使得模型能够同时捕捉局部细节（通过空间核）和全局动态（通过谱核）。
+
+        Args:
+            k (int, optional): 多小波基阶数。默认值: 3。
+            alpha (int, optional): 核参数。默认值: 5。
+            L (int, optional): 粗糙层级。默认值: 0。
+            c (int, optional): 通道因子。默认值: 1。
+            base (str, optional): 小波基类型。默认值: 'legendre'。
+
+        形状:
+            输入: (B, N_x, N_y, T, c, k^2)。
+            输出: (B, N_x, N_y, T, c, k^2)。
+
+        Example:
+            >>> mwt_3d = MWT_CZ3d(k=3, alpha=4)
+            >>> x = torch.randn(1, 32, 32, 32, 1, 9)
+            >>> out = mwt_3d(x)
+            >>> out.shape
+            torch.Size([1, 32, 32, 32, 1, 9])
+    """
     def __init__(self,
                  k=3, alpha=5,
                  L=0, c=1,
