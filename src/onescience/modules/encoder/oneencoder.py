@@ -1,12 +1,12 @@
 # from .timestepembedder import TimestepEmbedder 
 from torch import nn
 from .fengwuencoder import FengWuEncoder
-from .graphvit_encoder import GraphViTEncoder
+# from .graphvit_encoder import GraphViTEncoder
 from .mesh_graph_encoder import MeshGraphEncoder
 
 _ENCODER_REGISTRY = {
     "FengWuEncoder": FengWuEncoder,
-    "GraphViTEncoder": GraphViTEncoder,
+    # "GraphViTEncoder": GraphViTEncoder,
     "MeshGraphEncoder":MeshGraphEncoder,
 }
 
