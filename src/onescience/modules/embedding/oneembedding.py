@@ -6,8 +6,7 @@ from .panguembedding3d import PanguEmbedding3D
 from .fuxiembedding import FuxiEmbedding
 from .fourcastnetembedding import FourCastNetEmbedding
 from .xiheembedding import XiheEmbedding
-from .graphcast_embedder import GraphCastEncoderEmbedder
-from .graphcast_embedder import GraphCastDecoderEmbedder
+from .graphcast_embedder import GraphCastEncoderEmbedder, GraphCastDecoderEmbedder
 
 _EMBEDDER_REGISTRY = {
     "PanguEmbedding2D": PanguEmbedding2D,

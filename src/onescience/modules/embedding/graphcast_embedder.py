@@ -112,14 +112,12 @@ class GraphCastEncoderEmbedder(nn.Module):
             recompute_activation=recompute_activation,
         )
 
-    def forward(
-        self,
-        grid_nfeat: Tensor,
-        mesh_nfeat: Tensor,
-        g2m_efeat: Tensor,
-        mesh_efeat: Tensor,
-    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def forward(self, x) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         # Input node feature embedding
+        grid_nfeat = x[0]
+        mesh_nfeat = x[1]
+        g2m_efeat = x[2]
+        mesh_efeat = x[3]
         grid_nfeat = self.grid_node_mlp(grid_nfeat)
         mesh_nfeat = self.mesh_node_mlp(mesh_nfeat)
         # Input edge feature embedding
@@ -131,8 +129,6 @@ class GraphCastEncoderEmbedder(nn.Module):
 class GraphCastDecoderEmbedder(nn.Module):
     """
     GraphCast 解码器嵌入层 (GraphCast Decoder Embedder)。
-
-    
 
     该模块用于将多尺度网格回到原始网格 (Mesh2Grid) 的边特征进行嵌入。
     这是 GraphCast 解码过程的第一步，用于处理从 latent mesh 传回 grid 的信息。

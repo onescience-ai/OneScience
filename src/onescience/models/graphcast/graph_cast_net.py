@@ -556,10 +556,10 @@ class GraphCastNet(nn.Module):
             g2m_efeat_embedded,
             mesh_efeat_embedded,
         ) = self.encoder_embedder(
-            grid_nfeat,
+            [grid_nfeat,
             self.mesh_ndata,
             self.g2m_edata,
-            self.mesh_edata,
+            self.mesh_edata]
         )
 
         # encode lat/lon to multimesh
