@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from typing import Optional, Union
 
 class DiffusionModule(nn.Module):
     """
