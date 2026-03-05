@@ -158,7 +158,7 @@ class GraphCastNet(nn.Module):
         produce_aggregated_output: bool = True,
         produce_aggregated_output_on_all_ranks: bool = True,
     ):
-        super().__init__(meta=MetaData())
+        super().__init__()
 
         # 'multimesh_level' deprecation handling
         if multimesh_level is not None:
