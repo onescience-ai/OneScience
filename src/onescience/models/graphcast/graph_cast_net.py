@@ -417,16 +417,14 @@ class GraphCastNet(nn.Module):
         # final MLP
         self.finale = OneMlp(
             style='MeshGraphMLP',
+            input_dim=hidden_dim,
+            output_dim=output_dim_grid_nodes,
+            hidden_dim=hidden_dim,
+            hidden_layers=hidden_layers,
+            activation_fn=activation_fn,
+            norm_type=None,
+            recompute_activation=recompute_activation,
         )
-        # MeshGraphMLP(
-        #     input_dim=hidden_dim,
-        #     output_dim=output_dim_grid_nodes,
-        #     hidden_dim=hidden_dim,
-        #     hidden_layers=hidden_layers,
-        #     activation_fn=activation_fn,
-        #     norm_type=None,
-        #     recompute_activation=recompute_activation,
-        # )
 
     def set_checkpoint_model(self, checkpoint_flag: bool):
         """Sets checkpoint function for the entire model.
