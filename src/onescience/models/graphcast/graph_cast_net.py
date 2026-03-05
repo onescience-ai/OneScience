@@ -298,51 +298,45 @@ class GraphCastNet(nn.Module):
 
         # initial feature embedder
         self.encoder_embedder = OneEmbedding(
-            style='GraphCastEncoderEmbedder'
+            style='GraphCastEncoderEmbedder',
+            input_dim_grid_nodes=input_dim_grid_nodes,
+            input_dim_mesh_nodes=input_dim_mesh_nodes,
+            input_dim_edges=input_dim_edges,
+            output_dim=hidden_dim,
+            hidden_dim=hidden_dim,
+            hidden_layers=hidden_layers,
+            activation_fn=activation_fn,
+            norm_type=norm_type,
+            recompute_activation=recompute_activation,
         )
-        # GraphCastEncoderEmbedder(
-        #     input_dim_grid_nodes=input_dim_grid_nodes,
-        #     input_dim_mesh_nodes=input_dim_mesh_nodes,
-        #     input_dim_edges=input_dim_edges,
-        #     output_dim=hidden_dim,
-        #     hidden_dim=hidden_dim,
-        #     hidden_layers=hidden_layers,
-        #     activation_fn=activation_fn,
-        #     norm_type=norm_type,
-        #     recompute_activation=recompute_activation,
-        # )
         self.decoder_embedder = OneEmbedding(
-            style='GraphCastDecoderEmbedder'
+            style='GraphCastDecoderEmbedder',
+            input_dim_edges=input_dim_edges,
+            output_dim=hidden_dim,
+            hidden_dim=hidden_dim,
+            hidden_layers=hidden_layers,
+            activation_fn=activation_fn,
+            norm_type=norm_type,
+            recompute_activation=recompute_activation,
         )
-        # GraphCastDecoderEmbedder(
-        #     input_dim_edges=input_dim_edges,
-        #     output_dim=hidden_dim,
-        #     hidden_dim=hidden_dim,
-        #     hidden_layers=hidden_layers,
-        #     activation_fn=activation_fn,
-        #     norm_type=norm_type,
-        #     recompute_activation=recompute_activation,
-        # )
 
         # grid2mesh encoder
         self.encoder = OneEncoder(
-            style='MeshGraphEncoder'
+            style='MeshGraphEncoder',
+            aggregation=aggregation,
+            input_dim_src_nodes=hidden_dim,
+            input_dim_dst_nodes=hidden_dim,
+            input_dim_edges=hidden_dim,
+            output_dim_src_nodes=hidden_dim,
+            output_dim_dst_nodes=hidden_dim,
+            output_dim_edges=hidden_dim,
+            hidden_dim=hidden_dim,
+            hidden_layers=hidden_layers,
+            activation_fn=activation_fn,
+            norm_type=norm_type,
+            do_concat_trick=do_concat_trick,
+            recompute_activation=recompute_activation,
         )
-        # MeshGraphEncoder(
-        #     aggregation=aggregation,
-        #     input_dim_src_nodes=hidden_dim,
-        #     input_dim_dst_nodes=hidden_dim,
-        #     input_dim_edges=hidden_dim,
-        #     output_dim_src_nodes=hidden_dim,
-        #     output_dim_dst_nodes=hidden_dim,
-        #     output_dim_edges=hidden_dim,
-        #     hidden_dim=hidden_dim,
-        #     hidden_layers=hidden_layers,
-        #     activation_fn=activation_fn,
-        #     norm_type=norm_type,
-        #     do_concat_trick=do_concat_trick,
-        #     recompute_activation=recompute_activation,
-        # )
 
         # icosahedron processor
         if processor_layers <= 2:
@@ -398,21 +392,19 @@ class GraphCastNet(nn.Module):
         # mesh2grid decoder
         self.decoder = OneDecoder(
             style='MeshGraphDecoder',
+            aggregation=aggregation,
+            input_dim_src_nodes=hidden_dim,
+            input_dim_dst_nodes=hidden_dim,
+            input_dim_edges=hidden_dim,
+            output_dim_dst_nodes=hidden_dim,
+            output_dim_edges=hidden_dim,
+            hidden_dim=hidden_dim,
+            hidden_layers=hidden_layers,
+            activation_fn=activation_fn,
+            norm_type=norm_type,
+            do_concat_trick=do_concat_trick,
+            recompute_activation=recompute_activation,
         )
-        # MeshGraphDecoder(
-        #     aggregation=aggregation,
-        #     input_dim_src_nodes=hidden_dim,
-        #     input_dim_dst_nodes=hidden_dim,
-        #     input_dim_edges=hidden_dim,
-        #     output_dim_dst_nodes=hidden_dim,
-        #     output_dim_edges=hidden_dim,
-        #     hidden_dim=hidden_dim,
-        #     hidden_layers=hidden_layers,
-        #     activation_fn=activation_fn,
-        #     norm_type=norm_type,
-        #     do_concat_trick=do_concat_trick,
-        #     recompute_activation=recompute_activation,
-        # )
 
         # final MLP
         self.finale = OneMlp(
