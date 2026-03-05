@@ -27,7 +27,7 @@ except ImportError:
 from onescience.modules import OneDecoder
 from onescience.modules import OneEncoder
 from onescience.modules import OneEmbedding
-from onescience.modules import OneMLP
+from onescience.modules import OneMlp
 
 from onescience.modules.utils.gnn_layers import CuGraphCSC, set_checkpoint_fn
 from onescience.modules.layer.activations import get_activation
@@ -415,7 +415,7 @@ class GraphCastNet(Module):
         # )
 
         # final MLP
-        self.finale = OneMLP(
+        self.finale = OneMlp(
             style='MeshGraphMLP',
         )
         # MeshGraphMLP(
