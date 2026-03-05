@@ -8,7 +8,9 @@ from torch import Tensor
 
 from onescience.models.gnn_layers.mesh_edge_block import MeshEdgeBlock
 from onescience.models.gnn_layers.mesh_node_block import MeshNodeBlock
-from onescience.models.gnn_layers.utils import CuGraphCSC, set_checkpoint_fn
+from onescience.modules import OneEdge
+from onescience.modules import OneNode
+from onescience.modules.utils.gnnlayer_utils import CuGraphCSC, set_checkpoint_fn
 
 
 class GraphCastProcessor(nn.Module):
@@ -81,8 +83,10 @@ class GraphCastProcessor(nn.Module):
 
         layers = []
         for _ in range(processor_layers):
-            layers.append(MeshEdgeBlock(*edge_block_invars))
-            layers.append(MeshNodeBlock(*node_block_invars))
+            layers.append(OneEdge(style='MeshEdgeBlock'))
+                # MeshEdgeBlock(*edge_block_invars))
+            layers.append(OneNode(style='MeshNodeBlock'))
+                # MeshNodeBlock(*node_block_invars))
 
         self.processor_layers = nn.ModuleList(layers)
         self.num_processor_layers = len(self.processor_layers)
