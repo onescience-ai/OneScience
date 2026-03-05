@@ -2,10 +2,18 @@ from torch import nn
 
 from .earthattention2d import EarthAttention2D
 from .earthattention3d import EarthAttention3D
+from .protenixattention import (
+    ProtenixAttention,
+    ProtenixAttentionPairBias,
+    ProtenixAttentionPairBiasWithLocalAttn,
+)
 
 _ATTENTIONER_REGISTRY = {
     "EarthAttention2D": EarthAttention2D,
     "EarthAttention3D": EarthAttention3D,
+    "ProtenixAttention": ProtenixAttention,
+    "ProtenixAttentionPairBias": ProtenixAttentionPairBias,
+    "ProtenixAttentionPairBiasWithLocalAttn": ProtenixAttentionPairBiasWithLocalAttn,
 }
 
 class OneAttention(nn.Module):
@@ -17,7 +25,7 @@ class OneAttention(nn.Module):
         
         self.attentioner = _ATTENTIONER_REGISTRY[style](**kwargs)
 
-    def forward(self, x, mask=None):
-        return self.attentioner(x, mask) 
+    def forward(self, *args, **kwargs):
+        return self.attentioner(*args, **kwargs) 
 
     

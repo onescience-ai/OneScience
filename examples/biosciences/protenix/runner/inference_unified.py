@@ -85,11 +85,36 @@ class BiologyInferenceRunner:
             raise Exception(f"Checkpoint not found: {checkpoint_path}")
         self.print(f"Loading from {checkpoint_path}")
         checkpoint = torch.load(checkpoint_path, self.device)
-
-        sample_key = list(checkpoint["model"].keys())[0]
+        state_dict = checkpoint["model"]
+        # Step 1: 去除 DDP 的 module. 前缀
+        sample_key = [k for k in state_dict.keys()][0]
         if sample_key.startswith("module."):
-            checkpoint["model"] = {k[7:]: v for k, v in checkpoint["model"].items()}
-        self.model.load_state_dict(checkpoint["model"], strict=self.configs.load_strict)
+            state_dict = {k[len("module.") :]: v for k, v in state_dict.items()}
+        sample_key1 = [k for k in state_dict.keys()][101]
+        if sample_key1.startswith("msa_module."):
+            state_dict = {k.replace("msa_module.", "msa_module.msa."): v for k, v in state_dict.items()}
+
+        # Step 2: 适配 input_embedder. → input_embedder.embedder. 的结构差异
+        new_state_dict = {}
+        for k, v in state_dict.items():
+            if k.startswith("input_embedder."):
+                new_key = k.replace("input_embedder.", "input_embedder.embedder.")
+            elif k.startswith("template_embedder.") and not k.startswith("template_embedder.embedder."):
+                new_key = k.replace("template_embedder.", "template_embedder.embedder.")                
+            elif k.startswith("relative_position_encoding.") and not k.startswith("relative_position_encoding.encoder."):
+                new_key = k.replace("relative_position_encoding.", "relative_position_encoding.encoder.")
+            elif new_key.startswith("msa_module.msa.blocks.") and ".pair_stack." in k and "Pairformer." not in k:
+                new_key = k.replace(".pair_stack.", ".pair_stack.Pairformer.")   
+            elif k.startswith("pairformer_stack.") and not k.startswith("pairformer_stack.Pairformer."):
+                new_key = k.replace("pairformer_stack.", "pairformer_stack.Pairformer.")
+            elif k.startswith("diffusion_module.") and not k.startswith("diffusion_module.Diffusion."):
+                new_key = k.replace("diffusion_module.", "diffusion_module.Diffusion.")
+            else:
+                # 如果不满足任何条件，则保留原始键名
+                new_key = k    
+            # 将修改后的键值对添加到新字典中
+            new_state_dict[new_key] = v
+        self.model.load_state_dict(new_state_dict, strict=self.configs.load_strict)
         self.model.eval()
         self.print("Checkpoint loaded")
 
