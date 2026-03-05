@@ -1,8 +1,8 @@
 # from .timestepembedder import TimestepEmbedder 
 from torch import nn
 from .fengwuencoder import FengWuEncoder
-from .graphvitencoder import GraphViTEncoder
-from .meshgraphencoder import MeshGraphEncoder
+from .graphvit_encoder import GraphViTEncoder
+from .mesh_graph_encoder import MeshGraphEncoder
 
 _ENCODER_REGISTRY = {
     "FengWuEncoder": FengWuEncoder,
