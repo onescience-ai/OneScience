@@ -29,7 +29,7 @@ from onescience.modules import OneEncoder
 from onescience.modules import OneEmbedding
 from onescience.modules import OneMlp
 
-from onescience.modules.utils.gnn_layers import CuGraphCSC, set_checkpoint_fn
+from onescience.modules.utils.graph import CuGraphCSC, set_checkpoint_fn
 from onescience.modules.layer.activations import get_activation
 from onescience.modules.utils.graphcast.graph import Graph
 
