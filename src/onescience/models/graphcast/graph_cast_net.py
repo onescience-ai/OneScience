@@ -5,7 +5,7 @@ from typing import Any, Optional
 
 import torch
 from torch import Tensor
-
+from torch import nn
 try:
     from typing import Self
 except ImportError:
@@ -125,7 +125,7 @@ class MetaData(ModelMetaData):
     auto_grad: bool = False
 
 
-class GraphCastNet(Module):
+class GraphCastNet(nn.Module):
     def __init__(
         self,
         mesh_level: Optional[int] = 6,
