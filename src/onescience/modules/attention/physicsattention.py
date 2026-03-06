@@ -121,6 +121,7 @@ class Physics_Attention_Irregular_Mesh_plus(nn.Module):
             dim_head (int, optional): 每个注意力头的维度大小，默认为 64
             dropout (float, optional): Dropout 概率，默认为 0.0
             slice_num (int, optional): 隐空间切片 Token 的数量，默认为 64
+            shapelist (list, optional): 仅为了保持接口统一，在此模块中未被使用，默认为 None
 
         形状:
             输入 x: (B, N, C)，其中 B 为批次大小，N 为无序网格点数，C 为特征维度
@@ -135,7 +136,7 @@ class Physics_Attention_Irregular_Mesh_plus(nn.Module):
             torch.Size([2, 4096, 128])
 
     """
-    def __init__(self, dim, heads=8, dim_head=64, dropout=0., slice_num=64):
+    def __init__(self, dim, heads=8, dim_head=64, dropout=0., slice_num=64, shapelist=None):
         super().__init__()
         inner_dim = dim_head * heads
         self.dim_head = dim_head

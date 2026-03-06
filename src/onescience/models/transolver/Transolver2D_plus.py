@@ -4,9 +4,8 @@ import numpy as np
 from timm.layers import trunc_normal_
 from einops import rearrange, repeat
 
-# 导入模块化组件
-from onescience.modules.block.Transolver_block import Transolver_block
-from onescience.modules import OneMlp
+# --- 导入模块化组件 ---
+from onescience.modules import OneMlp, OneTransformer
 
 class Transolver2D_plus(nn.Module):
     """
@@ -67,7 +66,8 @@ class Transolver2D_plus(nn.Module):
         self.space_dim = space_dim
 
         self.blocks = nn.ModuleList([
-            Transolver_block(
+            OneTransformer(
+                style="Transolver_block",
                 num_heads=n_head,
                 hidden_dim=n_hidden,
                 dropout=dropout,
@@ -114,7 +114,20 @@ class Transolver2D_plus(nn.Module):
 
     def forward(self, data):
         x, fx, T = data.x, None, None
-        x = x[None, :, :]
+        x = x[None, :, :] 
         
         if self.unified_pos:
             new_pos = self.get_grid(data.pos[None, :, :])
+            x = torch.cat((x, new_pos), dim=-1)
+            
+        if fx is not None:
+            fx = torch.cat((x, fx), -1)
+            fx = self.preprocess(fx)
+        else:
+            fx = self.preprocess(x)
+            fx = fx + self.placeholder[None, None, :]
+
+        for block in self.blocks:
+            fx = block(fx)
+
+        return fx[0] 

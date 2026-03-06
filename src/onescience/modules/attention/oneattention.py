@@ -15,7 +15,7 @@ from .linearattention import Vanilla_Linear_Attention
 from .multiheadattention import MultiHeadAttention
 from .selfattention import SelfAttention
 from .windowattention import WindowAttention
-
+from .nystrom_attention import NystromAttention
 _ATTENTIONER_REGISTRY = {
     "EarthAttention2D": EarthAttention2D,
     "EarthAttention3D": EarthAttention3D,
@@ -32,6 +32,7 @@ _ATTENTIONER_REGISTRY = {
     "MultiHeadAttention": MultiHeadAttention,
     "SelfAttention": SelfAttention,
     "WindowAttention": WindowAttention,
+    "NystromAttention": NystromAttention,
 }
 
 class OneAttention(nn.Module):

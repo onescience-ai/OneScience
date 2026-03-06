@@ -2,16 +2,8 @@ import torch
 import torch.nn as nn
 from typing import Optional, List, Union
 
-# 替换为标准 MLP 模块
-from onescience.modules.mlp import StandardMLP as MLP
-from onescience.modules.attention.factattention import FactAttention2D, FactAttention3D
-from onescience.modules.attention.multiheadattention import MultiHeadAttention as Attention
-
-FACT_ATTENTION = {
-    "structured_1D": Attention,
-    "structured_2D": FactAttention2D,
-    "structured_3D": FactAttention3D,
-}
+# --- 引入模块工厂 ---
+from onescience.modules import OneMlp, OneAttention
 
 class Factformer_block(nn.Module):
     """
@@ -33,7 +25,7 @@ class Factformer_block(nn.Module):
         mlp_ratio (int, optional): MLP 隐藏层维度相对于 hidden_dim 的倍数。默认值: 4。
         last_layer (bool, optional): 是否为网络的最后一层。如果是，将应用额外的 LayerNorm 和线性投影层。默认值: False。
         out_dim (int, optional): 如果是最后一层，输出的特征维度。默认值: 1。
-        geotype (str, optional): 几何类型，用于选择 Attention 实现。可选 ["structured_1D", "structured_2D", "structured_3D"]。默认值: "unstructured" (但在 FACT_ATTENTION 字典中未定义，需注意)。
+        geotype (str, optional): 几何类型，用于选择 Attention 实现。可选 ["structured_1D", "structured_2D", "structured_3D"]。默认值: "structured_2D"。
         shapelist (list[int], optional): 输入网格的形状列表 (H, W) 或 (D, H, W)，用于 FactAttention。
 
     形状:
@@ -53,7 +45,6 @@ class Factformer_block(nn.Module):
         ...     shapelist=[32, 32]
         ... )
         >>> # 假设 FactAttention2D 期望输入 (B, C, H, W) 或 (B, H*W, C)
-        >>> # 这里构造 dummy 输入
         >>> x = torch.randn(2, 32*32, 64) 
         >>> out = block(x)
         >>> print(out.shape)
@@ -78,25 +69,28 @@ class Factformer_block(nn.Module):
         # 1. Pre-Norm
         self.ln_1 = nn.LayerNorm(hidden_dim)
 
-        # 2. Attention Mechanism
-        if geotype not in FACT_ATTENTION:
-
-             AttnClass = Attention
+        # 2. Attention Mechanism 
+        if geotype == "structured_2D":
+            attn_style = "FactAttention2D"
+        elif geotype == "structured_3D":
+            attn_style = "FactAttention3D"
         else:
-             AttnClass = FACT_ATTENTION[geotype]
+            attn_style = "MultiHeadAttention"
 
-        self.Attn = AttnClass(
-            hidden_dim,
+        self.Attn = OneAttention(
+            style=attn_style,
+            dim=hidden_dim,
             heads=num_heads,
             dim_head=hidden_dim // num_heads,
             dropout=dropout,
             shapelist=shapelist,
         )
         
-        # 3. MLP Block (Pre-Norm)
+        # 3. MLP Block
         self.ln_2 = nn.LayerNorm(hidden_dim)
         
-        self.mlp = MLP(
+        self.mlp = OneMlp(
+            style="StandardMLP",
             input_dim=hidden_dim,
             output_dim=hidden_dim,
             hidden_dims=[hidden_dim * mlp_ratio],

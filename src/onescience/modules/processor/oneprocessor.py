@@ -1,10 +1,11 @@
 import torch.nn as nn
 
 # 导入具体的 Processor 实现
-from .bistride_processor import BistrideGraphMessagePassing
+from .bistride_processor import BistrideGraphMessagePassing, GraphMessagePassing
 
 _PROCESSOR_REGISTRY = {
     "BistrideGraphMessagePassing": BistrideGraphMessagePassing,
+    "GraphMessagePassing": GraphMessagePassing,
 }
 
 class OneProcessor(nn.Module):

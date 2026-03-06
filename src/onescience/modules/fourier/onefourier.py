@@ -11,6 +11,10 @@ from .ffno_layers import SpectralConv3d as FFNOSpectralConv3d
 
 from .geo_spectral import GeoSpectralConv2d, GeoSpectralConv3d
 from .group_spectral import GSpectralConv2d, GSpectralConv3d
+
+from .WaveletFourierKernel import WaveletFourierKernel1D, WaveletFourierKernel2D, WaveletFourierKernel3D
+from .WaveletSpatialKernel import WaveletSpatialKernel2D, WaveletSpatialKernel3D
+from .MultiWaveletTransform import MultiWaveletTransform1D, MultiWaveletTransform2D, MultiWaveletTransform3D
 # 构建统一的注册表
 _FOURIER_REGISTRY = {
     "FNOSpectralConv1d": FNOSpectralConv1d,
@@ -23,6 +27,14 @@ _FOURIER_REGISTRY = {
     "GeoSpectralConv3d": GeoSpectralConv3d,
     "GSpectralConv2d": GSpectralConv2d,
     "GSpectralConv3d": GSpectralConv3d,
+    "WaveletFourierKernel1D": WaveletFourierKernel1D,
+    "WaveletFourierKernel2D": WaveletFourierKernel2D,
+    "WaveletFourierKernel3D": WaveletFourierKernel3D,
+    "WaveletSpatialKernel2D": WaveletSpatialKernel2D,
+    "WaveletSpatialKernel3D": WaveletSpatialKernel3D,
+    "MultiWaveletTransform1D": MultiWaveletTransform1D,
+    "MultiWaveletTransform2D": MultiWaveletTransform2D,
+    "MultiWaveletTransform3D": MultiWaveletTransform3D,
 }
 
 class OneFourier(nn.Module):

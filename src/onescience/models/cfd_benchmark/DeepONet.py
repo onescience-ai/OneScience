@@ -1,10 +1,17 @@
 import torch
 import torch.nn as nn
-from onescience.models.layers.Basic import MLP
-from onescience.models.layers.Embedding import timestep_embedding, unified_pos_embedding
-
+from onescience.modules import OneMlp
+from onescience.modules.embedding import timestep_embedding, unified_pos_embedding
 
 class Model(nn.Module):
+    """
+    DeepONet 模型。
+    
+    采用双网络架构 (Branch Net 和 Trunk Net) 逼近非线性算子。
+    - Branch Net 处理输入函数 (如初始条件、边界条件)。
+    - Trunk Net 处理目标评估点的坐标 (物理位置)。
+    两者输出特征做内积后得到目标位置的物理场预测值。
+    """
     def __init__(self, args, device):
         super(Model, self).__init__()
         self.__name__ = "DeepONet"
@@ -22,24 +29,24 @@ class Model(nn.Module):
         if args.time_input:
             branch_in_dim += args.n_hidden  # 增加时间嵌入维度
 
-        # 分支网络（函数空间）
-        self.branch_net = MLP(
-            branch_in_dim,
-            args.n_hidden,
-            args.n_hidden,
-            n_layers=args.branch_depth,
-            res=False,
-            act=args.act,
+        # 分支网络（函数空间）- 使用 OneMlp 重构
+        self.branch_net = OneMlp(
+            style="StandardMLP",
+            input_dim=branch_in_dim,
+            output_dim=args.n_hidden,
+            hidden_dims=[args.n_hidden] * args.branch_depth,
+            activation=args.act,
+            use_bias=True
         )
 
-        # 主干网络（物理空间）
-        self.trunk_net = MLP(
-            trunk_in_dim,
-            args.n_hidden,
-            args.n_hidden,
-            n_layers=args.trunk_depth,
-            res=False,
-            act=args.act,
+        # 主干网络（物理空间）- 使用 OneMlp 重构
+        self.trunk_net = OneMlp(
+            style="StandardMLP",
+            input_dim=trunk_in_dim,
+            output_dim=args.n_hidden,
+            hidden_dims=[args.n_hidden] * args.trunk_depth,
+            activation=args.act,
+            use_bias=True
         )
 
         # 时间处理层
@@ -50,7 +57,7 @@ class Model(nn.Module):
                 nn.Linear(args.n_hidden, args.n_hidden),
             )
 
-        # 输出层 - 修改为支持多个输出通道
+        # 输出层 - 支持多个输出通道
         self.out_layer = nn.Linear(args.n_hidden, args.out_dim)
         self.bias = nn.Parameter(torch.zeros(1, 1, args.out_dim))
 
@@ -78,7 +85,6 @@ class Model(nn.Module):
                 # [B, N, fun_dim] + [B, N, D] = [B, N, fun_dim + D]
                 fx = torch.cat([fx, T_emb_expanded], dim=-1)
             else:
-                # 如果没有函数输入，使用时间嵌入作为函数输入
                 fx = T_emb_expanded  # [B, N, D]
 
         # 分支网络处理
@@ -86,12 +92,10 @@ class Model(nn.Module):
 
         # 主干网络处理
         trunk_feat = self.trunk_net(x)  # [B, N, D]
+        
         # 点积操作 + 输出层
-        # 点积结果: [B, N, 1]
         inner = branch_feat * trunk_feat
         out = self.out_layer(inner) + self.bias
-        # out = self.out_layer(inner)
-        # 应用输出层: [B, N, 1] -> [B, N, out_dim]
         return out
 
     def unstructured_forward(self, x, fx, T=None):

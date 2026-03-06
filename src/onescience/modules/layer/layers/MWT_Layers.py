@@ -425,8 +425,6 @@ class sparseKernelFT2d(nn.Module):
     """
         二维多小波变换层 (2D Multiwavelet Transform Layer)。
 
-        
-
         对二维图像或网格数据进行多尺度的多小波分解与重构。
         在每个尺度上，利用 sparseKernelFT2d 处理细节系数（通常对应低频部分或需要全局信息的系数），利用 sparseKernel2d 处理近似系数（或其他高频系数）。
         包含 2D 小波变换（分解为 LL, LH, HL, HH）及相应的重组逻辑，实现了多尺度特征提取。

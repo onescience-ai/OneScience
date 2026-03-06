@@ -13,6 +13,13 @@ class UNetHead1D(nn.Module):
     形状:
         输入 x: (B, C_in, L)
         输出: (B, C_out, L)
+
+    Example:
+        >>> head = UNetHead1D(in_channels=64, out_channels=1)
+        >>> x = torch.randn(2, 64, 128)  # Batch=2, Channels=64, Length=128
+        >>> out = head(x)
+        >>> print(out.shape)
+        torch.Size([2, 1, 128])
     """
     def __init__(self, in_channels, out_channels):
         super().__init__()
@@ -35,6 +42,13 @@ class UNetHead2D(nn.Module):
     形状:
         输入 x: (B, C_in, H, W)
         输出: (B, C_out, H, W)
+
+    Example:
+        >>> head = UNetHead2D(in_channels=32, out_channels=3)
+        >>> x = torch.randn(4, 32, 64, 64)  # Batch=4, Channels=32, H=64, W=64
+        >>> out = head(x)
+        >>> print(out.shape)
+        torch.Size([4, 3, 64, 64])
     """
     def __init__(self, in_channels, out_channels):
         super().__init__()
@@ -57,6 +71,13 @@ class UNetHead3D(nn.Module):
     形状:
         输入 x: (B, C_in, D, H, W)
         输出: (B, C_out, D, H, W)
+
+    Example:
+        >>> head = UNetHead3D(in_channels=16, out_channels=2)
+        >>> x = torch.randn(1, 16, 8, 32, 32)  # Batch=1, Channels=16, Depth=8, H=32, W=32
+        >>> out = head(x)
+        >>> print(out.shape)
+        torch.Size([1, 2, 8, 32, 32])
     """
     def __init__(self, in_channels, out_channels):
         super().__init__()

@@ -3,9 +3,7 @@ import torch.nn as nn
 import numpy as np
 from timm.layers import trunc_normal_
 from einops import rearrange, repeat
-# 导入模块化组件
-from onescience.modules.block.Transolver_block import Transolver_block
-from onescience.modules import OneMlp
+from onescience.modules import OneMlp, OneTransformer
 
 class Transolver3D_plus(nn.Module):
     """
@@ -66,9 +64,9 @@ class Transolver3D_plus(nn.Module):
         self.n_hidden = n_hidden
         self.space_dim = space_dim
 
-        # === Transolver Blocks ===
         self.blocks = nn.ModuleList([
-            Transolver_block(
+            OneTransformer(
+                style="Transolver_block",
                 num_heads=n_head,
                 hidden_dim=n_hidden,
                 dropout=dropout,

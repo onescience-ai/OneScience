@@ -3,9 +3,7 @@ import torch.nn as nn
 import numpy as np
 from timm.layers import trunc_normal_
 from einops import rearrange, repeat
-
-from onescience.modules.block.Transolver_block import Transolver_block 
-from onescience.modules import OneMlp
+from onescience.modules import OneMlp, OneTransformer
 
 class Transolver3D(nn.Module):
     """
@@ -71,7 +69,8 @@ class Transolver3D(nn.Module):
         self.space_dim = space_dim
 
         self.blocks = nn.ModuleList([
-            Transolver_block(
+            OneTransformer(
+                style="Transolver_block",
                 num_heads=n_head,
                 hidden_dim=n_hidden,
                 dropout=dropout,
@@ -110,7 +109,8 @@ class Transolver3D(nn.Module):
         gridy = gridy.reshape(1, 1, self.ref, 1, 1).repeat([batchsize, self.ref, 1, self.ref, 1])
         gridz = torch.tensor(np.linspace(-4, 4, self.ref), dtype=torch.float)
         gridz = gridz.reshape(1, 1, 1, self.ref, 1).repeat([batchsize, self.ref, self.ref, 1, 1])
-        grid_ref = torch.cat((gridx, gridy, gridz), dim=-1).cuda().reshape(batchsize, self.ref ** 3, 3)  # B 4 4 4 3
+        
+        grid_ref = torch.cat((gridx, gridy, gridz), dim=-1).to(my_pos.device).reshape(batchsize, self.ref ** 3, 3)  # B 4 4 4 3
 
         pos = torch.sqrt(
             torch.sum((my_pos[:, :, None, :] - grid_ref[:, None, :, :]) ** 2,

@@ -2,27 +2,30 @@ import torch
 import torch.nn as nn
 from typing import Optional
 
-from onescience.modules.mlp import StandardMLP as MLP
-from onescience.modules.attention.linearattention import LinearAttention
+from onescience.modules import OneMlp, OneAttention
 
 class Galerkin_Transformer_block(nn.Module):
     """
     Galerkin Transformer 编码器块。
 
-    该模块是 Galerkin Transformer 的核心组件。它使用线性注意力机制 (Linear Attention) 来降低计算复杂度，
-    使其能够处理大规模的网格数据。该块包含以下组件：
+    该模块是 Galerkin Transformer 的核心组件。它使用基于 Galerkin 投影的线性注意力机制 
+    (Linear Attention) 来代替标准点积注意力，从而将 Transformer 处理序列的时间和空间
+    复杂度从 O(N^2) 降低为 O(N)，使其能够高效处理大规模的网格和物理场数据。
+
+    该块包含以下主要组件：
     1. **LayerNorm**: 在注意力层和 MLP 层之前应用 (Pre-Norm 结构)。
-    2. **Linear Attention**: 使用 Galerkin 类型的线性注意力机制。注意，该实现中 Attention 接收两个输入 (ln_1(fx) 和 ln_1a(fx))。
-    3. **Feed-Forward Network (MLP)**: 标准的多层感知机。
+    2. **Linear Attention**: 使用 Galerkin 类型的线性注意力机制。注意，在该实现中 Attention 
+       接收两个输入 (`ln_1(fx)` 和 `ln_1a(fx)`)，以分别处理 Query/Key 与 Value 的归一化特征。
+    3. **Feed-Forward Network (MLP)**: 标准的多层感知机，用于特征的非线性逐点映射。
     4. **Residual Connections**: 在 Attention 和 MLP 后均应用残差连接。
 
     Args:
         num_heads (int): 注意力头的数量。
-        hidden_dim (int): 隐藏层特征维度。
+        hidden_dim (int): 隐藏层特征维度 (Embedding Dimension)。
         dropout (float): Dropout 概率。
         act (str, optional): 激活函数类型。默认值: "gelu"。
-        mlp_ratio (int, optional): MLP 隐藏层维度相对于 hidden_dim 的倍数。默认值: 4。
-        last_layer (bool, optional): 是否为最后一层。如果是，将应用额外的 LayerNorm 和线性投影。默认值: False。
+        mlp_ratio (int, optional): MLP 隐藏层维度相对于 hidden_dim 的扩展倍数。默认值: 4。
+        last_layer (bool, optional): 是否为网络的最后一层。如果是，将应用额外的 LayerNorm 和线性投影。默认值: False。
         out_dim (int, optional): 如果是最后一层，输出的特征维度。默认值: 1。
 
     形状:
@@ -60,30 +63,27 @@ class Galerkin_Transformer_block(nn.Module):
         self.ln_1a = nn.LayerNorm(hidden_dim)
         
         # Attention
-        self.Attn = LinearAttention(
-            hidden_dim,
+        self.Attn = OneAttention(
+            style="LinearAttention",
+            dim=hidden_dim,
             heads=num_heads,
             dim_head=hidden_dim // num_heads,
             dropout=dropout,
             attn_type="galerkin",
         )
         
-        # MLP Block
         self.ln_2 = nn.LayerNorm(hidden_dim)
         
-        # 使用 StandardMLP 替换 Basic.MLP
-        # 原逻辑: MLP(hidden, hidden*ratio, hidden, n_layers=0)
-        # 映射为 StandardMLP: Input->(Hidden*Ratio)->Output
-        self.mlp = MLP(
+        self.mlp = OneMlp(
+            style="StandardMLP",
             input_dim=hidden_dim,
             output_dim=hidden_dim,
             hidden_dims=[hidden_dim * mlp_ratio],
             activation=act,
             use_bias=True, 
-            # res=False 是 StandardMLP 的默认行为
         )
         
-        # Output Projection (Last Layer only)
+        # Output Projection 
         if self.last_layer:
             self.ln_3 = nn.LayerNorm(hidden_dim)
             self.mlp2 = nn.Linear(hidden_dim, out_dim)
