@@ -60,8 +60,58 @@ wget -P <数据存放目录> https://af3-dev.tos-cn-beijing.volces.com/release_d
 ```
 
 微调数据集示例列表可查看`examples/alphafold/protenix/ft_datasets/finetune_subset.txt`文件
+# 基于统一数据接口实现
+## 推理实现
+```shell
+sh inference_unified_demo.sh
+```
+`inference_unified_demo.sh`脚本内容:
+```shell
+#!/bin/bash
+source ../../../env.sh
+source ${ROCM_PATH}/cuda/env.sh
 
-# 训练
+N_sample=5
+N_step=200
+N_cycle=10
+seed=101
+use_deepspeed_evo_attention=false
+input_json_path="./infer_datasets/7r6r.json"
+load_checkpoint_path="${ONESCIENCE_MODELS_DIR}/Protenix/model_v0.5.0.pt"
+dump_dir="./output_unified"
+
+export PYTHONPATH=$(pwd):$PYTHONPATH
+export DATA_ROOT_DIR=${ONESCIENCE_DATASETS_DIR}/protenix/
+
+export USE_DEEPSPEED_EVO_ATTENTION=${use_deepspeed_evo_attention}
+
+echo "======================================"
+echo "Unified Interface Inference"
+echo "======================================"
+echo "Input: $input_json_path"
+echo "Output: $dump_dir"
+echo "Checkpoint: $load_checkpoint_path"
+echo ""
+
+python3 runner/inference_unified.py \
+    --seeds ${seed} \
+    --dtype bf16 \
+    --num_workers 8 \
+    --load_checkpoint_path ${load_checkpoint_path} \
+    --dump_dir ${dump_dir} \
+    --input_json_path ${input_json_path} \
+    --model.N_cycle ${N_cycle} \
+    --sample_diffusion.N_sample ${N_sample} \
+    --sample_diffusion.N_step ${N_step} \
+    --use_msa true
+
+echo ""
+echo "Inference completed! Results saved to: $dump_dir"
+
+```
+
+# 基于Protenix原始模型
+## GPU训练
 
 单卡训练：
 
@@ -111,7 +161,7 @@ HIP_VISIBLE_DEVICES：指定在哪张显卡上运行，默认0号显卡
 
   
 
-# 微调
+## GPU微调
 
 单卡微调：
 
@@ -128,7 +178,7 @@ sh finetune_demo.sh
 - load_ema_checkpoint_path：设置同`load_checkpoint_path`
 - data.weightedPDB_before2109_wopb_nometalc_0925.base_info.pdb_list：微调数据集列表
 
-# 推理
+## GPU推理
 
 单卡推理：
 

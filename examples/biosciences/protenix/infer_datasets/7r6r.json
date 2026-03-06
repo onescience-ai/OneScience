@@ -1,0 +1,27 @@
+[{
+    "sequences": [
+        {
+            "proteinChain": {
+                "sequence": "MGSSHHHHHHSSGLVPRGSHMSGKIQHKAVVPAPSRIPLTLSEIEDLRRKGFNQTEIAELYGVTRQAVSWHKKTYGGRLTTRQIVQQNWPWDTRKPHDKSKAFQRLRDHGEYMRVGSFRTMSEDKKKRLLSWWKMLRDNDLVLEFDPSIEPYEGMAGGGFRYVPRDISDDDLLIRVNEHTQLTAEGELLWSWPDDIEELLSEP",
+                "count": 1,
+                "msa": {
+                    "precomputed_msa_dir": "/public/home/onescience2025404/panpy/0207_dev/onescience/examples/biosciences/protenix/infer_datasets/7r6r/msa/1",
+                    "pairing_db": "uniref100"
+                }
+            }
+        },
+        {
+            "dnaSequence": {
+                "sequence": "TTTCGGTGGCTGTCAAGCGGG",
+                "count": 1
+            }
+        },
+        {
+            "dnaSequence": {
+                "sequence": "CCCGCTTGACAGCCACCGAAA",
+                "count": 1
+            }
+        }
+    ],
+    "name": "7r6r"
+}]

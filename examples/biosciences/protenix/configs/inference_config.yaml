@@ -1,0 +1,460 @@
+# ============================================
+# Protenix 推理完整配置
+# 基于 configs_base.py + configs_data.py + configs_inference.py
+# 保持原有层级结构
+# ============================================
+
+inference:
+  # ============================================
+  # configs_inference.py: 推理基础配置
+  # ============================================
+  verbose: false
+  seeds: [101]
+  dump_dir: "./output"
+  need_atom_confidence: false
+  sorted_by_ranking_score: true
+  input_json_path: "./infer_datasets/7r6r.json"
+  load_checkpoint_path: "/public/onestore/onemodels/Protenix/model_v0.5.0.pt"
+  num_workers: 16
+  use_msa: true
+
+  # ============================================
+  # configs_base.py: basic_configs - 基础配置
+  # ============================================
+  project: "protenix"
+  run_name: "run_001"
+  base_dir: "./outputs"
+  # 训练控制
+  eval_interval: 1000
+  log_interval: 100
+  checkpoint_interval: -1
+  eval_first: false
+  iters_to_accumulate: 1
+  eval_only: false
+  load_ema_checkpoint_path: ""
+  load_strict: true
+  load_params_only: true
+  skip_load_step: false
+  skip_load_optimizer: false
+  skip_load_scheduler: false
+  train_confidence_only: false
+  # 日志与跟踪
+  use_wandb: true
+  wandb_id: ""
+  # 随机种子与确定性
+  seed: 42
+  deterministic: false
+  deterministic_seed: false
+  # EMA 设置
+  ema_decay: -1.0
+  eval_ema_only: false
+  ema_mutable_param_keywords: [""]
+
+  # ============================================
+  # configs_base.py: data_configs - 数据配置
+  # ============================================
+  train_crop_size: 256
+  test_max_n_token: -1
+  train_lig_atom_rename: false
+  train_shuffle_mols: false
+  train_shuffle_sym_ids: false
+  test_lig_atom_rename: false
+  test_shuffle_mols: false
+  test_shuffle_sym_ids: false
+
+  # ============================================
+  # configs_base.py: optim_configs - 优化器配置
+  # ============================================
+  lr: 0.0018
+  lr_scheduler: "af3"
+  warmup_steps: 10
+  max_steps: 100000
+  min_lr_ratio: 0.1
+  decay_every_n_steps: 50000
+  grad_clip_norm: 10
+  # Adam 优化器
+  adam:
+    beta1: 0.9
+    beta2: 0.95
+    weight_decay: 1.0e-8
+    lr: 0.0018
+    use_adamw: false
+  # AF3 学习率调度器
+  af3_lr_scheduler:
+    warmup_steps: 10
+    decay_every_n_steps: 50000
+    decay_factor: 0.95
+    lr: 0.0018
+
+  # ============================================
+  # configs_base.py: model_configs - 模型基础配置
+  # ============================================
+  c_s: 384
+  c_z: 128
+  c_s_inputs: 449
+  c_atom: 128
+  c_atompair: 16
+  c_token: 384
+  n_blocks: 48
+  max_atoms_per_token: 24
+  no_bins: 64
+  sigma_data: 16.0
+  diffusion_batch_size: 48
+  diffusion_chunk_size: 4
+  blocks_per_ckpt: 1
+  # 内核开关
+  use_memory_efficient_kernel: false
+  use_deepspeed_evo_attention: false
+  use_flash: false
+  use_lma: false
+  use_xformer: false
+  find_unused_parameters: false
+  # 数据类型与损失
+  dtype: "bf16"
+  loss_metrics_sparse_enable: true
+  # AMP 跳过配置
+  skip_amp:
+    sample_diffusion: true
+    confidence_head: true
+    sample_diffusion_training: true
+    loss: true
+  # 推理设置
+  infer_setting:
+    chunk_size: 64
+    sample_diffusion_chunk_size: 1
+    lddt_metrics_sparse_enable: true
+    lddt_metrics_chunk_size: 1
+  # 训练噪声采样器
+  train_noise_sampler:
+    p_mean: -1.2
+    p_std: 1.5
+    sigma_data: 16.0
+  # 推理噪声调度器
+  inference_noise_scheduler:
+    s_max: 160.0
+    s_min: 0.0004
+    rho: 7
+    sigma_data: 16.0
+  # 扩散采样配置
+  sample_diffusion:
+    gamma0: 0.8
+    gamma_min: 1.0
+    noise_scale_lambda: 1.003
+    step_scale_eta: 1.5
+    N_step: 200
+    N_sample: 5
+    N_step_mini_rollout: 20
+    N_sample_mini_rollout: 1
+
+  # ============================================
+  # configs_base.py: model_configs.model - 模型结构配置
+  # ============================================
+  model:
+    N_model_seed: 1
+    N_cycle: 4
+    condition_embedding_drop_rate: 0.0
+    confidence_embedding_drop_rate: 0.0
+    input_embedder:
+      c_atom: 128
+      c_atompair: 16
+      c_token: 384
+    relative_position_encoding:
+      r_max: 32
+      s_max: 2
+      c_z: 128
+    template_embedder:
+      c: 64
+      c_z: 128
+      n_blocks: 0
+      dropout: 0.25
+      blocks_per_ckpt: 1
+    msa_module:
+      c_m: 64
+      c_z: 128
+      c_s_inputs: 449
+      n_blocks: 4
+      msa_dropout: 0.15
+      pair_dropout: 0.25
+      blocks_per_ckpt: 1
+      msa_chunk_size: 2048
+    pairformer:
+      n_blocks: 48
+      c_z: 128
+      c_s: 384
+      n_heads: 16
+      dropout: 0.25
+      blocks_per_ckpt: 1
+    diffusion_module:
+      use_fine_grained_checkpoint: true
+      sigma_data: 16.0
+      c_token: 768
+      c_atom: 128
+      c_atompair: 16
+      c_z: 128
+      c_s: 384
+      c_s_inputs: 449
+      blocks_per_ckpt: 1
+      atom_encoder:
+        n_blocks: 3
+        n_heads: 4
+      transformer:
+        n_blocks: 24
+        n_heads: 16
+      atom_decoder:
+        n_blocks: 3
+        n_heads: 4
+    confidence_head:
+      c_z: 128
+      c_s: 384
+      c_s_inputs: 449
+      n_blocks: 4
+      max_atoms_per_token: 24
+      pairformer_dropout: 0.0
+      blocks_per_ckpt: 1
+      distance_bin_start: 3.25
+      distance_bin_end: 52.0
+      distance_bin_step: 1.25
+      stop_gradient: true
+    distogram_head:
+      c_z: 128
+      no_bins: 64
+
+  # ============================================
+  # configs_base.py: perm_configs - 置换配置
+  # ============================================
+  chain_permutation:
+    train:
+      mini_rollout: true
+      diffusion_sample: false
+    test:
+      diffusion_sample: true
+    permute_by_pocket: true
+    configs:
+      use_center_rmsd: false
+      find_gt_anchor_first: false
+      accept_it_as_it_is: false
+      enumerate_all_anchor_pairs: false
+      selection_metric: "aligned_rmsd"
+
+  atom_permutation:
+    train:
+      mini_rollout: true
+      diffusion_sample: false
+    test:
+      diffusion_sample: true
+    permute_by_pocket: true
+    global_align_wo_symmetric_atom: false
+
+  # ============================================
+  # configs_base.py: loss_configs - 损失函数配置
+  # ============================================
+  loss:
+    diffusion_lddt_chunk_size: 1
+    diffusion_bond_chunk_size: 1
+    diffusion_chunk_size_outer: -1
+    diffusion_sparse_loss_enable: true
+    diffusion_lddt_loss_dense: true
+    resolution:
+      min: 0.1
+      max: 4.0
+    weight:
+      alpha_confidence: 1.0e-4
+      alpha_pae: 0.0
+      alpha_except_pae: 1.0
+      alpha_diffusion: 4.0
+      alpha_distogram: 3.0e-2
+      alpha_bond: 0.0
+      smooth_lddt: 1.0
+    plddt:
+      min_bin: 0
+      max_bin: 1.0
+      no_bins: 50
+      normalize: true
+      eps: 1.0e-6
+    pde:
+      min_bin: 0
+      max_bin: 32
+      no_bins: 64
+      eps: 1.0e-6
+    resolved:
+      eps: 1.0e-6
+    pae:
+      min_bin: 0
+      max_bin: 32
+      no_bins: 64
+      eps: 1.0e-6
+    diffusion:
+      mse:
+        weight_mse: 0.333333
+        weight_dna: 5.0
+        weight_rna: 5.0
+        weight_ligand: 10.0
+        eps: 1.0e-6
+      bond:
+        eps: 1.0e-6
+      smooth_lddt:
+        eps: 1.0e-6
+    distogram:
+      min_bin: 2.3125
+      max_bin: 21.6875
+      no_bins: 64
+      eps: 1.0e-6
+
+  # ============================================
+  # configs_base.py: loss_configs.metrics - 评估指标
+  # ============================================
+  metrics:
+    lddt:
+      eps: 1.0e-6
+    complex_ranker_keys: ["plddt", "gpde", "ranking_score"]
+    chain_ranker_keys: ["chain_ptm", "chain_plddt"]
+    interface_ranker_keys: ["chain_pair_iptm", "chain_pair_iptm_global", "chain_pair_plddt"]
+    clash:
+      af3_clash_threshold: 1.1
+      vdw_clash_threshold: 0.75
+
+  # ============================================
+  # configs_data.py: data_configs - 数据加载配置
+  # ============================================
+  # 注意：msa 和 template 必须放在 data 下供模型读取
+  # ============================================
+  data:
+    # CCD 组件文件
+    ccd_components_file: "${DATA_ROOT_DIR}/components.v20240608.cif"
+    ccd_components_rdkit_mol_file: "${DATA_ROOT_DIR}/components.v20240608.cif.rdkit_mol.pkl"
+
+    # 数据加载器配置
+    num_dl_workers: 16
+    epoch_size: 10000
+    train_ref_pos_augment: true
+    test_ref_pos_augment: true
+
+    # 训练数据集
+    train_sets: ["weightedPDB_before2109_wopb_nometalc_0925"]
+    train_sampler:
+      train_sample_weights: [1.0]
+      sampler_type: "weighted"
+
+    # 测试数据集
+    test_sets: ["recentPDB_1536_sample384_0925"]
+
+    # ============================================
+    # weightedPDB 训练数据集配置
+    # ============================================
+    weightedPDB_before2109_wopb_nometalc_0925:
+      base_info:
+        mmcif_dir: "${DATA_ROOT_DIR}/mmcif"
+        bioassembly_dict_dir: "${DATA_ROOT_DIR}/mmcif_bioassembly"
+        indices_fpath: "${DATA_ROOT_DIR}/indices/weightedPDB_indices_before_2021-09-30_wo_posebusters_resolution_below_9.csv.gz"
+        pdb_list: ""
+        random_sample_if_failed: true
+        max_n_token: -1
+        use_reference_chains_only: false
+        exclusion:
+          mol_1_type: ["ions"]
+          mol_2_type: ["ions"]
+      sampler_configs:
+        sampler_type: "weighted"
+        beta_dict:
+          chain: 0.5
+          interface: 1
+        alpha_dict:
+          prot: 3
+          nuc: 3
+          ligand: 1
+        force_recompute_weight: true
+      cropping_configs:
+        method_weights: [0.2, 0.4, 0.4]
+        crop_size: 256
+      sample_weight: 0.5
+      limits: -1
+      lig_atom_rename: false
+      shuffle_mols: false
+      shuffle_sym_ids: false
+
+    # ============================================
+    # recentPDB 测试数据集配置
+    # ============================================
+    recentPDB_1536_sample384_0925:
+      base_info:
+        mmcif_dir: "${DATA_ROOT_DIR}/mmcif"
+        bioassembly_dict_dir: "${DATA_ROOT_DIR}/recentPDB_bioassembly"
+        indices_fpath: "${DATA_ROOT_DIR}/indices/recentPDB_low_homology_maxtoken1536.csv"
+        pdb_list: "${DATA_ROOT_DIR}/indices/recentPDB_low_homology_maxtoken1024_sample384_pdb_id.txt"
+        max_n_token: -1
+        sort_by_n_token: false
+        group_by_pdb_id: true
+        find_eval_chain_interface: true
+      sampler_configs:
+        sampler_type: "uniform"
+      cropping_configs:
+        method_weights: [0.0, 0.0, 1.0]
+        crop_size: -1
+      lig_atom_rename: false
+      shuffle_mols: false
+      shuffle_sym_ids: false
+
+    # ============================================
+    # posebusters 数据集配置
+    # ============================================
+    posebusters_0925:
+      base_info:
+        mmcif_dir: "${DATA_ROOT_DIR}/posebusters_mmcif"
+        bioassembly_dict_dir: "${DATA_ROOT_DIR}/posebusters_bioassembly"
+        indices_fpath: "${DATA_ROOT_DIR}/indices/posebusters_indices_mainchain_interface.csv"
+        pdb_list: ""
+        find_pocket: true
+        find_all_pockets: false
+        max_n_token: -1
+      sampler_configs:
+        sampler_type: "uniform"
+      cropping_configs:
+        method_weights: [0.0, 0.0, 1.0]
+        crop_size: -1
+      lig_atom_rename: false
+      shuffle_mols: false
+      shuffle_sym_ids: false
+
+    # ============================================
+    # MSA 配置 (configs_data.py 中的 data_configs.msa)
+    # ============================================
+    msa:
+      enable: true
+      enable_rna_msa: false
+      prot:
+        pairing_db: "uniref100"
+        non_pairing_db: "mmseqs_other"
+        pdb_mmseqs_dir: "${DATA_ROOT_DIR}/mmcif_msa"
+        seq_to_pdb_idx_path: "${DATA_ROOT_DIR}/seq_to_pdb_index.json"
+        indexing_method: "sequence"
+      rna:
+        seq_to_pdb_idx_path: ""
+        rna_msa_dir: ""
+        indexing_method: "sequence"
+      strategy: "random"
+      merge_method: "dense_max"
+      min_size:
+        train: 1
+        test: 1
+      max_size:
+        train: 16384
+        test: 16384
+      sample_cutoff:
+        train: 16384
+        test: 16384
+
+    # ============================================
+    # Template 配置 (configs_data.py 中的 data_configs.template)
+    # ============================================
+    template:
+      enable: false
+  
+    extra:
+      use_pipeline: true
+      use_msa: true
+      use_structure: true
+      msa_dirs:
+        - path: ${oc.env:PWD}/infer_datasets/7r6r/msa/1
+          format_hint: a3m
+      model_name: protenix_infer_adapter
+      use_adapter: true

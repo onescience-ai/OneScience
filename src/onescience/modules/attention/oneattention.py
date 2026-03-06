@@ -4,14 +4,20 @@ from .earthattention2d import EarthAttention2D
 from .earthattention3d import EarthAttention3D
 from .xihefeaturegroupattention import FeatureGroupingAttention
 from .xihefeatureungroupattention import FeatureUngroupingAttention
-
+from .protenixattention import (
+    ProtenixAttention,
+    ProtenixAttentionPairBias,
+    ProtenixAttentionPairBiasWithLocalAttn,
+)
 
 _ATTENTIONER_REGISTRY = {
     "EarthAttention2D": EarthAttention2D,
     "EarthAttention3D": EarthAttention3D,
-    "FeatureUngroupingAttention":FeatureUngroupingAttention,
-    "FeatureGroupingAttention":FeatureGroupingAttention
-    
+    "FeatureUngroupingAttention": FeatureUngroupingAttention,
+    "FeatureGroupingAttention": FeatureGroupingAttention,
+    "ProtenixAttention": ProtenixAttention,
+    "ProtenixAttentionPairBias": ProtenixAttentionPairBias,
+    "ProtenixAttentionPairBiasWithLocalAttn": ProtenixAttentionPairBiasWithLocalAttn,
 }
 
 class OneAttention(nn.Module):
@@ -20,10 +26,10 @@ class OneAttention(nn.Module):
 
         if style not in _ATTENTIONER_REGISTRY:
             raise NotImplementedError(f"Unknown style: {style}")
-        
+
         self.attentioner = _ATTENTIONER_REGISTRY[style](**kwargs)
 
-    def forward(self, x, mask=None):
-        return self.attentioner(x, mask) 
+    def forward(self, *args, **kwargs):
+        return self.attentioner(*args, **kwargs)
 
     

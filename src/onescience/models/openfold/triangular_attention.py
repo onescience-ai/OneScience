@@ -55,7 +55,7 @@ class TriangleAttention(nn.Module):
         if bias==False:
             self.mha = Attention(
                 self.c_in, self.c_in, self.c_in, self.c_hidden, self.no_heads, bias=False
-            )# ppy
+            )
         else:
             self.mha = Attention(
                 self.c_in, self.c_in, self.c_in, self.c_hidden, self.no_heads
