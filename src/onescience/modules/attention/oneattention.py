@@ -2,10 +2,16 @@ from torch import nn
 
 from .earthattention2d import EarthAttention2D
 from .earthattention3d import EarthAttention3D
+from .xihefeaturegroupattention import FeatureGroupingAttention
+from .xihefeatureungroupattention import FeatureUngroupingAttention
+
 
 _ATTENTIONER_REGISTRY = {
     "EarthAttention2D": EarthAttention2D,
     "EarthAttention3D": EarthAttention3D,
+    "FeatureUngroupingAttention":FeatureUngroupingAttention,
+    "FeatureGroupingAttention":FeatureGroupingAttention
+    
 }
 
 class OneAttention(nn.Module):

@@ -55,13 +55,8 @@ class Pangu(nn.Module):
         drop_path = np.linspace(0, 0.2, 8).tolist()
         # In addition, three constant masks(the topography mask, land-sea mask and soil type mask)
         
-        self.patchembed2d = OneEmbedding(
-            style="PanguEmbedding2D",
-        )
-
-        self.patchembed3d = OneEmbedding(
-            style="PanguEmbedding3D",
-        )
+        self.patchembed2d = OneEmbedding(style="PanguEmbedding2D")
+        self.patchembed3d = OneEmbedding(style="PanguEmbedding3D")
         
         patched_inp_shape = (
             8,
@@ -127,10 +122,10 @@ class Pangu(nn.Module):
         )
         # The outputs of the 2nd encoder layer and the 7th decoder layer are concatenated along the channel dimension.
         self.patchrecovery2d = OneRecovery(
-            style="pangupatchrecovery2d"
+            style="PanguPatchRecovery2D"
         )
         self.patchrecovery3d = OneRecovery(
-            style="pangupatchrecovery3d"
+            style="PanguPatchRecovery3D"
         )
 
     def forward(self, x):

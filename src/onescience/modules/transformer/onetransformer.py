@@ -1,14 +1,28 @@
-import torch
-
+# from .timestepembedder import TimestepEmbedder 
 from torch import nn
 
-from .xihetransformer import EarthAttention3D
+from .fuxitransformer import FuxiTransformer
+from .earthtransformer2Dblock import EarthTransformer2DBlock
+from .earthtransformer3Dblock import EarthTransformer3DBlock
+from .xihelocaltransformer import XihelocalTransformer
 
-class OneTransformer(nn.module):
-    def __init__(self, style="XiHeTransformer3D"):
+_TRANSFORMER_REGISTRY = {
+    "FuxiTransformer": FuxiTransformer,
+    "EarthTransformer2DBlock": EarthTransformer2DBlock,
+    "EarthTransformer3DBlock": EarthTransformer3DBlock,
+    "XihelocalTransformer":XihelocalTransformer,
+}
+
+class OneTransformer(nn.Module):
+   
+    def __init__(self, style: str, **kwargs):
+        super().__init__()
+
+        if style not in _TRANSFORMER_REGISTRY:
+            raise NotImplementedError(f"Unknown style: {style}")
         
-        if self.style == "XiHeTransformer3D":
-            self.XiHeTransformer3D = XiHeTransformer3D(self, dim, input_resolution, window_size, num_heads,)
-        else:
-            raise NotImplementedError
-      
+        self.transformer = _TRANSFORMER_REGISTRY[style](**kwargs)
+
+    def forward(self, x):
+        
+        return self.transformer(x) 
