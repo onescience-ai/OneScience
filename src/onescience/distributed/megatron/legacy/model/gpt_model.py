@@ -5,9 +5,9 @@
 import torch
 from typing import Optional
 
-from megatron.training import get_args
-from megatron.core import tensor_parallel
-from megatron.core.utils import deprecate_inference_params
+from onescience.distributed.megatron.training import get_args
+from onescience.distributed.megatron.core import tensor_parallel
+from onescience.distributed.megatron.core.utils import deprecate_inference_params
 
 from .enums import AttnMaskType
 from .language_model import parallel_lm_logits

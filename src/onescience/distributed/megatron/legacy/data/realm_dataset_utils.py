@@ -5,10 +5,10 @@ import time
 import numpy as np
 import torch
 
-from megatron.training import print_rank_0
-from megatron.core import mpu, tensor_parallel
-from megatron.legacy.data.dataset_utils import create_masked_lm_predictions, pad_and_convert_to_numpy
-from megatron.training import get_args, get_tokenizer, print_rank_0
+from onescience.distributed.megatron.training import print_rank_0
+from onescience.distributed.megatron.core import mpu, tensor_parallel
+from onescience.distributed.megatron.legacy.data.dataset_utils import create_masked_lm_predictions, pad_and_convert_to_numpy
+from onescience.distributed.megatron.training import get_args, get_tokenizer, print_rank_0
 
 
 def get_one_epoch_dataloader(dataset, micro_batch_size=None):
@@ -25,7 +25,7 @@ def get_one_epoch_dataloader(dataset, micro_batch_size=None):
     sampler = torch.utils.data.SequentialSampler(dataset)
     # importantly, drop_last must be False to get all the data.
     assert False, 'DistributedBatchSampler deprecated, change the implementation'
-    from megatron.legacy.data.samplers import DistributedBatchSampler
+    from onescience.distributed.megatron.legacy.data.samplers import DistributedBatchSampler
     batch_sampler = DistributedBatchSampler(sampler,
                                             batch_size=global_batch_size,
                                             drop_last=False,
@@ -154,7 +154,7 @@ def get_block_samples_mapping(block_dataset, title_dataset, data_prefix, num_epo
         print_rank_0(' > building samples index mapping for {} ...'.format(
             name))
 
-        from megatron.core.datasets import helpers
+        from onescience.distributed.megatron.core.datasets import helpers
         mapping_array = helpers.build_blocks_mapping(
             block_dataset.document_indices,
             block_dataset.sequence_lengths,

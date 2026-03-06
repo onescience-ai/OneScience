@@ -3,17 +3,17 @@ import os
 import torch
 import sys
 
-from megatron.training import get_args, print_rank_0, get_tokenizer
-from megatron.core import mpu
-from megatron.training.checkpointing import fix_query_key_value_ordering
-from megatron.training.checkpointing import get_checkpoint_tracker_filename
-from megatron.training.checkpointing import get_checkpoint_name
-from megatron.legacy.model.bert_model import bert_position_ids
-from megatron.legacy.model.enums import AttnMaskType
-from megatron.legacy.model.language_model import get_language_model
-from megatron.legacy.model.utils import get_linear_layer
-from megatron.legacy.model.utils import init_method_normal
-from megatron.legacy.model.utils import scaled_init_method_normal
+from onescience.distributed.megatron.training import get_args, print_rank_0, get_tokenizer
+from onescience.distributed.megatron.core import mpu
+from onescience.distributed.megatron.training.checkpointing import fix_query_key_value_ordering
+from onescience.distributed.megatron.training.checkpointing import get_checkpoint_tracker_filename
+from onescience.distributed.megatron.training.checkpointing import get_checkpoint_name
+from onescience.distributed.megatron.legacy.model.bert_model import bert_position_ids
+from onescience.distributed.megatron.legacy.model.enums import AttnMaskType
+from onescience.distributed.megatron.legacy.model.language_model import get_language_model
+from onescience.distributed.megatron.legacy.model.utils import get_linear_layer
+from onescience.distributed.megatron.legacy.model.utils import init_method_normal
+from onescience.distributed.megatron.legacy.model.utils import scaled_init_method_normal
 from .module import MegatronModule
 
 def get_model_provider(only_query_model=False, only_context_model=False,
@@ -202,7 +202,7 @@ class BiEncoderModel(MegatronModule):
         try:
             state_dict = torch.load(checkpoint_name, map_location='cpu')
         except ModuleNotFoundError:
-            from megatron.legacy.fp16_deprecated import loss_scaler
+            from onescience.distributed.megatron.legacy.fp16_deprecated import loss_scaler
             # For backward compatibility.
             print_rank_0(' > deserializing using the old code structure ...')
             sys.modules['fp16.loss_scaler'] = sys.modules[

@@ -4,15 +4,15 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 
-from megatron.core import ModelParallelConfig
-from megatron.core.parallel_state import (
+from onescience.distributed.megatron.core import ModelParallelConfig
+from onescience.distributed.megatron.core.parallel_state import (
     get_pipeline_model_parallel_group,
     get_pipeline_model_parallel_next_rank,
     get_pipeline_model_parallel_prev_rank,
     get_pipeline_model_parallel_rank,
     get_pipeline_model_parallel_world_size,
 )
-from megatron.core.utils import nvtx_decorator
+from onescience.distributed.megatron.core.utils import nvtx_decorator
 
 # Types
 Shape = Union[List[int], torch.Size]

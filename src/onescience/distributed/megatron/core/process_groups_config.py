@@ -7,7 +7,7 @@ from typing import List, Optional
 
 import torch
 
-from megatron.core import parallel_state
+from onescience.distributed.megatron.core import parallel_state
 
 
 @dataclass

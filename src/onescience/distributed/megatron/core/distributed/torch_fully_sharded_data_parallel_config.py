@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Union
 
-from megatron.core.distributed.distributed_data_parallel_config import DistributedDataParallelConfig
+from onescience.distributed.megatron.core.distributed.distributed_data_parallel_config import DistributedDataParallelConfig
 
 
 @dataclass

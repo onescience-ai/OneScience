@@ -7,8 +7,8 @@ from typing import Optional
 
 import torch
 
-from megatron.core import parallel_state
-from megatron.core.transformer.enums import LayerType
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.transformer.enums import LayerType
 
 
 class PipelineParallelLayerLayout:

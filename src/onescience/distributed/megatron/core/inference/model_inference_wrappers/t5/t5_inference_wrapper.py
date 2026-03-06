@@ -5,17 +5,17 @@ from typing import Any, Dict, List, Optional
 import numpy
 import torch
 
-from megatron.core import tensor_parallel
-from megatron.core.datasets.t5_dataset import T5MaskedWordPieceDataset
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.inference.model_inference_wrappers.abstract_model_inference_wrapper import (
+from onescience.distributed.megatron.core import tensor_parallel
+from onescience.distributed.megatron.core.datasets.t5_dataset import T5MaskedWordPieceDataset
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.inference.model_inference_wrappers.abstract_model_inference_wrapper import (
     AbstractModelInferenceWrapper,
 )
-from megatron.core.inference.model_inference_wrappers.inference_wrapper_config import (
+from onescience.distributed.megatron.core.inference.model_inference_wrappers.inference_wrapper_config import (
     InferenceWrapperConfig,
 )
-from megatron.core.models.T5 import T5Model
-from megatron.core.utils import get_attr_wrapped_model
+from onescience.distributed.megatron.core.models.T5 import T5Model
+from onescience.distributed.megatron.core.utils import get_attr_wrapped_model
 
 
 # pylint: disable=line-too-long

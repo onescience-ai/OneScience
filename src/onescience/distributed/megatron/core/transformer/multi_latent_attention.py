@@ -7,28 +7,28 @@ from typing import NoReturn, Optional, Union
 
 import torch
 
-from megatron.core import parallel_state, tensor_parallel
-from megatron.core.models.common.embeddings import (
+from onescience.distributed.megatron.core import parallel_state, tensor_parallel
+from onescience.distributed.megatron.core.models.common.embeddings import (
     RotaryEmbedding,
     YarnRotaryEmbedding,
     _yarn_get_mscale,
     apply_rotary_pos_emb,
 )
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.tensor_parallel.layers import ColumnParallelLinear
-from megatron.core.tensor_parallel.mappings import (
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.tensor_parallel.layers import ColumnParallelLinear
+from onescience.distributed.megatron.core.tensor_parallel.mappings import (
     gather_from_sequence_parallel_region,
     gather_from_tensor_model_parallel_region,
     scatter_to_sequence_parallel_region,
 )
-from megatron.core.transformer.attention import Attention
-from megatron.core.transformer.enums import AttnMaskType
-from megatron.core.transformer.spec_utils import ModuleSpec, build_module
-from megatron.core.transformer.transformer_config import MLATransformerConfig
-from megatron.core.utils import deprecate_inference_params
+from onescience.distributed.megatron.core.transformer.attention import Attention
+from onescience.distributed.megatron.core.transformer.enums import AttnMaskType
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec, build_module
+from onescience.distributed.megatron.core.transformer.transformer_config import MLATransformerConfig
+from onescience.distributed.megatron.core.utils import deprecate_inference_params
 
 try:
-    from megatron.core.fusions.fused_mla_yarn_rope_apply import (
+    from onescience.distributed.megatron.core.fusions.fused_mla_yarn_rope_apply import (
         fused_apply_mla_rope_for_kv,
         fused_apply_mla_rope_for_q,
     )
@@ -38,8 +38,8 @@ except:
 
 
 try:
-    from megatron.core.extensions.transformer_engine import TEColumnParallelLinear, TELinear
-    from megatron.core.post_training.modelopt.layers import Linear
+    from onescience.distributed.megatron.core.extensions.transformer_engine import TEColumnParallelLinear, TELinear
+    from onescience.distributed.megatron.core.post_training.modelopt.layers import Linear
 
     HAVE_TE = True
 except ImportError:

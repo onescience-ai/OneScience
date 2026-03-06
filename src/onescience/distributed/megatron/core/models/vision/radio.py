@@ -7,14 +7,14 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from megatron.core.config_logger import has_config_logger_enabled, log_config_to_disk
-from megatron.core.models.common.vision_module.vision_module import VisionModule
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.tensor_parallel.layers import ColumnParallelLinear
-from megatron.core.transformer.enums import ModelType
-from megatron.core.transformer.spec_utils import ModuleSpec, build_module
-from megatron.core.transformer.transformer_block import TransformerBlock
-from megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.config_logger import has_config_logger_enabled, log_config_to_disk
+from onescience.distributed.megatron.core.models.common.vision_module.vision_module import VisionModule
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.tensor_parallel.layers import ColumnParallelLinear
+from onescience.distributed.megatron.core.transformer.enums import ModelType
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec, build_module
+from onescience.distributed.megatron.core.transformer.transformer_block import TransformerBlock
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
 
 # RADIO reference code: https://github.com/NVlabs/RADIO
 

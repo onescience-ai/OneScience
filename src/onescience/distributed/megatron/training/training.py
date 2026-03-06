@@ -25,7 +25,7 @@ _TRAIN_START_TIME = time.time()
 import torch
 
 try:
-    from megatron.post_training.algos.distillation import (
+    from onescience.distributed.megatron.post_training.algos.distillation import (
         get_tensor_shapes_adjust_fn_for_distillation,
     )
 
@@ -39,62 +39,62 @@ except ImportError:
     CallWrapper = type(None)
 
 
-from megatron.core import mpu, tensor_parallel
-from megatron.core.utils import (
+from onescience.distributed.megatron.core import mpu, tensor_parallel
+from onescience.distributed.megatron.core.utils import (
     check_param_hashes_across_dp_replicas,
     get_model_config,
     StragglerDetector,
     is_te_min_version,
 )
-from megatron.core.fp8_utils import correct_amax_history_if_needed
-from megatron.training.checkpointing import load_checkpoint
-from megatron.training.checkpointing import save_checkpoint
-from megatron.training.checkpointing import checkpoint_exists
-from megatron.training.full_cuda_graph import FullCudaGraphWrapper
-from megatron.core.transformer.module import Float16Module
-from megatron.core.distributed import DistributedDataParallelConfig, TorchFullyShardedDataParallelConfig
-from megatron.core.distributed import DistributedDataParallel as DDP
-from megatron.core.distributed.custom_fsdp import FullyShardedDataParallel as custom_FSDP
-from megatron.core.optimizer.optimizer import param_group_identifier_keys
+from onescience.distributed.megatron.core.fp8_utils import correct_amax_history_if_needed
+from onescience.distributed.megatron.training.checkpointing import load_checkpoint
+from onescience.distributed.megatron.training.checkpointing import save_checkpoint
+from onescience.distributed.megatron.training.checkpointing import checkpoint_exists
+from onescience.distributed.megatron.training.full_cuda_graph import FullCudaGraphWrapper
+from onescience.distributed.megatron.core.transformer.module import Float16Module
+from onescience.distributed.megatron.core.distributed import DistributedDataParallelConfig, TorchFullyShardedDataParallelConfig
+from onescience.distributed.megatron.core.distributed import DistributedDataParallel as DDP
+from onescience.distributed.megatron.core.distributed.custom_fsdp import FullyShardedDataParallel as custom_FSDP
+from onescience.distributed.megatron.core.optimizer.optimizer import param_group_identifier_keys
 
 try:
-    from megatron.core.distributed import TorchFullyShardedDataParallel as torch_FSDP
+    from onescience.distributed.megatron.core.distributed import TorchFullyShardedDataParallel as torch_FSDP
 
     HAVE_FSDP2 = True
 except ImportError:
     HAVE_FSDP2 = False
 
-from megatron.core.distributed import finalize_model_grads
-from megatron.core.enums import ModelType
-from megatron.core.optimizer import get_megatron_optimizer, OptimizerConfig
-from megatron.core.rerun_state_machine import (
+from onescience.distributed.megatron.core.distributed import finalize_model_grads
+from onescience.distributed.megatron.core.enums import ModelType
+from onescience.distributed.megatron.core.optimizer import get_megatron_optimizer, OptimizerConfig
+from onescience.distributed.megatron.core.rerun_state_machine import (
     get_rerun_state_machine,
     destroy_rerun_state_machine,
     RerunDataIterator,
     RerunMode,
 )
-from megatron.training.initialize import initialize_megatron
-from megatron.training.initialize import write_args_to_tensorboard
-from megatron.training.initialize import set_jit_fusion_options
-from megatron.training.utils import get_batch_on_this_cp_rank, get_batch_on_this_tp_rank
-from megatron.legacy.data.data_samplers import build_pretraining_data_loader
-from megatron.core.optimizer_param_scheduler import OptimizerParamScheduler
-from megatron.core.transformer.moe import upcycling_utils
-from megatron.core.transformer.moe.moe_utils import track_moe_metrics
-from megatron.core.transformer.multi_token_prediction import MTPLossLoggingHelper
-from megatron.core.parallel_state import (
+from onescience.distributed.megatron.training.initialize import initialize_megatron
+from onescience.distributed.megatron.training.initialize import write_args_to_tensorboard
+from onescience.distributed.megatron.training.initialize import set_jit_fusion_options
+from onescience.distributed.megatron.training.utils import get_batch_on_this_cp_rank, get_batch_on_this_tp_rank
+from onescience.distributed.megatron.legacy.data.data_samplers import build_pretraining_data_loader
+from onescience.distributed.megatron.core.optimizer_param_scheduler import OptimizerParamScheduler
+from onescience.distributed.megatron.core.transformer.moe import upcycling_utils
+from onescience.distributed.megatron.core.transformer.moe.moe_utils import track_moe_metrics
+from onescience.distributed.megatron.core.transformer.multi_token_prediction import MTPLossLoggingHelper
+from onescience.distributed.megatron.core.parallel_state import (
     destroy_global_memory_buffer,
     destroy_model_parallel,
     get_amax_reduction_group,
     model_parallel_is_initialized,
 )
-from megatron.core.pipeline_parallel import get_forward_backward_func
-from megatron.core.pipeline_parallel.schedules import (
+from onescience.distributed.megatron.core.pipeline_parallel import get_forward_backward_func
+from onescience.distributed.megatron.core.pipeline_parallel.schedules import (
     convert_schedule_table_to_order,
     get_pp_rank_microbatches,
     get_schedule_table,
 )
-from megatron.core.num_microbatches_calculator import (
+from onescience.distributed.megatron.core.num_microbatches_calculator import (
     destroy_num_microbatches_calculator,
     get_current_global_batch_size,
     get_current_running_global_batch_size,
@@ -132,7 +132,7 @@ from . import ft_integration
 
 stimer = StragglerDetector()
 
-from megatron.core.msc_utils import MultiStorageClientFeature, open_file
+from onescience.distributed.megatron.core.msc_utils import MultiStorageClientFeature, open_file
 
 
 def destroy_global_state():
@@ -593,7 +593,7 @@ def get_cuda_graph_input_data(model, config, args, num_microbatches, num_model_c
                 else:
                     raise ValueError("E4M3 and HYBRID are the only supported FP8 formats.")
 
-                from megatron.core.transformer.custom_layers.transformer_engine import (
+                from onescience.distributed.megatron.core.transformer.custom_layers.transformer_engine import (
                     TEDelayedScaling,
                 )
 
@@ -2533,7 +2533,7 @@ def evaluate(
     timers('evaluate', log_level=0).start(barrier=True)
 
     if args.vision_pretraining and args.vision_pretraining_type == "dino":
-        from megatron.legacy.model.vision.knn_monitor import compute_feature_bank
+        from onescience.distributed.megatron.legacy.model.vision.knn_monitor import compute_feature_bank
 
         compute_feature_bank(model)
 

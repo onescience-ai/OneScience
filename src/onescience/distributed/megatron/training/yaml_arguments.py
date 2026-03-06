@@ -16,8 +16,8 @@ from types import SimpleNamespace
 
 import torch.nn.functional as F
 
-from megatron.core.transformer import TransformerConfig, MLATransformerConfig
-from megatron.core.utils import get_torch_version, is_torch_min_version
+from onescience.distributed.megatron.core.transformer import TransformerConfig, MLATransformerConfig
+from onescience.distributed.megatron.core.utils import get_torch_version, is_torch_min_version
 
 # Taken from https://stackoverflow.com/questions/65414773/parse-environment-variable-from-yaml-with-pyyaml
 # Allows for yaml to use environment variables

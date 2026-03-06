@@ -3,17 +3,17 @@ from typing import Any, Dict, Optional, Tuple
 
 import torch
 
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.inference.model_inference_wrappers.abstract_model_inference_wrapper import (
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.inference.model_inference_wrappers.abstract_model_inference_wrapper import (
     AbstractModelInferenceWrapper,
 )
-from megatron.core.inference.model_inference_wrappers.inference_wrapper_config import (
+from onescience.distributed.megatron.core.inference.model_inference_wrappers.inference_wrapper_config import (
     InferenceWrapperConfig,
 )
-from megatron.core.inference.utils import get_attention_mask
-from megatron.core.models.gpt import GPTModel
-from megatron.core.transformer.enums import AttnBackend
-from megatron.core.utils import get_model_config
+from onescience.distributed.megatron.core.inference.utils import get_attention_mask
+from onescience.distributed.megatron.core.models.gpt import GPTModel
+from onescience.distributed.megatron.core.transformer.enums import AttnBackend
+from onescience.distributed.megatron.core.utils import get_model_config
 
 
 # pylint: disable=line-too-long

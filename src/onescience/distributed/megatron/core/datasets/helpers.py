@@ -5,8 +5,8 @@
 # Explicit imports for readability
 import numpy
 
-from megatron.core.datasets.helpers_cpp import *
-from megatron.core.datasets.helpers_cpp import build_sample_idx_int32, build_sample_idx_int64
+from onescience.distributed.megatron.core.datasets.helpers_cpp import *
+from onescience.distributed.megatron.core.datasets.helpers_cpp import build_sample_idx_int32, build_sample_idx_int64
 
 
 def build_sample_idx(

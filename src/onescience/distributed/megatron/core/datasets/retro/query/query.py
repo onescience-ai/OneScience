@@ -17,16 +17,16 @@ import typing
 import numpy as np
 import torch
 
-from megatron.core.datasets.retro.config import RetroPreprocessingConfig
-from megatron.core.datasets.retro.db.dataset import DBDataset
-from megatron.core.datasets.retro.db.utils import (
+from onescience.distributed.megatron.core.datasets.retro.config import RetroPreprocessingConfig
+from onescience.distributed.megatron.core.datasets.retro.db.dataset import DBDataset
+from onescience.distributed.megatron.core.datasets.retro.db.utils import (
     get_merged_train_dataset as get_db_merged_train_dataset,
 )
-from megatron.core.datasets.retro.index.factory import IndexFactory
-from megatron.core.datasets.retro.index.index import Index
-from megatron.core.datasets.retro.index.utils import get_index_dir
-from megatron.core.datasets.retro.query.gpt_chunk_dataset import GPTChunkDataset
-from megatron.core.datasets.retro.utils import (
+from onescience.distributed.megatron.core.datasets.retro.index.factory import IndexFactory
+from onescience.distributed.megatron.core.datasets.retro.index.index import Index
+from onescience.distributed.megatron.core.datasets.retro.index.utils import get_index_dir
+from onescience.distributed.megatron.core.datasets.retro.query.gpt_chunk_dataset import GPTChunkDataset
+from onescience.distributed.megatron.core.datasets.retro.utils import (
     GPTToTextDataset,
     get_blocks_by_rank,
     log_retro_rank_0,

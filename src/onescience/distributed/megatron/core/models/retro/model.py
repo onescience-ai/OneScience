@@ -5,10 +5,10 @@ from typing import Dict, Optional
 
 from torch import Tensor
 
-from megatron.core.dist_checkpointing.mapping import ShardedStateDict
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.models.gpt import GPTModel
-from megatron.core.utils import deprecate_inference_params
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedStateDict
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.models.gpt import GPTModel
+from onescience.distributed.megatron.core.utils import deprecate_inference_params
 
 
 class RetroModel(GPTModel):

@@ -3,11 +3,11 @@ from typing import Optional
 
 import torch
 
-from megatron.core.transformer.mlp import MLP, MLPSubmodules
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.spec_utils import build_module
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.utils import make_viewless_tensor
+from onescience.distributed.megatron.core.transformer.mlp import MLP, MLPSubmodules
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.spec_utils import build_module
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.utils import make_viewless_tensor
 
 
 class MultimodalProjector(MegatronModule):

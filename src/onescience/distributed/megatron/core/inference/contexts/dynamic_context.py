@@ -9,11 +9,11 @@ import torch.nn.functional as F
 from packaging.version import Version as PkgVersion
 from torch import Tensor
 
-from megatron.core import parallel_state
-from megatron.core.models.common.embeddings.rope_utils import apply_rotary_pos_emb
-from megatron.core.package_info import __version__ as mcore_version
-from megatron.core.transformer import TransformerConfig
-from megatron.core.utils import divide as core_divide
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.models.common.embeddings.rope_utils import apply_rotary_pos_emb
+from onescience.distributed.megatron.core.package_info import __version__ as mcore_version
+from onescience.distributed.megatron.core.transformer import TransformerConfig
+from onescience.distributed.megatron.core.utils import divide as core_divide
 
 from .base_context import BaseInferenceContext
 from .dynamic_chunk_allocator import ChunkAllocator

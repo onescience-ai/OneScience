@@ -13,8 +13,8 @@ import warnings
 
 import torch
 
-from megatron.core import rerun_state_machine
-from megatron.training import get_args
+from onescience.distributed.megatron.core import rerun_state_machine
+from onescience.distributed.megatron.training import get_args
 
 from . import arguments
 

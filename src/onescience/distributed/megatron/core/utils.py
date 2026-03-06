@@ -26,8 +26,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import torch
 
-from megatron.core import config
-from megatron.core.package_info import __version__ as mcore_version
+from onescience.distributed.megatron.core import config
+from onescience.distributed.megatron.core.package_info import __version__ as mcore_version
 
 try:
     from torch.distributed._tensor import DTensor
@@ -37,8 +37,8 @@ try:
 except ImportError:
     HAVE_DTENSOR = False
 
-from megatron.core import parallel_state
-from megatron.core.dist_checkpointing.mapping import ShardedTensor
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedTensor
 
 try:
     from packaging.version import Version as PkgVersion
@@ -956,7 +956,7 @@ def drain_embedding_wgrad_compute(config, embedding_activation_buffer, grad_outp
 
     import fused_weight_gradient_mlp_cuda
 
-    from megatron.core.parallel_state import (
+    from onescience.distributed.megatron.core.parallel_state import (
         get_global_memory_buffer,
         get_tensor_model_parallel_group,
         get_tensor_model_parallel_world_size,
@@ -1995,10 +1995,10 @@ def nvtx_decorator(message: Optional[str] = None, color: Optional[str] = None):
 def unwrap_model(model, module_instances=None):
     """Unwrap_model to return the final model instance"""
     if module_instances is None:
-        from megatron.core.distributed import DistributedDataParallel as DDP
-        from megatron.core.distributed import TorchFullyShardedDataParallel as torch_FSDP
-        from megatron.core.distributed.custom_fsdp import FullyShardedDataParallel as custom_FSDP
-        from megatron.core.transformer.module import Float16Module
+        from onescience.distributed.megatron.core.distributed import DistributedDataParallel as DDP
+        from onescience.distributed.megatron.core.distributed import TorchFullyShardedDataParallel as torch_FSDP
+        from onescience.distributed.megatron.core.distributed.custom_fsdp import FullyShardedDataParallel as custom_FSDP
+        from onescience.distributed.megatron.core.transformer.module import Float16Module
 
         module_instances = (DDP, torch_FSDP, custom_FSDP, Float16Module)
 

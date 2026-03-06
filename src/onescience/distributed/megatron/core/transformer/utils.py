@@ -7,10 +7,10 @@ from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 import torch
 
-from megatron.core import parallel_state
-from megatron.core.dist_checkpointing.mapping import ShardedObject, ShardedStateDict, StateDict
-from megatron.core.jit import jit_fuser
-from megatron.core.utils import (
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedObject, ShardedStateDict, StateDict
+from onescience.distributed.megatron.core.jit import jit_fuser
+from onescience.distributed.megatron.core.utils import (
     make_sharded_tensor_for_checkpoint,
     make_tp_sharded_tensor_for_checkpoint,
 )

@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 import torch
 import torch.nn as nn
 
-from megatron.core.transformer.spec_utils import ModuleSpec, build_module
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec, build_module
 
 # Initialize logger
 logger = logging.getLogger(__name__)

@@ -7,10 +7,10 @@ from typing import Callable, List, Optional, Tuple, Union
 import torch
 import torch.nn.functional as F
 
-from megatron.core.enums import Fp8Recipe
-from megatron.core.quantization.quant_config import RecipeConfig
-from megatron.core.transformer.enums import AttnBackend
-from megatron.core.transformer.pipeline_parallel_layer_layout import PipelineParallelLayerLayout
+from onescience.distributed.megatron.core.enums import Fp8Recipe
+from onescience.distributed.megatron.core.quantization.quant_config import RecipeConfig
+from onescience.distributed.megatron.core.transformer.enums import AttnBackend
+from onescience.distributed.megatron.core.transformer.pipeline_parallel_layer_layout import PipelineParallelLayerLayout
 
 from ..model_parallel_config import ModelParallelConfig
 from ..utils import (
@@ -1090,7 +1090,7 @@ class TransformerConfig(ModelParallelConfig):
                             "TE < 2.3.0. Please install TE >= 2.3.0"
                         )
 
-                from megatron.core.models.common.embeddings.rope_utils import (
+                from onescience.distributed.megatron.core.models.common.embeddings.rope_utils import (
                     fused_apply_rotary_pos_emb,
                     fused_apply_rotary_pos_emb_thd,
                 )
@@ -1214,7 +1214,7 @@ class TransformerConfig(ModelParallelConfig):
                 )
 
         if self.moe_permute_fusion:
-            from megatron.core.transformer.moe.moe_utils import (
+            from onescience.distributed.megatron.core.transformer.moe.moe_utils import (
                 fused_permute,
                 fused_permute_with_probs,
                 fused_sort_chunks_by_index,

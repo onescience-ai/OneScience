@@ -6,25 +6,25 @@ import warnings
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from megatron.core.transformer.transformer_config import TransformerConfig
+    from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
 
 import logging
 
 import torch
 from torch import Tensor
 
-from megatron.core import parallel_state
+from onescience.distributed.megatron.core import parallel_state
 
 logger = logging.getLogger(__name__)
 
 try:
-    from megatron.core.extensions.transformer_engine import fused_apply_rotary_pos_emb
+    from onescience.distributed.megatron.core.extensions.transformer_engine import fused_apply_rotary_pos_emb
 except ImportError:
     fused_apply_rotary_pos_emb = None
 
 
 try:
-    from megatron.core.extensions.transformer_engine import fused_apply_rotary_pos_emb_thd
+    from onescience.distributed.megatron.core.extensions.transformer_engine import fused_apply_rotary_pos_emb_thd
 except ImportError:
     fused_apply_rotary_pos_emb_thd = None
 

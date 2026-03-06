@@ -19,9 +19,9 @@ from typing import Dict, List, Tuple
 import numpy as np
 import torch
 
-from megatron.core.datasets.indexed_dataset import IndexedDataset
-from megatron.core.datasets.retro.config import RetroPreprocessingConfig
-from megatron.core.datasets.retro.utils import (
+from onescience.distributed.megatron.core.datasets.indexed_dataset import IndexedDataset
+from onescience.distributed.megatron.core.datasets.retro.config import RetroPreprocessingConfig
+from onescience.distributed.megatron.core.datasets.retro.utils import (
     extract_data_config,
     get_blocks_by_rank,
     log_retro_rank_0,

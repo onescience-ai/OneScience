@@ -8,22 +8,22 @@ from typing import TYPE_CHECKING, List, Optional, Set, Tuple, Union
 import numpy as np
 import torch
 
-from megatron.core.dist_checkpointing import ShardedTensor
-from megatron.core.dist_checkpointing.core import CheckpointingException, maybe_load_config
-from megatron.core.dist_checkpointing.dict_utils import (
+from onescience.distributed.megatron.core.dist_checkpointing import ShardedTensor
+from onescience.distributed.megatron.core.dist_checkpointing.core import CheckpointingException, maybe_load_config
+from onescience.distributed.megatron.core.dist_checkpointing.dict_utils import (
     diff,
     extract_matching_values,
     map_reduce,
     nested_values,
 )
-from megatron.core.dist_checkpointing.mapping import (
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import (
     CommonStateDict,
     ShardedBase,
     ShardedObject,
     ShardedStateDict,
     is_main_replica,
 )
-from megatron.core.dist_checkpointing.strategies.base import (
+from onescience.distributed.megatron.core.dist_checkpointing.strategies.base import (
     LoadCommonStrategy,
     LoadShardedStrategy,
     SaveCommonStrategy,
@@ -31,10 +31,10 @@ from megatron.core.dist_checkpointing.strategies.base import (
     StrategyAction,
     get_default_strategy,
 )
-from megatron.core.msc_utils import MultiStorageClientFeature
+from onescience.distributed.megatron.core.msc_utils import MultiStorageClientFeature
 
 if TYPE_CHECKING:
-    from megatron.core.dist_checkpointing.serialization import CkptShardedMetadata
+    from onescience.distributed.megatron.core.dist_checkpointing.serialization import CkptShardedMetadata
 
 
 logger = logging.getLogger(__name__)

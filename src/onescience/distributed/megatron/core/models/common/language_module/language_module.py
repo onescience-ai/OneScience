@@ -6,25 +6,25 @@ from typing import Optional, Tuple
 import torch
 from torch import Tensor
 
-from megatron.core import parallel_state, tensor_parallel
-from megatron.core.dist_checkpointing.mapping import ShardedStateDict
+from onescience.distributed.megatron.core import parallel_state, tensor_parallel
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedStateDict
 
 try:
-    from megatron.core.extensions.transformer_engine import te_parallel_cross_entropy
+    from onescience.distributed.megatron.core.extensions.transformer_engine import te_parallel_cross_entropy
 except:
     te_parallel_cross_entropy = None
-from megatron.core.fusions.fused_cross_entropy import fused_vocab_parallel_cross_entropy
-from megatron.core.pipeline_parallel.utils import (
+from onescience.distributed.megatron.core.fusions.fused_cross_entropy import fused_vocab_parallel_cross_entropy
+from onescience.distributed.megatron.core.pipeline_parallel.utils import (
     is_pp_first_stage,
     is_pp_last_stage,
     is_vp_first_stage,
     is_vp_last_stage,
 )
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.transformer.enums import AttnBackend
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.utils import make_tp_sharded_tensor_for_checkpoint
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.transformer.enums import AttnBackend
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.utils import make_tp_sharded_tensor_for_checkpoint
 
 
 class LanguageModule(MegatronModule):

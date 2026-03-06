@@ -4,7 +4,7 @@ from typing import List, Optional
 import torch
 from torch.distributed import ProcessGroup
 
-from megatron.core import parallel_state
+from onescience.distributed.megatron.core import parallel_state
 
 
 def is_pipeline_first_stage(pp_group: ProcessGroup):

@@ -6,24 +6,24 @@ from typing import Optional, Union
 
 import torch
 
-from megatron.core import parallel_state, tensor_parallel
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.moe.moe_utils import get_default_model_comm_pgs
-from megatron.core.transformer.moe.router import TopKRouter
-from megatron.core.transformer.moe.token_dispatcher import (
+from onescience.distributed.megatron.core import parallel_state, tensor_parallel
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.moe.moe_utils import get_default_model_comm_pgs
+from onescience.distributed.megatron.core.transformer.moe.router import TopKRouter
+from onescience.distributed.megatron.core.transformer.moe.token_dispatcher import (
     MoEAllGatherTokenDispatcher,
     MoEAlltoAllTokenDispatcher,
     MoEFlexTokenDispatcher,
     MoETokenDispatcher,
 )
-from megatron.core.transformer.spec_utils import ModuleSpec, build_module
-from megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec, build_module
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
 
 try:
     import transformer_engine as te  # pylint: disable=unused-import
 
-    from megatron.core.extensions.transformer_engine import te_checkpoint
+    from onescience.distributed.megatron.core.extensions.transformer_engine import te_checkpoint
 
     HAVE_TE = True
 except ImportError:

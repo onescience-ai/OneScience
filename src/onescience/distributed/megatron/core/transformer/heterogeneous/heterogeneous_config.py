@@ -4,7 +4,7 @@ import json
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
-from megatron.core.transformer import TransformerConfig
+from onescience.distributed.megatron.core.transformer import TransformerConfig
 
 
 @dataclass

@@ -2,7 +2,7 @@
 
 import torch
 
-from megatron.core.utils import is_torch_min_version
+from onescience.distributed.megatron.core.utils import is_torch_min_version
 
 jit_fuser = torch.jit.script
 # nvFuser is deprecated in PyTorch JIT starting from 2.2

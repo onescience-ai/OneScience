@@ -11,26 +11,26 @@ from datetime import timedelta
 import numpy as np
 import torch
 
-from megatron.core import mpu, tensor_parallel
-from megatron.core.fusions.fused_bias_dropout import bias_dropout_add_fused_train
-from megatron.core.fusions.fused_bias_gelu import bias_gelu
-from megatron.core.fusions.fused_bias_swiglu import bias_swiglu
-from megatron.core.parallel_state import create_group
-from megatron.core.rerun_state_machine import (
+from onescience.distributed.megatron.core import mpu, tensor_parallel
+from onescience.distributed.megatron.core.fusions.fused_bias_dropout import bias_dropout_add_fused_train
+from onescience.distributed.megatron.core.fusions.fused_bias_gelu import bias_gelu
+from onescience.distributed.megatron.core.fusions.fused_bias_swiglu import bias_swiglu
+from onescience.distributed.megatron.core.parallel_state import create_group
+from onescience.distributed.megatron.core.rerun_state_machine import (
     RerunDiagnostic,
     RerunErrorInjector,
     RerunMode,
     initialize_rerun_state_machine,
 )
-from megatron.core.utils import get_te_version, is_te_min_version, is_torch_min_version
-from megatron.legacy import fused_kernels
-from megatron.training import get_adlr_autoresume, get_args, get_tensorboard_writer
-from megatron.training import inprocess_restart
-from megatron.training.arguments import parse_args, validate_args
-from megatron.training.async_utils import init_persistent_async_worker
-from megatron.training.checkpointing import load_args_from_checkpoint
-from megatron.training.global_vars import set_global_variables
-from megatron.training.yaml_arguments import validate_yaml
+from onescience.distributed.megatron.core.utils import get_te_version, is_te_min_version, is_torch_min_version
+from onescience.distributed.megatron.legacy import fused_kernels
+from onescience.distributed.megatron.training import get_adlr_autoresume, get_args, get_tensorboard_writer
+from onescience.distributed.megatron.training import inprocess_restart
+from onescience.distributed.megatron.training.arguments import parse_args, validate_args
+from onescience.distributed.megatron.training.async_utils import init_persistent_async_worker
+from onescience.distributed.megatron.training.checkpointing import load_args_from_checkpoint
+from onescience.distributed.megatron.training.global_vars import set_global_variables
+from onescience.distributed.megatron.training.yaml_arguments import validate_yaml
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ def initialize_megatron(
 
         # Setup MoE aux loss scale value.
         if args.num_experts is not None:
-            from megatron.core.transformer.moe.router import MoEAuxLossAutoScaler
+            from onescience.distributed.megatron.core.transformer.moe.router import MoEAuxLossAutoScaler
 
             MoEAuxLossAutoScaler.set_loss_scale(torch.ones(1, device=torch.cuda.current_device()))
 
@@ -180,7 +180,7 @@ def _compile_dependencies():
     if torch.distributed.get_rank() == 0:
         start_time = time.time()
         print("> compiling dataset index builder ...")
-        from megatron.core.datasets.utils import compile_helpers
+        from onescience.distributed.megatron.core.datasets.utils import compile_helpers
 
         compile_helpers()
         print(

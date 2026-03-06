@@ -9,9 +9,9 @@ from typing import List, Optional
 
 import torch
 
-from megatron.core.enums import Fp8Recipe
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.utils import get_te_version, is_te_min_version
+from onescience.distributed.megatron.core.enums import Fp8Recipe
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.utils import get_te_version, is_te_min_version
 
 # Check if Transformer Engine is installed
 HAVE_TE = False
@@ -56,7 +56,7 @@ except (ImportError, ModuleNotFoundError):
     HAVE_TE_MXFP8TENSOR = False
 
 if HAVE_TE:
-    from megatron.core.extensions.transformer_engine import (
+    from onescience.distributed.megatron.core.extensions.transformer_engine import (
         TEColumnParallelLinear,
         TELayerNormColumnParallelLinear,
         TELinear,
@@ -73,7 +73,7 @@ else:
     TE_LINEAR_TYPES = ()
 
 try:
-    from megatron.core.extensions.transformer_engine import Fp8Padding, Fp8Unpadding
+    from onescience.distributed.megatron.core.extensions.transformer_engine import Fp8Padding, Fp8Unpadding
 except ImportError:
     Fp8Padding = None
     Fp8Unpadding = None
@@ -199,7 +199,7 @@ elif HAVE_TE and is_te_min_version("2.0"):
         fsdp_shard_model_params: Optional[List[torch.Tensor]] = None,
     ) -> None:
         # Avoid circular import
-        from megatron.core.optimizer.optimizer import _multi_tensor_copy_this_to_that
+        from onescience.distributed.megatron.core.optimizer.optimizer import _multi_tensor_copy_this_to_that
 
         if len(model_params) == 0:
             return
@@ -289,7 +289,7 @@ elif HAVE_TE and is_te_min_version("1.0"):
         fsdp_shard_model_params: Optional[List[torch.Tensor]] = None,
     ) -> None:
         # Avoid circular import
-        from megatron.core.optimizer.optimizer import _multi_tensor_copy_this_to_that
+        from onescience.distributed.megatron.core.optimizer.optimizer import _multi_tensor_copy_this_to_that
 
         if len(model_params) == 0:
             return
@@ -407,8 +407,8 @@ def correct_amax_history_if_needed(model: List[torch.nn.Module]):
 
 
 if HAVE_TE:
-    from megatron.core import parallel_state
-    from megatron.core.extensions.transformer_engine import TEDelayedScaling
+    from onescience.distributed.megatron.core import parallel_state
+    from onescience.distributed.megatron.core.extensions.transformer_engine import TEDelayedScaling
 
     def get_fp8_context(config: TransformerConfig, layer_no: int = -1, is_init: bool = False):
         """Return fp8 context manager.

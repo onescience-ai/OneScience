@@ -5,14 +5,14 @@ from typing import List, Optional, Union
 
 import torch
 
-from megatron.core import parallel_state
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.tensor_parallel.mappings import gather_from_sequence_parallel_region
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.tensor_parallel.mappings import gather_from_sequence_parallel_region
 
 try:
     import transformer_engine as te  # pylint: disable=unused-import
 
-    from megatron.core.extensions.transformer_engine import (
+    from onescience.distributed.megatron.core.extensions.transformer_engine import (
         fused_permute,
         fused_permute_with_probs,
         fused_sort_chunks_by_index,

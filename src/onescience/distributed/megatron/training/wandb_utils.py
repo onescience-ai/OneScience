@@ -3,8 +3,8 @@
 from pathlib import Path
 from typing import Tuple
 
-from megatron.training.global_vars import get_wandb_writer
-from megatron.training.utils import print_rank_last
+from onescience.distributed.megatron.training.global_vars import get_wandb_writer
+from onescience.distributed.megatron.training.utils import print_rank_last
 
 
 def _get_wandb_artifact_tracker_filename(save_dir: str) -> Path:

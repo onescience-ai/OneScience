@@ -7,22 +7,22 @@ from typing import List, Optional, Union
 import torch
 from torch import Tensor
 
-from megatron.core import InferenceParams, mpu, parallel_state, tensor_parallel
-from megatron.core.dist_checkpointing.mapping import ShardedStateDict
-from megatron.core.dist_checkpointing.utils import replace_prefix_for_sharding
-from megatron.core.fp8_utils import get_fp8_context
-from megatron.core.models.backends import BackendSpecProvider, LocalSpecProvider
-from megatron.core.packed_seq_params import PackedSeqParams
-from megatron.core.tensor_parallel import (
+from onescience.distributed.megatron.core import InferenceParams, mpu, parallel_state, tensor_parallel
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedStateDict
+from onescience.distributed.megatron.core.dist_checkpointing.utils import replace_prefix_for_sharding
+from onescience.distributed.megatron.core.fp8_utils import get_fp8_context
+from onescience.distributed.megatron.core.models.backends import BackendSpecProvider, LocalSpecProvider
+from onescience.distributed.megatron.core.packed_seq_params import PackedSeqParams
+from onescience.distributed.megatron.core.tensor_parallel import (
     gather_from_tensor_model_parallel_region,
     scatter_to_sequence_parallel_region,
 )
-from megatron.core.transformer.enums import AttnMaskType
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.spec_utils import ModuleSpec, build_module
-from megatron.core.transformer.transformer_block import TransformerBlockSubmodules
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.utils import make_tp_sharded_tensor_for_checkpoint, make_viewless_tensor
+from onescience.distributed.megatron.core.transformer.enums import AttnMaskType
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec, build_module
+from onescience.distributed.megatron.core.transformer.transformer_block import TransformerBlockSubmodules
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.utils import make_tp_sharded_tensor_for_checkpoint, make_viewless_tensor
 
 SUPPORTED_ATTN_MASK = [
     AttnMaskType.padding,
@@ -34,7 +34,7 @@ SUPPORTED_ATTN_MASK = [
 try:
     import transformer_engine as te  # pylint: disable=unused-import
 
-    from megatron.core.extensions.transformer_engine_spec_provider import TESpecProvider
+    from onescience.distributed.megatron.core.extensions.transformer_engine_spec_provider import TESpecProvider
 
     HAVE_TE = True
 except ImportError:

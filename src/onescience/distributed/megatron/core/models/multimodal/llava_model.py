@@ -6,26 +6,26 @@ from typing import List, Optional
 
 import torch
 
-from megatron.core import tensor_parallel
-from megatron.core.config_logger import has_config_logger_enabled, log_config_to_disk
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.models.gpt import GPTModel
-from megatron.core.models.mamba import MambaModel
-from megatron.core.models.vision.clip_vit_model import CLIPViTModel, get_num_image_embeddings
-from megatron.core.models.vision.multimodal_projector import MultimodalProjector
-from megatron.core.models.vision.radio import RADIOViTModel
-from megatron.core.packed_seq_params import PackedSeqParams
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.transformer import MegatronModule
-from megatron.core.transformer.spec_utils import ModuleSpec
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.utils import deprecate_inference_params, log_single_rank
+from onescience.distributed.megatron.core import tensor_parallel
+from onescience.distributed.megatron.core.config_logger import has_config_logger_enabled, log_config_to_disk
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.models.gpt import GPTModel
+from onescience.distributed.megatron.core.models.mamba import MambaModel
+from onescience.distributed.megatron.core.models.vision.clip_vit_model import CLIPViTModel, get_num_image_embeddings
+from onescience.distributed.megatron.core.models.vision.multimodal_projector import MultimodalProjector
+from onescience.distributed.megatron.core.models.vision.radio import RADIOViTModel
+from onescience.distributed.megatron.core.packed_seq_params import PackedSeqParams
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.transformer import MegatronModule
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.utils import deprecate_inference_params, log_single_rank
 
 try:
     import transformer_engine  # pylint: disable=unused-import
 
-    from megatron.core.extensions.transformer_engine import TEDotProductAttention
-    from megatron.core.utils import is_te_min_version
+    from onescience.distributed.megatron.core.extensions.transformer_engine import TEDotProductAttention
+    from onescience.distributed.megatron.core.utils import is_te_min_version
 
     HAVE_TE = True
     try:
@@ -179,7 +179,7 @@ class LLaVAModel(MegatronModule):
 
         if self.add_decoder:
             if getattr(language_transformer_config, "language_model_type", "").startswith("hf://"):
-                from megatron.core.models.huggingface.module import build_hf_model
+                from onescience.distributed.megatron.core.models.huggingface.module import build_hf_model
 
                 self.language_model = build_hf_model(
                     language_transformer_config, language_transformer_config.language_model_type
@@ -283,7 +283,7 @@ class LLaVAModel(MegatronModule):
                     max_img_h = 1792
                     max_img_w = 1792
                     embedder_bias = True
-                    from megatron.core.extensions.transformer_engine import TENorm
+                    from onescience.distributed.megatron.core.extensions.transformer_engine import TENorm
 
                     ln_post_impl = TENorm
                     use_mask_token = True
@@ -311,7 +311,7 @@ class LLaVAModel(MegatronModule):
                     vp_stage=self.vp_stage,
                 )
             elif vision_transformer_config.vision_model_type.startswith("hf://"):
-                from megatron.core.models.huggingface.module import build_hf_model
+                from onescience.distributed.megatron.core.models.huggingface.module import build_hf_model
 
                 self.vision_model = build_hf_model(
                     vision_transformer_config, vision_transformer_config.vision_model_type
@@ -713,7 +713,7 @@ class LLaVAModel(MegatronModule):
                 batch["new_loss_mask"] = new_loss_mask
             # Distribute sequence across CP ranks
             if packed_seq_params is None or packed_seq_params.qkv_format == 'sbhd':
-                from megatron.training.utils import get_batch_on_this_cp_rank
+                from onescience.distributed.megatron.training.utils import get_batch_on_this_cp_rank
 
                 batch = get_batch_on_this_cp_rank(batch)
             else:

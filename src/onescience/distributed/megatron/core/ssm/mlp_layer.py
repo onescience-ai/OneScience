@@ -2,8 +2,8 @@
 
 from typing import Optional
 
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.transformer import (
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.transformer import (
     TransformerConfig,
     TransformerLayer,
     TransformerLayerSubmodules,

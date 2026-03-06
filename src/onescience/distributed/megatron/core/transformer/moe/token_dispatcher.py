@@ -6,21 +6,21 @@ from typing import List, Optional, Tuple
 
 import torch
 
-from megatron.core.config import is_experimental_enabled
-from megatron.core.fp8_utils import get_fp8_align_size
-from megatron.core.fusions.fused_indices_converter import fused_indices_to_multihot
-from megatron.core.fusions.fused_pad_routing_map import fused_pad_routing_map
-from megatron.core.tensor_parallel import (
+from onescience.distributed.megatron.core.config import is_experimental_enabled
+from onescience.distributed.megatron.core.fp8_utils import get_fp8_align_size
+from onescience.distributed.megatron.core.fusions.fused_indices_converter import fused_indices_to_multihot
+from onescience.distributed.megatron.core.fusions.fused_pad_routing_map import fused_pad_routing_map
+from onescience.distributed.megatron.core.tensor_parallel import (
     all_to_all,
     gather_from_sequence_parallel_region,
     reduce_scatter_to_sequence_parallel_region,
 )
-from megatron.core.transformer.moe.fused_a2a import (
+from onescience.distributed.megatron.core.transformer.moe.fused_a2a import (
     fused_combine,
     fused_dispatch,
     set_deepep_num_sms,
 )
-from megatron.core.transformer.moe.moe_utils import (
+from onescience.distributed.megatron.core.transformer.moe.moe_utils import (
     ModelCommProcessGroups,
     get_capacity,
     maybe_move_tensor_to_cpu,
@@ -29,8 +29,8 @@ from megatron.core.transformer.moe.moe_utils import (
     sort_chunks_by_idxs,
     unpermute,
 )
-from megatron.core.transformer.moe.shared_experts import SharedExpertMLP
-from megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.moe.shared_experts import SharedExpertMLP
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
 
 """ We use the following notation throughout this file:
      H: hidden size
@@ -1084,7 +1084,7 @@ class _DeepepManager(_DispatchManager):
             )
         else:
             if is_experimental_enabled() and self.permute_fusion:
-                from megatron.core.fusions.fused_pad_routing_map import fused_pad_routing_map
+                from onescience.distributed.megatron.core.fusions.fused_pad_routing_map import fused_pad_routing_map
 
                 routing_map = fused_pad_routing_map(routing_map, pad_multiple)
             else:
