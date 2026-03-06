@@ -1,3 +1,8 @@
+"""Protenix encoding modules for AlphaFold3.
+
+This module implements encoding layers including relative position encoding and
+atom attention encoder, as described in Algorithms 3 and 5 of AlphaFold3.
+"""
 from typing import Any, Union, Optional
 
 import torch
@@ -15,17 +20,19 @@ from onescience.models.protenix.utils import (
 )
 
 class ProtenixRelativePositionEncoding(nn.Module):
-    """
-    Implements Algorithm 3 in AF3
-    Relative position encoding for pair representation.
+    """Relative position encoding for pair representation.
+
+    Implements Algorithm 3 in AlphaFold3. Encodes relative positions between
+    tokens including residue indices, token indices, and chain information.
     """
 
     def __init__(self, r_max: int = 32, s_max: int = 2, c_z: int = 128) -> None:
-        """
+        """Initializes the ProtenixRelativePositionEncoding module.
+
         Args:
-            r_max: Relative position indices clip value. Defaults to 32.
-            s_max: Relative chain indices clip value. Defaults to 2.
-            c_z: Hidden dim for pair embedding. Defaults to 128.
+            r_max: Maximum relative position index to clip. Defaults to 32.
+            s_max: Maximum relative chain index to clip. Defaults to 2.
+            c_z: Pair embedding dimension. Defaults to 128.
         """
         super().__init__()
         self.r_max = r_max
@@ -150,8 +157,10 @@ class ProtenixRelativePositionEncoding(nn.Module):
 
 
 class ProtenixAtomAttentionEncoder(nn.Module):
-    """
-    Implements Algorithm 5 in AF3
+    """Atom attention encoder for structure representation.
+
+    Implements Algorithm 5 in AlphaFold3. Encodes atomic features into token-level
+    representations through atom transformer layers with local attention.
     """
 
     def __init__(
@@ -168,6 +177,22 @@ class ProtenixAtomAttentionEncoder(nn.Module):
         n_keys: int = 128,
         blocks_per_ckpt: Optional[int] = None,
     ) -> None:
+        """Initializes the ProtenixAtomAttentionEncoder module.
+
+        Args:
+            has_coords: Whether atomic coordinates are provided as input.
+            c_token: Token representation dimension.
+            c_atom: Atom representation dimension. Defaults to 128.
+            c_atompair: Atom pair representation dimension. Defaults to 16.
+            c_s: Single embedding dimension. Defaults to 384.
+            c_z: Pair embedding dimension. Defaults to 128.
+            n_blocks: Number of atom transformer blocks. Defaults to 3.
+            n_heads: Number of attention heads. Defaults to 4.
+            n_queries: Number of query atoms in local attention window. Defaults to 32.
+            n_keys: Number of key atoms in local attention window. Defaults to 128.
+            blocks_per_ckpt: Number of blocks per activation checkpoint. If None,
+                no checkpointing is used.
+        """
         super().__init__()
         self.has_coords = has_coords
         self.c_atom = c_atom

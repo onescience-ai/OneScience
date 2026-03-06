@@ -1,3 +1,9 @@
+"""Confidence head module for AlphaFold3.
+
+This module implements the confidence prediction head that computes pLDDT, PAE, PDE,
+and resolved predictions as described in Algorithm 31 of AlphaFold3.
+"""
+
 from typing import Optional, Union
 
 import torch
@@ -11,10 +17,14 @@ from onescience.modules.linear.protenixlinear import ProtenixLinearNoBias
 from onescience.modules.pairformer.protenixpairformer import ProtenixPairformerStack
 
 
-
 class ConfidenceHead(nn.Module):
-    """
-    Implements Algorithm 31 in AF3
+    """Confidence prediction head for structure quality metrics.
+
+    Implements Algorithm 31 in AlphaFold3 for predicting:
+    - pLDDT (predicted Local Distance Difference Test)
+    - PAE (Predicted Aligned Error)
+    - PDE (Predicted Distance Error)
+    - Resolved atom predictions
     """
 
     def __init__(
@@ -35,23 +45,27 @@ class ConfidenceHead(nn.Module):
         distance_bin_step: float = 1.25,
         stop_gradient: bool = True,
     ) -> None:
-        """
+        """Initializes the ConfidenceHead module.
+
         Args:
-            n_blocks (int, optional): number of blocks for ConfidenceHead. Defaults to 4.
-            c_s (int, optional):  hidden dim [for single embedding]. Defaults to 384.
-            c_z (int, optional): hidden dim [for pair embedding]. Defaults to 128.
-            c_s_inputs (int, optional): hidden dim [for single embedding from InputFeatureEmbedder]. Defaults to 449.
-            b_pae (int, optional): the bin number for pae. Defaults to 64.
-            b_pde (int, optional): the bin numer for pde. Defaults to 64.
-            b_plddt (int, optional): the bin number for plddt. Defaults to 50.
-            b_resolved (int, optional): the bin number for resolved. Defaults to 2.
-            max_atoms_per_token (int, optional): max atoms in a token. Defaults to 20.
-            pairformer_dropout (float, optional): dropout ratio for Pairformer. Defaults to 0.0.
-            blocks_per_ckpt: number of Pairformer blocks in each activation checkpoint
-            distance_bin_start (float, optional): Start of the distance bin range. Defaults to 3.375.
-            distance_bin_end (float, optional): End of the distance bin range. Defaults to 21.375.
-            distance_bin_step (float, optional): Step size for the distance bins. Defaults to 1.25.
-            stop_gradient (bool, optional): Whether to stop gradient propagation. Defaults to True.
+            n_blocks: Number of Pairformer blocks. Defaults to 4.
+            c_s: Hidden dimension for single (token) embeddings. Defaults to 384.
+            c_z: Hidden dimension for pair embeddings. Defaults to 128.
+            c_s_inputs: Hidden dimension for single embeddings from InputFeatureEmbedder.
+                Defaults to 449.
+            b_pae: Number of bins for PAE (Predicted Aligned Error). Defaults to 64.
+            b_pde: Number of bins for PDE (Predicted Distance Error). Defaults to 64.
+            b_plddt: Number of bins for pLDDT (predicted LDDT). Defaults to 50.
+            b_resolved: Number of bins for resolved atom prediction. Defaults to 2.
+            max_atoms_per_token: Maximum number of atoms per token. Defaults to 20.
+            pairformer_dropout: Dropout probability for Pairformer layers. Defaults to 0.0.
+            blocks_per_ckpt: Number of Pairformer blocks per activation checkpoint.
+                If None, no checkpointing is used.
+            distance_bin_start: Start of distance bin range in Angstroms. Defaults to 3.25.
+            distance_bin_end: End of distance bin range in Angstroms. Defaults to 52.0.
+            distance_bin_step: Step size for distance bins in Angstroms. Defaults to 1.25.
+            stop_gradient: Whether to stop gradient propagation from trunk embeddings.
+                Defaults to True.
         """
         super(ConfidenceHead, self).__init__()
         self.n_blocks = n_blocks
@@ -136,31 +150,38 @@ class ConfidenceHead(nn.Module):
         inplace_safe: bool = False,
         chunk_size: Optional[int] = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
+        """Computes confidence predictions for multiple structure samples.
+
         Args:
-            input_feature_dict: Dictionary containing input features.
-            s_inputs (torch.Tensor): single embedding from InputFeatureEmbedder
-                [..., N_tokens, c_s_inputs]
-            s_trunk (torch.Tensor): single feature embedding from PairFormer (Alg17)
-                [..., N_tokens, c_s]
-            z_trunk (torch.Tensor): pair feature embedding from PairFormer (Alg17)
-                [..., N_tokens, N_tokens, c_z]
-            pair_mask (torch.Tensor): pair mask
-                [..., N_token, N_token]
-            x_pred_coords (torch.Tensor): predicted coordinates
-                [..., N_sample, N_atoms, 3]
-            use_memory_efficient_kernel (bool, optional): Whether to use memory-efficient kernel. Defaults to False.
-            use_deepspeed_evo_attention (bool, optional): Whether to use DeepSpeed evolutionary attention. Defaults to False.
-            use_lma (bool, optional): Whether to use low-memory attention. Defaults to False.
-            inplace_safe (bool, optional): Whether to use inplace operations. Defaults to False.
-            chunk_size (Optional[int], optional): Chunk size for memory-efficient operations. Defaults to None.
+            input_feature_dict: Dictionary containing input features including
+                'distogram_rep_atom_mask', 'atom_to_token_idx', and 'atom_to_tokatom_idx'.
+            s_inputs: Single (token) embeddings from InputFeatureEmbedder.
+                Shape: [..., N_tokens, c_s_inputs].
+            s_trunk: Single feature embeddings from PairFormer trunk (Algorithm 17).
+                Shape: [..., N_tokens, c_s].
+            z_trunk: Pair feature embeddings from PairFormer trunk (Algorithm 17).
+                Shape: [..., N_tokens, N_tokens, c_z].
+            pair_mask: Mask for valid token pairs. Shape: [..., N_token, N_token].
+            x_pred_coords: Predicted atomic coordinates for multiple samples.
+                Shape: [..., N_sample, N_atoms, 3].
+            use_embedding: Whether to use trunk embeddings. If False, trunk embeddings
+                are zeroed out. Defaults to True.
+            use_memory_efficient_kernel: Whether to use memory-efficient attention kernel.
+                Defaults to False.
+            use_deepspeed_evo_attention: Whether to use DeepSpeed EvoFormer attention.
+                Defaults to False.
+            use_lma: Whether to use low-memory attention. Defaults to False.
+            inplace_safe: Whether inplace operations are safe (no gradient needed).
+                Defaults to False.
+            chunk_size: Chunk size for chunked operations to reduce memory usage.
+                If None, no chunking is applied.
 
         Returns:
-            tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-                - plddt_preds: Predicted pLDDT scores [..., N_sample, N_atom, plddt_bins].
-                - pae_preds: Predicted PAE scores [..., N_sample, N_token, N_token, pae_bins].
-                - pde_preds: Predicted PDE scores [..., N_sample, N_token, N_token, pde_bins].
-                - resolved_preds: Predicted resolved scores [..., N_sample, N_atom, 2].
+            A tuple containing:
+                - plddt_preds: Predicted pLDDT scores. Shape: [..., N_sample, N_atom, b_plddt].
+                - pae_preds: Predicted PAE scores. Shape: [..., N_sample, N_token, N_token, b_pae].
+                - pde_preds: Predicted PDE scores. Shape: [..., N_sample, N_token, N_token, b_pde].
+                - resolved_preds: Predicted resolved probabilities. Shape: [..., N_sample, N_atom, 2].
         """
 
         if self.stop_gradient:
@@ -249,11 +270,33 @@ class ConfidenceHead(nn.Module):
         inplace_safe: bool = False,
         chunk_size: Optional[int] = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
+        """Processes a single structure sample with memory-efficient operations.
+
+        This method processes one sample at a time to avoid CUDA out-of-memory errors
+        when handling multiple samples.
+
         Args:
-            ...
-            x_pred_coords (torch.Tensor): predicted coordinates
-                [..., N_atoms, 3] # Note: N_sample = 1 for avoiding CUDA OOM
+            input_feature_dict: Dictionary containing input features including
+                'atom_to_token_idx' and 'atom_to_tokatom_idx'.
+            s_trunk: Single feature embeddings. Shape: [..., N_tokens, c_s].
+            z_pair: Pair feature embeddings. Shape: [..., N_tokens, N_tokens, c_z].
+            pair_mask: Mask for valid token pairs. Shape: [..., N_token, N_token].
+            x_pred_rep_coords: Predicted coordinates of representative atoms for one sample.
+                Shape: [..., N_tokens, 3]. Note: N_sample = 1 to avoid CUDA OOM.
+            use_memory_efficient_kernel: Whether to use memory-efficient attention kernel.
+                Defaults to False.
+            use_deepspeed_evo_attention: Whether to use DeepSpeed EvoFormer attention.
+                Defaults to False.
+            use_lma: Whether to use low-memory attention. Defaults to False.
+            inplace_safe: Whether inplace operations are safe. Defaults to False.
+            chunk_size: Chunk size for chunked operations. If None, no chunking is applied.
+
+        Returns:
+            A tuple containing:
+                - plddt_pred: Predicted pLDDT scores. Shape: [..., N_atom, b_plddt].
+                - pae_pred: Predicted PAE scores. Shape: [..., N_token, N_token, b_pae].
+                - pde_pred: Predicted PDE scores. Shape: [..., N_token, N_token, b_pde].
+                - resolved_pred: Predicted resolved probabilities. Shape: [..., N_atom, 2].
         """
         # Embed pair distances of representative atoms:
         with torch.cuda.amp.autocast(enabled=False):

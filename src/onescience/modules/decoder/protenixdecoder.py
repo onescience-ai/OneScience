@@ -1,7 +1,7 @@
-"""
-Protenix Decoder Modules
-Implements decoder modules for Protenix (AlphaFold3)
-Reference: Algorithm 6 in AF3
+"""Protenix decoder modules for AlphaFold3.
+
+This module implements the atom attention decoder that converts token-level
+representations back to atomic coordinates, as described in Algorithm 6 of AlphaFold3.
 """
 from typing import Optional, Union
 
@@ -14,8 +14,10 @@ from onescience.models.protenix.utils import broadcast_token_to_atom
 
 
 class ProtenixAtomAttentionDecoder(nn.Module):
-    """
-    Implements Algorithm 6 in AF3
+    """Atom attention decoder for coordinate prediction.
+
+    Implements Algorithm 6 in AlphaFold3. Decodes token-level representations
+    into atomic coordinate updates through atom transformer layers.
     """
 
     def __init__(
@@ -29,6 +31,19 @@ class ProtenixAtomAttentionDecoder(nn.Module):
         n_keys: int = 128,
         blocks_per_ckpt: Optional[int] = None,
     ) -> None:
+        """Initializes the ProtenixAtomAttentionDecoder.
+
+        Args:
+            n_blocks: Number of atom transformer blocks. Defaults to 3.
+            n_heads: Number of attention heads. Defaults to 4.
+            c_token: Token representation dimension. Defaults to 384.
+            c_atom: Atom representation dimension. Defaults to 128.
+            c_atompair: Atom pair representation dimension. Defaults to 16.
+            n_queries: Number of query atoms in local attention window. Defaults to 32.
+            n_keys: Number of key atoms in local attention window. Defaults to 128.
+            blocks_per_ckpt: Number of blocks per activation checkpoint. If None,
+                no checkpointing is used.
+        """
         super().__init__()
         self.n_blocks = n_blocks
         self.n_heads = n_heads
@@ -64,6 +79,21 @@ class ProtenixAtomAttentionDecoder(nn.Module):
         inplace_safe: bool = False,
         chunk_size: Optional[int] = None,
     ) -> torch.Tensor:
+        """Decodes token representations to atomic coordinate updates.
+
+        Args:
+            input_feature_dict: Dictionary containing 'atom_to_token_idx' mapping.
+            a: Token-level aggregated representations. Shape: [..., N_token, c_token].
+            q_skip: Skip connection from encoder atom queries. Shape: [..., N_atom, c_atom].
+            c_skip: Skip connection from encoder atom features. Shape: [..., N_atom, c_atom].
+            p_skip: Skip connection from encoder atom pair features.
+                Shape: [..., n_blocks, n_queries, n_keys, c_atompair].
+            inplace_safe: Whether inplace operations are safe. Defaults to False.
+            chunk_size: Chunk size for memory-efficient operations. If None, no chunking.
+
+        Returns:
+            Atomic coordinate updates. Shape: [..., N_atom, 3].
+        """
         q = (
             broadcast_token_to_atom(
                 x_token=self.linear_no_bias_a(a),

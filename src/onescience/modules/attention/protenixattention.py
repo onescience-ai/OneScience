@@ -1,7 +1,7 @@
-"""
-Protenix Attention Modules
-Implements attention mechanisms for Protenix (AlphaFold3)
-Reference: Algorithm 24 in AF3
+"""Protenix attention modules for AlphaFold3.
+
+This module implements various attention mechanisms including standard multi-head
+attention and attention with pair bias, as described in Algorithm 24 of AlphaFold3.
 """
 import math
 from functools import partial
@@ -36,18 +36,19 @@ def _protenix_attention(
     use_efficient_implementation: bool = False,
     inplace_safe: bool = False,
 ) -> torch.Tensor:
-    """Standard attention computation.
+    """Computes standard scaled dot-product attention.
 
     Args:
-        q: Query tensor [..., n_q, d]
-        k: Key tensor [..., n_kv, d]
-        v: Value tensor [..., n_kv, d]
-        attn_bias: Attention bias tensor [..., n_q, n_kv]
-        use_efficient_implementation: Whether to use efficient SDPA
-        inplace_safe: Whether inplace operations are safe
+        q: Query tensor. Shape: [..., n_q, d].
+        k: Key tensor. Shape: [..., n_kv, d].
+        v: Value tensor. Shape: [..., n_kv, d].
+        attn_bias: Optional attention bias. Shape: [..., n_q, n_kv].
+        use_efficient_implementation: Whether to use PyTorch's efficient SDPA.
+            Defaults to False.
+        inplace_safe: Whether inplace operations are safe. Defaults to False.
 
     Returns:
-        Output tensor [..., n_q, d]
+        Attention output. Shape: [..., n_q, d].
     """
     assert k.shape == v.shape
 
@@ -83,9 +84,10 @@ def _protenix_attention(
 
 
 class ProtenixAttention(nn.Module):
-    """
-    Standard multi-head attention for Protenix.
-    Ref to openfold: https://github.com/aqlaboratory/openfold
+    """Standard multi-head attention for Protenix.
+
+    Implements multi-head attention with optional gating and local attention support.
+    Reference: OpenFold implementation (https://github.com/aqlaboratory/openfold).
     """
 
     def __init__(
@@ -101,18 +103,21 @@ class ProtenixAttention(nn.Module):
         use_efficient_implementation: bool = False,
         zero_init: bool = True,
     ) -> None:
-        """
+        """Initializes the ProtenixAttention module.
+
         Args:
-            c_q: Input dimension of query
-            c_k: Input dimension of key
-            c_v: Input dimension of value
-            c_hidden: Per-head hidden dimension
-            num_heads: Number of attention heads
-            gating: Whether to use gating
-            q_linear_bias: Whether to use bias in Q projection
-            local_attention_method: Local attention method
-            use_efficient_implementation: Whether to use SDPA
-            zero_init: Whether to zero-init output layer
+            c_q: Input dimension of query.
+            c_k: Input dimension of key.
+            c_v: Input dimension of value.
+            c_hidden: Per-head hidden dimension.
+            num_heads: Number of attention heads.
+            gating: Whether to use gating mechanism. Defaults to True.
+            q_linear_bias: Whether to use bias in query projection. Defaults to True.
+            local_attention_method: Method for local attention ('global_attention_with_bias'
+                or 'local_cross_attention'). Defaults to 'global_attention_with_bias'.
+            use_efficient_implementation: Whether to use PyTorch's efficient SDPA.
+                Defaults to False.
+            zero_init: Whether to zero-initialize output layer. Defaults to True.
         """
         super().__init__()
         self.c_q = c_q
@@ -188,20 +193,22 @@ class ProtenixAttention(nn.Module):
         inplace_safe: bool = False,
         chunk_size: Optional[int] = None,
     ) -> torch.Tensor:
-        """
+        """Computes multi-head attention with optional local attention.
+
         Args:
-            q_x: Query input [..., Q, c_q]
-            kv_x: Key/Value input [..., K, c_k]
-            attn_bias: Attention bias [..., Q, K] or [..., H, Q, K]
-            trunked_attn_bias: Trunked attention bias [..., H, n_trunks, n_queries, n_keys]
-            n_queries: Local window size for queries
-            n_keys: Local window size for keys
-            inf: Infinity value for masking
-            inplace_safe: Whether inplace is safe
-            chunk_size: Chunk size for chunked computation
+            q_x: Query input. Shape: [..., Q, c_q].
+            kv_x: Key/Value input. Shape: [..., K, c_k].
+            attn_bias: Attention bias. Shape: [..., Q, K] or [..., H, Q, K].
+            trunked_attn_bias: Trunked attention bias for local attention.
+                Shape: [..., H, n_trunks, n_queries, n_keys].
+            n_queries: Local window size for queries. If None, global attention is used.
+            n_keys: Local window size for keys. If None, global attention is used.
+            inf: Infinity value for masking. Defaults to 1e10.
+            inplace_safe: Whether inplace operations are safe. Defaults to False.
+            chunk_size: Chunk size for chunked computation. If None, no chunking.
 
         Returns:
-            Attention output [..., Q, c_q]
+            Attention output. Shape: [..., Q, c_q].
         """
         q, k, v = self._prep_qkv(q_x=q_x, kv_x=kv_x, apply_scale=True)
 
@@ -277,9 +284,10 @@ class ProtenixAttention(nn.Module):
 
 
 class ProtenixAttentionPairBias(nn.Module):
-    """
-    Implements Algorithm 24 in AF3
-    Attention with pair bias for single representation update.
+    """Attention with pair bias for single representation update.
+
+    Implements Algorithm 24 in AlphaFold3. Updates single representations using
+    attention mechanism conditioned on pair representations.
     """
 
     def __init__(
@@ -292,15 +300,17 @@ class ProtenixAttentionPairBias(nn.Module):
         c_z: int = 128,
         biasinit: float = -2.0,
     ) -> None:
-        """
+        """Initializes the ProtenixAttentionPairBias module.
+
         Args:
-            has_s: Whether s is provided
-            create_offset_ln_z: Whether to create offset for z LayerNorm
-            n_heads: Number of attention heads
-            c_a: Aggregated atom representation dim
-            c_s: Single embedding dim
-            c_z: Pair embedding dim
-            biasinit: Bias initialization value
+            has_s: Whether single embedding s is provided. Defaults to True.
+            create_offset_ln_z: Whether to create offset for pair LayerNorm.
+                Defaults to False.
+            n_heads: Number of attention heads. Defaults to 16.
+            c_a: Aggregated atom representation dimension. Defaults to 768.
+            c_s: Single embedding dimension. Defaults to 384.
+            c_z: Pair embedding dimension. Defaults to 128.
+            biasinit: Bias initialization value for output projection. Defaults to -2.0.
         """
         super().__init__()
         assert c_a % n_heads == 0
@@ -337,14 +347,16 @@ class ProtenixAttentionPairBias(nn.Module):
         s: Optional[torch.Tensor],
         z: torch.Tensor,
     ) -> torch.Tensor:
-        """
+        """Computes attention with pair bias.
+
         Args:
-            a: Aggregated atom representation [..., N_token, c_a]
-            s: Single embedding [..., N_token, c_s] or None
-            z: Pair embedding [..., N_token, N_token, c_z]
+            a: Aggregated atom representation. Shape: [..., N_token, c_a].
+            s: Single embedding. Shape: [..., N_token, c_s] or None.
+            z: Pair embedding. Shape: [..., N_token, N_token, c_z].
 
         Returns:
-            Updated single representation [..., N_token, c_a] or [..., N_token, c_s]
+            Updated representation. Shape: [..., N_token, c_a] if has_s is False,
+                otherwise [..., N_token, c_s].
         """
         if self.has_s:
             a = self.layernorm_a(a, s)
@@ -368,9 +380,10 @@ class ProtenixAttentionPairBias(nn.Module):
 
 
 class ProtenixAttentionPairBiasWithLocalAttn(nn.Module):
-    """
-    Implements Algorithm 24 in AF3
-    AttentionPairBias with local attention support.
+    """Attention with pair bias and local attention support.
+
+    Implements Algorithm 24 in AlphaFold3 with support for local attention windows
+    to reduce computational complexity for long sequences.
     """
 
     def __init__(
@@ -384,6 +397,20 @@ class ProtenixAttentionPairBiasWithLocalAttn(nn.Module):
         biasinit: float = -2.0,
         cross_attention_mode: bool = False,
     ) -> None:
+        """Initializes the ProtenixAttentionPairBiasWithLocalAttn module.
+
+        Args:
+            has_s: Whether single embedding s is provided. Defaults to True.
+            create_offset_ln_z: Whether to create offset for pair LayerNorm.
+                Defaults to False.
+            n_heads: Number of attention heads. Defaults to 16.
+            c_a: Aggregated atom representation dimension. Defaults to 768.
+            c_s: Single embedding dimension. Defaults to 384.
+            c_z: Pair embedding dimension. Defaults to 128.
+            biasinit: Bias initialization value. Defaults to -2.0.
+            cross_attention_mode: Whether to use cross-attention with separate
+                key/value normalization. Defaults to False.
+        """
         super().__init__()
         assert c_a % n_heads == 0
         self.n_heads = n_heads

@@ -1,7 +1,8 @@
-"""
-Protenix Diffusion Modules
-Implements diffusion-related modules for Protenix (AlphaFold3)
-Reference: Algorithm 20, 21 in AF3
+"""Protenix diffusion modules for AlphaFold3.
+
+This module implements the diffusion-based structure generation process,
+including conditioning, scheduling, and the main diffusion module as described
+in Algorithms 20 and 21 of AlphaFold3.
 """
 from typing import Optional, Union
 
@@ -18,10 +19,14 @@ from onescience.modules.transformer.protenixtransformer import ProtenixDiffusion
 from onescience.utils.openfold.checkpointing import get_checkpoint_fn
 from onescience.models.protenix.modules.primitives import Transition
 from onescience.modules.linear.protenixlinear import ProtenixLinearNoBias
+
+
 class ProtenixDiffusionConditioning(nn.Module):
-    """
-    Implements Algorithm 21 in AF3
-    Conditioning module for diffusion.
+    """Diffusion conditioning module for structure generation.
+
+    Implements Algorithm 21 in AlphaFold3. Conditions the diffusion process
+    on trunk embeddings and noise levels through pair and single representation
+    transformations.
     """
 
     def __init__(
@@ -32,13 +37,16 @@ class ProtenixDiffusionConditioning(nn.Module):
         c_s_inputs: int = 449,
         c_noise_embedding: int = 256,
     ) -> None:
-        """
+        """Initializes the ProtenixDiffusionConditioning module.
+
         Args:
-            sigma_data: Standard deviation of the data. Defaults to 16.0.
-            c_z: Hidden dim for pair embedding. Defaults to 128.
-            c_s: Hidden dim for single embedding. Defaults to 384.
-            c_s_inputs: Input embedding dim from InputEmbedder. Defaults to 449.
-            c_noise_embedding: Noise embedding dim. Defaults to 256.
+            sigma_data: Standard deviation of the training data distribution.
+                Defaults to 16.0.
+            c_z: Pair embedding dimension. Defaults to 128.
+            c_s: Single (token) embedding dimension. Defaults to 384.
+            c_s_inputs: Input single embedding dimension from InputEmbedder.
+                Defaults to 449.
+            c_noise_embedding: Noise level embedding dimension. Defaults to 256.
         """
         super().__init__()
         self.sigma_data = sigma_data
@@ -106,18 +114,26 @@ class ProtenixDiffusionConditioning(nn.Module):
         inplace_safe: bool = False,
         use_conditioning: bool = True,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        """
+        """Computes conditioned single and pair representations.
+
         Args:
-            t_hat_noise_level: Noise level [..., N_sample]
-            input_feature_dict: Input meta feature dict
-            s_inputs: Single embedding from InputFeatureEmbedder [..., N_tokens, c_s_inputs]
-            s_trunk: Single feature embedding from PairFormer [..., N_tokens, c_s]
-            z_trunk: Pair feature embedding from PairFormer [..., N_tokens, N_tokens, c_z]
-            inplace_safe: Whether inplace operations are safe
-            use_conditioning: Whether to drop the s/z embeddings
+            t_hat_noise_level: Noise level for each sample. Shape: [..., N_sample].
+            input_feature_dict: Dictionary containing input features for relative
+                position encoding.
+            s_inputs: Single embeddings from InputFeatureEmbedder.
+                Shape: [..., N_tokens, c_s_inputs].
+            s_trunk: Single feature embeddings from PairFormer trunk.
+                Shape: [..., N_tokens, c_s].
+            z_trunk: Pair feature embeddings from PairFormer trunk.
+                Shape: [..., N_tokens, N_tokens, c_z].
+            inplace_safe: Whether inplace operations are safe. Defaults to False.
+            use_conditioning: Whether to use trunk embeddings. If False, embeddings
+                are zeroed out. Defaults to True.
 
         Returns:
-            Tuple of (s, z) embeddings
+            A tuple containing:
+                - single_s: Conditioned single representations. Shape: [..., N_sample, N_tokens, c_s].
+                - pair_z: Conditioned pair representations. Shape: [..., N_tokens, N_tokens, c_z].
         """
         if not use_conditioning:
             if inplace_safe:
@@ -165,8 +181,10 @@ class ProtenixDiffusionConditioning(nn.Module):
 
 
 class ProtenixDiffusionSchedule:
-    """
-    Implements diffusion noise schedule for AF3.
+    """Diffusion noise schedule for training and inference.
+
+    Implements the noise scheduling strategy for the diffusion process in AlphaFold3,
+    controlling how noise is added during training and removed during inference.
     """
 
     def __init__(
@@ -179,15 +197,18 @@ class ProtenixDiffusionSchedule:
         p_mean: float = -1.2,
         p_std: float = 1.5,
     ) -> None:
-        """
+        """Initializes the ProtenixDiffusionSchedule.
+
         Args:
-            sigma_data: Standard deviation of the data. Defaults to 16.0.
+            sigma_data: Standard deviation of the training data. Defaults to 16.0.
             s_max: Maximum noise level. Defaults to 160.0.
             s_min: Minimum noise level. Defaults to 4e-4.
-            p: Exponent for noise schedule. Defaults to 7.0.
-            dt: Time step size. Defaults to 1/200.
-            p_mean: Mean of log-normal distribution for noise sampling. Defaults to -1.2.
-            p_std: Std of log-normal distribution. Defaults to 1.5.
+            p: Exponent for the noise schedule polynomial. Defaults to 7.0.
+            dt: Time step size for inference. Defaults to 1/200.
+            p_mean: Mean of log-normal distribution for training noise sampling.
+                Defaults to -1.2.
+            p_std: Standard deviation of log-normal distribution for training noise.
+                Defaults to 1.5.
         """
         self.sigma_data = sigma_data
         self.s_max = s_max
@@ -216,9 +237,11 @@ class ProtenixDiffusionSchedule:
 
 
 class ProtenixDiffusionModule(nn.Module):
-    """
-    Implements Algorithm 20 in AF3
-    Main diffusion module for structure prediction.
+    """Main diffusion module for structure prediction.
+
+    Implements Algorithm 20 in AlphaFold3. Combines atom attention encoder,
+    diffusion transformer, and atom attention decoder to perform iterative
+    denoising of atomic coordinates.
     """
 
     def __init__(
@@ -237,21 +260,27 @@ class ProtenixDiffusionModule(nn.Module):
         blocks_per_ckpt: Optional[int] = None,
         use_fine_grained_checkpoint: bool = False,
     ) -> None:
-        """
+        """Initializes the ProtenixDiffusionModule.
+
         Args:
-            sigma_data: Standard deviation of data. Defaults to 16.0.
-            c_atom: Atom feature embedding dim. Defaults to 128.
-            c_atompair: Atom pair embedding dim. Defaults to 16.
-            c_token: Token feature dim. Defaults to 768.
-            c_s: Single embedding dim. Defaults to 384.
-            c_z: Pair embedding dim. Defaults to 128.
-            c_s_inputs: Input single embedding dim. Defaults to 449.
-            atom_encoder: Configs for AtomAttentionEncoder.
-            transformer: Configs for DiffusionTransformer.
-            atom_decoder: Configs for AtomAttentionDecoder.
-            drop_path_rate: Drop path rate. Defaults to 0.0.
-            blocks_per_ckpt: Blocks per checkpoint. Defaults to None.
-            use_fine_grained_checkpoint: Use fine-grained checkpointing. Defaults to False.
+            sigma_data: Standard deviation of training data. Defaults to 16.0.
+            c_atom: Atom feature embedding dimension. Defaults to 128.
+            c_atompair: Atom pair embedding dimension. Defaults to 16.
+            c_token: Token feature dimension. Defaults to 768.
+            c_s: Single embedding dimension. Defaults to 384.
+            c_z: Pair embedding dimension. Defaults to 128.
+            c_s_inputs: Input single embedding dimension. Defaults to 449.
+            atom_encoder: Configuration dict for AtomAttentionEncoder with keys
+                'n_blocks' and 'n_heads'. If None, uses default values.
+            transformer: Configuration dict for DiffusionTransformer with keys
+                'n_blocks', 'n_heads', and 'drop_path_rate'. If None, uses defaults.
+            atom_decoder: Configuration dict for AtomAttentionDecoder with keys
+                'n_blocks' and 'n_heads'. If None, uses default values.
+            drop_path_rate: Drop path rate for stochastic depth. Defaults to 0.0.
+            blocks_per_ckpt: Number of blocks per activation checkpoint. If None,
+                no checkpointing is used.
+            use_fine_grained_checkpoint: Whether to use fine-grained checkpointing
+                for encoder and decoder. Defaults to False.
         """
         super().__init__()
 
@@ -324,22 +353,21 @@ class ProtenixDiffusionModule(nn.Module):
         chunk_size: Optional[int] = None,
         use_conditioning: bool = True,
     ) -> torch.Tensor:
-        """
-        The raw network to be trained (F_theta in EDM paper).
+        """Raw network forward pass (F_theta in EDM paper).
 
         Args:
-            r_noisy: Scaled noisy input [..., N_sample, N_atom, 3]
-            t_hat_noise_level: Noise level [..., N_sample]
-            input_feature_dict: Input features
-            s_inputs: Single embedding from InputFeatureEmbedder
-            s_trunk: Single feature from PairFormer
-            z_trunk: Pair feature from PairFormer
-            inplace_safe: Whether inplace is safe
-            chunk_size: Chunk size for memory efficiency
-            use_conditioning: Whether to use conditioning
+            r_noisy: Scaled noisy atomic coordinates. Shape: [..., N_sample, N_atom, 3].
+            t_hat_noise_level: Noise level for each sample. Shape: [..., N_sample].
+            input_feature_dict: Dictionary containing input features.
+            s_inputs: Single embeddings from InputFeatureEmbedder.
+            s_trunk: Single features from PairFormer trunk.
+            z_trunk: Pair features from PairFormer trunk.
+            inplace_safe: Whether inplace operations are safe. Defaults to False.
+            chunk_size: Chunk size for memory efficiency. If None, no chunking.
+            use_conditioning: Whether to use conditioning embeddings. Defaults to True.
 
         Returns:
-            Coordinate update [..., N_sample, N_atom, 3]
+            Predicted coordinate updates. Shape: [..., N_sample, N_atom, 3].
         """
         N_sample = r_noisy.size(-3)
         assert t_hat_noise_level.size(-1) == N_sample
@@ -455,22 +483,21 @@ class ProtenixDiffusionModule(nn.Module):
         chunk_size: Optional[int] = None,
         use_conditioning: bool = True,
     ) -> torch.Tensor:
-        """
-        One step denoise: x_noisy, noise_level -> x_denoised
+        """Performs one denoising step: noisy coordinates -> denoised coordinates.
 
         Args:
-            x_noisy: Noisy coordinates [..., N_sample, N_atom, 3]
-            t_hat_noise_level: Noise level [..., N_sample]
-            input_feature_dict: Input features
-            s_inputs: Single embedding
-            s_trunk: Single feature from PairFormer
-            z_trunk: Pair feature from PairFormer
-            inplace_safe: Whether inplace is safe
-            chunk_size: Chunk size
-            use_conditioning: Whether to use conditioning
+            x_noisy: Noisy atomic coordinates. Shape: [..., N_sample, N_atom, 3].
+            t_hat_noise_level: Noise level for each sample. Shape: [..., N_sample].
+            input_feature_dict: Dictionary containing input features.
+            s_inputs: Single embeddings from InputFeatureEmbedder.
+            s_trunk: Single features from PairFormer trunk.
+            z_trunk: Pair features from PairFormer trunk.
+            inplace_safe: Whether inplace operations are safe. Defaults to False.
+            chunk_size: Chunk size for memory efficiency. If None, no chunking.
+            use_conditioning: Whether to use conditioning. Defaults to True.
 
         Returns:
-            Denoised coordinates [..., N_sample, N_atom, 3]
+            Denoised atomic coordinates. Shape: [..., N_sample, N_atom, 3].
         """
         # Scale positions
         r_noisy = x_noisy / torch.sqrt(self.sigma_data**2 + t_hat_noise_level**2)[..., None, None]

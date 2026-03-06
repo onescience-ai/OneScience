@@ -1,19 +1,29 @@
+"""Distogram head module for AlphaFold3.
+
+This module implements the distogram prediction head that computes pairwise distance
+distributions between tokens, as described in Algorithm 1 (Line 17) of AlphaFold3.
+Adapted from OpenFold model heads.
+"""
+
 import torch
 import torch.nn as nn
 from onescience.modules.linear.protenixlinear import ProtenixLinear
 
-# Adapted From openfold.model.heads
+
 class DistogramHead(nn.Module):
-    """Implements Algorithm 1 [Line17] in AF3
-    Computes a distogram probability distribution.
-    For use in computation of distogram loss, subsection 1.9.8 (AF2)
+    """Computes distogram probability distributions for token pairs.
+
+    Implements Algorithm 1 [Line 17] in AlphaFold3. The distogram represents
+    pairwise distance distributions and is used for computing distogram loss
+    as described in subsection 1.9.8 of AlphaFold2.
     """
 
     def __init__(self, c_z: int = 128, no_bins: int = 64) -> None:
-        """
+        """Initializes the DistogramHead module.
+
         Args:
-            c_z (int, optional): hidden dim [for pair embedding]. Defaults to 128.
-            no_bins (int, optional): Number of distogram bins. Defaults to 64.
+            c_z: Hidden dimension for pair embeddings. Defaults to 128.
+            no_bins: Number of distance bins for the distogram. Defaults to 64.
         """
         super(DistogramHead, self).__init__()
 
@@ -24,19 +34,15 @@ class DistogramHead(nn.Module):
             in_features=self.c_z, out_features=self.no_bins, initializer="zeros"
         )
 
-        #self.linear = Linear(in_features=self.c_z, out_features=self.no_bins, initializer="zeros")
+    def forward(self, z: torch.Tensor) -> torch.Tensor:
+        """Computes distogram logits from pair embeddings.
 
-    def forward(self, z: torch.Tensor) -> torch.Tensor:  # [*, N, N, C_z]
-        """
         Args:
-            z (torch.Tensor): pair embedding
-                [*, N_token, N_token, C_z]
+            z: Pair embeddings. Shape: [*, N_token, N_token, c_z].
 
         Returns:
-            torch.Tensor: distogram probability distribution
-                [*, N_token, N_token, no_bins]
+            Symmetrized distogram logits. Shape: [*, N_token, N_token, no_bins].
         """
-        # [*, N, N, no_bins]
         logits = self.linear(z)
         logits = logits + logits.transpose(-2, -3)
         return logits

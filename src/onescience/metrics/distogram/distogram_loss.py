@@ -1,5 +1,7 @@
-"""
-Distogram Loss Implementation for AlphaFold3
+"""Distogram loss implementation for AlphaFold3.
+
+This module implements the distogram loss function that measures the difference
+between predicted and true pairwise distance distributions.
 """
 import torch
 import torch.nn as nn
@@ -9,16 +11,15 @@ from onescience.utils.protenix.torch_utils import cdist
 
 
 def loss_reduction(loss: torch.Tensor, method: str = "mean") -> torch.Tensor:
-    """reduction wrapper
+    """Applies reduction operation to loss tensor.
 
     Args:
-        loss (torch.Tensor): loss
-            [...]
-        method (str, optional): reduction method. Defaults to "mean".
+        loss: Loss tensor of any shape [...].
+        method: Reduction method. One of 'mean', 'sum', 'add', 'max', 'min', or None.
+            Defaults to 'mean'.
 
     Returns:
-        torch.Tensor: reduced loss
-            [] or [...]
+        Reduced loss tensor. Shape: [] if method is not None, otherwise [...].
     """
 
     if method is None:
@@ -30,17 +31,14 @@ def loss_reduction(loss: torch.Tensor, method: str = "mean") -> torch.Tensor:
 
 
 def softmax_cross_entropy(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-    """Softmax cross entropy
+    """Computes softmax cross entropy loss.
 
     Args:
-        logits (torch.Tensor): classification logits
-            [..., num_class]
-        labels (torch.Tensor): classification labels (value = probability)
-            [..., num_class]
+        logits: Classification logits. Shape: [..., num_class].
+        labels: Classification labels as probability distribution. Shape: [..., num_class].
 
     Returns:
-        torch.Tensor: softmax cross entropy
-            [...]
+        Softmax cross entropy loss. Shape: [...].
     """
     loss = -1 * torch.sum(
         labels * F.log_softmax(logits, dim=-1),
@@ -50,8 +48,13 @@ def softmax_cross_entropy(logits: torch.Tensor, labels: torch.Tensor) -> torch.T
 
 
 class DistogramLoss(nn.Module):
-    """
-    Implements DistogramLoss in AF3
+    """Distogram loss for pairwise distance prediction.
+
+    Implements the distogram loss from AlphaFold3. This loss is identical to AlphaFold2,
+    where pairwise token distances use the representative atom for each token:
+    - Cβ for protein residues (Cα for glycine)
+    - C4' for purines and C2' for pyrimidines
+    - Single atom per token for ligands
     """
 
     def __init__(
@@ -62,18 +65,15 @@ class DistogramLoss(nn.Module):
         eps: float = 1e-6,
         reduction: str = "mean",
     ) -> None:
-        """Distogram loss
-        This head and loss are identical to AlphaFold 2, where the pairwise token distances use the representative atom for each token:
-            Cβ for protein residues (Cα for glycine),
-            C4 for purines and C2 for pyrimidines.
-            All ligands already have a single atom per token.
+        """Initializes the DistogramLoss module.
 
         Args:
-            min_bin (float, optional): min boundary of bins. Defaults to 2.3125.
-            max_bin (float, optional): max boundary of bins. Defaults to 21.6875.
-            no_bins (int, optional): number of bins. Defaults to 64.
-            eps (float, optional): small number added to denominator. Defaults to 1e-6.
-            reduce (bool, optional): reduce dim. Defaults to True.
+            min_bin: Minimum boundary of distance bins in Angstroms. Defaults to 2.3125.
+            max_bin: Maximum boundary of distance bins in Angstroms. Defaults to 21.6875.
+            no_bins: Number of distance bins. Defaults to 64.
+            eps: Small epsilon value added to denominator for numerical stability.
+                Defaults to 1e-6.
+            reduction: Loss reduction method ('mean', 'sum', or None). Defaults to 'mean'.
         """
         super(DistogramLoss, self).__init__()
         self.min_bin = min_bin
@@ -88,21 +88,19 @@ class DistogramLoss(nn.Module):
         coordinate_mask: torch.Tensor,
         rep_atom_mask: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        """calculate the label as bins
+        """Calculates distance bin labels from true coordinates.
 
         Args:
-            true_coordinate (torch.Tensor): true coordinates.
-                [..., N_atom, 3]
-            coordinate_mask (torch.Tensor): whether true coordinates exist.
-                [N_atom] or [..., N_atom]
-            rep_atom_mask (torch.Tensor): representative atom mask
-                [N_atom]
+            true_coordinate: True atomic coordinates. Shape: [..., N_atom, 3].
+            coordinate_mask: Mask indicating which coordinates exist.
+                Shape: [N_atom] or [..., N_atom].
+            rep_atom_mask: Mask for representative atoms. Shape: [N_atom].
 
         Returns:
-            true_bins (torch.Tensor): distance error assigned into bins (one-hot).
-                [..., N_token, N_token, no_bins]
-            pair_coordinate_mask (torch.Tensor): whether the coordinates of representative atom pairs exist.
-                [N_token, N_token] or [..., N_token, N_token]
+            A tuple containing:
+                - true_bins: One-hot encoded distance bins. Shape: [..., N_token, N_token, no_bins].
+                - pair_coordinate_mask: Mask for valid representative atom pairs.
+                    Shape: [N_token, N_token] or [..., N_token, N_token].
         """
 
         boundaries = torch.linspace(
@@ -135,21 +133,18 @@ class DistogramLoss(nn.Module):
         coordinate_mask: torch.Tensor,
         rep_atom_mask: torch.Tensor,
     ) -> torch.Tensor:
-        """Distogram loss
+        """Computes distogram loss between predicted and true distances.
 
         Args:
-            logits (torch.Tensor): logits.
-                [..., N_token, N_token, no_bins]
-            true_coordinate (torch.Tensor): true coordinates.
-                [..., N_atom, 3]
-            coordinate_mask (torch.Tensor): whether true coordinates exist.
-                [N_atom] or [..., N_atom]
-            rep_atom_mask (torch.Tensor): representative atom mask.
-                [N_atom]
+            logits: Predicted distance distribution logits.
+                Shape: [..., N_token, N_token, no_bins].
+            true_coordinate: True atomic coordinates. Shape: [..., N_atom, 3].
+            coordinate_mask: Mask indicating which coordinates exist.
+                Shape: [N_atom] or [..., N_atom].
+            rep_atom_mask: Mask for representative atoms. Shape: [N_atom].
 
         Returns:
-            torch.Tensor: the return loss.
-                [...] if self.reduction is not None else []
+            Distogram loss. Shape: [] if self.reduction is not None, otherwise [...].
         """
 
         with torch.no_grad():
