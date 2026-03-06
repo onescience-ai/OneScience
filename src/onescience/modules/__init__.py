@@ -13,6 +13,7 @@ from .transformer.onetransformer import OneTransformer
 
 __all__ = ["OneEmbedding",
            "OneEncoder",
+           "OneDecoder",
            "OneFuser",
            "OneSample",
            "OneRecovery",

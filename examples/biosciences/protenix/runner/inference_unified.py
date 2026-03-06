@@ -93,7 +93,6 @@ class BiologyInferenceRunner:
         sample_key1 = [k for k in state_dict.keys()][101]
         if sample_key1.startswith("msa_module."):
             state_dict = {k.replace("msa_module.", "msa_module.msa."): v for k, v in state_dict.items()}
-
         # Step 2: 适配 input_embedder. → input_embedder.embedder. 的结构差异
         new_state_dict = {}
         for k, v in state_dict.items():
@@ -109,9 +108,26 @@ class BiologyInferenceRunner:
                 new_key = k.replace("pairformer_stack.", "pairformer_stack.Pairformer.")
             elif k.startswith("diffusion_module.") and not k.startswith("diffusion_module.Diffusion."):
                 new_key = k.replace("diffusion_module.", "diffusion_module.Diffusion.")
+            elif k.startswith("distogram_head.linear.") and not k.startswith("distogram_head.linear.Linear."):
+                new_key = k.replace("distogram_head.linear.", "distogram_head.linear.Linear.")
+            #elif k.startswith("confidence_head.pairformer_stack") and not k.startswith("confidence_head.pairformer_stack.Pairformer"):
+            #     new_key = k.replace("confidence_head.pairformer_stack.", "confidence_head.pairformer_stack.Pairformer.")
+            elif k.startswith("linear_no_bias_sinit.") and not k.startswith("linear_no_bias_sinit.Linear."):
+                new_key = k.replace("linear_no_bias_sinit.", "linear_no_bias_sinit.Linear.")
+            elif k.startswith("linear_no_bias_zinit1.") and not k.startswith("linear_no_bias_zinit1.Linear."):
+                new_key = k.replace("linear_no_bias_zinit1.", "linear_no_bias_zinit1.Linear.")
+            elif k.startswith("linear_no_bias_zinit2.") and not k.startswith("linear_no_bias_zinit2.Linear."):
+                new_key = k.replace("linear_no_bias_zinit2.", "linear_no_bias_zinit2.Linear.")
+            elif k.startswith("linear_no_bias_token_bond.") and not k.startswith("linear_no_bias_token_bond.Linear."):
+                new_key = k.replace("linear_no_bias_token_bond.", "linear_no_bias_token_bond.Linear.")                
+            elif k.startswith("linear_no_bias_z_cycle.") and not k.startswith("linear_no_bias_z_cycle.Linear."):
+                new_key = k.replace("linear_no_bias_z_cycle.", "linear_no_bias_z_cycle.Linear.")                
+            elif k.startswith("linear_no_bias_s.") and not k.startswith("linear_no_bias_s.Linear."):
+                new_key = k.replace("linear_no_bias_s.", "linear_no_bias_s.Linear.") 
             else:
                 # 如果不满足任何条件，则保留原始键名
                 new_key = k    
+
             # 将修改后的键值对添加到新字典中
             new_state_dict[new_key] = v
         self.model.load_state_dict(new_state_dict, strict=self.configs.load_strict)
