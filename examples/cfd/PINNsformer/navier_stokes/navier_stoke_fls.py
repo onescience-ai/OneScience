@@ -17,9 +17,8 @@ random.seed(seed)
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
 
-
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-epochs = 1000
+epochs_adam = 5000
 
 data = scipy.io.loadmat('./cylinder_nektar_wake.mat')
 
@@ -60,7 +59,7 @@ y_train = torch.tensor(y_train, dtype=torch.float32, requires_grad=True).to(devi
 t_train = torch.tensor(t_train, dtype=torch.float32, requires_grad=True).to(device)
 u_train = torch.tensor(u_train, dtype=torch.float32, requires_grad=True).to(device)
 v_train = torch.tensor(v_train, dtype=torch.float32, requires_grad=True).to(device)
-  
+
 def init_weights(m):
     if isinstance(m, nn.Linear):
         torch.nn.init.xavier_uniform_(m.weight)
@@ -68,59 +67,71 @@ def init_weights(m):
 
 model = FLS2D(in_dim=3, hidden_dim=128, out_dim=2, num_layer=4).to(device)
 model.apply(init_weights)
-optim = LBFGS(model.parameters(), line_search_fn='strong_wolfe')
-
-n_params = get_n_params(model)
 
 print(model)
 print(get_n_params(model))
 
 loss_track = []
-pbar = tqdm(range(epochs))
-for i in pbar:
-    def closure():
-        psi_and_p = model(x_train, y_train, t_train)
-        psi = psi_and_p[:,0:1]
-        p = psi_and_p[:,1:2]
 
-        u = torch.autograd.grad(psi, y_train, grad_outputs=torch.ones_like(psi), retain_graph=True, create_graph=True)[0]
-        v = - torch.autograd.grad(psi, x_train, grad_outputs=torch.ones_like(psi), retain_graph=True, create_graph=True)[0]
+def calculate_loss():
+    psi_and_p = model(x_train, y_train, t_train)
+    psi = psi_and_p[:,0:1]
+    p = psi_and_p[:,1:2]
 
-        u_t = torch.autograd.grad(u, t_train, grad_outputs=torch.ones_like(u), retain_graph=True, create_graph=True)[0]
-        u_x = torch.autograd.grad(u, x_train, grad_outputs=torch.ones_like(u), retain_graph=True, create_graph=True)[0]
-        u_y = torch.autograd.grad(u, y_train, grad_outputs=torch.ones_like(u), retain_graph=True, create_graph=True)[0]
-        u_xx = torch.autograd.grad(u, x_train, grad_outputs=torch.ones_like(u_x), retain_graph=True, create_graph=True)[0]
-        u_yy = torch.autograd.grad(u, y_train, grad_outputs=torch.ones_like(u_y), retain_graph=True, create_graph=True)[0]
+    u = torch.autograd.grad(psi, y_train, grad_outputs=torch.ones_like(psi), retain_graph=True, create_graph=True)[0]
+    v = - torch.autograd.grad(psi, x_train, grad_outputs=torch.ones_like(psi), retain_graph=True, create_graph=True)[0]
 
-        v_t = torch.autograd.grad(v, t_train, grad_outputs=torch.ones_like(v), retain_graph=True, create_graph=True)[0]
-        v_x = torch.autograd.grad(v, x_train, grad_outputs=torch.ones_like(v), retain_graph=True, create_graph=True)[0]
-        v_y = torch.autograd.grad(v, y_train, grad_outputs=torch.ones_like(v), retain_graph=True, create_graph=True)[0]
-        v_xx = torch.autograd.grad(v, x_train, grad_outputs=torch.ones_like(v_x), retain_graph=True, create_graph=True)[0]
-        v_yy = torch.autograd.grad(v, y_train, grad_outputs=torch.ones_like(v_y), retain_graph=True, create_graph=True)[0]
+    u_t = torch.autograd.grad(u, t_train, grad_outputs=torch.ones_like(u), retain_graph=True, create_graph=True)[0]
+    u_x = torch.autograd.grad(u, x_train, grad_outputs=torch.ones_like(u), retain_graph=True, create_graph=True)[0]
+    u_y = torch.autograd.grad(u, y_train, grad_outputs=torch.ones_like(u), retain_graph=True, create_graph=True)[0]
+    
+    u_xx = torch.autograd.grad(u_x, x_train, grad_outputs=torch.ones_like(u_x), retain_graph=True, create_graph=True)[0]
+    u_yy = torch.autograd.grad(u_y, y_train, grad_outputs=torch.ones_like(u_y), retain_graph=True, create_graph=True)[0]
 
-        p_x = torch.autograd.grad(p, x_train, grad_outputs=torch.ones_like(p), retain_graph=True, create_graph=True)[0]
-        p_y = torch.autograd.grad(p, y_train, grad_outputs=torch.ones_like(p), retain_graph=True, create_graph=True)[0]
+    v_t = torch.autograd.grad(v, t_train, grad_outputs=torch.ones_like(v), retain_graph=True, create_graph=True)[0]
+    v_x = torch.autograd.grad(v, x_train, grad_outputs=torch.ones_like(v), retain_graph=True, create_graph=True)[0]
+    v_y = torch.autograd.grad(v, y_train, grad_outputs=torch.ones_like(v), retain_graph=True, create_graph=True)[0]
+    
+    v_xx = torch.autograd.grad(v_x, x_train, grad_outputs=torch.ones_like(v_x), retain_graph=True, create_graph=True)[0]
+    v_yy = torch.autograd.grad(v_y, y_train, grad_outputs=torch.ones_like(v_y), retain_graph=True, create_graph=True)[0]
 
-        f_u = u_t + (u*u_x + v*u_y) + p_x - 0.01*(u_xx + u_yy) 
-        f_v = v_t + (u*v_x + v*v_y) + p_y - 0.01*(v_xx + v_yy)
+    p_x = torch.autograd.grad(p, x_train, grad_outputs=torch.ones_like(p), retain_graph=True, create_graph=True)[0]
+    p_y = torch.autograd.grad(p, y_train, grad_outputs=torch.ones_like(p), retain_graph=True, create_graph=True)[0]
 
-        loss = torch.mean((u - u_train)**2) + torch.mean((v - v_train)**2) + torch.mean(f_u**2) + torch.mean(f_v**2)
+    f_u = u_t + (u*u_x + v*u_y) + p_x - 0.01*(u_xx + u_yy) 
+    f_v = v_t + (u*v_x + v*v_y) + p_y - 0.01*(v_xx + v_yy)
 
-        loss_track.append(loss.item())
+    loss = torch.mean((u - u_train)**2) + torch.mean((v - v_train)**2) + torch.mean(f_u**2) + torch.mean(f_v**2)
+    return loss
 
-        optim.zero_grad()
-        loss.backward()
-        return loss
+# Adam Warmup
+optimizer_adam = Adam(model.parameters(), lr=1e-3)
+print("Running Adam...")
+for i in tqdm(range(epochs_adam)):
+    optimizer_adam.zero_grad()
+    loss = calculate_loss()
+    loss.backward()
+    optimizer_adam.step()
+    loss_track.append(loss.item())
 
-    loss = optim.step(closure)
-    pbar.set_postfix(loss=f"{loss.item():.6f}")
+# LBFGS Finetuning
+optim = LBFGS(model.parameters(), line_search_fn='strong_wolfe', max_iter=50000, history_size=50)
+print("Running LBFGS...")
 
+def closure():
+    optim.zero_grad()
+    loss = calculate_loss()
+    loss.backward()
+    loss_track.append(loss.item())
+    return loss
+
+optim.step(closure)
 
 if not os.path.exists('./model'):
     os.makedirs('./model')
 torch.save(model.state_dict(), './model/ns_fls.pt')
 
- # Test Data
+# Test Data
 snap = np.array([100])
 x_star = X_star[:,0:1]
 y_star = X_star[:,1:2]
@@ -134,7 +145,6 @@ x_star = torch.tensor(x_star, dtype=torch.float32, requires_grad=True).to(device
 y_star = torch.tensor(y_star, dtype=torch.float32, requires_grad=True).to(device)
 t_star = torch.tensor(t_star, dtype=torch.float32, requires_grad=True).to(device)
 
-# with torch.no_grad():
 psi_and_p = model(x_star, y_star, t_star)
 psi = psi_and_p[:,0:1]
 p_pred = psi_and_p[:,1:2]
@@ -146,13 +156,20 @@ u_pred = u_pred.cpu().detach().numpy()
 v_pred = v_pred.cpu().detach().numpy()
 p_pred = p_pred.cpu().detach().numpy()
 
+p_pred = p_pred - np.mean(p_pred)
+p_star = p_star - np.mean(p_star)
+
 error_u = np.linalg.norm(u_star-u_pred,2)/np.linalg.norm(u_star,2)
 error_v = np.linalg.norm(v_star-v_pred,2)/np.linalg.norm(v_star,2)
 error_p = np.linalg.norm(p_star-p_pred,2)/np.linalg.norm(p_star,2)
 
+print(f"Error u: {error_u:.2e}")
+print(f"Error v: {error_v:.2e}")
+print(f"Error p: {error_p:.2e}")
+
 if not os.path.exists('./result'):
     os.makedirs('./result')
-fig, axes = plt.subplots(1, 3, figsize=(16, 4))  
+fig, axes = plt.subplots(1, 3, figsize=(16, 4))
 # Predicted u(x,t)
 im0 = axes[0].imshow((p_star).reshape(50,100), extent=[-3,8,-2,2], aspect='auto')
 axes[0].set_xlabel('x')
@@ -176,4 +193,3 @@ fig.colorbar(im2, ax=axes[2])
 
 plt.tight_layout()
 plt.savefig('./result/ns_fls.png')
-    

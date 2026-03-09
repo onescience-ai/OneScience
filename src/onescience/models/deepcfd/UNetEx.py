@@ -1,107 +1,86 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn.utils import weight_norm
-from onescience.models.deepcfd.AutoEncoder import create_layer
+from onescience.modules import OneEncoder, OneDecoder, OneHead
 
+class DecoderPath(nn.Module):
+    """
+    辅助类：单通道独立解码器路径。
+    包含一个 OneDecoder (负责上采样和特征融合) 和一个 OneHead (负责映射到单通道输出)。
+    """
+    def __init__(self, base_channels, num_stages, bilinear, normtype):
+        super().__init__()
+        self.decoder = OneDecoder(
+            style="UNetDecoder2D",
+            base_channels=base_channels,
+            num_stages=num_stages,
+            bilinear=bilinear,
+            normtype=normtype
+        )
+        self.head = OneHead(
+            style="UNetHead2D",
+            in_channels=base_channels,
+            out_channels=1
+        )
 
-def create_encoder_block(in_channels, out_channels, kernel_size, wn=True, bn=True,
-                 activation=nn.ReLU, layers=2):
-    encoder = []
-    for i in range(layers):
-        _in = out_channels
-        _out = out_channels
-        if i == 0:
-            _in = in_channels
-        encoder.append(create_layer(_in, _out, kernel_size, wn, bn, activation, nn.Conv2d))
-    return nn.Sequential(*encoder)
-
-
-def create_decoder_block(in_channels, out_channels, kernel_size, wn=True, bn=True,
-                 activation=nn.ReLU, layers=2, final_layer=False):
-    decoder = []
-    for i in range(layers):
-        _in = in_channels
-        _out = in_channels
-        _bn = bn
-        _activation = activation
-        if i == 0:
-            _in = in_channels * 2
-        if i == layers - 1:
-            _out = out_channels
-            if final_layer:
-                _bn = False
-                _activation = None
-        decoder.append(create_layer(_in, _out, kernel_size, wn, _bn, _activation, nn.ConvTranspose2d))
-    return nn.Sequential(*decoder)
-
-
-def create_encoder(in_channels, filters, kernel_size, wn=True, bn=True, activation=nn.ReLU, layers=2):
-    encoder = []
-    for i in range(len(filters)):
-        if i == 0:
-            encoder_layer = create_encoder_block(in_channels, filters[i], kernel_size, wn, bn, activation, layers)
-        else:
-            encoder_layer = create_encoder_block(filters[i-1], filters[i], kernel_size, wn, bn, activation, layers)
-        encoder = encoder + [encoder_layer]
-    return nn.Sequential(*encoder)
-
-
-def create_decoder(out_channels, filters, kernel_size, wn=True, bn=True, activation=nn.ReLU, layers=2):
-    decoder = []
-    for i in range(len(filters)):
-        if i == 0:
-            decoder_layer = create_decoder_block(filters[i], out_channels, kernel_size, wn, bn, activation, layers, final_layer=True)
-        else:
-            decoder_layer = create_decoder_block(filters[i], filters[i-1], kernel_size, wn, bn, activation, layers, final_layer=False)
-        decoder = [decoder_layer] + decoder
-    return nn.Sequential(*decoder)
+    def forward(self, features):
+        """接收编码器输出的特征列表，完成解码并输出单通道预测。"""
+        decoded = self.decoder(features)
+        return self.head(decoded)
 
 
 class UNetEx(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, filters=[16, 32, 64], layers=3,
-                 weight_norm=True, batch_norm=True, activation=nn.ReLU, final_activation=None):
-        super().__init__()
-        assert len(filters) > 0
-        self.final_activation = final_activation
-        self.encoder = create_encoder(in_channels, filters, kernel_size, weight_norm, batch_norm, activation, layers)
-        decoders = []
-        for i in range(out_channels):
-            decoders.append(create_decoder(1, filters, kernel_size, weight_norm, batch_norm, activation, layers))
-        self.decoders = nn.Sequential(*decoders)
+    """
+    基于模块化组件工厂 (OneXxx) 重构的多头 U-Net 模型 (UNetEx)。
 
-    def encode(self, x):
-        tensors = []
-        indices = []
-        sizes = []
-        for encoder in self.encoder:
-            x = encoder(x)
-            sizes.append(x.size())
-            tensors.append(x)
-            x, ind = F.max_pool2d(x, 2, 2, return_indices=True)
-            indices.append(ind)
-        return x, tensors, indices, sizes
+    特点：
+    1. 共享编码器 (Shared Encoder): 提取通用的物理场/图像特征。
+    2. 多头解码器 (Independent Decoders): 为每一个输出通道构建一条完全独立的解码和跳跃连接路径。
+       所有解码路径的输出最后在通道维度拼接。
 
-    def decode(self, _x, _tensors, _indices, _sizes):
-        y = []
-        for _decoder in self.decoders:
-            x = _x
-            tensors = _tensors[:]
-            indices = _indices[:]
-            sizes = _sizes[:]
-            for decoder in _decoder:
-                tensor = tensors.pop()
-                size = sizes.pop()
-                ind = indices.pop()
-                x = F.max_unpool2d(x, ind, 2, 2, output_size=size)
-                x = torch.cat([tensor, x], dim=1)
-                x = decoder(x)
-            y.append(x)
-        return torch.cat(y, dim=1)
+    Args:
+        in_channels (int): 输入图像/物理场的通道数。
+        out_channels (int): 总输出通道数（决定了独立解码器头的数量）。
+        base_channels (int, optional): 初始特征通道数。默认值: 16。
+        num_stages (int, optional): 下采样/上采样的层数。默认值: 2。
+        bilinear (bool, optional): 是否使用双线性插值进行上采样。默认值: True。
+        normtype (str, optional): 归一化类型 ('bn' 或 'in')。默认值: 'bn'。
+    """
+    def __init__(
+        self, 
+        in_channels: int, 
+        out_channels: int, 
+        base_channels: int = 16, 
+        num_stages: int = 2, 
+        bilinear: bool = True, 
+        normtype: str = "bn"
+    ):
+        super(UNetEx, self).__init__()
+        
+        # --- 1. Encoder Path (Shared) ---
+        self.encoder = OneEncoder(
+            style="UNetEncoder2D",
+            in_channels=in_channels,
+            base_channels=base_channels,
+            num_stages=num_stages,
+            bilinear=bilinear,
+            normtype=normtype
+        )
+            
+        # --- 2. Decoder Paths (Multiple Independent Heads) ---
+        self.decoders = nn.ModuleList([
+            DecoderPath(base_channels, num_stages, bilinear, normtype)
+            for _ in range(out_channels)
+        ])
 
     def forward(self, x):
-        x, tensors, indices, sizes = self.encode(x)
-        x = self.decode(x, tensors, indices, sizes)
-        if self.final_activation is not None:
-            x = self.final_activation(x)
-        return x
+        # 共享编码提取多尺度特征 (返回特征列表 [x1, x2, x3...])
+        features = self.encoder(x)
+        
+        # 每个独立的解码器接收相同的特征列表进行解码
+        outputs = []
+        for decoder_path in self.decoders:
+            out = decoder_path(features)
+            outputs.append(out)
+            
+        # 拼接所有头的输出 (B, 1, H, W) -> (B, out_channels, H, W)
+        return torch.cat(outputs, dim=1)

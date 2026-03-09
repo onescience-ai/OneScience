@@ -1,10 +1,14 @@
 import torch
 import torch.nn as nn
 import torch_geometric.nn as nng
-from onescience.models.layers.Basic import MLP
-
+from onescience.modules import OneMlp
 
 class Model(nn.Module):
+    """
+    GraphSAGE 模型。
+
+    使用 SAGEConv 进行邻居聚合，并结合 MLP 进行特征编码和解码。
+    """
     def __init__(self, args, device):
         super(Model, self).__init__()
         self.__name__ = "GraphSAGE"
@@ -14,23 +18,25 @@ class Model(nn.Module):
         self.bn_bool = True
         self.activation = nn.ReLU()
 
-        self.encoder = MLP(
-            args.fun_dim + args.space_dim,
-            args.n_hidden * 2,
-            args.n_hidden,
-            n_layers=0,
-            res=False,
-            act=args.act,
+        self.encoder = OneMlp(
+            style="StandardMLP",
+            input_dim=args.fun_dim + args.space_dim,
+            output_dim=args.n_hidden,
+            hidden_dims=[args.n_hidden * 2],
+            activation=args.act,
+            use_bias=True
         )
-        self.decoder = MLP(
-            args.n_hidden,
-            args.n_hidden * 2,
-            args.out_dim,
-            n_layers=0,
-            res=False,
-            act=args.act,
+        
+        self.decoder = OneMlp(
+            style="StandardMLP",
+            input_dim=args.n_hidden,
+            output_dim=args.out_dim,
+            hidden_dims=[args.n_hidden * 2],
+            activation=args.act,
+            use_bias=True
         )
 
+        # Graph Layers (Keep PyG implementation for consistency)
         self.in_layer = nng.SAGEConv(
             in_channels=args.n_hidden, out_channels=self.size_hidden_layers
         )
@@ -56,7 +62,6 @@ class Model(nn.Module):
                 )
 
     def forward(self, x, fx, T=None, geo=None):
-        # 兼容 batch_size = 1 输入：去除 batch 维度
         if x.dim() == 3:
             x = x.squeeze(0)  # [1, N, C] → [N, C]
         if fx is not None and fx.dim() == 3:
@@ -66,7 +71,6 @@ class Model(nn.Module):
         else:
             edge_index = geo
 
-        # 原始逻辑保持不变
         z = torch.cat((x, fx), dim=-1)
         z = self.encoder(z)
         z = self.in_layer(z, edge_index)
@@ -82,4 +86,4 @@ class Model(nn.Module):
 
         z = self.out_layer(z, edge_index)
         z = self.decoder(z)
-        return z.unsqueeze(0)  # 保持输出是 [1, N, C]，匹配 DDP 预期
+        return z.unsqueeze(0)  

@@ -2,6 +2,7 @@ from torch import nn
 
 from .panguembedding2d import PanguEmbedding2D
 from .panguembedding3d import PanguEmbedding3D
+from .fourier_pos_embedding import FourierPosEmbedding
 from .fuxiembedding import FuxiEmbedding
 from .fourcastnetembedding import FourCastNetEmbedding
 from .xiheembedding import XiheEmbedding
@@ -15,6 +16,7 @@ from .protenixembedding import (
 _EMBEDDER_REGISTRY = {
     "PanguEmbedding2D": PanguEmbedding2D,
     "PanguEmbedding3D": PanguEmbedding3D,
+    "FourierPosEmbedding": FourierPosEmbedding,
     "FuxiEmbedding": FuxiEmbedding,
     "FourCastNetEmbedding": FourCastNetEmbedding,
     "XiheEmbedding": XiheEmbedding,

@@ -5,84 +5,19 @@ import numpy as np
 from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
-
-from .Adam import Adam
-from .utilities3 import MatReader, count_params
 from ..base_model import AutoCfdModel
 
+from onescience.modules import OneFourier
 torch.manual_seed(0)
 np.random.seed(0)
 
-
-class SpectralConv2d_fast(nn.Module):
-    def __init__(self, in_channels, out_channels, modes1, modes2):
-        super(SpectralConv2d_fast, self).__init__()
-
-        """
-        2D Fourier layer. It does FFT, linear transform, and Inverse FFT.
-        """
-
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        # Number of Fourier modes to multiply, at most floor(N/2) + 1
-        self.modes1 = modes1
-        self.modes2 = modes2
-
-        self.scale = 1 / (in_channels * out_channels)
-        self.weights1 = nn.Parameter(  # type: ignore
-            self.scale
-            * torch.rand(
-                in_channels,
-                out_channels,
-                self.modes1,
-                self.modes2,
-                dtype=torch.cfloat,
-            )
-        )
-        self.weights2 = nn.Parameter(  # type: ignore
-            self.scale
-            * torch.rand(
-                in_channels,
-                out_channels,
-                self.modes1,
-                self.modes2,
-                dtype=torch.cfloat,
-            )
-        )
-
-    # Complex multiplication
-    def compl_mul2d(self, input, weights):
-        # (batch, in_channel, x,y ), (in_channel, out_channel, x,y)
-        # -> (batch, out_channel, x,y)
-        return torch.einsum("bixy,ioxy->boxy", input, weights)
-
-    def forward(self, x):
-        batchsize = x.shape[0]
-        # Compute Fourier coeffcients up to factor of e^(- something constant)
-        x_ft = torch.fft.rfft2(x)
-
-        # Multiply relevant Fourier modes
-        out_ft = torch.zeros(
-            batchsize,
-            self.out_channels,
-            x.size(-2),
-            x.size(-1) // 2 + 1,
-            dtype=torch.cfloat,
-            device=x.device,
-        )
-        out_ft[:, :, : self.modes1, : self.modes2] = self.compl_mul2d(
-            x_ft[:, :, : self.modes1, : self.modes2], self.weights1
-        )
-        out_ft[:, :, -self.modes1 :, : self.modes2] = self.compl_mul2d(
-            x_ft[:, :, -self.modes1 :, : self.modes2], self.weights2
-        )
-
-        # Return to physical space
-        x = torch.fft.irfft2(out_ft, s=(x.size(-2), x.size(-1)))
-        return x
-
-
 class FnoBlock(nn.Module):
+    """
+    FNO 块 (Fourier Neural Operator Block)。
+    
+    包含一个 2D 频域卷积路径 (通过 OneFourier 调用) 和一个 1x1 的空间卷积残差路径，
+    最后加上可选的激活函数。
+    """
     def __init__(
         self,
         in_chan: int,
@@ -98,17 +33,26 @@ class FnoBlock(nn.Module):
         self.modes2 = modes2
         self.act_fn = act_fn
 
-        self.conv0 = SpectralConv2d_fast(
-            self.in_chan, self.out_chan, self.modes1, self.modes2
+
+        self.conv0 = OneFourier(
+            style="FNOSpectralConv2d",
+            in_channels=self.in_chan,
+            out_channels=self.out_chan,
+            modes1=self.modes1,
+            modes2=self.modes2
         )
+        
         self.w0 = nn.Conv2d(self.in_chan, self.out_chan, 1)
 
     def forward(self, x: Tensor) -> Tensor:
+
         x1 = self.conv0(x)
         x2 = self.w0(x)
         x = x1 + x2
+        
         if self.act_fn is not None:
             x = self.act_fn(x)
+            
         return x
 
 
@@ -293,89 +237,3 @@ class Fno2d(AutoCfdModel):
             )
             preds.append(cur_frame)
         return preds
-
-
-if __name__ == "__main__":
-    TRAIN_PATH = "data/ns_data_V100_N1000_T50_1.mat"
-    TEST_PATH = "data/ns_data_V100_N1000_T50_2.mat"
-
-    ntrain = 1000
-    ntest = 200
-
-    modes = 12
-    width = 20
-
-    batch_size = 20
-    batch_size2 = batch_size
-
-    epochs = 500
-    learning_rate = 0.001
-    scheduler_step = 100
-    scheduler_gamma = 0.5
-
-    print(epochs, learning_rate, scheduler_step, scheduler_gamma)
-
-    path = (
-        "ns_fourier_2d_rnn_V10000_T20_N"
-        + str(ntrain)
-        + "_ep"
-        + str(epochs)
-        + "_m"
-        + str(modes)
-        + "_w"
-        + str(width)
-    )
-    path_model = "model/" + path
-    path_train_err = "results/" + path + "train.txt"
-    path_test_err = "results/" + path + "test.txt"
-    path_image = "image/" + path
-
-    sub = 1
-    S = 64
-    T_in = 10
-    T = 10
-    step = 1
-
-    ################################################################
-    # load data
-    ################################################################
-
-    reader = MatReader(TRAIN_PATH)
-    train_a = reader.read_field("u")[:ntrain, ::sub, ::sub, :T_in]  # type: ignore  # noqa
-    train_u = reader.read_field("u")[:ntrain, ::sub, ::sub, T_in : T + T_in]  # type: ignore # noqa
-
-    reader = MatReader(TEST_PATH)
-    test_a = reader.read_field("u")[-ntest:, ::sub, ::sub, :T_in]  # type: ignore  # noqa
-    test_u = reader.read_field("u")[-ntest:, ::sub, ::sub, T_in : T + T_in]  # type: ignore  # noqa
-
-    print(train_u.shape)  # type: ignore
-    print(test_u.shape)  # type: ignore
-    assert S == train_u.shape[-2]  # type: ignore
-    assert T == train_u.shape[-1]  # type: ignore
-
-    train_a = train_a.reshape(ntrain, S, S, T_in)  # type: ignore
-    test_a = test_a.reshape(ntest, S, S, T_in)  # type: ignore
-
-    train_loader = torch.utils.data.DataLoader(
-        torch.utils.data.TensorDataset(train_a, train_u),
-        batch_size=batch_size,
-        shuffle=True,
-    )
-    test_loader = torch.utils.data.DataLoader(
-        torch.utils.data.TensorDataset(test_a, test_u),
-        batch_size=batch_size,
-        shuffle=False,
-    )
-
-    ################################################################
-    # training and evaluation
-    ################################################################
-
-    model = Fno2d(modes, modes, width).cuda()  # type: ignore
-    # model = torch.load('model/ns_fourier_V100_N1000_ep100_m8_w20')
-
-    print(count_params(model))
-    optimizer = Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)  # type: ignore  # noqa
-    scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer, step_size=scheduler_step, gamma=scheduler_gamma  # type: ignore  # noqa
-    )

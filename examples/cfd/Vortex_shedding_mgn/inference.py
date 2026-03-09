@@ -38,7 +38,7 @@ def setup_logging(rank):
     return logging.getLogger()
 
 
-class MGNInference: # <--- [重命名]
+class MGNInference: 
     def __init__(
         self, 
         cfg_inference: YParams,
@@ -61,7 +61,7 @@ class MGNInference: # <--- [重命名]
 
         # --- 设置 Device ---
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.logger.info(f"Using {self.device} device for inference") # <--- [重命名]
+        self.logger.info(f"Using {self.device} device for inference") 
 
         # --- 接收 Datapipe 组件 ---
         self.dataset = dataset
@@ -108,19 +108,18 @@ class MGNInference: # <--- [重命名]
     def predict(self):
         self.pred, self.exact, self.faces, self.graphs = [], [], [], []
         
-        self.logger.info("Starting auto-regressive inference...") # <--- [重命名]
+        self.logger.info("Starting auto-regressive inference...") 
         
         i = 0
         for data_tuple in self.dataloader:
             if not isinstance(data_tuple, (tuple, list)):
-                # (假设的 Dataloader 逻辑)
                 graph = data_tuple
                 cells_idx = i // (self.num_test_time_steps - 1)
                 if cells_idx >= len(self.dataset.cells):
                     self.logger.warning(f"Index {cells_idx} out of bounds for cells. Stopping.")
                     break
                 cells = self.dataset.cells[cells_idx]
-                mask = self.dataset.rollout_mask[cells_idx] # 'rollout_mask' 是原始数据字段名，保持不变
+                mask = self.dataset.rollout_mask[cells_idx] 
             else:
                 graph, cells, mask = data_tuple
 
@@ -171,7 +170,6 @@ class MGNInference: # <--- [重命名]
                 invar[:, 0:2], self.stats["velocity_mean"], self.stats["velocity_std"]
             )
 
-            # Mask (原始数据字段 'rollout_mask' 保持不变)
             mask = torch.cat((mask, mask), dim=-1).to(self.device)
             pred_i[:, 0:2] = torch.where(
                 mask, pred_i[:, 0:2], torch.zeros_like(pred_i[:, 0:2])
@@ -198,7 +196,6 @@ class MGNInference: # <--- [重命名]
             
             i += 1
             if i % 100 == 0 and self.logger.level == logging.INFO:
-                # <--- [重命名] ---
                 print(f"  Inference step {i}/{self.dataset.length}", end="\r")
 
         self.logger.info(f"\nInference complete. Total steps: {i}") 
@@ -207,8 +204,7 @@ class MGNInference: # <--- [重命名]
         self.pred_i = [var[:, idx] for var in self.pred]
         self.exact_i = [var[:, idx] for var in self.exact]
         return self.graphs, self.faces, self.pred_i, self.exact_i
-
-    # ( ... animation_init 和 animate 方法保持不变 ...)
+        
     def init_animation(self, idx):
         self.pred_i = [var[:, idx] for var in self.pred]
         self.exact_i = [var[:, idx] for var in self.exact]

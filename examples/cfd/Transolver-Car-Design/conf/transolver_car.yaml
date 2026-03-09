@@ -1,6 +1,6 @@
 # 模型配置
 model:
-  name: "Transolver"  # <--- 修改这里来切换模型 (Transolver 或 Transolver_plus)
+  name: "Transolver_plus"  # <--- 修改这里来切换模型 (Transolver 或 Transolver_plus)
   specific_params:    # 各模型独有参数
     Transolver: &params   # Transolver 模型参数
       n_hidden: 256   # 隐藏层维度

@@ -1,6 +1,6 @@
 python run.py \
 --gpu 0 \
---data_path ../Neural-Solver-Library/data/airfoil/ \
+--data_path /public/onestore/onedatasets/CFD_Benchmark/airfoil/ \
 --loader airfoil \
 --geotype structured_2D \
 --space_dim 2 \

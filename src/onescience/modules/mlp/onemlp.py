@@ -3,6 +3,7 @@ from torch import nn
 
 from .mesh_graph_mlp import MeshGraphMLP
 from .mesh_graph_mlp import MeshGraphEdgeMLPConcat
+from .mesh_graph_mlp import MeshGraphEdgeMLPSum
 from .MLP import StandardMLP, SimpleMLP, DeepResMLP, RegularizedMLP, LightweightMLP
 from .GMLP import GroupEquivariantMLP2d, GroupEquivariantMLP3d
 from .xihemlp import XiheMlp
@@ -10,6 +11,7 @@ from .xihemlp import XiheMlp
 _MLP_REGISTRY = {
     "MeshGraphMLP": MeshGraphMLP,
     "MeshGraphEdgeMLPConcat": MeshGraphEdgeMLPConcat,
+    "MeshGraphEdgeMLPSum": MeshGraphEdgeMLPSum,
     "StandardMLP": StandardMLP,
     "SimpleMLP": SimpleMLP,
     "DeepResMLP": DeepResMLP,
@@ -32,5 +34,5 @@ class OneMlp(nn.Module):
         # 使用 **kwargs 动态接收参数，避免硬编码
         self.mlp = _MLP_REGISTRY[style](**kwargs)
         
-    def forward(self, x):
-        return self.mlp(x)
+    def forward(self, *args, **kwargs): 
+        return self.mlp(*args, **kwargs)
