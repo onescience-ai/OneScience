@@ -1,12 +1,11 @@
 #!/bin/bash
-#mkdir -p ./MACE_models
 export OMP_NUM_THREADS=1
-export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6
 torchrun \
     --nnodes=1 \
-    --nproc_per_node=8 \
+    --nproc_per_node=7 \
     ../../train.py \
-    --name="nanotube_large_r55_l_2" \
+    --name="nano_l0" \
     --train_file="../../data/nanotube/nanotube_large.xyz" \
     --valid_fraction=0.05 \
     --test_file="../../data/nanotube/nanotube_test.xyz" \
@@ -14,9 +13,9 @@ torchrun \
     --model="MACE" \
     --num_interactions=2 \
     --num_channels=256 \
-    --max_L=2 \
+    --max_L=0 \
     --correlation=3 \
-    --r_max=5.0 \
+    --r_max=6.0 \
     --forces_weight=1000 \
     --energy_weight=10 \
     --energy_key="Energy" \
@@ -24,17 +23,17 @@ torchrun \
     --batch_size=4 \
     --valid_batch_size=8 \
     --max_num_epochs=100 \
-    --start_swa=60 \
+    --start_swa=600  \
     --scheduler_patience=5 \
     --patience=15 \
-    --eval_interval=10 \
+    --eval_interval=3 \
     --ema \
     --swa \
+    --distributed \
     --swa_forces_weight=10 \
     --error_table='PerAtomMAE' \
     --default_dtype="float64"\
     --device=cuda \
-    --distributed \
     --seed=123 \
     --restart_latest \
     --save_cp

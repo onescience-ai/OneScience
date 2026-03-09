@@ -27,5 +27,5 @@ echo ">>> Pre-training DCU Status (Checking RAM):"
 hy-smi
 echo "-----------------------------------------"
 
-bash train_nanotube_l_2.sh
-#train_nanotube_l_0.sh
+bash train_water_multi_DCU.sh
+#bash train_water_single_DCU.sh

@@ -31,7 +31,7 @@ from onescience.datapipes.materials.pyg_stack.core.utils import KeySpecification
 #from onescience.models.mace.tools import torch_geometric
 from onescience.datapipes.materials.tools import torch_geometric
 from onescience.models.mace.tools.model_script_utils import configure_model
-
+import pdb
 import sys
 try:
     import onescience.models.mace
@@ -47,7 +47,6 @@ except ImportError as e:
 from onescience.datapipes.materials.pyg_stack.core.atomic_data import AtomicData
 from onescience.datapipes.materials.pyg_stack.storage.hdf5_dataset import HDF5Dataset, dataset_from_sharded_hdf5
 from onescience.datapipes.materials.pyg_stack.storage.text_dataset import TextDataset
-
 from onescience.models.mace.tools.multihead_tools import (
     HeadConfig,
     assemble_mp_data,

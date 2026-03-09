@@ -1,21 +1,22 @@
 #!/bin/bash
+#mkdir -p ./MACE_models
 export OMP_NUM_THREADS=1
 export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 torchrun \
     --nnodes=1 \
     --nproc_per_node=8 \
     ../../train.py \
-    --name="nanotube_large_r55_l_0" \
+    --name="nanotube_l_2" \
     --train_file="../../data/nanotube/nanotube_large.xyz" \
     --valid_fraction=0.05 \
     --test_file="../../data/nanotube/nanotube_test.xyz" \
     --E0s="average" \
     --model="MACE" \
-    --num_interactions=1 \
+    --num_interactions=2 \
     --num_channels=256 \
-    --max_L=0 \
+    --max_L=2 \
     --correlation=3 \
-    --r_max=6.0 \
+    --r_max=5.0 \
     --forces_weight=1000 \
     --energy_weight=10 \
     --energy_key="Energy" \

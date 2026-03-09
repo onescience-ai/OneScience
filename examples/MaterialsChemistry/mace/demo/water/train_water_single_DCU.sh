@@ -1,0 +1,34 @@
+#!/bin/bash
+export OMP_NUM_THREADS=1
+export HIP_VISIBLE_DEVICES=0 
+python ../../train.py \
+    --name="water" \
+    --train_file="../../data/water/water_train.xyz" \
+    --valid_fraction=0.05 \
+    --test_file="../../data/water/water_test.xyz" \
+    --E0s="isolated" \
+    --model="MACE" \
+    --num_interactions=2 \
+    --num_channels=64 \
+    --max_L=0 \
+    --correlation=3 \
+    --r_max=6.0 \
+    --forces_weight=1000 \
+    --energy_weight=10 \
+    --energy_key="TolEnergy" \
+    --forces_key="force" \
+    --batch_size=2 \
+    --valid_batch_size=4 \
+    --max_num_epochs=250 \
+    --start_swa=400  \
+    --scheduler_patience=15 \
+    --patience=30 \
+    --eval_interval=4 \
+    --ema \
+    --swa \
+    --error_table='PerAtomMAE' \
+    --default_dtype="float64"\
+    --device=cuda \
+    --seed=123 \
+    --restart_latest \
+    --save_cp

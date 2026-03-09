@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=8      # 调整为每个进程8个CPU 核心(8进程x8核心 = 单节点共用64核心)
 #SBATCH --gres=dcu:8           # 申请单节点8张DCU
 #SBATCH --output=%j.log
-#SBATCH --time=8:00:00
+#SBATCH --time=48:00:00
 
 module purge
 source ~/.bashrc
@@ -48,7 +48,7 @@ srun --export=ALL bash -c '
   
 
   exec python ../../train.py \
-    --name="nanotube_large_r55_l_2" \
+    --name="nanotube_l2_multi_nodes" \
     --train_file="../../data/nanotube/nanotube_large.xyz" \
     --valid_fraction=0.05 \
     --test_file="../../data/nanotube/nanotube_test.xyz" \
