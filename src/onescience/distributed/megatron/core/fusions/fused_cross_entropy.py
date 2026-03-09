@@ -4,9 +4,9 @@ from typing import Tuple
 
 import torch
 
-from megatron.core.jit import jit_fuser
-from megatron.core.tensor_parallel.cross_entropy import VocabParallelCrossEntropy
-from megatron.core.tensor_parallel.utils import VocabUtility
+from onescience.distributed.megatron.core.jit import jit_fuser
+from onescience.distributed.megatron.core.tensor_parallel.cross_entropy import VocabParallelCrossEntropy
+from onescience.distributed.megatron.core.tensor_parallel.utils import VocabUtility
 
 
 @jit_fuser

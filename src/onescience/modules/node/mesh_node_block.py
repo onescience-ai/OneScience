@@ -11,7 +11,6 @@ class MeshNodeBlock(nn.Module):
     """
     用于 GraphCast 或 MeshGraphNet 等模型中的节点更新块 (Node Block)。
 
-
     该模块在网格 (Mesh) 表示的隐空间上运行，负责更新节点特征。
     其计算过程包括：
         1. 消息聚合: 根据指定的聚合方法（如求和或平均），将连接到节点的边特征聚合起来，作为接收到的“消息”。

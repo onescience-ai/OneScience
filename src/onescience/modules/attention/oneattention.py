@@ -16,6 +16,13 @@ from .multiheadattention import MultiHeadAttention
 from .selfattention import SelfAttention
 from .windowattention import WindowAttention
 from .nystrom_attention import NystromAttention
+from .xihefeaturegroupattention import FeatureGroupingAttention
+from .xihefeatureungroupattention import FeatureUngroupingAttention
+from .protenixattention import (
+    ProtenixAttention,
+    ProtenixAttentionPairBias,
+    ProtenixAttentionPairBiasWithLocalAttn,
+)
 _ATTENTIONER_REGISTRY = {
     "EarthAttention2D": EarthAttention2D,
     "EarthAttention3D": EarthAttention3D,
@@ -33,6 +40,11 @@ _ATTENTIONER_REGISTRY = {
     "SelfAttention": SelfAttention,
     "WindowAttention": WindowAttention,
     "NystromAttention": NystromAttention,
+    "FeatureUngroupingAttention": FeatureUngroupingAttention,
+    "FeatureGroupingAttention": FeatureGroupingAttention,
+    "ProtenixAttention": ProtenixAttention,
+    "ProtenixAttentionPairBias": ProtenixAttentionPairBias,
+    "ProtenixAttentionPairBiasWithLocalAttn": ProtenixAttentionPairBiasWithLocalAttn,
 }
 
 class OneAttention(nn.Module):
@@ -41,12 +53,8 @@ class OneAttention(nn.Module):
 
         if style not in _ATTENTIONER_REGISTRY:
             raise NotImplementedError(f"Unknown style: {style}")
-        
+
         self.attentioner = _ATTENTIONER_REGISTRY[style](**kwargs)
 
-    # def forward(self, x, mask=None):
-    #     return self.attentioner(x, mask) 
-
-    def forward(self, x, **kwargs):
-        return self.attentioner(x, **kwargs)
-    
+    def forward(self, *args, **kwargs):
+        return self.attentioner(*args, **kwargs)

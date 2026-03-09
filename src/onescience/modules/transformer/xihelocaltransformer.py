@@ -1,0 +1,212 @@
+from collections.abc import Sequence
+import torch
+import torch.nn as nn
+from onescience.modules.func_utils import Mlp,crop3d,get_pad3d,window_partition,window_reverse,DropPath
+from onescience.modules.attention.oneattention import OneAttention
+
+
+
+class XihelocalTransformer(nn.Module):
+    """
+    具有地球位置偏置的三维 Swin-Transformer Block（基于窗口注意力 + 可选 Shift Window）。
+
+    Args:
+        dim (int): 输入通道数 C。
+        input_resolution (tuple[int, int, int]): 输入空间分辨率 (Pl, Lat, Lon)。
+        num_heads (int): 注意力头数量。
+        window_size (tuple[int, int, int], optional): 窗口大小 (Wpl, Wlat, Wlon)，默认为 (2, 6, 12)。
+        shift_size (tuple[int, int, int], optional): Shift Window 偏移大小 (Spl, Slat, Slon)，默认为 (1, 3, 6)。
+        mlp_ratio (float, optional): MLP 隐层扩展比例，默认为 4.0。
+        qkv_bias (bool, optional): 是否在 QKV 上添加偏置，默认为 True。
+        qk_scale (float | None, optional): 覆盖默认 QK 缩放系数 (head_dim ** -0.5)，默认为 None。
+        drop (float, optional): 输出/MLP dropout 比例，默认为 0.0。
+        attn_drop (float, optional): 注意力权重 dropout 比例，默认为 0.0。
+        drop_path (float, optional): DropPath（随机深度）比例，默认为 0.0。
+        act_layer (nn.Module, optional): 激活函数层类型，默认为 nn.GELU。
+        norm_layer (nn.Module, optional): 归一化层类型，默认为 nn.LayerNorm。
+
+    形状:
+        输入 x: (B, L, C)，其中 L = Pl × Lat × Lon
+        输入 mask (可选): (B, 1, Pl, Lat, Lon) 或 (B, Pl, Lat, Lon)，值为 0/1（1=有效，0=忽略）
+        输出: (B, L, C)
+
+    Example:
+        >>> block = TransformerOceanBlock(
+        ...     dim=192,
+        ...     input_resolution=(13, 128, 256),
+        ...     num_heads=6,
+        ...     window_size=(1, 8, 8),
+        ...     shift_size=(0, 0, 0)
+        ... )
+        >>> B, Pl, Lat, Lon, C = 2, 13, 128, 256, 192
+        >>> x = torch.randn(B, Pl * Lat * Lon, C)
+        >>> out = block(x)
+        >>> out.shape
+        torch.Size([2, 425984, 192])
+    """
+
+    def __init__(
+        self,
+        dim,
+        input_resolution,
+        num_heads=6,
+        window_size=(1,6,12),
+        shift_size=(0,0,0),
+        mlp_ratio=4.0,
+        qkv_bias=True,
+        qk_scale=None,
+        drop=0.0,
+        attn_drop=0.0,
+        drop_path=0.0,
+        act_layer=nn.GELU,
+        norm_layer=nn.LayerNorm,
+    ):
+        super().__init__()
+        window_size = (2, 6, 12) if window_size is None else window_size
+        # shift_size = (1, 3, 6) if shift_size is None else shift_size
+        self.dim = dim
+        self.input_resolution = input_resolution
+        self.num_heads = num_heads
+        self.window_size = window_size
+        self.shift_size = shift_size
+        self.mlp_ratio = mlp_ratio
+        self.norm1 = norm_layer(dim)
+        padding = get_pad3d(input_resolution, window_size)
+        self.pad = nn.ZeroPad3d(padding)
+        attn_mask=None
+
+        pad_resolution = list(input_resolution)
+        pad_resolution[0] += padding[-1] + padding[-2]
+        pad_resolution[1] += padding[2] + padding[3]
+        pad_resolution[2] += padding[0] + padding[1]
+
+        self.attn = OneAttention(
+            style="EarthAttention3D",
+            dim=dim,
+            input_resolution=pad_resolution,
+            window_size=window_size,
+            num_heads=num_heads,
+            qkv_bias=qkv_bias,
+            qk_scale=qk_scale,
+            attn_drop=attn_drop,
+            proj_drop=drop,
+        )
+
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+        self.norm2 = norm_layer(dim)
+        mlp_hidden_dim = int(dim * mlp_ratio)
+        self.mlp = Mlp(
+            in_features=dim,
+            hidden_features=mlp_hidden_dim,
+            act_layer=act_layer,
+            drop=drop,
+        )
+
+        shift_pl, shift_lat, shift_lon = self.shift_size
+        self.roll = shift_pl and shift_lon and shift_lat
+
+        if self.roll:
+            attn_mask = get_shift_window_mask(pad_resolution, window_size, shift_size)
+        else:
+            attn_mask = None
+
+        self.register_buffer("attn_mask", attn_mask)
+        
+
+    # def forward(self, x: torch.Tensor,mask: torch.Tensor = None):
+    def forward(self, obj):
+        x=obj.x
+        mask=obj.mask
+        Pl, Lat, Lon = self.input_resolution
+        B, L, C = x.shape
+        
+        
+        shortcut = x
+        x = self.norm1(x)
+        x = x.view(B, Pl, Lat, Lon, C)
+        # start pad
+        x = self.pad(x.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1)
+
+        _, Pl_pad, Lat_pad, Lon_pad, _ = x.shape
+
+        shift_pl, shift_lat, shift_lon =self.shift_size
+        
+        if self.roll:
+            shifted_x = torch.roll(
+                x, shifts=(-shift_pl, -shift_lat, -shift_lon), dims=(1, 2, 3)
+            )
+            x_windows = window_partition(shifted_x, self.window_size)
+        else:        
+            shifted_x = x
+            x_windows = window_partition(shifted_x, self.window_size)
+        win_pl, win_lat, win_lon = self.window_size
+        
+        x_windows = x_windows.view(
+            x_windows.shape[0], x_windows.shape[1], win_pl * win_lat * win_lon, C
+        )
+ 
+        attn_mask = None
+        if mask is not None:
+            # 期望 mask 是 [B, 1, Lat, Lon] 或 [B, 1, Pl, Lat, Lon]
+            if mask.dim() == 4:                # (B,1,Lat,Lon) -> (B,1,1,Lat,Lon)
+                mask = mask.unsqueeze(2)
+
+            # 此时 mask: (B, 1, Pl, Lat, Lon) 期望 (N, C, D, H, W)；这里 C=1, D=Pl, H=Lat, W=Lon，直接 pad 即可
+            mask = self.pad(mask)              # (B, 1, Pl_pad, Lat_pad, Lon_pad)
+
+            # 为了与 window_partition 通用实现对齐，转成 (B, Pl_pad, Lat_pad, Lon_pad, 1)
+            mask5d = mask.permute(0, 2, 3, 4, 1).contiguous()
+
+            # 与特征 x 完全一致的分块（3D窗口）
+            # mwin: (B*num_lon, num_pl*num_lat, win_pl, win_lat, win_lon, 1)
+            mwin = window_partition(mask5d, self.window_size)
+
+            win_pl, win_lat, win_lon = self.window_size
+            # 计算分块数量
+            # 注意：x 已经 pad 过，这里的 Pl_pad/Lat_pad/Lon_pad 要和上面 x 的 pad 后维度一致
+            _, Pl_pad, Lat_pad, Lon_pad, _ = x.shape               # x 此时是 pad 后的 (B, Pl_pad, Lat_pad, Lon_pad, C)
+            B_eff  = mask5d.shape[0]
+            num_lon   = Lon_pad // win_lon
+            num_pllat = (Pl_pad // win_pl) * (Lat_pad // win_lat)
+            N = win_pl * win_lat * win_lon                         # 每个窗口 token 数
+
+            # 把 (B*num_lon, num_pl*num_lat, win_pl, win_lat, win_lon, 1) 还原出 (B, num_lon, num_pl*num_lat, N)
+            mwin = mwin.view(B_eff, num_lon, num_pllat, win_pl, win_lat, win_lon, 1)
+            # 取第 0 个 batch
+            mwin = mwin[0]                                         # (num_lon, num_pl*num_lat, win_pl, win_lat, win_lon, 1)
+            mwin = mwin.view(num_lon, num_pllat, N)                # (num_lon, num_pl*num_lat, N)，元素∈{0,1}
+
+            # 生成注意力掩码 (num_lon, num_pl*num_lat, N, N) 仅允许 海×海，其他（涉及陆地）设为 -inf
+            attn_mask = (mwin.unsqueeze(-1) * mwin.unsqueeze(-2))  # 0/1
+            attn_mask = (attn_mask == 0).float() * -100.0          # 变成 0 / -100
+
+        attn_windows = self.attn(x_windows, mask=attn_mask)
+        attn_windows = attn_windows.view(
+            attn_windows.shape[0], attn_windows.shape[1], win_pl, win_lat, win_lon, C
+        )
+
+        if self.roll:
+            shifted_x = window_reverse(
+                attn_windows, self.window_size, Pl=Pl_pad, Lat=Lat_pad, Lon=Lon_pad
+            )
+
+            x = torch.roll(
+                shifted_x, shifts=(shift_pl, shift_lat, shift_lon), dims=(1, 2, 3)
+            )
+        else:
+            shifted_x = window_reverse(
+                attn_windows, self.window_size, Pl=Pl_pad, Lat=Lat_pad, Lon=Lon_pad
+            )
+            x = shifted_x
+
+
+        x = crop3d(x.permute(0, 4, 1, 2, 3), self.input_resolution).permute(
+            0, 2, 3, 4, 1
+        )
+
+        x = x.reshape(B, Pl * Lat * Lon, C)
+        #两次残差
+        x = shortcut + self.drop_path(x)
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
+
+        return x

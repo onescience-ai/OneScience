@@ -7,7 +7,7 @@ import os
 from dataclasses import asdict, dataclass
 from typing import Optional
 
-from megatron.core.msc_utils import MultiStorageClientFeature
+from onescience.distributed.megatron.core.msc_utils import MultiStorageClientFeature
 
 CONFIG_FNAME = 'metadata.json'
 

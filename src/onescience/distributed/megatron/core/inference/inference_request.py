@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 import torch
 
-from megatron.core.inference.sampling_params import SamplingParams
+from onescience.distributed.megatron.core.inference.sampling_params import SamplingParams
 
 
 # class syntax

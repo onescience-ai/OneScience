@@ -9,18 +9,18 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.models.retro.base_attention import BaseRetroCrossAttention
-from megatron.core.models.retro.config import RetroConfig
-from megatron.core.models.retro.utils import get_all_true_mask
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.transformer import ModuleSpec
-from megatron.core.transformer.attention import CrossAttentionSubmodules
-from megatron.core.transformer.enums import AttnMaskType
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.transformer_block import TransformerBlock
-from megatron.core.utils import deprecate_inference_params
+from onescience.distributed.megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.models.retro.base_attention import BaseRetroCrossAttention
+from onescience.distributed.megatron.core.models.retro.config import RetroConfig
+from onescience.distributed.megatron.core.models.retro.utils import get_all_true_mask
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.transformer import ModuleSpec
+from onescience.distributed.megatron.core.transformer.attention import CrossAttentionSubmodules
+from onescience.distributed.megatron.core.transformer.enums import AttnMaskType
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.transformer_block import TransformerBlock
+from onescience.distributed.megatron.core.utils import deprecate_inference_params
 
 
 class RetroDecoderCrossAttention(BaseRetroCrossAttention):

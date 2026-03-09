@@ -16,16 +16,20 @@ from onescience.models.protenix.generator import (
 )
 from onescience.models.protenix.utils import simple_merge_dict_list
 from onescience.models.openfold.primitives import ProtenixLayerNorm
+from onescience.modules import (
+    OneEmbedding,
+    OneEncoder,
+    OnePairformer,
+    OneLinear,
+    OneDiffusion,
+    OneMSA,
+)
 from onescience.utils.protenix.logger import get_logger
 from onescience.utils.protenix.permutation.permutation import SymmetricPermutation
 from onescience.utils.protenix.torch_utils import autocasting_disable_decorator
 
-from .modules.confidence import ConfidenceHead
-from .modules.diffusion import DiffusionModule
-from .modules.embedders import InputFeatureEmbedder, RelativePositionEncoding
-from .modules.head import DistogramHead
-from .modules.pairformer import MSAModule, PairformerStack, TemplateEmbedder
-from .modules.primitives import LinearNoBias
+from onescience.metrics.confidence.confidencehead import ConfidenceHead
+from onescience.metrics.distogram.distogram_head import DistogramHead
 
 logger = get_logger(__name__)
 
@@ -56,17 +60,31 @@ class Protenix(nn.Module):
         self.diffusion_batch_size = self.configs.diffusion_batch_size
 
         # Model
-        self.input_embedder = InputFeatureEmbedder(**configs.model.input_embedder)
-        self.relative_position_encoding = RelativePositionEncoding(
+        self.input_embedder = OneEmbedding(
+            style="ProtenixInputFeatureEmbedder",
+            **configs.model.input_embedder
+        )
+        self.relative_position_encoding = OneEncoder(
+            style="ProtenixRelativePositionEncoding",
             **configs.model.relative_position_encoding
         )
-        self.template_embedder = TemplateEmbedder(**configs.model.template_embedder)
-        self.msa_module = MSAModule(
+        self.template_embedder = OneEmbedding(
+            style="ProtenixTemplateEmbedder",
+            **configs.model.template_embedder
+        )
+        self.msa_module = OneMSA(
+            style="ProtenixMSAModule",
             **configs.model.msa_module,
             msa_configs=configs.data.get("msa", {}),
         )
-        self.pairformer_stack = PairformerStack(**configs.model.pairformer)
-        self.diffusion_module = DiffusionModule(**configs.model.diffusion_module)
+        self.pairformer_stack = OnePairformer(
+            style="ProtenixPairformerStack",
+            **configs.model.pairformer
+        )
+        self.diffusion_module = OneDiffusion(
+            style="ProtenixDiffusionModule",
+            **configs.model.diffusion_module
+        )
         self.distogram_head = DistogramHead(**configs.model.distogram_head)
         self.confidence_head = ConfidenceHead(**configs.model.confidence_head)
 
@@ -75,22 +93,28 @@ class Protenix(nn.Module):
             configs.c_z,
             configs.c_s_inputs,
         )
-        self.linear_no_bias_sinit = LinearNoBias(
+        self.linear_no_bias_sinit = OneLinear(
+            style="ProtenixLinearNoBias",
             in_features=self.c_s_inputs, out_features=self.c_s
         )
-        self.linear_no_bias_zinit1 = LinearNoBias(
+        self.linear_no_bias_zinit1 = OneLinear(
+            style="ProtenixLinearNoBias",
             in_features=self.c_s, out_features=self.c_z
         )
-        self.linear_no_bias_zinit2 = LinearNoBias(
+        self.linear_no_bias_zinit2 = OneLinear(
+            style="ProtenixLinearNoBias",
             in_features=self.c_s, out_features=self.c_z
         )
-        self.linear_no_bias_token_bond = LinearNoBias(
+        self.linear_no_bias_token_bond = OneLinear(
+            style="ProtenixLinearNoBias",
             in_features=1, out_features=self.c_z
         )
-        self.linear_no_bias_z_cycle = LinearNoBias(
+        self.linear_no_bias_z_cycle = OneLinear(
+            style="ProtenixLinearNoBias",
             in_features=self.c_z, out_features=self.c_z
         )
-        self.linear_no_bias_s = LinearNoBias(
+        self.linear_no_bias_s = OneLinear(
+            style="ProtenixLinearNoBias",
             in_features=self.c_s, out_features=self.c_s
         )
         self.layernorm_z_cycle = ProtenixLayerNorm(self.c_z)

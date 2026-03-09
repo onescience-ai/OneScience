@@ -13,10 +13,10 @@ from packaging.version import Version as PkgVersion
 from torch import Tensor
 from torch.nn.parameter import Parameter
 
-from megatron.core.dist_checkpointing.utils import replace_prefix_for_sharding
-from megatron.core.model_parallel_config import ModelParallelConfig
-from megatron.core.packed_seq_params import PackedSeqParams
-from megatron.core.parallel_state import (
+from onescience.distributed.megatron.core.dist_checkpointing.utils import replace_prefix_for_sharding
+from onescience.distributed.megatron.core.model_parallel_config import ModelParallelConfig
+from onescience.distributed.megatron.core.packed_seq_params import PackedSeqParams
+from onescience.distributed.megatron.core.parallel_state import (
     get_context_parallel_group,
     get_expert_data_parallel_rank,
     get_expert_model_parallel_rank,
@@ -24,21 +24,21 @@ from megatron.core.parallel_state import (
     get_hierarchical_context_parallel_groups,
     get_tensor_model_parallel_group,
 )
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.tensor_parallel.layers import (
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.tensor_parallel.layers import (
     _initialize_affine_weight_cpu,
     set_tensor_model_parallel_attributes,
 )
-from megatron.core.tensor_parallel.random import (
+from onescience.distributed.megatron.core.tensor_parallel.random import (
     get_cuda_rng_tracker,
     get_data_parallel_rng_tracker_name,
     get_expert_parallel_rng_tracker_name,
 )
-from megatron.core.tensor_parallel.utils import divide
-from megatron.core.transformer.enums import AttnMaskType
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.transformer.utils import make_sharded_tensors_for_checkpoint
-from megatron.core.utils import (
+from onescience.distributed.megatron.core.tensor_parallel.utils import divide
+from onescience.distributed.megatron.core.transformer.enums import AttnMaskType
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.utils import make_sharded_tensors_for_checkpoint
+from onescience.distributed.megatron.core.utils import (
     get_pg_rank,
     get_pg_size,
     get_te_version,

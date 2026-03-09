@@ -2,7 +2,7 @@
 
 import torch
 
-from megatron.core.utils import get_tensor_model_parallel_group_if_none
+from onescience.distributed.megatron.core.utils import get_tensor_model_parallel_group_if_none
 
 _MAX_DATA_DIM = 5
 

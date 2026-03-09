@@ -14,6 +14,11 @@ from .edge.oneedge import OneEdge
 from .node.onenode import OneNode
 from .processor.oneprocessor import OneProcessor
 from .equivariant.oneequivariant  import OneEquivariant
+from .fc.onefc import OneFC
+from .afno.oneafno import OneAFNO
+from .diffusion.onediffusion import OneDiffusion
+from .msa.onemsa import OneMSA
+from .pairformer.onepairformer import OnePairformer
 
 __all__ = ["OneEmbedding",
            "OneFuser",
@@ -30,4 +35,11 @@ __all__ = ["OneEmbedding",
            "OneEdge",
            "OneNode",
            "OneProcessor",
-           "OneEquivariant",]
+           "OneEquivariant",
+           "OneFC",
+           "OneAFNO",
+           "OneLinear",
+           "OneDiffusion",
+           "OneMSA",
+           "OnePairformer"]
+

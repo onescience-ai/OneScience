@@ -15,9 +15,9 @@ from typing import Tuple
 import numpy as np
 import torch
 
-from megatron.core.datasets.retro.config import Embedder, RetroPreprocessingConfig
-from megatron.core.datasets.retro.index.utils import get_added_code_paths, get_added_codes_dir
-from megatron.core.datasets.retro.utils import (
+from onescience.distributed.megatron.core.datasets.retro.config import Embedder, RetroPreprocessingConfig
+from onescience.distributed.megatron.core.datasets.retro.index.utils import get_added_code_paths, get_added_codes_dir
+from onescience.distributed.megatron.core.datasets.retro.utils import (
     GPTToTextDataset,
     get_blocks_by_rank,
     log_retro_rank_0,

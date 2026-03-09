@@ -461,13 +461,13 @@ class Attention(nn.Module):
         )
         self.linear_o = Linear(
             self.c_hidden * self.no_heads, self.c_q, bias=bias, init="final"
-        ) # ppy
+        )
 
         self.linear_g = None
         if self.gating:
             self.linear_g = Linear(
                 self.c_q, self.c_hidden * self.no_heads, bias=bias, init="gating"
-            )#ppy
+            )
 
         self.sigmoid = nn.Sigmoid()
 

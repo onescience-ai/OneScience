@@ -5,8 +5,8 @@ import logging
 import math
 from typing import Optional
 
-from megatron.core.optimizer import MegatronOptimizer
-from megatron.core.utils import log_single_rank
+from onescience.distributed.megatron.core.optimizer import MegatronOptimizer
+from onescience.distributed.megatron.core.utils import log_single_rank
 
 logger = logging.getLogger(__name__)
 

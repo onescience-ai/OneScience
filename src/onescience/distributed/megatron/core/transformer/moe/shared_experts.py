@@ -7,20 +7,20 @@ from typing import Optional
 import torch
 import torch.nn.functional as F
 
-from megatron.core.dist_checkpointing.mapping import ShardedStateDict
-from megatron.core.fusions.fused_bias_geglu import bias_geglu_impl
-from megatron.core.fusions.fused_bias_gelu import bias_gelu_impl
-from megatron.core.fusions.fused_bias_swiglu import bias_swiglu_impl
-from megatron.core.tensor_parallel.mappings import (
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedStateDict
+from onescience.distributed.megatron.core.fusions.fused_bias_geglu import bias_geglu_impl
+from onescience.distributed.megatron.core.fusions.fused_bias_gelu import bias_gelu_impl
+from onescience.distributed.megatron.core.fusions.fused_bias_swiglu import bias_swiglu_impl
+from onescience.distributed.megatron.core.tensor_parallel.mappings import (
     copy_to_tensor_model_parallel_region,
     gather_from_sequence_parallel_region,
     reduce_from_tensor_model_parallel_region,
     reduce_scatter_to_sequence_parallel_region,
 )
-from megatron.core.transformer.mlp import MLP, MLPSubmodules
-from megatron.core.transformer.moe.moe_utils import ModelCommProcessGroups
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.utils import is_torch_min_version, make_sharded_tensor_for_checkpoint
+from onescience.distributed.megatron.core.transformer.mlp import MLP, MLPSubmodules
+from onescience.distributed.megatron.core.transformer.moe.moe_utils import ModelCommProcessGroups
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.utils import is_torch_min_version, make_sharded_tensor_for_checkpoint
 
 
 class SharedExpertMLP(MLP):

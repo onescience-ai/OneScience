@@ -10,7 +10,17 @@ from .Neural_Spectral_Block import NeuralSpectralBlock1D, NeuralSpectralBlock2D,
 from .orthogonal_neural_block import OrthogonalNeuralBlock
 from .SwinTransformerBlock import SwinTransformerBlock
 from .Transolver_block import Transolver_block
-# 构建统一的 Transformer 注册表
+from .fuxitransformer import FuxiTransformer
+from .earthtransformer2Dblock import EarthTransformer2DBlock
+from .earthtransformer3Dblock import EarthTransformer3DBlock
+from .xihelocaltransformer import XihelocalTransformer
+from .protenixtransformer import (
+    ProtenixConditionedTransitionBlock,
+    ProtenixDiffusionTransformerBlock,
+    ProtenixDiffusionTransformer,
+    ProtenixAtomTransformer,
+)
+
 _TRANSFORMER_REGISTRY = {
     "XiHeTransformer3D": XiHeTransformer3D,
     "PreLNTransformerBlock": PreLNTransformerBlock,
@@ -23,6 +33,14 @@ _TRANSFORMER_REGISTRY = {
     "OrthogonalNeuralBlock": OrthogonalNeuralBlock,
     "SwinTransformerBlock": SwinTransformerBlock,
     "Transolver_block": Transolver_block,
+    "FuxiTransformer": FuxiTransformer,
+    "EarthTransformer2DBlock": EarthTransformer2DBlock,
+    "EarthTransformer3DBlock": EarthTransformer3DBlock,
+    "XihelocalTransformer": XihelocalTransformer,
+    "ProtenixConditionedTransitionBlock": ProtenixConditionedTransitionBlock,
+    "ProtenixDiffusionTransformerBlock": ProtenixDiffusionTransformerBlock,
+    "ProtenixDiffusionTransformer": ProtenixDiffusionTransformer,
+    "ProtenixAtomTransformer": ProtenixAtomTransformer,
 }
 
 class OneTransformer(nn.Module):
@@ -34,10 +52,16 @@ class OneTransformer(nn.Module):
                 f"Unknown style: '{style}'. Available options are: {list(_TRANSFORMER_REGISTRY.keys())}"
             )
         
-        self.transformer_block = _TRANSFORMER_REGISTRY[style](**kwargs)
-
+        self.transformer = _TRANSFORMER_REGISTRY[style](**kwargs)
+        
     def forward(self, *args, **kwargs):
-        """
-        前向传播。
-        """
-        return self.transformer_block(*args, **kwargs)
+        return self.transformer(*args, **kwargs)
+
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self.transformer, name)
+
+
+

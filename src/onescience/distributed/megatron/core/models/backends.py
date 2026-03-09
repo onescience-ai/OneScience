@@ -4,16 +4,16 @@ import warnings
 from abc import abstractmethod
 from typing import Optional, Protocol, Tuple
 
-from megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
-from megatron.core.transformer.dot_product_attention import DotProductAttention
-from megatron.core.transformer.mlp import MLPSubmodules
-from megatron.core.transformer.moe.experts import GroupedMLP, SequentialMLP
-from megatron.core.transformer.torch_norm import WrappedTorchNorm
+from onescience.distributed.megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
+from onescience.distributed.megatron.core.transformer.dot_product_attention import DotProductAttention
+from onescience.distributed.megatron.core.transformer.mlp import MLPSubmodules
+from onescience.distributed.megatron.core.transformer.moe.experts import GroupedMLP, SequentialMLP
+from onescience.distributed.megatron.core.transformer.torch_norm import WrappedTorchNorm
 
 try:
     import apex  # pylint: disable=unused-import
 
-    from megatron.core.fusions.fused_layer_norm import FusedLayerNorm
+    from onescience.distributed.megatron.core.fusions.fused_layer_norm import FusedLayerNorm
 
     HAVE_APEX = True
     LNImpl = FusedLayerNorm

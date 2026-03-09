@@ -7,7 +7,7 @@ python run.py \
 --fun_dim 2 \
 --out_dim 1 \
 --model Swin_Transformer \
---n_hidden 64 \
+--n_hidden 128 \
 --n_heads 8 \
 --n_layers 8 \
 --mlp_ratio 2 \

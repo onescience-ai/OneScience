@@ -10,21 +10,21 @@ import torch
 from torch import Tensor
 from torch.cuda.nvtx import range_pop, range_push
 
-from megatron.core.inference.contexts.dynamic_context import (
+from onescience.distributed.megatron.core.inference.contexts.dynamic_context import (
     ChunkOverflowError,
     DynamicInferenceContext,
     MaxSequenceLengthOverflowError,
     RequestOverflowError,
     TokenOverflowError,
 )
-from megatron.core.inference.engines.abstract_engine import AbstractEngine
-from megatron.core.inference.inference_request import DynamicInferenceRequest, Status
-from megatron.core.inference.sampling_params import SamplingParams
-from megatron.core.inference.text_generation_controllers.simple_text_generation_controller import (
+from onescience.distributed.megatron.core.inference.engines.abstract_engine import AbstractEngine
+from onescience.distributed.megatron.core.inference.inference_request import DynamicInferenceRequest, Status
+from onescience.distributed.megatron.core.inference.sampling_params import SamplingParams
+from onescience.distributed.megatron.core.inference.text_generation_controllers.simple_text_generation_controller import (
     SimpleTextGenerationController,
 )
-from megatron.core.inference.utils import Counter
-from megatron.core.transformer.cuda_graphs import create_cudagraphs
+from onescience.distributed.megatron.core.inference.utils import Counter
+from onescience.distributed.megatron.core.transformer.cuda_graphs import create_cudagraphs
 
 try:
     from tqdm import tqdm

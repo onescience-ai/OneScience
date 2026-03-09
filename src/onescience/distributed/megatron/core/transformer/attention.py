@@ -7,14 +7,14 @@ from typing import NoReturn, Optional, Tuple, Union
 import torch
 from torch import Tensor
 
-from megatron.core import tensor_parallel
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.models.common.embeddings.rope_utils import (
+from onescience.distributed.megatron.core import tensor_parallel
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.models.common.embeddings.rope_utils import (
     apply_rotary_pos_emb,
     apply_rotary_pos_emb_with_cos_sin,
 )
-from megatron.core.packed_seq_params import PackedSeqParams
-from megatron.core.parallel_state import (
+from onescience.distributed.megatron.core.packed_seq_params import PackedSeqParams
+from onescience.distributed.megatron.core.parallel_state import (
     get_data_parallel_group,
     get_data_parallel_rank,
     get_data_parallel_world_size,
@@ -22,10 +22,10 @@ from megatron.core.parallel_state import (
     get_tensor_model_parallel_rank,
     get_tensor_model_parallel_world_size,
 )
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.spec_utils import ModuleSpec, build_module
-from megatron.core.utils import (
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec, build_module
+from onescience.distributed.megatron.core.utils import (
     deprecate_inference_params,
     divide,
     get_pg_size,
@@ -62,7 +62,7 @@ try:
     import transformer_engine  # pylint: disable=unused-import
 
     HAVE_TE = True
-    from megatron.core.extensions.transformer_engine import SplitAlongDim
+    from onescience.distributed.megatron.core.extensions.transformer_engine import SplitAlongDim
 except ImportError:
     HAVE_TE = False
     SplitAlongDim = None

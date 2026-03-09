@@ -7,26 +7,26 @@ from typing import Any, Callable, Dict, Optional, Set, Tuple
 
 import torch
 
-from megatron.core.dist_checkpointing.utils import replace_prefix_for_sharding
-from megatron.core.model_parallel_config import ModelParallelConfig
-from megatron.core.models.backends import BackendSpecProvider
-from megatron.core.parallel_state import (
+from onescience.distributed.megatron.core.dist_checkpointing.utils import replace_prefix_for_sharding
+from onescience.distributed.megatron.core.model_parallel_config import ModelParallelConfig
+from onescience.distributed.megatron.core.models.backends import BackendSpecProvider
+from onescience.distributed.megatron.core.parallel_state import (
     get_expert_data_parallel_rank,
     get_expert_model_parallel_rank,
     get_expert_model_parallel_world_size,
 )
-from megatron.core.quantization.quant_config import MatchContext, QuantizationConfig
-from megatron.core.tensor_parallel.random import (
+from onescience.distributed.megatron.core.quantization.quant_config import MatchContext, QuantizationConfig
+from onescience.distributed.megatron.core.tensor_parallel.random import (
     get_cuda_rng_tracker,
     get_data_parallel_rng_tracker_name,
     get_expert_parallel_rng_tracker_name,
 )
-from megatron.core.tensor_parallel.utils import divide
-from megatron.core.transformer.mlp import MLPSubmodules
-from megatron.core.transformer.moe.experts import GroupedMLP, SequentialMLP, TEGroupedMLP
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.transformer.utils import make_sharded_tensors_for_checkpoint
-from megatron.core.utils import get_tensor_model_parallel_group_if_none
+from onescience.distributed.megatron.core.tensor_parallel.utils import divide
+from onescience.distributed.megatron.core.transformer.mlp import MLPSubmodules
+from onescience.distributed.megatron.core.transformer.moe.experts import GroupedMLP, SequentialMLP, TEGroupedMLP
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.utils import make_sharded_tensors_for_checkpoint
+from onescience.distributed.megatron.core.utils import get_tensor_model_parallel_group_if_none
 
 # Parsing constant
 _KITCHEN_CONFIG_TYPE_KEY = "kitchen_config_type"

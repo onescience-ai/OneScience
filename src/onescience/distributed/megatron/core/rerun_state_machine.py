@@ -14,7 +14,7 @@ from typing import Any, Callable, Iterable, NamedTuple, Optional, Set, Tuple, Un
 import numpy as np
 import torch
 
-from megatron.core.dist_checkpointing.mapping import ShardedObject
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedObject
 
 """DISCLAIMER: THIS IS AN EXPERIMENTAL FEATURE.
 

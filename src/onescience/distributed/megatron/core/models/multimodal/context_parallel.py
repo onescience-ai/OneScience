@@ -3,7 +3,7 @@
 
 import torch
 
-from megatron.core.packed_seq_params import PackedSeqParams
+from onescience.distributed.megatron.core.packed_seq_params import PackedSeqParams
 
 
 def get_padding(

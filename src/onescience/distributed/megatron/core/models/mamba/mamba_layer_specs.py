@@ -1,20 +1,20 @@
 # Copyright (c) 2023, NVIDIA CORPORATION. All rights reserved.
 
-from megatron.core.extensions.transformer_engine import (
+from onescience.distributed.megatron.core.extensions.transformer_engine import (
     TEDotProductAttention,
     TELayerNormColumnParallelLinear,
     TERowParallelLinear,
 )
-from megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
-from megatron.core.ssm.mamba_block import MambaStack, MambaStackSubmodules
-from megatron.core.ssm.mamba_layer import MambaLayer, MambaLayerSubmodules
-from megatron.core.ssm.mamba_mixer import MambaMixer, MambaMixerSubmodules
-from megatron.core.ssm.mlp_layer import MLPLayer
-from megatron.core.transformer.attention import SelfAttention, SelfAttentionSubmodules
-from megatron.core.transformer.enums import AttnMaskType
-from megatron.core.transformer.mlp import MLP, MLPSubmodules
-from megatron.core.transformer.spec_utils import ModuleSpec
-from megatron.core.transformer.transformer_layer import TransformerLayer, TransformerLayerSubmodules
+from onescience.distributed.megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
+from onescience.distributed.megatron.core.ssm.mamba_block import MambaStack, MambaStackSubmodules
+from onescience.distributed.megatron.core.ssm.mamba_layer import MambaLayer, MambaLayerSubmodules
+from onescience.distributed.megatron.core.ssm.mamba_mixer import MambaMixer, MambaMixerSubmodules
+from onescience.distributed.megatron.core.ssm.mlp_layer import MLPLayer
+from onescience.distributed.megatron.core.transformer.attention import SelfAttention, SelfAttentionSubmodules
+from onescience.distributed.megatron.core.transformer.enums import AttnMaskType
+from onescience.distributed.megatron.core.transformer.mlp import MLP, MLPSubmodules
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec
+from onescience.distributed.megatron.core.transformer.transformer_layer import TransformerLayer, TransformerLayerSubmodules
 
 mamba_stack_spec = ModuleSpec(
     module=MambaStack,

@@ -14,12 +14,12 @@ import shutil
 import numpy as np
 import torch
 
-from megatron.core.datasets.retro.config import RetroPreprocessingConfig
-from megatron.core.datasets.retro.db.utils import (
+from onescience.distributed.megatron.core.datasets.retro.config import RetroPreprocessingConfig
+from onescience.distributed.megatron.core.datasets.retro.db.utils import (
     get_merged_sampled_dataset,
     get_merged_train_dataset,
 )
-from megatron.core.datasets.retro.utils import GPTToTextDataset
+from onescience.distributed.megatron.core.datasets.retro.utils import GPTToTextDataset
 
 from .factory import IndexFactory
 from .utils import (

@@ -12,13 +12,13 @@ import torch
 import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 
-from megatron.core.model_parallel_config import ModelParallelConfig
-from megatron.core.parallel_state import (
+from onescience.distributed.megatron.core.model_parallel_config import ModelParallelConfig
+from onescience.distributed.megatron.core.parallel_state import (
     get_global_memory_buffer,
     get_tensor_model_parallel_rank,
     get_tensor_model_parallel_world_size,
 )
-from megatron.core.utils import (
+from onescience.distributed.megatron.core.utils import (
     divide,
     get_pg_rank,
     get_pg_size,

@@ -13,16 +13,16 @@ from typing import Any, Dict, List
 import torch
 from torch.utils._pytree import tree_flatten
 
-from megatron.core import parallel_state
-from megatron.core.tensor_parallel.random import (
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.tensor_parallel.random import (
     CudaRNGStatesTracker,
     get_all_rng_states,
     get_cuda_rng_tracker,
 )
-from megatron.core.transformer.identity_op import IdentityOp
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.utils import is_te_min_version
+from onescience.distributed.megatron.core.transformer.identity_op import IdentityOp
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.utils import is_te_min_version
 
 try:
     import transformer_engine as te  # pylint: disable=unused-import
@@ -85,8 +85,8 @@ def _check_supported_type(meta):
     assert isinstance(meta, ArgMetadata)
 
     # Import inference contexts here to guard against circular import.
-    from megatron.core.inference.contexts.dynamic_context import DynamicInferenceContext
-    from megatron.core.inference.contexts.static_context import StaticInferenceContext
+    from onescience.distributed.megatron.core.inference.contexts.dynamic_context import DynamicInferenceContext
+    from onescience.distributed.megatron.core.inference.contexts.static_context import StaticInferenceContext
 
     _SUPPORTED_TYPES = {
         torch.Tensor,
@@ -106,8 +106,8 @@ def _check_supported_type(meta):
 def _determine_if_transformer_decoder_layer(base_module):
     """Determine if the given module is a transformer decoder layer."""
     # import modules here to avoid a circular import
-    from megatron.core.ssm.mamba_layer import MambaLayer
-    from megatron.core.transformer.transformer_layer import BaseTransformerLayer, TransformerLayer
+    from onescience.distributed.megatron.core.ssm.mamba_layer import MambaLayer
+    from onescience.distributed.megatron.core.transformer.transformer_layer import BaseTransformerLayer, TransformerLayer
 
     is_potential_decoder_layer = isinstance(
         base_module, (TransformerLayer, BaseTransformerLayer, MambaLayer)
@@ -130,8 +130,8 @@ def _determine_if_first_last_layer_of_this_vp_chunk(base_module):
     """
 
     # import modules here to avoid a circular import
-    from megatron.core.transformer.transformer_block import get_num_layers_to_build
-    from megatron.core.transformer.transformer_layer import get_transformer_layer_offset
+    from onescience.distributed.megatron.core.transformer.transformer_block import get_num_layers_to_build
+    from onescience.distributed.megatron.core.transformer.transformer_layer import get_transformer_layer_offset
 
     # find all first/last layers of this PP stage
     first_layer_numbers = []
@@ -972,7 +972,7 @@ class CudaGraphManager(torch.nn.Module):
         # need to delay the import here to avoid a circular import
         global HAVE_TE_GRAPHS
         try:
-            from megatron.core.extensions.transformer_engine import TECudaRNGStatesTracker
+            from onescience.distributed.megatron.core.extensions.transformer_engine import TECudaRNGStatesTracker
         except ImportError:
             TECudaRNGStatesTracker = None
 
@@ -1021,7 +1021,7 @@ class CudaGraphManager(torch.nn.Module):
         """Call any DDP pre-forward hooks which are used to launch async data parallel
         param gather. Any other pre-forward hooks are not allowed."""
 
-        from megatron.core.distributed import distributed_data_parallel
+        from onescience.distributed.megatron.core.distributed import distributed_data_parallel
 
         if module._forward_pre_hooks:
             for _, hook in module._forward_pre_hooks.items():

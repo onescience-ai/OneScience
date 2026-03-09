@@ -9,14 +9,14 @@ from typing import Dict, List
 
 import numpy
 
-from megatron.core.datasets.blended_megatron_dataset_config import (
+from onescience.distributed.megatron.core.datasets.blended_megatron_dataset_config import (
     convert_split_vector_to_split_matrix,
     parse_and_normalize_split,
 )
-from megatron.core.datasets.gpt_dataset import GPTDataset, GPTDatasetConfig
-from megatron.core.datasets.indexed_dataset import IndexedDataset
-from megatron.core.datasets.utils import Split
-from megatron.core.utils import log_single_rank
+from onescience.distributed.megatron.core.datasets.gpt_dataset import GPTDataset, GPTDatasetConfig
+from onescience.distributed.megatron.core.datasets.indexed_dataset import IndexedDataset
+from onescience.distributed.megatron.core.datasets.utils import Split
+from onescience.distributed.megatron.core.utils import log_single_rank
 
 logger = logging.getLogger(__name__)
 

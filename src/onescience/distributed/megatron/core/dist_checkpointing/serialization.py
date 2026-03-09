@@ -14,7 +14,7 @@ from typing import Callable, Dict, Optional, Set, Tuple, Union
 
 import torch
 
-from megatron.core.msc_utils import MultiStorageClientFeature
+from onescience.distributed.megatron.core.msc_utils import MultiStorageClientFeature
 
 from . import ShardedTensor
 from .core import CheckpointingConfig, save_config

@@ -6,9 +6,9 @@ from typing import Any, Dict, Optional
 
 import torch
 
-from megatron.core.models.mimo.config import MimoModelConfig
-from megatron.core.transformer import MegatronModule
-from megatron.core.transformer.spec_utils import build_module
+from onescience.distributed.megatron.core.models.mimo.config import MimoModelConfig
+from onescience.distributed.megatron.core.transformer import MegatronModule
+from onescience.distributed.megatron.core.transformer.spec_utils import build_module
 
 logger = logging.getLogger(__name__)
 

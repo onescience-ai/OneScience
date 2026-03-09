@@ -10,12 +10,12 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from megatron.core.datasets.megatron_tokenizer import MegatronTokenizer
+from onescience.distributed.megatron.core.datasets.megatron_tokenizer import MegatronTokenizer
 
 from .bert_tokenization import FullTokenizer as FullBertTokenizer
 from .gpt2_tokenization import GPT2Tokenizer
-from megatron.training.tokenizer.multimodal_tokenizer import MultimodalTokenizer
-from megatron.training.tokenizer.sft_tokenizer import SFTTokenizer
+from onescience.distributed.megatron.training.tokenizer.multimodal_tokenizer import MultimodalTokenizer
+from onescience.distributed.megatron.training.tokenizer.sft_tokenizer import SFTTokenizer
 
 
 def build_tokenizer(args, **kwargs):
@@ -856,7 +856,7 @@ class _NullMultimodalTokenizer(MegatronTokenizer):
         self._vocab_size_without_eod = int(vocab_size)
         self._eod_id = self._vocab_size_without_eod
 
-        from megatron.core.models.multimodal.llava_model import DEFAULT_IMAGE_TOKEN_INDEX, IMAGE_TOKEN
+        from onescience.distributed.megatron.core.models.multimodal.llava_model import DEFAULT_IMAGE_TOKEN_INDEX, IMAGE_TOKEN
         self._image_token = image_token if image_token is not None else IMAGE_TOKEN
         self._image_token_id = image_token_id if image_token_id is not None else DEFAULT_IMAGE_TOKEN_INDEX
 

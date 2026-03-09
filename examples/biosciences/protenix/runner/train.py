@@ -213,16 +213,55 @@ class AF3Trainer(object):
                 f"Loading from {checkpoint_path}, strict: {self.configs.load_strict}"
             )
             checkpoint = torch.load(checkpoint_path, self.device)
-            sample_key = [k for k in checkpoint["model"].keys()][0]
+            state_dict = checkpoint["model"]
+            # Step 1: 去除 DDP 的 module. 前缀
+            sample_key = [k for k in state_dict.keys()][0]
             self.print(f"Sampled key: {sample_key}")
-            if sample_key.startswith("module.") and not self.use_ddp:
-                # DDP checkpoint has module. prefix
-                checkpoint["model"] = {
-                    k[len("module.") :]: v for k, v in checkpoint["model"].items()
-                }
-
+            if sample_key.startswith("module."):
+                state_dict = {k[len("module.") :]: v for k, v in state_dict.items()}
+            sample_key1 = [k for k in state_dict.keys()][101]
+            self.print(f"Sampled key: {sample_key1}")
+            if sample_key1.startswith("msa_module."):
+                state_dict = {k.replace("msa_module.", "msa_module.msa."): v for k, v in state_dict.items()}
+            # Step 2: 适配 input_embedder. → input_embedder.embedder. 的结构差异
+            new_state_dict = {}
+            for k, v in state_dict.items():
+                if k.startswith("input_embedder."):
+                    new_key = k.replace("input_embedder.", "input_embedder.embedder.")
+                elif k.startswith("template_embedder.") and not k.startswith("template_embedder.embedder."):
+                    new_key = k.replace("template_embedder.", "template_embedder.embedder.")                
+                elif k.startswith("relative_position_encoding.") and not k.startswith("relative_position_encoding.encoder."):
+                    new_key = k.replace("relative_position_encoding.", "relative_position_encoding.encoder.")
+                elif new_key.startswith("msa_module.msa.blocks.") and ".pair_stack." in k and "Pairformer." not in k:
+                    new_key = k.replace(".pair_stack.", ".pair_stack.Pairformer.")   
+                elif k.startswith("pairformer_stack.") and not k.startswith("pairformer_stack.Pairformer."):
+                    new_key = k.replace("pairformer_stack.", "pairformer_stack.Pairformer.")
+                elif k.startswith("diffusion_module.") and not k.startswith("diffusion_module.Diffusion."):
+                    new_key = k.replace("diffusion_module.", "diffusion_module.Diffusion.")
+                elif k.startswith("distogram_head.linear.") and not k.startswith("distogram_head.linear.Linear."):
+                    new_key = k.replace("distogram_head.linear.", "distogram_head.linear.Linear.")
+                #elif k.startswith("confidence_head.pairformer_stack") and not k.startswith("confidence_head.pairformer_stack.Pairformer"):
+                #     new_key = k.replace("confidence_head.pairformer_stack.", "confidence_head.pairformer_stack.Pairformer.")
+                elif k.startswith("linear_no_bias_sinit.") and not k.startswith("linear_no_bias_sinit.Linear."):
+                    new_key = k.replace("linear_no_bias_sinit.", "linear_no_bias_sinit.Linear.")
+                elif k.startswith("linear_no_bias_zinit1.") and not k.startswith("linear_no_bias_zinit1.Linear."):
+                    new_key = k.replace("linear_no_bias_zinit1.", "linear_no_bias_zinit1.Linear.")
+                elif k.startswith("linear_no_bias_zinit2.") and not k.startswith("linear_no_bias_zinit2.Linear."):
+                    new_key = k.replace("linear_no_bias_zinit2.", "linear_no_bias_zinit2.Linear.")
+                elif k.startswith("linear_no_bias_token_bond.") and not k.startswith("linear_no_bias_token_bond.Linear."):
+                    new_key = k.replace("linear_no_bias_token_bond.", "linear_no_bias_token_bond.Linear.")                
+                elif k.startswith("linear_no_bias_z_cycle.") and not k.startswith("linear_no_bias_z_cycle.Linear."):
+                    new_key = k.replace("linear_no_bias_z_cycle.", "linear_no_bias_z_cycle.Linear.")                
+                elif k.startswith("linear_no_bias_s.") and not k.startswith("linear_no_bias_s.Linear."):
+                    new_key = k.replace("linear_no_bias_s.", "linear_no_bias_s.Linear.") 
+                else:
+                    # 如果不满足任何条件，则保留原始键名
+                    new_key = k    
+    
+                # 将修改后的键值对添加到新字典中
+                new_state_dict[new_key] = v
             self.model.load_state_dict(
-                state_dict=checkpoint["model"],
+                state_dict=new_state_dict,
                 strict=self.configs.load_strict,
             )
             if not load_params_only:

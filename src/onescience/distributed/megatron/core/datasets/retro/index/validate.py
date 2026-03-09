@@ -18,8 +18,8 @@ import numpy as np
 import torch
 from torch.utils.data import Subset
 
-from megatron.core.datasets.retro.config import RetroPreprocessingConfig
-from megatron.core.datasets.retro.utils import get_blocks_by_rank, log_retro_rank_0
+from onescience.distributed.megatron.core.datasets.retro.config import RetroPreprocessingConfig
+from onescience.distributed.megatron.core.datasets.retro.utils import get_blocks_by_rank, log_retro_rank_0
 
 from .build import get_text_dataset_for_adding, get_text_dataset_for_training
 from .factory import IndexFactory

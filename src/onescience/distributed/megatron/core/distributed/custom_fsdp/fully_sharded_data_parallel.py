@@ -10,9 +10,9 @@ import torch
 import torch.nn as nn
 from torch.utils._pytree import tree_flatten, tree_unflatten
 
-from megatron.core import parallel_state
-from megatron.core.config_logger import has_config_logger_enabled, log_config_to_disk
-from megatron.core.distributed.custom_fsdp.param_and_grad_buffer import (
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.config_logger import has_config_logger_enabled, log_config_to_disk
+from onescience.distributed.megatron.core.distributed.custom_fsdp.param_and_grad_buffer import (
     AllGatherPipeline,
     BucketingPolicy,
     GradReducePipeline,
@@ -20,13 +20,13 @@ from megatron.core.distributed.custom_fsdp.param_and_grad_buffer import (
     PrefetchOrder,
     override_sharded_param_methods_with_safety_checks,
 )
-from megatron.core.distributed.data_parallel_base import _BaseDataParallel
-from megatron.core.distributed.distributed_data_parallel_config import DistributedDataParallelConfig
-from megatron.core.fp8_utils import is_float8tensor
-from megatron.core.process_groups_config import GradCommProcessGroups
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.transformer.transformer_layer import TransformerLayer
-from megatron.core.utils import is_submodule, log_single_rank
+from onescience.distributed.megatron.core.distributed.data_parallel_base import _BaseDataParallel
+from onescience.distributed.megatron.core.distributed.distributed_data_parallel_config import DistributedDataParallelConfig
+from onescience.distributed.megatron.core.fp8_utils import is_float8tensor
+from onescience.distributed.megatron.core.process_groups_config import GradCommProcessGroups
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.transformer.transformer_layer import TransformerLayer
+from onescience.distributed.megatron.core.utils import is_submodule, log_single_rank
 
 logger = logging.getLogger(__name__)
 

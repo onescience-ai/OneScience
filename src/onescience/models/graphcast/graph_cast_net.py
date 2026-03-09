@@ -5,25 +5,35 @@ from typing import Any, Optional
 
 import torch
 from torch import Tensor
-
+from torch import nn
 try:
     from typing import Self
 except ImportError:
     # for Python versions < 3.11
     from typing_extensions import Self
 
-from onescience.models.gnn_layers.embedder import (
-    GraphCastDecoderEmbedder,
-    GraphCastEncoderEmbedder,
-)
-from onescience.models.gnn_layers.mesh_graph_decoder import MeshGraphDecoder
-from onescience.models.gnn_layers.mesh_graph_encoder import MeshGraphEncoder
-from onescience.models.gnn_layers.mesh_graph_mlp import MeshGraphMLP
-from onescience.models.gnn_layers.utils import CuGraphCSC, set_checkpoint_fn
-from onescience.models.layers import get_activation
+# from onescience.models.gnn_layers.embedder import (
+#     GraphCastDecoderEmbedder,
+#     GraphCastEncoderEmbedder,
+# )
+# from onescience.models.gnn_layers.mesh_graph_decoder import MeshGraphDecoder
+# from onescience.models.gnn_layers.mesh_graph_encoder import MeshGraphEncoder
+
+# from onescience.models.gnn_layers.mesh_graph_mlp import MeshGraphMLP
+# from onescience.models.gnn_layers.utils import CuGraphCSC, set_checkpoint_fn
+# from onescience.models.layers import get_activation
+
+
+from onescience.modules import OneDecoder
+from onescience.modules import OneEncoder
+from onescience.modules import OneEmbedding
+from onescience.modules import OneMlp
+
+from onescience.modules.utils.gnnlayer_utils import CuGraphCSC, set_checkpoint_fn
+from onescience.modules.layer.activations import get_activation
+from onescience.modules.utils.graphcast.graph import Graph
+
 from onescience.models.meta import ModelMetaData
-from onescience.models.module import Module
-from onescience.utils.graphcast.graph import Graph
 
 from .graph_cast_processor import (
     GraphCastProcessor,
@@ -115,119 +125,14 @@ class MetaData(ModelMetaData):
     auto_grad: bool = False
 
 
-class GraphCastNet(Module):
-    """GraphCast network architecture
-
-    Parameters
-    ----------
-    multimesh_level: int, optional
-        Level of the latent mesh, by default 6
-    multimesh: bool, optional
-        If the latent mesh is a multimesh, by default True
-        If True, the latent mesh includes the nodes corresponding
-        to the specified `mesh_level`and incorporates the edges from
-        all mesh levels ranging from level 0 up to and including `mesh_level`.
-    input_res: Tuple[int, int]
-        Input resolution of the latitude-longitude grid
-    input_dim_grid_nodes : int, optional
-        Input dimensionality of the grid node features, by default 474
-    input_dim_mesh_nodes : int, optional
-        Input dimensionality of the mesh node features, by default 3
-    input_dim_edges : int, optional
-        Input dimensionality of the edge features, by default 4
-    output_dim_grid_nodes : int, optional
-        Final output dimensionality of the edge features, by default 227
-    processor_type: str, optional
-        The type of processor used in this model. Available options are
-        'MessagePassing', and 'GraphTransformer', which correspond to the
-        processors in GraphCast and GenCast, respectively.
-        By default 'MessagePassing'.
-    khop_neighbors: int, optional
-        Number of khop neighbors used in the GraphTransformer.
-        This option is ignored if 'MessagePassing' processor is used.
-        By default 0.
-    processor_layers : int, optional
-        Number of processor layers, by default 16
-    hidden_layers : int, optional
-        Number of hiddel layers, by default 1
-    hidden_dim : int, optional
-        Number of neurons in each hidden layer, by default 512
-    aggregation : str, optional
-        Message passing aggregation method ("sum", "mean"), by default "sum"
-    activation_fn : str, optional
-        Type of activation function, by default "silu"
-    norm_type : str, optional
-        Normalization type ["TELayerNorm", "LayerNorm"].
-        Use "TELayerNorm" for optimal performance. By default "LayerNorm".
-    use_cugraphops_encoder : bool, default=False
-        Flag to select cugraphops kernels in encoder
-    use_cugraphops_processor : bool, default=False
-        Flag to select cugraphops kernels in the processor
-    use_cugraphops_decoder : bool, default=False
-        Flag to select cugraphops kernels in the decoder
-    do_conat_trick: : bool, default=False
-        Whether to replace concat+MLP with MLP+idx+sum
-    recompute_activation : bool, optional
-        Flag for recomputing activation in backward to save memory, by default False.
-        Currently, only SiLU is supported.
-    partition_size : int, default=1
-        Number of process groups across which graphs are distributed. If equal to 1,
-        the model is run in a normal Single-GPU configuration.
-    partition_group_name : str, default=None
-        Name of process group across which graphs are distributed. If partition_size
-        is set to 1, the model is run in a normal Single-GPU configuration and the
-        specification of a process group is not necessary. If partitition_size > 1,
-        passing no process group name leads to a parallelism across the default
-        process group. Otherwise, the group size of a process group is expected
-        to match partition_size.
-    use_lat_lon_partitioning : bool, default=False
-        flag to specify whether all graphs (grid-to-mesh, mesh, mesh-to-grid)
-        are partitioned based on lat-lon-coordinates of nodes or based on IDs.
-    expect_partitioned_input : bool, default=False
-        Flag indicating whether the model expects the input to be already
-        partitioned. This can be helpful e.g. in multi-step rollouts to avoid
-        aggregating the output just to distribute it in the next step again.
-    global_features_on_rank_0 : bool, default=False
-        Flag indicating whether the model expects the input to be present
-        in its "global" form only on group_rank 0. During the input preparation phase,
-        the model will take care of scattering the input accordingly onto all ranks
-        of the process group across which the graph is partitioned. Note that only either
-        this flag or expect_partitioned_input can be set at a time.
-    produce_aggregated_output : bool, default=True
-        Flag indicating whether the model produces the aggregated output on each
-        rank of the procress group across which the graph is distributed or
-        whether the output is kept distributed. This can be helpful e.g.
-        in multi-step rollouts to avoid aggregating the output just to distribute
-        it in the next step again.
-    produce_aggregated_output_on_all_ranks : bool, default=True
-        Flag indicating - if produce_aggregated_output is True - whether the model
-        produces the aggregated output on each rank of the process group across
-        which the group is distributed or only on group_rank 0. This can be helpful
-        for computing the loss using global targets only on a single rank which can
-        avoid either having to distribute the computation of a loss function.
-
-    Note
-    ----
-    Based on these papers:
-    - "GraphCast: Learning skillful medium-range global weather forecasting"
-        https://arxiv.org/abs/2212.12794
-    - "Forecasting Global Weather with Graph Neural Networks"
-        https://arxiv.org/abs/2202.07575
-    - "Learning Mesh-Based Simulation with Graph Networks"
-        https://arxiv.org/abs/2010.03409
-    - "MultiScale MeshGraphNets"
-        https://arxiv.org/abs/2210.00612
-    - "GenCast: Diffusion-based ensemble forecasting for medium-range weather"
-        https://arxiv.org/abs/2312.15796
-    """
-
+class GraphCastNet(nn.Module):
     def __init__(
         self,
         mesh_level: Optional[int] = 6,
         multimesh_level: Optional[int] = None,
         multimesh: bool = True,
         input_res: tuple = (721, 1440),
-        input_dim_grid_nodes: int = 474,
+        input_dim_grid_nodes: int = 237,
         input_dim_mesh_nodes: int = 3,
         input_dim_edges: int = 4,
         output_dim_grid_nodes: int = 227,
@@ -253,7 +158,7 @@ class GraphCastNet(Module):
         produce_aggregated_output: bool = True,
         produce_aggregated_output_on_all_ranks: bool = True,
     ):
-        super().__init__(meta=MetaData())
+        super().__init__()
 
         # 'multimesh_level' deprecation handling
         if multimesh_level is not None:
@@ -392,7 +297,8 @@ class GraphCastNet(Module):
         self.decoder_checkpoint_fn = set_checkpoint_fn(False)
 
         # initial feature embedder
-        self.encoder_embedder = GraphCastEncoderEmbedder(
+        self.encoder_embedder = OneEmbedding(
+            style='GraphCastEncoderEmbedder',
             input_dim_grid_nodes=input_dim_grid_nodes,
             input_dim_mesh_nodes=input_dim_mesh_nodes,
             input_dim_edges=input_dim_edges,
@@ -403,7 +309,8 @@ class GraphCastNet(Module):
             norm_type=norm_type,
             recompute_activation=recompute_activation,
         )
-        self.decoder_embedder = GraphCastDecoderEmbedder(
+        self.decoder_embedder = OneEmbedding(
+            style='GraphCastDecoderEmbedder',
             input_dim_edges=input_dim_edges,
             output_dim=hidden_dim,
             hidden_dim=hidden_dim,
@@ -414,7 +321,8 @@ class GraphCastNet(Module):
         )
 
         # grid2mesh encoder
-        self.encoder = MeshGraphEncoder(
+        self.encoder = OneEncoder(
+            style='MeshGraphEncoder',
             aggregation=aggregation,
             input_dim_src_nodes=hidden_dim,
             input_dim_dst_nodes=hidden_dim,
@@ -482,7 +390,8 @@ class GraphCastNet(Module):
             self.processor_decoder = torch.nn.Identity()
 
         # mesh2grid decoder
-        self.decoder = MeshGraphDecoder(
+        self.decoder = OneDecoder(
+            style='MeshGraphDecoder',
             aggregation=aggregation,
             input_dim_src_nodes=hidden_dim,
             input_dim_dst_nodes=hidden_dim,
@@ -498,7 +407,8 @@ class GraphCastNet(Module):
         )
 
         # final MLP
-        self.finale = MeshGraphMLP(
+        self.finale = OneMlp(
+            style='MeshGraphMLP',
             input_dim=hidden_dim,
             output_dim=output_dim_grid_nodes,
             hidden_dim=hidden_dim,
@@ -638,18 +548,18 @@ class GraphCastNet(Module):
             g2m_efeat_embedded,
             mesh_efeat_embedded,
         ) = self.encoder_embedder(
-            grid_nfeat,
+            [grid_nfeat,
             self.mesh_ndata,
             self.g2m_edata,
-            self.mesh_edata,
+            self.mesh_edata]
         )
 
         # encode lat/lon to multimesh
         grid_nfeat_encoded, mesh_nfeat_encoded = self.encoder(
-            g2m_efeat_embedded,
+            [g2m_efeat_embedded,
             grid_nfeat_embedded,
             mesh_nfeat_embedded,
-            self.g2m_graph,
+            self.g2m_graph],
         )
 
         # process multimesh graph
@@ -706,7 +616,7 @@ class GraphCastNet(Module):
 
         # decode multimesh to lat/lon
         grid_nfeat_decoded = self.decoder(
-            m2g_efeat_embedded, grid_nfeat_encoded, mesh_nfeat_processed, self.m2g_graph
+            [m2g_efeat_embedded, grid_nfeat_encoded, mesh_nfeat_processed, self.m2g_graph]
         )
 
         # map to the target output dimension

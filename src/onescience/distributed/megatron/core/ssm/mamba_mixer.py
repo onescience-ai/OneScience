@@ -15,19 +15,19 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from megatron.core.dist_checkpointing import ShardedTensor
-from megatron.core.dist_checkpointing.mapping import ReplicaId, ShardedTensorFactory
-from megatron.core.inference.contexts import BaseInferenceContext
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.tensor_parallel import get_cuda_rng_tracker
-from megatron.core.transformer import TransformerConfig
-from megatron.core.transformer.module import MegatronModule
-from megatron.core.transformer.spec_utils import ModuleSpec, build_module
-from megatron.core.transformer.utils import (
+from onescience.distributed.megatron.core.dist_checkpointing import ShardedTensor
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ReplicaId, ShardedTensorFactory
+from onescience.distributed.megatron.core.inference.contexts import BaseInferenceContext
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.tensor_parallel import get_cuda_rng_tracker
+from onescience.distributed.megatron.core.transformer import TransformerConfig
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec, build_module
+from onescience.distributed.megatron.core.transformer.utils import (
     make_sharded_tensors_for_checkpoint,
     sharded_state_dict_default,
 )
-from megatron.core.utils import deprecate_inference_params, log_single_rank
+from onescience.distributed.megatron.core.utils import deprecate_inference_params, log_single_rank
 
 from .mamba_context_parallel import MambaContextParallel
 

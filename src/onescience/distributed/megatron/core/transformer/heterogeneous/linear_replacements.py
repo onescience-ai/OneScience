@@ -3,22 +3,22 @@
 import torch.nn.functional as F
 from torch import Tensor
 
-from megatron.core.parallel_state import (
+from onescience.distributed.megatron.core.parallel_state import (
     get_tensor_model_parallel_rank,
     get_tensor_model_parallel_world_size,
 )
-from megatron.core.tensor_parallel.layers import ColumnParallelLinear
-from megatron.core.tensor_parallel.mappings import (
+from onescience.distributed.megatron.core.tensor_parallel.layers import ColumnParallelLinear
+from onescience.distributed.megatron.core.tensor_parallel.mappings import (
     gather_from_tensor_model_parallel_region,
     reduce_scatter_to_sequence_parallel_region,
 )
-from megatron.core.transformer.transformer_config import TransformerConfig
-from megatron.core.utils import divide
+from onescience.distributed.megatron.core.transformer.transformer_config import TransformerConfig
+from onescience.distributed.megatron.core.utils import divide
 
 try:
     import transformer_engine as te  # pylint: disable=unused-import
 
-    from megatron.core.extensions.transformer_engine import TELayerNormColumnParallelLinear
+    from onescience.distributed.megatron.core.extensions.transformer_engine import TELayerNormColumnParallelLinear
 
     HAVE_TE = True
 except ImportError:

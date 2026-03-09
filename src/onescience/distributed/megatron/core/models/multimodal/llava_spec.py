@@ -1,33 +1,33 @@
 # Copyright (c) 2024, NVIDIA CORPORATION. All rights reserved.
 from typing import Optional
 
-from megatron.core.extensions.transformer_engine import (
+from onescience.distributed.megatron.core.extensions.transformer_engine import (
     TEDotProductAttention,
     TELayerNormColumnParallelLinear,
     TENorm,
     TERowParallelLinear,
 )
-from megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
-from megatron.core.models.gpt.gpt_layer_specs import get_mlp_module_spec
-from megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
-from megatron.core.transformer.attention import SelfAttention, SelfAttentionSubmodules
-from megatron.core.transformer.dot_product_attention import DotProductAttention
-from megatron.core.transformer.enums import AttnMaskType
-from megatron.core.transformer.identity_op import IdentityOp
-from megatron.core.transformer.spec_utils import ModuleSpec
-from megatron.core.transformer.transformer_layer import TransformerLayer, TransformerLayerSubmodules
+from onescience.distributed.megatron.core.fusions.fused_bias_dropout import get_bias_dropout_add
+from onescience.distributed.megatron.core.models.gpt.gpt_layer_specs import get_mlp_module_spec
+from onescience.distributed.megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
+from onescience.distributed.megatron.core.transformer.attention import SelfAttention, SelfAttentionSubmodules
+from onescience.distributed.megatron.core.transformer.dot_product_attention import DotProductAttention
+from onescience.distributed.megatron.core.transformer.enums import AttnMaskType
+from onescience.distributed.megatron.core.transformer.identity_op import IdentityOp
+from onescience.distributed.megatron.core.transformer.spec_utils import ModuleSpec
+from onescience.distributed.megatron.core.transformer.transformer_layer import TransformerLayer, TransformerLayerSubmodules
 
 try:
     import apex  # pylint: disable=unused-import
 
-    from megatron.core.fusions.fused_layer_norm import FusedLayerNorm
+    from onescience.distributed.megatron.core.fusions.fused_layer_norm import FusedLayerNorm
 
     HAVE_APEX = True
     LNImpl = FusedLayerNorm
 except ImportError:
     import warnings
 
-    from megatron.core.transformer.torch_norm import WrappedTorchNorm
+    from onescience.distributed.megatron.core.transformer.torch_norm import WrappedTorchNorm
 
     warnings.warn("Apex is not installed. Falling back to Torch Norm")
     LNImpl = WrappedTorchNorm

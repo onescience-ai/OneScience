@@ -8,11 +8,11 @@ from typing import Any, Callable, Iterable, List, Optional, Type, Union
 import numpy
 import torch
 
-from megatron.core.datasets.blended_dataset import BlendedDataset
-from megatron.core.datasets.blended_megatron_dataset_config import BlendedMegatronDatasetConfig
-from megatron.core.datasets.megatron_dataset import LowLevelDataset, MegatronDataset
-from megatron.core.datasets.utils import Split, normalize
-from megatron.core.utils import log_single_rank
+from onescience.distributed.megatron.core.datasets.blended_dataset import BlendedDataset
+from onescience.distributed.megatron.core.datasets.blended_megatron_dataset_config import BlendedMegatronDatasetConfig
+from onescience.distributed.megatron.core.datasets.megatron_dataset import LowLevelDataset, MegatronDataset
+from onescience.distributed.megatron.core.datasets.utils import Split, normalize
+from onescience.distributed.megatron.core.utils import log_single_rank
 
 logger = logging.getLogger(__name__)
 

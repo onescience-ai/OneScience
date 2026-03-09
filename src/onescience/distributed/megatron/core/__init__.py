@@ -1,12 +1,12 @@
 # Copyright (c) 2024, NVIDIA CORPORATION. All rights reserved.
 
-import megatron.core.tensor_parallel
-import megatron.core.utils
-from megatron.core import parallel_state
-from megatron.core.distributed import DistributedDataParallel
-from megatron.core.inference_params import InferenceParams
-from megatron.core.model_parallel_config import ModelParallelConfig
-from megatron.core.package_info import (
+import onescience.distributed.megatron.core.tensor_parallel
+import onescience.distributed.megatron.core.utils
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.distributed import DistributedDataParallel
+from onescience.distributed.megatron.core.inference_params import InferenceParams
+from onescience.distributed.megatron.core.model_parallel_config import ModelParallelConfig
+from onescience.distributed.megatron.core.package_info import (
     __contact_emails__,
     __contact_names__,
     __description__,
@@ -19,7 +19,7 @@ from megatron.core.package_info import (
     __shortversion__,
     __version__,
 )
-from megatron.core.timers import Timers
+from onescience.distributed.megatron.core.timers import Timers
 
 # Alias parallel_state as mpu, its legacy name
 mpu = parallel_state

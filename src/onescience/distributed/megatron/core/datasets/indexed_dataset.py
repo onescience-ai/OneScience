@@ -27,8 +27,8 @@ except ModuleNotFoundError:
 
 import torch
 
-from megatron.core.datasets.object_storage_utils import S3Config  # pylint: disable=unused-import
-from megatron.core.datasets.object_storage_utils import (
+from onescience.distributed.megatron.core.datasets.object_storage_utils import S3Config  # pylint: disable=unused-import
+from onescience.distributed.megatron.core.datasets.object_storage_utils import (
     ObjectStorageConfig,
     cache_index_file,
     dataset_exists,
@@ -37,8 +37,8 @@ from megatron.core.datasets.object_storage_utils import (
     is_object_storage_path,
     parse_s3_path,
 )
-from megatron.core.msc_utils import MultiStorageClientFeature
-from megatron.core.utils import log_single_rank
+from onescience.distributed.megatron.core.msc_utils import MultiStorageClientFeature
+from onescience.distributed.megatron.core.utils import log_single_rank
 
 logger = logging.getLogger(__name__)
 

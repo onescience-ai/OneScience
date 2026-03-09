@@ -27,7 +27,7 @@ except ImportError:
 
         HAVE_APEX_OR_TE = False
 
-from megatron.core.optimizer.cpu_offloading import HybridDeviceOptimizer
+from onescience.distributed.megatron.core.optimizer.cpu_offloading import HybridDeviceOptimizer
 
 from .. import tensor_parallel
 from ..config_logger import has_config_logger_enabled, log_config_to_disk

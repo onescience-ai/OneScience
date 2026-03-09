@@ -2,11 +2,11 @@
 
 """Base class for decoder and encoder attention modules."""
 
-from megatron.core.models.retro.config import RetroConfig
-from megatron.core.process_groups_config import ModelCommProcessGroups
-from megatron.core.transformer.attention import CrossAttention, CrossAttentionSubmodules
-from megatron.core.transformer.enums import AttnMaskType
-from megatron.core.transformer.module import MegatronModule
+from onescience.distributed.megatron.core.models.retro.config import RetroConfig
+from onescience.distributed.megatron.core.process_groups_config import ModelCommProcessGroups
+from onescience.distributed.megatron.core.transformer.attention import CrossAttention, CrossAttentionSubmodules
+from onescience.distributed.megatron.core.transformer.enums import AttnMaskType
+from onescience.distributed.megatron.core.transformer.module import MegatronModule
 
 
 class BaseRetroCrossAttention(MegatronModule):

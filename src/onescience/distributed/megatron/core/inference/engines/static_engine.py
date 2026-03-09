@@ -7,12 +7,12 @@ from typing import AsyncGenerator, Dict, List, Optional, Union
 
 import torch
 
-from megatron.core.inference.async_stream import AsyncStream
-from megatron.core.inference.engines.abstract_engine import AbstractEngine
-from megatron.core.inference.inference_request import InferenceRequest
-from megatron.core.inference.sampling_params import SamplingParams
-from megatron.core.inference.scheduler import Scheduler
-from megatron.core.inference.text_generation_controllers.text_generation_controller import (
+from onescience.distributed.megatron.core.inference.async_stream import AsyncStream
+from onescience.distributed.megatron.core.inference.engines.abstract_engine import AbstractEngine
+from onescience.distributed.megatron.core.inference.inference_request import InferenceRequest
+from onescience.distributed.megatron.core.inference.sampling_params import SamplingParams
+from onescience.distributed.megatron.core.inference.scheduler import Scheduler
+from onescience.distributed.megatron.core.inference.text_generation_controllers.text_generation_controller import (
     TextGenerationController,
 )
 

@@ -9,13 +9,13 @@ from typing import Union
 
 import torch
 
-from megatron.core.dist_checkpointing.mapping import ShardedStateDict, StateDict
-from megatron.core.dist_checkpointing.strategies.base import (
+from onescience.distributed.megatron.core.dist_checkpointing.mapping import ShardedStateDict, StateDict
+from onescience.distributed.megatron.core.dist_checkpointing.strategies.base import (
     SaveCommonStrategy,
     StrategyAction,
     register_default_strategy,
 )
-from megatron.core.msc_utils import MultiStorageClientFeature
+from onescience.distributed.megatron.core.msc_utils import MultiStorageClientFeature
 
 from ..dict_utils import dict_list_map_inplace, nested_values
 from ..mapping import CheckpointingException, ShardedObject, is_main_replica

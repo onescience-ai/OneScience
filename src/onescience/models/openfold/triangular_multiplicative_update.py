@@ -45,8 +45,8 @@ class BaseTriangleMultiplicativeUpdate(nn.Module, ABC):
         self._outgoing = _outgoing
         self.bias = bias
 
-        self.linear_g = Linear(self.c_z, self.c_z, bias=bias, init="gating") #ppy
-        self.linear_z = Linear(self.c_hidden, self.c_z, bias=bias, init="final") #ppy
+        self.linear_g = Linear(self.c_z, self.c_z, bias=bias, init="gating")
+        self.linear_z = Linear(self.c_hidden, self.c_z, bias=bias, init="final")
 
         self.layer_norm_in = LayerNorm(self.c_z)
         self.layer_norm_out = LayerNorm(self.c_hidden)
@@ -120,10 +120,10 @@ class TriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):
                                                            bias=bias
                                                           )
 
-        self.linear_a_p = Linear(self.c_z, self.c_hidden, bias=bias) #ppy
-        self.linear_a_g = Linear(self.c_z, self.c_hidden, bias=bias, init="gating") #ppy
-        self.linear_b_p = Linear(self.c_z, self.c_hidden, bias=bias,)  #ppy
-        self.linear_b_g = Linear(self.c_z, self.c_hidden, bias=bias, init="gating") # ppy
+        self.linear_a_p = Linear(self.c_z, self.c_hidden, bias=bias)
+        self.linear_a_g = Linear(self.c_z, self.c_hidden, bias=bias, init="gating")
+        self.linear_b_p = Linear(self.c_z, self.c_hidden, bias=bias,)
+        self.linear_b_g = Linear(self.c_z, self.c_hidden, bias=bias, init="gating")
 
     def _inference_forward(self,
         z: torch.Tensor,
@@ -485,20 +485,17 @@ class TriangleMultiplicationIncoming(TriangleMultiplicativeUpdate):
     """
     __init__ = partialmethod(TriangleMultiplicativeUpdate.__init__, _outgoing=False)
 
-# ------------------------- ppy add -------------------------
 class ProtenixTriangleMultiplicationOutgoing(TriangleMultiplicativeUpdate):
     """
     Implements Algorithm 11.
     """
     __init__ = partialmethod(TriangleMultiplicativeUpdate.__init__, _outgoing=True, bias=False)
 
-# ------------------------- ppy add -------------------------
 class ProtenixTriangleMultiplicationIncoming(TriangleMultiplicativeUpdate):
     """
     Implements Algorithm 12.
     """
     __init__ = partialmethod(TriangleMultiplicativeUpdate.__init__, _outgoing=False, bias=False)
-# ------------------------- ppy -------------------------------------------------#
 
 
 class FusedTriangleMultiplicativeUpdate(BaseTriangleMultiplicativeUpdate):

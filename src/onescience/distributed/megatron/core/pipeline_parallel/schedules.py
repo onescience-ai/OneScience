@@ -7,13 +7,13 @@ from typing import Callable, Iterator, List, Optional, Union
 import torch
 from torch.autograd.variable import Variable
 
-from megatron.core import parallel_state
-from megatron.core.enums import ModelType
-from megatron.core.pipeline_parallel import p2p_communication
-from megatron.core.transformer.cuda_graphs import create_cudagraphs
-from megatron.core.transformer.moe.router import MoEAuxLossAutoScaler
-from megatron.core.transformer.multi_token_prediction import MTPLossAutoScaler
-from megatron.core.utils import (
+from onescience.distributed.megatron.core import parallel_state
+from onescience.distributed.megatron.core.enums import ModelType
+from onescience.distributed.megatron.core.pipeline_parallel import p2p_communication
+from onescience.distributed.megatron.core.transformer.cuda_graphs import create_cudagraphs
+from onescience.distributed.megatron.core.transformer.moe.router import MoEAuxLossAutoScaler
+from onescience.distributed.megatron.core.transformer.multi_token_prediction import MTPLossAutoScaler
+from onescience.distributed.megatron.core.utils import (
     drain_embedding_wgrad_compute,
     get_attr_wrapped_model,
     get_model_config,

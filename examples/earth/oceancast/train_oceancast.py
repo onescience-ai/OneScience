@@ -1,19 +1,3 @@
-"""
-This Code is adapted from NVIDIA-FourCastNet and is designed to achieve high-precision forecasting of ocean wave parameters (or sea surface parameters) with fine spatiotemporal resolution.
-Change the conf/oceancast.yaml to determine the output.
-
-1. Data Preparation:
-   - Ensure all necessary data is downloaded before training the model.
-   - Split the data into three parts: training, validation, and testing.
-   - Save the data in the designated folder as specified in the `README.md`.
-
-2. Data Organization:
-   - Organize the data structure strictly following the guidelines provided in `README.md`.
-   - If the data is stored in a different directory, update the `data_path` field in `conf/oceancast.yaml` accordingly.
-
-"""
-
-
 import os
 import sys
 import argparse

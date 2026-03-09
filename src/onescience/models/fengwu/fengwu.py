@@ -3,14 +3,10 @@ from dataclasses import dataclass
 
 import numpy as np
 import torch
+from torch import nn
+from onescience.modules import OneEncoder, OneDecoder, OneFuser
 
-from ..layers import (
-    DecoderLayer,
-    EncoderLayer,
-    FuserLayer,
-)
-from ..meta import ModelMetaData
-from ..module import Module
+from onescience.models.meta import ModelMetaData
 
 
 @dataclass
@@ -30,7 +26,7 @@ class MetaData(ModelMetaData):
     auto_grad: bool = False
 
 
-class Fengwu(Module):
+class Fengwu(nn.Module):
     """
     FengWu PyTorch impl of: `FengWu: Pushing the Skillful Global Medium-range Weather Forecast beyond 10 Days Lead`
     - https://arxiv.org/pdf/2304.02948.pdf
@@ -53,184 +49,32 @@ class Fengwu(Module):
         num_heads=(6, 12, 12, 6),
         window_size=(2, 6, 12),
     ):
-        super().__init__(meta=MetaData())
-        drop_path = np.linspace(0, 0.2, 8).tolist()
-        drop_path_fuser = [0.2] * 6
-        resolution_down1 = (
-            math.ceil(img_size[0] / patch_size[0]),
-            math.ceil(img_size[1] / patch_size[1]),
-        )
-        resolution_down2 = (
-            math.ceil(resolution_down1[0] / 2),
-            math.ceil(resolution_down1[1] / 2),
-        )
-        resolution = (resolution_down1, resolution_down2)
-        self.encoder_surface = EncoderLayer(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_chans=4,
-            dim=embed_dim,
-            input_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            depth=2,
-            depth_middle=6,
-            num_heads=num_heads[:2],
-            window_size=window_size[1:],
-            drop_path=drop_path,
-        )
-        self.encoder_z = EncoderLayer(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_chans=pressure_level,
-            dim=embed_dim,
-            input_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            depth=2,
-            depth_middle=6,
-            num_heads=num_heads[:2],
-            window_size=window_size[1:],
-            drop_path=drop_path,
-        )
-        self.encoder_r = EncoderLayer(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_chans=pressure_level,
-            dim=embed_dim,
-            input_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            depth=2,
-            depth_middle=6,
-            num_heads=num_heads[:2],
-            window_size=window_size[1:],
-            drop_path=drop_path,
-        )
-        self.encoder_u = EncoderLayer(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_chans=pressure_level,
-            dim=embed_dim,
-            input_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            depth=2,
-            depth_middle=6,
-            num_heads=num_heads[:2],
-            window_size=window_size[1:],
-            drop_path=drop_path,
-        )
-        self.encoder_v = EncoderLayer(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_chans=pressure_level,
-            dim=embed_dim,
-            input_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            depth=2,
-            depth_middle=6,
-            num_heads=num_heads[:2],
-            window_size=window_size[1:],
-            drop_path=drop_path,
-        )
-        self.encoder_t = EncoderLayer(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_chans=pressure_level,
-            dim=embed_dim,
-            input_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            depth=2,
-            depth_middle=6,
-            num_heads=num_heads[:2],
-            window_size=window_size[1:],
-            drop_path=drop_path,
-        )
+        super().__init__()
+        self.encoder_surface = OneEncoder(style="FengWuEncoder", in_chans=4)
+        
+        self.encoder_z = OneEncoder(style="FengWuEncoder")
 
-        self.fuser = FuserLayer(
-            dim=embed_dim * 2,
-            input_resolution=(6, resolution[1][0], resolution[1][1]),
-            depth=6,
-            num_heads=num_heads[1],
-            window_size=window_size,
-            drop_path=drop_path_fuser,
-        )
+        self.encoder_r = OneEncoder(style="FengWuEncoder")
 
-        self.decoder_surface = DecoderLayer(
-            img_size=img_size,
-            patch_size=patch_size,
-            out_chans=4,
-            dim=embed_dim,
-            output_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            depth=2,
-            depth_middle=6,
-            num_heads=num_heads[:2],
-            window_size=window_size[1:],
-            drop_path=drop_path,
-        )
-        self.decoder_z = DecoderLayer(
-            img_size=img_size,
-            patch_size=patch_size,
-            out_chans=pressure_level,
-            dim=embed_dim,
-            output_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            depth=2,
-            depth_middle=6,
-            num_heads=num_heads[:2],
-            window_size=window_size[1:],
-            drop_path=drop_path,
-        )
-        self.decoder_r = DecoderLayer(
-            img_size=img_size,
-            patch_size=patch_size,
-            out_chans=pressure_level,
-            dim=embed_dim,
-            output_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            depth=2,
-            depth_middle=6,
-            num_heads=num_heads[:2],
-            window_size=window_size[1:],
-            drop_path=drop_path,
-        )
-        self.decoder_u = DecoderLayer(
-            img_size=img_size,
-            patch_size=patch_size,
-            out_chans=pressure_level,
-            dim=embed_dim,
-            output_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            depth=2,
-            depth_middle=6,
-            num_heads=num_heads[:2],
-            window_size=window_size[1:],
-            drop_path=drop_path,
-        )
-        self.decoder_v = DecoderLayer(
-            img_size=img_size,
-            patch_size=patch_size,
-            out_chans=pressure_level,
-            dim=embed_dim,
-            output_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            depth=2,
-            depth_middle=6,
-            num_heads=num_heads[:2],
-            window_size=window_size[1:],
-            drop_path=drop_path,
-        )
-        self.decoder_t = DecoderLayer(
-            img_size=img_size,
-            patch_size=patch_size,
-            out_chans=pressure_level,
-            dim=embed_dim,
-            output_resolution=resolution[0],
-            middle_resolution=resolution[1],
-            depth=2,
-            depth_middle=6,
-            num_heads=num_heads[:2],
-            window_size=window_size[1:],
-            drop_path=drop_path,
-        )
+        self.encoder_u = OneEncoder(style="FengWuEncoder")
+
+        self.encoder_v = OneEncoder(style="FengWuEncoder")
+
+        self.encoder_t = OneEncoder(style="FengWuEncoder")
+
+        self.fuser = OneFuser(style="FengWuFuser")
+
+        self.decoder_surface = OneDecoder(style="FengWuDecoder", out_chans=4)
+
+        self.decoder_z = OneDecoder(style="FengWuDecoder")
+
+        self.decoder_r = OneDecoder(style="FengWuDecoder")
+
+        self.decoder_u =OneDecoder(style="FengWuDecoder")
+
+        self.decoder_v = OneDecoder(style="FengWuDecoder")
+
+        self.decoder_t = OneDecoder(style="FengWuDecoder")
 
     def forward(self, surface, z, r, u, v, t):
         """
@@ -275,10 +119,10 @@ class Fengwu(Module):
             x[:, 5, :, :],
         )
 
-        surface = self.decoder_surface(surface, skip_surface)
-        z = self.decoder_z(z, skip_z)
-        r = self.decoder_r(r, skip_r)
-        u = self.decoder_u(u, skip_u)
-        v = self.decoder_v(v, skip_v)
-        t = self.decoder_t(t, skip_t)
+        surface = self.decoder_surface([surface, skip_surface])
+        z = self.decoder_z([z, skip_z])
+        r = self.decoder_r([r, skip_r])
+        u = self.decoder_u([u, skip_u])
+        v = self.decoder_v([v, skip_v])
+        t = self.decoder_t([t, skip_t])
         return surface, z, r, u, v, t

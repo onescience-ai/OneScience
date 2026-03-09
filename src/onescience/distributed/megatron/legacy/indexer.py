@@ -4,15 +4,15 @@ import time
 import torch
 import torch.distributed as dist
 
-from megatron.training import get_args, print_rank_0
-from megatron.core import mpu
-from megatron.training.checkpointing import load_biencoder_checkpoint
-from megatron.legacy.data.orqa_wiki_dataset import get_open_retrieval_wiki_dataset
-from megatron.legacy.data.orqa_wiki_dataset import get_open_retrieval_batch
-from megatron.legacy.data.biencoder_dataset_utils import get_one_epoch_dataloader
-from megatron.legacy.data.realm_index import detach, OpenRetreivalDataStore
-from megatron.legacy.model.biencoder_model import get_model_provider
-from megatron.training import get_model
+from onescience.distributed.megatron.training import get_args, print_rank_0
+from onescience.distributed.megatron.core import mpu
+from onescience.distributed.megatron.training.checkpointing import load_biencoder_checkpoint
+from onescience.distributed.megatron.legacy.data.orqa_wiki_dataset import get_open_retrieval_wiki_dataset
+from onescience.distributed.megatron.legacy.data.orqa_wiki_dataset import get_open_retrieval_batch
+from onescience.distributed.megatron.legacy.data.biencoder_dataset_utils import get_one_epoch_dataloader
+from onescience.distributed.megatron.legacy.data.realm_index import detach, OpenRetreivalDataStore
+from onescience.distributed.megatron.legacy.model.biencoder_model import get_model_provider
+from onescience.distributed.megatron.training import get_model
 
 
 class IndexBuilder(object):

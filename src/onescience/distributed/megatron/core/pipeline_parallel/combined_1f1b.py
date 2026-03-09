@@ -6,10 +6,10 @@ from typing import List, Union
 
 import torch
 
-from megatron.core.enums import Fp8Recipe
-from megatron.core.fp8_utils import get_fp8_context
-from megatron.core.pipeline_parallel.utils import AbstractSchedulePlan, ScheduleNode, set_streams
-from megatron.core.utils import get_attr_wrapped_model, unwrap_model
+from onescience.distributed.megatron.core.enums import Fp8Recipe
+from onescience.distributed.megatron.core.fp8_utils import get_fp8_context
+from onescience.distributed.megatron.core.pipeline_parallel.utils import AbstractSchedulePlan, ScheduleNode, set_streams
+from onescience.distributed.megatron.core.utils import get_attr_wrapped_model, unwrap_model
 
 # Types
 Shape = Union[List[int], torch.Size]
@@ -218,7 +218,7 @@ def combined_forward_backward_step(
             # which is used to be (forward_output_tensor, loss_function).
             with context_manager:  # autocast context
                 unwrapped_model = unwrap_model(f_model)
-                from megatron.core.models.gpt.gpt_model import GPTModel
+                from onescience.distributed.megatron.core.models.gpt.gpt_model import GPTModel
 
                 assert isinstance(unwrapped_model, GPTModel), (
                     "The final unwrapped model must be a GPTModel instance "
@@ -290,7 +290,7 @@ def combined_forward_backward_step(
     num_tokens = None
     if f_model is not None:
         with f_context:
-            from megatron.core.pipeline_parallel.schedules import forward_step_calc_loss
+            from onescience.distributed.megatron.core.pipeline_parallel.schedules import forward_step_calc_loss
 
             loss_node = ScheduleNode(
                 loss_func, torch.cuda.current_stream(), f_schedule_plan.event, name="loss_func"

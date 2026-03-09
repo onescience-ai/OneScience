@@ -1,6 +1,6 @@
 # Copyright (c) 2025, NVIDIA CORPORATION.  All rights reserved.
 
-from megatron.core.models.huggingface import HuggingFaceModule
+from onescience.distributed.megatron.core.models.huggingface import HuggingFaceModule
 
 try:
     from transformers import AutoModel

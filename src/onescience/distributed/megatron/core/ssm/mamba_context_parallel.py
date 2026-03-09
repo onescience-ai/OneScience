@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from megatron.core.tensor_parallel import all_to_all
+from onescience.distributed.megatron.core.tensor_parallel import all_to_all
 
 try:
     from einops import repeat

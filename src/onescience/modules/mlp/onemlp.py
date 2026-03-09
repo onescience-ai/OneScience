@@ -6,6 +6,7 @@ from .mesh_graph_mlp import MeshGraphEdgeMLPConcat
 from .mesh_graph_mlp import MeshGraphEdgeMLPSum
 from .MLP import StandardMLP, SimpleMLP, DeepResMLP, RegularizedMLP, LightweightMLP
 from .GMLP import GroupEquivariantMLP2d, GroupEquivariantMLP3d
+from .xihemlp import XiheMlp
 
 _MLP_REGISTRY = {
     "MeshGraphMLP": MeshGraphMLP,
@@ -18,6 +19,7 @@ _MLP_REGISTRY = {
     "LightweightMLP": LightweightMLP,
     "GroupEquivariantMLP2d": GroupEquivariantMLP2d,
     "GroupEquivariantMLP3d": GroupEquivariantMLP3d,
+    "XiheMlp":XiheMlp,
 }
 
 class OneMlp(nn.Module):

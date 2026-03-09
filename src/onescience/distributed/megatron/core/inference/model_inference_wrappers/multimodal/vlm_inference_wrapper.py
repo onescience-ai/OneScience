@@ -4,12 +4,12 @@ from typing import Any, Dict, Optional
 
 import torch
 
-from megatron.core.inference.communication_utils import (
+from onescience.distributed.megatron.core.inference.communication_utils import (
     is_pipeline_first_stage,
     is_pipeline_last_stage,
 )
-from megatron.core.inference.contexts import StaticInferenceContext
-from megatron.core.inference.model_inference_wrappers.gpt.gpt_inference_wrapper import (
+from onescience.distributed.megatron.core.inference.contexts import StaticInferenceContext
+from onescience.distributed.megatron.core.inference.model_inference_wrappers.gpt.gpt_inference_wrapper import (
     GPTInferenceWrapper,
 )
 
