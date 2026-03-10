@@ -2,23 +2,26 @@ from torch import nn
 
 from .earthattention2d import EarthAttention2D
 from .earthattention3d import EarthAttention3D
+from .earthdistributedattention3d import EarthDistributedAttention3D
 from .xihefeaturegroupattention import FeatureGroupingAttention
 from .xihefeatureungroupattention import FeatureUngroupingAttention
-from .protenixattention import (
-    ProtenixAttention,
-    ProtenixAttentionPairBias,
-    ProtenixAttentionPairBiasWithLocalAttn,
-)
+# from .protenixattention import (
+#     ProtenixAttention,
+#     ProtenixAttentionPairBias,
+#     ProtenixAttentionPairBiasWithLocalAttn,
+# )
 
 _ATTENTIONER_REGISTRY = {
     "EarthAttention2D": EarthAttention2D,
     "EarthAttention3D": EarthAttention3D,
+    "EarthDistributedAttention3D": EarthDistributedAttention3D,
     "FeatureUngroupingAttention": FeatureUngroupingAttention,
     "FeatureGroupingAttention": FeatureGroupingAttention,
-    "ProtenixAttention": ProtenixAttention,
-    "ProtenixAttentionPairBias": ProtenixAttentionPairBias,
-    "ProtenixAttentionPairBiasWithLocalAttn": ProtenixAttentionPairBiasWithLocalAttn,
+    # "ProtenixAttention": ProtenixAttention,
+    # "ProtenixAttentionPairBias": ProtenixAttentionPairBias,
+    # "ProtenixAttentionPairBiasWithLocalAttn": ProtenixAttentionPairBiasWithLocalAttn,
 }
+
 
 class OneAttention(nn.Module):
     def __init__(self, style: str, **kwargs):

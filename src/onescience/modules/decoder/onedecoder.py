@@ -1,15 +1,15 @@
 from torch import nn
 from .fengwudecoder import FengWuDecoder
 from .mesh_graph_decoder import MeshGraphDecoder
-from .protenixdecoder import ProtenixAtomAttentionDecoder
+# from .protenixdecoder import ProtenixAtomAttentionDecoder
 
 _DECODER_REGISTRY = {
     "FengWuDecoder": FengWuDecoder,
     "MeshGraphDecoder": MeshGraphDecoder,
-    "ProtenixAtomAttentionDecoder": ProtenixAtomAttentionDecoder,
+    # "ProtenixAtomAttentionDecoder": ProtenixAtomAttentionDecoder,
 }
 
-class OneDecoder(nn.Module)
+class OneDecoder(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 

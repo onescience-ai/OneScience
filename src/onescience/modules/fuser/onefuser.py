@@ -1,6 +1,7 @@
 from torch import nn
 
 from .pangufuser import PanguFuser
+from .pangudistributedfuser import PanguDistributedFuser
 from .fengwufuser import FengWuFuser
 from .fourcastnetfuser import FourCastNetFuser
 from .xihelocalsiefuser import XiheLocalSIEFuser
@@ -9,6 +10,7 @@ from .xihefuse import XiheFuser
 
 _FUSER_REGISTRY = {
     "PanguFuser": PanguFuser,
+    "PanguDistributedFuser": PanguDistributedFuser,
     "FengWuFuser": FengWuFuser,
     "FourCastNetFuser": FourCastNetFuser,
     "XiheLocalSIEFuser":XiheLocalSIEFuser,

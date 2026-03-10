@@ -1,16 +1,16 @@
 from torch import nn
 from .fengwuencoder import FengWuEncoder
 from .mesh_graph_encoder import MeshGraphEncoder
-from .protenixencoding import (
-    ProtenixRelativePositionEncoding,
-    ProtenixAtomAttentionEncoder,
-)
+# from .protenixencoding import (
+#     ProtenixRelativePositionEncoding,
+#     ProtenixAtomAttentionEncoder,
+# )
 
 _ENCODER_REGISTRY = {
     "FengWuEncoder": FengWuEncoder,
     "MeshGraphEncoder": MeshGraphEncoder,
-    "ProtenixRelativePositionEncoding": ProtenixRelativePositionEncoding,
-    "ProtenixAtomAttentionEncoder": ProtenixAtomAttentionEncoder,
+    # "ProtenixRelativePositionEncoding": ProtenixRelativePositionEncoding,
+    # "ProtenixAtomAttentionEncoder": ProtenixAtomAttentionEncoder,
 }
 
 class OneEncoder(nn.Module):
