@@ -53,14 +53,33 @@ class XiheGlobalSIEFuser(nn.Module):
         
         self.group_propagation = OneMlp(dim=dim,style="XiheMlp") 
     def forward(self, obj):
-        x=obj.x
-        mask=obj.mask
-        obj.y=x
+        # x=obj.x
+        # mask=obj.mask
+        # obj.y=x
+
+        if isinstance(obj, dict):
+            # 字典方式访问
+            x=obj["x"]
+            mask = obj["mask"].clone().detach().float()
+            obj["y"]=x
+    
+        # 判断是否为对象（非字典的其他类型）
+        else:
+            # 对象方式访问        
+            x=obj.x
+            mask=obj.mask
+            obj.y=x
+            obj={
+                "x":x,
+                "mask":mask,
+                "y":x,
+            }
         
-        x=self.feature_grouping(obj,mask=obj.mask)
+        x=self.feature_grouping(obj,mask=mask)
         x=self.group_propagation(x)
-        obj.x=x
-        x=self.feature_ungrouping(obj,mask=obj.mask)
+        # obj.x=x
+        obj["x"]=x 
+        x=self.feature_ungrouping(obj,mask=mask)
  
         return x
     

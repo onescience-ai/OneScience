@@ -68,8 +68,19 @@ class FeatureUngroupingAttention(nn.Module):
         x: (B, N, C)  patch tokens
         G_tilde: (B, G, C)  group vectors
         """
-        x=obj.y
-        G_tilde=obj.x
+        # x=obj.y
+        # G_tilde=obj.x
+
+        if isinstance(obj, dict):
+            # 字典方式访问
+            x=obj["y"]
+            G_tilde=obj["x"]
+    
+        # 判断是否为对象（非字典的其他类型）
+        else:
+            # 对象方式访问        
+            x=obj.y
+            G_tilde=obj.x
         
         B, N, C = x.shape
         _, G, _ = G_tilde.shape
