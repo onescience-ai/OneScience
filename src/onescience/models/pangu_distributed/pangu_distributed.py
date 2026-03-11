@@ -94,7 +94,7 @@ class Pangu(Module):
         )
 
         self.layer1 = OneFuser(
-            style="PanguDistributedFuser",
+            style="PanguFuser",
             dim=embed_dim,
             input_resolution=patched_inp_shape,
             depth=self.l1d,
@@ -116,7 +116,7 @@ class Pangu(Module):
             in_dim=embed_dim,
         )
         self.layer2 = OneFuser(
-            style="PanguDistributedFuser",
+            style="PanguFuser",
             dim=embed_dim * 2,
             input_resolution=patched_inp_shape_downsample,
             depth=self.l2d,
@@ -126,7 +126,7 @@ class Pangu(Module):
             config = config
         )
         self.layer3 = OneFuser(
-            style="PanguDistributedFuser",
+            style="PanguFuser",
             dim=embed_dim * 2,
             input_resolution=patched_inp_shape_downsample,
             depth=self.l3d,
@@ -143,7 +143,7 @@ class Pangu(Module):
             output_resolution=patched_inp_shape
         )
         self.layer4 = OneFuser(
-            style="PanguDistributedFuser",
+            style="PanguFuser",
             dim=embed_dim,
             input_resolution=patched_inp_shape,
             depth=self.l4d,
