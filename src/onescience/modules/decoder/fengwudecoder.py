@@ -149,7 +149,7 @@ class FengWuDecoder(nn.Module):
         )
 
         self.patchrecovery2d = OneRecovery(
-            style="pangupatchrecovery2d",
+            style="PanguPatchRecovery2D",
             img_size=img_size, 
             patch_size=patch_size, 
             in_chans=2 * dim, 

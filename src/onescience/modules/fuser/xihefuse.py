@@ -100,17 +100,35 @@ class XiheFuser(nn.Module):
         x: (B, N, C)
         mask: (可选) ocean-land mask
         """
-        x=obj.x
-        mask=obj.mask
+        # x=obj.x
+        # mask=obj.mask
+
+        if isinstance(obj, dict):
+            # 字典方式访问
+            x=obj["x"]
+            mask = obj["mask"].clone().detach().float()
+    
+        # 判断是否为对象（非字典的其他类型）
+        else:
+            # 对象方式访问        
+            x=obj.x
+            mask=obj.mask
+            obj={
+                "x":x,
+                "mask":mask,
+            }
         
+
         # Local SIE(s)
         for local in self.local_sie_blocks:
             x = local(obj) if mask is None else local(obj)
-            obj.x=x
+            # obj.x=x
+            obj["x"]=x 
 
         # Global SIE(s)
         for global_sie in self.global_sie_blocks:
             x = global_sie(obj) if mask is None else global_sie(obj)
-            obj.x=x
+            # obj.x=x
+            obj["x"]=x
 
         return x

@@ -79,11 +79,25 @@ class XiheLocalSIEFuser(nn.Module):
         )
 
     def forward(self, obj):
-        x=obj.x
-        mask=obj.mask
-        
+        # x=obj.x
+        # mask=obj.mask
+
+        if isinstance(obj, dict):
+            # 字典方式访问
+            x=obj["x"]
+            mask = obj["mask"].clone().detach().float()
+    
+        # 判断是否为对象（非字典的其他类型）
+        else:
+            # 对象方式访问        
+            x=obj.x
+            mask=obj.mask
+            obj={
+                "x":x,
+                "mask":mask,
+            }   
         for blk in self.blocks:
             x = blk(x) if mask is None else blk(obj)
-            obj.x=x
-            
+            # obj.x=x
+            obj["x"]=x             
         return x

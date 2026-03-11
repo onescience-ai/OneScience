@@ -17,7 +17,7 @@ _DECODER_REGISTRY = {
     "ProtenixAtomAttentionDecoder": ProtenixAtomAttentionDecoder,
 }
 
-class OneDecoder(nn.Module)
+class OneDecoder(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
