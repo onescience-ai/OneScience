@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 from timm.layers import DropPath, to_2tuple
-from onescience.modules import OneMlp, OneAttention
+from onescience.modules.mlp.onemlp import OneMlp
+from onescience.modules.attention.oneattention import OneAttention
 
 def window_partition(x, window_size):
     B, H, W, C = x.shape

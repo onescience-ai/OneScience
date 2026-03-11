@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from onescience.modules import OneMlp
+from onescience.modules.mlp.onemlp import OneMlp
 
 class PreLNTransformerBlock(nn.Module):
     """

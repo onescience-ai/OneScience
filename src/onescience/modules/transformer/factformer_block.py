@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 from typing import Optional, List, Union
 
-# --- 引入模块工厂 ---
-from onescience.modules import OneMlp, OneAttention
+from onescience.modules.mlp.onemlp import OneMlp
+from onescience.modules.attention.oneattention import OneAttention
 
 class Factformer_block(nn.Module):
     """

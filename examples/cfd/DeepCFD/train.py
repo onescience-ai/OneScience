@@ -16,26 +16,25 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # 动态导入模型
 def init_model(cfg):
     model_name = cfg.model.name
+
     if model_name == "UNet":
         from onescience.models.deepcfd.UNet import UNet
         net_class = UNet
     elif model_name == "UNetEx":
         from onescience.models.deepcfd.UNetEx import UNetEx
         net_class = UNetEx
-    elif model_name == "AutoEncoder":
-        from onescience.models.deepcfd.AutoEncoder import AutoEncoder
-        net_class = AutoEncoder
     else:
         raise ValueError(f"Unknown network: {model_name}")
-    
     model = net_class(
-        cfg.model.in_channels,
-        cfg.model.out_channels,
-        filters=cfg.model.filters,
-        kernel_size=cfg.model.kernel_size,
-        batch_norm=cfg.model.batch_norm,
-        weight_norm=cfg.model.weight_norm
+        in_channels=cfg.model.in_channels,
+        out_channels=cfg.model.out_channels,
+        base_channels=cfg.model.base_channels,
+        num_stages=cfg.model.num_stages,
+        bilinear=cfg.model.bilinear,
+        normtype=cfg.model.normtype,
+        kernel_size=cfg.model.kernel_size
     )
+    
     return model
 
 def loss_func(output, target, weights):

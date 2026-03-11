@@ -5,10 +5,10 @@ from .unet_encoder import UNetEncoder1D, UNetEncoder2D, UNetEncoder3D
 from .graphvit_encoder import GraphViTEncoder
 from .mesh_graph_encoder import MeshGraphEncoder
 from .fengwuencoder import FengWuEncoder
-from .protenixencoding import (
-    ProtenixRelativePositionEncoding,
-    ProtenixAtomAttentionEncoder,
-)
+# from .protenixencoding import (
+#     ProtenixRelativePositionEncoding,
+#     ProtenixAtomAttentionEncoder,
+# )
 
 _ENCODER_REGISTRY = {
     "UNetEncoder1D": UNetEncoder1D,
@@ -17,8 +17,8 @@ _ENCODER_REGISTRY = {
     "GraphViTEncoder": GraphViTEncoder,
     "MeshGraphEncoder":MeshGraphEncoder,
     "FengWuEncoder": FengWuEncoder,
-    "ProtenixRelativePositionEncoding": ProtenixRelativePositionEncoding,
-    "ProtenixAtomAttentionEncoder": ProtenixAtomAttentionEncoder,
+    # "ProtenixRelativePositionEncoding": ProtenixRelativePositionEncoding,
+    # "ProtenixAtomAttentionEncoder": ProtenixAtomAttentionEncoder,
 }
 
 class OneEncoder(nn.Module):

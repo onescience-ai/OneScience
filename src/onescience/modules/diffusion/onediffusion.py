@@ -1,17 +1,17 @@
 from torch import nn
 
 from .diffusionmodule import DiffusionModule
-from .protenixdiffusion import (
-    ProtenixDiffusionConditioning,
-    ProtenixDiffusionSchedule,
-    ProtenixDiffusionModule,
-)
+# from .protenixdiffusion import (
+#     ProtenixDiffusionConditioning,
+#     ProtenixDiffusionSchedule,
+#     ProtenixDiffusionModule,
+# )
 
 _DIFFUSION_REGISTRY = {
     "DiffusionModule": DiffusionModule,
-    "ProtenixDiffusionConditioning": ProtenixDiffusionConditioning,
-    "ProtenixDiffusionSchedule": ProtenixDiffusionSchedule,
-    "ProtenixDiffusionModule": ProtenixDiffusionModule,
+    # "ProtenixDiffusionConditioning": ProtenixDiffusionConditioning,
+    # "ProtenixDiffusionSchedule": ProtenixDiffusionSchedule,
+    # "ProtenixDiffusionModule": ProtenixDiffusionModule,
 }
 
 
