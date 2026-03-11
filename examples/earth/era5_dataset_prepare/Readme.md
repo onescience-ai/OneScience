@@ -4,7 +4,7 @@ Here contains some steps to construct era5 dataset for onescience-earth models.
 
 ## Download the data from ECMWF
 
-Firstly, you need to sign up and get the cdsapi-key from official website.
+Firstly, you need to sign up from official website.
 https://cds.climate.copernicus.eu/datasets
 
 Mostly used two dataset: 

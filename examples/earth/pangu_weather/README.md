@@ -10,132 +10,63 @@
 
 **数据集准备**
 
-曙光新一代机器平台数据集统一存放在 =  /public/onestore/onedatasets/ERA5
+数据存储格式参照'../era5_dataset_prepare/README.md'中'Final state'中数据集目录构造及文件存储内容。
 
-天津体验区统一存放在 = /work/home/onescience2025/osdatasets/pangu_weather/dataset 
+用户若没有数据，可根据'../era5_dataset_prepare/README.md'步骤，进行ERA5数据的下载、转换、整合；
 
-用户如自备数据，则需在conf/config.yaml中指定数据路径，下述路径具体包含内容为：
-
-```
-stats_dir: #均值、标准差
-mask_dir: #陆地掩码
-checkpoint_dir: #模型文件存储路径
-train_data_dir: #训练集
-val_data_dir: #验证集
-test_data_dir: #推理集
-```
-
-在训练阶段数据集目录内需确保存在static、stats、train、val四个文件夹；
-
-在推理阶段数据集目录内需确保存在static、stats、test三个文件夹；
-
-执行训练过程前，先通过"python get_stas.py"获取均值、标准差文件用于后续归一化(推理过程也需确保存在这两个文件)；
-
-## 训练
-
-用户如需指定可用卡号，需在终端内根据下述命令指定可用卡号(以使用0号卡和2、3号卡为例，展示2个示例命令)，随后再通过sh脚本进行单机单卡、单机多卡以及多机多卡训练；
+用户若自备数据，需按照格式要求整合后，在'conf/config.yaml'中修改相应数据存储路径及划分方式，具体参数含义为：
 
 ```
-export HIP_VISIBLE_DEVICES=0
-export HIP_VISIBLE_DEVICES=2,3
+stats_dir: 存放均值、标准差等文件，用于数据标准化
+static_dir: 存放静态文件，例如陆地掩码等，若模型不需要则跳过
+data_dir: 数据存放路径
+train_ratio: 训练集划分比例，支持(1. 指定年份，例如[2000, 2001]; 2.比例(小数方式)，例如0.6; 3.年份数量，例如15)
+val_ratio: 验证集划分比例，支持(1. 指定年份，例如[2002, 2003]; 2.比例(小数方式)，例如0.3; 3.年份数量，例如3)
+test_ratio: 测试集划分比例，支持(1. 指定年份，例如[2004]; 2.比例(小数方式)，例如0.1; 3.年份数量，例如1)
 ```
 
-单机单卡训练：
+用户若使用临时虚拟数据测试模型运行情况或测试机器性能，可通过下述命令得到虚拟数据文件；
 
+运行前需仔细确认config中上述3个数据路径，不要覆盖已有数据，程序会自动创建相应文件夹，同时，需要提前根据work_dcu.sh内容激活conda环境以及加载DTK环境。
 ```
-bash train_single_node_single_device.sh
-```
-
-单机多卡训练(默认4卡，可将--nproc_per_node=4中的4改为需要卡数即可)：
-
-```
-bash train_single_node_multi_device.sh
+python tmp_data_generation.py
 ```
 
-多机多卡训练：
+**运行**
+
+work_dcu.sh脚本中，包含训练(单机单卡、单机多卡)、推理以及结果验证(包含误差计算及案例可视化)过程。
+
+相关配置请**按照相应平台进行修改**，例如**DTK加载、conda环境激活等**；
+
+激活(即取消注释)相应模块后，通过下述命令运行
 
 ```
-sbatch train_via_slurm.sh
+bash work_dcu.sh
 ```
 
-运行多机多卡训练前，需确保目录内有logs文件(默认没有该文件夹)
+单机单卡训练时，激活python train.py；
 
-默认每个节点有4卡；
+单机多卡训练时，激活torchrun --nproc_per_node=8 --nnodes=1 --rdzv_id=1000 --rdzv_backend=c10d --max_restarts=0 --master_addr="localhost" --master_port=29500 train.py
 
-通过修改#SBATCH -N 后面的数字指定节点数，下面以8个节点为例，每个节点4卡，共32卡；
+**--nproc_per_node=8**代表当前机器共几个加速卡（默认8个）
 
-若没有该文件，则参考下述命令手动创建即可；
+推理时(单机单卡)，激活python inference.py (结果存放在./result/文件夹下)
 
-conda激活的环境需自行指定。
+结果验证时，激活python result.py，支持通过指定日期及变量进行可视化(需确保'./result/'内包含改日期以及config内包含该变量)。
 
-```
-#!/bin/bash
-#SBATCH -p k100ai
-#SBATCH -N 8
-#SBATCH --gres=dcu:4
-#SBATCH --cpus-per-task=32
-#SBATCH --ntasks-per-node=1
-#SBATCH -J pangu_weather
-#SBATCH -o logs/%j.out
-#SBATCH -e logs/%j.out
+work_slurm.sh脚本负责集群训练，DTK加载、conda激活等同单机运行脚本，请注意修改相关配置；
 
-unset ROCBLAS_TENSILE_LIBPATH
-echo "START TIME: $(date)"
-
-module purge
-
-source ~/conda.env
-conda activate pangu_weather
-module load compiler/dtk/25.04
-
-which python
-which hipcc
-
-export NCCL_IB_HCA=mlx5_0
-export NCCL_SOCKET_IFNAME=ib0
-export HSA_FORCE_FINE_GRAIN_PCIE=1
-export OMP_NUM_THREADS=1
-export HIP_VISIBLE_DEVICES=0,1,2,3
-nodes=$(scontrol show hostnames $SLURM_JOB_NODELIST)
-nodes_array=($nodes)
-
-# 第一个节点的地址
-master_addr=${nodes_array[0]}
-
-# 主节点的端口（可以根据需要调整）
-master_port=29500
-
-# 在每个节点上启动 torchrun
-echo SLURM_NNODES=$SLURM_NNODES
-echo master_addr=$master_addr
-echo master_port=$master_port
-
-srun --nodes=$SLURM_NNODES --ntasks=$SLURM_NNODES torchrun \
-            --nnodes=$SLURM_NNODES \
-            --node_rank=$SLURM_NODEID \
-            --nproc_per_node=4 \
-            --rdzv_id=$SLURM_JOB_ID \
-            --rdzv_backend=c10d \
-            --rdzv_endpoint=$master_addr:$master_port \
-            train_pangu_era5.py
-```
-
-单机单卡推理，推理结果将存放在通目录result/下：
+请注意，在使用集群训练时，**请确保#SBATCH -o 后的路径存在**，默认为logs，需手动创建文件夹，提交作业方式如下：
 
 ```
-python inference.py
+sbatch work_slurm.sh
 ```
 
-误差计算，计算所有通道的RMSE及平均RMSE，并给出3个样本3个通道的结果图可视化：
+**模型快速部署测试方法**
 
-```
-python result.py
-```
+1. 在train.py中训练、验证循环末尾添加添加break快速跳过一轮训练，同时，将config中model.max_epoch设为1实现快速得到模型权重文件；
+2. 在inference中得到几个推理文件后可提前中断；
 
-## 在超算互联网使用
+**许可证**
 
-商品地址：暂未上线
-
-## 许可证
-
-Pangu_weather项目（包括代码和模型参数）在[Apache 2.0](https://github.com/bytedance/Protenix/blob/main/LICENSE)许可下提供，可免费用于学术研究和商业用途。
+Pangu-weather项目（包括代码和模型参数）在Apache 2.0许可下提供，可免费用于学术研究和商业用途。
