@@ -12,3 +12,6 @@ from .pangu_utils import (
     save_checkpoint,
     Mlp
 )
+from .xihe_utils import(
+    change_mask
+)

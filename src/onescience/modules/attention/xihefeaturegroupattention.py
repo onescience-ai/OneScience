@@ -70,9 +70,24 @@ class FeatureGroupingAttention(nn.Module):
         """
         x: (B, N, C)  -> 来自 Local SIE 的特征
         """
-        x=obj.x
-        mask_tokens=obj.mask
-        
+        # x=obj.x
+        # mask_tokens=obj.mask
+
+        if isinstance(obj, dict):
+            # 字典方式访问
+            x=obj["x"]
+            mask_tokens=obj["mask"].clone().detach().float()
+    
+        # 判断是否为对象（非字典的其他类型）
+        else:
+            # 对象方式访问        
+            x=obj.x
+            mask_tokens=obj.mask
+            obj={
+                "x":x,
+                "mask":mask_tokens,
+            }
+            
         B, N, C = x.shape
         x = self.norm(x)  # (B, N, C)
         

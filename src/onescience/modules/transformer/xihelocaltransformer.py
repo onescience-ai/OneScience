@@ -115,8 +115,23 @@ class XihelocalTransformer(nn.Module):
 
     # def forward(self, x: torch.Tensor,mask: torch.Tensor = None):
     def forward(self, obj):
-        x=obj.x
-        mask=obj.mask
+        # x=obj.x
+        # mask=obj.mask
+        
+        if isinstance(obj, dict):
+            # 字典方式访问
+            x=obj["x"]
+            mask = obj["mask"].clone().detach().float()
+    
+        # 判断是否为对象（非字典的其他类型）
+        else:
+            # 对象方式访问        
+            x=obj.x
+            mask=obj.mask
+            obj={
+                "x":x,
+                "mask":mask,
+            } 
         Pl, Lat, Lon = self.input_resolution
         B, L, C = x.shape
         
