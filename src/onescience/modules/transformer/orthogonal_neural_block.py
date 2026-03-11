@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
 import warnings
-
-# --- 引入模块化组件 ---
-from onescience.modules import OneMlp, OneAttention
+from onescience.modules.mlp.onemlp import OneMlp
+from onescience.modules.attention.oneattention import OneAttention
 
 def psd_safe_cholesky(A, upper=False, out=None, jitter=None):
     """

@@ -5,7 +5,7 @@ from .unet_decoder import UNetDecoder1D, UNetDecoder2D, UNetDecoder3D
 from .graphvit_decoder import GraphViTDecoder
 from .mesh_graph_decoder import MeshGraphDecoder
 from .fengwudecoder import FengWuDecoder
-from .protenixdecoder import ProtenixAtomAttentionDecoder
+#from .protenixdecoder import ProtenixAtomAttentionDecoder
 
 _DECODER_REGISTRY = {
     "UNetDecoder1D": UNetDecoder1D,
@@ -14,7 +14,7 @@ _DECODER_REGISTRY = {
     "GraphViTDecoder": GraphViTDecoder,
     "MeshGraphDecoder": MeshGraphDecoder,
     "FengWuDecoder": FengWuDecoder,
-    "ProtenixAtomAttentionDecoder": ProtenixAtomAttentionDecoder,
+    #"ProtenixAtomAttentionDecoder": ProtenixAtomAttentionDecoder,
 }
 
 class OneDecoder(nn.Module):

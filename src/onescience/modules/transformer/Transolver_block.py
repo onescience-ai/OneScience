@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from onescience.modules import OneAttention, OneMlp
+from onescience.modules.mlp.onemlp import OneMlp
+from onescience.modules.attention.oneattention import OneAttention
 _GEOTYPE_TO_ATTN_STYLE = {
     "unstructured": "Physics_Attention_Irregular_Mesh",
     "unstructured_plus": "Physics_Attention_Irregular_Mesh_plus",

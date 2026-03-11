@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 from typing import Optional
 
-from onescience.modules import OneMlp, OneAttention
+from onescience.modules.mlp.onemlp import OneMlp
+from onescience.modules.attention.oneattention import OneAttention
 
 class Galerkin_Transformer_block(nn.Module):
     """

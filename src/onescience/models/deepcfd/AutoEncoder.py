@@ -20,7 +20,7 @@ def create_layer(in_channels, out_channels, kernel_size, wn=True, bn=True,
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, filters=[16, 32, 64],
+    def __init__(self, in_channels, out_channels, kernel_size=3, filters=[8, 16, 32, 64],
                  weight_norm=True, batch_norm=True, activation=nn.ReLU, final_activation=None):
         super().__init__()
         assert len(filters) > 0

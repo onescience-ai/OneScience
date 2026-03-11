@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from onescience.modules.mlp import StandardMLP as MLP
-from onescience.modules.attention.linearattention import LinearAttention
+from onescience.modules.mlp.onemlp import OneMlp
+from onescience.modules.attention.oneattention import OneAttention
 
 class GNOTTransformerBlock(nn.Module):
     """
@@ -13,7 +13,7 @@ class GNOTTransformerBlock(nn.Module):
 
     主要组件：
     1. **Cross Attention**: 融合几何特征 (x) 和物理特征 (y)。
-    2. **MoE MLP 1**: 第一层混合专家前馈网络，由门控网络 (GateNet) 控制专家的加权求和。
+    2. **MoE MLP 1**: 第一层混合专家前馈网络，由门控网络 (GateNet) 基于空间坐标控制专家的加权求和。
     3. **Self Attention**: 几何特征内部的线性自注意力。
     4. **MoE MLP 2**: 第二层混合专家前馈网络。
 
@@ -56,21 +56,24 @@ class GNOTTransformerBlock(nn.Module):
         n_experts=3,
     ):
         super().__init__()
+
         self.ln1 = nn.LayerNorm(hidden_dim)
         self.ln2 = nn.LayerNorm(hidden_dim)
         self.ln3 = nn.LayerNorm(hidden_dim)
         self.ln4 = nn.LayerNorm(hidden_dim)
         self.ln5 = nn.LayerNorm(hidden_dim)
 
-        # Linear Attention
-        self.selfattn = LinearAttention(
-            hidden_dim,
+        # Linear Attention 重构
+        self.selfattn = OneAttention(
+            style="LinearAttention",
+            dim=hidden_dim,
             heads=num_heads,
             dim_head=hidden_dim // num_heads,
             dropout=dropout,
         )
-        self.crossattn = LinearAttention(
-            hidden_dim,
+        self.crossattn = OneAttention(
+            style="LinearAttention",
+            dim=hidden_dim,
             heads=num_heads,
             dim_head=hidden_dim // num_heads,
             dropout=dropout,
@@ -79,11 +82,12 @@ class GNOTTransformerBlock(nn.Module):
         self.resid_drop1 = nn.Dropout(dropout)
         self.resid_drop2 = nn.Dropout(dropout)
 
-        ## MLP in MOE
         self.n_experts = n_experts
         
+        # MoE MLP 重构
         self.moe_mlp1 = nn.ModuleList([
-            MLP(
+            OneMlp(
+                style="StandardMLP",
                 input_dim=hidden_dim,
                 output_dim=hidden_dim,
                 hidden_dims=[hidden_dim * mlp_ratio],
@@ -94,7 +98,8 @@ class GNOTTransformerBlock(nn.Module):
         ])
 
         self.moe_mlp2 = nn.ModuleList([
-            MLP(
+            OneMlp(
+                style="StandardMLP",
                 input_dim=hidden_dim,
                 output_dim=hidden_dim,
                 hidden_dims=[hidden_dim * mlp_ratio],
@@ -104,7 +109,9 @@ class GNOTTransformerBlock(nn.Module):
             for _ in range(self.n_experts)
         ])
         
-        self.gatenet = MLP(
+        # Gatenet 重构
+        self.gatenet = OneMlp(
+            style="StandardMLP",
             input_dim=space_dim,
             output_dim=self.n_experts,
             hidden_dims=[hidden_dim * mlp_ratio, hidden_dim * mlp_ratio],
@@ -113,26 +120,22 @@ class GNOTTransformerBlock(nn.Module):
         )
 
     def forward(self, x, y, pos):
-        ## point-wise gate for moe
         gate_score = F.softmax(self.gatenet(pos), dim=-1).unsqueeze(2)
         
-        ## cross attention between geo and physics observation
         x = x + self.resid_drop1(self.crossattn(self.ln1(x), self.ln2(y)))
         
-        ## moe mlp 1
         x_moe1 = torch.stack(
             [self.moe_mlp1[i](x) for i in range(self.n_experts)], dim=-1
         )
         x_moe1 = (gate_score * x_moe1).sum(dim=-1, keepdim=False)
         x = x + self.ln3(x_moe1)
         
-        ## self attention among geo
         x = x + self.resid_drop2(self.selfattn(self.ln4(x)))
         
-        ## moe mlp 2
         x_moe2 = torch.stack(
             [self.moe_mlp2[i](x) for i in range(self.n_experts)], dim=-1
         )
         x_moe2 = (gate_score * x_moe2).sum(dim=-1, keepdim=False)
         x = x + self.ln5(x_moe2)
+        
         return x

@@ -7,6 +7,7 @@ from onescience.modules.mlp.onemlp import OneMlp
 
 class XiheGlobalSIEFuser(nn.Module):
     """
+    Xihe 模型的全局特征融合模块，基于分组注意力机制实现全局特征交互。
         Xihe 模型的全局特征融合模块，基于分组注意力机制实现全局特征交互。
 
         Args:
