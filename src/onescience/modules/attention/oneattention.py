@@ -18,11 +18,11 @@ from .windowattention import WindowAttention
 from .nystrom_attention import NystromAttention
 from .xihefeaturegroupattention import FeatureGroupingAttention
 from .xihefeatureungroupattention import FeatureUngroupingAttention
-# from .protenixattention import (
-#     ProtenixAttention,
-#     ProtenixAttentionPairBias,
-#     ProtenixAttentionPairBiasWithLocalAttn,
-# )
+from .protenixattention import (
+    ProtenixAttention,
+    ProtenixAttentionPairBias,
+    ProtenixAttentionPairBiasWithLocalAttn,
+)
 _ATTENTIONER_REGISTRY = {
     "EarthAttention2D": EarthAttention2D,
     "EarthAttention3D": EarthAttention3D,
@@ -42,9 +42,9 @@ _ATTENTIONER_REGISTRY = {
     "NystromAttention": NystromAttention,
     "FeatureUngroupingAttention": FeatureUngroupingAttention,
     "FeatureGroupingAttention": FeatureGroupingAttention,
-    # "ProtenixAttention": ProtenixAttention,
-    # "ProtenixAttentionPairBias": ProtenixAttentionPairBias,
-    # "ProtenixAttentionPairBiasWithLocalAttn": ProtenixAttentionPairBiasWithLocalAttn,
+    "ProtenixAttention": ProtenixAttention,
+    "ProtenixAttentionPairBias": ProtenixAttentionPairBias,
+    "ProtenixAttentionPairBiasWithLocalAttn": ProtenixAttentionPairBiasWithLocalAttn,
 }
 
 class OneAttention(nn.Module):
