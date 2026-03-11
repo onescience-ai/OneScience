@@ -6,11 +6,11 @@ from .fuxiembedding import FuxiEmbedding
 from .fourcastnetembedding import FourCastNetEmbedding
 from .xiheembedding import XiheEmbedding
 from .graphcast_embedder import GraphCastEncoderEmbedder, GraphCastDecoderEmbedder
-# from .protenixembedding import (
-#     ProtenixFourierEmbedding,
-#     ProtenixInputFeatureEmbedder,
-#     ProtenixTemplateEmbedder,
-# )
+from .protenixembedding import (
+    ProtenixFourierEmbedding,
+    ProtenixInputFeatureEmbedder,
+    ProtenixTemplateEmbedder,
+)
 
 _EMBEDDER_REGISTRY = {
     "PanguEmbedding2D": PanguEmbedding2D,
@@ -20,9 +20,9 @@ _EMBEDDER_REGISTRY = {
     "XiheEmbedding": XiheEmbedding,
     "GraphCastEncoderEmbedder": GraphCastEncoderEmbedder,
     "GraphCastDecoderEmbedder": GraphCastDecoderEmbedder,
-    # "ProtenixFourierEmbedding": ProtenixFourierEmbedding,
-    # "ProtenixInputFeatureEmbedder": ProtenixInputFeatureEmbedder,
-    # "ProtenixTemplateEmbedder": ProtenixTemplateEmbedder,
+    "ProtenixFourierEmbedding": ProtenixFourierEmbedding,
+    "ProtenixInputFeatureEmbedder": ProtenixInputFeatureEmbedder,
+    "ProtenixTemplateEmbedder": ProtenixTemplateEmbedder,
 }
 
 class OneEmbedding(nn.Module):

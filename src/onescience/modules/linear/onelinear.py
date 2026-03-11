@@ -1,15 +1,15 @@
 from torch import nn
 
-# from .protenixlinear import (
-#     ProtenixLinear,
-#     ProtenixLinearNoBias,
-#     ProtenixBiasInitLinear,
-# )
+from .protenixlinear import (
+    ProtenixLinear,
+    ProtenixLinearNoBias,
+    ProtenixBiasInitLinear,
+)
 
 _LINEAR_REGISTRY = {
-    # "ProtenixLinear": ProtenixLinear,
-    # "ProtenixLinearNoBias": ProtenixLinearNoBias,
-    # "ProtenixBiasInitLinear": ProtenixBiasInitLinear,
+    "ProtenixLinear": ProtenixLinear,
+    "ProtenixLinearNoBias": ProtenixLinearNoBias,
+    "ProtenixBiasInitLinear": ProtenixBiasInitLinear,
 }
 
 

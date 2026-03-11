@@ -5,11 +5,11 @@ from .earthattention3d import EarthAttention3D
 from .earthdistributedattention3d import EarthDistributedAttention3D
 from .xihefeaturegroupattention import FeatureGroupingAttention
 from .xihefeatureungroupattention import FeatureUngroupingAttention
-# from .protenixattention import (
-#     ProtenixAttention,
-#     ProtenixAttentionPairBias,
-#     ProtenixAttentionPairBiasWithLocalAttn,
-# )
+from .protenixattention import (
+    ProtenixAttention,
+    ProtenixAttentionPairBias,
+    ProtenixAttentionPairBiasWithLocalAttn,
+)
 
 _ATTENTIONER_REGISTRY = {
     "EarthAttention2D": EarthAttention2D,
@@ -17,9 +17,9 @@ _ATTENTIONER_REGISTRY = {
     "EarthDistributedAttention3D": EarthDistributedAttention3D,
     "FeatureUngroupingAttention": FeatureUngroupingAttention,
     "FeatureGroupingAttention": FeatureGroupingAttention,
-    # "ProtenixAttention": ProtenixAttention,
-    # "ProtenixAttentionPairBias": ProtenixAttentionPairBias,
-    # "ProtenixAttentionPairBiasWithLocalAttn": ProtenixAttentionPairBiasWithLocalAttn,
+    "ProtenixAttention": ProtenixAttention,
+    "ProtenixAttentionPairBias": ProtenixAttentionPairBias,
+    "ProtenixAttentionPairBiasWithLocalAttn": ProtenixAttentionPairBiasWithLocalAttn,
 }
 
 

@@ -1,10 +1,10 @@
 from torch import nn
 
-# from .protenixpairformer import ProtenixPairformerBlock, ProtenixPairformerStack
+from .protenixpairformer import ProtenixPairformerBlock, ProtenixPairformerStack
 
 _PAIRFORMER_REGISTRY = {
-    # "ProtenixPairformerBlock": ProtenixPairformerBlock,
-    # "ProtenixPairformerStack": ProtenixPairformerStack,
+    "ProtenixPairformerBlock": ProtenixPairformerBlock,
+    "ProtenixPairformerStack": ProtenixPairformerStack,
 }
 
 
