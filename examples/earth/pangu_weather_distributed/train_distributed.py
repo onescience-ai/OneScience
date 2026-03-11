@@ -4,19 +4,15 @@ import random
 from functools import partial
 import numpy as np
 
-from era5_hdf5 import ERA5Dataset
-# from onescience.datapipes.climate import ERA5HDF5Datapipe
-from onescience.utils.fcn.YParams import YParams
-from model_distributed import Pangu,Pangu_stage0,Pangu_stage1
-
-import json
+from onescience.datapipes.climate import ERA5Dataset
+from onescience.utils.YParams import YParams
+from onescience.models.pangu_distributed import Pangu,Pangu_stage0,Pangu_stage1
+from onescience.metrics import L1_loss
 
 import torch
 import torch.distributed as dist
 
-from onescience.distributed.megatron.core import parallel_state
 from onescience.distributed.megatron.core.tensor_parallel.random import model_parallel_cuda_manual_seed
-from onescience.distributed.megatron.core.model_parallel_config import ModelParallelConfig
 from onescience.distributed.megatron.training import pretrain
 from onescience.distributed.megatron.training import get_args
 from onescience.distributed.megatron.core import mpu
@@ -28,14 +24,11 @@ def para_init():
         dist.init_process_group(backend="nccl")
     local_rank = int(os.environ["LOCAL_RANK"])
     torch.cuda.set_device(local_rank)
-    # print('GPUs:', dist.get_world_size())
 
     seed = 2222
     args = get_args()
     config = core_transformer_config_from_args(args)
-    # tensor_model_parallel_size = config.tensor_model_parallel_size
-    # pipeline_model_parallel_size = config.pipeline_model_parallel_size
-    #parallel_state.initialize_model_parallel(tensor_model_parallel_size, pipeline_model_parallel_size)
+
     model_parallel_cuda_manual_seed(seed)
     torch.manual_seed(seed)
 
@@ -49,7 +42,7 @@ def para_init():
     return config
 
 def train_valid_test_dataset_provider(train_val_test_num_samples):
-    train_num, val_num, test_num = train_val_test_num_samples
+    # train_num, val_num, test_num = train_val_test_num_samples
     
     current_path = os.getcwd()
     sys.path.append(current_path)
@@ -63,10 +56,7 @@ def train_valid_test_dataset_provider(train_val_test_num_samples):
     train_dataset = ERA5Dataset(params=cfg, mode='train')
     val_dataset = ERA5Dataset(params=cfg, mode='val')
     test_dataset = ERA5Dataset(params=cfg, mode='test')
-    
-    # train_dataset = ERA5Dataset(params=cfg, data_paths=cfg.train_data_dir)
-    # val_dataset = ERA5Dataset(params=cfg, data_paths=cfg.val_data_dir)
-    # test_dataset = ERA5Dataset(params=cfg, data_paths=cfg.test_data_dir)
+
     print("len train:"+str(len(train_dataset)))
     print("len val:"+str(len(val_dataset)))
     print("len test:"+str(len(test_dataset)))
@@ -108,7 +98,7 @@ def model_provider(pre_process=False, post_process=True):
     return pangu_model
 
 def loss_func(x, y):
-    return torch.nn.functional.l1_loss(x, y)
+    return L1_loss(x, y)
 
 def loss_fun(out,outvar):
     out_surface, out_upper_air = out
@@ -137,9 +127,7 @@ def forward_step_func(data_iterator, model):
     topography = torch.from_numpy(np.load(os.path.join(cfg.mask_dir, "topography.npy")).astype(np.float32))
     surface_mask = torch.stack([land_mask, soil_type, topography], dim=0).cuda()
     surface_mask = surface_mask.unsqueeze(0).repeat(cfg.batch_size, 1, 1, 1)
-    
-    # invar, outvar, _, _ = next(data_iterator)
-    # invar, outvar = next(data_iterator)
+
     invar, outvar, _, _ = next(data_iterator)
     
     invar_surface = invar[:, :4, :, :].to("cuda", dtype=torch.float32)

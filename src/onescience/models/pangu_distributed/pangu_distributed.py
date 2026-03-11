@@ -4,16 +4,13 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 
-from transformer_distributed import FuserLayer
-from re_distributed import DownSample3D, UpSample3D
 from onescience.models.meta import ModelMetaData
-# from onescience.models.module import Module
 from onescience.modules.module import Module
-from eb_distributed import (
-    PatchEmbed2D,
-    PatchEmbed3D,
-    PatchRecovery2D,
-    PatchRecovery3D,
+from onescience.modules import (
+    OneEmbedding,
+    OneFuser,
+    OneRecovery,
+    OneSample,
 )
 
 from onescience.distributed.megatron.training import get_args
@@ -75,13 +72,16 @@ class Pangu(Module):
         self.config = core_transformer_config_from_args(args)
         drop_path = np.linspace(0, 0.2, self.l1d + self.l2d + self.l3d + self.l4d).tolist()
         # In addition, three constant masks(the topography mask, land-sea mask and soil type mask)
-        self.patchembed2d = PatchEmbed2D(
+        
+        self.patchembed2d = OneEmbedding(
+            style="PanguEmbedding2D",
             img_size=img_size,
             patch_size=patch_size[1:],
-            in_chans=4 + 3,  # add
             embed_dim=embed_dim,
+            in_chans=4 + 3,
         )
-        self.patchembed3d = PatchEmbed3D(
+        self.patchembed3d = OneEmbedding(
+            style="PanguEmbedding3D",
             img_size=(13, img_size[0], img_size[1]),
             patch_size=patch_size,
             in_chans=5,
@@ -93,7 +93,8 @@ class Pangu(Module):
             math.ceil(img_size[1] / patch_size[2]),
         )
 
-        self.layer1 = FuserLayer(
+        self.layer1 = OneFuser(
+            style="PanguFuser",
             dim=embed_dim,
             input_resolution=patched_inp_shape,
             depth=self.l1d,
@@ -108,12 +109,14 @@ class Pangu(Module):
             math.ceil(patched_inp_shape[1] / 2),
             math.ceil(patched_inp_shape[2] / 2),
         )
-        self.downsample = DownSample3D(
-            in_dim=embed_dim,
+        self.downsample = OneSample(
+            style="PanguDownSample3D",
             input_resolution=patched_inp_shape,
             output_resolution=patched_inp_shape_downsample,
+            in_dim=embed_dim,
         )
-        self.layer2 = FuserLayer(
+        self.layer2 = OneFuser(
+            style="PanguFuser",
             dim=embed_dim * 2,
             input_resolution=patched_inp_shape_downsample,
             depth=self.l2d,
@@ -122,7 +125,8 @@ class Pangu(Module):
             drop_path=drop_path[-self.l2d:],
             config = config
         )
-        self.layer3 = FuserLayer(
+        self.layer3 = OneFuser(
+            style="PanguFuser",
             dim=embed_dim * 2,
             input_resolution=patched_inp_shape_downsample,
             depth=self.l3d,
@@ -131,10 +135,15 @@ class Pangu(Module):
             drop_path=drop_path[-self.l3d:],
             config = config
         )
-        self.upsample = UpSample3D(
-            embed_dim * 2, embed_dim, patched_inp_shape_downsample, patched_inp_shape
+        self.upsample = OneSample(
+            style="PanguUpSample3D",
+            in_dim=embed_dim * 2,
+            out_dim=embed_dim,
+            input_resolution=patched_inp_shape_downsample,
+            output_resolution=patched_inp_shape
         )
-        self.layer4 = FuserLayer(
+        self.layer4 = OneFuser(
+            style="PanguFuser",
             dim=embed_dim,
             input_resolution=patched_inp_shape,
             depth=self.l4d,
@@ -144,12 +153,22 @@ class Pangu(Module):
             config = config
         )
         # The outputs of the 2nd encoder layer and the 7th decoder layer are concatenated along the channel dimension.
-        self.patchrecovery2d = PatchRecovery2D(
-            img_size, patch_size[1:], 2 * embed_dim, 4
+        self.patchrecovery2d = OneRecovery(
+            style="PanguPatchRecovery2D",
+            img_size=img_size,
+            patch_size=patch_size[1:],
+            in_chans=2 * embed_dim,
+            out_chans=4,
         )
-        self.patchrecovery3d = PatchRecovery3D(
-            (13, img_size[0], img_size[1]), patch_size, 2 * embed_dim, 5
+        self.patchrecovery3d = OneRecovery(
+            style="PanguPatchRecovery3D",
+            img_size=(13, img_size[0], img_size[1]),
+            patch_size=patch_size,
+            in_chans=2 * embed_dim,
+            out_chans=5,
         )
+
+        self.input_tensor = None
 
     def set_input_tensor(self, input_tensor):
         """Set input tensor to be used instead of forward()'s input.
@@ -187,8 +206,7 @@ class Pangu(Module):
         x = torch.concat([surface.unsqueeze(2), upper_air], dim=2)
         B, C, Pl, Lat, Lon = x.shape
         x = x.reshape(B, C, -1).transpose(1, 2)
-        x = x.contiguous() # 添加 使连续
-
+        x = x.contiguous()
         x = self.layer1(x)
 
         skip = x
@@ -249,90 +267,63 @@ class Pangu_stage0(Module):
         self.share_embeddings_and_output_weights = None
         args = get_args()
         self.config = core_transformer_config_from_args(args)
-        # drop_path = np.linspace(0, 0.2, 8).tolist()
+        
         drop_path = np.linspace(0, 0.2, self.l1d + self.l2d + self.l3d + self.l4d).tolist()
         # In addition, three constant masks(the topography mask, land-sea mask and soil type mask)
-        self.patchembed2d = PatchEmbed2D(
-            img_size=img_size,  #（721, 1440）
-            patch_size=patch_size[1:],  # (4, 4)
-            in_chans=4 + 3,  # add
+        
+        self.patchembed2d = OneEmbedding(
+            style="PanguEmbedding2D",
+            img_size=img_size,
+            patch_size=patch_size[1:],
             embed_dim=embed_dim,
+            in_chans=4 + 3,
         )
-        self.patchembed3d = PatchEmbed3D(
-            img_size=(13, img_size[0], img_size[1]),  # (13, 721, 1440)
-            patch_size=patch_size,  # (2, 4, 4)
+        self.patchembed3d = OneEmbedding(
+            style="PanguEmbedding3D",
+            img_size=(13, img_size[0], img_size[1]),
+            patch_size=patch_size,
             in_chans=5,
             embed_dim=embed_dim,
-			)
-        patched_inp_shape = (  # (8, 181, 360)
+        )
+        patched_inp_shape = (
             8,
             math.ceil(img_size[0] / patch_size[1]),
             math.ceil(img_size[1] / patch_size[2]),
         )
 
-        self.layer1 = FuserLayer(
+        self.layer1 = OneFuser(
+            style="PanguDistributedFuser",
             dim=embed_dim,
-            input_resolution=patched_inp_shape,  # (8, 181, 360)
-            #depth=2,
-            depth=self.l1d, # 3D Bolck数量
+            input_resolution=patched_inp_shape,
+            depth=self.l1d,
             num_heads=num_heads[0],
-            window_size=window_size, # (2, 6, 12)
-            #drop_path=drop_path[:2],
+            window_size=window_size,
             drop_path=drop_path[:self.l1d],
             config = config
         )
 
-        patched_inp_shape_downsample = ( # (8, 91, 180)
+        patched_inp_shape_downsample = (
             8,
             math.ceil(patched_inp_shape[1] / 2),
             math.ceil(patched_inp_shape[2] / 2),
         )
-        self.downsample = DownSample3D(
+        self.downsample = OneSample(
+            style="PanguDownSample3D",
+            input_resolution=patched_inp_shape,
+            output_resolution=patched_inp_shape_downsample,
             in_dim=embed_dim,
-            input_resolution=patched_inp_shape,  # (8, 181, 360)
-            output_resolution=patched_inp_shape_downsample, # (8, 91, 180)
         )
-        self.layer2 = FuserLayer(
+        self.layer2 = OneFuser(
+            style="PanguDistributedFuser",
             dim=embed_dim * 2,
-            input_resolution=patched_inp_shape_downsample, # (8, 91, 180)
-            #depth=6,
+            input_resolution=patched_inp_shape_downsample,
             depth=self.l2d,
             num_heads=num_heads[1],
-            window_size=window_size,  # (2, 6, 12)
-            #drop_path=drop_path[2:],
+            window_size=window_size,
             drop_path=drop_path[-self.l2d:],
 			config = config
         )
-        '''
-        self.layer3 = FuserLayer(
-            dim=embed_dim * 2,
-            input_resolution=patched_inp_shape_downsample,
-            depth=6,
-            num_heads=num_heads[2],
-            window_size=window_size,
-            drop_path=drop_path[2:],
-            config = config
-        )
-        self.upsample = UpSample3D(
-            embed_dim * 2, embed_dim, patched_inp_shape_downsample, patched_inp_shape
-        )
-        self.layer4 = FuserLayer(
-            dim=embed_dim,
-            input_resolution=patched_inp_shape,
-            depth=2,
-            num_heads=num_heads[3],
-            window_size=window_size,
-            drop_path=drop_path[:2],
-            config = config
-        )
-        # The outputs of the 2nd encoder layer and the 7th decoder layer are concatenated along the channel dimension.
-        self.patchrecovery2d = PatchRecovery2D(
-            img_size, patch_size[1:], 2 * embed_dim, 4
-        )
-        self.patchrecovery3d = PatchRecovery3D(
-            (13, img_size[0], img_size[1]), patch_size, 2 * embed_dim, 5
-        )
-        '''
+        
     def prepare_input(self, surface, surface_mask, upper_air):
         """Prepares the input to the model in the required shape.
         Args:
@@ -369,22 +360,18 @@ class Pangu_stage0(Module):
         x = torch.concat([surface.unsqueeze(2), upper_air], dim=2)
         B, C, Pl, Lat, Lon = x.shape
         x = x.reshape(B, C, -1).transpose(1, 2)
-        skip = x.contiguous()              # <— 确保 skip 连续
-
-        #x = self.layer1(x)
+        skip = x.contiguous()
+        
         x = checkpoint(self.layer1,False,x)
         skip = x
 
         x = self.downsample(x)
-        #x = self.layer2(x)
+        
         x = checkpoint(self.layer2,False,x)
-        #print("x:"+str(x.shape))
-        #print("skip:"+str(skip.shape))
-        x = x.contiguous()                 # <— 确保要“发出去”的 x 连续
+        
+        x = x.contiguous()
 
         return x,skip,B,Pl,Lat,Lon
-
-
 
 
 class Pangu_stage1(Module):
@@ -426,94 +413,88 @@ class Pangu_stage1(Module):
         self.config = core_transformer_config_from_args(args)
         self.pre_process = None
         self.share_embeddings_and_output_weights = None
-        #drop_path = np.linspace(0, 0.2, 8).tolist()
+        
         drop_path = np.linspace(0, 0.2, self.l1d + self.l2d + self.l3d + self.l4d).tolist()
         # In addition, three constant masks(the topography mask, land-sea mask and soil type mask)
-        self.patchembed2d = PatchEmbed2D(
+
+        self.patchembed2d = OneEmbedding(
+            style="PanguEmbedding2D",
             img_size=img_size,
             patch_size=patch_size[1:],
-            in_chans=4 + 3,  # add
             embed_dim=embed_dim,
+            in_chans=4 + 3,
         )
-        self.patchembed3d = PatchEmbed3D(
+        self.patchembed3d = OneEmbedding(
+            style="PanguEmbedding3D",
             img_size=(13, img_size[0], img_size[1]),
             patch_size=patch_size,
             in_chans=5,
             embed_dim=embed_dim,
-			)
-        patched_inp_shape = ( # （8, 181, 360）
+        )
+        patched_inp_shape = (
             8,
             math.ceil(img_size[0] / patch_size[1]),
             math.ceil(img_size[1] / patch_size[2]),
         )
-        
-        #self.Pl_tokens  = 8
-        #self.Lat_tokens = math.ceil(img_size[0] / patch_size[1])  # 181
-        #self.Lon_tokens = math.ceil(img_size[1] / patch_size[2])  # 360
 
-        #self.layer1 = FuserLayer(
-        #    dim=embed_dim,
-        #    input_resolution=patched_inp_shape,
-        #    depth=2,
-        #    num_heads=num_heads[0],
-        #    window_size=window_size,
-        #    drop_path=drop_path[:2],
-        #    config = config
-        #)
-
-        patched_inp_shape_downsample = ( # (8, 91, 180)
+        patched_inp_shape_downsample = (
             8,
             math.ceil(patched_inp_shape[1] / 2),
             math.ceil(patched_inp_shape[2] / 2),
         )
-        self.downsample = DownSample3D(
+        self.downsample = OneSample(
+            style="PanguDownSample3D",
+            input_resolution=patched_inp_shape,
+            output_resolution=patched_inp_shape_downsample,
             in_dim=embed_dim,
-            input_resolution=patched_inp_shape, # （8, 181, 360）
-            output_resolution=patched_inp_shape_downsample, # (8, 91, 180)
         )
-        #self.layer2 = FuserLayer(
-        #    dim=embed_dim * 2,
-        #    input_resolution=patched_inp_shape_downsample,
-        #    depth=6,
-        #    num_heads=num_heads[1],
-        #    window_size=window_size,
-        #    drop_path=drop_path[2:],
-		#	 config = config
-        #)
-        self.layer3 = FuserLayer(
-            dim=embed_dim * 2,  # 1536 * 2
-            input_resolution=patched_inp_shape_downsample, # (8, 91, 180)
-            #depth=6,
+
+        self.layer3 = OneFuser(
+            style="PanguDistributedFuser",
+            dim=embed_dim * 2,
+            input_resolution=patched_inp_shape_downsample,
             depth=self.l3d,
             num_heads=num_heads[2],
-            window_size=window_size,  # (2, 6, 12)
-            #drop_path=drop_path[2:],
+            window_size=window_size,
             drop_path=drop_path[-self.l3d:],
             config = config
         )
-        self.upsample = UpSample3D(
-            embed_dim * 2, embed_dim, patched_inp_shape_downsample, patched_inp_shape # ( 1536*2, 1536, (8, 91, 180), (8,181,360) )
+        self.upsample = OneSample(
+            style="PanguUpSample3D",
+            in_dim=embed_dim * 2,
+            out_dim=embed_dim,
+            input_resolution=patched_inp_shape_downsample,
+            output_resolution=patched_inp_shape
         )
-        self.layer4 = FuserLayer(
-            dim=embed_dim, # 1536
-            input_resolution=patched_inp_shape, # (8,181,360)
-            #depth=2,
+        self.layer4 = OneFuser(
+            style="PanguDistributedFuser",
+            dim=embed_dim,
+            input_resolution=patched_inp_shape,
             depth=self.l4d,
             num_heads=num_heads[3],
-            window_size=window_size, # (2, 6, 12)
-            #drop_path=drop_path[:2],
+            window_size=window_size,
             drop_path=drop_path[:self.l4d],
             config = config
         )
         # The outputs of the 2nd encoder layer and the 7th decoder layer are concatenated along the channel dimension.
-        self.patchrecovery2d = PatchRecovery2D(
-            img_size, patch_size[1:], 2 * embed_dim, 4
+
+        self.patchrecovery2d = OneRecovery(
+            style="PanguPatchRecovery2D",
+            img_size=img_size,
+            patch_size=patch_size[1:],
+            in_chans=2 * embed_dim,
+            out_chans=4,
         )
-        self.patchrecovery3d = PatchRecovery3D(
-            (13, img_size[0], img_size[1]), patch_size, 2 * embed_dim, 5
+        self.patchrecovery3d = OneRecovery(
+            style="PanguPatchRecovery3D",
+            img_size=(13, img_size[0], img_size[1]),
+            patch_size=patch_size,
+            in_chans=2 * embed_dim,
+            out_chans=5,
         )
 
         self.input_tensor = None
+
     def prepare_input(self, surface, surface_mask, upper_air):
         """Prepares the input to the model in the required shape.
         Args:
@@ -560,25 +541,17 @@ class Pangu_stage1(Module):
         """
         if self.input_tensor != None:
             x = self.input_tensor
-        #print("self.input_tensor:",self.input_tensor)
+        
         x, skip, tmp = x
-        x   = x.contiguous()         # <— 收到后立即连续化（如果上游已处理，这里基本是 no-op）
+        x   = x.contiguous()
         skip = skip.contiguous()
         
         B, Pl, Lat, Lon = int(tmp[0].cpu()),int(tmp[1].cpu()),int(tmp[2].cpu()),int(tmp[3].cpu())
-        #print(B, Pl, Lat, Lon)
 
-
-        #x = self.layer3(x)
         x = checkpoint(self.layer3,False,x)
         x = self.upsample(x)
-        #x = self.layer4(x)
-        x = checkpoint(self.layer4,False,x)
         
-        #B   = x.size(0)
-        #Pl  = self.Pl_tokens
-        #Lat = self.Lat_tokens
-        #Lon = self.Lon_tokens
+        x = checkpoint(self.layer4,False,x)
 
         output = torch.concat([x, skip], dim=-1)
 

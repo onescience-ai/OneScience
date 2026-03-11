@@ -16,9 +16,9 @@ echo "START TIME: $(date)"
 
 module purge
 
-source /public/home/onescience2025404/guancl/conda_env/pangu_test/bin/activate
-export PATH=/public/home/onescience2025404/guancl/conda_env/pangu_test/bin:$PATH
-export PYTHONPATH=/public/home/onescience2025404/guancl/conda_env/pangu_test/lib/python3.10/site-packages:$PYTHONPATH
+source /public/home/onescience2025404/guancl/pangu_test/bin/activate
+export PATH=/public/home/onescience2025404/guancl/pangu_test/bin:$PATH
+export PYTHONPATH=/public/home/onescience2025404/guancl/pangu_test/lib/python3.10/site-packages:$PYTHONPATH
 
 module load sghpc-mpi-gcc/25.8
 

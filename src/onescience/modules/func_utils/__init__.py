@@ -10,7 +10,8 @@ from .pangu_utils import (
     window_reverse,
     trunc_normal_,
     save_checkpoint,
-    Mlp
+    Mlp,
+    DistributedMlp
 )
 from .xihe_utils import(
     change_mask
