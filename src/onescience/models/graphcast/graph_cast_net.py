@@ -12,18 +12,6 @@ except ImportError:
     # for Python versions < 3.11
     from typing_extensions import Self
 
-# from onescience.models.gnn_layers.embedder import (
-#     GraphCastDecoderEmbedder,
-#     GraphCastEncoderEmbedder,
-# )
-# from onescience.models.gnn_layers.mesh_graph_decoder import MeshGraphDecoder
-# from onescience.models.gnn_layers.mesh_graph_encoder import MeshGraphEncoder
-
-# from onescience.models.gnn_layers.mesh_graph_mlp import MeshGraphMLP
-# from onescience.models.gnn_layers.utils import CuGraphCSC, set_checkpoint_fn
-# from onescience.models.layers import get_activation
-
-
 from onescience.modules import OneDecoder
 from onescience.modules import OneEncoder
 from onescience.modules import OneEmbedding
@@ -548,18 +536,18 @@ class GraphCastNet(nn.Module):
             g2m_efeat_embedded,
             mesh_efeat_embedded,
         ) = self.encoder_embedder(
-            [grid_nfeat,
+            grid_nfeat,
             self.mesh_ndata,
             self.g2m_edata,
-            self.mesh_edata]
+            self.mesh_edata
         )
 
         # encode lat/lon to multimesh
         grid_nfeat_encoded, mesh_nfeat_encoded = self.encoder(
-            [g2m_efeat_embedded,
+            g2m_efeat_embedded,
             grid_nfeat_embedded,
             mesh_nfeat_embedded,
-            self.g2m_graph],
+            self.g2m_graph,
         )
 
         # process multimesh graph
@@ -616,7 +604,7 @@ class GraphCastNet(nn.Module):
 
         # decode multimesh to lat/lon
         grid_nfeat_decoded = self.decoder(
-            [m2g_efeat_embedded, grid_nfeat_encoded, mesh_nfeat_processed, self.m2g_graph]
+            m2g_efeat_embedded, grid_nfeat_encoded, mesh_nfeat_processed, self.m2g_graph
         )
 
         # map to the target output dimension

@@ -13,3 +13,6 @@ from .pangu_utils import (
     Mlp,
     DistributedMlp
 )
+from .xihe_utils import(
+    change_mask
+)

@@ -4,21 +4,20 @@ import torch
 import torch.nn as nn
 from dgl import DGLGraph
 from torch import Tensor
-
-from onescience.modules.mlp.mesh_graph_mlp import MeshGraphEdgeMLPConcat, MeshGraphEdgeMLPSum, MeshGraphMLP
+from onescience.modules import OneMlp
 from onescience.modules.utils.gnnlayer_utils import CuGraphCSC, aggregate_and_concat
 
 class MeshGraphDecoder(nn.Module):
     """
-    用于 GraphCast 或 MeshGraphNet 等模型中的解码器模块。
+    用于 GraphCast 或 MeshGraphNet 等模型中的解码器模块 (Mesh Graph Decoder)。
 
-    它作用于连接网格（Mesh，通常代表隐空间）和栅格（Grid，通常代表输出域）的二部图（Bipartite Graph）。
-    该模块负责将信息从网格传递回栅格，从而从隐空间恢复出物理空间的预测结果。
+    它作用于连接多尺度网格（Mesh，代表隐空间）和规则栅格（Grid，代表输出物理域）
+    的二部图（Bipartite Graph）。该模块负责将隐空间的演化特征传递回物理空间，恢复出最终的预测结果。
 
     其主要计算流程包括：
-        1. 更新边特征 (Edge Update): 根据输入的边特征、源节点（Mesh）特征和目标节点（Grid）特征，利用 MLP 更新边特征。
-        2. 消息聚合 (Message Aggregation): 将更新后的边特征聚合（求和或求平均）到对应的目标节点（Grid）上。
-        3. 更新节点特征 (Node Update): 将聚合后的信息与目标节点的原始特征拼接，通过节点 MLP 进行变换，并应用残差连接得到最终的 Grid 节点特征。
+        1. 边特征更新: 根据输入的边特征、源节点（Mesh）特征和目标节点（Grid）特征，利用 EdgeMLP 更新边特征。
+        2. 消息聚合: 将更新后的边特征聚合（求和或求平均）到对应的目标节点（Grid）上，并与原始 Grid 特征拼接。
+        3. 节点特征更新: 拼接后的信息通过节点 MLP 进行变换，并应用残差连接得到最终的 Grid 节点特征。
 
     Args:
         aggregation (str, optional): 消息聚合方法，可选 "sum" 或 "mean"。默认值: "sum"。
@@ -31,15 +30,15 @@ class MeshGraphDecoder(nn.Module):
         hidden_layers (int, optional): 隐藏层的层数。默认值: 1。
         activation_fn (nn.Module, optional): 激活函数类型。默认值: nn.SiLU()。
         norm_type (str, optional): 归一化类型 ("LayerNorm" 或 "TELayerNorm")。默认值: "LayerNorm"。
-        do_concat_trick (bool, optional): 是否使用“拼接技巧”优化显存（参见 MeshEdgeBlock）。默认值: False。
+        do_concat_trick (bool, optional): 是否使用“拼接技巧”优化显存。默认值: False。
         recompute_activation (bool, optional): 是否启用激活重计算以节省显存。默认值: False。
 
     形状:
-        输入 m2g_efeat: (E, C_edge_in)，Mesh-to-Grid 边的特征。
-        输入 grid_nfeat: (N_grid, C_grid_in)，Grid 节点的特征（目标节点）。
-        输入 mesh_nfeat: (N_mesh, C_mesh_in)，Mesh 节点的特征（源节点）。
+        输入 m2g_efeat: (E, input_dim_edges)，Mesh-to-Grid 边的特征。
+        输入 grid_nfeat: (N_grid, input_dim_dst_nodes)，Grid 节点的特征（目标节点）。
+        输入 mesh_nfeat: (N_mesh, input_dim_src_nodes)，Mesh 节点的特征（源节点）。
         输入 graph: DGLGraph 或 CuGraphCSC 对象，表示 Mesh 到 Grid 的二部图。
-        输出: (N_grid, C_grid_out)，更新后的 Grid 节点特征。
+        输出: (N_grid, output_dim_dst_nodes)，更新后的 Grid 节点特征。
 
     Example:
         >>> # 假设 Mesh 有 200 个节点，Grid 有 1000 个节点，之间有 3000 条边
@@ -57,7 +56,7 @@ class MeshGraphDecoder(nn.Module):
         >>> mesh_nfeat = torch.randn(200, 64)
         >>> # graph 为预定义的 Mesh-to-Grid 二部图对象
         >>> grid_out = decoder(m2g_efeat, grid_nfeat, mesh_nfeat, graph)
-        >>> grid_out.shape
+        >>> print(grid_out.shape)
         torch.Size([1000, 64])
     """
 
@@ -79,9 +78,10 @@ class MeshGraphDecoder(nn.Module):
         super().__init__()
         self.aggregation = aggregation
 
-        MLP = MeshGraphEdgeMLPSum if do_concat_trick else MeshGraphEdgeMLPConcat
-        # edge MLP
-        self.edge_mlp = MLP(
+        edge_mlp_style = "MeshGraphEdgeMLPSum" if do_concat_trick else "MeshGraphEdgeMLPConcat"
+        
+        self.edge_mlp = OneMlp(
+            style=edge_mlp_style,
             efeat_dim=input_dim_edges,
             src_dim=input_dim_src_nodes,
             dst_dim=input_dim_dst_nodes,
@@ -93,8 +93,8 @@ class MeshGraphDecoder(nn.Module):
             recompute_activation=recompute_activation,
         )
 
-        # dst node MLP
-        self.node_mlp = MeshGraphMLP(
+        self.node_mlp = OneMlp(
+            style="MeshGraphMLP",
             input_dim=input_dim_dst_nodes + output_dim_edges,
             output_dim=output_dim_dst_nodes,
             hidden_dim=hidden_dim,
@@ -105,15 +105,16 @@ class MeshGraphDecoder(nn.Module):
         )
 
     @torch.jit.ignore()
-    def forward(self, x) -> Tensor:
-        m2g_efeat = x[0]
-        grid_nfeat = x[1]
-        mesh_nfeat = x[2]
-        graph = x[3]
-        # update edge features
+    def forward(
+        self,
+        m2g_efeat: Tensor,
+        grid_nfeat: Tensor,
+        mesh_nfeat: Tensor,
+        graph: Union[DGLGraph, CuGraphCSC],
+    ) -> Tensor:
+        
         efeat = self.edge_mlp(m2g_efeat, (mesh_nfeat, grid_nfeat), graph)
-        # aggregate messages (edge features) to obtain updated node features
         cat_feat = aggregate_and_concat(efeat, grid_nfeat, graph, self.aggregation)
-        # transformation and residual connection
         dst_feat = self.node_mlp(cat_feat) + grid_nfeat
+        
         return dst_feat

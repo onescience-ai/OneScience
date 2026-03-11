@@ -285,7 +285,6 @@ class Model(nn.Module):
         )
 
     def _make_norm_layer(self, channels):
-        """创建归一化层,支持batch size=1"""
         return nn.GroupNorm(num_groups=min(32, channels), num_channels=channels)
 
     def forward(self, x, fx, T=None, geo=None):

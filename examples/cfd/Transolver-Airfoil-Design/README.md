@@ -33,8 +33,14 @@ source ../../../env.sh
 dataset目录下的dataset_stats.ipynb可以绘制数据的各种信息
 
 2. 训练
-
 详细的训练参数可以参考transolver_airfrans.yaml文件中的参数注释
+
+单卡训练：
+
+```bash
+python train.py
+```
+
 
 多卡训练：
 

@@ -1,7 +1,7 @@
 # 模型配置
 model:
   # 在这里选择要训练的模型: Transolver,Transolver_plus, GraphSAGE, PointNet, MLP, GUNet
-  name: 'Transolver_plus' 
+  name: 'Transolver' 
   
   # --------------------------------------------------------------------
   # 每个模型独有的架构参数

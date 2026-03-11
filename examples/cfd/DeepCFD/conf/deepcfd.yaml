@@ -19,13 +19,14 @@ root:
   
   # 模型架构配置
   model:
-    name: "UNetEx"  # 网络类型: "UNet", "UNetEx", "AutoEncoder"
-    in_channels: 3  # 输入通道数 (SDF1, 区域, SDF2)
-    out_channels: 3  # 输出通道数 (Ux, Uy, p)
-    filters: [8, 16, 32, 32]  # 各层的过滤器数量
-    kernel_size: 5  # 卷积核大小
-    batch_norm: false  # 是否使用批量归一化
-    weight_norm: false  # 是否使用权重归一化
+    name: "UNetEx"         # 网络类型: "UNet", "UNetEx"
+    in_channels: 3         # 输入通道数 (例如: SDF1, 区域, SDF2)
+    out_channels: 3        # 输出通道数 (例如: Ux, Uy, p)
+    base_channels: 8       # 初始特征通道数 
+    num_stages: 3          # 下采样/上采样的层数
+    kernel_size: 5         # 骨干网络的卷积核大小
+    bilinear: true         # 是否使用双线性插值进行上采样 
+    normtype: "none"       # 归一化类型: "bn" (BatchNorm), "in" (InstanceNorm), "none" (无归一化)
   
   # 训练参数配置
   training:

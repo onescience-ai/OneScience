@@ -1,56 +1,67 @@
 import torch
 import torch.nn as nn
 import torch_geometric.nn as nng
-from onescience.models.layers.Embedding import unified_pos_embedding
-from onescience.models.layers.Basic import MLP
-
+from onescience.modules.embedding import timestep_embedding, unified_pos_embedding
+from onescience.modules import OneMlp
 
 class Model(nn.Module):
+    """
+    PointNet 模型。
+    
+    用于处理点云数据，通过 MLP 提取局部特征，并使用全局最大池化提取全局特征。
+    """
     def __init__(self, args, device):
         super(Model, self).__init__()
         self.__name__ = "PointNet"
 
-        self.in_block = MLP(
-            args.n_hidden,
-            args.n_hidden * 2,
-            args.n_hidden * 2,
-            n_layers=0,
-            res=False,
-            act=args.act,
-        )
-        self.max_block = MLP(
-            args.n_hidden * 2,
-            args.n_hidden * 8,
-            args.n_hidden * 32,
-            n_layers=0,
-            res=False,
-            act=args.act,
+        # 1. Input Block
+        self.in_block = OneMlp(
+            style="StandardMLP",
+            input_dim=args.n_hidden,
+            output_dim=args.n_hidden * 2,
+            hidden_dims=[args.n_hidden * 2],
+            activation=args.act,
+            use_bias=True
         )
 
-        self.out_block = MLP(
-            args.n_hidden * (2 + 32),
-            args.n_hidden * 16,
-            args.n_hidden * 4,
-            n_layers=0,
-            res=False,
-            act=args.act,
+        # 2. Max Pooling Block
+        self.max_block = OneMlp(
+            style="StandardMLP",
+            input_dim=args.n_hidden * 2,
+            output_dim=args.n_hidden * 32,
+            hidden_dims=[args.n_hidden * 8],
+            activation=args.act,
+            use_bias=True
         )
 
-        self.encoder = MLP(
-            args.fun_dim + args.space_dim,
-            args.n_hidden * 2,
-            args.n_hidden,
-            n_layers=0,
-            res=False,
-            act=args.act,
+        # 3. Output Block
+        self.out_block = OneMlp(
+            style="StandardMLP",
+            input_dim=args.n_hidden * (2 + 32), # 34 * hidden
+            output_dim=args.n_hidden * 4,
+            hidden_dims=[args.n_hidden * 16],
+            activation=args.act,
+            use_bias=True
         )
-        self.decoder = MLP(
-            args.n_hidden,
-            args.n_hidden * 2,
-            args.out_dim,
-            n_layers=0,
-            res=False,
-            act=args.act,
+
+        # 4. Encoder
+        self.encoder = OneMlp(
+            style="StandardMLP",
+            input_dim=args.fun_dim + args.space_dim,
+            output_dim=args.n_hidden,
+            hidden_dims=[args.n_hidden * 2],
+            activation=args.act,
+            use_bias=True
+        )
+
+        # 5. Decoder
+        self.decoder = OneMlp(
+            style="StandardMLP",
+            input_dim=args.n_hidden,
+            output_dim=args.out_dim,
+            hidden_dims=[args.n_hidden * 2],
+            activation=args.act,
+            use_bias=True
         )
 
         self.fcfinal = nn.Linear(args.n_hidden * 4, args.n_hidden)
@@ -58,17 +69,18 @@ class Model(nn.Module):
     def forward(self, x, fx, T=None, geo=None):
         if geo is None:
             raise ValueError("Please provide edge index for Graph Neural Networks")
-        assert (
-            x.size(0) == 1
-        ), "This model only supports batch_size=1. Please modify code for general batching."
-
-        # 兼容 batch_size = 1 输入：去除 batch 维度
+        
+        # 兼容 batch_size = 1 输入
         if x.dim() == 3:
             x = x.squeeze(0)  # [1, N, C] → [N, C]
         if fx is not None and fx.dim() == 3:
             fx = fx.squeeze(0)
 
-        # 构造 batch 索引（所有点属于 batch 0）
+        assert (
+            x.size(0) > 0 # Simple check
+        ), "Input cannot be empty"
+
+        # 构造 batch 索引
         batch = torch.zeros(x.shape[0], dtype=torch.long, device=x.device)
 
         # 编码 + 局部特征提取
@@ -90,4 +102,4 @@ class Model(nn.Module):
         z = self.fcfinal(z)
         z = self.decoder(z)
 
-        return z.unsqueeze(0)  # 输出 shape: [1, N, C]
+        return z.unsqueeze(0) 

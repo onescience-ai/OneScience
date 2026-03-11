@@ -4,16 +4,19 @@ from .pangudownsample2d import PanguDownSample2D
 from .panguupsample2d import PanguUpSample2D
 from .pangudownsample3d import PanguDownSample3D
 from .panguupsample3d import PanguUpSample3D
+from .SpatialGraphDownsample import SpatialGraphDownsample
+from .SpatialGraphUpsample import SpatialGraphUpsample
 from .fuxidownsample import FuxiDownSample
 from .fuxiupsample import FuxiUpSample
 from .xiheupsample import XiheUpSample
-
 
 _SAMPLER_REGISTRY = {
     "PanguDownSample2D": PanguDownSample2D,
     "PanguDownSample3D": PanguDownSample3D,
     "PanguUpSample2D": PanguUpSample2D,
     "PanguUpSample3D": PanguUpSample3D,
+    "SpatialGraphDownsample": SpatialGraphDownsample,
+    "SpatialGraphUpsample": SpatialGraphUpsample,
     "FuxiUpSample": FuxiUpSample,
     "FuxiDownSample": FuxiDownSample,
     "XiheUpSample":XiheUpSample,
@@ -30,6 +33,8 @@ class OneSample(nn.Module):
         
         self.Sampler = _SAMPLER_REGISTRY[style](**kwargs)
         
-    def forward(self, x):
-        
-        return self.Sampler(x) 
+    def forward(self, *args, **kwargs):
+        """
+        前向传播。
+        """
+        return self.Sampler(*args, **kwargs)

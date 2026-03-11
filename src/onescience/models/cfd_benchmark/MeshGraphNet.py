@@ -2,26 +2,30 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
+try:
+    import dgl
+    from dgl import DGLGraph
+except ImportError:
+    pass 
 
-import dgl
-from dgl import DGLGraph
 from dataclasses import dataclass
 from itertools import chain
 from typing import Callable, List, Tuple, Union
 
-from onescience.models.gnn_layers.mesh_edge_block import MeshEdgeBlock
-from onescience.models.gnn_layers.mesh_graph_mlp import MeshGraphMLP
-from onescience.models.gnn_layers.mesh_node_block import MeshNodeBlock
-from onescience.models.gnn_layers.utils import CuGraphCSC, set_checkpoint_fn
-from onescience.models.layers import get_activation
-from onescience.models.meta import ModelMetaData
-from onescience.models.module import Module
+# --- 引入模块工厂 ---
+from onescience.modules import OneEdge, OneNode, OneMlp
+
+# 保持工具类引用
+from onescience.modules.utils.gnnlayer_utils import CuGraphCSC, set_checkpoint_fn
+from onescience.modules.layer.activations import get_activation
+from onescience.modules.meta import ModelMetaData
+from onescience.modules.module import Module
 
 
 @dataclass
 class MetaData(ModelMetaData):
     name: str = "MeshGraphNet"
-    # Optimization, no JIT as DGLGraph causes trouble
+    # Optimization
     jit: bool = False
     cuda_graphs: bool = False
     amp_cpu: bool = False
@@ -35,53 +39,10 @@ class MetaData(ModelMetaData):
 
 
 class Model(Module):
-    """MeshGraphNet network architecture
-
-    Parameters
-    ----------
-    input_dim_nodes : int
-        Number of node features
-    input_dim_edges : int
-        Number of edge features
-    output_dim : int
-        Number of outputs
-    processor_size : int, optional
-        Number of message passing blocks, by default 15
-    mlp_activation_fn : Union[str, List[str]], optional
-        Activation function to use, by default 'relu'
-    num_layers_node_processor : int, optional
-        Number of MLP layers for processing nodes in each message passing block, by default 2
-    num_layers_edge_processor : int, optional
-        Number of MLP layers for processing edge features in each message passing block, by default 2
-    hidden_dim_processor : int, optional
-        Hidden layer size for the message passing blocks, by default 128
-    hidden_dim_node_encoder : int, optional
-        Hidden layer size for the node feature encoder, by default 128
-    num_layers_node_encoder : Union[int, None], optional
-        Number of MLP layers for the node feature encoder, by default 2.
-        If None is provided, the MLP will collapse to a Identity function, i.e. no node encoder
-    hidden_dim_edge_encoder : int, optional
-        Hidden layer size for the edge feature encoder, by default 128
-    num_layers_edge_encoder : Union[int, None], optional
-        Number of MLP layers for the edge feature encoder, by default 2.
-        If None is provided, the MLP will collapse to a Identity function, i.e. no edge encoder
-    hidden_dim_node_decoder : int, optional
-        Hidden layer size for the node feature decoder, by default 128
-    num_layers_node_decoder : Union[int, None], optional
-        Number of MLP layers for the node feature decoder, by default 2.
-        If None is provided, the MLP will collapse to a Identity function, i.e. no decoder
-    aggregation: str, optional
-        Message aggregation type, by default "sum"
-    do_conat_trick: : bool, default=False
-        Whether to replace concat+MLP with MLP+idx+sum
-    num_processor_checkpoint_segments: int, optional
-        Number of processor segments for gradient checkpointing, by default 0 (checkpointing disabled)
-
-
-    Note
-    ----
-    Reference: Pfaff, Tobias, et al. "Learning mesh-based simulation with graph networks."
-    arXiv preprint arXiv:2010.03409 (2020).
+    """
+    LSMMeshGraphNet 网络架构 (Refactored).
+    
+    使用 OneMlp, OneEdge, OneNode 工厂构建。
     """
 
     def __init__(
@@ -106,12 +67,18 @@ class Model(Module):
     ):
         super().__init__(meta=MetaData())
         self.__name__ = "LSMMeshGraphNet"
+        
+        # 参数绑定
         self.input_dim_nodes = args.fun_dim
-        self.input_dim_edges = 4
+        self.input_dim_edges = 4 
         self.output_dim = args.out_dim
+        
         activation_fn = get_activation(mlp_activation_fn)
-        self.edge_encoder = MeshGraphMLP(
-            self.input_dim_edges,
+
+        # 1. Edge Encoder
+        self.edge_encoder = OneMlp(
+            style="MeshGraphMLP",
+            input_dim=self.input_dim_edges,
             output_dim=hidden_dim_processor,
             hidden_dim=hidden_dim_edge_encoder,
             hidden_layers=num_layers_edge_encoder,
@@ -120,8 +87,10 @@ class Model(Module):
             recompute_activation=recompute_activation,
         )
 
-        self.node_encoder = MeshGraphMLP(
-            self.input_dim_nodes,
+        # 2. Node Encoder
+        self.node_encoder = OneMlp(
+            style="MeshGraphMLP",
+            input_dim=self.input_dim_nodes,
             output_dim=hidden_dim_processor,
             hidden_dim=hidden_dim_node_encoder,
             hidden_layers=num_layers_node_encoder,
@@ -130,8 +99,10 @@ class Model(Module):
             recompute_activation=recompute_activation,
         )
 
-        self.node_decoder = MeshGraphMLP(
-            hidden_dim_processor,
+        # 3. Node Decoder
+        self.node_decoder = OneMlp(
+            style="MeshGraphMLP",
+            input_dim=hidden_dim_processor,
             output_dim=self.output_dim,
             hidden_dim=hidden_dim_node_decoder,
             hidden_layers=num_layers_node_decoder,
@@ -139,6 +110,8 @@ class Model(Module):
             norm_type=None,
             recompute_activation=recompute_activation,
         )
+
+        # 4. Processor
         self.processor = MeshGraphNetProcessor(
             processor_size=processor_size,
             input_dim_node=hidden_dim_processor,
@@ -166,7 +139,9 @@ class Model(Module):
 
 
 class MeshGraphNetProcessor(nn.Module):
-    """MeshGraphNet processor block"""
+    """
+    MeshGraphNet processor block constructed via OneEdge and OneNode factories.
+    """
 
     def __init__(
         self,
@@ -185,35 +160,40 @@ class MeshGraphNetProcessor(nn.Module):
         self.processor_size = processor_size
         self.num_processor_checkpoint_segments = num_processor_checkpoint_segments
 
-        edge_block_invars = (
-            input_dim_node,
-            input_dim_edge,
-            input_dim_edge,
-            input_dim_edge,
-            num_layers_edge,
-            activation_fn,
-            norm_type,
-            do_concat_trick,
-            False,
-        )
-        node_block_invars = (
-            aggregation,
-            input_dim_node,
-            input_dim_edge,
-            input_dim_edge,
-            input_dim_edge,
-            num_layers_node,
-            activation_fn,
-            norm_type,
-            False,
-        )
+        edge_blocks = []
+        node_blocks = []
 
-        edge_blocks = [
-            MeshEdgeBlock(*edge_block_invars) for _ in range(self.processor_size)
-        ]
-        node_blocks = [
-            MeshNodeBlock(*node_block_invars) for _ in range(self.processor_size)
-        ]
+        for _ in range(self.processor_size):
+            edge_blocks.append(
+                OneEdge(
+                    style="MeshEdgeBlock",
+                    input_dim_nodes=input_dim_node,
+                    input_dim_edges=input_dim_edge,
+                    output_dim=input_dim_edge,
+                    hidden_dim=input_dim_edge,
+                    hidden_layers=num_layers_edge,
+                    activation_fn=activation_fn,
+                    norm_type=norm_type,
+                    do_concat_trick=do_concat_trick,
+                    recompute_activation=False
+                )
+            )
+            node_blocks.append(
+                OneNode(
+                    style="MeshNodeBlock",
+                    aggregation=aggregation,
+                    input_dim_nodes=input_dim_node,
+                    input_dim_edges=input_dim_edge,
+                    output_dim=input_dim_node,
+                    hidden_dim=input_dim_node,
+                    hidden_layers=num_layers_node,
+                    activation_fn=activation_fn,
+                    norm_type=norm_type,
+                    recompute_activation=False
+                )
+            )
+
+        # 按照 Edge -> Node 的顺序交替排列
         layers = list(chain(*zip(edge_blocks, node_blocks)))
 
         self.processor_layers = nn.ModuleList(layers)
@@ -221,20 +201,6 @@ class MeshGraphNetProcessor(nn.Module):
         self.set_checkpoint_segments(self.num_processor_checkpoint_segments)
 
     def set_checkpoint_segments(self, checkpoint_segments: int):
-        """
-        Set the number of checkpoint segments
-
-        Parameters
-        ----------
-        checkpoint_segments : int
-            number of checkpoint segments
-
-        Raises
-        ------
-        ValueError
-            if the number of processor layers is not a multiple of the number of
-            checkpoint segments
-        """
         if checkpoint_segments > 0:
             if self.num_processor_layers % checkpoint_segments != 0:
                 raise ValueError(
@@ -254,20 +220,6 @@ class MeshGraphNetProcessor(nn.Module):
     ) -> Callable[
         [Tensor, Tensor, Union[DGLGraph, List[DGLGraph]]], Tuple[Tensor, Tensor]
     ]:
-        """Custom forward for gradient checkpointing
-
-        Parameters
-        ----------
-        segment_start : int
-            Layer index as start of the segment
-        segment_end : int
-            Layer index as end of the segment
-
-        Returns
-        -------
-        Callable
-            Custom forward function
-        """
         segment = self.processor_layers[segment_start:segment_end]
 
         def custom_forward(
@@ -275,7 +227,6 @@ class MeshGraphNetProcessor(nn.Module):
             edge_features: Tensor,
             graph: Union[DGLGraph, List[DGLGraph]],
         ) -> Tuple[Tensor, Tensor]:
-            """Custom forward function"""
             for module in segment:
                 edge_features, node_features = module(
                     edge_features, node_features, graph

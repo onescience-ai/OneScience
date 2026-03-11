@@ -4,8 +4,7 @@ import torch
 import torch.nn as nn
 from dgl import DGLGraph
 from torch import Tensor
-
-from onescience.modules.mlp.mesh_graph_mlp import MeshGraphMLP
+from onescience.modules import OneMlp
 from onescience.modules.utils.gnnlayer_utils import CuGraphCSC, aggregate_and_concat
 
 class MeshNodeBlock(nn.Module):
@@ -30,12 +29,12 @@ class MeshNodeBlock(nn.Module):
         recompute_activation (bool, optional): 是否启用激活重计算以节省显存。默认值: False。
 
     形状:
-        输入 efeat: (E, C_edge)，其中 E 是边的数量。
-        输入 nfeat: (N, C_node_in)，其中 N 是节点的数量。
+        输入 efeat: (E, C_edge)，其中 E 是边的数量，C_edge 是边特征维度。
+        输入 nfeat: (N, C_node_in)，其中 N 是节点的数量，C_node_in 是节点特征维度。
         输入 graph: DGLGraph 或 CuGraphCSC 对象，定义图的拓扑结构。
         输出: 返回一个元组 (efeat, new_nfeat)。
-            efeat: (E, C_edge)，原样返回的边特征（该模块不更新边）。
-            new_nfeat: (N, C_node_out)，更新后的节点特征。
+            - efeat: (E, C_edge)，原样返回的边特征（该模块不更新边）。
+            - new_nfeat: (N, C_node_out)，更新后的节点特征。
 
     Example:
         >>> # 假设有 100 个节点，500 条边
@@ -48,9 +47,9 @@ class MeshNodeBlock(nn.Module):
         ... )
         >>> efeat = torch.randn(500, 32)
         >>> nfeat = torch.randn(100, 64)
-        >>> # graph 为图结构对象
+        >>> # graph 为图结构对象 (DGLGraph 等)
         >>> _, new_nfeat = node_block(efeat, nfeat, graph)
-        >>> new_nfeat.shape
+        >>> print(new_nfeat.shape)
         torch.Size([100, 64])
     """
 
@@ -69,7 +68,8 @@ class MeshNodeBlock(nn.Module):
         super().__init__()
         self.aggregation = aggregation
 
-        self.node_mlp = MeshGraphMLP(
+        self.node_mlp = OneMlp(
+            style="MeshGraphMLP",
             input_dim=input_dim_nodes + input_dim_edges,
             output_dim=output_dim,
             hidden_dim=hidden_dim,
@@ -86,8 +86,6 @@ class MeshNodeBlock(nn.Module):
         nfeat: Tensor,
         graph: Union[DGLGraph, CuGraphCSC],
     ) -> Tuple[Tensor, Tensor]:
-        # update edge features
         cat_feat = aggregate_and_concat(efeat, nfeat, graph, self.aggregation)
-        # update node features + residual connection
         nfeat_new = self.node_mlp(cat_feat) + nfeat
         return efeat, nfeat_new

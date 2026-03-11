@@ -1,97 +1,75 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn.utils import weight_norm
-from onescience.models.deepcfd.AutoEncoder import create_layer
-
-
-def create_encoder_block(in_channels, out_channels, kernel_size, wn=True, bn=True,
-                 activation=nn.ReLU, layers=2):
-    encoder = []
-    for i in range(layers):
-        _in = out_channels
-        _out = out_channels
-        if i == 0:
-            _in = in_channels
-        encoder.append(create_layer(_in, _out, kernel_size, wn, bn, activation, nn.Conv2d))
-    return nn.Sequential(*encoder)
-
-
-def create_decoder_block(in_channels, out_channels, kernel_size, wn=True, bn=True,
-                 activation=nn.ReLU, layers=2, final_layer=False):
-    decoder = []
-    for i in range(layers):
-        _in = in_channels
-        _out = in_channels
-        _bn = bn
-        _activation = activation
-        if i == 0:
-            _in = in_channels * 2
-        if i == layers - 1:
-            _out = out_channels
-            if final_layer:
-                _bn = False
-                _activation = None
-        decoder.append(create_layer(_in, _out, kernel_size, wn, _bn, _activation, nn.ConvTranspose2d))
-    return nn.Sequential(*decoder)
-
-
-def create_encoder(in_channels, filters, kernel_size, wn=True, bn=True, activation=nn.ReLU, layers=2):
-    encoder = []
-    for i in range(len(filters)):
-        if i == 0:
-            encoder_layer = create_encoder_block(in_channels, filters[i], kernel_size, wn, bn, activation, layers)
-        else:
-            encoder_layer = create_encoder_block(filters[i-1], filters[i], kernel_size, wn, bn, activation, layers)
-        encoder = encoder + [encoder_layer]
-    return nn.Sequential(*encoder)
-
-
-def create_decoder(out_channels, filters, kernel_size, wn=True, bn=True, activation=nn.ReLU, layers=2):
-    decoder = []
-    for i in range(len(filters)):
-        if i == 0:
-            decoder_layer = create_decoder_block(filters[i], out_channels, kernel_size, wn, bn, activation, layers, final_layer=True)
-        else:
-            decoder_layer = create_decoder_block(filters[i], filters[i-1], kernel_size, wn, bn, activation, layers, final_layer=False)
-        decoder = [decoder_layer] + decoder
-    return nn.Sequential(*decoder)
-
+from onescience.modules import OneEncoder, OneDecoder, OneHead
 
 class UNet(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, filters=[16, 32, 64], layers=2,
-                 weight_norm=True, batch_norm=True, activation=nn.ReLU, final_activation=None):
-        super().__init__()
-        assert len(filters) > 0
-        self.final_activation = final_activation
-        self.encoder = create_encoder(in_channels, filters, kernel_size, weight_norm, batch_norm, activation, layers)
-        self.decoder = create_decoder(out_channels, filters, kernel_size, weight_norm, batch_norm, activation, layers)
+    """
+    该 U-Net 模型使用高度封装的编码器、解码器和预测头构建。
+    - OneEncoder: 自动执行多级下采样，并返回所有层级的特征列表。
+    - OneDecoder: 接收特征列表，自动匹配跳跃连接 (Skip Connections) 进行上采样融合。
+    - OneHead: 将解码后的深层特征映射为目标物理量。
 
-    def encode(self, x):
-        tensors = []
-        indices = []
-        sizes = []
-        for encoder in self.encoder:
-            x = encoder(x)
-            sizes.append(x.size())
-            tensors.append(x)
-            x, ind = F.max_pool2d(x, 2, 2, return_indices=True)
-            indices.append(ind)
-        return x, tensors, indices, sizes
+    Args:
+        in_channels (int): 输入特征/图像的通道数。
+        out_channels (int): 输出预测场的通道数。
+        base_channels (int, optional): 初始特征通道数 (等价于原版的 features[0])。默认值: 16。
+        num_stages (int, optional): 下采样/上采样的层数 (等价于原版 len(features)-1)。默认值: 2。
+        bilinear (bool, optional): 是否使用双线性插值进行上采样。默认值: True。
+        normtype (str, optional): 归一化类型 ('bn' 或 'in')。默认值: 'bn'。
+        kernel_size (int, optional): 骨干网络的卷积核大小，必须为奇数。默认值: 3。
 
-    def decode(self, x, tensors, indices, sizes):
-        for decoder in self.decoder:
-            tensor = tensors.pop()
-            size = sizes.pop()
-            ind = indices.pop()
-            x = F.max_unpool2d(x, ind, 2, 2, output_size=size)
-            x = torch.cat([tensor, x], dim=1)
-            x = decoder(x)
-        return x
+    形状:
+        输入 x: (B, in_channels, H, W)
+        输出 logits: (B, out_channels, H, W)
+
+    Example:
+        >>> model = UNet(in_channels=1, out_channels=2, base_channels=16, num_stages=2, kernel_size=5)
+        >>> x = torch.randn(2, 1, 64, 64)
+        >>> out = model(x)
+        >>> print(out.shape)
+        torch.Size([2, 2, 64, 64])
+    """
+    def __init__(
+        self, 
+        in_channels: int, 
+        out_channels: int, 
+        base_channels: int = 16, 
+        num_stages: int = 2, 
+        bilinear: bool = True,
+        normtype: str = "bn",
+        kernel_size: int = 3
+    ):
+        super(UNet, self).__init__()
+        
+        self.encoder = OneEncoder(
+            style="UNetEncoder2D",
+            in_channels=in_channels,
+            base_channels=base_channels,
+            num_stages=num_stages,
+            bilinear=bilinear,
+            normtype=normtype,
+            kernel_size=kernel_size
+        )
+        
+        self.decoder = OneDecoder(
+            style="UNetDecoder2D",
+            base_channels=base_channels,
+            num_stages=num_stages,
+            bilinear=bilinear,
+            normtype=normtype,
+            kernel_size=kernel_size
+        )
+        
+        self.head = OneHead(
+            style="UNetHead2D",
+            in_channels=base_channels,
+            out_channels=out_channels,
+            kernel_size=1  
+        )
 
     def forward(self, x):
-        x, tensors, indices, sizes = self.encode(x)
-        x = self.decode(x, tensors, indices, sizes)
-        if self.final_activation is not None:
-            x = self.final_activation(x)
-        return x
+        features = self.encoder(x)
+        decoded = self.decoder(features)
+        logits = self.head(decoded)
+        
+        return logits

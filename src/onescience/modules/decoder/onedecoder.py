@@ -1,12 +1,20 @@
+import torch
 from torch import nn
-from .fengwudecoder import FengWuDecoder
+
+from .unet_decoder import UNetDecoder1D, UNetDecoder2D, UNetDecoder3D
+from .graphvit_decoder import GraphViTDecoder
 from .mesh_graph_decoder import MeshGraphDecoder
-from .protenixdecoder import ProtenixAtomAttentionDecoder
+from .fengwudecoder import FengWuDecoder
+#from .protenixdecoder import ProtenixAtomAttentionDecoder
 
 _DECODER_REGISTRY = {
-    "FengWuDecoder": FengWuDecoder,
+    "UNetDecoder1D": UNetDecoder1D,
+    "UNetDecoder2D": UNetDecoder2D,
+    "UNetDecoder3D": UNetDecoder3D,
+    "GraphViTDecoder": GraphViTDecoder,
     "MeshGraphDecoder": MeshGraphDecoder,
-    "ProtenixAtomAttentionDecoder": ProtenixAtomAttentionDecoder,
+    "FengWuDecoder": FengWuDecoder,
+    #"ProtenixAtomAttentionDecoder": ProtenixAtomAttentionDecoder,
 }
 
 class OneDecoder(nn.Module):
@@ -14,16 +22,17 @@ class OneDecoder(nn.Module):
         super().__init__()
 
         if style not in _DECODER_REGISTRY:
-            raise NotImplementedError(f"Unknown style: {style}")
+            raise NotImplementedError(
+                f"Unknown style: '{style}'. Available options are: {list(_DECODER_REGISTRY.keys())}"
+            )
 
         self.decoder = _DECODER_REGISTRY[style](**kwargs)
 
     def forward(self, *args, **kwargs):
         return self.decoder(*args, **kwargs)
-
     def __getattr__(self, name):
         try:
             return super().__getattr__(name)
         except AttributeError:
             return getattr(self.decoder, name)
-
+            

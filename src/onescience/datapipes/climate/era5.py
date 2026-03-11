@@ -25,7 +25,7 @@ class ERA5Datapipe(Datapipe):
         self.normalize = normalize
 
     def train_dataloader(self):
-        data = ERA5HDF5Dataset(dataset=self.dataset, mode='train', output_steps=self.output_steps, input_steps=self.input_steps, normalize=self.normalize)
+        data = ERA5Dataset(dataset=self.dataset, mode='train', output_steps=self.output_steps, input_steps=self.input_steps, normalize=self.normalize)
         sampler = DistributedSampler(data, shuffle=True) if self.distributed else None
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
@@ -37,7 +37,7 @@ class ERA5Datapipe(Datapipe):
         return data_loader, sampler
 
     def val_dataloader(self):
-        data = ERA5HDF5Dataset(dataset=self.dataset, mode='val', output_steps=self.output_steps, input_steps=self.input_steps, normalize=self.normalize)
+        data = ERA5Dataset(dataset=self.dataset, mode='val', output_steps=self.output_steps, input_steps=self.input_steps, normalize=self.normalize)
         sampler = DistributedSampler(data, shuffle=False) if self.distributed else None
         data_loader = DataLoader(data,
                                  batch_size=self.params.dataloader.batch_size,
@@ -49,7 +49,7 @@ class ERA5Datapipe(Datapipe):
         return data_loader, sampler
 
     def test_dataloader(self):
-        data = ERA5HDF5Dataset(dataset=self.dataset, mode='test', output_steps=self.output_steps, input_steps=self.input_steps, normalize=self.normalize)
+        data = ERA5Dataset(dataset=self.dataset, mode='test', output_steps=self.output_steps, input_steps=self.input_steps, normalize=self.normalize)
         data_loader = DataLoader(data,
                                  batch_size=1,
                                  drop_last=True if self.distributed else False,
@@ -59,7 +59,7 @@ class ERA5Datapipe(Datapipe):
         return data_loader
     
     
-class  ERA5HDF5Dataset(BaseDataset):
+class  ERA5Dataset(BaseDataset):
     def __init__(self, dataset, mode='train', output_steps=1, input_steps=1, normalize=True, patch_size=[1, 1]):
         self.params = dataset
         self.data_dir = self.params.data_dir
