@@ -1,0 +1,463 @@
+component:
+
+  meta:
+    name: MixtureOfExperts
+    alias: MoE
+    version: 1.0
+    domain: deep_learning
+    category: neural_network
+    subcategory: expert_system
+    author: OneScience
+    license: Apache-2.0
+    tags:
+      - moe
+      - mixture_of_experts
+      - sparse_model
+      - deep_learning
+
+
+  concept:
+
+    description: >
+      Mixture of Experts (MoE) 是一种稀疏激活的神经网络架构，
+      通过门控网络动态选择少数专家进行计算，
+      在保持模型容量的同时大幅降低计算成本。
+
+    intuition: >
+      每个输入 token 通过门控网络选择最相关的 top-k 个专家，
+      只激活这些专家进行计算并加权聚合输出，
+      从而实现条件计算和专家专业化。
+
+    problem_it_solves:
+      - 模型容量扩展而不增加计算量
+      - 专家专业化处理不同类型输入
+      - 稀疏激活提升推理效率
+
+
+  theory:
+
+    formula:
+
+      moe_output:
+        expression: sum(softmax(TopK(Gate(x))) * Expert_i(x))
+
+    variables:
+
+      x:
+        name: Input
+        shape: [batch, seq_len, dim]
+        description: 输入特征
+
+      Gate:
+        name: GatingNetwork
+        shape: [dim, num_experts]
+        description: 门控网络
+
+      TopK:
+        description: 选择 top-k 个专家
+        value: k=2
+
+      Expert_i:
+        description: 第 i 个专家网络
+
+
+  structure:
+
+    architecture: sparse_mixture_of_experts
+
+    pipeline:
+
+      - name: GateComputation
+        operation: linear_projection
+
+      - name: TopKSelection
+        operation: topk_routing
+
+      - name: SoftmaxNormalization
+        operation: softmax
+
+      - name: ExpertComputation
+        operation: conditional_forward
+
+      - name: WeightedAggregation
+        operation: weighted_sum
+
+
+  interface:
+
+    parameters:
+
+      dim:
+        type: int
+        description: 输入特征维度
+
+      hidden_dim:
+        type: int
+        description: 专家隐藏层维度
+
+      num_experts:
+        type: int
+        default: 8
+        description: 专家数量
+
+      top_k:
+        type: int
+        default: 2
+        description: 每个 token 激活的专家数
+
+    inputs:
+
+      x:
+        type: SequenceEmbedding
+        shape: [batch, seq_len, dim]
+        dtype: float32
+
+    outputs:
+
+      output:
+        type: SequenceEmbedding
+        shape: [batch, seq_len, dim]
+
+
+  types:
+
+    SequenceEmbedding:
+      shape: [batch, seq_len, dim]
+      description: 序列 embedding 表示
+
+
+  implementation:
+
+    framework: pytorch
+
+    code: |
+
+      import torch
+      import torch.nn as nn
+      import torch.nn.functional as F
+      from .feedforward import SwiGLU
+
+
+      class MoE(nn.Module):
+          """混合专家层"""
+          def __init__(self, dim, hidden_dim, num_experts=8, top_k=2):
+              super().__init__()
+              self.num_experts = num_experts
+              self.top_k = top_k
+              self.gate = nn.Linear(dim, num_experts, bias=False)
+              self.experts = nn.ModuleList([
+                  SwiGLU(dim, hidden_dim) for _ in range(num_experts)
+              ])
+
+          def forward(self, x):
+              B, T, C = x.shape
+              x_flat = x.view(-1, C)
+
+              gate_logits = self.gate(x_flat)
+              weights, indices = torch.topk(gate_logits, self.top_k, dim=-1)
+              weights = F.softmax(weights, dim=-1)
+
+              out = torch.zeros_like(x_flat)
+              for i in range(self.top_k):
+                  expert_idx = indices[:, i]
+                  expert_weight = weights[:, i:i+1]
+                  for e in range(self.num_experts):
+                      mask = expert_idx == e
+                      if mask.any():
+                          out[mask] += expert_weight[mask] * self.experts[e](x_flat[mask])
+
+              return out.view(B, T, C)
+
+
+      class MixtureOfAdapters(nn.Module):
+          """混合适配器"""
+          def __init__(self, dim, num_adapters=4, bottleneck=64):
+              super().__init__()
+              self.gate = nn.Linear(dim, num_adapters)
+              from .peft import Adapter
+              self.adapters = nn.ModuleList([
+                  Adapter(dim, bottleneck) for _ in range(num_adapters)
+              ])
+
+          def forward(self, x):
+              weights = F.softmax(self.gate(x.mean(1)), dim=-1)
+              out = sum(
+                  w.view(-1, 1, 1) * adapter(x)
+                  for w, adapter in zip(weights.T, self.adapters)
+              )
+              return out
+
+
+      class RAMoLE(nn.Module):
+          """检索增强混合专家"""
+          def __init__(self, dim, hidden_dim, num_experts=4):
+              super().__init__()
+              self.retriever = nn.Linear(dim, num_experts)
+              self.experts = nn.ModuleList([
+                  SwiGLU(dim, hidden_dim) for _ in range(num_experts)
+              ])
+              self.fusion = nn.Linear(dim * 2, dim)
+
+          def forward(self, x, memory_bank):
+              scores = torch.softmax(self.retriever(x), dim=-1)
+
+              expert_out = torch.zeros_like(x)
+              for i, expert in enumerate(self.experts):
+                  expert_out += scores[..., i:i+1] * expert(x)
+
+              retrieved = torch.matmul(scores, memory_bank)
+              fused = torch.cat([expert_out, retrieved], dim=-1)
+              gate = torch.sigmoid(self.fusion(fused))
+
+              return gate * expert_out + (1 - gate) * retrieved
+
+
+  skills:
+
+    build_moe_layer:
+
+      description: 构建标准 MoE 层
+
+      inputs:
+        - dim
+        - hidden_dim
+        - num_experts
+        - top_k
+
+      prompt_template: |
+
+        构建一个 Mixture of Experts 层。
+
+        参数：
+        dim = {{dim}}
+        hidden_dim = {{hidden_dim}}
+        num_experts = {{num_experts}}
+        top_k = {{top_k}}
+
+        输入张量形状：
+        [batch, seq_len, dim]
+
+        要求：
+        top_k 必须小于等于 num_experts。
+
+
+    build_sparse_transformer:
+
+      description: 构建稀疏 Transformer Block
+
+      structure:
+
+        - LayerNorm
+        - Attention
+        - ResidualAdd
+        - LayerNorm
+        - MoE
+        - ResidualAdd
+
+
+    diagnose_moe:
+
+      description: 分析 MoE 结构问题
+
+      checks:
+
+        - expert_load_balance
+        - routing_collapse
+        - top_k_selection
+        - gradient_flow
+
+
+
+  knowledge:
+
+    usage_patterns:
+
+      sparse_transformer:
+
+        pipeline:
+          - Attention
+          - MoE
+          - ResidualAdd
+
+      mixture_of_adapters:
+
+        pipeline:
+          - BaseModel
+          - MixtureOfAdapters
+
+
+    design_patterns:
+
+      moe_transformer_block:
+
+        structure:
+          - Attention
+          - Add
+          - LayerNorm
+          - MoE
+          - Add
+          - LayerNorm
+
+
+    hot_models:
+
+      - model: Switch Transformer
+        year: 2021
+        role: 首个大规模 MoE Transformer
+        architecture: encoder-decoder
+        experts: 2048
+
+      - model: GLaM
+        year: 2021
+        role: 稀疏 MoE 语言模型
+        architecture: decoder
+        experts: 64
+
+      - model: Mixtral 8x7B
+        year: 2023
+        role: 开源 MoE 模型
+        architecture: decoder
+        experts: 8
+        top_k: 2
+
+      - model: DeepSeek-V2
+        year: 2024
+        role: 高效 MoE 架构
+        architecture: decoder
+
+      - model: Grok-1
+        year: 2024
+        role: 大规模 MoE
+        experts: 8
+
+      - model: DeepSeek-V3
+        year: 2024-12
+        role: 671B 参数 MoE 模型
+        architecture: decoder
+        experts: 256
+        top_k: 8
+        active_params: 37B
+
+      - model: Qwen2.5-MoE
+        year: 2024-11
+        role: 高效多语言 MoE
+        architecture: decoder
+        experts: 64
+        top_k: 8
+
+      - model: Mixtral 8x22B
+        year: 2024
+        role: Mixtral 升级版
+        architecture: decoder
+        experts: 8
+        top_k: 2
+        active_params: 44B
+
+      - model: DBRX
+        year: 2024
+        role: Databricks MoE
+        architecture: decoder
+        experts: 16
+        top_k: 4
+
+      - model: Arctic
+        year: 2024
+        role: Snowflake 混合 MoE
+        architecture: decoder
+        experts: 128
+        top_k: 2
+
+
+    model_usage_details:
+
+      Switch Transformer:
+
+        experts: 2048
+        top_k: 1
+        routing: token-level
+
+      Mixtral:
+
+        experts: 8
+        top_k: 2
+        routing: token-level
+        expert_type: SwiGLU
+
+      DeepSeek-V2:
+
+        experts: 160
+        top_k: 6
+        routing: shared_expert + routed_expert
+
+
+    best_practices:
+
+      - 使用 top_k=2 平衡性能和效率
+      - 添加 load balancing loss 防止专家崩溃
+      - 使用 expert dropout 提升泛化
+      - 考虑使用 shared expert 处理通用特征
+
+
+    anti_patterns:
+
+      - top_k=1 容易导致 routing collapse
+      - 专家数过多导致训练不充分
+      - 忽略 load balance 导致专家利用不均
+
+
+    paper_references:
+
+      - title: "Outrageously Large Neural Networks: The Sparsely-Gated MoE Layer"
+        authors: Shazeer et al.
+        year: 2017
+
+      - title: "Switch Transformers: Scaling to Trillion Parameter Models"
+        authors: Fedus et al.
+        year: 2021
+
+      - title: "GLaM: Efficient Scaling of Language Models with Mixture-of-Experts"
+        authors: Du et al.
+        year: 2021
+
+      - title: "Mixtral of Experts"
+        authors: Mistral AI
+        year: 2023
+
+
+
+  graph:
+
+    is_a:
+      - SparseLayer
+      - NeuralNetworkComponent
+
+    part_of:
+      - TransformerBlock
+      - SparseTransformer
+
+    depends_on:
+      - Linear
+      - SwiGLU
+      - Softmax
+      - TopK
+
+    variants:
+      - SwitchLayer
+      - MixtureOfAdapters
+      - RAMoLE
+      - ExpertChoice
+
+    used_in_models:
+      - Switch Transformer
+      - GLaM
+      - Mixtral
+      - DeepSeek-V2
+      - Grok-1
+
+    compatible_with:
+
+      inputs:
+        - SequenceEmbedding
+
+      outputs:
+        - SequenceEmbedding
