@@ -1,14 +1,15 @@
 #!/bin/bash
 export OMP_NUM_THREADS=1
 export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+source ../../../../env.sh
 torchrun \
     --nnodes=1 \
     --nproc_per_node=8 \
     ../../train.py \
     --name="water" \
-    --train_file="/public/onestore/onedatasets/MaterialsChemistry/examples/water/water_train.xyz" \
+    --train_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/water/water_train.xyz" \
     --valid_fraction=0.05 \
-    --test_file="/public/onestore/onedatasets/MaterialsChemistry/examples/water/water_test.xyz" \
+    --test_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/water/water_test.xyz" \
     --E0s="isolated" \
     --model="MACE" \
     --num_interactions=2 \

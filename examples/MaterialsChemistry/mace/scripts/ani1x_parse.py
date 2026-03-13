@@ -57,5 +57,5 @@ def convert_ani1ccx_final(h5_path, output_xyz_path):
         print("未能提取到有效数据，请检查文件内容。")
 
 if __name__ == "__main__":
-    convert_ani1ccx_final('a/public/onestore/onedatasets/MaterialsChemistry/examples/ani1x/ni1x-release.h5', 'a/public/onestore/onedatasets/MaterialsChemistry/examples/ani1x/ni1x_cc_dft.xyz')
+    convert_ani1ccx_final('${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/ani1x/ni1x-release.h5', '${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/ani1x/ni1x_cc_dft.xyz')
 

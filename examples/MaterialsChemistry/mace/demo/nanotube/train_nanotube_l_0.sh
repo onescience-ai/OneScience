@@ -1,14 +1,15 @@
 #!/bin/bash
 export OMP_NUM_THREADS=1
 export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6
+source ../../../../env.sh
 torchrun \
     --nnodes=1 \
     --nproc_per_node=7 \
     ../../train.py \
     --name="nano_l0" \
-    --train_file="/public/onestore/onedatasets/MaterialsChemistry/examples/nanotube/nanotube_large.xyz" \
+    --train_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/nanotube/nanotube_large.xyz" \
     --valid_fraction=0.05 \
-    --test_file="/public/onestore/onedatasets/MaterialsChemistry/examples/nanotube/nanotube_test.xyz" \
+    --test_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/nanotube/nanotube_test.xyz" \
     --E0s="average" \
     --model="MACE" \
     --num_interactions=2 \

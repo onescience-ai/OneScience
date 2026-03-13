@@ -1,6 +1,6 @@
 export PYTHONPATH=$PYTHONPATH:~/pub_MD/mace-main/
 python ~/pub_MD/mace-main/mace/cli/preprocess_data.py \
-    --train_file="a/public/onestore/onedatasets/MaterialsChemistry/examples/ani1x/ni1x_cc_dft.xyz" \
+    --train_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/ani1x/ni1x_cc_dft.xyz" \
     --valid_fraction=0.03 \
     --energy_key="DFT_energy" \
     --forces_key="DFT_forces" \

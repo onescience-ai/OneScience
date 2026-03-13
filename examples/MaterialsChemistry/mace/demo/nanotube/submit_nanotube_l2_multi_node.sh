@@ -45,13 +45,13 @@ srun --export=ALL bash -c '
   # Slurm 会自动给每个任务分配 ID，我们将它们转为 PyTorch 需要的环境变量
   export RANK=$SLURM_PROCID
   export LOCAL_RANK=$SLURM_LOCALID
-  
+  source ../../../../env.sh
 
   exec python ../../train.py \
     --name="nanotube_l2_multi_nodes" \
-    --train_file="/public/onestore/onedatasets/MaterialsChemistry/examples/nanotube/nanotube_large.xyz" \
+    --train_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/nanotube/nanotube_large.xyz" \
     --valid_fraction=0.05 \
-    --test_file="/public/onestore/onedatasets/MaterialsChemistry/examples/nanotube/nanotube_test.xyz" \
+    --test_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/nanotube/nanotube_test.xyz" \
     --E0s="average" \
     --model="MACE" \
     --num_interactions=2 \
@@ -80,4 +80,4 @@ srun --export=ALL bash -c '
     --seed=123 \
     --restart_latest \
     --save_cp
-'
+
