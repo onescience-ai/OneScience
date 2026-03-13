@@ -49,9 +49,9 @@ srun --export=ALL bash -c '
 
   exec python ../../train.py \
     --name="nanotube_l2_multi_nodes" \
-    --train_file="../../data/nanotube/nanotube_large.xyz" \
+    --train_file="/public/onestore/onedatasets/MaterialsChemistry/examples/nanotube/nanotube_large.xyz" \
     --valid_fraction=0.05 \
-    --test_file="../../data/nanotube/nanotube_test.xyz" \
+    --test_file="/public/onestore/onedatasets/MaterialsChemistry/examples/nanotube/nanotube_test.xyz" \
     --E0s="average" \
     --model="MACE" \
     --num_interactions=2 \

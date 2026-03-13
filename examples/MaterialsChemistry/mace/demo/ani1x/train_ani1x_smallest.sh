@@ -6,8 +6,8 @@ torchrun \
     --nproc_per_node=8 \
     ../../train.py \
     --name="ani1x_smallest" \
-    --train_file="../../data/ani1x/ANI1x_cc_DFT_rc5_train" \
-    --valid_file="../../data/ani1x/ANI1x_cc_DFT_rc5_val" \
+    --train_file="/public/onestore/onedatasets/MaterialsChemistry/examples/ani1x/ANI1x_cc_DFT_rc5_train" \
+    --valid_file="/public/onestore/onedatasets/MaterialsChemistry/examples/ani1x/ANI1x_cc_DFT_rc5_val" \
     --statistics_file="../../data/ani1x/ANI1x_cc_DFT_rc5_statistics.json" \
     --E0s="{1: -13.62222753701504, 6: -1029.4130839658328, 7: -1484.8710358098756, 8: -2041.8396277138045}" \
     --model="MACE" \

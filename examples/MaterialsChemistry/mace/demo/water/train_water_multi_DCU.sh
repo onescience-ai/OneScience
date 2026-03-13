@@ -6,9 +6,9 @@ torchrun \
     --nproc_per_node=8 \
     ../../train.py \
     --name="water" \
-    --train_file="../../data/water/water_train.xyz" \
+    --train_file="/public/onestore/onedatasets/MaterialsChemistry/examples/water/water_train.xyz" \
     --valid_fraction=0.05 \
-    --test_file="../../data/water/water_test.xyz" \
+    --test_file="/public/onestore/onedatasets/MaterialsChemistry/examples/water/water_test.xyz" \
     --E0s="isolated" \
     --model="MACE" \
     --num_interactions=2 \
