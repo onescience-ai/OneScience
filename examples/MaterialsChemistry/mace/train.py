@@ -6,6 +6,7 @@ import glob
 import json
 import logging
 import os
+import shutil
 from copy import deepcopy
 from pathlib import Path
 from typing import List, Optional
@@ -30,7 +31,7 @@ from onescience.datapipes.materials.pyg_stack.core.utils import KeySpecification
 #from onescience.models.mace.tools import torch_geometric
 from onescience.datapipes.materials.tools import torch_geometric
 from onescience.models.mace.tools.model_script_utils import configure_model
-
+import pdb
 import sys
 try:
     import onescience.models.mace
@@ -46,7 +47,6 @@ except ImportError as e:
 from onescience.datapipes.materials.pyg_stack.core.atomic_data import AtomicData
 from onescience.datapipes.materials.pyg_stack.storage.hdf5_dataset import HDF5Dataset, dataset_from_sharded_hdf5
 from onescience.datapipes.materials.pyg_stack.storage.text_dataset import TextDataset
-
 from onescience.models.mace.tools.multihead_tools import (
     HeadConfig,
     assemble_mp_data,
@@ -97,6 +97,7 @@ def run(args) -> None:
     """
     This script runs the training/fine tuning for mace
     """
+
     tag = tools.get_tag(name=args.name, seed=args.seed)
     args, input_log_messages = tools.check_args(args)
 
@@ -135,6 +136,7 @@ def run(args) -> None:
 
     if args.distributed:
         torch.cuda.set_device(local_rank)
+        logging.info(f"!!!!!!!!!Set device {local_rank}")
         logging.info(f"Process group initialized: {torch.distributed.is_initialized()}")
         logging.info(f"Processes: {world_size}")
 
@@ -326,7 +328,7 @@ def run(args) -> None:
                 head_config.config_type_weights
             )
             collections, atomic_energies_dict = get_dataset_from_xyz(
-                work_dir=args.work_dir,
+                work_dir=os.path.join(args.output_dir,args.name),
                 train_path=train_files_ase_list,
                 valid_path=valid_files_ase_list,
                 valid_fraction=head_config.valid_fraction,
@@ -727,7 +729,7 @@ def run(args) -> None:
         logging.info("Optimzing model and optimzier for XPU")
         model, optimizer = ipex.optimize(model, optimizer=optimizer)
     logger = tools.MetricsLogger(
-        directory=args.results_dir, tag=tag + "_train"
+        directory=args.plot_dir, tag=tag + "_train"
     )  # pylint: disable=E1123
 
     lr_scheduler = LRScheduler(optimizer, args)

@@ -1,7 +1,5 @@
 
 # Parsing functionalities
-
-
 import argparse
 import os
 from typing import Optional
@@ -31,32 +29,18 @@ def build_default_arg_parser() -> argparse.ArgumentParser:
     # Name and seed
     parser.add_argument("--name", help="experiment name", required=True)
     parser.add_argument("--seed", help="random seed", type=int, default=123)
-
+       
     # Directories
-    parser.add_argument(
-        "--work_dir",
-        help="set directory for all files and folders",
-        type=str,
-        default=".",
-    )
-    parser.add_argument(
-        "--log_dir", help="directory for log files", type=str, default=None
-    )
-    parser.add_argument(
-        "--model_dir", help="directory for final model", type=str, default=None
-    )
-    parser.add_argument(
-        "--checkpoints_dir",
-        help="directory for checkpoint files",
-        type=str,
-        default=None,
-    )
-    parser.add_argument(
-        "--results_dir", help="directory for results", type=str, default=None
-    )
-    parser.add_argument(
-        "--downloads_dir", help="directory for downloads", type=str, default=None
-    )
+    parser.add_argument("--work_dir", help="set work directory for all files and folders",
+                        type=str, default="./")
+
+    parser.add_argument("--output_dir",help="output directory",
+                        type=str,default="./")
+    parser.add_argument("--log_dir", help="log directory", type=str, default=None)
+    parser.add_argument("--model_dir", help="final model directory", type=str, default=None)
+    parser.add_argument("--checkpoints_dir", help="checkpoints directory", type=str, default=None)
+    parser.add_argument("--plot_dir", help="plotting directory", type=str, default=None)
+    parser.add_argument("--downloads_dir", help="directory for downloads", type=str, default=None)
 
     # Device and logging
     parser.add_argument(
