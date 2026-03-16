@@ -11,8 +11,8 @@
 
 module purge
 module load compiler/dtk/25.04
-source /work/home/onescience2025/anaconda3/bin/activate
-conda activate macetest
+#source /work/home/onescience2025/anaconda3/bin/activate
+conda activate chem
 
 # 必要环境
 export OMP_NUM_THREADS=1
@@ -29,8 +29,8 @@ export WORLD_SIZE=$SLURM_NTASKS
 mkdir -p ./MACE_models
 
 # 路径
-TRAIN_FILE=./data/solvent_xtb_train_200.xyz
-TEST_FILE=./data/solvent_xtb_test.xyz
+TRAIN_FILE=${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/DMC/solvent_xtb_train_200.xyz
+TEST_FILE=${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/DMC/solvent_xtb_test.xyz
 
 # 启动 8 个 rank
 srun --export=ALL --chdir="$WORKDIR" bash -c '
@@ -59,4 +59,3 @@ srun --export=ALL --chdir="$WORKDIR" bash -c '
     --distributed \
     --device cuda \
     --num_workers 8
-'
