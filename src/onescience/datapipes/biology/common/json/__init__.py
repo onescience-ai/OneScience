@@ -1,9 +1,9 @@
-"""JSON processing module.
+"""JSON处理模块
 
-Provides unified JSON file parsing, writing, and conversion functionality,
-supporting input formats for protein structure prediction models (Protenix/AlphaFold3, etc.).
+提供统一的JSON文件解析、写入和转换功能，
+支持蛋白质结构预测模型（Protenix/AlphaFold3等）的输入格式。
 
-Usage Examples
+使用示例
 --------
 >>> from onescience.datapipes.biology.common.json import (
 ...     JSONParser, JSONWriter, JSONConverter,
@@ -12,12 +12,12 @@ Usage Examples
 ...     ProtenixJSONData, ProtenixJSONFeaturizer
 ... )
 
->>> # Parse JSON file
+>>> # 解析JSON文件
 >>> json_data = JSONParser.parse_file("input.json")
 >>> print(json_data.name)
 >>> print(json_data.get_sequences())
 
->>> # Create JSON data
+>>> # 创建JSON数据
 >>> writer = ProteinJSONWriter()
 >>> sequences = [
 ...     writer.create_protein_entry("MKTAYIAKQRQISFVKSHFSRQ", count=1),
@@ -25,12 +25,12 @@ Usage Examples
 ... ]
 >>> writer.write_structure(sequences, "output.json", name="sample1")
 
->>> # Convert format
+>>> # 转换格式
 >>> converter = ProteinJSONConverter()
 >>> normalized = converter.normalize(json_data)
 >>> composition = converter.calculate_composition(json_data)
 
->>> # Feature extraction (requires Protenix dependency)
+>>> # 特征提取（需要Protenix依赖）
 >>> featurizer = ProtenixJSONFeaturizer("input.json")
 >>> features, atom_array, token_array = featurizer.get_features()
 """
@@ -65,25 +65,25 @@ from onescience.datapipes.biology.common.json.json_converter import (
 #     ProtenixJSONFeaturizer = None  # type: ignore
 
 __all__ = [
-    # Data classes
+    # 数据类
     "JSONData",
     "JSONWriteConfig",
-    # Parsers
+    # 解析器
     "JSONParser",
     "ProteinJSONParser",
-    # Writers
+    # 写入器
     "JSONWriter",
     "ProteinJSONWriter",
-    # Converters
+    # 转换器
     "JSONConverter",
     "ProteinJSONConverter",
     "JSONBatchProcessor",
 ]
 
-# # Add to __all__ if Protenix is available
+# # 如果Protenix可用，添加到__all__
 # if _PROTEINIX_AVAILABLE:
 #     __all__.extend([
-#         # Protenix feature extraction
+#         # Protenix特征提取
 #         "ProtenixJSONData",
 #         "ProtenixJSONFeaturizer",
 #     ])

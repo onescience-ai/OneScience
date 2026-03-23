@@ -1,8 +1,4 @@
-"""Common utility functions for biology datapipes.
-
-This module provides file utilities for working with biological data formats
-including FASTA, MSA, and structure files.
-"""
+"""通用工具函数"""
 
 from onescience.datapipes.biology.common.utils.file_utils import (
     is_compressed,

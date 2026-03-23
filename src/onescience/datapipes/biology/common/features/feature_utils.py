@@ -1,228 +1,287 @@
-"""Utility functions for biological feature processing.
+"""
+特征工具函数
 
-This module provides common utility functions used across feature extractors,
-including encoding, padding, cropping, and merging operations.
+提供通用的特征处理工具函数
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
-
+from typing import Dict, Any, Optional, List, Tuple
 import numpy as np
-import torch
 
 
 def encode_to_onehot(
-    indices: np.ndarray,
+    values: np.ndarray,
     num_classes: int,
     dtype: np.dtype = np.float32
 ) -> np.ndarray:
-    """Convert integer indices to one-hot encoded array.
-
-    Args:
-        indices: Array of integer indices.
-        num_classes: Total number of classes for one-hot encoding.
-        dtype: Data type of the output array.
-
-    Returns:
-        One-hot encoded array of shape indices.shape + (num_classes,).
-
-    Example:
-        >>> indices = np.array([0, 1, 2])
-        >>> encode_to_onehot(indices, 4)
-        array([[1., 0., 0., 0.],
-               [0., 1., 0., 0.],
-               [0., 0., 1., 0.]], dtype=float32)
     """
-    onehot = np.zeros(indices.shape + (num_classes,), dtype=dtype)
-    onehot.reshape(-1, num_classes)[np.arange(indices.size), indices.reshape(-1)] = 1
-    return onehot
-
-
-def make_one_hot(
-    positions: np.ndarray,
-    num_classes: int,
-    on_value: float = 1.0,
-    off_value: float = 0.0,
-    dtype: np.dtype = np.float32
-) -> np.ndarray:
-    """Create one-hot encoding with custom on/off values.
-
-    Args:
-        positions: Array of positions to set to on_value.
-        num_classes: Total number of classes.
-        on_value: Value for active positions.
-        off_value: Value for inactive positions.
-        dtype: Data type of the output array.
-
-    Returns:
-        One-hot encoded array.
+    将整数编码转换为one-hot编码
+    
+    Parameters
+    ----------
+    values : np.ndarray
+        整数编码数组
+    num_classes : int
+        类别数
+    dtype : np.dtype
+        输出数据类型
+        
+    Returns
+    -------
+    np.ndarray
+        One-hot编码数组，shape: (*values.shape, num_classes)
     """
-    onehot = np.full((len(positions), num_classes), off_value, dtype=dtype)
-    onehot[np.arange(len(positions)), positions] = on_value
-    return onehot
+    shape = values.shape
+    values_flat = values.reshape(-1)
+    
+    one_hot = np.zeros((values_flat.shape[0], num_classes), dtype=dtype)
+    valid_mask = (values_flat >= 0) & (values_flat < num_classes)
+    one_hot[np.arange(values_flat.shape[0])[valid_mask], values_flat[valid_mask]] = 1.0
+    
+    return one_hot.reshape(*shape, num_classes)
 
 
 def pad_features(
     features: Dict[str, np.ndarray],
-    target_length: int,
+    target_shapes: Dict[str, Tuple],
     pad_value: float = 0.0,
-    axis: int = 0
 ) -> Dict[str, np.ndarray]:
-    """Pad feature arrays to target length along specified axis.
-
-    Args:
-        features: Dictionary of feature arrays.
-        target_length: Target length along the padding axis.
-        pad_value: Value to use for padding.
-        axis: Axis along which to pad.
-
-    Returns:
-        Dictionary with padded feature arrays.
-
-    Raises:
-        ValueError: If any feature is longer than target_length.
+    """
+    填充特征到目标形状
+    
+    Parameters
+    ----------
+    features : Dict[str, np.ndarray]
+        特征字典
+    target_shapes : Dict[str, Tuple]
+        目标形状字典
+    pad_value : float
+        填充值
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        填充后的特征字典
     """
     padded = {}
+    
     for key, value in features.items():
-        if value.shape[axis] > target_length:
-            raise ValueError(
-                f"Feature '{key}' has length {value.shape[axis]} "
-                f"which exceeds target length {target_length}"
-            )
-
-        if value.shape[axis] == target_length:
+        if key not in target_shapes:
             padded[key] = value
             continue
-
-        pad_width = [(0, 0)] * value.ndim
-        pad_width[axis] = (0, target_length - value.shape[axis])
-
-        padded[key] = np.pad(
-            value,
-            pad_width,
-            mode='constant',
-            constant_values=pad_value
-        )
-
+            
+        target_shape = target_shapes[key]
+        current_shape = value.shape
+        
+        if len(current_shape) != len(target_shape):
+            raise ValueError(f"Rank mismatch for {key}: {current_shape} vs {target_shape}")
+        
+        # 计算padding
+        pad_width = []
+        for curr, target in zip(current_shape, target_shape):
+            if target == -1:
+                pad_width.append((0, 0))
+            else:
+                pad_width.append((0, target - curr))
+        
+        # 应用padding
+        padded_value = np.pad(value, pad_width, mode='constant', constant_values=pad_value)
+        padded[key] = padded_value
+    
     return padded
 
 
 def crop_features(
     features: Dict[str, np.ndarray],
-    start: int,
-    end: int,
-    axis: int = 0
+    crop_start: int,
+    crop_size: int,
+    spatial_dim: int = 0,
 ) -> Dict[str, np.ndarray]:
-    """Crop feature arrays to specified range along specified axis.
-
-    Args:
-        features: Dictionary of feature arrays.
-        start: Start index for cropping (inclusive).
-        end: End index for cropping (exclusive).
-        axis: Axis along which to crop.
-
-    Returns:
-        Dictionary with cropped feature arrays.
+    """
+    裁剪特征
+    
+    Parameters
+    ----------
+    features : Dict[str, np.ndarray]
+        特征字典
+    crop_start : int
+        裁剪起始位置
+    crop_size : int
+        裁剪大小
+    spatial_dim : int
+        空间维度索引
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        裁剪后的特征字典
     """
     cropped = {}
+    
     for key, value in features.items():
+        if value.ndim <= spatial_dim:
+            cropped[key] = value
+            continue
+        
+        # 构建切片
         slices = [slice(None)] * value.ndim
-        slices[axis] = slice(start, end)
+        slices[spatial_dim] = slice(crop_start, crop_start + crop_size)
+        
         cropped[key] = value[tuple(slices)]
+    
     return cropped
 
 
 def merge_features(
-    features_list: List[Dict[str, np.ndarray]],
-    merge_fn: Optional[callable] = None
+    feature_dicts: List[Dict[str, np.ndarray]],
+    allow_overlap: bool = False,
 ) -> Dict[str, np.ndarray]:
-    """Merge multiple feature dictionaries into one.
-
-    Args:
-        features_list: List of feature dictionaries to merge.
-        merge_fn: Optional function to merge values with same key.
-            If None, uses np.concatenate on axis 0.
-
-    Returns:
-        Merged feature dictionary.
-
-    Raises:
-        ValueError: If features_list is empty.
     """
-    if not features_list:
-        raise ValueError("Cannot merge empty list of features")
-
-    if merge_fn is None:
-        merge_fn = lambda values: np.concatenate(values, axis=0)
-
+    合并多个特征字典
+    
+    Parameters
+    ----------
+    feature_dicts : List[Dict[str, np.ndarray]]
+        特征字典列表
+    allow_overlap : bool
+        是否允许键重叠
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        合并后的特征字典
+    """
     merged = {}
-    keys = features_list[0].keys()
-
-    for key in keys:
-        values = [f[key] for f in features_list]
-        merged[key] = merge_fn(values)
-
+    
+    for features in feature_dicts:
+        if features is None:
+            continue
+        
+        for key, value in features.items():
+            if key in merged and not allow_overlap:
+                continue
+            merged[key] = value
+    
     return merged
 
 
 def select_features(
     features: Dict[str, np.ndarray],
-    indices: np.ndarray,
-    axis: int = 0
+    keys: List[str],
 ) -> Dict[str, np.ndarray]:
-    """Select subset of features by indices along specified axis.
-
-    Args:
-        features: Dictionary of feature arrays.
-        indices: Indices to select.
-        axis: Axis along which to select.
-
-    Returns:
-        Dictionary with selected features.
     """
-    selected = {}
-    for key, value in features.items():
-        selected[key] = np.take(value, indices, axis=axis)
-    return selected
+    选择指定键的特征
+    
+    Parameters
+    ----------
+    features : Dict[str, np.ndarray]
+        特征字典
+    keys : List[str]
+        要选择的键列表
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        选择后的特征字典
+    """
+    return {k: features[k] for k in keys if k in features}
 
 
 def cast_to_64bit_ints(features: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
-    """Cast integer arrays to 64-bit integers.
-
-    This is useful for ensuring compatibility with certain frameworks
-    that require 64-bit integers for indexing.
-
-    Args:
-        features: Dictionary of feature arrays.
-
-    Returns:
-        Dictionary with integer arrays cast to int64.
     """
-    casted = {}
+    将所有int32转换为int64
+    
+    参考OpenFold的实现
+    
+    Parameters
+    ----------
+    features : Dict[str, np.ndarray]
+        特征字典
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        转换后的特征字典
+    """
+    result = {}
+    
     for key, value in features.items():
-        if np.issubdtype(value.dtype, np.integer):
-            casted[key] = value.astype(np.int64)
+        if value.dtype == np.int32:
+            result[key] = value.astype(np.int64)
         else:
-            casted[key] = value
-    return casted
+            result[key] = value
+    
+    return result
 
 
-def squeeze_features(
-    features: Dict[str, np.ndarray],
-    axis: Optional[Union[int, Tuple[int, ...]]] = None
-) -> Dict[str, np.ndarray]:
-    """Remove single-dimensional entries from feature arrays.
+def make_one_hot(
+    x: np.ndarray,
+    num_classes: int,
+    dtype: np.dtype = np.float32
+) -> np.ndarray:
+    """
+    创建one-hot编码
+    
+    Parameters
+    ----------
+    x : np.ndarray
+        整数编码数组
+    num_classes : int
+        类别数
+    dtype : np.dtype
+        输出数据类型
+        
+    Returns
+    -------
+    np.ndarray
+        One-hot编码数组，shape: (*x.shape, num_classes)
+    """
+    return encode_to_onehot(x, num_classes, dtype)
 
-    Args:
-        features: Dictionary of feature arrays.
-        axis: Optional axis or axes to squeeze. If None, all single-dimensional
-            axes are removed.
 
-    Returns:
-        Dictionary with squeezed feature arrays.
+def squeeze_features(features: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+    """
+    压缩特征的维度
+    
+    移除单例维度，参考OpenFold的实现
+    
+    Parameters
+    ----------
+    features : Dict[str, np.ndarray]
+        特征字典
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        压缩后的特征字典
     """
     squeezed = {}
+    
+    squeeze_keys = [
+        "domain_name",
+        "msa",
+        "num_alignments",
+        "seq_length",
+        "sequence",
+        "superfamily",
+        "deletion_matrix",
+        "resolution",
+        "between_segment_residues",
+        "residue_index",
+    ]
+    
     for key, value in features.items():
-        squeezed[key] = np.squeeze(value, axis=axis)
+        if key == "aatype" and value.ndim > 1:
+            # 对aatype特殊处理：从one-hot转换为索引
+            squeezed[key] = np.argmax(value, axis=-1)
+        elif key in squeeze_keys:
+            # 移除最后一个维度为1的维度
+            if value.shape[-1] == 1 if value.ndim > 0 else False:
+                squeezed[key] = np.squeeze(value, axis=-1)
+            else:
+                squeezed[key] = value
+        else:
+            squeezed[key] = value
+    
     return squeezed
 
 
@@ -230,118 +289,224 @@ def add_constant_field(
     features: Dict[str, np.ndarray],
     key: str,
     value: Any,
-    shape: Tuple[int, ...],
-    dtype: np.dtype = np.float32
 ) -> Dict[str, np.ndarray]:
-    """Add a constant-valued field to features dictionary.
-
-    Args:
-        features: Dictionary of feature arrays.
-        key: Key for the new field.
-        value: Constant value to fill.
-        shape: Shape of the new array.
-        dtype: Data type of the new array.
-
-    Returns:
-        Dictionary with the new constant field added.
     """
-    features[key] = np.full(shape, value, dtype=dtype)
+    添加常量字段
+    
+    Parameters
+    ----------
+    features : Dict[str, np.ndarray]
+        特征字典
+    key : str
+        字段名
+    value : Any
+        字段值
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        更新后的特征字典
+    """
+    if isinstance(value, (int, float)):
+        features[key] = np.array(value, dtype=np.float32)
+    elif isinstance(value, np.ndarray):
+        features[key] = value
+    else:
+        features[key] = np.array(value)
+    
     return features
 
 
-def normalize_features(
-    features: np.ndarray,
-    mean: Optional[np.ndarray] = None,
-    std: Optional[np.ndarray] = None,
-    axis: int = 0,
-    eps: float = 1e-8
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Normalize features by subtracting mean and dividing by std.
-
-    Args:
-        features: Feature array to normalize.
-        mean: Optional pre-computed mean. If None, computed from features.
-        std: Optional pre-computed std. If None, computed from features.
-        axis: Axis along which to compute statistics.
-        eps: Small value to avoid division by zero.
-
-    Returns:
-        Tuple of (normalized_features, mean, std).
-    """
-    if mean is None:
-        mean = np.mean(features, axis=axis, keepdims=True)
-    if std is None:
-        std = np.std(features, axis=axis, keepdims=True)
-
-    normalized = (features - mean) / (std + eps)
-    return normalized, mean, std
-
-
-def shuffle_features(
+def filter_features_by_shape(
     features: Dict[str, np.ndarray],
-    axis: int = 0,
-    seed: Optional[int] = None
+    required_shape: Tuple,
 ) -> Dict[str, np.ndarray]:
-    """Randomly shuffle features along specified axis.
-
-    Args:
-        features: Dictionary of feature arrays.
-        axis: Axis along which to shuffle.
-        seed: Optional random seed for reproducibility.
-
-    Returns:
-        Dictionary with shuffled feature arrays.
     """
-    if seed is not None:
-        np.random.seed(seed)
-
-    # Get shuffle indices from first feature
-    first_key = list(features.keys())[0]
-    num_items = features[first_key].shape[axis]
-    indices = np.random.permutation(num_items)
-
-    shuffled = {}
+    根据形状过滤特征
+    
+    Parameters
+    ----------
+    features : Dict[str, np.ndarray]
+        特征字典
+    required_shape : Tuple
+        要求的形状（-1表示任意维度）
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        过滤后的特征字典
+    """
+    filtered = {}
+    
     for key, value in features.items():
-        shuffled[key] = np.take(value, indices, axis=axis)
+        if not isinstance(value, np.ndarray):
+            continue
+        if len(value.shape) != len(required_shape):
+            continue
+        
+        match = True
+        for s, r in zip(value.shape, required_shape):
+            if r != -1 and s != r:
+                match = False
+                break
+        
+        if match:
+            filtered[key] = value
+    
+    return filtered
 
-    return shuffled
 
-
-def tensor_to_numpy(
-    tensor_dict: Dict[str, torch.Tensor]
-) -> Dict[str, np.ndarray]:
-    """Convert dictionary of tensors to numpy arrays.
-
-    Args:
-        tensor_dict: Dictionary of PyTorch tensors.
-
-    Returns:
-        Dictionary of NumPy arrays.
+def compute_feature_statistics(
+    features: Dict[str, np.ndarray],
+) -> Dict[str, Dict[str, float]]:
     """
-    return {k: v.cpu().numpy() for k, v in tensor_dict.items()}
-
-
-def numpy_to_tensor(
-    numpy_dict: Dict[str, np.ndarray],
-    device: str = 'cpu'
-) -> Dict[str, torch.Tensor]:
-    """Convert dictionary of numpy arrays to tensors.
-
-    Args:
-        numpy_dict: Dictionary of NumPy arrays.
-        device: Target device for tensors.
-
-    Returns:
-        Dictionary of PyTorch tensors.
+    计算特征统计信息
+    
+    Parameters
+    ----------
+    features : Dict[str, np.ndarray]
+        特征字典
+        
+    Returns
+    -------
+    Dict[str, Dict[str, float]]
+        统计信息字典
     """
-    tensors = {}
-    for key, value in numpy_dict.items():
-        if value.dtype in [np.int64, np.int32, np.int8, np.uint8]:
-            tensors[key] = torch.from_numpy(value).long().to(device)
-        elif value.dtype in [np.float64, np.float32]:
-            tensors[key] = torch.from_numpy(value).float().to(device)
-        elif value.dtype == np.bool_:
-            tensors[key] = torch.from_numpy(value).bool().to(device)
+    stats = {}
+    
+    for key, value in features.items():
+        if not isinstance(value, np.ndarray):
+            continue
+        if value.dtype in [np.float32, np.float64]:
+            stats[key] = {
+                "mean": float(np.mean(value)),
+                "std": float(np.std(value)),
+                "min": float(np.min(value)),
+                "max": float(np.max(value)),
+                "shape": list(value.shape),
+            }
         else:
-            tensors[key] = torch.from_numpy(value).to(device)
-    return tensors
+            stats[key] = {
+                "shape": list(value.shape),
+                "dtype": str(value.dtype),
+            }
+    
+    return stats
+
+
+def validate_features(
+    features: Dict[str, np.ndarray],
+    required_keys: List[str],
+) -> Tuple[bool, List[str]]:
+    """
+    验证特征字典
+    
+    Parameters
+    ----------
+    features : Dict[str, np.ndarray]
+        特征字典
+    required_keys : List[str]
+        必需的键列表
+        
+    Returns
+    -------
+    Tuple[bool, List[str]]
+        - 是否有效
+        - 缺失的键列表
+    """
+    missing_keys = [key for key in required_keys if key not in features]
+    is_valid = len(missing_keys) == 0
+    
+    return is_valid, missing_keys
+
+
+def copy_features(
+    features: Dict[str, np.ndarray],
+    deep: bool = True,
+) -> Dict[str, np.ndarray]:
+    """
+    复制特征字典
+    
+    Parameters
+    ----------
+    features : Dict[str, np.ndarray]
+        特征字典
+    deep : bool
+        是否深拷贝
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        复制的特征字典
+    """
+    if deep:
+        return {k: v.copy() for k, v in features.items()}
+    else:
+        return features.copy()
+
+
+def convert_to_tensor_dict(
+    features: Dict[str, np.ndarray],
+    device: str = "cpu",
+) -> Dict[str, Any]:
+    """
+    将numpy特征转换为tensor（如果可用）
+    
+    Parameters
+    ----------
+    features : Dict[str, np.ndarray]
+        numpy特征字典
+    device : str
+        设备名称
+        
+    Returns
+    -------
+    Dict[str, Any]
+        tensor特征字典
+    """
+    try:
+        import torch
+        tensor_dict = {}
+        
+        for key, value in features.items():
+            if isinstance(value, np.ndarray):
+                tensor_dict[key] = torch.from_numpy(value).to(device)
+            else:
+                tensor_dict[key] = value
+        
+        return tensor_dict
+    except ImportError:
+        return features
+
+
+def convert_to_numpy_dict(
+    features: Dict[str, Any],
+) -> Dict[str, np.ndarray]:
+    """
+    将tensor特征转换为numpy（如果可用）
+    
+    Parameters
+    ----------
+    features : Dict[str, Any]
+        tensor特征字典
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        numpy特征字典
+    """
+    try:
+        import torch
+        numpy_dict = {}
+        
+        for key, value in features.items():
+            if isinstance(value, torch.Tensor):
+                numpy_dict[key] = value.cpu().numpy()
+            elif isinstance(value, np.ndarray):
+                numpy_dict[key] = value
+            else:
+                numpy_dict[key] = np.array(value)
+        
+        return numpy_dict
+    except ImportError:
+        return features

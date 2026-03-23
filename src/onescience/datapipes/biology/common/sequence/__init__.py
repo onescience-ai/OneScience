@@ -1,4 +1,4 @@
-"""Module for sequence processing."""
+"""序列处理模块"""
 
 from onescience.datapipes.biology.common.sequence.fasta_parser import FASTAParser
 from onescience.datapipes.biology.common.sequence.sequence_encoder import (
@@ -13,3 +13,4 @@ __all__ = [
     "AminoAcidEncoder",
     "NucleotideEncoder",
 ]
+

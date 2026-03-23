@@ -1,11 +1,12 @@
-"""Biological data feature processing module.
+"""
+生物学数据特征处理模块
 
-Unified feature processing interface, inspired by Protenix and OpenFold implementations.
-Supports conversion to multiple model input formats.
+统一的特征处理接口，参考Protenix和OpenFold实现
+支持多种模型输入格式转换
 """
 
 from onescience.datapipes.biology.common.features.constants import (
-    # Amino acid and nucleotide mappings
+    # 氨基酸和核苷酸映射
     RESTYPE_1TO3,
     RESTYPE_3TO1,
     RESTYPES,
@@ -16,18 +17,18 @@ from onescience.datapipes.biology.common.features.constants import (
     DNA_ID_TO_NT,
     STD_RESIDUES,
     STD_RESIDUES_WITH_GAP,
-
-    # Atom-related constants
+    
+    # 原子相关
     ATOM_TYPES,
     ATOM_ORDER,
     ATOM37_VDW,
     RES_ATOMS_DICT,
-
-    # Molecule types
+    
+    # 分子类型
     EVALUATION_CHAIN_INTERFACE,
     ENTITY_POLY_TYPE_DICT,
-
-    # Feature names
+    
+    # 特征名称
     MSA_FEATURE_NAMES,
     SEQUENCE_FEATURE_NAMES,
     STRUCTURE_FEATURE_NAMES,
@@ -88,26 +89,26 @@ from onescience.datapipes.biology.common.features.feature_pipeline import (
 )
 
 from onescience.datapipes.biology.common.features.token_features import (
-    # Encoding functions
+    # 编码函数
     encoder,
     restype_onehot_encoded,
     elem_onehot_encoded,
     ref_atom_name_chars_encoded,
-    # Frame construction
+    # 框架构建
     get_prot_nuc_frame_atom_names,
     check_colinear,
     compute_frame_from_positions,
-    # Token features
+    # Token特征
     get_token_features_from_annotations,
     get_reference_features,
     get_bond_features,
     classify_polymer_bonds,
-    # Auxiliary features
+    # 辅助特征
     get_chain_perm_features,
     get_extra_features,
     get_mask_features,
     get_label_features,
-    # Utility classes/functions
+    # 工具类/函数
     TokenFeatureExtractor,
     create_atom_to_token_mapping,
     validate_frame_atoms,
@@ -135,20 +136,20 @@ __all__ = [
     "SEQUENCE_FEATURE_NAMES",
     "STRUCTURE_FEATURE_NAMES",
     "TEMPLATE_FEATURE_NAMES",
-
+    
     # Base
     "FeatureDict",
     "TensorDict",
     "BaseFeatureExtractor",
     "FeaturePipeline",
-
+    
     # Sequence
     "SequenceFeatureExtractor",
     "encode_sequence",
     "make_sequence_features",
     "restype_onehot_encode",
     "create_target_feat",
-
+    
     # MSA
     "MSAFeatureExtractor",
     "make_msa_features",
@@ -156,7 +157,7 @@ __all__ = [
     "create_msa_feat",
     "create_deletion_matrix",
     "compute_row_weights",
-
+    
     # Structure
     "StructureFeatureExtractor",
     "make_structure_features",
@@ -165,7 +166,7 @@ __all__ = [
     "atom37_to_frames",
     "compute_distance_matrix",
     "compute_contact_map",
-
+    
     # Utils
     "encode_to_onehot",
     "pad_features",
@@ -176,7 +177,7 @@ __all__ = [
     "make_one_hot",
     "squeeze_features",
     "add_constant_field",
-
+    
     # Pipeline
     "BiologyFeaturePipeline",
     "UnifiedFeaturePipeline",

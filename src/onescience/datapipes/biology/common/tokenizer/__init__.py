@@ -1,7 +1,8 @@
-"""Module for general tokenization.
+"""
+通用Token化模块
 
-Implements tokenization following AlphaFold3 SI Chapter 2.6.
-Converts AtomArray to TokenArray for use by various models.
+参考AlphaFold3 SI Chapter 2.6实现
+将AtomArray转换为TokenArray，供多种模型使用
 """
 
 from onescience.datapipes.biology.common.tokenizer.tokenizer import (

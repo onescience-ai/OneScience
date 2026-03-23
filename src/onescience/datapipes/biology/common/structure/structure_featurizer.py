@@ -1,6 +1,7 @@
-"""Module for unified structure feature extraction.
+"""
+统一的结构特征提取器
 
-Extracts features from structure objects.
+从结构对象中提取特征
 """
 
 from typing import Dict, Optional
@@ -9,43 +10,50 @@ from onescience.datapipes.biology.common.structure.structure_parser import Struc
 
 
 class StructureFeaturizer:
-    """Unified structure feature extractor.
-
-    Extracted features include:
-    - Atomic coordinates
-    - Atom masks
-    - Distance matrices
-    - Angle features
+    """
+    统一的结构特征提取器
+    
+    提取的特征包括：
+    - 原子坐标
+    - 原子掩码
+    - 距离矩阵
+    - 角度特征
     """
     
     def __init__(self, atom_types: Optional[list] = None):
-        """Initialize the feature extractor.
-
-        Args:
-            atom_types: List of atom types to extract (e.g., ['CA', 'C', 'N', 'O']).
-                If None, extracts all atoms.
+        """
+        Parameters
+        ----------
+        atom_types : Optional[list]
+            要提取的原子类型列表（如['CA', 'C', 'N', 'O']），如果为None则提取所有原子
         """
         self.atom_types = atom_types or ['CA', 'C', 'N', 'O', 'CB']
     
     def featurize(self, structure: Structure, chain_id: Optional[str] = None) -> Dict[str, np.ndarray]:
-        """Extract structure features.
-
-        Args:
-            structure: Structure object.
-            chain_id: If specified, only extract features for this chain.
-
-        Returns:
-            Dictionary of features.
+        """
+        提取结构特征
+        
+        Parameters
+        ----------
+        structure : Structure
+            结构对象
+        chain_id : Optional[str]
+            如果指定，只提取该链的特征
+            
+        Returns
+        -------
+        Dict[str, np.ndarray]
+            特征字典
         """
         features = {}
         
-        # Filter atoms (if chain specified)
+        # 过滤原子（如果指定了链）
         if chain_id:
             atoms = [atom for atom in structure.atoms if atom.chain_id == chain_id]
         else:
             atoms = structure.atoms
         
-        # Extract coordinates and masks for each atom type
+        # 提取每种原子类型的坐标和掩码
         all_atom_positions = []
         all_atom_mask = []
         
@@ -70,7 +78,7 @@ class StructureFeaturizer:
             features['all_atom_positions'] = np.array(all_atom_positions, dtype=np.float32)
             features['all_atom_mask'] = np.array(all_atom_mask, dtype=np.float32)
         
-        # Extract CA atom coordinates (for distance matrix calculation)
+        # 提取CA原子坐标（用于距离矩阵计算）
         ca_positions = structure.get_atom_positions('CA')
         if chain_id:
             ca_atoms = [atom for atom in structure.atoms 
@@ -78,10 +86,10 @@ class StructureFeaturizer:
             ca_positions = np.array([[atom.x, atom.y, atom.z] for atom in ca_atoms], dtype=np.float32)
         
         if len(ca_positions) > 0:
-            # Distance matrix
+            # 距离矩阵
             features['ca_distance_matrix'] = self._compute_distance_matrix(ca_positions)
-
-            # CA atom mask
+            
+            # CA原子掩码
             features['ca_mask'] = np.ones(len(ca_positions), dtype=np.float32)
         else:
             features['ca_distance_matrix'] = np.array([], dtype=np.float32).reshape(0, 0)
@@ -90,18 +98,23 @@ class StructureFeaturizer:
         return features
     
     def _compute_distance_matrix(self, positions: np.ndarray) -> np.ndarray:
-        """Compute distance matrix.
-
-        Args:
-            positions: Array of positions with shape (num_atoms, 3).
-
-        Returns:
-            Distance matrix with shape (num_atoms, num_atoms).
+        """
+        计算距离矩阵
+        
+        Parameters
+        ----------
+        positions : np.ndarray
+            Shape: (num_atoms, 3)
+            
+        Returns
+        -------
+        np.ndarray
+            Shape: (num_atoms, num_atoms)
         """
         if len(positions) == 0:
             return np.array([], dtype=np.float32).reshape(0, 0)
         
-        # Compute pairwise distances
+        # 计算所有点对之间的距离
         diff = positions[:, None, :] - positions[None, :, :]
         distances = np.sqrt(np.sum(diff ** 2, axis=-1))
         return distances.astype(np.float32)

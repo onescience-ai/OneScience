@@ -1,218 +1,280 @@
-"""Unified biological data processing pipeline.
+"""
+统一的数据集基类
 
-Provides standardized processing workflows for various biological data types
-including sequences, structures, and MSAs.
+所有模型的数据集都继承自这个基类
 """
 
-from typing import Any, Dict, List, Optional, Union
+from abc import ABC, abstractmethod
+from typing import Dict, Any, Optional, List
 from pathlib import Path
+import numpy as np
 
-from onescience.datapipes.biology.common.sequence.fasta_parser import FASTAParser
-from onescience.datapipes.biology.common.sequence.sequence_encoder import (
-    AminoAcidEncoder,
-    NucleotideEncoder,
-)
-from onescience.datapipes.biology.common.structure.mmcif_parser import MMCIFParser
-from onescience.datapipes.biology.common.structure.pdb_parser import PDBParser
-from onescience.datapipes.biology.common.msa.msa_processor import MSAProcessor
-from onescience.datapipes.biology.common.utils.file_utils import detect_file_format
+
+class UnifiedDataset(ABC):
+    """
+    统一的数据集基类
+    
+    所有模型的数据集都应该继承这个类，并实现必要的方法
+    """
+    
+    def __init__(
+        self,
+        data_dir: Path,
+        split: Optional[str] = "train",
+        max_samples: Optional[int] = None,
+        **kwargs
+    ):
+        """
+        Parameters
+        ----------
+        data_dir : Path
+            数据目录
+        split : Optional[str]
+            数据集分割（'train', 'val', 'test'）
+        max_samples : Optional[int]
+            最大样本数（用于调试）
+        **kwargs
+            其他配置参数
+        """
+        self.data_dir = Path(data_dir)
+        self.split = split
+        self.max_samples = max_samples
+        self.config = kwargs
+        
+        # 子类应该在这里初始化数据列表
+        self.data_list = []
+        self._load_data_list()
+    
+    @abstractmethod
+    def _load_data_list(self):
+        """
+        加载数据列表
+        
+        子类必须实现此方法，用于加载所有数据样本的标识符
+        """
+        pass
+    
+    @abstractmethod
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
+        """
+        获取单个样本
+        
+        Parameters
+        ----------
+        idx : int
+            样本索引
+            
+        Returns
+        -------
+        Dict[str, Any]
+            特征字典
+        """
+        pass
+    
+    def __len__(self) -> int:
+        """返回数据集大小"""
+        if self.max_samples:
+            return min(len(self.data_list), self.max_samples)
+        return len(self.data_list)
+    
+    def get_config(self) -> Dict[str, Any]:
+        """获取配置"""
+        return {
+            'data_dir': str(self.data_dir),
+            'split': self.split,
+            'max_samples': self.max_samples,
+            **self.config,
+        }
 
 
 class UnifiedDataPipeline:
-    """Unified biological data processing pipeline.
-
-    Integrates sequence, structure, and MSA processing capabilities,
-    providing standardized data processing workflows.
-
-    Args:
-        use_msa: Whether to use MSA features.
-        use_structure: Whether to use structure features.
-        max_msa_seqs: Maximum number of MSA sequences.
-        sequence_type: Sequence type ("protein" or "DNA").
-
-    Examples:
-        Basic usage::
-
-            pipeline = UnifiedDataPipeline(
-                use_msa=True,
-                use_structure=True,
-                max_msa_seqs=512
-            )
-            features = pipeline.process_sample(
-                sequence="MKTLL...",
-                mmcif_path=Path("/path/to/structure.cif")
-            )
     """
-
+    统一的数据处理管道
+    
+    提供统一的数据处理流程：
+    1. 文件解析（FASTA/MSA/Structure）
+    2. 特征提取（序列/MSA/结构）
+    3. 数据转换（格式统一）
+    """
+    
     def __init__(
         self,
-        use_msa: bool = False,
-        use_structure: bool = True,
+        use_msa: bool = True,
+        use_structure: bool = False,
         max_msa_seqs: Optional[int] = None,
-        sequence_type: str = "protein",
+        **kwargs
     ):
+        """
+        Parameters
+        ----------
+        use_msa : bool
+            是否使用MSA特征
+        use_structure : bool
+            是否使用结构特征
+        max_msa_seqs : Optional[int]
+            MSA最大序列数
+        **kwargs
+            其他配置参数
+        """
         self.use_msa = use_msa
         self.use_structure = use_structure
         self.max_msa_seqs = max_msa_seqs
-        self.sequence_type = sequence_type
-
-        # Initialize parsers and encoders
-        self.fasta_parser = FASTAParser()
-        self.mmcif_parser = MMCIFParser()
-        self.pdb_parser = PDBParser()
-
-        if sequence_type == "protein":
-            self.sequence_encoder = AminoAcidEncoder()
-        else:
-            self.sequence_encoder = NucleotideEncoder(sequence_type=sequence_type)
-
-        # Initialize MSA processor
-        if use_msa:
-            self.msa_processor = MSAProcessor(max_seqs=max_msa_seqs)
-
+        self.config = kwargs
+        
+        # 延迟导入，避免循环依赖
+        from onescience.datapipes.biology.common.sequence.sequence_encoder import AminoAcidEncoder
+        from onescience.datapipes.biology.common.msa.msa_featurizer import MSAFeaturizer
+        from onescience.datapipes.biology.common.structure.structure_featurizer import StructureFeaturizer
+        
+        self.encoder = AminoAcidEncoder()
+        self.msa_featurizer = MSAFeaturizer(max_seqs=max_msa_seqs) if use_msa else None
+        self.structure_featurizer = StructureFeaturizer() if use_structure else None
+    
+    def process_sequence(
+        self,
+        sequence: str,
+        fasta_path: Optional[Path] = None
+    ) -> Dict[str, np.ndarray]:
+        """
+        处理序列
+        
+        Parameters
+        ----------
+        sequence : str
+            序列字符串
+        fasta_path : Optional[Path]
+            FASTA文件路径（如果提供，会从中读取序列）
+            
+        Returns
+        -------
+        Dict[str, np.ndarray]
+            序列特征字典
+        """
+        if fasta_path:
+            from onescience.datapipes.biology.common.sequence.fasta_parser import FASTAParser
+            sequences, descriptions = FASTAParser.parse_file(fasta_path)
+            if sequences:
+                sequence = sequences[0]
+        
+        # 编码序列
+        aatype = self.encoder.encode(sequence)
+        
+        features = {
+            'aatype': aatype,
+            'sequence': sequence,
+            'sequence_length': np.array(len(sequence), dtype=np.int32),
+        }
+        
+        return features
+    
+    def process_msa(
+        self,
+        msa_path: Path
+    ) -> Dict[str, np.ndarray]:
+        """
+        处理MSA
+        
+        Parameters
+        ----------
+        msa_path : Path
+            MSA文件路径
+            
+        Returns
+        -------
+        Dict[str, np.ndarray]
+            MSA特征字典
+        """
+        if not self.msa_featurizer:
+            raise ValueError("MSA featurizer not initialized. Set use_msa=True.")
+        
+        from onescience.datapipes.biology.common.msa.msa_parser import MSAParser
+        
+        # 解析MSA
+        msa = MSAParser.parse_file(msa_path)
+        
+        # 提取特征
+        features = self.msa_featurizer.featurize(msa)
+        
+        return features
+    
+    def process_structure(
+        self,
+        structure_path: Path,
+        chain_id: Optional[str] = None
+    ) -> Dict[str, np.ndarray]:
+        """
+        处理结构
+        
+        Parameters
+        ----------
+        structure_path : Path
+            结构文件路径
+        chain_id : Optional[str]
+            链ID（如果指定，只处理该链）
+            
+        Returns
+        -------
+        Dict[str, np.ndarray]
+            结构特征字典
+        """
+        if not self.structure_featurizer:
+            raise ValueError("Structure featurizer not initialized. Set use_structure=True.")
+        
+        from onescience.datapipes.biology.common.structure.structure_parser import StructureParser
+        
+        # 解析结构
+        structure = StructureParser.parse_file(structure_path)
+        
+        # 提取特征
+        features = self.structure_featurizer.featurize(structure, chain_id=chain_id)
+        
+        return features
+    
     def process_sample(
         self,
         sequence: Optional[str] = None,
-        sequence_id: Optional[str] = None,
-        mmcif_path: Optional[Path] = None,
-        pdb_path: Optional[Path] = None,
         fasta_path: Optional[Path] = None,
         msa_path: Optional[Path] = None,
-        **kwargs
+        structure_path: Optional[Path] = None,
+        chain_id: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Process a single sample.
-
-        Main entry point for data processing. Automatically detects input type
-        and processes accordingly.
-
-        Args:
-            sequence: Raw sequence string.
-            sequence_id: Sequence identifier.
-            mmcif_path: Path to mmCIF format structure file.
-            pdb_path: Path to PDB format structure file.
-            fasta_path: Path to FASTA format sequence file.
-            msa_path: Path to MSA file.
-            **kwargs: Additional parameters.
-
-        Returns:
-            Dict[str, Any]: Processed feature dictionary.
         """
-        features = {
-            "sequence_id": sequence_id,
-        }
-
-        # Process sequence
-        if sequence is not None:
-            features["sequence"] = sequence
-            features["sequence_encoded"] = self.sequence_encoder.encode(sequence)
-        elif fasta_path is not None:
-            seq_features = self._process_fasta(fasta_path)
+        处理完整样本
+        
+        Parameters
+        ----------
+        sequence : Optional[str]
+            序列字符串
+        fasta_path : Optional[Path]
+            FASTA文件路径
+        msa_path : Optional[Path]
+            MSA文件路径
+        structure_path : Optional[Path]
+            结构文件路径
+        chain_id : Optional[str]
+            链ID
+            
+        Returns
+        -------
+        Dict[str, Any]
+            完整的特征字典
+        """
+        features = {}
+        
+        # 处理序列
+        if sequence or fasta_path:
+            seq_features = self.process_sequence(sequence or "", fasta_path)
             features.update(seq_features)
-
-        # Process structure
-        if mmcif_path is not None:
-            struct_features = self._process_mmcif(mmcif_path)
-            features.update(struct_features)
-        elif pdb_path is not None:
-            struct_features = self._process_pdb(pdb_path)
-            features.update(struct_features)
-
-        # Process MSA
-        if self.use_msa and msa_path is not None:
-            msa_features = self._process_msa(msa_path)
+        
+        # 处理MSA
+        if msa_path and self.use_msa:
+            msa_features = self.process_msa(msa_path)
             features.update(msa_features)
-
+        
+        # 处理结构
+        if structure_path and self.use_structure:
+            struct_features = self.process_structure(structure_path, chain_id)
+            features.update(struct_features)
+        
         return features
 
-    def _process_fasta(self, fasta_path: Path) -> Dict[str, Any]:
-        """Process FASTA file.
-
-        Args:
-            fasta_path: Path to FASTA file.
-
-        Returns:
-            Dict[str, Any]: Sequence features.
-        """
-        sequences, descriptions = self.fasta_parser.parse_file(fasta_path)
-
-        if not sequences:
-            return {}
-
-        # Use first sequence
-        sequence = sequences[0]
-        description = descriptions[0] if descriptions else ""
-
-        return {
-            "sequence": sequence,
-            "sequence_encoded": self.sequence_encoder.encode(sequence),
-            "description": description,
-        }
-
-    def _process_mmcif(self, mmcif_path: Path) -> Dict[str, Any]:
-        """Process mmCIF file.
-
-        Args:
-            mmcif_path: Path to mmCIF file.
-
-        Returns:
-            Dict[str, Any]: Structure features.
-        """
-        structure = self.mmcif_parser.parse_file(mmcif_path)
-
-        return {
-            "structure": structure,
-            "mmcif_path": str(mmcif_path),
-        }
-
-    def _process_pdb(self, pdb_path: Path) -> Dict[str, Any]:
-        """Process PDB file.
-
-        Args:
-            pdb_path: Path to PDB file.
-
-        Returns:
-            Dict[str, Any]: Structure features.
-        """
-        structure = self.pdb_parser.parse_file(pdb_path)
-
-        return {
-            "structure": structure,
-            "pdb_path": str(pdb_path),
-        }
-
-    def _process_msa(self, msa_path: Path) -> Dict[str, Any]:
-        """Process MSA file.
-
-        Args:
-            msa_path: Path to MSA file.
-
-        Returns:
-            Dict[str, Any]: MSA features.
-        """
-        msa_features = self.msa_processor.process(msa_path)
-
-        return {
-            "msa": msa_features,
-            "msa_path": str(msa_path),
-        }
-
-    def batch_process(
-        self,
-        samples: List[Dict[str, Any]],
-        batch_size: int = 32,
-    ) -> List[Dict[str, Any]]:
-        """Batch process samples.
-
-        Args:
-            samples: List of sample dictionaries.
-            batch_size: Batch size.
-
-        Returns:
-            List[Dict[str, Any]]: List of processed feature dictionaries.
-        """
-        results = []
-        for i in range(0, len(samples), batch_size):
-            batch = samples[i:i + batch_size]
-            batch_results = [self.process_sample(**sample) for sample in batch]
-            results.extend(batch_results)
-        return results

@@ -1,4 +1,4 @@
-"""Module for MSA (Multiple Sequence Alignment) processing."""
+"""MSA（多序列比对）处理模块"""
 
 from onescience.datapipes.biology.common.msa.msa_parser import (
     MSAParser,

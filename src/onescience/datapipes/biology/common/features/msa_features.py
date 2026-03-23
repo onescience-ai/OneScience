@@ -1,385 +1,417 @@
-"""MSA (Multiple Sequence Alignment) feature extraction module.
+"""
+MSA特征处理
 
-This module provides functionality for extracting features from MSAs,
-including MSA encoding, deletion matrix computation, and row weight calculation.
+参考Protenix和OpenFold实现统一的MSA特征提取
 """
 
-from typing import Any, Dict, List, Optional, Tuple
-
+from typing import Dict, Optional, List
 import numpy as np
 
+from onescience.datapipes.biology.common.features.constants import (
+    RESTYPE_ORDER,
+    RNA_NT_TO_ID,
+    MSA_FEATURE_NAMES,
+)
 from onescience.datapipes.biology.common.features.feature_base import (
     BaseFeatureExtractor,
     FeatureDict,
 )
-from onescience.datapipes.biology.common.features.constants import (
-    MSA_FEATURE_NAMES,
-    HHR_PSSM_COLUMNS,
-    RESTYPE_ORDER,
-    RESTYPES,
-    RNA_NT_TO_ID,
-    DNA_NT_TO_ID,
-)
 
 
 class MSAFeatureExtractor(BaseFeatureExtractor):
-    """MSA feature extractor.
-
-    Extracts features from Multiple Sequence Alignment data, including
-    MSA encoding, deletion matrices, and row weights.
-
-    Example:
-        >>> extractor = MSAFeatureExtractor(config={'max_msa_clusters': 512})
-        >>> features = extractor.extract({'msa': msa_data, 'deletion_matrix': del_matrix})
     """
-
-    def __init__(self, config: Optional[FeatureDict] = None):
-        """Initialize the MSA feature extractor.
-
-        Args:
-            config: Configuration dictionary containing:
-                - max_msa_clusters: Maximum number of MSA sequences to use.
-                - max_extra_msa: Maximum number of extra MSA sequences.
+    MSA特征提取器
+    
+    从MSA数据中提取特征，参考OpenFold和Protenix实现
+    """
+    
+    def __init__(
+        self,
+        max_seqs: Optional[int] = None,
+        sequence_type: str = "protein",
+    ):
         """
-        super().__init__(config)
-        self.max_msa_clusters = self.config.get('max_msa_clusters', 512)
-        self.max_extra_msa = self.config.get('max_extra_msa', 1024)
-
-    def extract(self, data: FeatureDict) -> FeatureDict:
-        """Extract MSA features from input data.
-
-        Args:
-            data: Input data dictionary containing:
-                - msa: MSA array of shape (num_seq, seq_length).
-                - deletion_matrix: Deletion matrix of shape (num_seq, seq_length).
-
-        Returns:
-            Dictionary containing MSA features:
-                - msa_feat: MSA features of shape (num_seq, seq_length, 49).
-                - msa_mask: MSA mask of shape (num_seq, seq_length).
-                - row_weights: MSA row weights of shape (num_seq,).
+        Parameters
+        ----------
+        max_seqs : Optional[int]
+            最大序列数
+        sequence_type : str
+            序列类型: "protein", "rna", "dna"
         """
-        msa = data.get('msa')
-        deletion_matrix = data.get('deletion_matrix')
-
-        if msa is None:
-            return {}
-
-        features = {}
-
-        # Create MSA features
-        msa_feat = create_msa_feat(msa, deletion_matrix)
-        features['msa_feat'] = msa_feat
-
-        # Create MSA mask
-        msa_mask = make_msa_mask(msa)
-        features['msa_mask'] = msa_mask
-
-        # Compute row weights
-        row_weights = compute_row_weights(msa)
-        features['row_weights'] = row_weights
-
-        return features
+        self.max_seqs = max_seqs
+        self.sequence_type = sequence_type.lower()
+        
+        # 选择映射
+        if self.sequence_type == "protein":
+            self.mapping = RESTYPE_ORDER
+            self.num_classes = 23  # 20种氨基酸 + X + gap + padding
+        elif self.sequence_type == "rna":
+            self.mapping = RNA_NT_TO_ID
+            self.num_classes = 6   # A, G, C, U, N, gap
+        else:
+            raise ValueError(f"Unknown sequence type: {sequence_type}")
+    
+    def extract(self, msa_data: Dict) -> FeatureDict:
+        """
+        提取MSA特征
+        
+        Parameters
+        ----------
+        msa_data : Dict
+            MSA数据字典，包含:
+            - sequences: 序列列表
+            - deletion_matrix: 删除矩阵
+            
+        Returns
+        -------
+        FeatureDict
+            MSA特征字典
+        """
+        sequences = msa_data.get("sequences", [])
+        deletion_matrix = msa_data.get("deletion_matrix", None)
+        
+        return make_msa_features(
+            sequences=sequences,
+            deletion_matrix=deletion_matrix,
+            max_seqs=self.max_seqs,
+            mapping=self.mapping,
+        )
 
 
 def make_msa_features(
-    msa_data: List[Tuple[str, str]],
-    query_sequence: str
+    sequences: List[str],
+    deletion_matrix: Optional[List[List[int]]] = None,
+    max_seqs: Optional[int] = None,
+    mapping: Optional[Dict[str, int]] = None,
 ) -> FeatureDict:
-    """Create MSA features from MSA data.
-
-    Args:
-        msa_data: List of (name, sequence) tuples from MSA file.
-        query_sequence: Query sequence string.
-
-    Returns:
-        Dictionary containing MSA features.
     """
-    if not msa_data:
-        # Return empty MSA features
-        seq_length = len(query_sequence)
-        return {
-            'msa': np.array([[RESTYPES.get(aa, 20) for aa in query_sequence]], dtype=np.int32),
-            'deletion_matrix': np.zeros((1, seq_length), dtype=np.int32),
-            'num_alignments': np.array(1, dtype=np.int32),
-        }
+    创建MSA特征
+    
+    参考OpenFold和Protenix的MSA特征定义
+    
+    Parameters
+    ----------
+    sequences : List[str]
+        MSA序列列表
+    deletion_matrix : Optional[List[List[int]]]
+        删除矩阵
+    max_seqs : Optional[int]
+        最大序列数
+    mapping : Optional[Dict[str, int]]
+        字符到索引的映射
+        
+    Returns
+    -------
+    FeatureDict
+        MSA特征字典，包含:
+        - msa: MSA序列矩阵 [N_seq, N_res]
+        - deletion_matrix: 删除矩阵 [N_seq, N_res]
+        - msa_mask: MSA掩码 [N_seq, N_res]
+        - msa_row_mask: MSA行掩码 [N_seq]
+        - num_alignments: 对齐数量
+    """
+    if not sequences:
+        return {}
+    
+    # 截断序列数
+    if max_seqs and len(sequences) > max_seqs:
+        sequences = sequences[:max_seqs]
+        if deletion_matrix:
+            deletion_matrix = deletion_matrix[:max_seqs]
+    
+    if mapping is None:
+        mapping = RESTYPE_ORDER
+    
+    num_seqs = len(sequences)
+    seq_len = max(len(seq) for seq in sequences)
+    
+    features = {}
+    
+    # MSA序列矩阵
+    msa_matrix = np.zeros((num_seqs, seq_len), dtype=np.int32)
+    for i, seq in enumerate(sequences):
+        for j, char in enumerate(seq.upper()):
+            if j < seq_len:
+                msa_matrix[i, j] = mapping.get(char, mapping.get('X', 20))
+    features["msa"] = msa_matrix
+    
+    # 删除矩阵
+    if deletion_matrix:
+        del_matrix = create_deletion_matrix(deletion_matrix, num_seqs, seq_len)
+        features["deletion_matrix"] = del_matrix
+    else:
+        features["deletion_matrix"] = np.zeros((num_seqs, seq_len), dtype=np.float32)
+    
+    # MSA掩码
+    msa_mask = (msa_matrix != 0).astype(np.float32)
+    features["msa_mask"] = msa_mask
+    
+    # MSA行掩码（所有行都有效）
+    features["msa_row_mask"] = np.ones(num_seqs, dtype=np.float32)
+    
+    # 对齐数量
+    features["num_alignments"] = np.array(num_seqs, dtype=np.int32)
+    
+    return features
 
-    # Parse MSA sequences
-    msa_sequences = []
-    deletion_matrix = []
 
-    for name, sequence in msa_data:
-        # Convert sequence to indices
-        indices = []
-        deletions = []
-        deletion_count = 0
-
-        for char in sequence:
-            if char == '-':
-                deletion_count += 1
-            else:
-                indices.append(RESTYPES.get(char.upper(), 20))
-                deletions.append(deletion_count)
-                deletion_count = 0
-
-        msa_sequences.append(indices)
-        deletion_matrix.append(deletions)
-
-    # Convert to arrays
-    max_len = max(len(seq) for seq in msa_sequences)
-    num_seq = len(msa_sequences)
-
-    msa_array = np.zeros((num_seq, max_len), dtype=np.int32)
-    del_array = np.zeros((num_seq, max_len), dtype=np.int32)
-
-    for i, (seq, dels) in enumerate(zip(msa_sequences, deletion_matrix)):
-        msa_array[i, :len(seq)] = seq
-        del_array[i, :len(dels)] = dels
-
-    return {
-        'msa': msa_array,
-        'deletion_matrix': del_array,
-        'num_alignments': np.array(num_seq, dtype=np.int32),
-    }
+def create_deletion_matrix(
+    deletion_matrix: List[List[int]],
+    num_seqs: int,
+    seq_len: int,
+) -> np.ndarray:
+    """
+    创建删除矩阵
+    
+    参考OpenFold的删除矩阵处理
+    
+    Parameters
+    ----------
+    deletion_matrix : List[List[int]]
+        原始删除矩阵
+    num_seqs : int
+        序列数
+    seq_len : int
+        序列长度
+        
+    Returns
+    -------
+    np.ndarray
+        处理后的删除矩阵，shape: (num_seqs, seq_len)
+    """
+    del_matrix = np.zeros((num_seqs, seq_len), dtype=np.float32)
+    
+    for i, del_row in enumerate(deletion_matrix):
+        if i >= num_seqs:
+            break
+        for j, val in enumerate(del_row):
+            if j < seq_len:
+                del_matrix[i, j] = float(val)
+    
+    return del_matrix
 
 
 def make_msa_mask(msa: np.ndarray) -> np.ndarray:
-    """Create mask for MSA sequences.
-
-    Args:
-        msa: MSA array of shape (num_seq, seq_length).
-
-    Returns:
-        Mask array of shape (num_seq, seq_length) where valid positions are 1.
     """
-    # Mask is 1 where MSA is not padding (assumes padding is value 0 or gap)
+    创建MSA掩码
+    
+    Parameters
+    ----------
+    msa : np.ndarray
+        MSA序列矩阵，shape: (N_seq, N_res)
+        
+    Returns
+    -------
+    np.ndarray
+        MSA掩码，shape: (N_seq, N_res)
+    """
     return (msa != 0).astype(np.float32)
 
 
 def create_msa_feat(
     msa: np.ndarray,
-    deletion_matrix: Optional[np.ndarray] = None
+    deletion_matrix: np.ndarray,
+    cluster_profile: Optional[np.ndarray] = None,
+    cluster_deletion_mean: Optional[np.ndarray] = None,
 ) -> np.ndarray:
-    """Create MSA features from MSA and deletion matrix.
-
-    Args:
-        msa: MSA array of shape (num_seq, seq_length).
-        deletion_matrix: Deletion matrix of shape (num_seq, seq_length).
-            If None, assumes no deletions.
-
-    Returns:
-        MSA features of shape (num_seq, seq_length, 49).
-            - Dimension 0-20: One-hot encoding of amino acid type.
-            - Dimension 21: Has deletion.
-            - Dimension 22-48: Deletion value (binned).
     """
-    num_seq, seq_length = msa.shape
-
-    # One-hot encode MSA
-    msa_onehot = np.zeros((num_seq, seq_length, 22), dtype=np.float32)
-    msa_onehot[np.arange(num_seq)[:, None], np.arange(seq_length), msa] = 1.0
-
-    # Handle deletion matrix
-    if deletion_matrix is None:
-        deletion_matrix = np.zeros((num_seq, seq_length), dtype=np.int32)
-
-    has_deletion = (deletion_matrix > 0).astype(np.float32)
-
-    # Bin deletion values (0-30)
-    deletion_value = np.clip(deletion_matrix, 0, 30).astype(np.float32)
-    deletion_bins = np.zeros((num_seq, seq_length, 27), dtype=np.float32)
-    deletion_bins[np.arange(num_seq)[:, None], np.arange(seq_length), deletion_matrix.clip(0, 26)] = 1.0
-
-    # Concatenate features
-    msa_feat = np.concatenate([
-        msa_onehot[:, :, :21],  # 20 amino acids + gap
-        has_deletion[:, :, None],
-        deletion_bins,
-    ], axis=-1)
-
-    return msa_feat
-
-
-def create_deletion_matrix(
-    msa_sequences: List[str],
-    query_sequence: str
-) -> np.ndarray:
-    """Create deletion matrix from MSA sequences.
-
-    Args:
-        msa_sequences: List of MSA sequence strings.
-        query_sequence: Query sequence for alignment reference.
-
-    Returns:
-        Deletion matrix of shape (num_seq, seq_length).
+    创建MSA组合特征
+    
+    参考OpenFold的msa_feat创建，维度为49:
+    - msa_1hot: 23维
+    - has_deletion: 1维
+    - deletion_value: 1维
+    - cluster_profile: 23维
+    - deletion_mean_value: 1维
+    
+    Parameters
+    ----------
+    msa : np.ndarray
+        MSA序列矩阵，shape: (N_seq, N_res)
+    deletion_matrix : np.ndarray
+        删除矩阵，shape: (N_seq, N_res)
+    cluster_profile : Optional[np.ndarray]
+        聚类轮廓，shape: (N_seq, N_res, 23)
+    cluster_deletion_mean : Optional[np.ndarray]
+        聚类删除均值，shape: (N_seq, N_res)
+        
+    Returns
+    -------
+    np.ndarray
+        MSA组合特征，shape: (N_seq, N_res, 49)
     """
-    num_seq = len(msa_sequences)
-    seq_length = len(query_sequence)
-    deletion_matrix = np.zeros((num_seq, seq_length), dtype=np.int32)
+    num_seqs, seq_len = msa.shape
+    
+    # one-hot编码MSA
+    msa_1hot = make_one_hot(msa, num_classes=23)
+    
+    # 删除相关特征
+    has_deletion = np.clip(deletion_matrix, 0, 1)
+    deletion_value = np.arctan(deletion_matrix / 3.0) * (2.0 / np.pi)
+    
+    # 合并特征
+    features = [msa_1hot, has_deletion[..., None], deletion_value[..., None]]
+    
+    # 添加聚类特征
+    if cluster_profile is not None:
+        features.append(cluster_profile)
+        if cluster_deletion_mean is not None:
+            deletion_mean_value = np.arctan(cluster_deletion_mean / 3.0) * (2.0 / np.pi)
+            features.append(deletion_mean_value[..., None])
+    
+    return np.concatenate(features, axis=-1)
 
-    for i, seq in enumerate(msa_sequences):
-        deletion_count = 0
-        position = 0
 
-        for char in seq:
-            if char == '-':
-                deletion_count += 1
-            else:
-                if position < seq_length:
-                    deletion_matrix[i, position] = deletion_count
-                    deletion_count = 0
-                    position += 1
-
-    return deletion_matrix
-
-
-def compute_row_weights(msa: np.ndarray) -> np.ndarray:
-    """Compute weights for MSA rows based on sequence similarity.
-
-    Uses the Neff (effective number of sequences) weighting scheme.
-
-    Args:
-        msa: MSA array of shape (num_seq, seq_length).
-
-    Returns:
-        Row weights array of shape (num_seq,).
+def make_one_hot(x: np.ndarray, num_classes: int = 23) -> np.ndarray:
     """
+    创建one-hot编码
+    
+    Parameters
+    ----------
+    x : np.ndarray
+        整数编码数组
+    num_classes : int
+        类别数
+        
+    Returns
+    -------
+    np.ndarray
+        One-hot编码数组
+    """
+    shape = x.shape
+    x_flat = x.reshape(-1)
+    
+    one_hot = np.zeros((x_flat.shape[0], num_classes), dtype=np.float32)
+    valid_mask = (x_flat >= 0) & (x_flat < num_classes)
+    one_hot[np.arange(x_flat.shape[0])[valid_mask], x_flat[valid_mask]] = 1.0
+    
+    return one_hot.reshape(*shape, num_classes)
+
+
+def compute_row_weights(msa: np.ndarray, method: str = "simple") -> np.ndarray:
+    """
+    计算MSA行权重
+    
+    Parameters
+    ----------
+    msa : np.ndarray
+        MSA序列矩阵
+    method : str
+        计算方法: "simple", "henikoff"
+        
+    Returns
+    -------
+    np.ndarray
+        行权重，shape: (N_seq,)
+    """
+    num_seqs = msa.shape[0]
+    
+    if method == "simple":
+        # 简单平均权重
+        return np.ones(num_seqs, dtype=np.float32) / num_seqs
+    
+    elif method == "henikoff":
+        # Henikoff权重（基于序列多样性）
+        weights = np.zeros(num_seqs, dtype=np.float32)
+        
+        for i in range(num_seqs):
+            # 计算与其他序列的相似度
+            similarity = np.mean(msa[i] == msa, axis=1)
+            # 权重与平均相似度成反比
+            weights[i] = 1.0 / (np.sum(similarity) + 1e-6)
+        
+        # 归一化
+        weights = weights / np.sum(weights)
+        return weights
+    
+    else:
+        raise ValueError(f"Unknown weight method: {method}")
+
+
+def sample_msa(
+    msa_features: Dict[str, np.ndarray],
+    max_seq: int,
+    keep_extra: bool = False,
+) -> Dict[str, np.ndarray]:
+    """
+    采样MSA
+    
+    参考OpenFold的MSA采样策略
+    
+    Parameters
+    ----------
+    msa_features : Dict[str, np.ndarray]
+        MSA特征字典
+    max_seq : int
+        最大序列数
+    keep_extra : bool
+        是否保留额外序列
+        
+    Returns
+    -------
+    Dict[str, np.ndarray]
+        采样后的特征字典
+    """
+    if "msa" not in msa_features:
+        return msa_features
+    
+    msa = msa_features["msa"]
     num_seq = msa.shape[0]
-
-    if num_seq == 1:
-        return np.ones(1, dtype=np.float32)
-
-    # Compute pairwise sequence identity
-    weights = np.zeros(num_seq, dtype=np.float32)
-
-    for i in range(num_seq):
-        # Count sequences that are >80% identical
-        identical_count = 0
-        for j in range(num_seq):
-            if i == j:
-                continue
-            # Compute identity (excluding gaps)
-            valid_mask = (msa[i] != 0) & (msa[j] != 0)
-            if valid_mask.sum() == 0:
-                continue
-            identity = (msa[i][valid_mask] == msa[j][valid_mask]).mean()
-            if identity > 0.8:
-                identical_count += 1
-
-        # Weight is inverse of cluster size
-        weights[i] = 1.0 / (1 + identical_count)
-
-    # Normalize weights
-    weights = weights / weights.sum() * num_seq
-
-    return weights.astype(np.float32)
-
-
-def cluster_msa(
-    msa: np.ndarray,
-    num_clusters: int,
-    seed: int = 0
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Cluster MSA sequences using sequence similarity.
-
-    Args:
-        msa: MSA array of shape (num_seq, seq_length).
-        num_clusters: Number of clusters to create.
-        seed: Random seed for reproducibility.
-
-    Returns:
-        Tuple of (cluster_centers, cluster_assignments) where:
-            - cluster_centers: Indices of cluster center sequences.
-            - cluster_assignments: Cluster assignment for each sequence.
-    """
-    np.random.seed(seed)
-    num_seq = msa.shape[0]
-
-    if num_seq <= num_clusters:
-        return np.arange(num_seq), np.arange(num_seq)
-
-    # Randomly select cluster centers (keeping first sequence as center)
-    cluster_centers = np.concatenate([
+    
+    if num_seq <= max_seq:
+        return msa_features
+    
+    # 随机采样（保留第一个序列）
+    indices = np.concatenate([
         np.array([0]),
-        np.random.choice(num_seq - 1, num_clusters - 1, replace=False) + 1
+        np.random.permutation(num_seq - 1)[:max_seq - 1] + 1
     ])
-
-    # Assign each sequence to nearest center
-    assignments = np.zeros(num_seq, dtype=np.int32)
-
-    for i in range(num_seq):
-        min_dist = float('inf')
-        for j, center_idx in enumerate(cluster_centers):
-            # Compute Hamming distance (excluding gaps)
-            valid_mask = (msa[i] != 0) & (msa[center_idx] != 0)
-            if valid_mask.sum() == 0:
-                dist = seq_length
-            else:
-                dist = (msa[i][valid_mask] != msa[center_idx][valid_mask]).sum()
-
-            if dist < min_dist:
-                min_dist = dist
-                assignments[i] = j
-
-    return cluster_centers, assignments
-
-
-def parse_a3m(a3m_string: str) -> List[Tuple[str, str]]:
-    """Parse A3M format MSA file.
-
-    Args:
-        a3m_string: Contents of A3M file as string.
-
-    Returns:
-        List of (name, sequence) tuples.
-    """
-    sequences = []
-    current_name = None
-    current_seq = []
-
-    for line in a3m_string.strip().split('\n'):
-        line = line.strip()
-        if not line:
-            continue
-
-        if line.startswith('>'):
-            # Save previous sequence
-            if current_name is not None:
-                sequences.append((current_name, ''.join(current_seq)))
-            current_name = line[1:].split()[0]
-            current_seq = []
+    
+    # 采样特征
+    sampled_features = {}
+    for key, value in msa_features.items():
+        if key in MSA_FEATURE_NAMES:
+            sampled = value[indices]
+            if keep_extra and key.startswith("extra_"):
+                not_selected = np.setdiff1d(np.arange(num_seq), indices)
+                sampled_features["extra_" + key] = value[not_selected]
+            sampled_features[key] = sampled
         else:
-            current_seq.append(line)
-
-    # Save last sequence
-    if current_name is not None:
-        sequences.append((current_name, ''.join(current_seq)))
-
-    return sequences
+            sampled_features[key] = value
+    
+    return sampled_features
 
 
-def parse_stockholm(stockholm_string: str) -> List[Tuple[str, str]]:
-    """Parse Stockholm format MSA file.
-
-    Args:
-        stockholm_string: Contents of Stockholm file as string.
-
-    Returns:
-        List of (name, sequence) tuples.
+def compute_msa_profile(msa: np.ndarray, msa_mask: Optional[np.ndarray] = None) -> np.ndarray:
     """
-    sequences = {}
-
-    for line in stockholm_string.strip().split('\n'):
-        line = line.strip()
-        if not line or line.startswith('#') or line.startswith('//'):
-            continue
-
-        parts = line.split()
-        if len(parts) >= 2:
-            name = parts[0]
-            seq = parts[1]
-            if name not in sequences:
-                sequences[name] = []
-            sequences[name].append(seq)
-
-    return [(name, ''.join(seqs)) for name, seqs in sequences.items()]
+    计算MSA轮廓（profile）
+    
+    参考OpenFold的hhblits_profile计算
+    
+    Parameters
+    ----------
+    msa : np.ndarray
+        MSA序列矩阵，shape: (N_seq, N_res)
+    msa_mask : Optional[np.ndarray]
+        MSA掩码，shape: (N_seq, N_res)
+        
+    Returns
+    -------
+    np.ndarray
+        MSA轮廓，shape: (N_res, 23)
+    """
+    num_seqs, seq_len = msa.shape
+    
+    if msa_mask is None:
+        msa_mask = np.ones_like(msa, dtype=np.float32)
+    
+    # one-hot编码
+    msa_1hot = make_one_hot(msa, num_classes=23)
+    
+    # 应用掩码
+    msa_1hot = msa_1hot * msa_mask[..., None]
+    
+    # 计算平均
+    profile = np.sum(msa_1hot, axis=0) / (np.sum(msa_mask, axis=0, keepdims=True).T + 1e-6)
+    
+    return profile

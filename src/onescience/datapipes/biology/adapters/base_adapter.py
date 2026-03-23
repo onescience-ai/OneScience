@@ -1,14 +1,7 @@
-"""Base adapter class for model-specific data processing.
+"""
+适配器基类
 
-This module defines the abstract base class that all model-specific adapters
-must inherit from. Adapters are responsible for converting unified biological
-data formats into formats required by specific protein structure prediction models.
-
-Example:
-    >>> class MyModelAdapter(BaseAdapter):
-    ...     def adapt_features(self, features):
-    ...         # Convert to my model's format
-    ...         return converted_features
+所有模型适配器的基础类
 """
 
 from abc import ABC, abstractmethod
@@ -26,35 +19,27 @@ from onescience.datapipes.biology.common.msa.msa_parser import MSAParser
 from onescience.datapipes.biology.common.msa.msa_featurizer import MSAFeaturizer
 
 
-# Type alias for feature dictionaries
+# 类型别名
 FeatureDict = Dict[str, np.ndarray]
 
 
 class BaseAdapter(ABC):
-    """Abstract base class for model-specific adapters.
-
-    Adapters convert unified biological data formats into formats required
-    by specific protein structure prediction models (e.g., Protenix, OpenFold).
-
-    Attributes:
-        config: Dataset configuration.
-        json_parser: JSON data parser.
-        fasta_parser: FASTA file parser.
-        aa_encoder: Amino acid sequence encoder.
-        nt_encoder: Nucleotide sequence encoder.
-        msa_parser: Multiple sequence alignment parser.
-        msa_featurizer: MSA feature extractor.
     """
-
+    适配器基类
+    
+    负责将通用处理模块的输出转换为各模型需要的特定格式
+    """
+    
     def __init__(self, config: DatasetConfig):
-        """Initialize the adapter with configuration.
-
-        Args:
-            config: Dataset configuration containing model-specific settings.
+        """
+        Parameters
+        ----------
+        config : DatasetConfig
+            数据集配置
         """
         self.config = config
-
-        # Initialize common processing modules
+        
+        # 初始化通用处理模块
         self.json_parser = JSONParser()
         self.fasta_parser = FASTAParser()
         self.aa_encoder = AminoAcidEncoder()
@@ -64,34 +49,50 @@ class BaseAdapter(ABC):
             max_seqs=config.data.extra.get('max_msa_seqs')
         )
 
+
+    
     @abstractmethod
     def adapt_features(self, common_features: FeatureDict) -> FeatureDict:
-        """Convert common features to model-specific features.
-
-        Args:
-            common_features: Dictionary of common biological features.
-
-        Returns:
-            FeatureDict: Dictionary of model-specific features.
+        """
+        将通用特征转换为模型特定特征
+        
+        Parameters
+        ----------
+        common_features : FeatureDict
+            通用特征字典
+            
+        Returns
+        -------
+        FeatureDict
+            模型特定的特征字典
         """
         pass
-
+    
     @abstractmethod
     def process_sample(self, sample: Dict[str, Any]) -> FeatureDict:
-        """Process a single data sample.
-
-        Args:
-            sample: Raw sample data containing biological information.
-
-        Returns:
-            FeatureDict: Processed features ready for model input.
+        """
+        处理单个样本
+        
+        Parameters
+        ----------
+        sample : Dict[str, Any]
+            原始样本数据
+            
+        Returns
+        -------
+        FeatureDict
+            处理后的特征字典
         """
         pass
-
+    
     def get_model_name(self) -> str:
-        """Get the model name for this adapter.
-
-        Returns:
-            str: Model name derived from the adapter class name.
+        """
+        返回模型名称
+        
+        Returns
+        -------
+        str
+            模型名称
         """
         return self.__class__.__name__.replace('Adapter', '').lower()
+

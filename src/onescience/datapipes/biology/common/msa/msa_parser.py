@@ -1,6 +1,7 @@
-"""Unified MSA parser.
+"""
+统一的MSA解析器
 
-Supports a3m and Stockholm formats.
+支持a3m和Stockholm格式
 """
 
 from dataclasses import dataclass
@@ -16,19 +17,24 @@ from onescience.datapipes.biology.common.utils.file_utils import (
 
 @dataclass
 class MSA:
-    """Unified MSA data format.
-
-    Attributes:
-        sequences: List of sequences.
-        deletion_matrix: Deletion matrix.
-        descriptions: List of sequence descriptions.
+    """
+    统一的MSA数据格式
+    
+    Attributes
+    ----------
+    sequences : List[str]
+        序列列表
+    deletion_matrix : List[List[int]]
+        删除矩阵（deletion matrix）
+    descriptions : List[str]
+        序列描述列表
     """
     sequences: List[str]
     deletion_matrix: List[List[int]]
     descriptions: List[str]
     
     def __post_init__(self):
-        """Validates data consistency."""
+        """验证数据一致性"""
         if not (len(self.sequences) == len(self.deletion_matrix) == len(self.descriptions)):
             raise ValueError(
                 "All fields for an MSA must have the same length. "
@@ -38,17 +44,22 @@ class MSA:
             )
     
     def __len__(self) -> int:
-        """Returns the number of sequences."""
+        """返回序列数量"""
         return len(self.sequences)
     
     def truncate(self, max_seqs: int) -> "MSA":
-        """Truncates the MSA to the specified number of sequences.
-
-        Args:
-            max_seqs: Maximum number of sequences.
-
-        Returns:
-            Truncated MSA.
+        """
+        截断MSA到指定序列数
+        
+        Parameters
+        ----------
+        max_seqs : int
+            最大序列数
+            
+        Returns
+        -------
+        MSA
+            截断后的MSA
         """
         return MSA(
             sequences=self.sequences[:max_seqs],
@@ -58,85 +69,91 @@ class MSA:
 
 
 class MSAParser:
-    """Unified MSA parser.
-
-    Supported formats:
-    - a3m (HH-suite format)
-    - Stockholm (Stockholm format)
+    """
+    统一的MSA解析器
+    
+    支持格式：
+    - a3m (HH-suite格式)
+    - Stockholm (Stockholm格式)
     """
     
     @staticmethod
     def parse_a3m(a3m_string: str) -> MSA:
-        """Parses an MSA in a3m format.
-
-        Args:
-            a3m_string: String in a3m format.
-
-        Returns:
-            Parsed MSA object.
+        """
+        解析a3m格式的MSA
+        
+        Parameters
+        ----------
+        a3m_string : str
+            a3m格式的字符串
+            
+        Returns
+        -------
+        MSA
+            解析后的MSA对象
         """
         sequences = []
         deletion_matrix = []
         descriptions = []
-
+        
         current_seq = ""
         current_deletions = []
         current_desc = ""
-
+        
         for line in a3m_string.splitlines():
             line = line.strip()
-
+            
             if line.startswith(">"):
-                # Save the previous sequence
+                # 保存上一个序列
                 if current_seq:
                     sequences.append(current_seq)
                     deletion_matrix.append(current_deletions)
                     descriptions.append(current_desc)
-
-                # Start a new sequence
-                current_desc = line[1:]  # Remove '>'
+                
+                # 开始新序列
+                current_desc = line[1:]  # 移除 '>'
                 current_seq = ""
                 current_deletions = []
             elif line:
-                # Parse sequence line (lowercase letters indicate insertions)
+                # 解析序列行（包含小写字母表示插入）
                 seq_line = ""
                 del_line = []
-
+                
                 for char in line:
                     if char.isupper() or char == '-':
-                        # Standard character or gap
+                        # 标准字符或gap
                         seq_line += char
                         del_line.append(0)
                     elif char.islower():
-                        # Lowercase letters indicate insertions, kept in sequence
+                        # 小写字母表示插入，在序列中保留，删除矩阵中标记
                         seq_line += char.upper()
                         del_line.append(0)
                     elif char.isdigit():
-                        # Digits indicate number of deleted columns
+                        # 数字表示删除的列数
                         if del_line:
                             del_line[-1] = del_line[-1] * 10 + int(char)
                         else:
                             del_line.append(int(char))
                     else:
-                        # Skip other characters (e.g., spaces)
+                        # 其他字符（如空格）跳过
                         continue
-
+                
                 current_seq += seq_line
-                # Expand deletion matrix
+                # 扩展删除矩阵
                 while len(current_deletions) < len(current_seq):
                     current_deletions.append(0)
-                # Update deletion matrix
+                # 更新删除矩阵
                 for i, del_val in enumerate(del_line):
                     idx = len(current_seq) - len(del_line) + i
                     if idx < len(current_deletions):
                         current_deletions[idx] = del_val
-
-        # Save the last sequence
+        
+        # 保存最后一个序列
         if current_seq:
             sequences.append(current_seq)
             deletion_matrix.append(current_deletions)
             descriptions.append(current_desc)
-
+        
         return MSA(
             sequences=sequences,
             deletion_matrix=deletion_matrix,
@@ -145,24 +162,29 @@ class MSAParser:
     
     @staticmethod
     def parse_stockholm(sto_string: str) -> MSA:
-        """Parses an MSA in Stockholm format.
-
-        Args:
-            sto_string: String in Stockholm format.
-
-        Returns:
-            Parsed MSA object.
+        """
+        解析Stockholm格式的MSA
+        
+        Parameters
+        ----------
+        sto_string : str
+            Stockholm格式的字符串
+            
+        Returns
+        -------
+        MSA
+            解析后的MSA对象
         """
         sequences = []
         deletion_matrix = []
         descriptions = []
-
+        
         seq_dict = {}  # name -> sequence
         in_alignment = False
-
+        
         for line in sto_string.splitlines():
             line = line.strip()
-
+            
             if line.startswith("# STOCKHOLM"):
                 in_alignment = True
                 continue
@@ -170,28 +192,28 @@ class MSAParser:
                 in_alignment = False
                 break
             elif line.startswith("#"):
-                continue  # Skip comments
+                continue  # 跳过注释
             elif not line:
-                continue  # Skip empty lines
+                continue  # 跳过空行
             elif in_alignment and not line.startswith("#"):
-                # Parse sequence line
+                # 解析序列行
                 parts = line.split()
                 if len(parts) >= 2:
                     name = parts[0]
                     sequence = parts[1]
-
+                    
                     if name not in seq_dict:
                         seq_dict[name] = ""
                         descriptions.append(name)
-
+                    
                     seq_dict[name] += sequence
-
-        # Convert to list format
+        
+        # 转换为列表格式
         for desc in descriptions:
             seq = seq_dict[desc]
             sequences.append(seq)
-
-            # Compute deletion matrix ('.' indicates deletion in Stockholm format)
+            
+            # 计算删除矩阵（Stockholm格式中，'.'表示删除）
             deletions = []
             for char in seq:
                 if char == '.':
@@ -199,7 +221,7 @@ class MSAParser:
                 else:
                     deletions.append(0)
             deletion_matrix.append(deletions)
-
+        
         return MSA(
             sequences=sequences,
             deletion_matrix=deletion_matrix,
@@ -208,14 +230,20 @@ class MSAParser:
     
     @staticmethod
     def parse_file(path: Path, format: Optional[str] = None) -> MSA:
-        """Parses an MSA from a file (supports compressed files).
-
-        Args:
-            path: Path to the MSA file (supports .gz, .bz2, .xz compressed files).
-            format: Format ("a3m" or "stockholm"). If None, auto-detects.
-
-        Returns:
-            Parsed MSA object.
+        """
+        从文件解析MSA（支持压缩文件）
+        
+        Parameters
+        ----------
+        path : Path
+            MSA文件路径（支持.gz, .bz2, .xz压缩文件）
+        format : Optional[str]
+            格式（"a3m" 或 "stockholm"），如果为None则自动检测
+            
+        Returns
+        -------
+        MSA
+            解析后的MSA对象
         """
         with open_file(path, 'r') as f:
             content = f.read()

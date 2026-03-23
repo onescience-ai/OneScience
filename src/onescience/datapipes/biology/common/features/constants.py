@@ -1,13 +1,13 @@
-"""Constant definitions for biological feature processing.
+"""
+生物学特征处理常量定义
 
-Reference: Protenix and OpenFold constant definitions, providing a unified
-interface for constants used across different models.
+参考Protenix和OpenFold的常量定义，提供统一的常量接口
 """
 
 from typing import Dict, List, Set
 
 # ==============================================================================
-# Evaluation chain interface definitions
+# 评估链接口定义
 # ==============================================================================
 EVALUATION_CHAIN_INTERFACE = [
     "intra_ligand",
@@ -23,7 +23,7 @@ EVALUATION_CHAIN_INTERFACE = [
 ]
 
 # ==============================================================================
-# Entity polymer type definitions
+# 实体多聚类型定义
 # ==============================================================================
 ENTITY_POLY_TYPE_DICT = {
     "nuc": [
@@ -37,7 +37,7 @@ ENTITY_POLY_TYPE_DICT = {
 }
 
 # ==============================================================================
-# Crystallization methods
+# 结晶方法
 # ==============================================================================
 CRYSTALLIZATION_METHODS = {
     "X-RAY DIFFRACTION",
@@ -48,10 +48,10 @@ CRYSTALLIZATION_METHODS = {
 }
 
 # ==============================================================================
-# Amino acid related constants
+# 氨基酸相关常量
 # ==============================================================================
 
-# Mapping from 1-letter to 3-letter amino acid codes
+# 标准20种氨基酸单字母到三字母的映射
 RESTYPE_1TO3 = {
     "A": "ALA",
     "R": "ARG",
@@ -73,21 +73,21 @@ RESTYPE_1TO3 = {
     "W": "TRP",
     "Y": "TYR",
     "V": "VAL",
-    "B": "ASX",  # Asn or Asp
-    "Z": "GLX",  # Gln or Glu
-    "X": "UNK",  # Unknown
-    "J": "UNK",  # Leu or Ile
-    "U": "SEC",  # Selenocysteine
-    "O": "PYL",  # Pyrrolysine
+    "B": "ASX",  # Asn或Asp
+    "Z": "GLX",  # Gln或Glu
+    "X": "UNK",  # 未知
+    "J": "UNK",  # Leu或Ile
+    "U": "SEC",  # 硒代半胱氨酸
+    "O": "PYL",  # 吡咯赖氨酸
 }
 
-# Reverse mapping: 3-letter to 1-letter
+# 三字母到单字母的映射
 RESTYPE_3TO1 = {v: k for k, v in RESTYPE_1TO3.items()}
 
-# Standard amino acid list
+# 标准氨基酸列表
 RESTYPES = "ACDEFGHIKLMNPQRSTVWY"
 
-# Amino acid to index mapping (OpenFold style)
+# 氨基酸到索引的映射 (OpenFold风格)
 RESTYPE_ORDER = {
     "A": 0,
     "C": 1,
@@ -109,18 +109,18 @@ RESTYPE_ORDER = {
     "V": 17,
     "W": 18,
     "Y": 19,
-    "X": 20,  # Unknown
+    "X": 20,  # 未知
     "-": 21,  # Gap
 }
 
-# Index to amino acid mapping
+# 索引到氨基酸的映射
 RESTYPE_ORDER_WITH_X = {v: k for k, v in RESTYPE_ORDER.items()}
 
 # ==============================================================================
-# Standard residue definitions (Protenix/AlphaFold3 style)
+# 标准残基定义 (Protenix/AlphaFold3风格)
 # ==============================================================================
 
-# Protein standard residues (AlphaFold3 SI Table 13)
+# 蛋白质标准残基 (AlphaFold3 SI Table 13)
 PRO_STD_RESIDUES = {
     "ALA": 0,
     "ARG": 1,
@@ -145,7 +145,7 @@ PRO_STD_RESIDUES = {
     "UNK": 20,
 }
 
-# RNA standard residues
+# RNA标准残基
 RNA_STD_RESIDUES = {
     "A": 21,
     "G": 22,
@@ -154,7 +154,7 @@ RNA_STD_RESIDUES = {
     "N": 25,
 }
 
-# DNA standard residues
+# DNA标准残基
 DNA_STD_RESIDUES = {
     "DA": 26,
     "DG": 27,
@@ -163,10 +163,10 @@ DNA_STD_RESIDUES = {
     "DN": 30,
 }
 
-# Gap character
+# Gap字符
 GAP = {"-": 31}
 
-# All standard residues
+# 所有标准残基
 STD_RESIDUES = {**PRO_STD_RESIDUES, **RNA_STD_RESIDUES, **DNA_STD_RESIDUES}
 STD_RESIDUES_WITH_GAP = {**STD_RESIDUES, **GAP}
 STD_RESIDUES_WITH_GAP_ID_TO_NAME = {
@@ -174,16 +174,16 @@ STD_RESIDUES_WITH_GAP_ID_TO_NAME = {
 }
 
 # ==============================================================================
-# Nucleotide related constants
+# 核苷酸相关常量
 # ==============================================================================
 
-# RNA nucleotide to ID mapping
+# RNA核苷酸到索引的映射
 RNA_NT_TO_ID = {
     "A": 0,
     "G": 1,
     "C": 2,
     "U": 3,
-    "N": 4,  # Unknown
+    "N": 4,  # 未知
     "R": 4,  # A or G
     "Y": 4,  # C or U
     "S": 4,  # G or C
@@ -200,7 +200,7 @@ RNA_NT_TO_ID = {
     "-": 5,
 }
 
-# RNA ID to nucleotide mapping (partial reverse)
+# RNA索引到核苷酸的映射 (部分反转)
 RNA_ID_TO_NT = {
     0: "A",
     1: "G",
@@ -210,7 +210,7 @@ RNA_ID_TO_NT = {
     5: "-",
 }
 
-# DNA nucleotide to ID mapping
+# DNA核苷酸到索引的映射
 DNA_NT_TO_ID = {
     "A": 0,
     "T": 1,
@@ -220,7 +220,7 @@ DNA_NT_TO_ID = {
     "-": 5,
 }
 
-# DNA ID to nucleotide mapping
+# DNA索引到核苷酸的映射
 DNA_ID_TO_NT = {
     0: "A",
     1: "T",
@@ -231,10 +231,10 @@ DNA_ID_TO_NT = {
 }
 
 # ==============================================================================
-# Atom related constants
+# 原子相关常量
 # ==============================================================================
 
-# atom37 atom types (OpenFold style)
+# atom37原子类型 (OpenFold风格)
 ATOM_TYPES = [
     "N",
     "CA",
@@ -275,10 +275,10 @@ ATOM_TYPES = [
     "OXT",
 ]
 
-# Atom to index mapping
+# 原子到索引的映射
 ATOM_ORDER = {atom_type: i for i, atom_type in enumerate(ATOM_TYPES)}
 
-# Atom37 van der Waals radii (from RDKit)
+# 原子37范德华半径 (来自RDKit)
 ATOM37_VDW = [
     1.55,  # N
     1.7,   # CA
@@ -319,7 +319,7 @@ ATOM37_VDW = [
     1.55,  # OXT
 ]
 
-# Per-residue atom dictionary
+# 每个残基的原子字典
 RES_ATOMS_DICT = {
     "ALA": {"N": 0, "CA": 1, "C": 2, "O": 3, "CB": 4, "OXT": 5},
     "ARG": {
@@ -391,10 +391,10 @@ RES_ATOMS_DICT = {
 }
 
 # ==============================================================================
-# Feature name definitions
+# 特征名称定义
 # ==============================================================================
 
-# MSA-related feature names
+# MSA相关特征名称
 MSA_FEATURE_NAMES = [
     "msa",
     "deletion_matrix",
@@ -404,7 +404,7 @@ MSA_FEATURE_NAMES = [
     "true_msa",
 ]
 
-# Sequence-related feature names
+# 序列相关特征名称
 SEQUENCE_FEATURE_NAMES = [
     "aatype",
     "sequence",
@@ -416,7 +416,7 @@ SEQUENCE_FEATURE_NAMES = [
     "sym_id",
 ]
 
-# Structure-related feature names
+# 结构相关特征名称
 STRUCTURE_FEATURE_NAMES = [
     "all_atom_positions",
     "all_atom_mask",
@@ -430,7 +430,7 @@ STRUCTURE_FEATURE_NAMES = [
     "ca_mask",
 ]
 
-# Template-related feature names
+# 模板相关特征名称
 TEMPLATE_FEATURE_NAMES = [
     "template_aatype",
     "template_all_atom_positions",
@@ -441,10 +441,10 @@ TEMPLATE_FEATURE_NAMES = [
 ]
 
 # ==============================================================================
-# Other common constants
+# 其他常用常量
 # ==============================================================================
 
-# Crystallization aids
+# 结晶助剂
 CRYSTALLIZATION_AIDS = (
     "SO4",
     "GOL",
@@ -464,13 +464,17 @@ CRYSTALLIZATION_AIDS = (
     "IOD",
 )
 
-# Element list (for Protenix-style atom encoding)
+# 元素列表 (用于Protenix风格的原子编码)
 def get_all_elems():
-    """Get all element symbols.
-
-    Returns:
-        List[str]: List of element symbols from H to Og (1-118) + 10 unknowns.
     """
+    获取所有元素符号
+    
+    Returns
+    -------
+    List[str]
+        元素符号列表，从H到Og (1-118) + 10个未知元素
+    """
+    # 简化实现，返回常用元素
     elem_list = [
         "H", "HE", "LI", "BE", "B", "C", "N", "O", "F", "NE",
         "NA", "MG", "AL", "SI", "P", "S", "CL", "AR", "K", "CA",
@@ -485,7 +489,7 @@ def get_all_elems():
         "MD", "NO", "LR", "RF", "DB", "SG", "BH", "HS", "MT", "DS",
         "RG", "CN", "NH", "FL", "MC", "LV", "TS", "OG"
     ]
-    # Add unknown element placeholders
+    # 添加未知元素占位符
     elem_list += [f"UNK_ELEM_{i}" for i in range(119, 129)]
     return elem_list
 

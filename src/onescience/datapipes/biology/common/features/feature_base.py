@@ -1,256 +1,284 @@
-"""Base classes and interfaces for biological feature extraction.
+"""
+特征处理基类
 
-This module defines the core abstractions for feature extraction pipelines,
-including base classes for feature extractors and pipeline interfaces.
+定义通用的特征处理接口和基类
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
-
+from typing import Dict, Mapping, Any, TypeVar, Generic
 import numpy as np
 import torch
 
-
-# Type aliases for feature dictionaries
-FeatureDict = Dict[str, Any]
+# 类型别名
+FeatureDict = Mapping[str, np.ndarray]
 TensorDict = Dict[str, torch.Tensor]
 
 
 class BaseFeatureExtractor(ABC):
-    """Abstract base class for biological feature extractors.
-
-    This class defines the interface for all feature extractors in the
-    biological data processing pipeline. Subclasses must implement the
-    `extract` method to provide specific feature extraction logic.
-
-    Example:
-        >>> class MyExtractor(BaseFeatureExtractor):
-        ...     def extract(self, data):
-        ...         return {'feature': data['sequence']}
-        >>> extractor = MyExtractor(config={'param': 1})
-        >>> features = extractor.extract(data)
     """
-
-    def __init__(self, config: Optional[FeatureDict] = None):
-        """Initialize the feature extractor.
-
-        Args:
-            config: Configuration dictionary for the extractor.
-        """
-        self.config = config or {}
-
+    特征提取器基类
+    
+    所有特征提取器都应该继承这个类
+    """
+    
     @abstractmethod
-    def extract(self, data: FeatureDict) -> FeatureDict:
-        """Extract features from input data.
-
-        Args:
-            data: Input data dictionary containing biological data.
-
-        Returns:
-            Dictionary containing extracted features.
+    def extract(self, data: Any) -> FeatureDict:
+        """
+        提取特征
+        
+        Parameters
+        ----------
+        data : Any
+            输入数据
+            
+        Returns
+        -------
+        FeatureDict
+            特征字典
         """
         pass
-
-    def __call__(self, data: FeatureDict) -> FeatureDict:
-        """Call the extract method directly.
-
-        Args:
-            data: Input data dictionary.
-
-        Returns:
-            Dictionary containing extracted features.
-        """
+    
+    def __call__(self, data: Any) -> FeatureDict:
+        """方便调用"""
         return self.extract(data)
 
 
-T = TypeVar('T')
-
-
-class FeaturePipeline(ABC, Generic[T]):
-    """Abstract base class for feature processing pipelines.
-
-    This class defines the interface for feature processing pipelines
-    that can transform raw biological data into model-ready features.
-
-    Type Parameters:
-        T: The output type of the pipeline (e.g., TensorDict).
-
-    Example:
-        >>> class MyPipeline(FeaturePipeline[TensorDict]):
-        ...     def process(self, data):
-        ...         return {'tensor': torch.tensor(data['value'])}
-        >>> pipeline = MyPipeline(config={'device': 'cuda'})
-        >>> output = pipeline.process(raw_data)
+class FeaturePipeline(ABC):
     """
-
-    def __init__(self, config: Optional[FeatureDict] = None):
-        """Initialize the feature pipeline.
-
-        Args:
-            config: Configuration dictionary for the pipeline.
+    特征处理管道基类
+    
+    定义特征处理流程的通用接口
+    """
+    
+    def __init__(self, config: Dict[str, Any] = None):
+        """
+        Parameters
+        ----------
+        config : Dict[str, Any]
+            配置字典
         """
         self.config = config or {}
-        self.extractors: List[BaseFeatureExtractor] = []
-
-    def add_extractor(self, extractor: BaseFeatureExtractor) -> 'FeaturePipeline':
-        """Add a feature extractor to the pipeline.
-
-        Args:
-            extractor: Feature extractor to add.
-
-        Returns:
-            Self for method chaining.
-        """
-        self.extractors.append(extractor)
-        return self
-
+    
     @abstractmethod
-    def process(self, data: FeatureDict) -> T:
-        """Process input data through the pipeline.
-
-        Args:
-            data: Raw input data dictionary.
-
-        Returns:
-            Processed output of type T.
+    def process(self, raw_features: FeatureDict) -> FeatureDict:
+        """
+        处理原始特征
+        
+        Parameters
+        ----------
+        raw_features : FeatureDict
+            原始特征字典
+            
+        Returns
+        -------
+        FeatureDict
+            处理后的特征字典
         """
         pass
-
-    def __call__(self, data: FeatureDict) -> T:
-        """Call the process method directly.
-
-        Args:
-            data: Raw input data dictionary.
-
-        Returns:
-            Processed output of type T.
-        """
-        return self.process(data)
+    
+    def __call__(self, raw_features: FeatureDict) -> FeatureDict:
+        """方便调用"""
+        return self.process(raw_features)
 
 
-class CompositeFeatureExtractor(BaseFeatureExtractor):
-    """Composite feature extractor that combines multiple extractors.
-
-    This class allows combining multiple feature extractors into a single
-    extractor that applies all extractors sequentially and merges their outputs.
-
-    Example:
-        >>> extractor1 = SequenceFeatureExtractor()
-        >>> extractor2 = StructureFeatureExtractor()
-        >>> composite = CompositeFeatureExtractor([extractor1, extractor2])
-        >>> features = composite.extract(data)
+class ModelAdapter(ABC):
     """
-
-    def __init__(
-        self,
-        extractors: Optional[List[BaseFeatureExtractor]] = None,
-        config: Optional[FeatureDict] = None
-    ):
-        """Initialize the composite extractor.
-
-        Args:
-            extractors: List of feature extractors to combine.
-            config: Configuration dictionary.
-        """
-        super().__init__(config)
-        self.extractors = extractors or []
-
-    def add(self, extractor: BaseFeatureExtractor) -> 'CompositeFeatureExtractor':
-        """Add a feature extractor.
-
-        Args:
-            extractor: Feature extractor to add.
-
-        Returns:
-            Self for method chaining.
-        """
-        self.extractors.append(extractor)
-        return self
-
-    def extract(self, data: FeatureDict) -> FeatureDict:
-        """Extract features using all registered extractors.
-
-        Args:
-            data: Input data dictionary.
-
-        Returns:
-            Dictionary containing all extracted features merged together.
-        """
-        features = {}
-        for extractor in self.extractors:
-            features.update(extractor.extract(data))
-        return features
-
-
-class FeatureExtractorRegistry:
-    """Registry for feature extractor classes.
-
-    This class provides a central registry for feature extractor classes,
-    enabling dynamic instantiation by name.
-
-    Example:
-        >>> registry = FeatureExtractorRegistry()
-        >>> registry.register('sequence', SequenceFeatureExtractor)
-        >>> extractor = registry.create('sequence', config={})
+    模型适配器基类
+    
+    将通用特征转换为特定模型需要的格式
     """
-
-    _registry: Dict[str, type] = {}
-
-    @classmethod
-    def register(cls, name: str, extractor_class: type) -> None:
-        """Register a feature extractor class.
-
-        Args:
-            name: Name to register the class under.
-            extractor_class: Feature extractor class to register.
+    
+    @abstractmethod
+    def adapt(self, common_features: FeatureDict) -> FeatureDict:
         """
-        cls._registry[name] = extractor_class
-
-    @classmethod
-    def create(cls, name: str, config: Optional[FeatureDict] = None) -> BaseFeatureExtractor:
-        """Create a feature extractor instance by name.
-
-        Args:
-            name: Name of the registered extractor.
-            config: Configuration dictionary for the extractor.
-
-        Returns:
-            Instance of the registered feature extractor.
-
-        Raises:
-            ValueError: If the name is not registered.
+        将通用特征转换为模型特定格式
+        
+        Parameters
+        ----------
+        common_features : FeatureDict
+            通用特征字典
+            
+        Returns
+        -------
+        FeatureDict
+            模型特定格式的特征字典
         """
-        if name not in cls._registry:
-            raise ValueError(f"Unknown extractor: {name}. "
-                           f"Available: {list(cls._registry.keys())}")
-        return cls._registry[name](config)
-
-    @classmethod
-    def list_extractors(cls) -> List[str]:
-        """List all registered extractor names.
-
-        Returns:
-            List of registered extractor names.
-        """
-        return list(cls._registry.keys())
+        pass
+    
+    def __call__(self, common_features: FeatureDict) -> FeatureDict:
+        """方便调用"""
+        return self.adapt(common_features)
 
 
-def register_extractor(name: str):
-    """Decorator to register a feature extractor class.
-
-    Args:
-        name: Name to register the class under.
-
-    Returns:
-        Decorator function.
-
-    Example:
-        >>> @register_extractor('my_extractor')
-        ... class MyExtractor(BaseFeatureExtractor):
-        ...     def extract(self, data):
-        ...         return data
+class FeatureMerger:
     """
-    def decorator(cls):
-        FeatureExtractorRegistry.register(name, cls)
-        return cls
-    return decorator
+    特征合并器
+    
+    用于合并多个特征字典
+    """
+    
+    @staticmethod
+    def merge(
+        feature_dicts: list,
+        allow_overlap: bool = False,
+        strict: bool = False
+    ) -> Dict[str, Any]:
+        """
+        合并多个特征字典
+        
+        Parameters
+        ----------
+        feature_dicts : list
+            特征字典列表
+        allow_overlap : bool
+            是否允许键重叠，如果为False且有重叠则报错
+        strict : bool
+            如果为True，要求所有字典的数组形状兼容
+            
+        Returns
+        -------
+        Dict[str, Any]
+            合并后的特征字典
+        """
+        merged = {}
+        
+        for features in feature_dicts:
+            if features is None:
+                continue
+                
+            for key, value in features.items():
+                if key in merged:
+                    if not allow_overlap:
+                        if strict:
+                            raise ValueError(f"Duplicate key found: {key}")
+                        else:
+                            continue
+                merged[key] = value
+                
+        return merged
+    
+    @staticmethod
+    def merge_with_priority(
+        feature_dicts: list,
+        priority: list = None
+    ) -> Dict[str, Any]:
+        """
+        按优先级合并特征字典
+        
+        Parameters
+        ----------
+        feature_dicts : list
+            特征字典列表
+        priority : list
+            优先级列表，数值越大优先级越高
+            
+        Returns
+        -------
+        Dict[str, Any]
+            合并后的特征字典
+        """
+        if priority is None:
+            priority = list(range(len(feature_dicts)))
+            
+        # 按优先级排序
+        sorted_pairs = sorted(
+            zip(feature_dicts, priority),
+            key=lambda x: x[1],
+            reverse=True
+        )
+        
+        merged = {}
+        for features, _ in sorted_pairs:
+            if features is None:
+                continue
+            # 后面的（优先级高的）会覆盖前面的
+            merged.update(features)
+            
+        return merged
+
+
+class FeatureFilter:
+    """
+    特征过滤器
+    
+    用于选择和过滤特征
+    """
+    
+    @staticmethod
+    def select(
+        features: Dict[str, Any],
+        keys: list
+    ) -> Dict[str, Any]:
+        """
+        选择指定键的特征
+        
+        Parameters
+        ----------
+        features : Dict[str, Any]
+            特征字典
+        keys : list
+            要选择的键列表
+            
+        Returns
+        -------
+        Dict[str, Any]
+            选择后的特征字典
+        """
+        return {k: features[k] for k in keys if k in features}
+    
+    @staticmethod
+    def exclude(
+        features: Dict[str, Any],
+        keys: list
+    ) -> Dict[str, Any]:
+        """
+        排除指定键的特征
+        
+        Parameters
+        ----------
+        features : Dict[str, Any]
+            特征字典
+        keys : list
+            要排除的键列表
+            
+        Returns
+        -------
+        Dict[str, Any]
+            过滤后的特征字典
+        """
+        return {k: v for k, v in features.items() if k not in keys}
+    
+    @staticmethod
+    def filter_by_shape(
+        features: Dict[str, np.ndarray],
+        required_shape: tuple
+    ) -> Dict[str, np.ndarray]:
+        """
+        根据形状过滤特征
+        
+        Parameters
+        ----------
+        features : Dict[str, np.ndarray]
+            特征字典
+        required_shape : tuple
+            要求的形状（支持-1表示任意维度）
+            
+        Returns
+        -------
+        Dict[str, np.ndarray]
+            过滤后的特征字典
+        """
+        filtered = {}
+        for key, value in features.items():
+            if not isinstance(value, np.ndarray):
+                continue
+            if len(value.shape) != len(required_shape):
+                continue
+            match = True
+            for i, (s, r) in enumerate(zip(value.shape, required_shape)):
+                if r != -1 and s != r:
+                    match = False
+                    break
+            if match:
+                filtered[key] = value
+        return filtered

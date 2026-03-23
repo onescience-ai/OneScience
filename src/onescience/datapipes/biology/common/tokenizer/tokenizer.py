@@ -1,8 +1,8 @@
-"""General AtomArray Tokenizer.
+"""
+通用AtomArray Tokenizer
 
-Implements tokenization following AlphaFold3 SI Chapter 2.6.
-Converts AtomArray objects to TokenArray, supporting tokenization of
-standard residues and ligands.
+参考AlphaFold3 SI Chapter 2.6实现
+将AtomArray对象转换为TokenArray，支持标准残基和配体的token化
 """
 
 from typing import List, Optional, Dict, Any
@@ -12,11 +12,12 @@ import biotite.structure as struc
 
 
 class Token:
-    """Class for storing token-related information.
+    """
+    Token对象，用于存储与token相关的信息
 
-    In AlphaFold3:
-    - Standard residues (protein, DNA, RNA): one token per residue
-    - Ligands/non-standard residues: one token per atom
+    在AlphaFold3中：
+    - 标准残基（蛋白质、DNA、RNA）：每个残基一个token
+    - 配体/非标准残基：每个原子一个token
 
     Example:
         >>> token = Token(1)
@@ -27,11 +28,12 @@ class Token:
     """
 
     def __init__(self, value: int, **kwargs):
-        """Initializes a Token.
+        """
+        初始化Token
 
         Args:
-            value: Token value (usually residue type index).
-            **kwargs: Additional attributes.
+            value: token值（通常是残基类型索引）
+            **kwargs: 其他属性
         """
         self.value = value
         self._annot: Dict[str, Any] = {}
@@ -39,7 +41,7 @@ class Token:
             self._annot[name] = annotation
 
     def __getattr__(self, attr: str) -> Any:
-        """Gets attribute, first checking _annot."""
+        """获取属性，先从_annot中查找"""
         if attr in super().__getattribute__("_annot"):
             return self._annot[attr]
         else:
@@ -48,12 +50,12 @@ class Token:
             )
 
     def __repr__(self) -> str:
-        """String representation."""
+        """字符串表示"""
         annot_lst = [f"{k}={v}" for k, v in self._annot.items()]
         return f'Token({self.value}, {",".join(annot_lst)})'
 
     def __setattr__(self, attr: str, value: Any) -> None:
-        """Sets attribute, with special handling for _annot and value."""
+        """设置属性，_annot和value特殊处理"""
         if attr == "_annot":
             super().__setattr__(attr, value)
         elif attr == "value":
@@ -62,27 +64,30 @@ class Token:
             self._annot[attr] = value
 
     def get_annotation(self, key: str) -> Any:
-        """Gets annotation."""
+        """获取标注"""
         return self._annot.get(key)
 
     def set_annotation(self, key: str, value: Any) -> None:
-        """Sets annotation."""
+        """设置标注"""
         self._annot[key] = value
 
 
 class TokenArray:
-    """Token array for batch operations on a group of Token objects."""
+    """
+    Token数组，用于批量操作一组Token对象
+    """
 
     def __init__(self, tokens: List[Token]):
-        """Initializes a TokenArray.
+        """
+        初始化TokenArray
 
         Args:
-            tokens: List of Token objects.
+            tokens: Token对象列表
         """
         self.tokens = tokens
 
     def __repr__(self) -> str:
-        """String representation."""
+        """字符串表示"""
         repr_str = "TokenArray(\n"
         for token in self.tokens:
             repr_str += f"\t{token}\n"
@@ -90,38 +95,40 @@ class TokenArray:
         return repr_str
 
     def __len__(self) -> int:
-        """Returns the number of tokens."""
+        """返回token数量"""
         return len(self.tokens)
 
     def __iter__(self):
-        """Iterator."""
+        """迭代器"""
         for token in self.tokens:
             yield token
 
     def __getitem__(self, index):
-        """Index access."""
+        """索引访问"""
         if isinstance(index, int):
             return self.tokens[index]
         else:
             return TokenArray([self.tokens[i] for i in index])
 
     def get_annotation(self, category: str) -> List[Any]:
-        """Gets an annotation for all tokens.
+        """
+        获取所有token的某个标注
 
         Args:
-            category: Annotation category.
+            category: 标注类别
 
         Returns:
-            List of annotation values for all tokens.
+            List: 所有token的该标注值列表
         """
         return [token._annot.get(category) for token in self.tokens]
 
     def set_annotation(self, category: str, values: List[Any]) -> None:
-        """Sets an annotation for all tokens.
+        """
+        为所有token设置某个标注
 
         Args:
-            category: Annotation category.
-            values: List of annotation values, length must equal token count.
+            category: 标注类别
+            values: 标注值列表，长度必须等于token数量
         """
         assert len(values) == len(
             self.tokens
@@ -130,18 +137,19 @@ class TokenArray:
             token._annot[category] = value
 
     def get_values(self) -> List[int]:
-        """Gets values of all tokens."""
+        """获取所有token的值"""
         return [token.value for token in self.tokens]
 
     def get_atom_indices(self) -> List[List[int]]:
-        """Gets atom indices contained in all tokens."""
+        """获取所有token包含的原子索引"""
         return [token.atom_indices for token in self.tokens]
 
     def to_dict(self) -> Dict[str, Any]:
-        """Converts to dictionary format.
+        """
+        转换为字典格式
 
         Returns:
-            Dictionary containing all token information.
+            Dict: 包含所有token信息的字典
         """
         return {
             "num_tokens": len(self.tokens),
@@ -155,13 +163,14 @@ class TokenArray:
 
 
 class AtomArrayTokenizer:
-    """AtomArray Tokenizer.
+    """
+    AtomArray Tokenizer
 
-    Tokenizes AtomArray objects into TokenArray.
+    将AtomArray对象token化为TokenArray
 
-    Reference: AlphaFold3 SI Chapter 2.6
-    - Standard residues (protein, DNA, RNA): one token per residue
-    - Ligands and non-standard residues: one token per heavy atom
+    Ref: AlphaFold3 SI Chapter 2.6
+    - 标准残基（蛋白质、DNA、RNA）：每个残基一个token
+    - 配体和非标准残基：每个重原子一个token
     """
 
     def __init__(
@@ -170,16 +179,17 @@ class AtomArrayTokenizer:
         std_residues: Optional[Dict[str, int]] = None,
         elems: Optional[Dict[str, int]] = None,
     ):
-        """Initializes the Tokenizer.
+        """
+        初始化Tokenizer
 
         Args:
-            atom_array: Biotite AtomArray object.
-            std_residues: Mapping from standard residues to token values (optional).
-            elems: Mapping from elements to token values (optional).
+            atom_array: Biotite AtomArray对象
+            std_residues: 标准残基到token值的映射（可选）
+            elems: 元素到token值的映射（可选）
         """
         self.atom_array = atom_array
 
-        # Default standard residue definitions (AlphaFold3 style)
+        # 默认标准残基定义（AlphaFold3风格）
         if std_residues is None:
             from onescience.datapipes.biology.common.features.constants import (
                 STD_RESIDUES,
@@ -188,7 +198,7 @@ class AtomArrayTokenizer:
         else:
             self.std_residues = std_residues
 
-        # Default element definitions
+        # 默认元素定义
         if elems is None:
             from onescience.datapipes.biology.common.features.constants import ELEMS
             self.elems = ELEMS
@@ -196,10 +206,11 @@ class AtomArrayTokenizer:
             self.elems = elems
 
     def tokenize(self) -> List[Token]:
-        """Tokenizes AtomArray.
+        """
+        Token化AtomArray
 
         Returns:
-            List of Token objects.
+            List[Token]: Token对象列表
         """
         tokens = []
         total_atom_num = 0
@@ -210,11 +221,11 @@ class AtomArrayTokenizer:
             res_name = first_atom.res_name
             mol_type = getattr(first_atom, "mol_type", "protein")
 
-            # Get token value for standard residues
+            # 获取标准残基的token值
             res_token = self.std_residues.get(res_name, None)
 
             if res_token is not None and mol_type != "ligand":
-                # Standard residues: one token per residue
+                # 标准残基：每个残基一个token
                 token = Token(res_token)
                 atom_indices = list(range(total_atom_num, total_atom_num + atom_num))
                 atom_names = [self.atom_array[i].atom_name for i in atom_indices]
@@ -224,13 +235,13 @@ class AtomArrayTokenizer:
                 tokens.append(token)
                 total_atom_num += atom_num
             else:
-                # Ligands and non-standard residues: one token per atom
+                # 配体和非标准残基：每个原子一个token
                 for atom in res:
                     atom_elem = atom.element
                     atom_token = self.elems.get(atom_elem, None)
 
                     if atom_token is None:
-                        # Unknown element, use default value
+                        # 未知元素，使用默认值
                         atom_token = max(self.elems.values()) + 1 if self.elems else 128
 
                     token = Token(atom_token)
@@ -245,19 +256,20 @@ class AtomArrayTokenizer:
         return tokens
 
     def _set_token_annotations(self, token_array: TokenArray) -> TokenArray:
-        """Sets token annotations.
+        """
+        设置token标注
 
         Args:
-            token_array: TokenArray object.
+            token_array: TokenArray对象
 
         Returns:
-            TokenArray with annotations.
+            TokenArray: 带有标注的TokenArray
         """
-        # Get centre atom indices (where centre_atom_mask == 1)
+        # 获取中心原子索引（centre_atom_mask == 1的位置）
         if hasattr(self.atom_array, "centre_atom_mask"):
             centre_atom_indices = np.where(self.atom_array.centre_atom_mask == 1)[0]
         else:
-            # If centre_atom_mask does not exist, use first atom of each residue
+            # 如果没有centre_atom_mask，使用每个残基的第一个原子
             centre_atom_indices = self._get_default_centre_atom_indices()
 
         token_array.set_annotation("centre_atom_index", centre_atom_indices.tolist())
@@ -267,15 +279,16 @@ class AtomArrayTokenizer:
         return token_array
 
     def _get_default_centre_atom_indices(self) -> np.ndarray:
-        """Gets default centre atom indices.
+        """
+        获取默认的中心原子索引
 
-        Used when centre_atom_mask does not exist:
-        - Protein: CA atom
-        - DNA/RNA: C1' atom
-        - Others: first atom
+        当centre_atom_mask不存在时使用：
+        - 蛋白质：CA原子
+        - DNA/RNA：C1'原子
+        - 其他：第一个原子
 
         Returns:
-            Array of centre atom indices.
+            np.ndarray: 中心原子索引数组
         """
         centre_indices = []
 
@@ -284,7 +297,7 @@ class AtomArrayTokenizer:
             atom_names = [atom.atom_name for atom in res_atoms]
             global_start_idx = next(iter(res_atoms)).array_index(0)
 
-            # Find centre atom
+            # 查找中心原子
             if "CA" in atom_names:
                 idx = atom_names.index("CA")
             elif "C1'" in atom_names:
@@ -297,10 +310,11 @@ class AtomArrayTokenizer:
         return np.array(centre_indices, dtype=np.int64)
 
     def get_token_array(self) -> TokenArray:
-        """Gets TokenArray with annotations.
+        """
+        获取带有标注的TokenArray
 
         Returns:
-            TokenArray containing annotations such as atom_indices, centre_atom_index.
+            TokenArray: 包含atom_indices, centre_atom_index等标注的TokenArray
 
         Example:
             TokenArray(
@@ -318,40 +332,43 @@ def create_token_array(
     atom_array: AtomArray,
     use_centre_atom_mask: bool = True,
 ) -> TokenArray:
-    """Convenience function: creates TokenArray from AtomArray.
+    """
+    便捷函数：从AtomArray创建TokenArray
 
     Args:
-        atom_array: Biotite AtomArray object.
-        use_centre_atom_mask: Whether to use centre_atom_mask (if it exists).
+        atom_array: Biotite AtomArray对象
+        use_centre_atom_mask: 是否使用centre_atom_mask（如果存在）
 
     Returns:
-        TokenArray object.
+        TokenArray: TokenArray对象
     """
     tokenizer = AtomArrayTokenizer(atom_array)
     return tokenizer.get_token_array()
 
 
 def token_array_to_atom_indices(token_array: TokenArray) -> List[int]:
-    """Gets centre atom indices for all tokens in TokenArray.
+    """
+    获取TokenArray中所有token的中心原子索引
 
     Args:
-        token_array: TokenArray object.
+        token_array: TokenArray对象
 
     Returns:
-        List of centre atom indices.
+        List[int]: 中心原子索引列表
     """
     return token_array.get_annotation("centre_atom_index")
 
 
 def get_token_atom_mapping(token_array: TokenArray, num_atoms: int) -> np.ndarray:
-    """Gets the atom-to-token mapping array.
+    """
+    获取原子到token的映射数组
 
     Args:
-        token_array: TokenArray object.
-        num_atoms: Total number of atoms.
+        token_array: TokenArray对象
+        num_atoms: 总原子数
 
     Returns:
-        Atom-to-token mapping array, shape: [N_atom], values are token indices.
+        np.ndarray: 原子到token的映射，shape: [N_atom]，值为token索引
     """
     atom_to_token = np.full(num_atoms, -1, dtype=np.int64)
 

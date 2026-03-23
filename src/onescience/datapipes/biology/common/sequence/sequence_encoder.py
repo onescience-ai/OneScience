@@ -1,6 +1,7 @@
-"""Sequence encoder.
+"""
+序列编码器
 
-Unified sequence encoding interface.
+统一的序列编码接口
 """
 
 from abc import ABC, abstractmethod
@@ -9,82 +10,94 @@ import numpy as np
 
 
 class SequenceEncoder(ABC):
-    """Base class for sequence encoders."""
-
+    """序列编码器基类"""
+    
     @abstractmethod
     def encode(self, sequence: str) -> np.ndarray:
-        """Encode a sequence into a numeric array.
-
-        Args:
-            sequence: The sequence string.
-
-        Returns:
-            The encoded array.
+        """
+        将序列编码为数值数组
+        
+        Parameters
+        ----------
+        sequence : str
+            序列字符串
+            
+        Returns
+        -------
+        np.ndarray
+            编码后的数组
         """
         pass
-
+    
     @abstractmethod
     def decode(self, encoded: np.ndarray) -> str:
-        """Decode an encoded array back to a sequence string.
-
-        Args:
-            encoded: The encoded array.
-
-        Returns:
-            The sequence string.
+        """
+        将编码数组解码为序列字符串
+        
+        Parameters
+        ----------
+        encoded : np.ndarray
+            编码数组
+            
+        Returns
+        -------
+        str
+            序列字符串
         """
         pass
 
 
 class AminoAcidEncoder(SequenceEncoder):
-    """Amino acid sequence encoder.
-
-    Supports standard 20 amino acids plus special characters.
     """
-
-    # Standard 20 amino acids
+    氨基酸序列编码器
+    
+    标准20种氨基酸 + 特殊字符
+    """
+    
+    # 标准20种氨基酸
     STANDARD_AAS = "ACDEFGHIKLMNPQRSTVWY"
-
-    # Extended character mapping
+    
+    # 扩展字符映射
     AA_TO_ID = {
         'A': 0, 'C': 1, 'D': 2, 'E': 3, 'F': 4,
         'G': 5, 'H': 6, 'I': 7, 'K': 8, 'L': 9,
         'M': 10, 'N': 11, 'P': 12, 'Q': 13, 'R': 14,
         'S': 15, 'T': 16, 'V': 17, 'W': 18, 'Y': 19,
-        # Special characters
-        'X': 20,  # Unknown
-        'B': 20,  # Asn or Asp
-        'Z': 20,  # Gln or Glu
-        'J': 20,  # Leu or Ile
-        'U': 20,  # Selenocysteine
-        'O': 20,  # Pyrrolysine
+        # 特殊字符
+        'X': 20,  # 未知
+        'B': 20,  # Asn或Asp
+        'Z': 20,  # Gln或Glu
+        'J': 20,  # Leu或Ile
+        'U': 20,  # 硒代半胱氨酸
+        'O': 20,  # 吡咯赖氨酸
         '-': 21,  # Gap
     }
-
+    
     ID_TO_AA = {v: k for k, v in AA_TO_ID.items()}
-
+    
     def __init__(self, include_special: bool = True):
-        """Initialize the encoder.
-
-        Args:
-            include_special: Whether to include special characters (X, B, Z, etc.).
+        """
+        Parameters
+        ----------
+        include_special : bool
+            是否包含特殊字符（X, B, Z等）
         """
         self.include_special = include_special
         self.vocab_size = 22 if include_special else 20
-
+    
     def encode(self, sequence: str) -> np.ndarray:
-        """Encode an amino acid sequence."""
+        """编码氨基酸序列"""
         encoded = []
         for aa in sequence.upper():
             if aa in self.AA_TO_ID:
                 encoded.append(self.AA_TO_ID[aa])
             else:
-                # Map unknown characters to X
+                # 未知字符映射到X
                 encoded.append(self.AA_TO_ID.get('X', 20))
         return np.array(encoded, dtype=np.int32)
-
+    
     def decode(self, encoded: np.ndarray) -> str:
-        """Decode to an amino acid sequence."""
+        """解码为氨基酸序列"""
         sequence = []
         for idx in encoded:
             if idx in self.ID_TO_AA:
@@ -92,15 +105,20 @@ class AminoAcidEncoder(SequenceEncoder):
             else:
                 sequence.append('X')
         return ''.join(sequence)
-
+    
     def one_hot_encode(self, sequence: str) -> np.ndarray:
-        """One-hot encode a sequence.
-
-        Args:
-            sequence: The sequence string.
-
-        Returns:
-            Array of shape (seq_len, vocab_size).
+        """
+        One-hot编码
+        
+        Parameters
+        ----------
+        sequence : str
+            序列字符串
+            
+        Returns
+        -------
+        np.ndarray
+            Shape: (seq_len, vocab_size)
         """
         encoded = self.encode(sequence)
         one_hot = np.zeros((len(encoded), self.vocab_size), dtype=np.float32)
@@ -109,31 +127,33 @@ class AminoAcidEncoder(SequenceEncoder):
 
 
 class NucleotideEncoder(SequenceEncoder):
-    """Nucleotide sequence encoder.
-
-    Supports both DNA and RNA.
     """
-
+    核苷酸序列编码器
+    
+    支持DNA和RNA
+    """
+    
     DNA_TO_ID = {
         'A': 0, 'T': 1, 'G': 2, 'C': 3,
-        'N': 4,  # Unknown
+        'N': 4,  # 未知
         '-': 5,  # Gap
     }
-
+    
     RNA_TO_ID = {
         'A': 0, 'U': 1, 'G': 2, 'C': 3,
-        'N': 4,  # Unknown
+        'N': 4,  # 未知
         '-': 5,  # Gap
     }
-
+    
     ID_TO_DNA = {v: k for k, v in DNA_TO_ID.items()}
     ID_TO_RNA = {v: k for k, v in RNA_TO_ID.items()}
-
+    
     def __init__(self, sequence_type: str = "DNA"):
-        """Initialize the encoder.
-
-        Args:
-            sequence_type: Either "DNA" or "RNA".
+        """
+        Parameters
+        ----------
+        sequence_type : str
+            "DNA" 或 "RNA"
         """
         if sequence_type.upper() == "RNA":
             self.to_id = self.RNA_TO_ID
@@ -141,23 +161,23 @@ class NucleotideEncoder(SequenceEncoder):
         else:
             self.to_id = self.DNA_TO_ID
             self.id_to_seq = self.ID_TO_DNA
-
+        
         self.sequence_type = sequence_type.upper()
         self.vocab_size = 6
-
+    
     def encode(self, sequence: str) -> np.ndarray:
-        """Encode a nucleotide sequence."""
+        """编码核苷酸序列"""
         encoded = []
         for nt in sequence.upper():
             if nt in self.to_id:
                 encoded.append(self.to_id[nt])
             else:
-                # Map unknown characters to N
+                # 未知字符映射到N
                 encoded.append(self.to_id.get('N', 4))
         return np.array(encoded, dtype=np.int32)
-
+    
     def decode(self, encoded: np.ndarray) -> str:
-        """Decode to a nucleotide sequence."""
+        """解码为核苷酸序列"""
         sequence = []
         for idx in encoded:
             if idx in self.id_to_seq:
@@ -165,10 +185,11 @@ class NucleotideEncoder(SequenceEncoder):
             else:
                 sequence.append('N')
         return ''.join(sequence)
-
+    
     def one_hot_encode(self, sequence: str) -> np.ndarray:
-        """One-hot encode a sequence."""
+        """One-hot编码"""
         encoded = self.encode(sequence)
         one_hot = np.zeros((len(encoded), self.vocab_size), dtype=np.float32)
         one_hot[np.arange(len(encoded)), encoded] = 1.0
         return one_hot
+
