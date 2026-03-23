@@ -1,8 +1,8 @@
 import torch.nn as nn
-#from .protenixmsa import ProtenixMSAModule
+from .protenixmsa import ProtenixMSAModule
 
 _MSA_REGISTRY = {
-    #"ProtenixMSAModule": ProtenixMSAModule,
+    "ProtenixMSAModule": ProtenixMSAModule,
 }
 
 
