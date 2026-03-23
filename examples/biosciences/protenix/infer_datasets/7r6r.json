@@ -5,7 +5,7 @@
                 "sequence": "MGSSHHHHHHSSGLVPRGSHMSGKIQHKAVVPAPSRIPLTLSEIEDLRRKGFNQTEIAELYGVTRQAVSWHKKTYGGRLTTRQIVQQNWPWDTRKPHDKSKAFQRLRDHGEYMRVGSFRTMSEDKKKRLLSWWKMLRDNDLVLEFDPSIEPYEGMAGGGFRYVPRDISDDDLLIRVNEHTQLTAEGELLWSWPDDIEELLSEP",
                 "count": 1,
                 "msa": {
-                    "precomputed_msa_dir": "/public/home/onescience2025404/panpy/0207_dev/onescience/examples/biosciences/protenix/infer_datasets/7r6r/msa/1",
+                    "precomputed_msa_dir": "./infer_datasets/7r6r/msa/1",
                     "pairing_db": "uniref100"
                 }
             }

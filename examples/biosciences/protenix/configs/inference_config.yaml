@@ -14,7 +14,7 @@ inference:
   need_atom_confidence: false
   sorted_by_ranking_score: true
   input_json_path: "./infer_datasets/7r6r.json"
-  load_checkpoint_path: "/public/onestore/onemodels/Protenix/model_v0.5.0.pt"
+  load_checkpoint_path: "${ONESCIENCE_MODELS_DIR}/model_v0.5.0.pt"
   num_workers: 16
   use_msa: true
 
