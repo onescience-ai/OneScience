@@ -1,6 +1,7 @@
-"""Module for unified structure file parsing.
+"""
+统一的结构文件解析器
 
-Supports mmCIF and PDB formats.
+支持mmCIF和PDB格式
 """
 
 from dataclasses import dataclass
@@ -16,7 +17,7 @@ from onescience.datapipes.biology.common.utils.file_utils import (
 
 @dataclass
 class Atom:
-    """Atom information."""
+    """原子信息"""
     name: str
     element: str
     residue_name: str
@@ -31,25 +32,35 @@ class Atom:
 
 @dataclass
 class Structure:
-    """Unified structure data format.
-
-    Attributes:
-        atoms: List of atoms.
-        chains: List of chain IDs.
-        sequence: Sequence for each chain (chain ID -> sequence).
+    """
+    统一的结构数据格式
+    
+    Attributes
+    ----------
+    atoms : List[Atom]
+        原子列表
+    chains : List[str]
+        链ID列表
+    sequence : Dict[str, str]
+        每个链的序列（链ID -> 序列）
     """
     atoms: List[Atom]
     chains: List[str]
     sequence: Dict[str, str]
     
     def get_atom_positions(self, atom_name: Optional[str] = None) -> np.ndarray:
-        """Get atom coordinates.
-
-        Args:
-            atom_name: If specified, only return coordinates for this atom (e.g., 'CA').
-
-        Returns:
-            Array of coordinates with shape (num_atoms, 3).
+        """
+        获取原子坐标
+        
+        Parameters
+        ----------
+        atom_name : Optional[str]
+            如果指定，只返回该原子的坐标（如'CA'）
+            
+        Returns
+        -------
+        np.ndarray
+            Shape: (num_atoms, 3)
         """
         if atom_name:
             positions = [
@@ -65,13 +76,18 @@ class Structure:
         return np.array(positions, dtype=np.float32)
     
     def get_atom_mask(self, atom_name: Optional[str] = None) -> np.ndarray:
-        """Get atom mask.
-
-        Args:
-            atom_name: If specified, only return mask for this atom.
-
-        Returns:
-            Array of masks with shape (num_atoms,).
+        """
+        获取原子掩码
+        
+        Parameters
+        ----------
+        atom_name : Optional[str]
+            如果指定，只返回该原子的掩码
+            
+        Returns
+        -------
+        np.ndarray
+            Shape: (num_atoms,)
         """
         if atom_name:
             mask = [
@@ -84,22 +100,28 @@ class Structure:
 
 
 class StructureParser:
-    """Unified structure file parser.
-
-    Supported formats:
+    """
+    统一的结构文件解析器
+    
+    支持格式：
     - mmCIF (.cif)
     - PDB (.pdb)
     """
     
     @staticmethod
     def parse_mmcif(cif_string: str) -> Structure:
-        """Parse mmCIF format.
-
-        Args:
-            cif_string: String in mmCIF format.
-
-        Returns:
-            Parsed Structure object.
+        """
+        解析mmCIF格式
+        
+        Parameters
+        ----------
+        cif_string : str
+            mmCIF格式的字符串
+            
+        Returns
+        -------
+        Structure
+            解析后的结构对象
         """
         atoms = []
         chains = []
@@ -120,10 +142,10 @@ class StructureParser:
             elif line.startswith("#") or not line:
                 continue
             elif in_atom_site and not line.startswith("_"):
-                # Parse atom line
+                # 解析原子行
                 parts = line.split()
                 if len(parts) >= 11:
-                    # Standard mmCIF format: group_PDB, id, type_symbol, label_atom_id,
+                    # 标准mmCIF格式：group_PDB, id, type_symbol, label_atom_id, 
                     # label_alt_id, label_comp_id, label_asym_id, label_entity_id,
                     # label_seq_id, Cartn_x, Cartn_y, Cartn_z
                     try:
@@ -135,7 +157,7 @@ class StructureParser:
                         y = float(parts[10])
                         z = float(parts[11]) if len(parts) > 11 else 0.0
                         
-                        # Extract element (inferred from atom name)
+                        # 提取元素（从原子名推断）
                         element = atom_name[0] if atom_name else "C"
                         
                         atom = Atom(
@@ -150,16 +172,16 @@ class StructureParser:
                         )
                         atoms.append(atom)
                         
-                        # Update chain info
+                        # 更新链信息
                         if chain_id not in chains:
                             chains.append(chain_id)
                             sequence[chain_id] = ""
                         
-                        # Update sequence (only record CA atoms)
+                        # 更新序列（只记录CA原子）
                         if atom_name == "CA" and (current_chain != chain_id or current_residue != residue_number):
                             current_chain = chain_id
                             current_residue = residue_number
-                            # Convert three-letter code to one-letter code (simplified)
+                            # 将三字母代码转换为单字母代码（简化版）
                             aa_code = StructureParser._three_to_one(residue_name)
                             sequence[chain_id] += aa_code
                     except (ValueError, IndexError):
@@ -173,13 +195,18 @@ class StructureParser:
     
     @staticmethod
     def parse_pdb(pdb_string: str) -> Structure:
-        """Parse PDB format.
-
-        Args:
-            pdb_string: String in PDB format.
-
-        Returns:
-            Parsed Structure object.
+        """
+        解析PDB格式
+        
+        Parameters
+        ----------
+        pdb_string : str
+            PDB格式的字符串
+            
+        Returns
+        -------
+        Structure
+            解析后的结构对象
         """
         atoms = []
         chains = []
@@ -192,8 +219,8 @@ class StructureParser:
             line = line.strip()
             
             if line.startswith("ATOM") or line.startswith("HETATM"):
-                # Parse ATOM line
-                # Format: ATOM  serial  name  altLoc  resName  chainID  resSeq  iCode  x  y  z  occupancy  tempFactor
+                # 解析ATOM行
+                # 格式：ATOM  serial  name  altLoc  resName  chainID  resSeq  iCode  x  y  z  occupancy  tempFactor
                 try:
                     atom_name = line[12:16].strip()
                     residue_name = line[17:20].strip()
@@ -217,9 +244,9 @@ class StructureParser:
                         except ValueError:
                             pass
                     
-                    # Extract element (inferred from atom name)
+                    # 提取元素（从原子名推断）
                     element = atom_name[0] if atom_name else "C"
-
+                    
                     atom = Atom(
                         name=atom_name,
                         element=element,
@@ -234,16 +261,16 @@ class StructureParser:
                     )
                     atoms.append(atom)
                     
-                    # Update chain info
+                    # 更新链信息
                     if chain_id not in chains:
                         chains.append(chain_id)
                         sequence[chain_id] = ""
                     
-                    # Update sequence (only record CA atoms)
+                    # 更新序列（只记录CA原子）
                     if atom_name == "CA" and (current_chain != chain_id or current_residue != residue_number):
                         current_chain = chain_id
                         current_residue = residue_number
-                        # Convert three-letter code to one-letter code
+                        # 将三字母代码转换为单字母代码
                         aa_code = StructureParser._three_to_one(residue_name)
                         sequence[chain_id] += aa_code
                 except (ValueError, IndexError):
@@ -257,13 +284,18 @@ class StructureParser:
     
     @staticmethod
     def _three_to_one(residue_name: str) -> str:
-        """Convert three-letter amino acid code to one-letter code.
-
-        Args:
-            residue_name: Three-letter code (e.g., 'ALA').
-
-        Returns:
-            One-letter code (e.g., 'A').
+        """
+        将三字母氨基酸代码转换为单字母代码
+        
+        Parameters
+        ----------
+        residue_name : str
+            三字母代码（如'ALA'）
+            
+        Returns
+        -------
+        str
+            单字母代码（如'A'）
         """
         three_to_one_map = {
             'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D',
@@ -276,19 +308,25 @@ class StructureParser:
     
     @staticmethod
     def parse_file(path: Path, format: Optional[str] = None) -> Structure:
-        """Parse structure from file (supports compressed files).
-
-        Args:
-            path: Path to structure file (supports .gz, .bz2, .xz compressed files).
-            format: Format ("mmcif" or "pdb"), if None will auto-detect.
-
-        Returns:
-            Parsed Structure object.
+        """
+        从文件解析结构（支持压缩文件）
+        
+        Parameters
+        ----------
+        path : Path
+            结构文件路径（支持.gz, .bz2, .xz压缩文件）
+        format : Optional[str]
+            格式（"mmcif" 或 "pdb"），如果为None则自动检测
+            
+        Returns
+        -------
+        Structure
+            解析后的结构对象
         """
         with open_file(path, 'r') as f:
             content = f.read()
         
-        # Auto-detect format
+        # 自动检测格式
         if format is None:
             detected_format = detect_file_format(path)
             if detected_format in ['mmcif', 'cif']:

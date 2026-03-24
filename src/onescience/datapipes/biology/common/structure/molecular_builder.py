@@ -1,9 +1,10 @@
-"""General biological molecular structure builder.
+"""
+通用生物分子结构构建器
 
-Integrates core functionality from Protenix json_parser and ccd into a standalone module.
-Supports building atomic-level structures from sequence/chemical descriptions.
+将 Protenix json_parser 和 ccd 的核心功能整合为独立模块
+支持从序列/化学描述构建原子级结构
 
-Dependencies: biotite, numpy, rdkit
+依赖: biotite, numpy, rdkit
 """
 
 import concurrent.futures
@@ -28,7 +29,7 @@ from rdkit.Chem import AllChem
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# Encoding mapping tables
+# 编码映射表
 # =============================================================================
 
 DNA_1TO3 = {
@@ -59,23 +60,24 @@ ENTITY_TYPE_MAP = {
 }
 
 # =============================================================================
-# CCD (Chemical Component Dictionary) utility functions
+# CCD (Chemical Component Dictionary) 工具函数
 # =============================================================================
 
-# Global cache
+# 全局缓存
 _ccd_cif_cache = None
 _ccd_rdkit_mols: Dict[str, Chem.Mol] = {}
 
-# CCD file paths (requires external configuration)
+# CCD文件路径（需要外部配置）
 CCD_COMPONENTS_FILE: Optional[str] = None
 CCD_RDKIT_MOL_FILE: Optional[str] = None
 
 
 def _get_ccd_paths_from_configs() -> Tuple[Optional[str], Optional[str]]:
-    """Attempt to get CCD file paths from configs.
+    """
+    尝试从 configs 获取CCD文件路径
 
     Returns:
-        Tuple of (components_file, rdkit_mol_file) or (None, None).
+        (components_file, rdkit_mol_file) 或 (None, None)
     """
     try:
         from configs.configs_data import data_configs
@@ -90,27 +92,22 @@ def _get_ccd_paths_from_configs() -> Tuple[Optional[str], Optional[str]]:
 
 
 def set_ccd_paths(components_file: str, rdkit_mol_file: str):
-    """Set CCD file paths.
-
-    Args:
-        components_file: Path to the CCD components file.
-        rdkit_mol_file: Path to the RDKit mol file.
-    """
+    """设置CCD文件路径"""
     global CCD_COMPONENTS_FILE, CCD_RDKIT_MOL_FILE
     CCD_COMPONENTS_FILE = components_file
     CCD_RDKIT_MOL_FILE = rdkit_mol_file
 
 
 def set_ccd_paths_from_configs(configs: Dict[str, Any]):
-    """Set CCD file paths from a configuration dictionary.
+    """
+    从配置字典设置CCD文件路径
 
     Args:
-        configs: Configuration dictionary containing data.ccd_components_file
-            and data.ccd_components_rdkit_mol_file.
+        configs: 配置字典，需要包含 data.ccd_components_file 和 data.ccd_components_rdkit_mol_file
     """
     global CCD_COMPONENTS_FILE, CCD_RDKIT_MOL_FILE
 
-    # Support multiple configuration formats
+    # 支持多种配置格式
     if "data" in configs:
         data_cfg = configs["data"]
         CCD_COMPONENTS_FILE = data_cfg.get("ccd_components_file")
@@ -127,14 +124,10 @@ def set_ccd_paths_from_configs(configs: Dict[str, Any]):
 
 @functools.lru_cache(maxsize=1)
 def _load_ccd_cif() -> Optional[pdbx.CIFFile]:
-    """Load CCD components file.
-
-    Returns:
-        CIFFile object or None if loading fails.
-    """
+    """加载CCD组件文件"""
     global CCD_COMPONENTS_FILE
 
-    # If not set, try to get from configs
+    # 如果未设置，尝试从 configs 获取
     if CCD_COMPONENTS_FILE is None:
         components_file, _ = _get_ccd_paths_from_configs()
         if components_file:
@@ -155,14 +148,7 @@ def _load_ccd_cif() -> Optional[pdbx.CIFFile]:
 
 
 def _map_central_to_leaving_groups(component: AtomArray) -> Optional[Dict[str, List[List[str]]]]:
-    """Map central atoms to leaving groups.
-
-    Args:
-        component: AtomArray component to process.
-
-    Returns:
-        Dictionary mapping central atom names to leaving groups, or None.
-    """
+    """映射中心原子到离去基团"""
     comp = component.copy()
     if comp.bonds is None:
         return {}
@@ -188,15 +174,16 @@ def get_component_atom_array(
     keep_leaving_atoms: bool = False,
     keep_hydrogens: bool = False
 ) -> Optional[AtomArray]:
-    """Get atom array for a CCD component.
+    """
+    获取CCD组件的原子数组
 
     Args:
-        ccd_code: CCD code identifier.
-        keep_leaving_atoms: Whether to keep leaving atoms.
-        keep_hydrogens: Whether to keep hydrogen atoms.
+        ccd_code: CCD代码
+        keep_leaving_atoms: 是否保留离去原子
+        keep_hydrogens: 是否保留氢原子
 
     Returns:
-        AtomArray or None if not found.
+        AtomArray或None
     """
     ccd_cif = _load_ccd_cif()
     if ccd_cif is None:
@@ -230,20 +217,13 @@ def get_component_atom_array(
 
 
 def get_component_rdkit_mol(ccd_code: str) -> Optional[Chem.Mol]:
-    """Get RDKit molecule for a CCD component.
-
-    Args:
-        ccd_code: CCD code identifier.
-
-    Returns:
-        RDKit Mol object or None if not found.
-    """
+    """获取CCD组件的RDKit分子"""
     global _ccd_rdkit_mols, CCD_RDKIT_MOL_FILE
 
     if _ccd_rdkit_mols:
         return _ccd_rdkit_mols.get(ccd_code)
 
-    # If not set, try to get from configs
+    # 如果未设置，尝试从 configs 获取
     if CCD_RDKIT_MOL_FILE is None:
         _, rdkit_mol_file = _get_ccd_paths_from_configs()
         if rdkit_mol_file:
@@ -272,13 +252,11 @@ def get_component_rdkit_mol(ccd_code: str) -> Optional[Chem.Mol]:
 
 @functools.lru_cache(maxsize=1024)
 def get_ccd_ref_info(ccd_code: str) -> Optional[Dict[str, Any]]:
-    """Get CCD reference information.
-
-    Args:
-        ccd_code: CCD code identifier.
+    """
+    获取CCD参考信息
 
     Returns:
-        Dictionary with keys: ccd, atom_map, coord, mask, charge, or None.
+        Dict with keys: ccd, atom_map, coord, mask, charge
     """
     mol = get_component_rdkit_mol(ccd_code)
     if mol is None:
@@ -305,14 +283,7 @@ def get_ccd_ref_info(ccd_code: str) -> Optional[Dict[str, Any]]:
 
 @functools.lru_cache(maxsize=1024)
 def get_mol_type(ccd_code: str) -> str:
-    """Get molecule type: protein, dna, rna, or ligand.
-
-    Args:
-        ccd_code: CCD code identifier.
-
-    Returns:
-        Molecule type as a string.
-    """
+    """获取分子类型: protein, dna, rna, ligand"""
     ccd_cif = _load_ccd_cif()
     if ccd_cif is None or ccd_code not in ccd_cif:
         return "ligand"
@@ -332,15 +303,7 @@ def get_mol_type(ccd_code: str) -> str:
 
 
 def _connect_inter_residue(chain: AtomArray, res_starts: np.ndarray) -> struc.BondList:
-    """Connect inter-residue chemical bonds.
-
-    Args:
-        chain: AtomArray representing the molecular chain.
-        res_starts: Array of residue start indices.
-
-    Returns:
-        BondList containing inter-residue bonds.
-    """
+    """连接残基间的化学键"""
     bonds = []
     for i in range(len(res_starts) - 2):
         start_i = res_starts[i]
@@ -367,18 +330,11 @@ def _connect_inter_residue(chain: AtomArray, res_starts: np.ndarray) -> struc.Bo
 
 
 # =============================================================================
-# Core building functions
+# 核心构建函数
 # =============================================================================
 
 def add_reference_features(atom_array: AtomArray) -> AtomArray:
-    """Add reference features to atom array.
-
-    Args:
-        atom_array: Input AtomArray.
-
-    Returns:
-        AtomArray with added reference features (ref_pos, ref_charge, ref_mask).
-    """
+    """添加参考特征到原子数组"""
     atom_count = len(atom_array)
     ref_pos = np.zeros((atom_count, 3), dtype=np.float32)
     ref_charge = np.zeros(atom_count, dtype=int)
@@ -412,18 +368,7 @@ def add_reference_features(atom_array: AtomArray) -> AtomArray:
 
 
 def find_range_by_index(starts: np.ndarray, atom_index: int) -> Tuple[int, int]:
-    """Find residue range by atom index.
-
-    Args:
-        starts: Array of residue start indices.
-        atom_index: Target atom index.
-
-    Returns:
-        Tuple of (start, stop) indices for the residue.
-
-    Raises:
-        ValueError: If atom_index is not found.
-    """
+    """根据原子索引查找范围"""
     for start, stop in zip(starts[:-1], starts[1:]):
         if start <= atom_index < stop:
             return start, stop
@@ -431,15 +376,7 @@ def find_range_by_index(starts: np.ndarray, atom_index: int) -> Tuple[int, int]:
 
 
 def remove_leaving_atoms(atom_array: AtomArray, bond_count: Dict[int, int]) -> AtomArray:
-    """Remove leaving atoms based on bond count.
-
-    Args:
-        atom_array: Input AtomArray.
-        bond_count: Dictionary mapping atom indices to bond counts.
-
-    Returns:
-        AtomArray with leaving atoms removed.
-    """
+    """根据化学键计数移除离去原子"""
     remove_indices = []
     res_starts = struc.get_residue_starts(atom_array, add_exclusive_stop=True)
 
@@ -478,14 +415,7 @@ def remove_leaving_atoms(atom_array: AtomArray, bond_count: Dict[int, int]) -> A
 
 
 def _remove_non_std_ccd_leaving_atoms(atom_array: AtomArray) -> AtomArray:
-    """Remove non-standard CCD leaving atoms.
-
-    Args:
-        atom_array: Input AtomArray.
-
-    Returns:
-        AtomArray with non-standard leaving atoms removed.
-    """
+    """移除非标准CCD离去原子"""
     if len(atom_array) == 0 or atom_array.res_id[-1] == 0:
         return atom_array
 
@@ -524,14 +454,7 @@ def _remove_non_std_ccd_leaving_atoms(atom_array: AtomArray) -> AtomArray:
 
 
 def _add_bonds_to_terminal_residues(atom_array: AtomArray) -> AtomArray:
-    """Add bonds to terminal residues (ACE, NME, etc.).
-
-    Args:
-        atom_array: Input AtomArray.
-
-    Returns:
-        AtomArray with terminal residue bonds added.
-    """
+    """添加末端残基的化学键（ACE, NME等）"""
     if atom_array.res_name[0] == "ACE":
         term_res_idx = atom_array.res_id[0]
         next_res_idx = term_res_idx + 1
@@ -552,14 +475,7 @@ def _add_bonds_to_terminal_residues(atom_array: AtomArray) -> AtomArray:
 
 
 def _build_polymer_atom_array(ccd_seqs: List[str]) -> AtomArray:
-    """Build polymer atom array from CCD code sequence.
-
-    Args:
-        ccd_seqs: List of CCD codes for the polymer sequence.
-
-    Returns:
-        AtomArray representing the polymer.
-    """
+    """从CCD编码序列构建聚合物原子数组"""
     chain = struc.AtomArray(0)
     for res_id, res_name in enumerate(ccd_seqs):
         residue = get_component_atom_array(res_name, keep_leaving_atoms=True, keep_hydrogens=False)
@@ -595,17 +511,7 @@ def _build_polymer_atom_array(ccd_seqs: List[str]) -> AtomArray:
 
 
 def build_polymer(entity_info: Dict[str, Any]) -> Dict[str, Any]:
-    """Build polymer structure.
-
-    Args:
-        entity_info: Dictionary containing polymer type and sequence info.
-
-    Returns:
-        Dictionary with atom_array key.
-
-    Raises:
-        ValueError: If polymer type is unsupported.
-    """
+    """构建聚合物"""
     poly_type, info = list(entity_info.items())[0]
 
     if poly_type == "proteinChain":
@@ -648,15 +554,7 @@ def build_polymer(entity_info: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def rdkit_mol_to_atom_array(mol: Chem.Mol, removeHs: bool = True) -> AtomArray:
-    """Convert RDKit molecule to AtomArray.
-
-    Args:
-        mol: RDKit Mol object.
-        removeHs: Whether to remove hydrogen atoms.
-
-    Returns:
-        AtomArray representation of the molecule.
-    """
+    """将RDKit分子转换为AtomArray"""
     atom_count = mol.GetNumAtoms()
     atom_array = AtomArray(atom_count)
     atom_array.hetero[:] = True
@@ -690,14 +588,7 @@ def rdkit_mol_to_atom_array(mol: Chem.Mol, removeHs: bool = True) -> AtomArray:
 
 
 def rdkit_mol_to_atom_info(mol: Chem.Mol) -> Dict[str, Any]:
-    """Convert RDKit molecule to atom information dictionary.
-
-    Args:
-        mol: RDKit Mol object.
-
-    Returns:
-        Dictionary containing atom_map_to_atom_name and atom_array.
-    """
+    """将RDKit分子转换为原子信息字典"""
     atom_map_to_atom_name = {}
     atom_idx_to_atom_name = {}
 
@@ -721,17 +612,7 @@ def rdkit_mol_to_atom_info(mol: Chem.Mol) -> Dict[str, Any]:
 
 
 def lig_file_to_atom_info(lig_file_path: str) -> Dict[str, Any]:
-    """Read atom information from ligand file.
-
-    Args:
-        lig_file_path: Path to the ligand file.
-
-    Returns:
-        Dictionary containing atom information.
-
-    Raises:
-        ValueError: If file format is unsupported or loading fails.
-    """
+    """从配体文件读取原子信息"""
     path = str(lig_file_path)
 
     if path.endswith(".mol"):
@@ -756,18 +637,7 @@ def lig_file_to_atom_info(lig_file_path: str) -> Dict[str, Any]:
 
 
 def smiles_to_atom_info(smiles: str) -> Dict[str, Any]:
-    """Build atom information from SMILES string.
-
-    Args:
-        smiles: SMILES string representation of molecule.
-
-    Returns:
-        Dictionary containing atom information.
-
-    Raises:
-        ValueError: If SMILES is invalid or conformer generation fails.
-        TimeoutError: If conformer generation times out.
-    """
+    """从SMILES字符串构建原子信息"""
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError(f"Invalid SMILES: {smiles}")
@@ -791,17 +661,7 @@ def smiles_to_atom_info(smiles: str) -> Dict[str, Any]:
 
 
 def build_ligand(entity_info: Dict[str, Any]) -> Dict[str, Any]:
-    """Build ligand or ion structure.
-
-    Args:
-        entity_info: Dictionary containing ligand or ion information.
-
-    Returns:
-        Dictionary containing atom_array.
-
-    Raises:
-        ValueError: If entity must have 'ion' or 'ligand' key.
-    """
+    """构建配体或离子"""
     if info := entity_info.get("ion"):
         ccd_code = [info.get("ion", "")]
     elif info := entity_info.get("ligand"):
@@ -843,17 +703,7 @@ def build_ligand(entity_info: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def add_entity_atom_array(single_job_dict: Dict[str, Any]) -> Dict[str, Any]:
-    """Add atom_array to each entity in the job dictionary.
-
-    Args:
-        single_job_dict: Job dictionary containing sequences.
-
-    Returns:
-        Updated job dictionary with atom_array added to each entity.
-
-    Raises:
-        ValueError: If entity type is unsupported or too many SMILES ligands.
-    """
+    """为每个实体添加atom_array"""
     single_job_dict = copy.deepcopy(single_job_dict)
     sequences = single_job_dict.get("sequences", [])
     smiles_ligand_count = 0
@@ -884,15 +734,11 @@ def add_entity_atom_array(single_job_dict: Dict[str, Any]) -> Dict[str, Any]:
 
 
 # =============================================================================
-# MolecularBuilder class (unified interface)
+# MolecularBuilder 类（统一接口）
 # =============================================================================
 
 class MolecularBuilder:
-    """General biological molecular structure builder.
-
-    Provides a unified interface for building molecular structures from
-    various input formats including sequences, SMILES, and CCD codes.
-    """
+    """通用生物分子结构构建器"""
 
     PROTEIN_1TO3 = PROTEIN_1TO3
     DNA_1TO3 = DNA_1TO3
@@ -901,35 +747,24 @@ class MolecularBuilder:
 
     @classmethod
     def set_ccd_paths(cls, components_file: str, rdkit_mol_file: str):
-        """Set CCD file paths.
-
-        Args:
-            components_file: Path to the CCD components file.
-            rdkit_mol_file: Path to the RDKit mol file.
-        """
+        """设置CCD文件路径"""
         set_ccd_paths(components_file, rdkit_mol_file)
 
     @classmethod
     def set_ccd_paths_from_configs(cls, configs: Dict[str, Any]):
-        """Set CCD file paths from a configuration dictionary.
+        """
+        从配置字典设置CCD文件路径
 
         Args:
-            configs: Configuration dictionary containing either:
-                - data.ccd_components_file or ccd_components_file
-                - data.ccd_components_rdkit_mol_file or ccd_components_rdkit_mol_file
+            configs: 配置字典，需要包含:
+                - data.ccd_components_file 或 ccd_components_file
+                - data.ccd_components_rdkit_mol_file 或 ccd_components_rdkit_mol_file
         """
         set_ccd_paths_from_configs(configs)
 
     @classmethod
     def build_from_json(cls, json_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Build complete molecular structure from JSON description.
-
-        Args:
-            json_data: JSON dictionary containing molecular description.
-
-        Returns:
-            Dictionary with built molecular structure.
-        """
+        """从JSON描述构建完整分子结构"""
         return add_entity_atom_array(copy.deepcopy(json_data))
 
     @classmethod
@@ -939,16 +774,7 @@ class MolecularBuilder:
         polymer_type: str,
         modifications: Optional[List[Dict]] = None,
     ) -> AtomArray:
-        """Build polymer structure.
-
-        Args:
-            sequence: Polymer sequence string.
-            polymer_type: Type of polymer (proteinChain, dnaSequence, rnaSequence).
-            modifications: Optional list of modification dictionaries.
-
-        Returns:
-            AtomArray representing the polymer.
-        """
+        """构建聚合物"""
         entity_info = {polymer_type: {"sequence": sequence, "count": 1}}
         if modifications:
             if polymer_type == "proteinChain":
@@ -969,41 +795,19 @@ class MolecularBuilder:
 
     @classmethod
     def build_ligand(cls, ligand_id: str, ligand_type: str = "ligand") -> AtomArray:
-        """Build ligand or ion structure.
-
-        Args:
-            ligand_id: Identifier for the ligand.
-            ligand_type: Type of ligand ("ligand" or "ion").
-
-        Returns:
-            AtomArray representing the ligand.
-        """
+        """构建配体或离子"""
         entity_info = {ligand_type: {ligand_type: ligand_id, "count": 1}}
         result = globals()["build_ligand"](entity_info)
         return result["atom_array"]
 
     @classmethod
     def get_entity_type_mapping(cls, entity_type: str) -> str:
-        """Get standard mapping for entity type.
-
-        Args:
-            entity_type: Entity type string.
-
-        Returns:
-            Standardized entity type mapping.
-        """
+        """获取实体类型的标准映射"""
         return ENTITY_TYPE_MAP.get(entity_type, "unknown")
 
     @classmethod
     def get_polymer_sequences(cls, json_data: Dict[str, Any]) -> Dict[str, List[str]]:
-        """Extract all polymer sequences from JSON.
-
-        Args:
-            json_data: JSON dictionary containing sequences.
-
-        Returns:
-            Dictionary with categorized polymer sequences.
-        """
+        """从JSON提取所有聚合物序列"""
         sequences = json_data.get("sequences", [])
         result = {"protein": [], "dna": [], "rna": [], "ligand": [], "ion": []}
 
@@ -1024,15 +828,7 @@ class MolecularBuilder:
 
     @classmethod
     def validate_sequence(cls, sequence: str, seq_type: str) -> bool:
-        """Validate if sequence is valid.
-
-        Args:
-            sequence: Sequence string to validate.
-            seq_type: Type of sequence (proteinChain, dnaSequence, rnaSequence).
-
-        Returns:
-            True if sequence is valid, False otherwise.
-        """
+        """验证序列是否有效"""
         if seq_type == "proteinChain":
             valid_chars = set(PROTEIN_1TO3.keys())
         elif seq_type == "dnaSequence":
@@ -1045,14 +841,7 @@ class MolecularBuilder:
 
     @classmethod
     def estimate_complexity(cls, json_data: Dict[str, Any]) -> Dict[str, int]:
-        """Estimate molecular complexity.
-
-        Args:
-            json_data: JSON dictionary containing molecular description.
-
-        Returns:
-            Dictionary with complexity statistics.
-        """
+        """估算分子复杂度"""
         sequences = json_data.get("sequences", [])
         stats = {
             "total_entities": len(sequences),

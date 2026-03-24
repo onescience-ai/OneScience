@@ -1,243 +1,308 @@
-"""Example data structures and conversion utilities for biological feature processing.
+"""
+生物学特征处理模块使用示例
 
-This module provides standardized example formats for biological data,
-including support for NumPy and PyTorch formats, with conversion utilities
-between different representations.
+展示如何使用新实现的特征处理模块
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
-import torch
+
+# ==============================================================================
+# 示例1: 基本序列特征提取
+# ==============================================================================
+
+def example_sequence_features():
+    """序列特征提取示例"""
+    from onescience.datapipes.biology.common.features import (
+        SequenceFeatureExtractor,
+        make_sequence_features,
+    )
+    
+    # 方法1: 使用特征提取器类
+    extractor = SequenceFeatureExtractor(sequence_type="protein")
+    sequence = "ACDEFGHIKLMNPQRSTVWY"
+    features = extractor.extract(sequence)
+    
+    print("序列特征:")
+    for key, value in features.items():
+        print(f"  {key}: {value.shape if hasattr(value, 'shape') else value}")
+    
+    # 方法2: 使用函数直接提取
+    features = make_sequence_features(sequence, sequence_type="protein")
+    
+    return features
 
 
-class NumpyExample(Dict[str, np.ndarray]):
-    """Dictionary-based container for biological data in NumPy format.
+# ==============================================================================
+# 示例2: MSA特征提取
+# ==============================================================================
 
-    This class extends Dict[str, np.ndarray] to provide a type-safe container
-    for biological sequence and structure data. It is used as an intermediate
-    format during feature extraction pipelines.
-
-    Example:
-        >>> example = NumpyExample()
-        >>> example['sequence'] = np.array([1, 2, 3, 4])
-        >>> example['coords'] = np.random.randn(10, 3)
-    """
-
-    def __init__(self, *args, **kwargs):
-        """Initialize a NumpyExample instance."""
-        super().__init__(*args, **kwargs)
-
-    def to_torch(self, device: Optional[str] = None) -> 'TorchExample':
-        """Convert NumPy arrays to PyTorch tensors.
-
-        Args:
-            device: Target device for tensors (e.g., 'cuda', 'cpu').
-                If None, uses default device.
-
-        Returns:
-            TorchExample containing the same data as PyTorch tensors.
-        """
-        torch_dict = {}
-        for key, value in self.items():
-            if isinstance(value, np.ndarray):
-                if value.dtype in [np.int64, np.int32, np.int8, np.uint8]:
-                    torch_dict[key] = torch.from_numpy(value).long()
-                elif value.dtype in [np.float64, np.float32]:
-                    torch_dict[key] = torch.from_numpy(value).float()
-                elif value.dtype == np.bool_:
-                    torch_dict[key] = torch.from_numpy(value).bool()
-                else:
-                    torch_dict[key] = torch.from_numpy(value)
-
-                if device is not None:
-                    torch_dict[key] = torch_dict[key].to(device)
-            else:
-                torch_dict[key] = value
-
-        return TorchExample(torch_dict)
-
-
-class TorchExample(Dict[str, torch.Tensor]):
-    """Dictionary-based container for biological data in PyTorch format.
-
-    This class extends Dict[str, torch.Tensor] to provide a type-safe container
-    for biological sequence and structure data in PyTorch tensor format.
-    It is the final output format for model input preparation.
-
-    Example:
-        >>> example = TorchExample()
-        >>> example['sequence'] = torch.tensor([1, 2, 3, 4])
-        >>> example['coords'] = torch.randn(10, 3)
-    """
-
-    def __init__(self, *args, **kwargs):
-        """Initialize a TorchExample instance."""
-        super().__init__(*args, **kwargs)
-
-    def to_numpy(self) -> NumpyExample:
-        """Convert PyTorch tensors to NumPy arrays.
-
-        Returns:
-            NumpyExample containing the same data as NumPy arrays.
-        """
-        numpy_dict = {}
-        for key, value in self.items():
-            if isinstance(value, torch.Tensor):
-                numpy_dict[key] = value.cpu().numpy()
-            else:
-                numpy_dict[key] = value
-
-        return NumpyExample(numpy_dict)
-
-    def to_device(self, device: str) -> 'TorchExample':
-        """Move all tensors to specified device.
-
-        Args:
-            device: Target device (e.g., 'cuda', 'cpu').
-
-        Returns:
-            New TorchExample with tensors on specified device.
-        """
-        return TorchExample({
-            k: v.to(device) if isinstance(v, torch.Tensor) else v
-            for k, v in self.items()
-        })
+def example_msa_features():
+    """MSA特征提取示例"""
+    from onescience.datapipes.biology.common.features import (
+        MSAFeatureExtractor,
+        make_msa_features,
+    )
+    
+    # 示例MSA数据
+    msa_sequences = [
+        "ACDEFGHIKLMNPQRSTVWY",  # 主序列
+        "ACD-FGHIKLMNPQRSTVWY",  # 有gap的序列
+        "ACDEFGHIKLMN-QRSTVWY",
+        "ACDEFGH-KLMNPQRSTVWY",
+    ]
+    
+    deletion_matrix = [
+        [0] * 20,
+        [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ]
+    
+    # 方法1: 使用特征提取器类
+    extractor = MSAFeatureExtractor(max_seqs=512)
+    msa_data = {
+        "sequences": msa_sequences,
+        "deletion_matrix": deletion_matrix,
+    }
+    features = extractor.extract(msa_data)
+    
+    print("\nMSA特征:")
+    for key, value in features.items():
+        print(f"  {key}: {value.shape if hasattr(value, 'shape') else value}")
+    
+    # 方法2: 使用函数直接提取
+    features = make_msa_features(
+        sequences=msa_sequences,
+        deletion_matrix=deletion_matrix,
+        max_seqs=512,
+    )
+    
+    return features
 
 
-def create_example_from_dict(
-    data: Dict[str, Any],
-    format: str = 'numpy'
-) -> Union[NumpyExample, TorchExample]:
-    """Create an example from a dictionary, converting to specified format.
+# ==============================================================================
+# 示例3: 结构特征提取
+# ==============================================================================
 
-    Args:
-        data: Dictionary containing biological data.
-        format: Target format ('numpy' or 'torch').
-
-    Returns:
-        NumpyExample or TorchExample containing the converted data.
-
-    Raises:
-        ValueError: If format is not 'numpy' or 'torch'.
-    """
-    if format == 'numpy':
-        numpy_dict = {}
-        for key, value in data.items():
-            if isinstance(value, torch.Tensor):
-                numpy_dict[key] = value.cpu().numpy()
-            elif isinstance(value, np.ndarray):
-                numpy_dict[key] = value
-            else:
-                numpy_dict[key] = np.array(value)
-        return NumpyExample(numpy_dict)
-
-    elif format == 'torch':
-        torch_dict = {}
-        for key, value in data.items():
-            if isinstance(value, np.ndarray):
-                torch_dict[key] = torch.from_numpy(value)
-            elif isinstance(value, torch.Tensor):
-                torch_dict[key] = value
-            else:
-                torch_dict[key] = torch.tensor(value)
-        return TorchExample(torch_dict)
-
-    else:
-        raise ValueError(f"Unknown format: {format}. Use 'numpy' or 'torch'.")
-
-
-def merge_examples(
-    examples: List[Union[NumpyExample, TorchExample]],
-    axis: int = 0
-) -> Union[NumpyExample, TorchExample]:
-    """Merge multiple examples by concatenating along specified axis.
-
-    Args:
-        examples: List of examples to merge.
-        axis: Axis along which to concatenate.
-
-    Returns:
-        Merged example containing concatenated data.
-
-    Raises:
-        ValueError: If examples list is empty or formats are inconsistent.
-    """
-    if not examples:
-        raise ValueError("Cannot merge empty list of examples")
-
-    is_torch = isinstance(examples[0], TorchExample)
-
-    merged = {}
-    keys = examples[0].keys()
-
-    for key in keys:
-        values = [ex[key] for ex in examples]
-        if is_torch:
-            merged[key] = torch.cat(values, dim=axis)
-        else:
-            merged[key] = np.concatenate(values, axis=axis)
-
-    if is_torch:
-        return TorchExample(merged)
-    else:
-        return NumpyExample(merged)
+def example_structure_features():
+    """结构特征提取示例"""
+    from onescience.datapipes.biology.common.features import (
+        StructureFeatureExtractor,
+        make_structure_features,
+    )
+    
+    # 示例结构数据 (N_res, N_atoms, 3)
+    num_res = 100
+    num_atoms = 37  # atom37表示
+    positions = np.random.randn(num_res, num_atoms, 3).astype(np.float32)
+    mask = np.random.randint(0, 2, size=(num_res, num_atoms)).astype(np.float32)
+    
+    # 方法1: 使用特征提取器类
+    extractor = StructureFeatureExtractor(
+        atom_types=['CA', 'C', 'N', 'O', 'CB'],
+        compute_frames=True,
+    )
+    struct_data = {
+        "positions": positions,
+        "mask": mask,
+    }
+    features = extractor.extract(struct_data)
+    
+    print("\n结构特征:")
+    for key, value in features.items():
+        print(f"  {key}: {value.shape if hasattr(value, 'shape') else value}")
+    
+    # 方法2: 使用函数直接提取
+    features = make_structure_features(
+        positions=positions,
+        mask=mask,
+        compute_frames=True,
+    )
+    
+    return features
 
 
-def batch_examples(
-    examples: List[Union[NumpyExample, TorchExample]],
-    padding_values: Optional[Dict[str, Any]] = None
-) -> Union[NumpyExample, TorchExample]:
-    """Batch multiple examples with padding to create a batch.
+# ==============================================================================
+# 示例4: 使用特征处理管道
+# ==============================================================================
 
-    Args:
-        examples: List of examples to batch.
-        padding_values: Dictionary mapping feature names to padding values.
-            If None, uses 0 for all features.
+def example_feature_pipeline():
+    """特征处理管道示例"""
+    from onescience.datapipes.biology.common.features import (
+        BiologyFeaturePipeline,
+        UnifiedFeaturePipeline,
+    )
+    
+    # 方法1: 使用基础管道
+    pipeline = BiologyFeaturePipeline(
+        use_msa=True,
+        use_structure=True,
+        max_msa_seqs=512,
+        crop_size=None,
+    )
+    
+    # 原始特征数据
+    raw_features = {
+        "sequence": "ACDEFGHIKLMNPQRSTVWY",
+        "msa_sequences": [
+            "ACDEFGHIKLMNPQRSTVWY",
+            "ACD-FGHIKLMNPQRSTVWY",
+        ],
+        "positions": np.random.randn(20, 37, 3).astype(np.float32),
+    }
+    
+    # 分别处理各个部分
+    seq_features = pipeline.process_sequence(raw_features["sequence"])
+    msa_features = pipeline.process_msa(raw_features["msa_sequences"])
+    struct_features = pipeline.process_structure(raw_features["positions"])
+    
+    # 合并特征
+    all_features = {**seq_features, **msa_features, **struct_features}
+    processed_features = pipeline.process(all_features)
+    
+    print("\n管道处理后的特征:")
+    for key, value in processed_features.items():
+        if hasattr(value, 'shape'):
+            print(f"  {key}: {value.shape}")
+    
+    # 方法2: 使用统一管道（支持模型特定处理）
+    unified_pipeline = UnifiedFeaturePipeline(
+        model_type="generic",  # 或 "protenix", "openfold"
+        config={
+            "use_msa": True,
+            "use_structure": True,
+            "max_msa_seqs": 512,
+        }
+    )
+    
+    processed = unified_pipeline.process(raw_features)
+    
+    return processed_features
 
-    Returns:
-        Batched example with padded sequences.
-    """
-    if not examples:
-        raise ValueError("Cannot batch empty list of examples")
 
-    is_torch = isinstance(examples[0], TorchExample)
-    keys = examples[0].keys()
+# ==============================================================================
+# 示例5: 使用工具函数
+# ==============================================================================
 
-    if padding_values is None:
-        padding_values = {}
+def example_utility_functions():
+    """特征工具函数示例"""
+    from onescience.datapipes.biology.common.features import (
+        encode_to_onehot,
+        pad_features,
+        crop_features,
+        merge_features,
+        cast_to_64bit_ints,
+        make_one_hot,
+    )
+    
+    # 示例特征
+    features = {
+        "aatype": np.array([0, 1, 2, 3, 4], dtype=np.int32),
+        "msa": np.random.randint(0, 22, size=(10, 20)).astype(np.int32),
+        "positions": np.random.randn(20, 37, 3).astype(np.float32),
+    }
+    
+    # 1. One-hot编码
+    aatype_onehot = make_onehot(features["aatype"], num_classes=22)
+    print(f"\nOne-hot编码: {aatype_onehot.shape}")
+    
+    # 2. 数据类型转换
+    features_64 = cast_to_64bit_ints(features)
+    print(f"int32转换为int64: {features_64['aatype'].dtype}")
+    
+    # 3. 特征填充
+    target_shapes = {
+        "aatype": (100,),
+        "msa": (10, 100),
+    }
+    padded = pad_features(features, target_shapes)
+    print(f"填充后的形状: {padded['aatype'].shape}")
+    
+    # 4. 特征裁剪
+    cropped = crop_features(features, crop_start=5, crop_size=10, spatial_dim=0)
+    print(f"裁剪后的形状: {cropped['aatype'].shape}")
+    
+    # 5. 合并特征
+    features2 = {
+        "extra_feature": np.random.randn(20).astype(np.float32),
+    }
+    merged = merge_features([features, features2])
+    print(f"合并后的键: {list(merged.keys())}")
+    
+    return merged
 
-    batched = {}
 
-    for key in keys:
-        values = [ex[key] for ex in examples]
-        pad_value = padding_values.get(key, 0)
+# ==============================================================================
+# 示例6: 完整工作流程
+# ==============================================================================
 
-        if is_torch:
-            max_len = max(v.shape[0] for v in values)
-            padded = []
-            for v in values:
-                if v.shape[0] < max_len:
-                    pad_shape = (max_len - v.shape[0],) + v.shape[1:]
-                    pad_tensor = torch.full(pad_shape, pad_value, dtype=v.dtype, device=v.device)
-                    v = torch.cat([v, pad_tensor], dim=0)
-                padded.append(v)
-            batched[key] = torch.stack(padded)
-        else:
-            max_len = max(v.shape[0] for v in values)
-            padded = []
-            for v in values:
-                if v.shape[0] < max_len:
-                    pad_shape = (max_len - v.shape[0],) + v.shape[1:]
-                    pad_array = np.full(pad_shape, pad_value, dtype=v.dtype)
-                    v = np.concatenate([v, pad_array], axis=0)
-                padded.append(v)
-            batched[key] = np.stack(padded)
+def example_complete_workflow():
+    """完整工作流程示例"""
+    from onescience.datapipes.biology.common.features import (
+        UnifiedFeaturePipeline,
+        compute_feature_statistics,
+        validate_features,
+    )
+    
+    # 创建处理管道
+    pipeline = UnifiedFeaturePipeline(
+        model_type="generic",
+        config={
+            "use_msa": True,
+            "use_structure": True,
+            "max_msa_seqs": 512,
+            "crop_size": None,
+        }
+    )
+    
+    # 原始数据（模拟从文件读取）
+    raw_data = {
+        "sequence": "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGLYTHMKALRPDEDRLSPLHSVYVDQWDWERVMGDGERQFSTLKSTVEAIWAGIKATEAAVSEEFGLAPFLPDQIHFVHSQELLSRYPDLDAKGRERAIAKDLGAVFLVGIGGKLSDGHRHDVRAPDYDDWSTPSELGHAGLNGDILVWNPVLEDAFELSSMGIRVDADTLKHQLALTGDEDRLELEWHQALLRGEMPQTIGGGIGQSRLTMLLLQLPHIGQVQAGVWPAAVRESVPSLL",
+        "sequence_type": "protein",
+        "msa_sequences": [
+            # 这里应该是从MSA文件读取的序列
+            "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGLYTHMKALRPDEDRLSPLHSVYVDQWDWERVMGDGERQFSTLKSTVEAIWAGIKATEAAVSEEFGLAPFLPDQIHFVHSQELLSRYPDLDAKGRERAIAKDLGAVFLVGIGGKLSDGHRHDVRAPDYDDWSTPSELGHAGLNGDILVWNPVLEDAFELSSMGIRVDADTLKHQLALTGDEDRLELEWHQALLRGEMPQTIGGGIGQSRLTMLLLQLPHIGQVQAGVWPAAVRESVPSLL",
+            "MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGLYTHMKALRPDEDRLSPLHSVYVDQWDWERVMGDGERQFSTLKSTVEAIWAGIKATEAAVSEEFGLAPFLPDQIHFVHSQELLSRYPDLDAKGRERAIAKDLGAVFLVGIGGKLSDGHRHDVRAPDYDDWSTPSELGHAGLNGDILVWNPVLEDAFELSSMGIRVDADTLKHQLALTGDEDRLELEWHQALLRGEMPQTIGGGIGQSRLTMLLLQLPHIGQVQAGVWPAAVRESVPSLL",
+        ],
+        "positions": np.random.randn(200, 37, 3).astype(np.float32),  # 模拟结构坐标
+    }
+    
+    # 处理特征
+    features = pipeline.process(raw_data)
+    
+    # 验证特征
+    required_keys = ["aatype", "seq_length"]
+    is_valid, missing = validate_features(features, required_keys)
+    print(f"\n特征验证: {'通过' if is_valid else '失败'}")
+    if not is_valid:
+        print(f"缺失的键: {missing}")
+    
+    # 计算统计信息
+    stats = compute_feature_statistics(features)
+    print("\n特征统计:")
+    for key, stat in list(stats.items())[:5]:  # 只显示前5个
+        print(f"  {key}: {stat}")
+    
+    return features
 
-    if is_torch:
-        return TorchExample(batched)
-    else:
-        return NumpyExample(batched)
 
+# ==============================================================================
+# 运行所有示例
+# ==============================================================================
 
-# Type alias for example data
-ExampleData = Union[NumpyExample, TorchExample]
+if __name__ == "__main__":
+    print("=" * 70)
+    print("生物学特征处理模块使用示例")
+    print("=" * 70)
+    
+    # 运行示例
+    example_sequence_features()
+    example_msa_features()
+    example_structure_features()
+    example_feature_pipeline()
+    example_utility_functions()
+    example_complete_workflow()
+    
+    print("\n" + "=" * 70)
+    print("所有示例运行完成！")
+    print("=" * 70)

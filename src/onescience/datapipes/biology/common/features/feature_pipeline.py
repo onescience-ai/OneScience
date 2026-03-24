@@ -1,351 +1,524 @@
-"""Feature processing pipelines for biological data.
+"""
+特征处理管道
 
-This module provides high-level pipelines for processing biological data,
-including support for multiple model formats (AlphaFold, Protenix, etc.).
+统一的生物学特征处理管道，参考Protenix和OpenFold实现
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Union
-
+from typing import Dict, Any, Optional, List
 import numpy as np
-import torch
 
 from onescience.datapipes.biology.common.features.feature_base import (
-    BaseFeatureExtractor,
     FeatureDict,
     FeaturePipeline,
-    TensorDict,
 )
-from onescience.datapipes.biology.common.features.examples import (
-    NumpyExample,
-    TorchExample,
+from onescience.datapipes.biology.common.features.sequence_features import (
+    make_sequence_features,
+    create_target_feat,
+)
+from onescience.datapipes.biology.common.features.msa_features import (
+    make_msa_features,
+    create_msa_feat,
+    sample_msa,
+)
+from onescience.datapipes.biology.common.features.structure_features import (
+    make_structure_features,
+    make_pseudo_beta,
+)
+from onescience.datapipes.biology.common.features.feature_utils import (
+    cast_to_64bit_ints,
+    squeeze_features,
+    pad_features,
+    crop_features,
+    merge_features,
 )
 
 
-class BiologyFeaturePipeline(FeaturePipeline[TensorDict]):
-    """Feature pipeline for general biological data processing.
-
-    This pipeline processes raw biological data through a series of feature
-    extractors and outputs PyTorch tensors ready for model input.
-
-    Example:
-        >>> pipeline = BiologyFeaturePipeline(config={
-        ...     'max_seq_length': 512,
-        ...     'use_msa': True
-        ... })
-        >>> pipeline.add_extractor(SequenceFeatureExtractor())
-        >>> pipeline.add_extractor(StructureFeatureExtractor())
-        >>> features = pipeline.process(raw_data)
+class BiologyFeaturePipeline(FeaturePipeline):
     """
-
-    def __init__(self, config: Optional[FeatureDict] = None):
-        """Initialize the biology feature pipeline.
-
-        Args:
-            config: Configuration dictionary containing pipeline settings.
-                Common keys include 'max_seq_length', 'use_msa', 'use_templates'.
-        """
-        super().__init__(config)
-        self.max_seq_length = self.config.get('max_seq_length', 1024)
-        self.use_msa = self.config.get('use_msa', True)
-        self.use_templates = self.config.get('use_templates', False)
-
-    def process(self, data: FeatureDict) -> TensorDict:
-        """Process raw biological data through the pipeline.
-
-        Args:
-            data: Raw input data dictionary containing sequences,
-                structures, MSAs, etc.
-
-        Returns:
-            Dictionary of PyTorch tensors ready for model input.
-        """
-        features = {}
-
-        # Apply all registered extractors
-        for extractor in self.extractors:
-            features.update(extractor.extract(data))
-
-        # Convert to tensors
-        tensor_features = {}
-        for key, value in features.items():
-            if isinstance(value, np.ndarray):
-                if value.dtype in [np.int64, np.int32, np.int8, np.uint8]:
-                    tensor_features[key] = torch.from_numpy(value).long()
-                elif value.dtype in [np.float64, np.float32]:
-                    tensor_features[key] = torch.from_numpy(value).float()
-                elif value.dtype == np.bool_:
-                    tensor_features[key] = torch.from_numpy(value).bool()
-                else:
-                    tensor_features[key] = torch.from_numpy(value)
-            elif isinstance(value, torch.Tensor):
-                tensor_features[key] = value
-            else:
-                tensor_features[key] = value
-
-        return tensor_features
-
-    def process_batch(
+    生物学特征处理管道
+    
+    统一处理序列、MSA、结构等特征，支持多种模型输入格式
+    """
+    
+    def __init__(
         self,
-        batch_data: List[FeatureDict],
-        padding: bool = True
-    ) -> TensorDict:
-        """Process a batch of data samples.
-
-        Args:
-            batch_data: List of raw data dictionaries.
-            padding: Whether to pad sequences to the same length.
-
-        Returns:
-            Batched tensor dictionary with padded sequences.
+        config: Dict[str, Any] = None,
+        use_msa: bool = True,
+        use_structure: bool = False,
+        max_msa_seqs: Optional[int] = None,
+        crop_size: Optional[int] = None,
+    ):
         """
-        # Process each sample individually
-        processed = [self.process(data) for data in batch_data]
-
-        if not padding:
-            # Stack without padding (assumes same length)
-            batched = {}
-            for key in processed[0].keys():
-                values = [p[key] for p in processed]
-                if isinstance(values[0], torch.Tensor):
-                    batched[key] = torch.stack(values)
-                else:
-                    batched[key] = values
-            return batched
-
-        # Pad to max length in batch
-        max_len = max(
-            p.get('seq_length', p.get('aatype', torch.tensor([0])).shape[0])
-            for p in processed
-        )
-
-        batched = {}
-        for key in processed[0].keys():
-            values = [p[key] for p in processed]
-
-            if not isinstance(values[0], torch.Tensor):
-                batched[key] = values
-                continue
-
-            # Pad each tensor to max_len
-            padded = []
-            for v in values:
-                if v.shape[0] < max_len:
-                    pad_shape = (max_len - v.shape[0],) + v.shape[1:]
-                    pad_value = 0
-                    if v.dtype == torch.bool:
-                        pad_tensor = torch.zeros(pad_shape, dtype=v.dtype, device=v.device)
-                    else:
-                        pad_tensor = torch.full(pad_shape, pad_value, dtype=v.dtype, device=v.device)
-                    v = torch.cat([v, pad_tensor], dim=0)
-                padded.append(v)
-
-            batched[key] = torch.stack(padded)
-
-        return batched
-
-
-class UnifiedFeaturePipeline(FeaturePipeline[TorchExample]):
-    """Unified feature pipeline supporting multiple model formats.
-
-    This pipeline can output features in different formats suitable for
-    various biological structure prediction models (AlphaFold, Protenix, etc.).
-
-    Example:
-        >>> pipeline = UnifiedFeaturePipeline(config={
-        ...     'output_format': 'alphafold',
-        ...     'max_seq_length': 512
-        ... })
-        >>> output = pipeline.process(raw_data)
-    """
-
-    SUPPORTED_FORMATS = ['alphafold', 'protenix', 'openfold', 'unified']
-
-    def __init__(self, config: Optional[FeatureDict] = None):
-        """Initialize the unified feature pipeline.
-
-        Args:
-            config: Configuration dictionary containing:
-                - output_format: Target model format.
-                - max_seq_length: Maximum sequence length.
-                - crop_size: Sequence crop size for training.
-                - Other model-specific settings.
+        Parameters
+        ----------
+        config : Dict[str, Any]
+            配置字典
+        use_msa : bool
+            是否使用MSA特征
+        use_structure : bool
+            是否使用结构特征
+        max_msa_seqs : Optional[int]
+            最大MSA序列数
+        crop_size : Optional[int]
+            裁剪大小
         """
         super().__init__(config)
-        self.output_format = self.config.get('output_format', 'unified')
-        if self.output_format not in self.SUPPORTED_FORMATS:
-            raise ValueError(
-                f"Unsupported format: {self.output_format}. "
-                f"Supported: {self.SUPPORTED_FORMATS}"
+        self.use_msa = use_msa
+        self.use_structure = use_structure
+        self.max_msa_seqs = max_msa_seqs
+        self.crop_size = crop_size
+    
+    def process(self, raw_features: FeatureDict) -> FeatureDict:
+        """
+        处理原始特征
+        
+        Parameters
+        ----------
+        raw_features : FeatureDict
+            原始特征字典
+            
+        Returns
+        -------
+        FeatureDict
+            处理后的特征字典
+        """
+        features = raw_features.copy()
+        
+        # 1. 数据类型转换
+        features = cast_to_64bit_ints(features)
+        
+        # 2. 压缩维度
+        features = squeeze_features(features)
+        
+        # 3. 创建组合特征
+        features = self._create_composite_features(features)
+        
+        # 4. 处理MSA
+        if self.use_msa and "msa" in features:
+            features = self._process_msa(features)
+        
+        # 5. 处理结构
+        if self.use_structure and "all_atom_positions" in features:
+            features = self._process_structure(features)
+        
+        # 6. 裁剪
+        if self.crop_size is not None:
+            features = self._crop_features(features)
+        
+        return features
+    
+    def _create_composite_features(self, features: FeatureDict) -> FeatureDict:
+        """
+        创建组合特征
+        
+        Parameters
+        ----------
+        features : FeatureDict
+            特征字典
+            
+        Returns
+        -------
+        FeatureDict
+            更新后的特征字典
+        """
+        # 创建target特征
+        if "aatype" in features:
+            between_segment = features.get("between_segment_residues", None)
+            features["target_feat"] = create_target_feat(
+                aatype=features["aatype"],
+                between_segment_residues=between_segment,
             )
-
-    def process(self, data: FeatureDict) -> TorchExample:
-        """Process data and output in the specified format.
-
-        Args:
-            data: Raw input data dictionary.
-
-        Returns:
-            TorchExample containing features in the target format.
+        
+        # 创建MSA特征
+        if "msa" in features and "deletion_matrix" in features:
+            features["msa_feat"] = create_msa_feat(
+                msa=features["msa"],
+                deletion_matrix=features["deletion_matrix"],
+            )
+        
+        return features
+    
+    def _process_msa(self, features: FeatureDict) -> FeatureDict:
         """
-        # Extract all features
-        features = {}
-        for extractor in self.extractors:
-            features.update(extractor.extract(data))
-
-        # Convert to tensors
-        torch_example = TorchExample()
-        for key, value in features.items():
-            if isinstance(value, np.ndarray):
-                if value.dtype in [np.int64, np.int32, np.int8, np.uint8]:
-                    torch_example[key] = torch.from_numpy(value).long()
-                elif value.dtype in [np.float64, np.float32]:
-                    torch_example[key] = torch.from_numpy(value).float()
-                elif value.dtype == np.bool_:
-                    torch_example[key] = torch.from_numpy(value).bool()
-                else:
-                    torch_example[key] = torch.from_numpy(value)
-            elif isinstance(value, torch.Tensor):
-                torch_example[key] = value
-            else:
-                # Keep non-tensor values as-is
-                torch_example[key] = value
-
-        # Apply format-specific transformations
-        if self.output_format == 'alphafold':
-            torch_example = self._format_alphafold(torch_example)
-        elif self.output_format == 'protenix':
-            torch_example = self._format_protenix(torch_example)
-        elif self.output_format == 'openfold':
-            torch_example = self._format_openfold(torch_example)
-
-        return torch_example
-
-    def _format_alphafold(self, example: TorchExample) -> TorchExample:
-        """Format features for AlphaFold model input.
-
-        Args:
-            example: Input TorchExample.
-
-        Returns:
-            Formatted TorchExample for AlphaFold.
+        处理MSA特征
+        
+        Parameters
+        ----------
+        features : FeatureDict
+            特征字典
+            
+        Returns
+        -------
+        FeatureDict
+            更新后的特征字典
         """
-        # AlphaFold-specific feature naming and formatting
-        formatted = TorchExample()
-
-        for key, value in example.items():
-            # Rename keys to match AlphaFold expectations
-            if key == 'sequence':
-                formatted['aatype'] = value
-            elif key == 'coords':
-                formatted['all_atom_positions'] = value
-            else:
-                formatted[key] = value
-
-        return formatted
-
-    def _format_protenix(self, example: TorchExample) -> TorchExample:
-        """Format features for Protenix model input.
-
-        Args:
-            example: Input TorchExample.
-
-        Returns:
-            Formatted TorchExample for Protenix.
+        if self.max_msa_seqs and "msa" in features:
+            # 采样MSA
+            msa_features = {k: v for k, v in features.items() 
+                          if k in ["msa", "deletion_matrix", "msa_mask", "msa_row_mask"]}
+            sampled = sample_msa(msa_features, self.max_msa_seqs)
+            features.update(sampled)
+        
+        return features
+    
+    def _process_structure(self, features: FeatureDict) -> FeatureDict:
         """
-        # Protenix uses token-based features
-        formatted = TorchExample()
-
-        for key, value in example.items():
-            # Protenix-specific transformations
-            formatted[key] = value
-
-        return formatted
-
-    def _format_openfold(self, example: TorchExample) -> TorchExample:
-        """Format features for OpenFold model input.
-
-        Args:
-            example: Input TorchExample.
-
-        Returns:
-            Formatted TorchExample for OpenFold.
+        处理结构特征
+        
+        Parameters
+        ----------
+        features : FeatureDict
+            特征字典
+            
+        Returns
+        -------
+        FeatureDict
+            更新后的特征字典
         """
-        # OpenFold is compatible with AlphaFold format
-        return self._format_alphafold(example)
+        # 添加伪β碳特征
+        features = make_pseudo_beta(features)
+        
+        return features
+    
+    def _crop_features(self, features: FeatureDict) -> FeatureDict:
+        """
+        裁剪特征
+        
+        Parameters
+        ----------
+        features : FeatureDict
+            特征字典
+            
+        Returns
+        -------
+        FeatureDict
+            裁剪后的特征字典
+        """
+        if self.crop_size is None:
+            return features
+        
+        # 获取序列长度
+        seq_length = features.get("seq_length", 0)
+        if seq_length <= self.crop_size:
+            return features
+        
+        # 随机裁剪起始位置
+        crop_start = np.random.randint(0, seq_length - self.crop_size + 1)
+        
+        # 裁剪特征
+        cropped = crop_features(features, crop_start, self.crop_size)
+        
+        # 更新序列长度
+        cropped["seq_length"] = np.array(self.crop_size, dtype=np.int32)
+        
+        return cropped
+    
+    def process_sequence(
+        self,
+        sequence: str,
+        sequence_type: str = "protein",
+    ) -> FeatureDict:
+        """
+        处理单个序列
+        
+        Parameters
+        ----------
+        sequence : str
+            序列字符串
+        sequence_type : str
+            序列类型
+            
+        Returns
+        -------
+        FeatureDict
+            序列特征字典
+        """
+        return make_sequence_features(
+            sequence=sequence,
+            sequence_type=sequence_type,
+        )
+    
+    def process_msa(
+        self,
+        sequences: List[str],
+        deletion_matrix: Optional[List[List[int]]] = None,
+    ) -> FeatureDict:
+        """
+        处理MSA
+        
+        Parameters
+        ----------
+        sequences : List[str]
+            MSA序列列表
+        deletion_matrix : Optional[List[List[int]]]
+            删除矩阵
+            
+        Returns
+        -------
+        FeatureDict
+            MSA特征字典
+        """
+        return make_msa_features(
+            sequences=sequences,
+            deletion_matrix=deletion_matrix,
+            max_seqs=self.max_msa_seqs,
+        )
+    
+    def process_structure(
+        self,
+        positions: np.ndarray,
+        mask: Optional[np.ndarray] = None,
+    ) -> FeatureDict:
+        """
+        处理结构
+        
+        Parameters
+        ----------
+        positions : np.ndarray
+            原子坐标
+        mask : Optional[np.ndarray]
+            原子掩码
+            
+        Returns
+        -------
+        FeatureDict
+            结构特征字典
+        """
+        return make_structure_features(
+            positions=positions,
+            mask=mask,
+        )
 
 
 def np_example_to_features(
-    np_example: NumpyExample,
-    config: Optional[FeatureDict] = None
-) -> TensorDict:
-    """Convert NumpyExample to model-ready tensor features.
-
-    Args:
-        np_example: NumpyExample containing biological data.
-        config: Configuration for feature conversion.
-
-    Returns:
-        Dictionary of PyTorch tensors.
+    np_example: FeatureDict,
+    config: Dict[str, Any],
+    mode: str = "train",
+) -> FeatureDict:
     """
-    config = config or {}
-
-    # Convert to TorchExample first
-    torch_example = np_example.to_torch()
-
-    # Apply any config-specific transformations
-    features = dict(torch_example)
-
-    # Add batch dimension if requested
-    if config.get('add_batch_dim', False):
-        for key, value in features.items():
-            if isinstance(value, torch.Tensor):
-                features[key] = value.unsqueeze(0)
-
+    将numpy示例转换为特征
+    
+    参考OpenFold的np_example_to_features实现
+    
+    Parameters
+    ----------
+    np_example : FeatureDict
+        numpy示例字典
+    config : Dict[str, Any]
+        配置字典
+    mode : str
+        模式: "train", "eval", "predict"
+        
+    Returns
+    -------
+    FeatureDict
+        处理后的特征字典
+    """
+    features = np_example.copy()
+    
+    # 创建处理管道
+    pipeline = BiologyFeaturePipeline(
+        config=config,
+        use_msa=config.get("use_msa", True),
+        use_structure=config.get("use_structure", False),
+        max_msa_seqs=config.get("max_msa_seqs", None),
+        crop_size=config.get("crop_size", None),
+    )
+    
+    # 处理特征
+    features = pipeline.process(features)
+    
     return features
 
 
 def make_data_config(
-    model_type: str = 'alphafold',
-    **kwargs
-) -> Dict[str, Any]:
-    """Create a data configuration dictionary for the specified model type.
-
-    Args:
-        model_type: Type of model ('alphafold', 'protenix', 'openfold').
-        **kwargs: Additional configuration parameters.
-
-    Returns:
-        Configuration dictionary for the pipeline.
-
-    Raises:
-        ValueError: If model_type is not supported.
+    config: Dict[str, Any],
+    mode: str,
+    num_res: int,
+) -> tuple:
     """
-    base_config = {
-        'max_seq_length': kwargs.get('max_seq_length', 1024),
-        'max_msa_clusters': kwargs.get('max_msa_clusters', 512),
-        'max_templates': kwargs.get('max_templates', 4),
-        'crop_size': kwargs.get('crop_size', 256),
-        'output_format': model_type,
-    }
+    创建数据配置
+    
+    参考OpenFold的make_data_config实现
+    
+    Parameters
+    ----------
+    config : Dict[str, Any]
+        配置字典
+    mode : str
+        模式
+    num_res : int
+        残基数
+        
+    Returns
+    -------
+    tuple
+        (配置, 特征名称列表)
+    """
+    cfg = config.copy()
+    
+    # 设置裁剪大小
+    if cfg.get("crop_size") is None:
+        cfg["crop_size"] = num_res
+    
+    # 确定特征名称
+    feature_names = cfg.get("unsupervised_features", [])
+    
+    if cfg.get("use_templates", False):
+        feature_names += cfg.get("template_features", [])
+    
+    if mode == "train" and cfg.get("supervised", False):
+        feature_names += cfg.get("supervised_features", [])
+    
+    return cfg, feature_names
 
-    if model_type == 'alphafold':
-        base_config.update({
-            'use_msa': kwargs.get('use_msa', True),
-            'use_templates': kwargs.get('use_templates', True),
-            'use_struct': kwargs.get('use_struct', True),
-        })
-    elif model_type == 'protenix':
-        base_config.update({
-            'use_msa': kwargs.get('use_msa', True),
-            'use_templates': kwargs.get('use_templates', False),
-            'token_per_atom': kwargs.get('token_per_atom', False),
-        })
-    elif model_type == 'openfold':
-        base_config.update({
-            'use_msa': kwargs.get('use_msa', True),
-            'use_templates': kwargs.get('use_templates', True),
-        })
-    else:
-        raise ValueError(f"Unknown model type: {model_type}")
 
-    return base_config
+class UnifiedFeaturePipeline:
+    """
+    统一特征处理管道
+    
+    为不同的生物学模型（Protenix, OpenFold等）提供统一的特征处理接口
+    """
+    
+    def __init__(
+        self,
+        model_type: str = "generic",
+        config: Optional[Dict[str, Any]] = None,
+    ):
+        """
+        Parameters
+        ----------
+        model_type : str
+            模型类型: "generic", "protenix", "openfold"
+        config : Optional[Dict[str, Any]]
+            配置字典
+        """
+        self.model_type = model_type.lower()
+        self.config = config or {}
+        
+        # 创建基础管道
+        self.base_pipeline = BiologyFeaturePipeline(
+            config=self.config,
+            use_msa=self.config.get("use_msa", True),
+            use_structure=self.config.get("use_structure", False),
+            max_msa_seqs=self.config.get("max_msa_seqs", None),
+        )
+    
+    def process(self, raw_data: Dict[str, Any]) -> FeatureDict:
+        """
+        处理原始数据
+        
+        Parameters
+        ----------
+        raw_data : Dict[str, Any]
+            原始数据字典
+            
+        Returns
+        -------
+        FeatureDict
+            处理后的特征字典
+        """
+        features = {}
+        
+        # 处理序列
+        if "sequence" in raw_data:
+            seq_features = self.base_pipeline.process_sequence(
+                sequence=raw_data["sequence"],
+                sequence_type=raw_data.get("sequence_type", "protein"),
+            )
+            features.update(seq_features)
+        
+        # 处理MSA
+        if "msa_sequences" in raw_data and self.config.get("use_msa", True):
+            msa_features = self.base_pipeline.process_msa(
+                sequences=raw_data["msa_sequences"],
+                deletion_matrix=raw_data.get("deletion_matrix", None),
+            )
+            features.update(msa_features)
+        
+        # 处理结构
+        if "positions" in raw_data and self.config.get("use_structure", False):
+            struct_features = self.base_pipeline.process_structure(
+                positions=raw_data["positions"],
+                mask=raw_data.get("mask", None),
+            )
+            features.update(struct_features)
+        
+        # 使用基础管道进一步处理
+        features = self.base_pipeline.process(features)
+        
+        # 模型特定的后处理
+        features = self._model_specific_processing(features)
+        
+        return features
+    
+    def _model_specific_processing(self, features: FeatureDict) -> FeatureDict:
+        """
+        模型特定的后处理
+        
+        Parameters
+        ----------
+        features : FeatureDict
+            特征字典
+            
+        Returns
+        -------
+        FeatureDict
+            处理后的特征字典
+        """
+        if self.model_type == "protenix":
+            # Protenix特定处理
+            features = self._protenix_processing(features)
+        elif self.model_type == "openfold":
+            # OpenFold特定处理
+            features = self._openfold_processing(features)
+        
+        return features
+    
+    def _protenix_processing(self, features: FeatureDict) -> FeatureDict:
+        """
+        Protenix特定处理
+        
+        Parameters
+        ----------
+        features : FeatureDict
+            特征字典
+            
+        Returns
+        -------
+        FeatureDict
+            处理后的特征字典
+        """
+        # Protenix特定的特征转换
+        # 例如：aatype从整数转换为one-hot
+        if "aatype" in features and features["aatype"].ndim == 1:
+            from onescience.datapipes.biology.common.features.sequence_features import (
+                restype_onehot_encode,
+            )
+            features["aatype"] = restype_onehot_encode(
+                sequence="".join(["A"] * len(features["aatype"])),
+                num_classes=32,  # Protenix使用32类
+            )
+        
+        return features
+    
+    def _openfold_processing(self, features: FeatureDict) -> FeatureDict:
+        """
+        OpenFold特定处理
+        
+        Parameters
+        ----------
+        features : FeatureDict
+            特征字典
+            
+        Returns
+        -------
+        FeatureDict
+            处理后的特征字典
+        """
+        # OpenFold特定的特征转换
+        # 例如：确保aatype是整数类型
+        if "aatype" in features and features["aatype"].ndim > 1:
+            features["aatype"] = np.argmax(features["aatype"], axis=-1)
+        
+        return features

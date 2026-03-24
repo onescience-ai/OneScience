@@ -1,7 +1,8 @@
-"""Unified FASTA parser.
+"""
+统一的FASTA解析器
 
-Common functionality extracted from protenix and openfold.
-Supports compressed files (.gz, .bz2, .xz).
+从protenix和openfold中提取的共同功能
+支持压缩文件（.gz, .bz2, .xz）
 """
 
 from typing import List, Tuple, Iterator
@@ -16,103 +17,121 @@ from onescience.datapipes.biology.common.utils.file_utils import (
 
 
 class FASTAParser:
-    """Unified FASTA parser.
-
-    Supports:
-    - FASTA string parsing
-    - FASTA file parsing
-    - Multi-sequence FASTA parsing
     """
-
+    统一的FASTA解析器
+    
+    支持：
+    - FASTA字符串解析
+    - FASTA文件解析
+    - 多序列FASTA解析
+    """
+    
     @staticmethod
     def parse(fasta_string: str) -> Tuple[List[str], List[str]]:
-        """Parse a FASTA string.
-
-        Args:
-            fasta_string: A string in FASTA format.
-
-        Returns:
-            A tuple containing a list of sequences and a list of descriptions.
+        """
+        解析FASTA字符串
+        
+        Parameters
+        ----------
+        fasta_string : str
+            FASTA格式的字符串
+            
+        Returns
+        -------
+        Tuple[List[str], List[str]]
+            序列列表和描述列表
         """
         sequences = []
         descriptions = []
         index = -1
-
+        
         for line in fasta_string.splitlines():
             line = line.strip()
             if line.startswith(">"):
                 index += 1
-                descriptions.append(line[1:])  # Remove '>'
+                descriptions.append(line[1:])  # 移除 '>'
                 sequences.append("")
             elif line.startswith("#"):
-                continue  # Skip comment lines
+                continue  # 跳过注释行
             elif not line:
-                continue  # Skip empty lines
+                continue  # 跳过空行
             else:
                 sequences[index] += line
-
+        
         return sequences, descriptions
-
+    
     @staticmethod
     def parse_file(path: Path) -> Tuple[List[str], List[str]]:
-        """Parse a FASTA from file (supports compressed files).
-
-        Args:
-            path: Path to the FASTA file (supports .gz, .bz2, .xz compressed files).
-
-        Returns:
-            A tuple containing a list of sequences and a list of descriptions.
+        """
+        从文件解析FASTA（支持压缩文件）
+        
+        Parameters
+        ----------
+        path : Path
+            FASTA文件路径（支持.gz, .bz2, .xz压缩文件）
+            
+        Returns
+        -------
+        Tuple[List[str], List[str]]
+            序列列表和描述列表
         """
         with open_file(path, 'r') as f:
             fasta_string = f.read()
         return FASTAParser.parse(fasta_string)
-
+    
     @staticmethod
     def parse_file_stream(path: Path) -> Iterator[Tuple[str, str]]:
-        """Parse a FASTA file in streaming mode (supports large and compressed files).
-
-        Args:
-            path: Path to the FASTA file (supports compressed files).
-
-        Yields:
-            Tuples of (sequence, description).
+        """
+        流式解析FASTA文件（支持大文件和压缩文件）
+        
+        Parameters
+        ----------
+        path : Path
+            FASTA文件路径（支持压缩文件）
+            
+        Yields
+        ------
+        Tuple[str, str]
+            (序列, 描述) 元组
         """
         current_seq = ""
         current_desc = ""
-
+        
         with open_file(path, 'r') as f:
             for line in f:
                 line = line.strip()
-
+                
                 if line.startswith(">"):
-                    # Save the previous sequence
+                    # 保存上一个序列
                     if current_seq:
                         yield current_seq, current_desc
-
-                    # Start a new sequence
-                    current_desc = line[1:]  # Remove '>'
+                    
+                    # 开始新序列
+                    current_desc = line[1:]  # 移除 '>'
                     current_seq = ""
                 elif line.startswith("#"):
-                    continue  # Skip comment lines
+                    continue  # 跳过注释行
                 elif line:
                     current_seq += line
-
-        # Save the last sequence
+        
+        # 保存最后一个序列
         if current_seq:
             yield current_seq, current_desc
-
+    
     @staticmethod
     def parse_single(fasta_string: str) -> Tuple[str, str]:
-        """Parse a single sequence FASTA.
-
-        Args:
-            fasta_string: A string in FASTA format (containing only one sequence).
-
-        Returns:
-            A tuple containing the sequence and its description.
-
-        Raises:
-            ValueError: If no sequence is found or if multiple sequences are found.
+        """
+        解析单个序列的FASTA
+        
+        Parameters
+        ----------
+        fasta_string : str
+            FASTA格式的字符串（只包含一个序列）
+            
+        Returns
+        -------
+        Tuple[str, str]
+            序列和描述
         """
         sequences, descriptions = FASTAParser.parse(fasta_string)
         if len(sequences) == 0:
@@ -120,3 +139,4 @@ class FASTAParser:
         if len(sequences) > 1:
             raise ValueError("Multiple sequences found, use parse() instead")
         return sequences[0], descriptions[0]
+

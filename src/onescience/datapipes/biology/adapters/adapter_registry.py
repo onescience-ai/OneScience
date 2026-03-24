@@ -1,12 +1,7 @@
-"""Adapter registry for managing model-specific adapters.
+"""
+适配器注册系统
 
-This module provides a central registry for managing and retrieving
-model-specific adapters that convert unified biological data formats
-into formats required by different protein structure prediction models.
-
-Example:
-    >>> from onescience.datapipes.biology.adapters import register_adapter
-    >>> register_adapter("my_model", MyModelAdapter)
+管理所有模型适配器
 """
 
 from typing import Dict, Optional, Type
@@ -17,57 +12,70 @@ from onescience.datapipes.biology.adapters.base_adapter import BaseAdapter
 
 logger = logging.getLogger(__name__)
 
-# Global adapter registry mapping adapter names to adapter classes
+# 适配器注册表
 _adapter_registry: Dict[str, Type[BaseAdapter]] = {}
 
 
-def register_adapter(name: str, adapter_cls: Type[BaseAdapter]) -> None:
-    """Register an adapter class.
-
-    Args:
-        name: Adapter name (typically the model name).
-        adapter_cls: Adapter class that inherits from BaseAdapter.
-
-    Raises:
-        TypeError: If adapter_cls does not inherit from BaseAdapter.
+def register_adapter(name: str, adapter_cls: Type[BaseAdapter]):
+    """
+    注册适配器
+    
+    Parameters
+    ----------
+    name : str
+        适配器名称（模型名称）
+    adapter_cls : Type[BaseAdapter]
+        适配器类
     """
     if not issubclass(adapter_cls, BaseAdapter):
         raise TypeError(f"{adapter_cls.__name__} must inherit from BaseAdapter")
-
+    
     _adapter_registry[name.lower()] = adapter_cls
     logger.info(f"Registered adapter: {name} -> {adapter_cls.__name__}")
 
 
 def get_adapter(name: str, config: DatasetConfig) -> BaseAdapter:
-    """Get an adapter instance by name.
-
-    Args:
-        name: Adapter name (model name).
-        config: Dataset configuration.
-
-    Returns:
-        BaseAdapter: Adapter instance.
-
-    Raises:
-        ValueError: If the adapter is not found in the registry.
+    """
+    获取适配器实例
+    
+    Parameters
+    ----------
+    name : str
+        适配器名称（模型名称）
+    config : DatasetConfig
+        数据集配置
+        
+    Returns
+    -------
+    BaseAdapter
+        适配器实例
+        
+    Raises
+    ------
+    ValueError
+        如果适配器不存在
     """
     name_lower = name.lower()
-
+    
     if name_lower not in _adapter_registry:
         available = list(_adapter_registry.keys())
         raise ValueError(
             f"Adapter '{name}' not found. "
             f"Available adapters: {available}"
         )
-
+    
     adapter_cls = _adapter_registry[name_lower]
     return adapter_cls(config)
 
 
 def list_adapters() -> list[str]:
-    """List all registered adapter names.
-
-    Returns:
-        list[str]: List of registered adapter names.
+    """
+    列出所有注册的适配器
+    
+    Returns
+    -------
+    list[str]
+        适配器名称列表
     """
     return list(_adapter_registry.keys())
+

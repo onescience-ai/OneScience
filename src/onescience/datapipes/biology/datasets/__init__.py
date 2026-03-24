@@ -1,8 +1,4 @@
-"""Unified dataset implementations for biology data processing.
-
-This module provides dataset classes for various biological data types including
-proteins, genomes, and multimer structures.
-"""
+"""统一的数据集实现"""
 
 from onescience.datapipes.biology.datasets.protein_dataset import ProteinDataset
 from onescience.datapipes.biology.datasets.genome_dataset import GenomeDataset
@@ -13,3 +9,4 @@ __all__ = [
     "GenomeDataset",
     "MultimerDataset",
 ]
+

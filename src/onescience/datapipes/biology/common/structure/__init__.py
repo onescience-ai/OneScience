@@ -1,16 +1,17 @@
-"""Module for biological structure processing.
+"""
+生物结构处理模块
 
-Provides unified atomic structure parsing and building functionality.
+提供统一的原子结构解析和构建功能
 """
 
 from .structure_parser import Structure, Atom, StructureParser
 from .molecular_builder import MolecularBuilder
 
 __all__ = [
-    # Structure parsing
+    # 结构解析
     "Structure",
     "Atom",
     "StructureParser",
-    # Molecular building
+    # 分子构建
     "MolecularBuilder",
 ]

@@ -1,7 +1,7 @@
-"""Unified data management for bioinformatics.
+"""
+生物信息学领域统一数据管理
 
-Provides unified data processing interfaces for proteins, genomes, and other
-bioinformatics data.
+提供统一的蛋白质、基因组等生物信息学数据处理接口
 """
 
 from onescience.datapipes.biology.base import BioDataset
@@ -36,3 +36,4 @@ if _DATALOADER_AVAILABLE:
         "get_multimer_dataloader",
         "get_genome_dataloader",
     ])
+

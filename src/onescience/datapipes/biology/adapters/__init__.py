@@ -1,34 +1,28 @@
-"""Biology data adapters for model-specific data processing.
+"""
+模型适配器层
 
-This module provides adapter classes that convert unified biological data formats
-into model-specific formats required by different protein structure prediction models
-(e.g., Protenix, OpenFold, AlphaFold3).
-
-Example:
-    >>> from onescience.datapipes.biology.adapters import get_adapter
-    >>> adapter = get_adapter("protenix", config)
-    >>> features = adapter.process_sample(sample_data)
+将通用处理模块的输出转换为各模型需要的特定格式
 """
 
+from onescience.datapipes.biology.adapters.base_adapter import BaseAdapter
 from onescience.datapipes.biology.adapters.adapter_registry import (
     get_adapter,
-    list_adapters,
     register_adapter,
 )
-from onescience.datapipes.biology.adapters.base_adapter import BaseAdapter
 
 try:
-    from onescience.datapipes.biology.adapters.protenix_infer_adapter import (
-        ProtenixInferAdapter,
-    )
+    from onescience.datapipes.biology.adapters.protenix_infer_adapter import ProtenixInferAdapter
 except ImportError:
-    ProtenixInferAdapter = None  # type: ignore
-
+    ProtenixAdapter = None  # type: ignore
+from onescience.datapipes.biology.adapters.adapter_registry import (
+    get_adapter,
+    register_adapter,
+)
 
 __all__ = [
     "BaseAdapter",
-    "ProtenixInferAdapter",
     "get_adapter",
-    "list_adapters",
     "register_adapter",
+    "ProtenixInferAdapter",
 ]
+

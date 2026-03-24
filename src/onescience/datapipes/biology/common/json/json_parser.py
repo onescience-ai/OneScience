@@ -1,325 +1,416 @@
-"""JSON parser for protein structure prediction input files.
+"""
+统一的JSON解析器
 
-Supports parsing JSON input files for models like Protenix/AlphaFold3.
+支持从各种文件格式解析JSON数据
 """
 
 import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
-import numpy as np
-from biotite.structure import AtomArray, get_chain_starts
+from onescience.datapipes.biology.common.utils.file_utils import open_file
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class JSONData:
-    """JSON data container class.
-
-    Attributes:
-        name: Data name identifier.
-        data: Raw JSON data dictionary.
-        source_file: Source file path (if parsed from file).
     """
-    name: str
+    统一的JSON数据格式
+    
+    Attributes
+    ----------
+    data : Dict[str, Any]
+        JSON数据字典
+    name : str
+        数据名称（如样本名称）
+    source_path : Optional[Path]
+        源文件路径
+    metadata : Dict[str, Any]
+        额外的元数据
+    """
     data: Dict[str, Any]
-    source_file: Optional[Path] = None
-
+    name: str = ""
+    source_path: Optional[Path] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def __post_init__(self):
+        """验证数据一致性"""
+        if not isinstance(self.data, dict):
+            raise ValueError(
+                f"JSON data must be a dictionary. Got {type(self.data)}"
+            )
+    
+    def __getitem__(self, key: str) -> Any:
+        """通过键访问数据"""
+        return self.data[key]
+    
+    def __contains__(self, key: str) -> bool:
+        """检查是否包含指定键"""
+        return key in self.data
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """获取指定键的值，如果不存在则返回默认值"""
+        return self.data.get(key, default)
+    
     def get_sequences(self) -> List[Dict[str, Any]]:
-        """Get all sequence information.
-
-        Returns:
-            List of sequence dictionaries.
+        """
+        获取sequences字段
+        
+        Returns
+        -------
+        List[Dict[str, Any]]
+            序列列表
         """
         return self.data.get("sequences", [])
-
-    def get_entities(self) -> List[Tuple[str, Dict[str, Any]]]:
-        """Get all entity information.
-
-        Returns:
-            List of tuples containing (entity_type, entity_info).
-        """
-        entities = []
-        for entity_dict in self.get_sequences():
-            for entity_type, entity_info in entity_dict.items():
-                entities.append((entity_type, entity_info))
-        return entities
-
+    
     def get_covalent_bonds(self) -> List[Dict[str, Any]]:
-        """Get all covalent bond information.
-
-        Returns:
-            List of covalent bond dictionaries.
+        """
+        获取covalent_bonds字段
+        
+        Returns
+        -------
+        List[Dict[str, Any]]
+            共价键列表
         """
         return self.data.get("covalent_bonds", [])
-
-    def get_entity_by_type(self, entity_type: str) -> List[Dict[str, Any]]:
-        """Get entities by type.
-
-        Args:
-            entity_type: Entity type to filter by.
-
-        Returns:
-            List of entity info dictionaries matching the type.
+    
+    def has_sequence_type(self, seq_type: str) -> bool:
         """
-        results = []
+        检查是否包含指定类型的序列
+        
+        Parameters
+        ----------
+        seq_type : str
+            序列类型，如"proteinChain", "dnaSequence", "rnaSequence", "ligand", "ion"
+            
+        Returns
+        -------
+        bool
+            是否包含该类型
+        """
         for entity_dict in self.get_sequences():
-            if entity_type in entity_dict:
-                results.append(entity_dict[entity_type])
-        return results
+            if seq_type in entity_dict:
+                return True
+        return False
+    
+    def get_sequence_count(self) -> int:
+        """
+        获取序列数量
+        
+        Returns
+        -------
+        int
+            序列数量
+        """
+        return len(self.get_sequences())
 
 
 class JSONParser:
-    """Base JSON parser class.
-
-    Provides basic JSON file parsing functionality.
     """
-
+    统一的JSON解析器
+    
+    支持功能：
+    - 从文件解析JSON
+    - 从字符串解析JSON
+    - 验证JSON格式
+    - 批量解析多个文件
+    """
+    
     @staticmethod
-    def parse_file(file_path: Union[str, Path]) -> JSONData:
-        """Parse a JSON file.
-
-        Args:
-            file_path: Path to the JSON file.
-
-        Returns:
-            Parsed JSONData object.
-
-        Raises:
-            FileNotFoundError: If the file does not exist.
-            json.JSONDecodeError: If the file contains invalid JSON.
+    def parse_string(json_string: str) -> JSONData:
         """
-        file_path = Path(file_path)
-
-        if not file_path.exists():
-            raise FileNotFoundError(f"File not found: {file_path}")
-
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-
-        name = data.get("name", file_path.stem)
-
-        return JSONData(name=name, data=data, source_file=file_path)
-
+        从字符串解析JSON
+        
+        Parameters
+        ----------
+        json_string : str
+            JSON格式的字符串
+            
+        Returns
+        -------
+        JSONData
+            解析后的JSON数据对象
+        """
+        try:
+            data = json.loads(json_string)
+            
+            # 如果解析结果是列表，取第一个元素（兼容Protenix格式）
+            if isinstance(data, list) and len(data) > 0:
+                data = data[0]
+            
+            # 提取名称
+            name = data.get("name", "")
+            
+            return JSONData(
+                data=data,
+                name=name
+            )
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON string: {e}")
+    
     @staticmethod
-    def parse_string(json_string: str, name: str = "unnamed") -> JSONData:
-        """Parse a JSON string.
-
-        Args:
-            json_string: JSON content as string.
-            name: Name identifier for the data.
-
-        Returns:
-            Parsed JSONData object.
-
-        Raises:
-            json.JSONDecodeError: If the string contains invalid JSON.
+    def parse_file(path: Union[str, Path], encoding: str = "utf-8") -> JSONData:
         """
-        data = json.loads(json_string)
-        return JSONData(name=name, data=data)
-
+        从文件解析JSON（支持压缩文件）
+        
+        Parameters
+        ----------
+        path : Union[str, Path]
+            JSON文件路径（支持.gz, .bz2, .xz压缩文件）
+        encoding : str
+            文件编码，默认为utf-8
+            
+        Returns
+        -------
+        JSONData
+            解析后的JSON数据对象
+        """
+        path = Path(path)
+        
+        try:
+            with open_file(path, 'r', encoding=encoding) as f:
+                content = f.read()
+            
+            json_data = JSONParser.parse_string(content)
+            json_data.source_path = path
+            json_data.metadata["source_format"] = path.suffix.lstrip(".")
+            
+            return json_data
+        except FileNotFoundError:
+            raise FileNotFoundError(f"JSON file not found: {path}")
+        except Exception as e:
+            raise ValueError(f"Failed to parse JSON file {path}: {e}")
+    
     @staticmethod
-    def validate_structure(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
-        """Validate JSON data structure.
-
-        Args:
-            data: JSON data dictionary to validate.
-
-        Returns:
-            Tuple of (is_valid, list of error messages).
+    def parse_files(paths: List[Union[str, Path]], 
+                   encoding: str = "utf-8") -> List[JSONData]:
         """
-        errors = []
-
-        # Check required fields
-        if "sequences" not in data:
-            errors.append("Missing required field: 'sequences'")
-            return False, errors
-
-        sequences = data.get("sequences", [])
-        if not isinstance(sequences, list):
-            errors.append("'sequences' must be a list")
-            return False, errors
-
-        # Validate each entity
-        for i, entity_dict in enumerate(sequences):
-            if not isinstance(entity_dict, dict):
-                errors.append(f"Entity {i} must be a dictionary")
+        批量解析多个JSON文件
+        
+        Parameters
+        ----------
+        paths : List[Union[str, Path]]
+            JSON文件路径列表
+        encoding : str
+            文件编码，默认为utf-8
+            
+        Returns
+        -------
+        List[JSONData]
+            解析后的JSON数据对象列表
+        """
+        results = []
+        for path in paths:
+            try:
+                json_data = JSONParser.parse_file(path, encoding)
+                results.append(json_data)
+            except Exception as e:
+                logger.warning(f"Failed to parse {path}: {e}")
                 continue
-
-            for entity_type, entity_info in entity_dict.items():
-                # Check entity type
-                valid_types = ["proteinChain", "dnaSequence", "rnaSequence", "ligand", "ion"]
-                if entity_type not in valid_types:
-                    errors.append(f"Entity {i}: unknown type '{entity_type}'")
-                    continue
-
-                # Check required fields for each type
-                if entity_type in ["proteinChain", "dnaSequence", "rnaSequence"]:
-                    if "sequence" not in entity_info:
-                        errors.append(f"Entity {i} ({entity_type}): missing 'sequence' field")
-
-                elif entity_type == "ligand":
-                    if "ligand" not in entity_info:
-                        errors.append(f"Entity {i} ({entity_type}): missing 'ligand' field")
-
-                elif entity_type == "ion":
-                    if "ion" not in entity_info:
-                        errors.append(f"Entity {i} ({entity_type}): missing 'ion' field")
-
-        # Validate covalent bonds if present
-        if "covalent_bonds" in data:
-            bonds = data["covalent_bonds"]
-            if not isinstance(bonds, list):
-                errors.append("'covalent_bonds' must be a list")
+        return results
+    
+    @staticmethod
+    def validate(json_data: Union[str, Dict[str, Any]], 
+                 required_fields: Optional[List[str]] = None) -> bool:
+        """
+        验证JSON数据格式
+        
+        Parameters
+        ----------
+        json_data : Union[str, Dict[str, Any]]
+            JSON字符串或字典
+        required_fields : Optional[List[str]]
+            必需字段列表
+            
+        Returns
+        -------
+        bool
+            验证是否通过
+        """
+        try:
+            if isinstance(json_data, str):
+                data = json.loads(json_data)
+                if isinstance(data, list) and len(data) > 0:
+                    data = data[0]
             else:
-                for i, bond in enumerate(bonds):
-                    required_bond_fields = ["entity1", "position1", "atom1",
-                                           "entity2", "position2", "atom2"]
-                    for field_name in required_bond_fields:
-                        if field_name not in bond:
-                            errors.append(f"Bond {i}: missing '{field_name}'")
-                            break
-
-        return len(errors) == 0, errors
+                data = json_data
+            
+            if not isinstance(data, dict):
+                return False
+            
+            if required_fields:
+                for field in required_fields:
+                    if field not in data:
+                        logger.warning(f"Required field '{field}' not found in JSON")
+                        return False
+            
+            return True
+        except (json.JSONDecodeError, TypeError):
+            return False
+    
+    @staticmethod
+    def extract_entities(json_data: JSONData) -> List[Dict[str, Any]]:
+        """
+        从JSON数据中提取所有实体信息
+        
+        Parameters
+        ----------
+        json_data : JSONData
+            JSON数据对象
+            
+        Returns
+        -------
+        List[Dict[str, Any]]
+            实体信息列表，每个实体包含type和info
+        """
+        entities = []
+        sequences = json_data.get_sequences()
+        
+        for entity_dict in sequences:
+            for entity_type, entity_info in entity_dict.items():
+                entities.append({
+                    "type": entity_type,
+                    "info": entity_info,
+                    "count": entity_info.get("count", 1)
+                })
+        
+        return entities
+    
+    @staticmethod
+    def get_entity_types(json_data: JSONData) -> List[str]:
+        """
+        获取JSON数据中所有实体类型
+        
+        Parameters
+        ----------
+        json_data : JSONData
+            JSON数据对象
+            
+        Returns
+        -------
+        List[str]
+            实体类型列表
+        """
+        types = []
+        sequences = json_data.get_sequences()
+        
+        for entity_dict in sequences:
+            types.extend(entity_dict.keys())
+        
+        return types
 
 
 class ProteinJSONParser(JSONParser):
-    """Protein structure prediction JSON parser.
-
-    Provides protein-specific parsing functionality.
     """
-
+    蛋白质结构预测专用的JSON解析器
+    
+    针对Protenix/AlphaFold3等模型的输入格式进行优化
+    """
+    
+    REQUIRED_FIELDS = ["sequences"]
+    
     @staticmethod
-    def extract_sequence_info(json_data: JSONData) -> Dict[str, List[Dict[str, Any]]]:
-        """Extract sequence information.
-
-        Args:
-            json_data: JSONData object to extract from.
-
-        Returns:
-            Dictionary mapping sequence types to lists of info dictionaries.
+    def validate_protein_json(json_data: Union[str, Dict[str, Any]]) -> bool:
         """
-        sequences = {
-            "protein": [],
-            "dna": [],
-            "rna": [],
+        验证是否为有效的蛋白质结构预测JSON
+        
+        Parameters
+        ----------
+        json_data : Union[str, Dict[str, Any]]
+            JSON字符串或字典
+            
+        Returns
+        -------
+        bool
+            验证是否通过
+        """
+        return JSONParser.validate(
+            json_data, 
+            required_fields=ProteinJSONParser.REQUIRED_FIELDS
+        )
+    
+    @staticmethod
+    def get_sequence_info(json_data: JSONData) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        获取序列详细信息
+        
+        Parameters
+        ----------
+        json_data : JSONData
+            JSON数据对象
+            
+        Returns
+        -------
+        Dict[str, List[Dict[str, Any]]]
+            按类型分组的序列信息
+        """
+        info = {
+            "proteinChain": [],
+            "dnaSequence": [],
+            "rnaSequence": [],
             "ligand": [],
             "ion": []
         }
-
-        for entity_type, entity_info in json_data.get_entities():
-            if entity_type == "proteinChain":
-                sequences["protein"].append({
-                    "sequence": entity_info.get("sequence", ""),
-                    "count": entity_info.get("count", 1),
-                    "modifications": entity_info.get("modifications", [])
-                })
-            elif entity_type == "dnaSequence":
-                sequences["dna"].append({
-                    "sequence": entity_info.get("sequence", ""),
-                    "count": entity_info.get("count", 1),
-                    "modifications": entity_info.get("modifications", [])
-                })
-            elif entity_type == "rnaSequence":
-                sequences["rna"].append({
-                    "sequence": entity_info.get("sequence", ""),
-                    "count": entity_info.get("count", 1),
-                    "modifications": entity_info.get("modifications", [])
-                })
-            elif entity_type == "ligand":
-                sequences["ligand"].append({
-                    "ligand": entity_info.get("ligand", ""),
-                    "count": entity_info.get("count", 1)
-                })
-            elif entity_type == "ion":
-                sequences["ion"].append({
-                    "ion": entity_info.get("ion", ""),
-                    "count": entity_info.get("count", 1)
-                })
-
-        return sequences
-
+        
+        sequences = json_data.get_sequences()
+        entity_id = 1
+        
+        for entity_dict in sequences:
+            for seq_type, seq_info in entity_dict.items():
+                if seq_type in info:
+                    info[seq_type].append({
+                        "entity_id": entity_id,
+                        "info": seq_info
+                    })
+                entity_id += 1
+        
+        return info
+    
     @staticmethod
-    def get_modifications(json_data: JSONData) -> List[Dict[str, Any]]:
-        """Get all modification information.
-
-        Args:
-            json_data: JSONData object to extract from.
-
-        Returns:
-            List of modification dictionaries.
+    def count_atoms_estimate(json_data: JSONData) -> int:
         """
-        modifications = []
-
-        for entity_type, entity_info in json_data.get_entities():
-            if "modifications" in entity_info:
-                entity_mods = entity_info["modifications"]
-                for mod in entity_mods:
-                    mod_info = {
-                        "entity_type": entity_type,
-                        "modification": mod
-                    }
-                    modifications.append(mod_info)
-
-        return modifications
-
-    @staticmethod
-    def calculate_statistics(json_data: JSONData) -> Dict[str, Any]:
-        """Calculate sequence statistics.
-
-        Args:
-            json_data: JSONData object to analyze.
-
-        Returns:
-            Dictionary containing statistics.
+        估算原子数量（粗略估计）
+        
+        Parameters
+        ----------
+        json_data : JSONData
+            JSON数据对象
+            
+        Returns
+        -------
+        int
+            估算的原子数量
         """
-        seq_info = ProteinJSONParser.extract_sequence_info(json_data)
-
-        stats = {
-            "total_entities": 0,
-            "total_chains": 0,
-            "protein_chains": 0,
-            "dna_chains": 0,
-            "rna_chains": 0,
-            "ligands": 0,
-            "ions": 0,
-            "total_residues": 0,
-            "modifications": 0
+        total_atoms = 0
+        sequences = json_data.get_sequences()
+        
+        # 平均每个残基的原子数
+        ATOMS_PER_RESIDUE = {
+            "proteinChain": 7,
+            "dnaSequence": 20,
+            "rnaSequence": 20,
+            "ligand": 20,
+            "ion": 1
         }
-
-        for protein in seq_info["protein"]:
-            count = protein["count"]
-            seq_len = len(protein["sequence"])
-            stats["protein_chains"] += count
-            stats["total_chains"] += count
-            stats["total_residues"] += seq_len * count
-            stats["total_entities"] += 1
-            stats["modifications"] += len(protein.get("modifications", []))
-
-        for dna in seq_info["dna"]:
-            count = dna["count"]
-            seq_len = len(dna["sequence"])
-            stats["dna_chains"] += count
-            stats["total_chains"] += count
-            stats["total_residues"] += seq_len * count
-            stats["total_entities"] += 1
-            stats["modifications"] += len(dna.get("modifications", []))
-
-        for rna in seq_info["rna"]:
-            count = rna["count"]
-            seq_len = len(rna["sequence"])
-            stats["rna_chains"] += count
-            stats["total_chains"] += count
-            stats["total_residues"] += seq_len * count
-            stats["total_entities"] += 1
-            stats["modifications"] += len(rna.get("modifications", []))
-
-        stats["ligands"] = sum(ligand["count"] for ligand in seq_info["ligand"])
-        stats["ions"] = sum(ion["count"] for ion in seq_info["ion"])
-        stats["total_entities"] += len(seq_info["ligand"]) + len(seq_info["ion"])
-        stats["total_chains"] += stats["ligands"] + stats["ions"]
-
-        return stats
+        
+        for entity_dict in sequences:
+            for seq_type, seq_info in entity_dict.items():
+                count = seq_info.get("count", 1)
+                atoms_per_unit = ATOMS_PER_RESIDUE.get(seq_type, 10)
+                
+                if "sequence" in seq_info:
+                    seq_len = len(seq_info["sequence"])
+                elif "ligand" in seq_info:
+                    # 配体通常是一个分子
+                    seq_len = 1
+                elif "ion" in seq_info:
+                    seq_len = 1
+                else:
+                    seq_len = 1
+                
+                total_atoms += count * seq_len * atoms_per_unit
+        
+        return total_atoms

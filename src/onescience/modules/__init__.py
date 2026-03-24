@@ -1,5 +1,6 @@
 from .embedding.oneembedding import OneEmbedding
 from .fuser.onefuser import OneFuser
+from .linear.onelinear import OneLinear
 from .sample.onesample import OneSample
 from .recovery.onerecovery import OneRecovery
 from .attention.oneattention import OneAttention
