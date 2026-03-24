@@ -60,8 +60,7 @@ wget -P <数据存放目录> https://af3-dev.tos-cn-beijing.volces.com/release_d
 ```
 
 微调数据集示例列表可查看`examples/alphafold/protenix/ft_datasets/finetune_subset.txt`文件
-# 基于统一数据接口实现
-## 推理实现
+# 推理实现
 ```shell
 sh inference_unified_demo.sh
 ```
@@ -110,8 +109,7 @@ echo "Inference completed! Results saved to: $dump_dir"
 
 ```
 
-# 基于Protenix原始模型
-## GPU训练
+# 训练
 
 单卡训练：
 
@@ -161,7 +159,7 @@ HIP_VISIBLE_DEVICES：指定在哪张显卡上运行，默认0号显卡
 
   
 
-## GPU微调
+# 微调
 
 单卡微调：
 
@@ -178,29 +176,6 @@ sh finetune_demo.sh
 - load_ema_checkpoint_path：设置同`load_checkpoint_path`
 - data.weightedPDB_before2109_wopb_nometalc_0925.base_info.pdb_list：微调数据集列表
 
-## GPU推理
-
-单卡推理：
-
-```shell
-sh inference_demo.sh
-```
-
-`inference_demo.sh`脚本主要参数设置说明，暂不支持`USE_DEEPSPEED_EVO_ATTTENTION`和`fast_layernorm`功能，默认不开启。
-
-DATA_ROOT_DIR：设置数据集路径
-PYTHONPATH：添加当前路径到PYTHONPATH路径中
-HIP_VISIBLE_DEVICES：指定在哪张显卡上运行，默认0号显卡
-
-- input_json_path：输入json文件路径
-- dtype：推理精度，`bf16`和`fp32`可选
-- num_workers：默认16，可根据测试环境cpu资源进行增减
-- dump_dir：推理结果保存路径
-- model.N_cycle：推理循环次数，默认10
-- sample_diffusion.N_sample：推理生成样本个数，默认5
-
-- sample_diffusion.N_step: 评估过程中，扩散过程的步骤数减少到`sample_diffusion.N_step`个以提高效率，默认200
-- checkpoint_path: 设置进行微调的预训练模型路径
 
 推理结果如下：
 
