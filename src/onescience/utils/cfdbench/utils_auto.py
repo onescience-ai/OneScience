@@ -9,7 +9,6 @@ from onescience.models.cfdbench.auto_deeponet_cnn import AutoDeepONetCnn
 from onescience.models.cfdbench.fno.fno2d import Fno2d
 from onescience.models.cfdbench.auto_ffn import AutoFfn
 from onescience.models.cfdbench.loss import loss_name_to_fn
-from args import Args
 import torch
 
 def get_input_shapes(data_name: str, num_rows: int, num_cols: int) -> Tuple[int, int, int]:

@@ -2,7 +2,6 @@ from torch import nn
 
 from .earthattention2d import EarthAttention2D
 from .earthattention3d import EarthAttention3D
-from .earthdistributedattention3d import EarthDistributedAttention3D
 from .physicsattention import Physics_Attention_Irregular_Mesh
 from .physicsattention import Physics_Attention_Irregular_Mesh_plus
 from .physicsattention import Physics_Attention_Structured_Mesh_1D
@@ -27,7 +26,6 @@ from .protenixattention import (
 _ATTENTIONER_REGISTRY = {
     "EarthAttention2D": EarthAttention2D,
     "EarthAttention3D": EarthAttention3D,
-    "EarthDistributedAttention3D": EarthDistributedAttention3D,
     "Physics_Attention_Irregular_Mesh": Physics_Attention_Irregular_Mesh,
     "Physics_Attention_Irregular_Mesh_plus": Physics_Attention_Irregular_Mesh_plus,
     "Physics_Attention_Structured_Mesh_1D": Physics_Attention_Structured_Mesh_1D,

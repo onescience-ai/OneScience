@@ -1,5 +1,5 @@
 #!/bin/bash
-source ../../../../env.sh
+source ../../../../../env.sh
 python ../../train.py \
   --model="MACE" \
   --name="mace01" \

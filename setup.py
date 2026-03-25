@@ -79,40 +79,19 @@ basic_requires = [
     "opt_einsum",
     "prettytable",
     "matplotlib",
-    # "torch_geometric",
-    # "torch_scatter",
-    # "torch_sparse",
-    # "torch_cluster",
-    # "torch_spline_conv",
+    "torch_geometric",
+	"shapely",
+    "seaborn",
+    "deepxde",
+    "gpytorch",
     "megatron-core",
     "pytz",
     "xarray",
     "s3fs",
     "netcdf4",
-]
-
-
-earth_requires = [
-
-]
-
-
-cfd_requires = [
-    "shapely",
-    "seaborn",
-    "deepxde",
-    "gpytorch",
-    "tensorflow",
-]
-
-quantum_requires = [
     "openfermion",
     "pymatgen",
-]
-
-
-chemistry_requires = [
-    "e3nn",
+  	"e3nn",
     "ase",
     "xtb",
     "rdkit",
@@ -122,7 +101,6 @@ chemistry_requires = [
     "lmdb",
     "orjson",
     "pymatgen",
-    #新赠
     "ase_db_backends",
     "submitit",
     "clusterscope",
@@ -132,11 +110,7 @@ chemistry_requires = [
     "numba",
     "opt_einsum-fx",
     "torchtnt",
-    
-]
-
-biology_requires = [
-    "rdkit",
+  	"rdkit",
     "matplotlib",
     "contextlib2",
     "ml-collections",
@@ -159,18 +133,16 @@ biology_requires = [
     "s3fs",
     "zarr",
     "zstandard",
-    #"bionemo-noodles",
     "psutil",
     "transformers",
     "ftfy",
     "modelcif",
     "ihm",
     "mashumaro", 
-    "py3Dmol",   
-]
-
-dev_requires = [
-    "setuptools",
+    "py3Dmol",
+  	"setuptools",
+    "biotite",
+    "args",
 ]
 
 
@@ -187,13 +159,7 @@ def resolve(requires, deps_dict):
 extras = {}
 
 install_requires = resolve(basic_requires, deps)
-extras["earth"] = resolve(earth_requires, deps)
-extras["bio"] = resolve(biology_requires, deps)
-extras["cfd"] = resolve(cfd_requires, deps)
-extras["chem"] = resolve(chemistry_requires, deps)
-extras["quantum"] = resolve(quantum_requires, deps)
-extras["dev"] = resolve(dev_requires, deps)
-extras["all"] = one_deps
+
 setup(
     name="onescience",
     version="0.2.0",

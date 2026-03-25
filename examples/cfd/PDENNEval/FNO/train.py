@@ -162,7 +162,6 @@ def main():
         
     cfg = YParams(config_path, "fno_config")
 
-    # [!!! 修复处 !!!] 从 training 节点下获取 output_dir
     output_dir = Path(cfg.training.output_dir)
     
     if dist.rank == 0:

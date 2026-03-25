@@ -2,7 +2,7 @@
 #mkdir -p ./MACE_models
 export OMP_NUM_THREADS=1
 export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-source ../../../../env.sh
+source ../../../../../env.sh
 torchrun \
     --nnodes=1 \
     --nproc_per_node=8 \

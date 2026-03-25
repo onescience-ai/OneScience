@@ -2,55 +2,6 @@ from torch import nn
 import torch
 import math
 
-from onescience.distributed.megatron.core.tensor_parallel.layers import ColumnParallelLinear, RowParallelLinear
-from onescience.distributed.megatron.core.utils import init_method_normal, scaled_init_method_normal
-
-class DistributedMlp(nn.Module):
-    def __init__(
-        self,
-        in_features,
-        hidden_features=None,
-        out_features=None,
-        act_layer=nn.GELU,
-        drop=0.0,
-        config = None
-    ):
-        super().__init__()
-        self.tp_size = config.tensor_model_parallel_size
-        out_features = out_features or in_features
-        hidden_features = hidden_features or in_features
-
-        sigma = 0.01
-        init_method = init_method_normal(sigma)
-        out_init = scaled_init_method_normal(sigma, num_layers=config.num_layers)
-        
-        self.fc1 = ColumnParallelLinear(
-            input_size = in_features,
-            output_size = hidden_features,
-            config = config,
-            init_method = init_method,
-            bias=True
-        )
-        self.act = act_layer()
-
-        self.fc2 = RowParallelLinear(
-            input_size = hidden_features,
-            output_size = out_features,
-            config = config,
-            init_method = out_init,
-            bias = True,
-            input_is_parallel = True,
-            skip_bias_add = False
-        )
-        self.drop = nn.Dropout(drop)
-
-    def forward(self, x: torch.Tensor):
-        x = self.fc1(x)
-        x = self.act(x[0])
-        x = self.drop(x)
-        x = self.fc2(x)
-        x = self.drop(x[0])
-        return x
 
 class Mlp(nn.Module):
     def __init__(

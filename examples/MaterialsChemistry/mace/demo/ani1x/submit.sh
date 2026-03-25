@@ -12,9 +12,11 @@
 
 module purge
 source ~/.bashrc
-conda activate chem
-module load sghpc-mpi-gcc/25.8
-#module load compiler/dtk/25.04.2
+conda activate onescience311
+module load sghpc-mpi-gcc/26.3
+
+source ${ROCM_PATH}/cuda/env.sh
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 # 建议在运行前打印一下当前节点信息和可见显卡，方便排错
 echo "========================================="

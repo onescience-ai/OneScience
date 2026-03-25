@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..meta import ModelMetaData
-from ..module import Module
+from onescience.modules.module import Module
 
 
 class ConvBlock(nn.Module):
