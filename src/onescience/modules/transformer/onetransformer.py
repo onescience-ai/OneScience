@@ -13,7 +13,6 @@ from .Transolver_block import Transolver_block
 from .fuxitransformer import FuxiTransformer
 from .earthtransformer2Dblock import EarthTransformer2DBlock
 from .earthtransformer3Dblock import EarthTransformer3DBlock
-from .earthdistributedtransformer3Dblock import EarthDistributedTransformer3DBlock
 from .xihelocaltransformer import XihelocalTransformer
 from .protenixtransformer import (
      ProtenixConditionedTransitionBlock,
@@ -37,7 +36,6 @@ _TRANSFORMER_REGISTRY = {
     "FuxiTransformer": FuxiTransformer,
     "EarthTransformer2DBlock": EarthTransformer2DBlock,
     "EarthTransformer3DBlock": EarthTransformer3DBlock,
-    "EarthDistributedTransformer3DBlock": EarthDistributedTransformer3DBlock,
     "XihelocalTransformer": XihelocalTransformer,
     "ProtenixConditionedTransitionBlock": ProtenixConditionedTransitionBlock,
     "ProtenixDiffusionTransformerBlock": ProtenixDiffusionTransformerBlock,

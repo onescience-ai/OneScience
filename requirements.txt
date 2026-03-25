@@ -3,7 +3,6 @@ numpy==1.26.3
 timm>=0.9.12
 xarray>=2023.1.0
 zarr>=2.14.2
-s3fs==2023.9.0
 setuptools>=65.5.0
 pytz>=2023.3
 treelib>=1.2.5
@@ -82,6 +81,7 @@ ftfy
 gpytorch
 optree
 biotite==1.0.1
+torch_geometric==2.7.0
 
 # simplefold
 mashumaro==3.16
@@ -115,3 +115,5 @@ pillow==11.0.0
 scipy==1.14.1
 tabulate
 typeguard==2.13.3
+
+args

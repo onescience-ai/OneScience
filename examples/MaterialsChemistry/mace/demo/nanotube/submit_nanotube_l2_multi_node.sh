@@ -10,8 +10,11 @@
 
 module purge
 source ~/.bashrc
-conda activate onescience_test
-module load compiler/dtk/25.04.2
+conda activate onescience311
+module load sghpc-mpi-gcc/26.3
+
+source ${ROCM_PATH}/cuda/env.sh
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 echo "========================================="
 echo "Nodes allocated: $SLURM_JOB_NODELIST"
@@ -45,7 +48,7 @@ srun --export=ALL bash -c '
   # Slurm 会自动给每个任务分配 ID，我们将它们转为 PyTorch 需要的环境变量
   export RANK=$SLURM_PROCID
   export LOCAL_RANK=$SLURM_LOCALID
-  source ../../../../env.sh
+  source ../../../../../env.sh
 
   exec python ../../train.py \
     --name="nanotube_l2_multi_nodes" \

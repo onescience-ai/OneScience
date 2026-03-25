@@ -1,0 +1,204 @@
+2026-03-25 11:25:04.483 INFO: ===========VERIFYING SETTINGS===========
+2026-03-25 11:25:04.483 INFO: MACE version: 0.3.13
+2026-03-25 11:25:04.483 DEBUG: Configuration: Namespace(config=None, name='mace01', seed=123, work_dir='./', output_dir='./', log_dir='./mace01/logs', model_dir='./mace01/final_model', checkpoints_dir='./mace01/checkpoints', plot_dir='./mace01/plots', downloads_dir='./mace01/downloads', device='cuda', default_dtype='float64', distributed=False, log_level='INFO', plot=True, plot_frequency=0, error_table='PerAtomRMSE', model='MACE', r_max=4.0, radial_type='bessel', num_radial_basis=8, num_cutoff_basis=5, pair_repulsion=False, distance_transform='None', interaction='RealAgnosticResidualInteractionBlock', interaction_first='RealAgnosticResidualInteractionBlock', max_ell=3, correlation=3, num_interactions=2, MLP_irreps='16x0e', radial_MLP='[64, 64, 64]', hidden_irreps='128x0e + 128x1o', num_channels=128, max_L=1, gate='silu', scaling='rms_forces_scaling', avg_num_neighbors=1, compute_avg_num_neighbors=True, compute_stress=False, compute_forces=True, train_file='/public/share/sugonhpcapp01/onestore/onedatasets/MaterialsChemistry/examples/DMC/solvent_xtb_train_200.xyz', valid_file=None, valid_fraction=0.1, test_file='/public/share/sugonhpcapp01/onestore/onedatasets/MaterialsChemistry/examples/DMC/solvent_xtb_test.xyz', test_dir=None, multi_processed_test=False, num_workers=0, pin_memory=True, atomic_numbers=None, mean=None, std=None, statistics_file=None, E0s='average', foundation_filter_elements=True, heads=None, multiheads_finetuning=True, foundation_head=None, weight_pt_head=1.0, num_samples_pt=10000, force_mh_ft_lr=False, subselect_pt='random', filter_type_pt='none', pt_train_file=None, pt_valid_file=None, foundation_model_elements=False, keep_isolated_atoms=False, energy_key='energy_xtb', forces_key='forces_xtb', virials_key='REF_virials', stress_key='REF_stress', dipole_key='dipole', head_key='head', charges_key='REF_charges', skip_evaluate_heads='pt_head', loss='weighted', forces_weight=100.0, swa_forces_weight=100.0, energy_weight=1.0, swa_energy_weight=1000.0, virials_weight=1.0, swa_virials_weight=10.0, stress_weight=1.0, swa_stress_weight=10.0, dipole_weight=1.0, swa_dipole_weight=1.0, config_type_weights='{"Default":1.0}', huber_delta=0.01, optimizer='adam', beta=0.9, batch_size=10, valid_batch_size=10, lr=0.01, swa_lr=0.001, weight_decay=5e-07, amsgrad=True, scheduler='ReduceLROnPlateau', lr_factor=0.8, scheduler_patience=50, lr_scheduler_gamma=0.9993, swa=True, start_swa=6, lbfgs=False, ema=False, ema_decay=0.99, max_num_epochs=10, patience=2048, foundation_model=None, foundation_model_readout=True, eval_interval=1, keep_checkpoints=False, save_all_checkpoints=False, restart_latest=False, save_cpu=False, clip_grad=10.0, dry_run=False, enable_cueq=False, wandb=False, wandb_dir=None, wandb_project='', wandb_entity='', wandb_name='', wandb_log_hypers=['num_channels', 'max_L', 'correlation', 'lr', 'swa_lr', 'weight_decay', 'batch_size', 'max_num_epochs', 'start_swa', 'energy_weight', 'forces_weight'], key_specification=KeySpecification(info_keys={'energy': 'energy_xtb', 'stress': 'REF_stress', 'virials': 'REF_virials', 'dipole': 'dipole', 'head': 'head'}, arrays_keys={'forces': 'forces_xtb', 'charges': 'REF_charges'}))
+2026-03-25 11:25:04.484 INFO: CUDA version: None, CUDA device: 0
+2026-03-25 11:25:04.530 DEBUG: Popen(['git', 'version'], cwd=/public/home/easyscience2024/onescience-311/onescience/examples/MaterialsChemistry/mace/demo/DMC, stdin=None, shell=False, universal_newlines=False)
+2026-03-25 11:25:04.542 DEBUG: Popen(['git', 'version'], cwd=/public/home/easyscience2024/onescience-311/onescience/examples/MaterialsChemistry/mace/demo/DMC, stdin=None, shell=False, universal_newlines=False)
+2026-03-25 11:25:04.550 DEBUG: sys.platform='linux', git_executable='git'
+2026-03-25 11:25:04.569 DEBUG: Popen(['git', 'cat-file', '--batch-check'], cwd=/public/home/easyscience2024/onescience-311/onescience, stdin=<valid stream>, shell=False, universal_newlines=False)
+2026-03-25 11:25:04.593 DEBUG: Current Git commit: 99f535a5b561168c46a47b8cc78a1a1e1977e4a9
+2026-03-25 11:25:04.593 INFO: ===========LOADING INPUT DATA===========
+2026-03-25 11:25:04.593 INFO: Using heads: ['Default']
+2026-03-25 11:25:04.593 INFO: Using the key specifications to parse data:
+2026-03-25 11:25:04.593 INFO: Default: KeySpecification(info_keys={'energy': 'energy_xtb', 'stress': 'REF_stress', 'virials': 'REF_virials', 'dipole': 'dipole', 'head': 'head'}, arrays_keys={'forces': 'forces_xtb', 'charges': 'REF_charges'})
+2026-03-25 11:25:04.593 INFO: =============    Processing head Default     ===========
+2026-03-25 11:25:04.594 DEBUG: Loading training file: /public/share/sugonhpcapp01/onestore/onedatasets/MaterialsChemistry/examples/DMC/solvent_xtb_train_200.xyz
+2026-03-25 11:25:04.671 INFO: Using isolated atom energies from training file
+2026-03-25 11:25:04.677 INFO: Training set 1/1 [energy: 200, stress: 0, virials: 0, dipole components: 0, head: 200, forces: 200, charges: 0]
+2026-03-25 11:25:04.678 INFO: Total Training set [energy: 200, stress: 0, virials: 0, dipole components: 0, head: 200, forces: 200, charges: 0]
+2026-03-25 11:25:04.678 INFO: No validation set provided, splitting training data instead.
+2026-03-25 11:25:04.683 INFO: Using random 10% of training set for validation with indices saved in: ./mace01/valid_indices_123.txt
+2026-03-25 11:25:04.684 INFO: Random Split Training set [energy: 180, stress: 0, virials: 0, dipole components: 0, head: 180, forces: 180, charges: 0]
+2026-03-25 11:25:04.684 INFO: Random Split Validation set [energy: 20, stress: 0, virials: 0, dipole components: 0, head: 20, forces: 20, charges: 0]
+2026-03-25 11:25:04.996 INFO: Test set 1/1 [energy: 1000, stress: 0, virials: 0, dipole components: 0, head: 1000, forces: 1000, charges: 0]
+2026-03-25 11:25:05.002 INFO: Total Test set [energy: 1000, stress: 0, virials: 0, dipole components: 0, head: 1000, forces: 1000, charges: 0]
+2026-03-25 11:25:05.002 DEBUG: Element 1 found in 1 file. Using E0: -10.707211 eV
+2026-03-25 11:25:05.002 DEBUG: Element 6 found in 1 file. Using E0: -48.847445 eV
+2026-03-25 11:25:05.002 DEBUG: Element 8 found in 1 file. Using E0: -102.571173 eV
+2026-03-25 11:25:05.002 INFO: Total number of configurations: train=180, valid=20, tests=[Default_Default: 1000],
+2026-03-25 11:25:05.003 INFO: Atomic Numbers used: [1, 6, 8]
+2026-03-25 11:25:05.003 INFO: Atomic Energies used (z: eV) for head Default: {1: -10.707211383396714, 6: -48.847445262804705, 8: -102.57117256025786}
+2026-03-25 11:25:05.003 INFO: Processing datasets for head 'Default'
+2026-03-25 11:25:05.003 INFO: Wraping training data into TextDataset for head 'Default'
+2026-03-25 11:25:05.004 INFO: TextDataset (L3) initialized with r_max=4.0
+2026-03-25 11:25:05.004 INFO: Initializing dataset from 180 in-memory configurations.
+2026-03-25 11:25:05.004 DEBUG: Successfully loaded dataset from ASE files: ['/public/share/sugonhpcapp01/onestore/onedatasets/MaterialsChemistry/examples/DMC/solvent_xtb_train_200.xyz']
+2026-03-25 11:25:05.004 INFO: Combining 1 Dataset objects for head 'Default'
+2026-03-25 11:25:05.015 INFO: Head 'Default' training dataset size: 180
+2026-03-25 11:25:05.016 INFO: Computing average number of neighbors
+2026-03-25 11:25:05.192 INFO: Average number of neighbors: 9.86205556634933
+2026-03-25 11:25:05.193 INFO: During training the following quantities will be reported: energy, forces
+2026-03-25 11:25:05.193 INFO: ===========MODEL DETAILS===========
+2026-03-25 11:25:05.327 INFO: Building model
+2026-03-25 11:25:05.327 INFO: Message passing with 128 channels and max_L=1 (128x0e + 128x1o)
+2026-03-25 11:25:05.327 INFO: 2 layers, each with correlation order: 3 (body order: 4) and spherical harmonics up to: l=3
+2026-03-25 11:25:05.327 INFO: 8 radial and 5 basis functions
+2026-03-25 11:25:05.327 INFO: Radial cutoff: 4.0 A (total receptive field for each atom: 8.0 A)
+2026-03-25 11:25:05.327 INFO: Distance transform for radial basis functions: None
+2026-03-25 11:25:05.327 INFO: Hidden irreps: 128x0e + 128x1o
+2026-03-25 11:25:07.234 DEBUG: ScaleShiftMACE(
+  (node_embedding): LinearNodeEmbeddingBlock(
+    (linear): Linear(3x0e -> 128x0e | 384 weights)
+  )
+  (radial_embedding): RadialEmbeddingBlock(
+    (bessel_fn): BesselBasis(r_max=4.0, num_basis=8, trainable=False)
+    (cutoff_fn): PolynomialCutoff(p=5, r_max=4.0)
+  )
+  (spherical_harmonics): SphericalHarmonics()
+  (atomic_energies_fn): AtomicEnergiesBlock(energies=[[-10.7072, -48.8474, -102.5712]])
+  (interactions): ModuleList(
+    (0): RealAgnosticInteractionBlock(
+      (linear_up): Linear(128x0e -> 128x0e | 16384 weights)
+      (conv_tp): TensorProduct(128x0e x 1x0e+1x1o+1x2e+1x3o -> 128x0e+128x1o+128x2e+128x3o | 512 paths | 512 weights)
+      (conv_tp_weights): FullyConnectedNet[8, 64, 64, 64, 512]
+      (linear): Linear(128x0e+128x1o+128x2e+128x3o -> 128x0e+128x1o+128x2e+128x3o | 65536 weights)
+      (skip_tp): FullyConnectedTensorProduct(128x0e+128x1o+128x2e+128x3o x 3x0e -> 128x0e+128x1o+128x2e+128x3o | 196608 paths | 196608 weights)
+      (reshape): reshape_irreps()
+    )
+    (1): RealAgnosticResidualInteractionBlock(
+      (linear_up): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+      (conv_tp): TensorProduct(128x0e+128x1o x 1x0e+1x1o+1x2e+1x3o -> 256x0e+384x1o+384x2e+256x3o | 1280 paths | 1280 weights)
+      (conv_tp_weights): FullyConnectedNet[8, 64, 64, 64, 1280]
+      (linear): Linear(128x0e+128x0e+128x1o+128x1o+128x1o+128x2e+128x2e+128x2e+128x3o+128x3o -> 128x0e+128x1o+128x2e+128x3o | 163840 weights)
+      (skip_tp): FullyConnectedTensorProduct(128x0e+128x1o x 3x0e -> 128x0e | 49152 paths | 49152 weights)
+      (reshape): reshape_irreps()
+    )
+  )
+  (products): ModuleList(
+    (0): EquivariantProductBasisBlock(
+      (symmetric_contractions): SymmetricContraction(
+        (contractions): ModuleList(
+          (0): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float64 of size 3x4x128 (cuda:0)]
+                (1): Parameter containing: [torch.float64 of size 3x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+          (1): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float64 of size 3x6x128 (cuda:0)]
+                (1): Parameter containing: [torch.float64 of size 3x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+        )
+      )
+      (linear): Linear(128x0e+128x1o -> 128x0e+128x1o | 32768 weights)
+    )
+    (1): EquivariantProductBasisBlock(
+      (symmetric_contractions): SymmetricContraction(
+        (contractions): ModuleList(
+          (0): Contraction(
+            (contractions_weighting): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (contractions_features): ModuleList(
+              (0-1): 2 x GraphModule()
+            )
+            (weights): ParameterList(
+                (0): Parameter containing: [torch.float64 of size 3x4x128 (cuda:0)]
+                (1): Parameter containing: [torch.float64 of size 3x1x128 (cuda:0)]
+            )
+            (graph_opt_main): GraphModule()
+          )
+        )
+      )
+      (linear): Linear(128x0e -> 128x0e | 16384 weights)
+    )
+  )
+  (readouts): ModuleList(
+    (0): LinearReadoutBlock(
+      (linear): Linear(128x0e+128x1o -> 1x0e | 128 weights)
+    )
+    (1): NonLinearReadoutBlock(
+      (linear_1): Linear(128x0e -> 16x0e | 2048 weights)
+      (non_linearity): Activation [x] (16x0e -> 16x0e)
+      (linear_2): Linear(16x0e -> 1x0e | 16 weights)
+    )
+  )
+  (scale_shift): ScaleShiftBlock(scale=2.1775, shift=0.0000)
+)
+2026-03-25 11:25:07.239 INFO: Total number of parameters: 751888
+2026-03-25 11:25:07.239 INFO: 
+2026-03-25 11:25:07.239 INFO: ===========OPTIMIZER INFORMATION===========
+2026-03-25 11:25:07.239 INFO: Using ADAM as parameter optimizer
+2026-03-25 11:25:07.239 INFO: Batch size: 10
+2026-03-25 11:25:07.239 INFO: Number of gradient updates: 180
+2026-03-25 11:25:07.239 INFO: Learning rate: 0.01, weight decay: 5e-07
+2026-03-25 11:25:07.239 INFO: WeightedEnergyForcesLoss(energy_weight=1.000, forces_weight=100.000)
+2026-03-25 11:25:07.240 INFO: Stage Two (after 6 epochs) with loss function: WeightedEnergyForcesLoss(energy_weight=1000.000, forces_weight=100.000), with energy weight : 1000.0, forces weight : 100.0 and learning rate : 0.001
+2026-03-25 11:25:07.335 INFO: Using gradient clipping with tolerance=10.000
+2026-03-25 11:25:07.335 INFO: 
+2026-03-25 11:25:07.335 INFO: ===========TRAINING===========
+2026-03-25 11:25:07.335 INFO: Started training, reporting errors on validation set
+2026-03-25 11:25:07.335 INFO: Loss metrics on validation set
+2026-03-25 11:25:11.627 INFO: Initial: head: Default, loss=69.60641572, RMSE_E_per_atom= 6261.98 meV, RMSE_F= 2570.12 meV / A
+2026-03-25 11:26:08.270 INFO: Epoch 0: head: Default, loss=23.42606596, RMSE_E_per_atom= 5047.47 meV, RMSE_F= 1448.67 meV / A
+2026-03-25 11:26:08.271 DEBUG: Saving checkpoint: ./mace01/checkpoints/mace01_run-123_epoch-0.pt
+2026-03-25 11:26:15.383 INFO: Epoch 1: head: Default, loss=11.22310279, RMSE_E_per_atom= 4483.89 meV, RMSE_F=  960.33 meV / A
+2026-03-25 11:26:15.384 DEBUG: Deleting old checkpoint file: ./mace01/checkpoints/mace01_run-123_epoch-0.pt
+2026-03-25 11:26:15.389 DEBUG: Saving checkpoint: ./mace01/checkpoints/mace01_run-123_epoch-1.pt
+2026-03-25 11:26:17.497 INFO: Epoch 2: head: Default, loss=6.23140840, RMSE_E_per_atom= 4064.65 meV, RMSE_F=  678.21 meV / A
+2026-03-25 11:26:17.498 DEBUG: Deleting old checkpoint file: ./mace01/checkpoints/mace01_run-123_epoch-1.pt
+2026-03-25 11:26:17.503 DEBUG: Saving checkpoint: ./mace01/checkpoints/mace01_run-123_epoch-2.pt
+2026-03-25 11:26:19.613 INFO: Epoch 3: head: Default, loss=4.03948356, RMSE_E_per_atom= 3335.45 meV, RMSE_F=  541.95 meV / A
+2026-03-25 11:26:19.613 DEBUG: Deleting old checkpoint file: ./mace01/checkpoints/mace01_run-123_epoch-2.pt
+2026-03-25 11:26:19.618 DEBUG: Saving checkpoint: ./mace01/checkpoints/mace01_run-123_epoch-3.pt
+2026-03-25 11:26:21.724 INFO: Epoch 4: head: Default, loss=4.13241746, RMSE_E_per_atom= 2965.98 meV, RMSE_F=  571.91 meV / A
+2026-03-25 11:26:23.761 INFO: Epoch 5: head: Default, loss=3.28707797, RMSE_E_per_atom= 2435.63 meV, RMSE_F=  519.77 meV / A
+2026-03-25 11:26:23.762 DEBUG: Deleting old checkpoint file: ./mace01/checkpoints/mace01_run-123_epoch-3.pt
+2026-03-25 11:26:23.766 DEBUG: Saving checkpoint: ./mace01/checkpoints/mace01_run-123_epoch-5.pt
+2026-03-25 11:26:23.851 INFO: Changing loss based on Stage Two Weights
+2026-03-25 11:26:25.861 INFO: Epoch 6: head: Default, loss=43.93367147, RMSE_E_per_atom=  331.93 meV, RMSE_F= 1815.62 meV / A
+2026-03-25 11:26:25.861 DEBUG: Saving checkpoint: ./mace01/checkpoints/mace01_run-123_epoch-6_swa.pt
+2026-03-25 11:26:27.963 INFO: Epoch 7: head: Default, loss=17.20877727, RMSE_E_per_atom=  312.21 meV, RMSE_F=  864.82 meV / A
+2026-03-25 11:26:27.964 DEBUG: Deleting old checkpoint file: ./mace01/checkpoints/mace01_run-123_epoch-6_swa.pt
+2026-03-25 11:26:27.969 DEBUG: Saving checkpoint: ./mace01/checkpoints/mace01_run-123_epoch-7_swa.pt
+2026-03-25 11:26:30.082 INFO: Epoch 8: head: Default, loss=5.77820076, RMSE_E_per_atom=  137.13 meV, RMSE_F=  625.16 meV / A
+2026-03-25 11:26:30.083 DEBUG: Deleting old checkpoint file: ./mace01/checkpoints/mace01_run-123_epoch-7_swa.pt
+2026-03-25 11:26:30.088 DEBUG: Saving checkpoint: ./mace01/checkpoints/mace01_run-123_epoch-8_swa.pt
+2026-03-25 11:26:32.192 INFO: Epoch 9: head: Default, loss=2.55371450, RMSE_E_per_atom=   37.76 meV, RMSE_F=  491.83 meV / A
+2026-03-25 11:26:32.192 DEBUG: Deleting old checkpoint file: ./mace01/checkpoints/mace01_run-123_epoch-8_swa.pt
+2026-03-25 11:26:32.197 DEBUG: Saving checkpoint: ./mace01/checkpoints/mace01_run-123_epoch-9_swa.pt
+2026-03-25 11:26:32.284 INFO: Training complete
+2026-03-25 11:26:32.284 INFO: 
+2026-03-25 11:26:32.284 INFO: ===========RESULTS===========
+2026-03-25 11:26:32.744 INFO: Loading checkpoint: ./mace01/checkpoints/mace01_run-123_epoch-5.pt
+2026-03-25 11:26:32.787 INFO: Loaded Stage one model from epoch 5 for evaluation
+2026-03-25 11:26:32.787 INFO: Saving model to mace01/checkpoints/mace01_run-123.model
+2026-03-25 11:26:33.044 INFO: Compiling model, saving metadata to mace01/final_model/mace01_compiled.model
+2026-03-25 11:26:33.869 INFO: Computing metrics for training, validation, and test sets
+2026-03-25 11:26:33.870 INFO: Skipping evaluation for heads: ['pt_head']
+2026-03-25 11:26:33.870 INFO: Evaluating train_Default ...
+2026-03-25 11:26:34.705 INFO: Evaluating valid_Default ...
+2026-03-25 11:26:34.814 INFO: Error-table on TRAIN and VALID:
++---------------+---------------------+------------------+-------------------+
+|  config_type  | RMSE E / meV / atom | RMSE F / meV / A | relative F RMSE % |
++---------------+---------------------+------------------+-------------------+
+| train_Default |         2339.1      |        475.3     |         21.83     |
+| valid_Default |         2435.6      |        519.8     |         20.10     |
++---------------+---------------------+------------------+-------------------+
+2026-03-25 11:26:34.815 INFO: Evaluating Default_Default ...

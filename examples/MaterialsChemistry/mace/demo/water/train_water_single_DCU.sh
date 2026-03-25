@@ -1,7 +1,7 @@
 #!/bin/bash
 export OMP_NUM_THREADS=1
 export HIP_VISIBLE_DEVICES=0 
-source ../../../../env.sh
+source ../../../../../env.sh
 python ../../train.py \
     --name="water" \
     --train_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/water/water_train.xyz" \

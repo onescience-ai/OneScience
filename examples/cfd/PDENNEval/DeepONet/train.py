@@ -7,7 +7,7 @@ import copy
 from timeit import default_timer
 from pathlib import Path
 from tqdm import tqdm
-
+import argparse
 from onescience.utils.YParams import YParams
 from onescience.distributed.manager import DistributedManager
 from onescience.datapipes.cfd.PDENNEval import PDEBenchDeepONetDatapipe
@@ -55,9 +55,6 @@ def train_loop(train_loader, model, optimizer, device, cfg, rank):
     data_cfg = cfg.datapipe.data
     
     initial_step = data_cfg.initial_step
-    # 判断是否为时序问题 (if_temporal) 需要根据数据维度动态判断，
-    # 这里我们简化逻辑：如果 t_coordinate 存在且维度>1，或者 config 中指明
-    # 为了保持与原逻辑一致，我们在 main 中判断 if_temporal 并传入
     if_temporal = cfg.runtime.if_temporal 
     
     for x, y, grid in train_loader:
@@ -165,40 +162,52 @@ def val_loop(val_loader, model, device, cfg):
     return val_loss, val_l_inf
 
 def main():
+    # 1. 初始化分布式环境
     DistributedManager.initialize()
     dist = DistributedManager()
     device = dist.device
-    
-    config_path = "config/config_1D_Diffusion-Reaction.yaml"
+
+    # 2. 解析命令行参数 
+    parser = argparse.ArgumentParser(description='Train DeepONet model')
+    parser.add_argument('config', type=str, help='Path to config file')
+    args = parser.parse_args()
+    config_path = args.config
+
+    # 验证配置文件是否存在
+    if not os.path.exists(config_path):
+        if dist.rank == 0:
+            print(f"Error: Config file not found at {config_path}")
+        sys.exit(1)
+        
     cfg = YParams(config_path, "deeponet_config")
-    
+
+    if hasattr(cfg.datapipe, 'source') and hasattr(cfg.datapipe.source, 'data_dir'):
+        cfg.datapipe.source.data_dir = os.path.expandvars(cfg.datapipe.source.data_dir)
+    # ---------------------------------------
+
     output_dir = Path(cfg.training.output_dir)
     if dist.rank == 0:
         if not output_dir.exists():
             output_dir.mkdir(parents=True, exist_ok=True)
         print(f"Output Directory: {output_dir}")
         print(f"Training on {dist.world_size} GPUs")
+        print(f"Data Directory after expansion: {cfg.datapipe.source.data_dir}")
 
-    # Data Pipeline
+    # 4. Data Pipeline
     datapipe = PDEBenchDeepONetDatapipe(cfg, distributed=(dist.world_size > 1))
     train_loader, train_sampler = datapipe.train_dataloader()
     val_loader, val_sampler = datapipe.val_dataloader()
     
-    # Runtime Config injection (Determine dimensions from data)
-    # 取一个样本来判断维度和是否时序
-    # 注意：在 DDP 模式下，最好确保所有 rank 获取的信息一致，或者仅 rank 0 获取后广播
-    # 这里为了简单，每个 rank 都取一个 sample (假设数据足够)
-    # 更好的方式是在 Datapipe 中作为属性暴露
+    # 动态获取数据维度逻辑
     temp_sample = next(iter(train_loader))
     _, sample_y, _ = temp_sample
     spatial_dim = len(sample_y.shape) - 3
     if_temporal = True if sample_y.shape[-2] != 1 else False
     
-    # 动态注入到 cfg 以便传递给函数
-    # YParams 允许动态添加属性
+    # 将运行时推断的状态存入 cfg
     cfg.runtime = type('obj', (object,), {'if_temporal': if_temporal})
     
-    # Model
+    # 5. Model
     model = get_model(spatial_dim, if_temporal, cfg).to(device)
     if dist.rank == 0:
         print(f"Model Params: {count_params(model)}")
@@ -206,24 +215,34 @@ def main():
     if dist.world_size > 1:
         model = DDP(model, device_ids=[dist.local_rank], output_device=dist.local_rank)
         
-    # Optimizer & Scheduler
+    # 6. Optimizer & Scheduler
     train_cfg = cfg.training
     optim_cfg = train_cfg.optimizer
     sched_cfg = train_cfg.scheduler
     
-    optimizer = getattr(torch.optim, optim_cfg.name)(model.parameters(), lr=optim_cfg.lr, weight_decay=optim_cfg.weight_decay)
-    scheduler = getattr(torch.optim.lr_scheduler, sched_cfg.name)(optimizer, step_size=sched_cfg.step_size, gamma=sched_cfg.gamma)
+    optimizer = getattr(torch.optim, optim_cfg.name)(
+        model.parameters(), 
+        lr=optim_cfg.lr, 
+        weight_decay=optim_cfg.weight_decay
+    )
+    scheduler = getattr(torch.optim.lr_scheduler, sched_cfg.name)(
+        optimizer, 
+        step_size=sched_cfg.step_size, 
+        gamma=sched_cfg.gamma
+    )
     
-    # Resume Logic (Optional)
+    # 7. Resume Logic
     start_epoch = 0
     min_val_loss = float('inf')
     if train_cfg.continue_training:
         ckpt = torch.load(train_cfg.model_path, map_location=device)
-        model.module.load_state_dict(ckpt["model_state_dict"]) if dist.world_size > 1 else model.load_state_dict(ckpt["model_state_dict"])
+        model_to_load = model.module if dist.world_size > 1 else model
+        model_to_load.load_state_dict(ckpt["model_state_dict"])
         start_epoch = ckpt['epoch']
         min_val_loss = ckpt['loss']
         if dist.rank == 0: print(f"Resumed from epoch {start_epoch}")
 
+    # 8. Training Loop
     if dist.rank == 0:
         print("Starting Training...")
         pbar = tqdm(range(start_epoch, train_cfg.epochs), dynamic_ncols=True)

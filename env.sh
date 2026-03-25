@@ -1,5 +1,5 @@
-export ONESCIENCE_DATASETS_DIR="/public/onestore/onedatasets"
-export ONESCIENCE_MODELS_DIR="/public/onestore/onemodels"
+export ONESCIENCE_DATASETS_DIR="/public/share/sugonhpcapp01/onestore/onedatasets"
+export ONESCIENCE_MODELS_DIR="/public/share/sugonhpcapp01/onestore/onemodels"
 export device="gpu" # gpu or dcu
 
 # check datasets path

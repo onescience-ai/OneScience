@@ -9,12 +9,14 @@
 #SBATCH -o ./log/%j.out # 标准输出日志文件保存路径
 #SBATCH -e ./log/%j.err # 标准错误日志文件保存路径
 
-
 module purge
-module load mpi/hpcx/2.12.0/gcc-8.3.1
-module load compiler/dtk/25.04
-source /work/home/onescience2025/anaconda3/bin/activate
-conda activate fairchemtest
+source ~/.bashrc
+conda activate onescience311
+module load sghpc-mpi-gcc/26.3
+
+source ${ROCM_PATH}/cuda/env.sh
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+
 unset ROCBLAS_TENSILE_LIBPATH
 export NCCL_IB_HCA=mlx5_0
 export NCCL_SOCKET_IFNAME=ib0

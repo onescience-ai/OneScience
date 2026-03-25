@@ -61,7 +61,7 @@ root:
     # 支持列表 (取决于代码实现): 
     # - 自回归类: "auto_deeponet", "auto_ffn", "auto_edeeponet", "fno", "resnet", "unet"
     # - 静态类: "deeponet", "ffn"
-    name: "fno" 
+    name: "deeponet" 
     
     # --- Auto (自回归) 模型通用参数 ---
     # 输入通道数 (例如: u速度, v速度)
