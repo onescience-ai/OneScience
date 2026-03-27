@@ -143,6 +143,7 @@ basic_requires = [
   	"setuptools",
     "biotite",
     "args",
+    "ninja",
 ]
 
 
