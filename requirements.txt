@@ -115,5 +115,6 @@ pillow==11.0.0
 scipy==1.14.1
 tabulate
 typeguard==2.13.3
+ninja==1.13.0
 
 args
