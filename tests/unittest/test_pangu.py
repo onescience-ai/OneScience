@@ -10,8 +10,8 @@ model = Pangu(img_size=(721, 1440),
               embed_dim=192,
               num_heads=[6, 12, 12, 6],
               window_size=[2, 6, 12],
-              )
-x = torch.randn(2, 69, 721, 1440)
+              ).cuda()
+x = torch.randn(2, 69, 721, 1440).cuda()
 surface_mask = torch.randn(2, 3, 721, 1440)
 
 invar_surface = x[:, :4, :, :]
