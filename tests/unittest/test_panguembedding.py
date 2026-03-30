@@ -1,6 +1,7 @@
 import torch
 from onescience.modules import OneEmbedding
 import warnings
+import math
 
 # 忽略有关 'torch.meshgrid' 的警告
 warnings.filterwarnings("ignore", message=".*torch.meshgrid.*")
@@ -15,7 +16,10 @@ surface_patch_embed = OneEmbedding(
 )
 surface_x = torch.randn(2, 7, 721, 1440)
 surface_out = surface_patch_embed(surface_x)
-surface_target_shape = torch.Size([2, 192, 181, 360])
+
+surface_target_shape = torch.Size(
+    [surface_x.shape[0], 192, math.ceil(surface_x.shape[2] / 4), math.ceil(surface_x.shape[3] / 4)]
+)
 
 print('Function: Pangu Embedding Surface Forward')
 print(f'output shape: {surface_out.shape}')
@@ -33,7 +37,16 @@ upper_air_patch_embed = OneEmbedding(
 )
 upper_air_x = torch.randn(2, 5, 13, 721, 1440)
 upper_air_out = upper_air_patch_embed(upper_air_x)
-upper_air_target_shape = torch.Size([2, 192, 7, 181, 360])
+
+upper_air_target_shape = torch.Size(
+    [
+        upper_air_x.shape[0],
+        192,
+        math.ceil(upper_air_x.shape[2] / 2),
+        math.ceil(upper_air_x.shape[3] / 4),
+        math.ceil(upper_air_x.shape[4] / 4),
+    ]
+)
 
 print('Function: Pangu Embedding Upper Air Forward')
 print(f'output shape: {upper_air_out.shape}')
