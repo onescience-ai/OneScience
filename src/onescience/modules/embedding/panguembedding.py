@@ -31,7 +31,7 @@ class PanguEmbedding(nn.Module):
                 patch 的切分尺寸。
                 - 二维输入对应 (Patch Height, Patch Width)
                 - 三维输入对应 (Patch Pressure Levels, Patch Height, Patch Width)
-            in_chans (int):
+            Variables (int):
                 输入变量通道数。
                 - 默认Pangu模型二维输入通常为7=4个地陆地变量+3个静态掩码
                 - 默认Pangu模型三维输入通常为5个大气变量对应 Z、Q、T、U、V
@@ -71,7 +71,7 @@ class PanguEmbedding(nn.Module):
             >>> surface_embed = PanguEmbedding(
             ...     img_size=(721, 1440),
             ...     patch_size=(4, 4),
-            ...     in_chans=7,
+            ...     Variables=7,
             ...     embed_dim=192
             ... )
             >>> surface = torch.randn(2, 7, 721, 1440)
@@ -84,7 +84,7 @@ class PanguEmbedding(nn.Module):
             >>> upper_air_embed = PanguEmbedding(
             ...     img_size=(13, 721, 1440),
             ...     patch_size=(2, 4, 4),
-            ...     in_chans=5,
+            ...     Variables=5,
             ...     embed_dim=192
             ... )
             >>> upper_air = torch.randn(2, 5, 13, 721, 1440)
@@ -97,7 +97,7 @@ class PanguEmbedding(nn.Module):
         self,
         img_size=(13, 721, 1440),
         patch_size=(2, 4, 4),
-        in_chans=5,
+        Variables=5,
         embed_dim=192,
         norm_layer=None,
     ):
@@ -111,12 +111,10 @@ class PanguEmbedding(nn.Module):
         level, height, width = img_size
         l_patch_size, h_patch_size, w_patch_size = patch_size
 
-        padding_left = (
-            padding_right
-        ) = padding_top = padding_bottom = padding_front = padding_back = 0
+        padding_left = padding_right = padding_top = padding_bottom = padding_front = padding_back = 0
 
         l_remainder = level % l_patch_size
-        h_remainder = height % l_patch_size
+        h_remainder = height % h_patch_size
         w_remainder = width % w_patch_size
 
         if l_remainder:
@@ -143,7 +141,7 @@ class PanguEmbedding(nn.Module):
             )
         )
         self.proj = nn.Conv3d(
-            in_chans, embed_dim, kernel_size=patch_size, stride=patch_size
+            Variables, embed_dim, kernel_size=patch_size, stride=patch_size
         )
         if norm_layer is not None:
             self.norm = norm_layer(embed_dim)

@@ -55,8 +55,17 @@ class Pangu(nn.Module):
         drop_path = np.linspace(0, 0.2, 8).tolist()
         # In addition, three constant masks(the topography mask, land-sea mask and soil type mask)
         
-        self.patchembed2d = OneEmbedding(style="PanguEmbedding2D")
-        self.patchembed3d = OneEmbedding(style="PanguEmbedding3D")
+        self.patchembed2d = OneEmbedding(style="PanguEmbedding", 
+                                         img_size=img_size, 
+                                         patch_size=patch_size[1:],
+                                         Variables=7, 
+                                         embed_dim=embed_dim)
+        self.patchembed3d = OneEmbedding(style="PanguEmbedding", 
+                                         img_size=(13, *img_size), 
+                                         patch_size=patch_size,
+                                         Variables=5, 
+                                         embed_dim=embed_dim)
+
         
         patched_inp_shape = (
             8,
