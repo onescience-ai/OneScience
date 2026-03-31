@@ -15,9 +15,9 @@ pip install https://download.sourcefind.cn:65024/directlink/4/transformer_engine
 pip install https://download.sourcefind.cn:65024/directlink/4/flash_attn/DAS1.7/flash_attn-2.6.1+das.opt1.dtk25042-cp311-cp311-manylinux_2_28_x86_64.whl
 pip install https://download.sourcefind.cn:65024/file/4/fastpt/DAS1.7/fastpt-2.1.1+das.dtk25042-cp311-cp311-linux_x86_64.whl
 pip install https://download.sourcefind.cn:65024/directlink/4/dgl/DAS1.7/dgl-2.2.1+das.opt1.dtk25042-cp311-cp311-manylinux_2_28_x86_64.whl
+pip install https://download.sourcefind.cn:65024/file/4/tensorflow/DAS1.7/tensorflow-2.18.0+das.opt1.dtk25042-cp311-cp311-manylinux_2_28_x86_64.whl
 pip install https://download.sourcefind.cn:65024/directlink/9/onesicence/dtk-25.04.2/bionemo_noodles-0.1.2-cp311-cp311-manylinux_2_28_x86_64.whl
 pip install https://download.sourcefind.cn:65024/directlink/9/onesicence/dtk-25.04.2/nemo_toolkit-2.5.0rc0-py3-none-any.whl
-pip install https://download.sourcefind.cn:65024/file/4/tensorflow/DAS1.7/tensorflow-2.18.0+das.opt1.dtk25042-cp311-cp311-manylinux_2_28_x86_64.whl
 pip install https://download.sourcefind.cn:65024/directlink/9/onesicence/dtk-25.04.2/torch_scatter-2.1.0+das.opt1.dtk25043-cp311-cp311-linux_x86_64.whl
 pip install https://download.sourcefind.cn:65024/directlink/9/onesicence/dtk-25.04.2/torch_cluster-1.6.3+das.opt1.dtk25043-cp311-cp311-linux_x86_64.whl
 pip install https://download.sourcefind.cn:65024/directlink/9/onesicence/dtk-25.04.2/openmm-8.0.0-cp311-cp311-linux_x86_64.whl
