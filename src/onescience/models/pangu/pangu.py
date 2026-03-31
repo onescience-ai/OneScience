@@ -45,7 +45,7 @@ class Pangu(nn.Module):
 
     def __init__(
         self,
-        img_size=(13, 721, 1440),
+        img_size=(721, 1440),
         patch_size=(2, 4, 4),
         embed_dim=192,
         num_heads=(6, 12, 12, 6),
@@ -56,12 +56,12 @@ class Pangu(nn.Module):
         # In addition, three constant masks(the topography mask, land-sea mask and soil type mask)
         
         self.patchembed2d = OneEmbedding(style="PanguEmbedding", 
-                                         img_size=img_size[1:], 
+                                         img_size=img_size, 
                                          patch_size=patch_size[1:],
                                          Variables=7, 
                                          embed_dim=embed_dim)
         self.patchembed3d = OneEmbedding(style="PanguEmbedding", 
-                                         img_size=img_size, 
+                                         img_size=(13, *img_size), 
                                          patch_size=patch_size,
                                          Variables=5, 
                                          embed_dim=embed_dim)
@@ -90,7 +90,7 @@ class Pangu(nn.Module):
         )
         
         self.downsample = OneSample(
-            style="PanguDownSample3D",
+            style="PanguDownSample",
             in_dim=embed_dim,
             input_resolution=patched_inp_shape,
             output_resolution=patched_inp_shape_downsample,
