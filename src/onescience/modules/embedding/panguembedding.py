@@ -68,27 +68,39 @@ class PanguEmbedding(nn.Module):
         Example:
             >>> # Pangu-Weather 中的 surface 分支
             >>> # 输入来自 4 个地表变量 + 3 个静态掩码
-            >>> surface_embed = PanguEmbedding(
-            ...     img_size=(721, 1440),
-            ...     patch_size=(4, 4),
-            ...     Variables=7,
-            ...     embed_dim=192
-            ... )
-            >>> surface = torch.randn(2, 7, 721, 1440)
-            >>> surface_out = surface_embed(surface)
+            >>> Batch = 2
+            >>> Variables = 7
+            >>> img_size = [721, 1440]
+            >>> patch_size = (4, 4)
+            >>> embed_dim = 192
+            >>> surface_patch_embed = OneEmbedding(
+            ...     style="PanguEmbedding",
+            ...     img_size=img_size,
+            ...     patch_size=patch_size,
+            ...     Variables=Variables,
+            ...     embed_dim=embed_dim
+            ... ).cuda()
+            >>> surface_x = torch.randn(Batch, Variables, *img_size).cuda()
+            >>> surface_out = surface_patch_embed(surface_x)
             >>> surface_out.shape
             torch.Size([2, 192, 181, 360])
 
             >>> # Pangu-Weather 中的 upper-air 分支
             >>> # 原始 65 个高空通道会先 reshape 成 5 个变量类型 × 13 个气压层
-            >>> upper_air_embed = PanguEmbedding(
-            ...     img_size=(13, 721, 1440),
-            ...     patch_size=(2, 4, 4),
-            ...     Variables=5,
-            ...     embed_dim=192
-            ... )
-            >>> upper_air = torch.randn(2, 5, 13, 721, 1440)
-            >>> upper_air_out = upper_air_embed(upper_air)
+            >>> Batch = 2
+            >>> Variables = 5
+            >>> img_size = [13, 721, 1440]
+            >>> patch_size = (2, 4, 4)
+            >>> embed_dim = 192
+            >>> upper_air_patch_embed = OneEmbedding(
+            ...     style="PanguEmbedding",
+            ...     img_size=img_size,
+            ...     patch_size=patch_size,
+            ...     Variables=Variables,
+            ...     embed_dim=embed_dim
+            ... ).cuda()
+            >>> upper_air_x = torch.randn(Batch, Variables, *img_size).cuda()
+            >>> upper_air_out = upper_air_patch_embed(upper_air_x)
             >>> upper_air_out.shape
             torch.Size([2, 192, 7, 181, 360])
     """
