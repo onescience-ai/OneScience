@@ -1,5 +1,6 @@
 from torch import nn
 
+from .pangudownsample import PanguDownSample
 from .pangudownsample2d import PanguDownSample2D
 from .panguupsample2d import PanguUpSample2D
 from .pangudownsample3d import PanguDownSample3D
@@ -11,6 +12,7 @@ from .fuxiupsample import FuxiUpSample
 from .xiheupsample import XiheUpSample
 
 _SAMPLER_REGISTRY = {
+    "PanguDownSample": PanguDownSample,
     "PanguDownSample2D": PanguDownSample2D,
     "PanguDownSample3D": PanguDownSample3D,
     "PanguUpSample2D": PanguUpSample2D,
