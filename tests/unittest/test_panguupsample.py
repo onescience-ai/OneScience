@@ -17,9 +17,9 @@ surface_upsample = OneSample(
     output_resolution=output_resolution,
     in_dim=in_dim,
     out_dim=out_dim,
-)
+).cuda()
 
-surface_x = torch.randn(Batch, input_resolution[0] * input_resolution[1], in_dim)
+surface_x = torch.randn(Batch, input_resolution[0] * input_resolution[1], in_dim).cuda()
 surface_out = surface_upsample(surface_x)
 surface_target_shape = torch.Size(
     [Batch, output_resolution[0] * output_resolution[1], out_dim]
@@ -44,13 +44,13 @@ upper_air_upsample = OneSample(
     output_resolution=output_resolution,
     in_dim=in_dim,
     out_dim=out_dim,
-)
+).cuda()
 
 upper_air_x = torch.randn(
     Batch,
     input_resolution[0] * input_resolution[1] * input_resolution[2],
     in_dim,
-)
+).cuda()
 upper_air_out = upper_air_upsample(upper_air_x)
 upper_air_target_shape = torch.Size(
     [Batch, output_resolution[0] * output_resolution[1] * output_resolution[2], out_dim]
