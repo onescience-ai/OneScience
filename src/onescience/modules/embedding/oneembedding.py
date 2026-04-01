@@ -8,10 +8,32 @@ from .fourcastnetembedding import FourCastNetEmbedding
 from .xiheembedding import XiheEmbedding
 from .graphcast_embedder import GraphCastEncoderEmbedder, GraphCastDecoderEmbedder
 from .protenixembedding import (
-     ProtenixFourierEmbedding,
-     ProtenixInputFeatureEmbedder,
-     ProtenixTemplateEmbedder,
- )
+    ProtenixFourierEmbedding,
+    ProtenixInputFeatureEmbedder,
+    ProtenixTemplateEmbedder,
+)
+
+try:
+    from .mace_embedding_blocks import (
+        AtomicEnergiesBlock as MaceAtomicEnergiesBlock,
+        LinearNodeEmbeddingBlock as MaceLinearNodeEmbeddingBlock,
+        RadialEmbeddingBlock as MaceRadialEmbeddingBlock,
+    )
+except Exception:  # pragma: no cover - optional MACE deps
+    MaceAtomicEnergiesBlock = None
+    MaceLinearNodeEmbeddingBlock = None
+    MaceRadialEmbeddingBlock = None
+
+try:
+    from .uma_embedding_dev import (
+        ChgSpinEmbedding as UmaChgSpinEmbedding,
+        DatasetEmbedding as UmaDatasetEmbedding,
+        EdgeDegreeEmbedding as UmaEdgeDegreeEmbedding,
+    )
+except Exception:  # pragma: no cover - optional UMA deps
+    UmaChgSpinEmbedding = None
+    UmaDatasetEmbedding = None
+    UmaEdgeDegreeEmbedding = None
 
 _EMBEDDER_REGISTRY = {
     "PanguEmbedding2D": PanguEmbedding2D,
@@ -27,6 +49,25 @@ _EMBEDDER_REGISTRY = {
     "ProtenixTemplateEmbedder": ProtenixTemplateEmbedder,
 }
 
+if MaceLinearNodeEmbeddingBlock is not None:
+    _EMBEDDER_REGISTRY.update(
+        {
+            "MaceLinearNodeEmbeddingBlock": MaceLinearNodeEmbeddingBlock,
+            "MaceRadialEmbeddingBlock": MaceRadialEmbeddingBlock,
+            "MaceAtomicEnergiesBlock": MaceAtomicEnergiesBlock,
+        }
+    )
+
+if UmaEdgeDegreeEmbedding is not None:
+    _EMBEDDER_REGISTRY.update(
+        {
+            "UmaEdgeDegreeEmbedding": UmaEdgeDegreeEmbedding,
+            "UmaChgSpinEmbedding": UmaChgSpinEmbedding,
+            "UmaDatasetEmbedding": UmaDatasetEmbedding,
+        }
+    )
+
+
 class OneEmbedding(nn.Module):
 
     def __init__(self, style: str, **kwargs):
@@ -36,7 +77,7 @@ class OneEmbedding(nn.Module):
             raise NotImplementedError(f"Unknown style: {style}")
 
         self.embedder = _EMBEDDER_REGISTRY[style](**kwargs)
-    
+
     def __getattr__(self, name):
         try:
             return super().__getattr__(name)
@@ -44,4 +85,4 @@ class OneEmbedding(nn.Module):
             return getattr(self.embedder, name)
 
     def forward(self, *args, **kwargs):
-        return self.embedder(*args, **kwargs) 
+        return self.embedder(*args, **kwargs)

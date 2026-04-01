@@ -13,32 +13,32 @@ from onescience.models.UMA.common import gp_utils
 from onescience.models.UMA.common.distutils import get_device_for_local_rank
 from onescience.models.UMA.common.registry import registry
 from onescience.models.UMA.common.utils import conditional_grad
-from onescience.models.UMA.graph.compute import generate_graph
+from onescience.modules.utils.uma_graph_compute import generate_graph
 from onescience.models.UMA.models.base import HeadInterface
-from onescience.models.UMA.models.uma.common.rotation import (
+from onescience.modules.equivariant.uma_rotation import (
     init_edge_rot_mat,
     rotation_to_wigner,
 )
-from onescience.models.UMA.models.uma.common.rotation_cuda_graph import RotMatWignerCudaGraph
-from onescience.models.UMA.models.uma.common.so3 import CoefficientMapping, SO3_Grid
-from onescience.models.UMA.models.uma.nn.embedding_dev import (
+from onescience.modules.equivariant.uma_rotation_cuda_graph import RotMatWignerCudaGraph
+from onescience.modules.equivariant.uma_so3_common import CoefficientMapping, SO3_Grid
+from onescience.modules.embedding.uma_embedding_dev import (
     ChgSpinEmbedding,
     DatasetEmbedding,
     EdgeDegreeEmbedding,
 )
-from onescience.models.UMA.models.uma.nn.layer_norm import (
+from onescience.modules.equivariant.uma_layer_norm import (
     EquivariantLayerNormArray,
     EquivariantLayerNormArraySphericalHarmonics,
     EquivariantRMSNormArraySphericalHarmonics,
     EquivariantRMSNormArraySphericalHarmonicsV2,
     get_normalization_layer,
 )
-from onescience.models.UMA.models.uma.nn.mole_utils import MOLEInterface
-from onescience.models.UMA.models.uma.nn.radial import GaussianSmearing
-from onescience.models.UMA.models.uma.nn.so3_layers import SO3_Linear
+from onescience.modules.utils.uma_mole_utils import MOLEInterface
+from onescience.modules.embedding.uma_radial import GaussianSmearing
+from onescience.modules.equivariant.uma_so3_layers import SO3_Linear
 from onescience.models.UMA.models.utils.irreps import cg_change_mat, irreps_sum
 
-from .escn_md_block import eSCNMD_Block
+from onescience.modules.layer.uma_escn_md_block import eSCNMD_Block
 
 ESCNMD_DEFAULT_EDGE_CHUNK_SIZE = 1024 * 128
 
@@ -121,14 +121,14 @@ class eSCNMDBackbone(nn.Module, MOLEInterface):
             self.dataset_list
         ), "the dataset list is empty, please add it to the model backbone config"
 
-        # rotation utils  修改
-        # 获取当前工作目录
+        # rotation utils  淇敼
+        # 鑾峰彇褰撳墠宸ヤ綔鐩綍
         current_working_dir = os.getcwd()
 
-        # 拼接 Jd.pt 文件的路径
+        # 鎷兼帴 Jd.pt 鏂囦欢鐨勮矾寰?
         Jd_pt_path = os.path.join(current_working_dir, "models", "Jd.pt")
 
-        # 加载 Jd.pt
+        # 鍔犺浇 Jd.pt
         Jd_list = torch.load(Jd_pt_path)
         for l in range(self.lmax + 1):
             self.register_buffer(f"Jd_{l}", Jd_list[l])
@@ -902,3 +902,4 @@ class MLP_Stress_Head(nn.Module, HeadInterface):
         stress = compose_tensor(iso_stress.unsqueeze(1), aniso_stress)
 
         return {"stress": stress}
+

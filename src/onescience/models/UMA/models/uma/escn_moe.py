@@ -15,10 +15,10 @@ from onescience.models.UMA.common.registry import registry
 from onescience.models.UMA.common.utils import conditional_grad
 from onescience.models.UMA.models.base import HeadInterface
 from onescience.models.UMA.models.uma.escn_md import eSCNMDBackbone
-from onescience.models.UMA.models.uma.nn.mole import (
+from onescience.modules.equivariant.uma_mole import (
     MOLEGlobals,
 )
-from onescience.models.UMA.models.uma.nn.mole_utils import (
+from onescience.modules.utils.uma_mole_utils import (
     MOLEInterface,
     convert_model_to_MOLE_model,
     model_search_and_replace,
@@ -330,3 +330,4 @@ class DatasetSpecificSingleHeadWrapper(nn.Module, HeadInterface):
                 )
 
         return full_output
+

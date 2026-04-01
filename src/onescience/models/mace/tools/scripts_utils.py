@@ -408,34 +408,26 @@ def convert_to_json_format(dict_input):
     return dict_input
 
 
+def _resolve_interaction_class(value):
+    interaction_class_map = modules.interaction_classes
+    if isinstance(value, type):
+        return value
+    if not isinstance(value, str):
+        return value
+    for class_name, class_type in interaction_class_map.items():
+        if class_name in value:
+            return class_type
+    return value
+
+
 def convert_from_json_format(dict_input):
     dict_output = dict_input.copy()
-    if (
+    dict_output["interaction_cls"] = _resolve_interaction_class(
         dict_input["interaction_cls"]
-        == "<class 'mace.modules.blocks.RealAgnosticResidualInteractionBlock'>"
-    ):
-        dict_output["interaction_cls"] = (
-            modules.blocks.RealAgnosticResidualInteractionBlock
-        )
-    if (
-        dict_input["interaction_cls"]
-        == "<class 'mace.modules.blocks.RealAgnosticInteractionBlock'>"
-    ):
-        dict_output["interaction_cls"] = modules.blocks.RealAgnosticInteractionBlock
-    if (
+    )
+    dict_output["interaction_cls_first"] = _resolve_interaction_class(
         dict_input["interaction_cls_first"]
-        == "<class 'mace.modules.blocks.RealAgnosticResidualInteractionBlock'>"
-    ):
-        dict_output["interaction_cls_first"] = (
-            modules.blocks.RealAgnosticResidualInteractionBlock
-        )
-    if (
-        dict_input["interaction_cls_first"]
-        == "<class 'mace.modules.blocks.RealAgnosticInteractionBlock'>"
-    ):
-        dict_output["interaction_cls_first"] = (
-            modules.blocks.RealAgnosticInteractionBlock
-        )
+    )
     dict_output["r_max"] = float(dict_input["r_max"])
     dict_output["num_bessel"] = int(dict_input["num_bessel"])
     dict_output["num_polynomial_cutoff"] = float(dict_input["num_polynomial_cutoff"])

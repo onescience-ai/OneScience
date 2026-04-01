@@ -3,6 +3,21 @@ from torch import nn
 from .maskedmsahead import MaskedMSAHead
 from .unet_head import UNetHead1D, UNetHead2D, UNetHead3D
 
+try:
+    from .mace_readout_blocks import (
+        LinearDipoleReadoutBlock as MaceLinearDipoleReadoutBlock,
+        LinearReadoutBlock as MaceLinearReadoutBlock,
+        NonLinearDipoleReadoutBlock as MaceNonLinearDipoleReadoutBlock,
+        NonLinearReadoutBlock as MaceNonLinearReadoutBlock,
+        ScaleShiftBlock as MaceScaleShiftBlock,
+    )
+except Exception:  # pragma: no cover - optional MACE deps
+    MaceLinearDipoleReadoutBlock = None
+    MaceLinearReadoutBlock = None
+    MaceNonLinearDipoleReadoutBlock = None
+    MaceNonLinearReadoutBlock = None
+    MaceScaleShiftBlock = None
+
 # 构建统一的注册表
 _HEAD_REGISTRY = {
     "MaskedMSAHead": MaskedMSAHead,
@@ -10,6 +25,17 @@ _HEAD_REGISTRY = {
     "UNetHead2D": UNetHead2D,
     "UNetHead3D": UNetHead3D,
 }
+
+if MaceLinearReadoutBlock is not None:
+    _HEAD_REGISTRY.update(
+        {
+            "MaceLinearReadoutBlock": MaceLinearReadoutBlock,
+            "MaceNonLinearReadoutBlock": MaceNonLinearReadoutBlock,
+            "MaceLinearDipoleReadoutBlock": MaceLinearDipoleReadoutBlock,
+            "MaceNonLinearDipoleReadoutBlock": MaceNonLinearDipoleReadoutBlock,
+            "MaceScaleShiftBlock": MaceScaleShiftBlock,
+        }
+    )
 
 class OneHead(nn.Module):
     """
@@ -31,3 +57,4 @@ class OneHead(nn.Module):
         前向传播
         """
         return self.head(*args, **kwargs)
+
