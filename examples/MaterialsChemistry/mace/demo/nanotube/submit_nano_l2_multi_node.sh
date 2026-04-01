@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -J md_multi_node
-#SBATCH -p newlarge
+#SBATCH -p hpctest03
 #SBATCH --nodes=2              # 多节点训练
 #SBATCH --ntasks-per-node=8    # 使用 srun 启动时，这里的任务数必须等于单节点的显卡数
 #SBATCH --cpus-per-task=8      # 调整为每个进程8个CPU 核心(8进程x8核心 = 单节点共用64核心)
@@ -10,11 +10,12 @@
 
 module purge
 source ~/.bashrc
-conda activate onescience311
+conda activate chem_py11_25043 
 module load sghpc-mpi-gcc/26.3
 
-source ${ROCM_PATH}/cuda/env.sh
-export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+source /public/software/compiler/dtk-25.04.2/cuda/env.sh
+export LD_LIBRARY_PATH="/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/fastpt/torch/lib:$CONDA_PREFIX/lib/python3.11/site-packages/torch/lib:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
+
 
 echo "========================================="
 echo "Nodes allocated: $SLURM_JOB_NODELIST"
@@ -31,16 +32,17 @@ export OMP_NUM_THREADS=1
 export HSA_FORCE_FINE_GRAIN_PCIE=1
 # 注意：你需要根据你们超算的实际硬件，确认 InfiniBand 网卡的名字是不是 ib0 和 mlx5_0
 export NCCL_SOCKET_IFNAME=ib0
-export NCCL_IB_HCA=mlx5_0
-export NCCL_PROTO=Simple
-
+#export NCCL_IB_HCA=shca_0
+#export NCCL_PROTO=Simple
+export NCCL_COLLNET_ENABLE=0
 # 设置分布式的 env:// 环境变量
 export MASTER_ADDR=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_PORT=29517
 export WORLD_SIZE=$SLURM_NTASKS
-
+export NCCL_DEBUG=WARN
 echo "MASTER_ADDR: $MASTER_ADDR"
 echo "WORLD_SIZE: $WORLD_SIZE"
+source ../../../../../env.sh
 
 # 使用 srun 启动分布式训练
 # srun 会自动在你申请的所有节点和显卡上拉起对应数量的进程
@@ -48,17 +50,16 @@ srun --export=ALL bash -c '
   # Slurm 会自动给每个任务分配 ID，我们将它们转为 PyTorch 需要的环境变量
   export RANK=$SLURM_PROCID
   export LOCAL_RANK=$SLURM_LOCALID
-  source ../../../../../env.sh
 
   exec python ../../train.py \
-    --name="nanotube_l2_multi_nodes" \
+    --name="nano_l2_multi_nodes" \
     --train_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/nanotube/nanotube_large.xyz" \
     --valid_fraction=0.05 \
     --test_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/nanotube/nanotube_test.xyz" \
     --E0s="average" \
     --model="MACE" \
     --num_interactions=2 \
-    --num_channels=256 \
+    --num_channels=128 \
     --max_L=2 \
     --correlation=3 \
     --r_max=5.0 \
@@ -66,10 +67,10 @@ srun --export=ALL bash -c '
     --energy_weight=10 \
     --energy_key="Energy" \
     --forces_key="forces" \
-    --batch_size=2 \
-    --valid_batch_size=4 \
-    --max_num_epochs=100 \
-    --start_swa=60 \
+    --batch_size=1 \
+    --valid_batch_size=2 \
+    --max_num_epochs=5 \
+    --start_swa=6 \
     --scheduler_patience=5 \
     --patience=15 \
     --eval_interval=10 \
@@ -82,5 +83,5 @@ srun --export=ALL bash -c '
     --distributed \
     --seed=123 \
     --restart_latest \
-    --save_cp
-
+    --save_cp 
+'

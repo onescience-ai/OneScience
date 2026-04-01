@@ -1,10 +1,11 @@
 #!/bin/bash
 export OMP_NUM_THREADS=1
-export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6
+export HIP_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 source ../../../../../env.sh
+
 torchrun \
     --nnodes=1 \
-    --nproc_per_node=7 \
+    --nproc_per_node=8 \
     ../../train.py \
     --name="nano_l0" \
     --train_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/nanotube/nanotube_large.xyz" \
@@ -23,7 +24,7 @@ torchrun \
     --forces_key="forces" \
     --batch_size=4 \
     --valid_batch_size=8 \
-    --max_num_epochs=100 \
+    --max_num_epochs=300 \
     --start_swa=600  \
     --scheduler_patience=5 \
     --patience=15 \

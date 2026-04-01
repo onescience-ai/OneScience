@@ -1,6 +1,7 @@
 from ase.io import read, write
-nanotube_db = "${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/md22/md22_double-walled_nanotube.xyz"
+
+nanotube_db = "/public/share/sugonhpcapp01/onestore/onedatasets//MaterialsChemistry/examples/nanotube/nanotube_test_1.xyz"
 db = read(nanotube_db,':')
-#print(len(db))
-write('${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/md22/nanotube_large.xyz', db[:4000]) #first 4000 configs for train
-write('${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/md22/nanotube_test.xyz', db[4000:]) #last 1000 configs for test
+print(len(db))
+#write('/public/share/sugonhpcapp01/onestore/onedatasets/MaterialsChemistry/examples/nanotube/nanotube_test_1.xyz', db[:3]) #first 4000 configs for train
+#write('/public/share/sugonhpcapp01/onestore/onedatasets/MaterialsChemistry/examples/ani1x/ani1x_test.xyz', db[2000:3000]) #last 1000 configs for test

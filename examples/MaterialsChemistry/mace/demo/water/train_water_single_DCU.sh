@@ -3,7 +3,7 @@ export OMP_NUM_THREADS=1
 export HIP_VISIBLE_DEVICES=0 
 source ../../../../../env.sh
 python ../../train.py \
-    --name="water" \
+    --name="water_single" \
     --train_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/water/water_train.xyz" \
     --valid_fraction=0.05 \
     --test_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/water/water_test.xyz" \
@@ -18,9 +18,9 @@ python ../../train.py \
     --energy_weight=10 \
     --energy_key="TolEnergy" \
     --forces_key="force" \
-    --batch_size=2 \
-    --valid_batch_size=4 \
-    --max_num_epochs=250 \
+    --batch_size=1 \
+    --valid_batch_size=2 \
+    --max_num_epochs=50 \
     --start_swa=400  \
     --scheduler_patience=15 \
     --patience=30 \

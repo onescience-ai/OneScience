@@ -6,37 +6,34 @@ torchrun \
     --nnodes=1 \
     --nproc_per_node=8 \
     ../../train.py \
-    --name="ani1x_smallest" \
+    --name="ani1x" \
     --train_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/ani1x/ANI1x_cc_DFT_rc5_train" \
+    --valid_fraction=0.05 \
+    --test_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/ani1x/ANI1x_cc_DFT_rc5_test" \
     --valid_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/ani1x/ANI1x_cc_DFT_rc5_val" \
     --statistics_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/ani1x/ANI1x_cc_DFT_rc5_statistics.json" \
-    --E0s="{1: -13.62222753701504, 6: -1029.4130839658328, 7: -1484.8710358098756, 8: -2041.8396277138045}" \
+    --E0s="average" \
     --model="MACE" \
     --num_interactions=2 \
     --num_channels=64 \
     --max_L=0 \
     --correlation=3 \
-    --r_max=4.5 \
+    --r_max=6.0 \
     --forces_weight=1000 \
-    --energy_weight=40 \
-    --weight_decay=1e-7 \
-    --clip_grad=1.0 \
-    --batch_size=128 \
-    --valid_batch_size=128 \
-    --max_num_epochs=500 \
-    --scheduler_patience=20 \
-    --patience=50 \
-    --eval_interval=1 \
+    --energy_weight=10 \
+    --energy_key="TolEnergy" \
+    --forces_key="force" \
+    --batch_size=2 \
+    --valid_batch_size=4 \
+    --max_num_epochs=10 \
+    --scheduler_patience=15 \
+    --patience=30 \
+    --eval_interval=4 \
     --ema \
     --swa \
-    --start_swa=250 \
-    --swa_lr=0.00025 \
-    --swa_forces_weight=10 \
-    --num_workers=32 \
+    --distributed \
     --error_table='PerAtomMAE' \
     --default_dtype="float64"\
     --device=cuda \
     --seed=123 \
-    --restart_latest \
-    --distributed \
-    --save_cpu
+    --save_cp

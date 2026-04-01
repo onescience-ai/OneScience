@@ -10,7 +10,7 @@ import shutil
 from copy import deepcopy
 from pathlib import Path
 from typing import List, Optional
-
+import types
 import torch.distributed
 import torch.nn.functional
 from e3nn.util import jit
@@ -84,6 +84,35 @@ from onescience.models.mace.tools.tables_utils import create_error_table
 
 #from onescience.models.mace.tools.utils import AtomicNumberTable
 from onescience.datapipes.materials.tools.utils import AtomicNumberTable
+
+
+def _register_mace_data_sys_modules_for_unpickle() -> None:
+    """旧 checkpoint 可能引用 mace.data.*；类实际来自 pyg_stack。"""
+    from onescience.datapipes.materials.pyg_stack.core import atomic_data as pyg_atomic
+    from onescience.datapipes.materials.pyg_stack.core import utils as pyg_utils
+
+    mod_data = types.ModuleType("mace.data")
+    mod_data.AtomicData = pyg_atomic.AtomicData
+    mod_data.KeySpecification = pyg_utils.KeySpecification
+    mod_data.Configuration = pyg_utils.Configuration
+    mod_data.Configurations = pyg_utils.Configurations
+    mod_data.config_from_atoms = pyg_utils.config_from_atoms
+    mod_data.config_from_atoms_list = pyg_utils.config_from_atoms_list
+    mod_data.update_keyspec_from_kwargs = pyg_utils.update_keyspec_from_kwargs
+    mod_data.load_from_xyz = pyg_utils.load_from_xyz
+    sys.modules["mace.data"] = mod_data
+
+    mod_atomic = types.ModuleType("mace.data.atomic_data")
+    mod_atomic.AtomicData = pyg_atomic.AtomicData
+    sys.modules["mace.data.atomic_data"] = mod_atomic
+
+    mod_utils = types.ModuleType("mace.data.utils")
+    mod_utils.save_configurations_as_HDF5 = pyg_utils.save_configurations_as_HDF5
+    mod_utils.save_AtomicData_to_HDF5 = pyg_utils.save_AtomicData_to_HDF5
+    mod_utils.save_dataset_as_HDF5 = pyg_utils.save_dataset_as_HDF5
+    sys.modules["mace.data.utils"] = mod_utils
+
+
 
 def main() -> None:
     """
@@ -180,14 +209,14 @@ def run(args) -> None:
                 logging.info("Creating 'mace' module alias for loading foundation model...")
                 sys.modules['mace'] = onescience.models.mace
                 sys.modules['mace.tools'] = onescience.models.mace.tools
-                sys.modules['mace.data'] = onescience.models.mace.data
+                _register_mace_data_sys_modules_for_unpickle()
                 if hasattr(onescience.models.mace, 'modules'):
                     sys.modules['mace.modules'] = onescience.models.mace.modules
                 logging.info("Module alias created successfully.")
             except Exception as e:
                 logging.warning(f"Failed to create module alias: {e}")
             # --- !! 修复代码结束 !! ---
-            
+
             # 现在这个 torch.load 应该可以工作了
             model_foundation = torch.load(
                 args.foundation_model, map_location=args.device

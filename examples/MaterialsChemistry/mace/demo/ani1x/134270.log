@@ -1,0 +1,904 @@
+=========================================
+Node: a09r2n02
+Time: 2026年 03月 26日 星期四 20:42:59 CST
+=========================================
+>>> Pre-training DCU Status (Checking RAM):
+
+================================= System Management Interface ==================================
+================================================================================================
+HCU     Temp     AvgPwr     Perf     PwrCap     VRAM%      HCU%      Dec%      Enc%      Mode     
+0       52.0C    86.0W      auto     1000.0W    0%         0.0%      0.0%      0.0%      Normal   
+1       52.0C    95.0W      auto     1000.0W    0%         0.0%      0.0%      0.0%      Normal   
+2       51.0C    96.0W      auto     1000.0W    0%         0.0%      0.0%      0.0%      Normal   
+3       53.0C    104.0W     auto     1000.0W    0%         0.0%      0.0%      0.0%      Normal   
+4       51.0C    103.0W     auto     1000.0W    0%         0.0%      0.0%      0.0%      Normal   
+5       51.0C    92.0W      auto     1000.0W    0%         0.0%      0.0%      0.0%      Normal   
+6       52.0C    87.0W      auto     1000.0W    0%         0.0%      0.0%      0.0%      Normal   
+7       51.0C    96.0W      auto     1000.0W    0%         0.0%      0.0%      0.0%      Normal   
+================================================================================================
+======================================== End of SMI Log ========================================
+
+-----------------------------------------
+✅️✅️ Device Variables Are Set: gpu
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torchdata/datapipes/__init__.py:18: UserWarning: 
+################################################################################
+WARNING!
+The 'datapipes', 'dataloader2' modules are deprecated and will be removed in a
+future torchdata release! Please see https://github.com/pytorch/data/issues/1196
+to learn more and leave feedback.
+################################################################################
+
+  deprecation_warning()
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torchdata/datapipes/__init__.py:18: UserWarning: 
+################################################################################
+WARNING!
+The 'datapipes', 'dataloader2' modules are deprecated and will be removed in a
+future torchdata release! Please see https://github.com/pytorch/data/issues/1196
+to learn more and leave feedback.
+################################################################################
+
+  deprecation_warning()
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torchdata/datapipes/__init__.py:18: UserWarning: 
+################################################################################
+WARNING!
+The 'datapipes', 'dataloader2' modules are deprecated and will be removed in a
+future torchdata release! Please see https://github.com/pytorch/data/issues/1196
+to learn more and leave feedback.
+################################################################################
+
+  deprecation_warning()
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torchdata/datapipes/__init__.py:18: UserWarning: 
+################################################################################
+WARNING!
+The 'datapipes', 'dataloader2' modules are deprecated and will be removed in a
+future torchdata release! Please see https://github.com/pytorch/data/issues/1196
+to learn more and leave feedback.
+################################################################################
+
+  deprecation_warning()
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torchdata/datapipes/__init__.py:18: UserWarning: 
+################################################################################
+WARNING!
+The 'datapipes', 'dataloader2' modules are deprecated and will be removed in a
+future torchdata release! Please see https://github.com/pytorch/data/issues/1196
+to learn more and leave feedback.
+################################################################################
+
+  deprecation_warning()
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torchdata/datapipes/__init__.py:18: UserWarning: 
+################################################################################
+WARNING!
+The 'datapipes', 'dataloader2' modules are deprecated and will be removed in a
+future torchdata release! Please see https://github.com/pytorch/data/issues/1196
+to learn more and leave feedback.
+################################################################################
+
+  deprecation_warning()
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torchdata/datapipes/__init__.py:18: UserWarning: 
+################################################################################
+WARNING!
+The 'datapipes', 'dataloader2' modules are deprecated and will be removed in a
+future torchdata release! Please see https://github.com/pytorch/data/issues/1196
+to learn more and leave feedback.
+################################################################################
+
+  deprecation_warning()
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torchdata/datapipes/__init__.py:18: UserWarning: 
+################################################################################
+WARNING!
+The 'datapipes', 'dataloader2' modules are deprecated and will be removed in a
+future torchdata release! Please see https://github.com/pytorch/data/issues/1196
+to learn more and leave feedback.
+################################################################################
+
+  deprecation_warning()
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/dgl/graphbolt/base.py:81: FutureWarning: `torch.library.impl_abstract` was renamed to `torch.library.register_fake`. Please use that instead; we will remove `torch.library.impl_abstract` in a future version of PyTorch.
+  @torch.library.impl_abstract("graphbolt::expand_indptr")
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/dgl/graphbolt/base.py:81: FutureWarning: `torch.library.impl_abstract` was renamed to `torch.library.register_fake`. Please use that instead; we will remove `torch.library.impl_abstract` in a future version of PyTorch.
+  @torch.library.impl_abstract("graphbolt::expand_indptr")
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/dgl/graphbolt/base.py:81: FutureWarning: `torch.library.impl_abstract` was renamed to `torch.library.register_fake`. Please use that instead; we will remove `torch.library.impl_abstract` in a future version of PyTorch.
+  @torch.library.impl_abstract("graphbolt::expand_indptr")
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/dgl/graphbolt/base.py:81: FutureWarning: `torch.library.impl_abstract` was renamed to `torch.library.register_fake`. Please use that instead; we will remove `torch.library.impl_abstract` in a future version of PyTorch.
+  @torch.library.impl_abstract("graphbolt::expand_indptr")
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/dgl/graphbolt/base.py:81: FutureWarning: `torch.library.impl_abstract` was renamed to `torch.library.register_fake`. Please use that instead; we will remove `torch.library.impl_abstract` in a future version of PyTorch.
+  @torch.library.impl_abstract("graphbolt::expand_indptr")
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/dgl/graphbolt/base.py:81: FutureWarning: `torch.library.impl_abstract` was renamed to `torch.library.register_fake`. Please use that instead; we will remove `torch.library.impl_abstract` in a future version of PyTorch.
+  @torch.library.impl_abstract("graphbolt::expand_indptr")
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/dgl/graphbolt/base.py:81: FutureWarning: `torch.library.impl_abstract` was renamed to `torch.library.register_fake`. Please use that instead; we will remove `torch.library.impl_abstract` in a future version of PyTorch.
+  @torch.library.impl_abstract("graphbolt::expand_indptr")
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/dgl/graphbolt/base.py:81: FutureWarning: `torch.library.impl_abstract` was renamed to `torch.library.register_fake`. Please use that instead; we will remove `torch.library.impl_abstract` in a future version of PyTorch.
+  @torch.library.impl_abstract("graphbolt::expand_indptr")
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/e3nn/o3/_wigner.py:10: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/e3nn/o3/_wigner.py:10: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/e3nn/o3/_wigner.py:10: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/e3nn/o3/_wigner.py:10: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/e3nn/o3/_wigner.py:10: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/e3nn/o3/_wigner.py:10: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/e3nn/o3/_wigner.py:10: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/e3nn/o3/_wigner.py:10: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+DistributedEnvironment(master_addr=127.0.0.1, master_port=29500, world_size=8, local_rank=0, rank=0)
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I0326 20:43:13.692806 2908993 ProcessGroupNCCL.cpp:934] [PG ID 0 PG GUID 0 Rank 0] ProcessGroupNCCL initialization options: size: 8, global rank: 0, TIMEOUT(ms): 600000, USE_HIGH_PRIORITY_STREAM: 0, SPLIT_FROM: 0, SPLIT_COLOR: 0, PG Name: 0
+I0326 20:43:13.692857 2908993 ProcessGroupNCCL.cpp:943] [PG ID 0 PG GUID 0 Rank 0] ProcessGroupNCCL environments: NCCL version: 2.22.3, TORCH_NCCL_ASYNC_ERROR_HANDLING: 1, TORCH_NCCL_DUMP_ON_TIMEOUT: 0, TORCH_NCCL_WAIT_TIMEOUT_DUMP_MILSEC: 60000, TORCH_NCCL_DESYNC_DEBUG: 0, TORCH_NCCL_ENABLE_TIMING: 0, TORCH_NCCL_BLOCKING_WAIT: 0, TORCH_DISTRIBUTED_DEBUG: OFF, TORCH_NCCL_USE_TENSOR_REGISTER_ALLOCATOR_HOOK: 0, TORCH_NCCL_ENABLE_MONITORING: 1, TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: 480, TORCH_NCCL_TRACE_BUFFER_SIZE: 0, TORCH_NCCL_COORD_CHECK_MILSEC: 1000, TORCH_NCCL_NAN_CHECK: 0, TORCH_NCCL_CUDA_EVENT_CACHE: 0, TORCH_NCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN: 1
+2026-03-26 20:43:13.708 INFO: ===========VERIFYING SETTINGS===========
+2026-03-26 20:43:13.708 INFO: Stage Two is activated as start_stage_two was defined
+2026-03-26 20:43:13.708 WARNING: start_stage_two must be less than max_num_epochs, got 400 > 10
+2026-03-26 20:43:13.708 WARNING: Stage Two will not start, as start_stage_two > max_num_epochs
+2026-03-26 20:43:13.710 INFO: !!!!!!!!!Set device 0
+2026-03-26 20:43:13.710 INFO: Process group initialized: True
+2026-03-26 20:43:13.710 INFO: Processes: 8
+2026-03-26 20:43:13.710 INFO: MACE version: 0.3.13
+2026-03-26 20:43:13.710 INFO: CUDA version: None, CUDA device: 0
+2026-03-26 20:43:13.826 INFO: ===========LOADING INPUT DATA===========
+2026-03-26 20:43:13.826 INFO: Using heads: ['Default']
+2026-03-26 20:43:13.826 INFO: Using the key specifications to parse data:
+2026-03-26 20:43:13.826 INFO: Default: KeySpecification(info_keys={'energy': 'TolEnergy', 'stress': 'REF_stress', 'virials': 'REF_virials', 'dipole': 'dipole', 'head': 'head'}, arrays_keys={'forces': 'force', 'charges': 'REF_charges'})
+2026-03-26 20:43:13.826 INFO: =============    Processing head Default     ===========
+2026-03-26 20:43:13.831 INFO: Using statistics json file
+2026-03-26 20:43:13.837 INFO: Using atomic numbers from statistics file
+2026-03-26 20:43:13.837 INFO: Atomic Numbers used: [1, 6, 7, 8]
+2026-03-26 20:43:13.838 INFO: Atomic Energies used (z: eV) for head Default: {1: -13.62222753701504, 6: -1029.4130839658328, 7: -1484.8710358098756, 8: -2041.8396277138045}
+2026-03-26 20:43:13.838 INFO: Processing datasets for head 'Default'
+2026-03-26 20:43:13.840 INFO: Loading HDF5 dataset from directory /public/share/sugonhpcapp01/onestore/onedatasets/MaterialsChemistry/examples/ani1x/ANI1x_cc_DFT_rc5_train
+[2026-03-26 20:43:13 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:13.841 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:13 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:13.901 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:13 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:13.925 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:13 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:13.952 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:13 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:13.979 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:14 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.010 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:14 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.040 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:14 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.064 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.096 INFO: Combining 1 Dataset objects for head 'Default'
+2026-03-26 20:43:14.103 INFO: Loading HDF5 dataset from directory /public/share/sugonhpcapp01/onestore/onedatasets/MaterialsChemistry/examples/ani1x/ANI1x_cc_DFT_rc5_val
+[2026-03-26 20:43:14 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.103 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:14 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.107 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:14 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.110 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:14 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.113 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:14 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.116 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:14 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.119 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:14 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.122 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:14 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.125 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:14.128 INFO: Combining 1 Dataset objects for head 'Default_valid'
+2026-03-26 20:43:14.128 INFO: Combined validation datasets for Default
+2026-03-26 20:43:14.128 INFO: Head 'Default' training dataset size: 1940
+2026-03-26 20:43:14.129 INFO: Average number of neighbors: 18.686198949813843
+2026-03-26 20:43:14.129 INFO: During training the following quantities will be reported: energy, forces
+2026-03-26 20:43:14.129 INFO: ===========MODEL DETAILS===========
+2026-03-26 20:43:16.518 INFO: Building model
+2026-03-26 20:43:16.519 INFO: Message passing with 64 channels and max_L=0 (64x0e)
+2026-03-26 20:43:16.519 INFO: 2 layers, each with correlation order: 3 (body order: 4) and spherical harmonics up to: l=3
+2026-03-26 20:43:16.519 INFO: 8 radial and 5 basis functions
+2026-03-26 20:43:16.519 INFO: Radial cutoff: 6.0 A (total receptive field for each atom: 12.0 A)
+2026-03-26 20:43:16.519 INFO: Distance transform for radial basis functions: None
+2026-03-26 20:43:16.519 INFO: Hidden irreps: 64x0e
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I0326 20:43:16.664191 2908999 ProcessGroupNCCL.cpp:934] [PG ID 0 PG GUID 0 Rank 6] ProcessGroupNCCL initialization options: size: 8, global rank: 6, TIMEOUT(ms): 600000, USE_HIGH_PRIORITY_STREAM: 0, SPLIT_FROM: 0, SPLIT_COLOR: 0, PG Name: 0
+I0326 20:43:16.664191 2908998 ProcessGroupNCCL.cpp:934] [PG ID 0 PG GUID 0 Rank 5] ProcessGroupNCCL initialization options: size: 8, global rank: 5, TIMEOUT(ms): 600000, USE_HIGH_PRIORITY_STREAM: 0, SPLIT_FROM: 0, SPLIT_COLOR: 0, PG Name: 0
+I0326 20:43:16.664239 2908998 ProcessGroupNCCL.cpp:943] [PG ID 0 PG GUID 0 Rank 5] ProcessGroupNCCL environments: NCCL version: 2.22.3, TORCH_NCCL_ASYNC_ERROR_HANDLING: 1, TORCH_NCCL_DUMP_ON_TIMEOUT: 0, TORCH_NCCL_WAIT_TIMEOUT_DUMP_MILSEC: 60000, TORCH_NCCL_DESYNC_DEBUG: 0, TORCH_NCCL_ENABLE_TIMING: 0, TORCH_NCCL_BLOCKING_WAIT: 0, TORCH_DISTRIBUTED_DEBUG: OFF, TORCH_NCCL_USE_TENSOR_REGISTER_ALLOCATOR_HOOK: 0, TORCH_NCCL_ENABLE_MONITORING: 1, TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: 480, TORCH_NCCL_TRACE_BUFFER_SIZE: 0, TORCH_NCCL_COORD_CHECK_MILSEC: 1000, TORCH_NCCL_NAN_CHECK: 0, TORCH_NCCL_CUDA_EVENT_CACHE: 0, TORCH_NCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN: 1
+I0326 20:43:16.664239 2908999 ProcessGroupNCCL.cpp:943] [PG ID 0 PG GUID 0 Rank 6] ProcessGroupNCCL environments: NCCL version: 2.22.3, TORCH_NCCL_ASYNC_ERROR_HANDLING: 1, TORCH_NCCL_DUMP_ON_TIMEOUT: 0, TORCH_NCCL_WAIT_TIMEOUT_DUMP_MILSEC: 60000, TORCH_NCCL_DESYNC_DEBUG: 0, TORCH_NCCL_ENABLE_TIMING: 0, TORCH_NCCL_BLOCKING_WAIT: 0, TORCH_DISTRIBUTED_DEBUG: OFF, TORCH_NCCL_USE_TENSOR_REGISTER_ALLOCATOR_HOOK: 0, TORCH_NCCL_ENABLE_MONITORING: 1, TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: 480, TORCH_NCCL_TRACE_BUFFER_SIZE: 0, TORCH_NCCL_COORD_CHECK_MILSEC: 1000, TORCH_NCCL_NAN_CHECK: 0, TORCH_NCCL_CUDA_EVENT_CACHE: 0, TORCH_NCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN: 1
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I0326 20:43:16.664474 2909000 ProcessGroupNCCL.cpp:934] [PG ID 0 PG GUID 0 Rank 7] ProcessGroupNCCL initialization options: size: 8, global rank: 7, TIMEOUT(ms): 600000, USE_HIGH_PRIORITY_STREAM: 0, SPLIT_FROM: 0, SPLIT_COLOR: 0, PG Name: 0
+I0326 20:43:16.664511 2909000 ProcessGroupNCCL.cpp:943] [PG ID 0 PG GUID 0 Rank 7] ProcessGroupNCCL environments: NCCL version: 2.22.3, TORCH_NCCL_ASYNC_ERROR_HANDLING: 1, TORCH_NCCL_DUMP_ON_TIMEOUT: 0, TORCH_NCCL_WAIT_TIMEOUT_DUMP_MILSEC: 60000, TORCH_NCCL_DESYNC_DEBUG: 0, TORCH_NCCL_ENABLE_TIMING: 0, TORCH_NCCL_BLOCKING_WAIT: 0, TORCH_DISTRIBUTED_DEBUG: OFF, TORCH_NCCL_USE_TENSOR_REGISTER_ALLOCATOR_HOOK: 0, TORCH_NCCL_ENABLE_MONITORING: 1, TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: 480, TORCH_NCCL_TRACE_BUFFER_SIZE: 0, TORCH_NCCL_COORD_CHECK_MILSEC: 1000, TORCH_NCCL_NAN_CHECK: 0, TORCH_NCCL_CUDA_EVENT_CACHE: 0, TORCH_NCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN: 1
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I0326 20:43:16.664517 2908997 ProcessGroupNCCL.cpp:934] [PG ID 0 PG GUID 0 Rank 4] ProcessGroupNCCL initialization options: size: 8, global rank: 4, TIMEOUT(ms): 600000, USE_HIGH_PRIORITY_STREAM: 0, SPLIT_FROM: 0, SPLIT_COLOR: 0, PG Name: 0
+I0326 20:43:16.664562 2908997 ProcessGroupNCCL.cpp:943] [PG ID 0 PG GUID 0 Rank 4] ProcessGroupNCCL environments: NCCL version: 2.22.3, TORCH_NCCL_ASYNC_ERROR_HANDLING: 1, TORCH_NCCL_DUMP_ON_TIMEOUT: 0, TORCH_NCCL_WAIT_TIMEOUT_DUMP_MILSEC: 60000, TORCH_NCCL_DESYNC_DEBUG: 0, TORCH_NCCL_ENABLE_TIMING: 0, TORCH_NCCL_BLOCKING_WAIT: 0, TORCH_DISTRIBUTED_DEBUG: OFF, TORCH_NCCL_USE_TENSOR_REGISTER_ALLOCATOR_HOOK: 0, TORCH_NCCL_ENABLE_MONITORING: 1, TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: 480, TORCH_NCCL_TRACE_BUFFER_SIZE: 0, TORCH_NCCL_COORD_CHECK_MILSEC: 1000, TORCH_NCCL_NAN_CHECK: 0, TORCH_NCCL_CUDA_EVENT_CACHE: 0, TORCH_NCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN: 1
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I0326 20:43:16.664649 2908996 ProcessGroupNCCL.cpp:934] [PG ID 0 PG GUID 0 Rank 3] ProcessGroupNCCL initialization options: size: 8, global rank: 3, TIMEOUT(ms): 600000, USE_HIGH_PRIORITY_STREAM: 0, SPLIT_FROM: 0, SPLIT_COLOR: 0, PG Name: 0
+I0326 20:43:16.664659 2908995 ProcessGroupNCCL.cpp:934] [PG ID 0 PG GUID 0 Rank 2] ProcessGroupNCCL initialization options: size: 8, global rank: 2, TIMEOUT(ms): 600000, USE_HIGH_PRIORITY_STREAM: 0, SPLIT_FROM: 0, SPLIT_COLOR: 0, PG Name: 0
+I0326 20:43:16.664649 2908994 ProcessGroupNCCL.cpp:934] [PG ID 0 PG GUID 0 Rank 1] ProcessGroupNCCL initialization options: size: 8, global rank: 1, TIMEOUT(ms): 600000, USE_HIGH_PRIORITY_STREAM: 0, SPLIT_FROM: 0, SPLIT_COLOR: 0, PG Name: 0
+I0326 20:43:16.664700 2908996 ProcessGroupNCCL.cpp:943] [PG ID 0 PG GUID 0 Rank 3] ProcessGroupNCCL environments: NCCL version: 2.22.3, TORCH_NCCL_ASYNC_ERROR_HANDLING: 1, TORCH_NCCL_DUMP_ON_TIMEOUT: 0, TORCH_NCCL_WAIT_TIMEOUT_DUMP_MILSEC: 60000, TORCH_NCCL_DESYNC_DEBUG: 0, TORCH_NCCL_ENABLE_TIMING: 0, TORCH_NCCL_BLOCKING_WAIT: 0, TORCH_DISTRIBUTED_DEBUG: OFF, TORCH_NCCL_USE_TENSOR_REGISTER_ALLOCATOR_HOOK: 0, TORCH_NCCL_ENABLE_MONITORING: 1, TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: 480, TORCH_NCCL_TRACE_BUFFER_SIZE: 0, TORCH_NCCL_COORD_CHECK_MILSEC: 1000, TORCH_NCCL_NAN_CHECK: 0, TORCH_NCCL_CUDA_EVENT_CACHE: 0, TORCH_NCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN: 1
+I0326 20:43:16.664701 2908995 ProcessGroupNCCL.cpp:943] [PG ID 0 PG GUID 0 Rank 2] ProcessGroupNCCL environments: NCCL version: 2.22.3, TORCH_NCCL_ASYNC_ERROR_HANDLING: 1, TORCH_NCCL_DUMP_ON_TIMEOUT: 0, TORCH_NCCL_WAIT_TIMEOUT_DUMP_MILSEC: 60000, TORCH_NCCL_DESYNC_DEBUG: 0, TORCH_NCCL_ENABLE_TIMING: 0, TORCH_NCCL_BLOCKING_WAIT: 0, TORCH_DISTRIBUTED_DEBUG: OFF, TORCH_NCCL_USE_TENSOR_REGISTER_ALLOCATOR_HOOK: 0, TORCH_NCCL_ENABLE_MONITORING: 1, TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: 480, TORCH_NCCL_TRACE_BUFFER_SIZE: 0, TORCH_NCCL_COORD_CHECK_MILSEC: 1000, TORCH_NCCL_NAN_CHECK: 0, TORCH_NCCL_CUDA_EVENT_CACHE: 0, TORCH_NCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN: 1
+I0326 20:43:16.664702 2908994 ProcessGroupNCCL.cpp:943] [PG ID 0 PG GUID 0 Rank 1] ProcessGroupNCCL environments: NCCL version: 2.22.3, TORCH_NCCL_ASYNC_ERROR_HANDLING: 1, TORCH_NCCL_DUMP_ON_TIMEOUT: 0, TORCH_NCCL_WAIT_TIMEOUT_DUMP_MILSEC: 60000, TORCH_NCCL_DESYNC_DEBUG: 0, TORCH_NCCL_ENABLE_TIMING: 0, TORCH_NCCL_BLOCKING_WAIT: 0, TORCH_DISTRIBUTED_DEBUG: OFF, TORCH_NCCL_USE_TENSOR_REGISTER_ALLOCATOR_HOOK: 0, TORCH_NCCL_ENABLE_MONITORING: 1, TORCH_NCCL_HEARTBEAT_TIMEOUT_SEC: 480, TORCH_NCCL_TRACE_BUFFER_SIZE: 0, TORCH_NCCL_COORD_CHECK_MILSEC: 1000, TORCH_NCCL_NAN_CHECK: 0, TORCH_NCCL_CUDA_EVENT_CACHE: 0, TORCH_NCCL_LOG_CPP_STACK_ON_UNCLEAN_SHUTDOWN: 1
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.752 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.752 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.753 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.753 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.754 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.754 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.755 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.764 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.764 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.764 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.764 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.764 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.764 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.764 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.776 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.776 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.776 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.776 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.776 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.777 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.777 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.787 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.787 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.787 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.787 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.787 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.787 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.787 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.797 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.797 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.797 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.797 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.798 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.798 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.798 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.808 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.808 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.808 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.808 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.808 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.808 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.808 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.819 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.819 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.819 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.819 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.819 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.819 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.819 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.830 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.830 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.830 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.830 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.830 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.830 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.830 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.846 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.846 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.846 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.846 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.846 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.846 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.846 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.849 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.849 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.849 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.849 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.849 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.851 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.851 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.852 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.852 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.853 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.853 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.853 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.853 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.853 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.855 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.855 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.856 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.856 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.856 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.856 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.856 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.858 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.858 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.858 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.859 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.859 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.859 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.859 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.861 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.861 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.861 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.862 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.862 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.862 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.863 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.864 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.864 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.864 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.864 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.865 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.865 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.865 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.866 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.866 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.867 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.868 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.868 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.868 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+[2026-03-26 20:43:16 - onescience.datapipes.HDF5Dataset - INFO] HDF5Dataset (L3) initialized with r_max=6.0
+2026-03-26 20:43:16.868 INFO: HDF5Dataset (L3) initialized with r_max=6.0
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+2026-03-26 20:43:17.861 INFO: Total number of parameters: 196944
+2026-03-26 20:43:17.861 INFO: 
+2026-03-26 20:43:17.861 INFO: ===========OPTIMIZER INFORMATION===========
+2026-03-26 20:43:17.861 INFO: Using ADAM as parameter optimizer
+2026-03-26 20:43:17.861 INFO: Batch size: 2
+2026-03-26 20:43:17.861 INFO: Using Exponential Moving Average with decay: 0.99
+2026-03-26 20:43:17.861 INFO: Number of gradient updates: 9700
+2026-03-26 20:43:17.861 INFO: Learning rate: 0.01, weight decay: 5e-07
+2026-03-26 20:43:17.861 INFO: WeightedEnergyForcesLoss(energy_weight=10.000, forces_weight=1000.000)
+2026-03-26 20:43:17.863 WARNING: Cannot find checkpoint with tag 'ani1x_run-123' in './ani1x/checkpoints'
+I0326 20:43:17.872413 2908993 ProcessGroupNCCL.cpp:2291] [PG ID 0 PG GUID 0(default_pg) Rank 0] ProcessGroupNCCL broadcast unique ID through store took 0.073251 ms
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+I0326 20:43:20.023029 2908999 ProcessGroupNCCL.cpp:2291] [PG ID 0 PG GUID 0(default_pg) Rank 6] ProcessGroupNCCL broadcast unique ID through store took 0.15085 ms
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+I0326 20:43:20.054550 2908998 ProcessGroupNCCL.cpp:2291] [PG ID 0 PG GUID 0(default_pg) Rank 5] ProcessGroupNCCL broadcast unique ID through store took 0.182031 ms
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+I0326 20:43:20.069765 2909000 ProcessGroupNCCL.cpp:2291] [PG ID 0 PG GUID 0(default_pg) Rank 7] ProcessGroupNCCL broadcast unique ID through store took 0.131181 ms
+I0326 20:43:20.075052 2908995 ProcessGroupNCCL.cpp:2291] [PG ID 0 PG GUID 0(default_pg) Rank 2] ProcessGroupNCCL broadcast unique ID through store took 0.132451 ms
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+I0326 20:43:20.092730 2908994 ProcessGroupNCCL.cpp:2291] [PG ID 0 PG GUID 0(default_pg) Rank 1] ProcessGroupNCCL broadcast unique ID through store took 0.14003 ms
+I0326 20:43:20.092901 2908996 ProcessGroupNCCL.cpp:2291] [PG ID 0 PG GUID 0(default_pg) Rank 3] ProcessGroupNCCL broadcast unique ID through store took 0.155621 ms
+/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/torch/jit/_check.py:178: UserWarning: The TorchScript type system doesn't support instance-level annotations on empty non-base types in `__init__`. Instead, either 1) use a type annotation in the class body, or 2) wrap the type in `torch.jit.Attribute`.
+  warnings.warn(
+I0326 20:43:20.124629 2908997 ProcessGroupNCCL.cpp:2291] [PG ID 0 PG GUID 0(default_pg) Rank 4] ProcessGroupNCCL broadcast unique ID through store took 0.326002 ms
+I0326 20:43:21.084198 2908993 ProcessGroupNCCL.cpp:2330] [PG ID 0 PG GUID 0(default_pg) Rank 0] ProcessGroupNCCL created ncclComm_ 0x565256a75310 on CUDA device:  
+I0326 20:43:21.084242 2908993 ProcessGroupNCCL.cpp:2335] [PG ID 0 PG GUID 0(default_pg) Rank 0] NCCL_DEBUG: N/A
+I0326 20:43:21.084244 2908996 ProcessGroupNCCL.cpp:2330] [PG ID 0 PG GUID 0(default_pg) Rank 3] ProcessGroupNCCL created ncclComm_ 0x559e6faa9230 on CUDA device: 
+I0326 20:43:21.084295 2908996 ProcessGroupNCCL.cpp:2335] [PG ID 0 PG GUID 0(default_pg) Rank 3] NCCL_DEBUG: N/A
+I0326 20:43:21.084364 2908998 ProcessGroupNCCL.cpp:2330] [PG ID 0 PG GUID 0(default_pg) Rank 5] ProcessGroupNCCL created ncclComm_ 0x5636f4df0100 on CUDA device: 
+I0326 20:43:21.084362 2908997 ProcessGroupNCCL.cpp:2330] [PG ID 0 PG GUID 0(default_pg) Rank 4] ProcessGroupNCCL created ncclComm_ 0x560addcea740 on CUDA device: 
+I0326 20:43:21.084425 2908998 ProcessGroupNCCL.cpp:2335] [PG ID 0 PG GUID 0(default_pg) Rank 5] NCCL_DEBUG: N/A
+I0326 20:43:21.084462 2908997 ProcessGroupNCCL.cpp:2335] [PG ID 0 PG GUID 0(default_pg) Rank 4] NCCL_DEBUG: N/A
+I0326 20:43:21.084735 2908995 ProcessGroupNCCL.cpp:2330] [PG ID 0 PG GUID 0(default_pg) Rank 2] ProcessGroupNCCL created ncclComm_ 0x55f908c695c0 on CUDA device: 
+I0326 20:43:21.084730 2908994 ProcessGroupNCCL.cpp:2330] [PG ID 0 PG GUID 0(default_pg) Rank 1] ProcessGroupNCCL created ncclComm_ 0x558d79700840 on CUDA device: 
+I0326 20:43:21.084771 2908995 ProcessGroupNCCL.cpp:2335] [PG ID 0 PG GUID 0(default_pg) Rank 2] NCCL_DEBUG: N/A
+I0326 20:43:21.084789 2908994 ProcessGroupNCCL.cpp:2335] [PG ID 0 PG GUID 0(default_pg) Rank 1] NCCL_DEBUG: N/A
+I0326 20:43:21.084846 2909000 ProcessGroupNCCL.cpp:2330] [PG ID 0 PG GUID 0(default_pg) Rank 7] ProcessGroupNCCL created ncclComm_ 0x5591ff29de00 on CUDA device: 
+I0326 20:43:21.084867 2908999 ProcessGroupNCCL.cpp:2330] [PG ID 0 PG GUID 0(default_pg) Rank 6] ProcessGroupNCCL created ncclComm_ 0x561d2c3c3480 on CUDA device: 
+I0326 20:43:21.084903 2909000 ProcessGroupNCCL.cpp:2335] [PG ID 0 PG GUID 0(default_pg) Rank 7] NCCL_DEBUG: N/A
+I0326 20:43:21.084923 2908999 ProcessGroupNCCL.cpp:2335] [PG ID 0 PG GUID 0(default_pg) Rank 6] NCCL_DEBUG: N/A
+2026-03-26 20:43:21.122 INFO: Using gradient clipping with tolerance=10.000
+2026-03-26 20:43:21.122 INFO: 
+2026-03-26 20:43:21.122 INFO: ===========TRAINING===========
+2026-03-26 20:43:21.122 INFO: Started training, reporting errors on validation set
+2026-03-26 20:43:21.122 INFO: Loss metrics on validation set
+2026-03-26 20:43:25.733 INFO: Initial: head: Default, loss=2189.30418349, MAE_E_per_atom= 3994.12 meV, MAE_F= 1389.67 meV / A
+Launch params (512, 1, 1) are larger than launch bounds (256) for kernel fused_mul_mul_mul please add __launch_bounds__ to kernel define or use --gpu-max-threads-per-block recompile program ! 
+Launch params (512, 1, 1) are larger than launch bounds (256) for kernel fused_mul_mul_mul please add __launch_bounds__ to kernel define or use --gpu-max-threads-per-block recompile program ! 
+Launch params (512, 1, 1) are larger than launch bounds (256) for kernel fused_mul_mul_mul please add __launch_bounds__ to kernel define or use --gpu-max-threads-per-block recompile program ! 
+Launch params (512, 1, 1) are larger than launch bounds (256) for kernel fused_mul_mul_mul please add __launch_bounds__ to kernel define or use --gpu-max-threads-per-block recompile program ! 
+Launch params (512, 1, 1) are larger than launch bounds (256) for kernel fused_mul_mul_mul please add __launch_bounds__ to kernel define or use --gpu-max-threads-per-block recompile program ! 
+Launch params (512, 1, 1) are larger than launch bounds (256) for kernel fused_mul_mul_mul please add __launch_bounds__ to kernel define or use --gpu-max-threads-per-block recompile program ! 
+Launch params (512, 1, 1) are larger than launch bounds (256) for kernel fused_mul_mul_mul please add __launch_bounds__ to kernel define or use --gpu-max-threads-per-block recompile program ! 
+Launch params (512, 1, 1) are larger than launch bounds (256) for kernel fused_mul_mul_mul please add __launch_bounds__ to kernel define or use --gpu-max-threads-per-block recompile program ! 
+2026-03-26 20:44:39.365 INFO: Epoch 0: head: Default, loss=205.87121291, MAE_E_per_atom= 1969.21 meV, MAE_F=  477.98 meV / A
+2026-03-26 20:45:35.267 INFO: Epoch 4: head: Default, loss=49.34476127, MAE_E_per_atom=  189.89 meV, MAE_F=  216.69 meV / A
+2026-03-26 20:46:26.458 INFO: Epoch 8: head: Default, loss=36.84862637, MAE_E_per_atom=  103.95 meV, MAE_F=  174.73 meV / A
+2026-03-26 20:46:39.243 INFO: Training complete
+2026-03-26 20:46:39.243 INFO: 
+2026-03-26 20:46:39.243 INFO: ===========RESULTS===========
+2026-03-26 20:46:39.249 INFO: Loading checkpoint: ./ani1x/checkpoints/ani1x_run-123_epoch-8.pt
+/public/home/easyscience2024/xushl/onescience-dev/src/onescience/models/mace/tools/checkpoint.py:186: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  torch.load(f=checkpoint_info.path, map_location=device),
+/public/home/easyscience2024/xushl/onescience-dev/src/onescience/models/mace/tools/checkpoint.py:186: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  torch.load(f=checkpoint_info.path, map_location=device),
+/public/home/easyscience2024/xushl/onescience-dev/src/onescience/models/mace/tools/checkpoint.py:186: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  torch.load(f=checkpoint_info.path, map_location=device),
+/public/home/easyscience2024/xushl/onescience-dev/src/onescience/models/mace/tools/checkpoint.py:186: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  torch.load(f=checkpoint_info.path, map_location=device),
+/public/home/easyscience2024/xushl/onescience-dev/src/onescience/models/mace/tools/checkpoint.py:186: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  torch.load(f=checkpoint_info.path, map_location=device),
+/public/home/easyscience2024/xushl/onescience-dev/src/onescience/models/mace/tools/checkpoint.py:186: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  torch.load(f=checkpoint_info.path, map_location=device),
+/public/home/easyscience2024/xushl/onescience-dev/src/onescience/models/mace/tools/checkpoint.py:186: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  torch.load(f=checkpoint_info.path, map_location=device),
+/public/home/easyscience2024/xushl/onescience-dev/src/onescience/models/mace/tools/checkpoint.py:186: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  torch.load(f=checkpoint_info.path, map_location=device),
+2026-03-26 20:46:39.295 INFO: Loaded Stage one model from epoch 8 for evaluation
+2026-03-26 20:46:39.295 INFO: Saving model to ani1x/checkpoints/ani1x_run-123.model
+2026-03-26 20:46:39.514 INFO: Compiling model, saving metadata to ani1x/final_model/ani1x_compiled.model
+2026-03-26 20:46:40.289 INFO: Computing metrics for training, validation, and test sets
+2026-03-26 20:46:40.290 INFO: Skipping evaluation for heads: ['pt_head']
+2026-03-26 20:46:40.290 INFO: Evaluating train_Default ...
+2026-03-26 20:48:10.537 INFO: Evaluating valid_Default ...
+2026-03-26 20:48:10.717 INFO: Error-table on TRAIN and VALID:
++---------------+--------------------+-----------------+------------------+
+|  config_type  | MAE E / meV / atom | MAE F / meV / A | relative F MAE % |
++---------------+--------------------+-----------------+------------------+
+| train_Default |          92.7      |        155.5    |        10.58     |
+| valid_Default |         104.0      |        174.7    |        12.56     |
++---------------+--------------------+-----------------+------------------+
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+Warning: (!g_use_interrupt_wait || isIPC()) && "Use of non-host signal in host signal wait API." in virtual hsa_signal_value_t rocr::core::BusyWaitSignal::WaitRelaxed(hsa_signal_condition_t, hsa_signal_value_t, uint64_t, hsa_wait_state_t), /home/liujiangting/rocr-runtime/src/core/runtime/default_signal.cpp:93
+2026-03-26 20:50:16.013 INFO: Done
+I0326 20:50:16.013769 2908999 ProcessGroupNCCL.cpp:1259] [PG ID 0 PG GUID 0(default_pg) Rank 6] Launching ProcessGroupNCCL abort asynchrounously.
+I0326 20:50:16.013836 2909000 ProcessGroupNCCL.cpp:1259] [PG ID 0 PG GUID 0(default_pg) Rank 7] Launching ProcessGroupNCCL abort asynchrounously.
+I0326 20:50:16.013893 2908997 ProcessGroupNCCL.cpp:1259] [PG ID 0 PG GUID 0(default_pg) Rank 4] Launching ProcessGroupNCCL abort asynchrounously.
+I0326 20:50:16.013916 2908998 ProcessGroupNCCL.cpp:1259] [PG ID 0 PG GUID 0(default_pg) Rank 5] Launching ProcessGroupNCCL abort asynchrounously.
+I0326 20:50:16.014006 2908996 ProcessGroupNCCL.cpp:1259] [PG ID 0 PG GUID 0(default_pg) Rank 3] Launching ProcessGroupNCCL abort asynchrounously.
+I0326 20:50:16.014016 2908995 ProcessGroupNCCL.cpp:1259] [PG ID 0 PG GUID 0(default_pg) Rank 2] Launching ProcessGroupNCCL abort asynchrounously.
+I0326 20:50:16.014057 2908993 ProcessGroupNCCL.cpp:1259] [PG ID 0 PG GUID 0(default_pg) Rank 0] Launching ProcessGroupNCCL abort asynchrounously.
+I0326 20:50:16.014102 2908994 ProcessGroupNCCL.cpp:1259] [PG ID 0 PG GUID 0(default_pg) Rank 1] Launching ProcessGroupNCCL abort asynchrounously.
+I0326 20:50:16.014247 2923253 ProcessGroupNCCL.cpp:1213] [PG ID 0 PG GUID 0(default_pg) Rank 7] ProcessGroupNCCL destroying ncclComm_ 0x5591ff29de00 on CUDA device: 7
+I0326 20:50:16.014310 2923253 NCCLUtils.hpp:406] Aborting ncclComm_ 0x5591ff29de00 with reason: No abort reason provided.
+I0326 20:50:16.014323 2923254 ProcessGroupNCCL.cpp:1213] [PG ID 0 PG GUID 0(default_pg) Rank 6] ProcessGroupNCCL destroying ncclComm_ 0x561d2c3c3480 on CUDA device: 6
+I0326 20:50:16.014382 2923254 NCCLUtils.hpp:406] Aborting ncclComm_ 0x561d2c3c3480 with reason: No abort reason provided.
+I0326 20:50:16.014423 2923256 ProcessGroupNCCL.cpp:1213] [PG ID 0 PG GUID 0(default_pg) Rank 4] ProcessGroupNCCL destroying ncclComm_ 0x560addcea740 on CUDA device: 4
+I0326 20:50:16.014444 2923256 NCCLUtils.hpp:406] Aborting ncclComm_ 0x560addcea740 with reason: No abort reason provided.
+I0326 20:50:16.014457 2923258 ProcessGroupNCCL.cpp:1213] [PG ID 0 PG GUID 0(default_pg) Rank 1] ProcessGroupNCCL destroying ncclComm_ 0x558d79700840 on CUDA device: 1
+I0326 20:50:16.014449 2923255 ProcessGroupNCCL.cpp:1213] [PG ID 0 PG GUID 0(default_pg) Rank 5] ProcessGroupNCCL destroying ncclComm_ 0x5636f4df0100 on CUDA device: 5
+I0326 20:50:16.014474 2923258 NCCLUtils.hpp:406] Aborting ncclComm_ 0x558d79700840 with reason: No abort reason provided.
+I0326 20:50:16.014461 2923257 ProcessGroupNCCL.cpp:1213] [PG ID 0 PG GUID 0(default_pg) Rank 3] ProcessGroupNCCL destroying ncclComm_ 0x559e6faa9230 on CUDA device: 3
+I0326 20:50:16.014490 2923255 NCCLUtils.hpp:406] Aborting ncclComm_ 0x5636f4df0100 with reason: No abort reason provided.
+I0326 20:50:16.014510 2923257 NCCLUtils.hpp:406] Aborting ncclComm_ 0x559e6faa9230 with reason: No abort reason provided.
+I0326 20:50:16.015376 2923259 ProcessGroupNCCL.cpp:1213] [PG ID 0 PG GUID 0(default_pg) Rank 0] ProcessGroupNCCL destroying ncclComm_ 0x565256a75310 on CUDA device: 0
+I0326 20:50:16.015403 2923260 ProcessGroupNCCL.cpp:1213] [PG ID 0 PG GUID 0(default_pg) Rank 2] ProcessGroupNCCL destroying ncclComm_ 0x55f908c695c0 on CUDA device: 2
+I0326 20:50:16.015434 2923259 NCCLUtils.hpp:406] Aborting ncclComm_ 0x565256a75310 with reason: No abort reason provided.
+I0326 20:50:16.015439 2923260 NCCLUtils.hpp:406] Aborting ncclComm_ 0x55f908c695c0 with reason: No abort reason provided.
+I0326 20:50:16.026547 2923253 ProcessGroupNCCL.cpp:1226] [PG ID 0 PG GUID 0(default_pg) Rank 7] ProcessGroupNCCL destroyed  communicator on CUDA device: 7
+I0326 20:50:16.026690 2909000 ProcessGroupNCCL.cpp:1145] [PG ID 0 PG GUID 0(default_pg) Rank 7] future is successfully executed for: ProcessGroup abort
+I0326 20:50:16.026700 2909000 ProcessGroupNCCL.cpp:1266] [PG ID 0 PG GUID 0(default_pg) Rank 7] ProcessGroupNCCL aborts successfully.
+I0326 20:50:16.027901 2923254 ProcessGroupNCCL.cpp:1226] [PG ID 0 PG GUID 0(default_pg) Rank 6] ProcessGroupNCCL destroyed  communicator on CUDA device: 6
+I0326 20:50:16.028010 2923256 ProcessGroupNCCL.cpp:1226] [PG ID 0 PG GUID 0(default_pg) Rank 4] ProcessGroupNCCL destroyed  communicator on CUDA device: 4
+I0326 20:50:16.028041 2908999 ProcessGroupNCCL.cpp:1145] [PG ID 0 PG GUID 0(default_pg) Rank 6] future is successfully executed for: ProcessGroup abort
+I0326 20:50:16.028059 2908999 ProcessGroupNCCL.cpp:1266] [PG ID 0 PG GUID 0(default_pg) Rank 6] ProcessGroupNCCL aborts successfully.
+I0326 20:50:16.028154 2908997 ProcessGroupNCCL.cpp:1145] [PG ID 0 PG GUID 0(default_pg) Rank 4] future is successfully executed for: ProcessGroup abort
+I0326 20:50:16.028167 2908997 ProcessGroupNCCL.cpp:1266] [PG ID 0 PG GUID 0(default_pg) Rank 4] ProcessGroupNCCL aborts successfully.
+I0326 20:50:16.030623 2923255 ProcessGroupNCCL.cpp:1226] [PG ID 0 PG GUID 0(default_pg) Rank 5] ProcessGroupNCCL destroyed  communicator on CUDA device: 5
+I0326 20:50:16.030773 2908998 ProcessGroupNCCL.cpp:1145] [PG ID 0 PG GUID 0(default_pg) Rank 5] future is successfully executed for: ProcessGroup abort
+I0326 20:50:16.030786 2908998 ProcessGroupNCCL.cpp:1266] [PG ID 0 PG GUID 0(default_pg) Rank 5] ProcessGroupNCCL aborts successfully.
+I0326 20:50:16.033618 2923257 ProcessGroupNCCL.cpp:1226] [PG ID 0 PG GUID 0(default_pg) Rank 3] ProcessGroupNCCL destroyed  communicator on CUDA device: 3
+I0326 20:50:16.033753 2908996 ProcessGroupNCCL.cpp:1145] [PG ID 0 PG GUID 0(default_pg) Rank 3] future is successfully executed for: ProcessGroup abort
+I0326 20:50:16.033766 2908996 ProcessGroupNCCL.cpp:1266] [PG ID 0 PG GUID 0(default_pg) Rank 3] ProcessGroupNCCL aborts successfully.
+I0326 20:50:16.033951 2923259 ProcessGroupNCCL.cpp:1226] [PG ID 0 PG GUID 0(default_pg) Rank 0] ProcessGroupNCCL destroyed  communicator on CUDA device: 0
+I0326 20:50:16.034086 2908993 ProcessGroupNCCL.cpp:1145] [PG ID 0 PG GUID 0(default_pg) Rank 0] future is successfully executed for: ProcessGroup abort
+I0326 20:50:16.034101 2908993 ProcessGroupNCCL.cpp:1266] [PG ID 0 PG GUID 0(default_pg) Rank 0] ProcessGroupNCCL aborts successfully.
+I0326 20:50:16.034257 2923258 ProcessGroupNCCL.cpp:1226] [PG ID 0 PG GUID 0(default_pg) Rank 1] ProcessGroupNCCL destroyed  communicator on CUDA device: 1
+I0326 20:50:16.034368 2908994 ProcessGroupNCCL.cpp:1145] [PG ID 0 PG GUID 0(default_pg) Rank 1] future is successfully executed for: ProcessGroup abort
+I0326 20:50:16.034377 2908994 ProcessGroupNCCL.cpp:1266] [PG ID 0 PG GUID 0(default_pg) Rank 1] ProcessGroupNCCL aborts successfully.
+I0326 20:50:16.035506 2923260 ProcessGroupNCCL.cpp:1226] [PG ID 0 PG GUID 0(default_pg) Rank 2] ProcessGroupNCCL destroyed  communicator on CUDA device: 2
+I0326 20:50:16.035656 2908995 ProcessGroupNCCL.cpp:1145] [PG ID 0 PG GUID 0(default_pg) Rank 2] future is successfully executed for: ProcessGroup abort
+I0326 20:50:16.035681 2908995 ProcessGroupNCCL.cpp:1266] [PG ID 0 PG GUID 0(default_pg) Rank 2] ProcessGroupNCCL aborts successfully.
+I0326 20:50:16.035781 2909000 ProcessGroupNCCL.cpp:1275] [PG ID 0 PG GUID 0(default_pg) Rank 7] ProcessGroupNCCL destructor entered.
+I0326 20:50:16.035837 2909000 ProcessGroupNCCL.cpp:1296] [PG ID 0 PG GUID 0(default_pg) Rank 7] ProcessGroupNCCL watchdog thread joined.
+I0326 20:50:16.035905 2909000 ProcessGroupNCCL.cpp:1300] [PG ID 0 PG GUID 0(default_pg) Rank 7] ProcessGroupNCCL heart beat monitor thread joined.
+I0326 20:50:16.036051 2908999 ProcessGroupNCCL.cpp:1275] [PG ID 0 PG GUID 0(default_pg) Rank 6] ProcessGroupNCCL destructor entered.
+I0326 20:50:16.036070 2908999 ProcessGroupNCCL.cpp:1296] [PG ID 0 PG GUID 0(default_pg) Rank 6] ProcessGroupNCCL watchdog thread joined.
+I0326 20:50:16.036116 2908999 ProcessGroupNCCL.cpp:1300] [PG ID 0 PG GUID 0(default_pg) Rank 6] ProcessGroupNCCL heart beat monitor thread joined.
+I0326 20:50:16.036687 2908997 ProcessGroupNCCL.cpp:1275] [PG ID 0 PG GUID 0(default_pg) Rank 4] ProcessGroupNCCL destructor entered.
+I0326 20:50:16.036708 2908997 ProcessGroupNCCL.cpp:1296] [PG ID 0 PG GUID 0(default_pg) Rank 4] ProcessGroupNCCL watchdog thread joined.
+I0326 20:50:16.036756 2908997 ProcessGroupNCCL.cpp:1300] [PG ID 0 PG GUID 0(default_pg) Rank 4] ProcessGroupNCCL heart beat monitor thread joined.
+I0326 20:50:16.039183 2908998 ProcessGroupNCCL.cpp:1275] [PG ID 0 PG GUID 0(default_pg) Rank 5] ProcessGroupNCCL destructor entered.
+I0326 20:50:16.039206 2908998 ProcessGroupNCCL.cpp:1296] [PG ID 0 PG GUID 0(default_pg) Rank 5] ProcessGroupNCCL watchdog thread joined.
+I0326 20:50:16.039266 2908998 ProcessGroupNCCL.cpp:1300] [PG ID 0 PG GUID 0(default_pg) Rank 5] ProcessGroupNCCL heart beat monitor thread joined.
+I0326 20:50:16.041895 2908996 ProcessGroupNCCL.cpp:1275] [PG ID 0 PG GUID 0(default_pg) Rank 3] ProcessGroupNCCL destructor entered.
+I0326 20:50:16.041916 2908996 ProcessGroupNCCL.cpp:1296] [PG ID 0 PG GUID 0(default_pg) Rank 3] ProcessGroupNCCL watchdog thread joined.
+I0326 20:50:16.041967 2908996 ProcessGroupNCCL.cpp:1300] [PG ID 0 PG GUID 0(default_pg) Rank 3] ProcessGroupNCCL heart beat monitor thread joined.
+I0326 20:50:16.042505 2908994 ProcessGroupNCCL.cpp:1275] [PG ID 0 PG GUID 0(default_pg) Rank 1] ProcessGroupNCCL destructor entered.
+I0326 20:50:16.042523 2908994 ProcessGroupNCCL.cpp:1296] [PG ID 0 PG GUID 0(default_pg) Rank 1] ProcessGroupNCCL watchdog thread joined.
+I0326 20:50:16.042577 2908994 ProcessGroupNCCL.cpp:1300] [PG ID 0 PG GUID 0(default_pg) Rank 1] ProcessGroupNCCL heart beat monitor thread joined.
+I0326 20:50:16.043062 2908995 ProcessGroupNCCL.cpp:1275] [PG ID 0 PG GUID 0(default_pg) Rank 2] ProcessGroupNCCL destructor entered.
+I0326 20:50:16.043080 2908995 ProcessGroupNCCL.cpp:1296] [PG ID 0 PG GUID 0(default_pg) Rank 2] ProcessGroupNCCL watchdog thread joined.
+I0326 20:50:16.043133 2908995 ProcessGroupNCCL.cpp:1300] [PG ID 0 PG GUID 0(default_pg) Rank 2] ProcessGroupNCCL heart beat monitor thread joined.
+I0326 20:50:16.616322 2908993 ProcessGroupNCCL.cpp:1275] [PG ID 0 PG GUID 0(default_pg) Rank 0] ProcessGroupNCCL destructor entered.
+I0326 20:50:16.618283 2908993 ProcessGroupNCCL.cpp:1296] [PG ID 0 PG GUID 0(default_pg) Rank 0] ProcessGroupNCCL watchdog thread joined.
+I0326 20:50:16.620169 2908993 ProcessGroupNCCL.cpp:1300] [PG ID 0 PG GUID 0(default_pg) Rank 0] ProcessGroupNCCL heart beat monitor thread joined.

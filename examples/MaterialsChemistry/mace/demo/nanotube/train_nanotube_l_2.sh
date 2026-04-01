@@ -7,14 +7,14 @@ torchrun \
     --nnodes=1 \
     --nproc_per_node=8 \
     ../../train.py \
-    --name="nanotube_l_2" \
+    --name="nano_l2" \
     --train_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/nanotube/nanotube_large.xyz" \
     --valid_fraction=0.05 \
     --test_file="${ONESCIENCE_DATASETS_DIR}/MaterialsChemistry/examples/nanotube/nanotube_test.xyz" \
     --E0s="average" \
     --model="MACE" \
     --num_interactions=2 \
-    --num_channels=256 \
+    --num_channels=128 \
     --max_L=2 \
     --correlation=3 \
     --r_max=5.0 \
@@ -22,9 +22,9 @@ torchrun \
     --energy_weight=10 \
     --energy_key="Energy" \
     --forces_key="forces" \
-    --batch_size=4 \
-    --valid_batch_size=8 \
-    --max_num_epochs=100 \
+    --batch_size=1 \
+    --valid_batch_size=2 \
+    --max_num_epochs=50 \
     --start_swa=60 \
     --scheduler_patience=5 \
     --patience=15 \

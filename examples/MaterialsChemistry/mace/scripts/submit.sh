@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH -J nano_l0
+#SBATCH -J ani1x
 #SBATCH -p hpctest03
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1          # 前提：使用 torchrun 等自带启动器
-#SBATCH --cpus-per-task=128         # 增加 CPU 核心数，防止卡脖子
-#SBATCH --gres=dcu:8
+#SBATCH --cpus-per-task=16         # 增加 CPU 核心数，防止卡脖子
+#SBATCH --gres=dcu:1
 #SBATCH --output=%j.log              # 修复日志命名问题
 #SBATCH --time=24:00:00
 ##SBATCH --exclude=a09r1n17
@@ -18,16 +18,4 @@ module load sghpc-mpi-gcc/26.3
 source /public/software/compiler/dtk-25.04.2/cuda/env.sh
 export LD_LIBRARY_PATH="/public/home/easyscience2024/.conda/envs/chem_py11_25043/lib/python3.11/site-packages/fastpt/torch/lib:$CONDA_PREFIX/lib/python3.11/site-packages/torch/lib:$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
 
-
-# 建议在运行前打印一下当前节点信息和可见显卡，方便排错
-echo "========================================="
-echo "Node: $(hostname)"
-echo "Time: $(date)"
-echo "========================================="
-
-# 训练前检查：打印一次当前 DCU 状态，确保显存是空的
-echo ">>> Pre-training DCU Status (Checking RAM):"
-hy-smi
-echo "-----------------------------------------"
-
-bash  train_ani1x_smallest.sh
+bash ani1x_cmd.sh
