@@ -37,7 +37,7 @@ def get_metadata(cfg, mode):
             error = True
         n_train =  cfg.train_ratio
         n_val = cfg.val_ratio
-        selected_years = y[n_train + n_val:]
+        selected_years = y[n_train + n_val:n_train + n_val + cfg.test_ratio]
     if isinstance(cfg.train_ratio, (list, tuple, set)):
         cfg.train_ratio = set(cfg.train_ratio)
         cfg.val_ratio = set(cfg.val_ratio)
