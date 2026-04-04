@@ -130,7 +130,7 @@ class Pangu(nn.Module):
             drop_path=drop_path[:2],
         )
         # The outputs of the 2nd encoder layer and the 7th decoder layer are concatenated along the channel dimension.
-          self.patchrecovery2d = OneRecovery(
+        self.patchrecovery2d = OneRecovery(
             style="PanguPatchRecovery",
             img_size=(721, 1440),
             patch_size=(4, 4),
