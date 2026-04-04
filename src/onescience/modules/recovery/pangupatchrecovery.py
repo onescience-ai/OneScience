@@ -13,12 +13,12 @@ class PanguPatchRecovery(nn.Module):
         - 二维输入（例如地表变量分支）形状为：
           (Batch, Channels, Height, Width)
         - 三维输入（例如大气变量分支）形状为：
-          (Batch, Channels, Pressure Levels, Height, Width)
+          (Batch, Channels, PressureLevels, Height, Width)
 
         实现逻辑统一使用三维patch recovery逻辑：
         - 先根据patch_size使用ConvTranspose3d对特征图进行反卷积恢复；
         - 再按照img_size对恢复后的结果进行中心裁剪，使输出空间尺寸与目标场对齐；
-        - 若输入是二维张量，则先在Pressure Levels位置补一个长度为1的伪三维维度，完成三维恢复后再将该维度去掉。
+        - 若输入是二维张量，则先在PressureLevels位置补一个长度为1的伪三维维度，完成三维恢复后再将该维度去掉。
 
         因此，该模块同时支持二维输入和三维输入，但内部始终走统一的三维实现。
 
@@ -26,11 +26,11 @@ class PanguPatchRecovery(nn.Module):
             img_size (tuple[int, int] | tuple[int, int, int]):
                 输出场空间尺寸。
                 - 二维输入对应 (Height, Width)
-                - 三维输入对应 (Pressure Levels, Height, Width)
+                - 三维输入对应 (PressureLevels, Height, Width)
             patch_size (tuple[int, int] | tuple[int, int, int]):
                 patch 的恢复尺寸。
-                - 二维输入对应 (Patch Height, Patch Width)
-                - 三维输入对应 (Patch Pressure Levels, Patch Height, Patch Width)
+                - 二维输入对应 (PatchHeight, PatchWidth)
+                - 三维输入对应 (PatchPressureLevels, PatchHeight, PatchWidth)
             in_chans (int):
                 输入特征通道数。
             out_chans (int):
@@ -41,23 +41,23 @@ class PanguPatchRecovery(nn.Module):
                 - 二维输入:
                   [Batch, in_chans, Height, Width]
                 - 三维输入:
-                  [Batch, in_chans, Pressure Levels, Height, Width]
+                  [Batch, in_chans, PressureLevels, Height, Width]
             输出:
                 - 二维输入对应输出:
-                  [Batch, out_chans, Out Height, Out Width]
+                  [Batch, out_chans, OutHeight, OutWidth]
                 - 三维输入对应输出:
-                  [Batch, out_chans, Out Pressure Levels, Out Height, Out Width]
+                  [Batch, out_chans, OutPressureLevels, OutHeight, OutWidth]
 
             各维含义与常见取值：
                 - Batch：批大小，即一次前向传播中的样本数，例如 1、2、4、8。
                 - in_chans：输入特征图通道数，常见为 384。
                 - out_chans：输出变量数。
-                - Pressure Levels：气压层数。
+                - PressureLevels：气压层数。
                 - Height：patch级特征图的纬向网格数量，例如 181。
                 - Width：patch级特征图的经向网格数量，例如 360。
-                - Out Pressure Levels：恢复后的目标气压层数，例如 13。
-                - Out Height：恢复后的目标纬向网格数量，例如 721。
-                - Out Width：恢复后的目标经向网格数量，例如 1440。
+                - OutPressureLevels：恢复后的目标气压层数，例如 13。
+                - OutHeight：恢复后的目标纬向网格数量，例如 721。
+                - OutWidth：恢复后的目标经向网格数量，例如 1440。
 
         Example:
             >>> # Pangu-Weather 中的 surface 分支
@@ -128,10 +128,10 @@ class PanguPatchRecovery(nn.Module):
         )
 
     def forward(self, x: torch.Tensor):
-        squeeze_level_dim = False
+        SqueezePressureLevelsDim = False
         if x.ndim == 4:
             x = x.unsqueeze(2)
-            squeeze_level_dim = True
+            SqueezePressureLevelsDim = True
         elif x.ndim != 5:
             raise ValueError("Input tensor must be 4D or 5D")
 
@@ -139,30 +139,30 @@ class PanguPatchRecovery(nn.Module):
             raise ValueError(f"Expected input channels {self.in_chans}, but received {x.shape[1]}")
 
         output = self.proj(x)
-        _, _, levels, height, width = output.shape
+        _, _, PressureLevels, Height, Width = output.shape
 
-        level_pad = levels - self.img_size[0]
-        height_pad = height - self.img_size[1]
-        width_pad = width - self.img_size[2]
+        PressureLevelsPad = PressureLevels - self.img_size[0]
+        HeightPad = Height - self.img_size[1]
+        WidthPad = Width - self.img_size[2]
 
-        if level_pad < 0 or height_pad < 0 or width_pad < 0:
+        if PressureLevelsPad < 0 or HeightPad < 0 or WidthPad < 0:
             raise ValueError("Recovered feature map is smaller than the target img_size")
 
-        padding_front = level_pad // 2
-        padding_back = level_pad - padding_front
-        padding_top = height_pad // 2
-        padding_bottom = height_pad - padding_top
-        padding_left = width_pad // 2
-        padding_right = width_pad - padding_left
+        PaddingFront = PressureLevelsPad // 2
+        PaddingBack = PressureLevelsPad - PaddingFront
+        PaddingTop = HeightPad // 2
+        PaddingBottom = HeightPad - PaddingTop
+        PaddingLeft = WidthPad // 2
+        PaddingRight = WidthPad - PaddingLeft
 
         output = output[
             :,
             :,
-            padding_front : levels - padding_back,
-            padding_top : height - padding_bottom,
-            padding_left : width - padding_right,
+            PaddingFront : PressureLevels - PaddingBack,
+            PaddingTop : Height - PaddingBottom,
+            PaddingLeft : Width - PaddingRight,
         ]
 
-        if squeeze_level_dim:
+        if SqueezePressureLevelsDim:
             output = output.squeeze(2)
         return output

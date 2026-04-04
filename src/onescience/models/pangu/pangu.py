@@ -114,7 +114,7 @@ class Pangu(nn.Module):
             drop_path=drop_path[2:],
         )
         self.upsample = OneSample(
-            style="PanguUpSample3D",
+            style="PanguUpSample",
             in_dim=embed_dim * 2,
             out_dim=embed_dim,
             input_resolution=patched_inp_shape_downsample,
@@ -130,12 +130,6 @@ class Pangu(nn.Module):
             drop_path=drop_path[:2],
         )
         # The outputs of the 2nd encoder layer and the 7th decoder layer are concatenated along the channel dimension.
-        self.patchrecovery2d = OneRecovery(
-            style="PanguPatchRecovery2D"
-        )
-        self.patchrecovery3d = OneRecovery(
-            style="PanguPatchRecovery3D"
-        )
           self.patchrecovery2d = OneRecovery(
             style="PanguPatchRecovery",
             img_size=(721, 1440),

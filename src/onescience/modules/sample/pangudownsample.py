@@ -14,12 +14,12 @@ class PanguDownSample(nn.Module):
         - 二维输入（例如地表变量分支）对应的token形状为：
           [Batch, Height * Width, in_dim]
         - 三维输入（例如大气变量分支）对应的token形状为：
-          [Batch, Pressure Levels * Height * Width, in_dim]
+          [Batch, PressureLevels * Height * Width, in_dim]
 
         实现逻辑统一使用三维down sample逻辑：
         - 先根据output_resolution与input_resolution的关系，计算需要补齐的空间padding；
         - 再将输入token恢复为网格形式；
-        - 对二维输入，会先在Pressure Levels位置补一个长度为1的伪三维维度；
+        - 对二维输入，会先在PressureLevels位置补一个长度为1的伪三维维度；
         - 之后仅在Height和Width方向执行2×2邻域聚合；
         - 最后将4个相邻token在特征维拼接，并通过LayerNorm与Linear完成通道投影。
 
@@ -29,13 +29,13 @@ class PanguDownSample(nn.Module):
             input_resolution (tuple[int, int] | tuple[int, int, int]):
                 输入特征图空间尺寸。
                 - 二维输入对应 (Height, Width)
-                - 三维输入对应 (Pressure Levels, Height, Width)
+                - 三维输入对应 (PressureLevels, Height, Width)
             output_resolution (tuple[int, int] | tuple[int, int, int]):
                 输出特征图空间尺寸。
-                - 二维输入对应 (Out Height, Out Width)
-                - 三维输入对应 (Out Pressure Levels, Out Height, Out Width)
+                - 二维输入对应 (OutHeight, OutWidth)
+                - 三维输入对应 (OutPressureLevels, OutHeight, OutWidth)
                 其中Pangu-Weather默认只对Height和Width做2倍下采样，
-                Pressure Levels维度保持不变。
+                PressureLevels维度保持不变。
             in_dim (int):
                 输入token的特征维度。
                 该模块输出的特征维度为 2 * in_dim。
@@ -45,20 +45,20 @@ class PanguDownSample(nn.Module):
                 - 二维输入:
                   [Batch, Height * Width, in_dim]
                 - 三维输入:
-                  [Batch, Pressure Levels * Height * Width, in_dim]
+                  [Batch, PressureLevels * Height * Width, in_dim]
             输出:
                 - 二维输入对应输出:
-                  [Batch, Out Height * Out Width, 2 * in_dim]
+                  [Batch, OutHeight * OutWidth, 2 * in_dim]
                 - 三维输入对应输出:
-                  [Batch, Out Pressure Levels * Out Height * Out Width, 2 * in_dim]
+                  [Batch, OutPressureLevels * OutHeight * OutWidth, 2 * in_dim]
 
             各维含义与常见取值：
                 - Batch：批大小，即一次前向传播中的样本数，例如 1、2、4、8。
-                - Pressure Levels：气压层数。
+                - PressureLevels：气压层数。
                 - Height：输入特征图的纬向网格数量，例如 181。
                 - Width：输入特征图的经向网格数量，例如 360。
-                - Out Height：下采样后的纬向网格数量，例如 181 -> 91。
-                - Out Width：下采样后的经向网格数量，例如 360 -> 180。
+                - OutHeight：下采样后的纬向网格数量，例如 181 -> 91。
+                - OutWidth：下采样后的经向网格数量，例如 360 -> 180。
                 - in_dim：输入token的特征维度，Pangu-Weather中常取 192。
                 - 2 * in_dim：输出token的特征维度，Pangu-Weather中常取 384。
 
@@ -115,42 +115,49 @@ class PanguDownSample(nn.Module):
 
         self.linear = nn.Linear(in_dim * 4, in_dim * 2, bias=False)
         self.norm = nn.LayerNorm(4 * in_dim)
+        self.in_dim = in_dim
         self.input_resolution = input_resolution
         self.output_resolution = output_resolution
 
-        in_pressure_levels, in_height, in_width = self.input_resolution
-        out_pressure_levels, out_height, out_width = self.output_resolution
+        InPressureLevels, InHeight, InWidth = self.input_resolution
+        OutPressureLevels, OutHeight, OutWidth = self.output_resolution
 
-        h_pad = out_height * 2 - in_height
-        w_pad = out_width * 2 - in_width
+        HeightPad = OutHeight * 2 - InHeight
+        WidthPad = OutWidth * 2 - InWidth
 
-        pad_top = h_pad // 2
-        pad_bottom = h_pad - pad_top
-        pad_left = w_pad // 2
-        pad_right = w_pad - pad_left
-        pad_front = pad_back = 0
+        PaddingTop = HeightPad // 2
+        PaddingBottom = HeightPad - PaddingTop
+        PaddingLeft = WidthPad // 2
+        PaddingRight = WidthPad - PaddingLeft
+        PaddingFront = PaddingBack = 0
 
         self.pad = nn.ZeroPad3d(
-            (pad_left, pad_right, pad_top, pad_bottom, pad_front, pad_back)
+            (PaddingLeft, PaddingRight, PaddingTop, PaddingBottom, PaddingFront, PaddingBack)
         )
 
     def forward(self, x: torch.Tensor):
-        Batch, _, Features = x.shape
-        in_pressure_levels, in_height, in_width = self.input_resolution
-        out_pressure_levels, out_height, out_width = self.output_resolution
+        Batch, NumTokens, InDim = x.shape
+        InPressureLevels, InHeight, InWidth = self.input_resolution
+        OutPressureLevels, OutHeight, OutWidth = self.output_resolution
+        ExpectedTokens = InPressureLevels * InHeight * InWidth
 
-        x = x.reshape(Batch, in_pressure_levels, in_height, in_width, Features)
+        if NumTokens != ExpectedTokens:
+            raise ValueError(f"Expected {ExpectedTokens} tokens, but received {NumTokens}")
+        if InDim != self.in_dim:
+            raise ValueError(f"Expected input dim {self.in_dim}, but received {InDim}")
+
+        x = x.reshape(Batch, InPressureLevels, InHeight, InWidth, InDim)
         x = self.pad(x.permute(0, -1, 1, 2, 3)).permute(0, 2, 3, 4, 1)
         x = x.reshape(
             Batch,
-            in_pressure_levels,
-            out_height,
+            InPressureLevels,
+            OutHeight,
             2,
-            out_width,
+            OutWidth,
             2,
-            Features,
+            InDim,
         ).permute(0, 1, 2, 4, 3, 5, 6)
-        x = x.reshape(Batch, out_pressure_levels * out_height * out_width, 4 * Features)
+        x = x.reshape(Batch, OutPressureLevels * OutHeight * OutWidth, 4 * InDim)
 
         x = self.norm(x)
         x = self.linear(x)

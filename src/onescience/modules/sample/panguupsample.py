@@ -14,12 +14,12 @@ class PanguUpSample(nn.Module):
         - 二维输入（例如地表变量分支）对应的token形状为：
           [Batch, Height * Width, in_dim]
         - 三维输入（例如大气变量分支）对应的token形状为：
-          [Batch, Pressure Levels * Height * Width, in_dim]
+          [Batch, PressureLevels * Height * Width, in_dim]
 
         实现逻辑统一使用三维up sample逻辑：
         - 先根据output_resolution与input_resolution的关系，确定目标输出空间尺寸；
         - 再通过线性层将每个token的特征维扩展为适合2×2空间重排的形式；
-        - 对二维输入，会先在Pressure Levels位置补一个长度为1的伪三维维度；
+        - 对二维输入，会先在PressureLevels位置补一个长度为1的伪三维维度；
         - 之后仅在Height和Width方向执行2×2子像素重排；
         - 最后按照output_resolution对空间尺寸进行中心裁剪，并通过LayerNorm与Linear完成通道映射。
 
@@ -29,13 +29,13 @@ class PanguUpSample(nn.Module):
             input_resolution (tuple[int, int] | tuple[int, int, int]):
                 输入特征图空间尺寸。
                 - 二维输入对应 (Height, Width)
-                - 三维输入对应 (Pressure Levels, Height, Width)
+                - 三维输入对应 (PressureLevels, Height, Width)
             output_resolution (tuple[int, int] | tuple[int, int, int]):
                 输出特征图空间尺寸。
-                - 二维输入对应 (Out Height, Out Width)
-                - 三维输入对应 (Out Pressure Levels, Out Height, Out Width)
+                - 二维输入对应 (OutHeight, OutWidth)
+                - 三维输入对应 (OutPressureLevels, OutHeight, OutWidth)
                 其中Pangu-Weather默认只对Height和Width做2倍上采样，
-                Pressure Levels维度可保持不变或按目标尺寸截取。
+                PressureLevels维度可保持不变或按目标尺寸截取。
             in_dim (int):
                 输入token的特征维度。
             out_dim (int):
@@ -44,22 +44,22 @@ class PanguUpSample(nn.Module):
         形状:
             输入:
                 - 二维输入:
-                [Batch, Height * Width, in_dim]
+                  [Batch, Height * Width, in_dim]
                 - 三维输入:
-                [Batch, Pressure Levels * Height * Width, in_dim]
+                  [Batch, PressureLevels * Height * Width, in_dim]
             输出:
                 - 二维输入对应输出:
-                [Batch, Out Height * Out Width, out_dim]
+                  [Batch, OutHeight * OutWidth, out_dim]
                 - 三维输入对应输出:
-                [Batch, Out Pressure Levels * Out Height * Out Width, out_dim]
+                  [Batch, OutPressureLevels * OutHeight * OutWidth, out_dim]
 
             各维含义与常见取值：
                 - Batch：批大小，即一次前向传播中的样本数，例如 1、2、4、8。
-                - Pressure Levels：气压层数。
+                - PressureLevels：气压层数。
                 - Height：输入特征图的纬向网格数量，例如 91。
                 - Width：输入特征图的经向网格数量，例如 180。
-                - Out Height：上采样后的纬向网格数量，例如 91 -> 181。
-                - Out Width：上采样后的经向网格数量，例如 180 -> 360。
+                - OutHeight：上采样后的纬向网格数量，例如 91 -> 181。
+                - OutWidth：上采样后的经向网格数量，例如 180 -> 360。
                 - in_dim：输入token的特征维度，Pangu-Weather中常取 384。
                 - out_dim：输出token的特征维度，Pangu-Weather中常取 192。
 
@@ -123,12 +123,12 @@ class PanguUpSample(nn.Module):
         self.in_dim = in_dim
         self.out_dim = out_dim
 
-        in_pl, in_lat, in_lon = self.input_resolution
-        out_pl, out_lat, out_lon = self.output_resolution
+        InPressureLevels, InHeight, InWidth = self.input_resolution
+        OutPressureLevels, OutHeight, OutWidth = self.output_resolution
 
-        if out_pl > in_pl:
+        if OutPressureLevels > InPressureLevels:
             raise ValueError("output pressure levels must be less than or equal to input pressure levels")
-        if out_lat > in_lat * 2 or out_lon > in_lon * 2:
+        if OutHeight > InHeight * 2 or OutWidth > InWidth * 2:
             raise ValueError("output spatial resolution cannot exceed twice the input resolution")
 
         self.linear1 = nn.Linear(in_dim, out_dim * 4, bias=False)
@@ -136,37 +136,37 @@ class PanguUpSample(nn.Module):
         self.norm = nn.LayerNorm(out_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        batch_size, num_tokens, channels = x.shape
-        in_pl, in_lat, in_lon = self.input_resolution
-        out_pl, out_lat, out_lon = self.output_resolution
+        Batch, NumTokens, InDim = x.shape
+        InPressureLevels, InHeight, InWidth = self.input_resolution
+        OutPressureLevels, OutHeight, OutWidth = self.output_resolution
 
-        expected_tokens = in_pl * in_lat * in_lon
-        if num_tokens != expected_tokens:
-            raise ValueError(f"Expected {expected_tokens} tokens, but received {num_tokens}")
-        if channels != self.in_dim:
-            raise ValueError(f"Expected input dim {self.in_dim}, but received {channels}")
+        ExpectedTokens = InPressureLevels * InHeight * InWidth
+        if NumTokens != ExpectedTokens:
+            raise ValueError(f"Expected {ExpectedTokens} tokens, but received {NumTokens}")
+        if InDim != self.in_dim:
+            raise ValueError(f"Expected input dim {self.in_dim}, but received {InDim}")
 
         x = self.linear1(x)
-        x = x.reshape(batch_size, in_pl, in_lat, in_lon, 2, 2, self.out_dim)
+        x = x.reshape(Batch, InPressureLevels, InHeight, InWidth, 2, 2, self.out_dim)
         x = x.permute(0, 1, 2, 4, 3, 5, 6)
-        x = x.reshape(batch_size, in_pl, in_lat * 2, in_lon * 2, self.out_dim)
+        x = x.reshape(Batch, InPressureLevels, InHeight * 2, InWidth * 2, self.out_dim)
 
-        pad_h = in_lat * 2 - out_lat
-        pad_w = in_lon * 2 - out_lon
+        HeightPad = InHeight * 2 - OutHeight
+        WidthPad = InWidth * 2 - OutWidth
 
-        pad_top = pad_h // 2
-        pad_bottom = pad_h - pad_top
-        pad_left = pad_w // 2
-        pad_right = pad_w - pad_left
+        PaddingTop = HeightPad // 2
+        PaddingBottom = HeightPad - PaddingTop
+        PaddingLeft = WidthPad // 2
+        PaddingRight = WidthPad - PaddingLeft
 
         x = x[
             :,
-            :out_pl,
-            pad_top : 2 * in_lat - pad_bottom,
-            pad_left : 2 * in_lon - pad_right,
+            :OutPressureLevels,
+            PaddingTop : 2 * InHeight - PaddingBottom,
+            PaddingLeft : 2 * InWidth - PaddingRight,
             :,
         ]
-        x = x.reshape(batch_size, out_pl * out_lat * out_lon, self.out_dim)
+        x = x.reshape(Batch, OutPressureLevels * OutHeight * OutWidth, self.out_dim)
         x = self.norm(x)
         x = self.linear2(x)
         return x
