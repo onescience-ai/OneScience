@@ -49,13 +49,31 @@ _ATTENTIONER_REGISTRY = {
 
 
 class OneAttention(nn.Module):
+    """
+    Attention 统一入口。
+
+    通过 `style` 从注册表中选择具体注意力实现。
+    当前天气相关模型中，常用实现包括：
+
+    - `EarthAttention2D`
+    - `EarthAttention3D`
+    """
+
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
         if style not in _ATTENTIONER_REGISTRY:
-            raise NotImplementedError(f"Unknown style: {style}")
+            raise NotImplementedError(
+                f"Unknown style: '{style}'. Available options are: {list(_ATTENTIONER_REGISTRY.keys())}"
+            )
 
         self.attentioner = _ATTENTIONER_REGISTRY[style](**kwargs)
 
     def forward(self, *args, **kwargs):
         return self.attentioner(*args, **kwargs)
+
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self.attentioner, name)

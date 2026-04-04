@@ -20,7 +20,17 @@ _SAMPLER_REGISTRY = {
 
 
 class OneSample(nn.Module):
-    """OneSample module for sampling operations."""
+    """
+    采样模块统一入口。
+
+    通过 `style` 从注册表中选择具体下采样或上采样实现。
+    当前天气相关模型中，常用实现包括：
+
+    - `PanguDownSample`
+    - `PanguUpSample`
+    - `FuxiDownSample`
+    - `FuxiUpSample`
+    """
 
     def __init__(self, style: str, **kwargs):
         super().__init__()
@@ -28,10 +38,14 @@ class OneSample(nn.Module):
         if style not in _SAMPLER_REGISTRY:
             raise NotImplementedError(f"Unknown style: {style}")
 
-        self.Sampler = _SAMPLER_REGISTRY[style](**kwargs)
+        self.sampler = _SAMPLER_REGISTRY[style](**kwargs)
+        self.Sampler = self.sampler
 
     def forward(self, *args, **kwargs):
-        """
-        前向传播。
-        """
-        return self.Sampler(*args, **kwargs)
+        return self.sampler(*args, **kwargs)
+
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self.sampler, name)

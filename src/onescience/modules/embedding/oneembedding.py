@@ -26,6 +26,16 @@ _EMBEDDER_REGISTRY = {
 }
 
 class OneEmbedding(nn.Module):
+    """
+    Embedding 统一入口。
+
+    通过 `style` 从注册表中选择具体 embedding 实现。
+    当前天气相关模型中，常用实现包括：
+
+    - `PanguEmbedding`
+    - `FourCastNetEmbedding`
+    - `FuxiEmbedding`
+    """
 
     def __init__(self, style: str, **kwargs):
         super().__init__()

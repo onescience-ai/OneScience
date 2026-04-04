@@ -1,4 +1,3 @@
-import torch
 from torch import nn
 
 from .xihetransformer import XiHeTransformer3D
@@ -44,6 +43,17 @@ _TRANSFORMER_REGISTRY = {
 }
 
 class OneTransformer(nn.Module):
+    """
+    Transformer 统一入口。
+
+    通过 `style` 从注册表中选择具体实现，调用层无需直接 import 底层模块。
+    当前天气相关模型中，常用实现包括：
+
+    - `FuxiTransformer`
+    - `EarthTransformer2DBlock`
+    - `EarthTransformer3DBlock`
+    """
+
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
@@ -62,6 +72,3 @@ class OneTransformer(nn.Module):
             return super().__getattr__(name)
         except AttributeError:
             return getattr(self.transformer, name)
-
-
-
