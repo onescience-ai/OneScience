@@ -28,16 +28,40 @@ class MetaData(ModelMetaData):
 
 class Fengwu(nn.Module):
     """
-    FengWu PyTorch impl of: `FengWu: Pushing the Skillful Global Medium-range Weather Forecast beyond 10 Days Lead`
+    FengWu 的主模型实现。
+
+    该模型由多个变量分支编码器、一个中分辨率三维 fuser，以及多个变量分支解码器组成。
+
+    结构顺序为：
+
+    - 多个 `OneEncoder(style="FengWuEncoder")`
+      - 分别编码 surface、Z、R、U、V、T 六个变量分支
+    - `OneFuser(style="FengWuFuser")`
+      - 在统一三维网格 `(Variables, Height, Width)` 上融合中分辨率特征
+    - 多个 `OneDecoder(style="FengWuDecoder")`
+      - 分别恢复各变量分支输出
+
+    与 Pangu 不同，FengWu 不把所有变量直接拼成单一路径输入，而是先按变量族分支编码，
+    再在中分辨率层面做跨变量三维融合。
+
+    Reference:
+    - `FengWu: Pushing the Skillful Global Medium-range Weather Forecast beyond 10 Days Lead`
     - https://arxiv.org/pdf/2304.02948.pdf
 
     Args:
-        img_size: Image size(Lat, Lon). Default: (721,1440)
-        pressure_level: Number of pressure_level. Default: 37
-        embed_dim (int): Patch embedding dimension. Default: 192
-        patch_size (tuple[int]): Patch token size. Default: (4,4)
-        num_heads (tuple[int]): Number of attention heads in different layers.
-        window_size (tuple[int]): Window size.
+        img_size (tuple[int, int]):
+            输入场空间尺寸 `(Height, Width)`。
+        pressure_level (int):
+            高空变量的层数。
+        embed_dim (int):
+            编码器高分辨率特征维度。
+        patch_size (tuple[int, int]):
+            二维 patch 切分尺寸 `(PatchHeight, PatchWidth)`。
+        num_heads (tuple[int, int, int, int]):
+            注意力头数配置，约定顺序为：
+            `(EncoderHighHeads, EncoderMiddleHeads, DecoderMiddleHeads, DecoderHighHeads)`。
+        window_size (tuple[int, int, int]):
+            FengWuFuser 的三维窗口大小。
     """
 
     def __init__(
@@ -50,41 +74,198 @@ class Fengwu(nn.Module):
         window_size=(2, 6, 12),
     ):
         super().__init__()
-        self.encoder_surface = OneEncoder(style="FengWuEncoder", in_chans=4)
-        
-        self.encoder_z = OneEncoder(style="FengWuEncoder")
+        input_resolution = (
+            math.ceil(img_size[0] / patch_size[0]),
+            math.ceil(img_size[1] / patch_size[1]),
+        )
+        middle_resolution = (
+            math.ceil(input_resolution[0] / 2),
+            math.ceil(input_resolution[1] / 2),
+        )
+        encoder_num_heads = (num_heads[0], num_heads[1])
+        decoder_num_heads = (num_heads[3], num_heads[2])
+        drop_path = np.linspace(0, 0.2, 8).tolist()
 
-        self.encoder_r = OneEncoder(style="FengWuEncoder")
+        self.encoder_surface = OneEncoder(
+            style="FengWuEncoder",
+            input_resolution=input_resolution,
+            middle_resolution=middle_resolution,
+            in_chans=4,
+            img_size=img_size,
+            patch_size=patch_size,
+            dim=embed_dim,
+            num_heads=encoder_num_heads,
+            window_size=window_size[1:],
+            drop_path=drop_path,
+        )
+        self.encoder_z = OneEncoder(
+            style="FengWuEncoder",
+            input_resolution=input_resolution,
+            middle_resolution=middle_resolution,
+            in_chans=pressure_level,
+            img_size=img_size,
+            patch_size=patch_size,
+            dim=embed_dim,
+            num_heads=encoder_num_heads,
+            window_size=window_size[1:],
+            drop_path=drop_path,
+        )
+        self.encoder_r = OneEncoder(
+            style="FengWuEncoder",
+            input_resolution=input_resolution,
+            middle_resolution=middle_resolution,
+            in_chans=pressure_level,
+            img_size=img_size,
+            patch_size=patch_size,
+            dim=embed_dim,
+            num_heads=encoder_num_heads,
+            window_size=window_size[1:],
+            drop_path=drop_path,
+        )
+        self.encoder_u = OneEncoder(
+            style="FengWuEncoder",
+            input_resolution=input_resolution,
+            middle_resolution=middle_resolution,
+            in_chans=pressure_level,
+            img_size=img_size,
+            patch_size=patch_size,
+            dim=embed_dim,
+            num_heads=encoder_num_heads,
+            window_size=window_size[1:],
+            drop_path=drop_path,
+        )
+        self.encoder_v = OneEncoder(
+            style="FengWuEncoder",
+            input_resolution=input_resolution,
+            middle_resolution=middle_resolution,
+            in_chans=pressure_level,
+            img_size=img_size,
+            patch_size=patch_size,
+            dim=embed_dim,
+            num_heads=encoder_num_heads,
+            window_size=window_size[1:],
+            drop_path=drop_path,
+        )
+        self.encoder_t = OneEncoder(
+            style="FengWuEncoder",
+            input_resolution=input_resolution,
+            middle_resolution=middle_resolution,
+            in_chans=pressure_level,
+            img_size=img_size,
+            patch_size=patch_size,
+            dim=embed_dim,
+            num_heads=encoder_num_heads,
+            window_size=window_size[1:],
+            drop_path=drop_path,
+        )
 
-        self.encoder_u = OneEncoder(style="FengWuEncoder")
+        self.fuser = OneFuser(
+            style="FengWuFuser",
+            input_resolution=(6, *middle_resolution),
+            dim=embed_dim * 2,
+            num_heads=num_heads[2],
+            window_size=window_size,
+            drop_path=drop_path[2:],
+        )
 
-        self.encoder_v = OneEncoder(style="FengWuEncoder")
+        self.decoder_surface = OneDecoder(
+            style="FengWuDecoder",
+            output_resolution=input_resolution,
+            middle_resolution=middle_resolution,
+            out_chans=4,
+            img_size=img_size,
+            patch_size=patch_size,
+            dim=embed_dim,
+            num_heads=decoder_num_heads,
+            window_size=window_size[1:],
+            drop_path=drop_path,
+        )
+        self.decoder_z = OneDecoder(
+            style="FengWuDecoder",
+            output_resolution=input_resolution,
+            middle_resolution=middle_resolution,
+            out_chans=pressure_level,
+            img_size=img_size,
+            patch_size=patch_size,
+            dim=embed_dim,
+            num_heads=decoder_num_heads,
+            window_size=window_size[1:],
+            drop_path=drop_path,
+        )
+        self.decoder_r = OneDecoder(
+            style="FengWuDecoder",
+            output_resolution=input_resolution,
+            middle_resolution=middle_resolution,
+            out_chans=pressure_level,
+            img_size=img_size,
+            patch_size=patch_size,
+            dim=embed_dim,
+            num_heads=decoder_num_heads,
+            window_size=window_size[1:],
+            drop_path=drop_path,
+        )
+        self.decoder_u = OneDecoder(
+            style="FengWuDecoder",
+            output_resolution=input_resolution,
+            middle_resolution=middle_resolution,
+            out_chans=pressure_level,
+            img_size=img_size,
+            patch_size=patch_size,
+            dim=embed_dim,
+            num_heads=decoder_num_heads,
+            window_size=window_size[1:],
+            drop_path=drop_path,
+        )
+        self.decoder_v = OneDecoder(
+            style="FengWuDecoder",
+            output_resolution=input_resolution,
+            middle_resolution=middle_resolution,
+            out_chans=pressure_level,
+            img_size=img_size,
+            patch_size=patch_size,
+            dim=embed_dim,
+            num_heads=decoder_num_heads,
+            window_size=window_size[1:],
+            drop_path=drop_path,
+        )
+        self.decoder_t = OneDecoder(
+            style="FengWuDecoder",
+            output_resolution=input_resolution,
+            middle_resolution=middle_resolution,
+            out_chans=pressure_level,
+            img_size=img_size,
+            patch_size=patch_size,
+            dim=embed_dim,
+            num_heads=decoder_num_heads,
+            window_size=window_size[1:],
+            drop_path=drop_path,
+        )
 
-        self.encoder_t = OneEncoder(style="FengWuEncoder")
-
-        self.fuser = OneFuser(style="FengWuFuser")
-
-        self.decoder_surface = OneDecoder(style="FengWuDecoder", out_chans=4)
-
-        self.decoder_z = OneDecoder(style="FengWuDecoder")
-
-        self.decoder_r = OneDecoder(style="FengWuDecoder")
-
-        self.decoder_u =OneDecoder(style="FengWuDecoder")
-
-        self.decoder_v = OneDecoder(style="FengWuDecoder")
-
-        self.decoder_t = OneDecoder(style="FengWuDecoder")
+        self.img_size = img_size
+        self.pressure_level = pressure_level
+        self.patch_size = patch_size
+        self.input_resolution = input_resolution
+        self.middle_resolution = middle_resolution
 
     def forward(self, surface, z, r, u, v, t):
         """
         Args:
-            surface (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=4.
-            z (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
-            r (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
-            u (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
-            v (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
-            t (torch.Tensor): 2D n_lat=721, n_lon=1440, chans=37.
+            surface (torch.Tensor):
+                `(Batch, 4, Height, Width)`。
+            z (torch.Tensor):
+                `(Batch, pressure_level, Height, Width)`。
+            r (torch.Tensor):
+                `(Batch, pressure_level, Height, Width)`。
+            u (torch.Tensor):
+                `(Batch, pressure_level, Height, Width)`。
+            v (torch.Tensor):
+                `(Batch, pressure_level, Height, Width)`。
+            t (torch.Tensor):
+                `(Batch, pressure_level, Height, Width)`。
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+                六个变量分支的输出，shape 与各自输入分支一致。
         """
 
         surface, skip_surface = self.encoder_surface(surface)
@@ -105,11 +286,11 @@ class Fengwu(nn.Module):
             ],
             dim=1,
         )
-        B, PL, L_SIZE, C = x.shape
-        x = x.reshape(B, -1, C)
+        Batch, Variables, NumTokensPerVariable, Channels = x.shape
+        x = x.reshape(Batch, -1, Channels)
         x = self.fuser(x)
 
-        x = x.reshape(B, PL, L_SIZE, C)
+        x = x.reshape(Batch, Variables, NumTokensPerVariable, Channels)
         surface, z, r, u, v, t = (
             x[:, 0, :, :],
             x[:, 1, :, :],
