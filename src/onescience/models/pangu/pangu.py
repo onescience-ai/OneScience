@@ -136,6 +136,20 @@ class Pangu(nn.Module):
         self.patchrecovery3d = OneRecovery(
             style="PanguPatchRecovery3D"
         )
+          self.patchrecovery2d = OneRecovery(
+            style="PanguPatchRecovery",
+            img_size=(721, 1440),
+            patch_size=(4, 4),
+            in_chans=embed_dim * 2,
+            out_chans=4,
+        )
+        self.patchrecovery3d = OneRecovery(
+            style="PanguPatchRecovery",
+            img_size=(13, 721, 1440),
+            patch_size=(2, 4, 4),
+            in_chans=embed_dim * 2,
+            out_chans=5,
+        )
 
     def forward(self, x):
         """
