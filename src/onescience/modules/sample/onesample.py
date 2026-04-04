@@ -2,10 +2,6 @@ from torch import nn
 
 from .pangudownsample import PanguDownSample
 from .panguupsample import PanguUpSample
-from .pangudownsample2d import PanguDownSample2D
-from .panguupsample2d import PanguUpSample2D
-from .pangudownsample3d import PanguDownSample3D
-from .panguupsample3d import PanguUpSample3D
 from .SpatialGraphDownsample import SpatialGraphDownsample
 from .SpatialGraphUpsample import SpatialGraphUpsample
 from .fuxidownsample import FuxiDownSample
@@ -15,10 +11,6 @@ from .xiheupsample import XiheUpSample
 _SAMPLER_REGISTRY = {
     "PanguDownSample": PanguDownSample,
     "PanguUpSample": PanguUpSample,
-    "PanguDownSample2D": PanguDownSample2D,
-    "PanguDownSample3D": PanguDownSample3D,
-    "PanguUpSample2D": PanguUpSample2D,
-    "PanguUpSample3D": PanguUpSample3D,
     "SpatialGraphDownsample": SpatialGraphDownsample,
     "SpatialGraphUpsample": SpatialGraphUpsample,
     "FuxiUpSample": FuxiUpSample,
