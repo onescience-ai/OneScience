@@ -134,7 +134,7 @@ class GraphMessagePassing(nn.Module):
             style="MeshGraphMLP",
             input_dim=2 * latent_dim,
             output_dim=latent_dim,
-            hidden_dims=[latent_dim] * hidden_layer
+            hidden_dim=[latent_dim] * hidden_layer
         )
         
         edge_info_in_len = 2 * latent_dim + pos_dim + 1
@@ -142,7 +142,7 @@ class GraphMessagePassing(nn.Module):
             style="MeshGraphMLP",
             input_dim=edge_info_in_len,
             output_dim=latent_dim,
-            hidden_dims=[latent_dim] * hidden_layer
+            hidden_dim=[latent_dim] * hidden_layer
         )
 
     def forward(self, x, g, pos):

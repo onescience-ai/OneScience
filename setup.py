@@ -163,12 +163,12 @@ install_requires = resolve(basic_requires, deps)
 
 setup(
     name="onescience",
-    version="0.2.0",
+    version="0.3.0",
     author="sugon-ai4s",
     author_email="ai4s@sugon.com",
     description="First release",
     long_description="OneScience is a scientific computing toolkit built on an advanced deep learning framework",
-    url="https://github.com/hpccube/OneScience",
+    url="https://github.com/onescience-ai/OneScience",
     package_dir={"": "src"},
     packages=find_packages("src"),
     extras_require=extras,

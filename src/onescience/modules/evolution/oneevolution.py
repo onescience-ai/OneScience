@@ -51,7 +51,7 @@ class nowcastnet(nn.Module):
     
 
 class OneEvolution(nn.module):
-    def __init__(self, style=="nowcastnet"):
+    def __init__(self, style="nowcastnet"):
         if style == "nowcastnet":
             self.Evolution = nowcastnet()
         else:

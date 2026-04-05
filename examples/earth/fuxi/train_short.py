@@ -133,8 +133,6 @@ def main():
         start_time = time.time()
         for j, data in enumerate(train_dataloader):
             invar = data[0].to(local_rank, dtype=torch.float32) # B, T, C, H, W
-            print(invar.shape)
-            exit()
             invar = invar.permute(0, 2, 1, 3, 4) # B, C, T, H, W
             outvar = data[1].to(local_rank, dtype=torch.float32)
             for t in range(outvar.shape[1]):

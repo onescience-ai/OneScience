@@ -73,7 +73,7 @@ if __name__ == "__main__":
     save_path = f'./result/{mode}/data/'
     if mode != 'base' and mode != 'long':
         with torch.no_grad():
-            print(f"📂 infer results will be generated to './result/output/{mode}'")
+            print(f"📂 infer results will be generated to './result/{mode}/data/'")
             j = 0
             for data in tqdm(train_dataloader, desc="Inferring trainset", unit="batch"):
                 invar = data[0].to("cuda:0", dtype=torch.float32) # B, T, C, H, W
@@ -86,7 +86,7 @@ if __name__ == "__main__":
                 j += 1
 
         with torch.no_grad():
-            print(f"📂 infer results will be generated to './result/output/{mode}'")
+            print(f"📂 infer results will be generated to './result/{mode}/data/'")
             j = 0
             for data in tqdm(val_dataloader, desc="Inferring validset", unit="batch"):
                 invar = data[0].to("cuda:0", dtype=torch.float32) # B, T, C, H, W
@@ -99,7 +99,7 @@ if __name__ == "__main__":
                 j += 1
 
     with torch.no_grad():
-        print(f"📂 infer results will be generated to './result/output/{mode}'")
+        print(f"📂 infer results will be generated to './result/{mode}/data/'")
         j = 0
         for data in tqdm(test_dataloader, desc="Inferring testset", unit="batch"):
             invar = data[0].to("cuda:0", dtype=torch.float32) # B, T, C, H, W
