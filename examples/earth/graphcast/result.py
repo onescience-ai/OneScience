@@ -121,11 +121,10 @@ def plot(label, pred, var, filename):
     plt.close()
 
 
-def plot_loss(train_loss, valid_loss):
+def plot_loss(train_loss):
 
-    mask = ~(np.isnan(train_loss) | np.isnan(valid_loss))
+    mask = ~(np.isnan(train_loss))
     train_loss = train_loss[mask]
-    valid_loss = valid_loss[mask]
 
     fig, ax = plt.subplots(figsize=(5, 3.5))
     # 配置
@@ -134,13 +133,12 @@ def plot_loss(train_loss, valid_loss):
     
     # 绑定曲线
     ax.plot(epochs, train_loss, color=colors['train'], linewidth=1.5, label='Train')
-    ax.plot(epochs, valid_loss, color=colors['valid'], linewidth=1.5, label='Valid', linestyle='--')
     # 标注最小值
-    min_idx = np.argmin(valid_loss)
-    ax.scatter(epochs[min_idx], valid_loss[min_idx], 
+    min_idx = np.argmin(train_loss)
+    ax.scatter(epochs[min_idx], train_loss[min_idx], 
                color=colors['valid'], s=40, zorder=5, edgecolors='white')
-    ax.annotate(f'Best: {valid_loss[min_idx]:.3f}', 
-                xy=(epochs[min_idx], valid_loss[min_idx]),
+    ax.annotate(f'Best: {train_loss[min_idx]:.3f}', 
+                xy=(epochs[min_idx], train_loss[min_idx]),
                 xytext=(10, 10), textcoords='offset points', fontsize=8, color=colors['valid'],
                 arrowprops=dict(arrowstyle='-', color=colors['valid'], lw=0.5))
     
@@ -165,8 +163,7 @@ if __name__ == "__main__":
     cfg_data = YParams(config_file_path, "datapipe")
 
     train_loss = np.load('./data/checkpoints/trloss.npy')
-    valid_loss = np.load('./data/checkpoints/valoss.npy')
-    plot_loss(train_loss, valid_loss)
+    plot_loss(train_loss)
     total_files, channel_indices = get_metadata(cfg_data.dataset)
 
     # Load data

@@ -177,7 +177,7 @@ if __name__ == "__main__":
     show_result()
 
     ##### You can choose the date to plot (must exist in ./result/output/)#####
-    eg_files = ['2020100100']
+    eg_files = ['1971100100']
     channel_index = [cfg_data.dataset.channels.index(v) for v in ['2m_temperature', 'geopotential_500', 'temperature_500']]
     
     selected_var = [cfg_data.dataset.channels[int(i)] for i in channel_index]
