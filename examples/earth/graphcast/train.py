@@ -10,10 +10,10 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR, LambdaLR
 from onescience.datapipes.climate import ERA5Datapipe
 from onescience.utils.YParams import YParams
-from onescience.utils.graphcast.data_utils import StaticData
-from onescience.utils.graphcast.graph_utils import deg2rad
+from onescience.modules.utils.graphcast.data_utils import StaticData
+from onescience.modules.utils.graphcast.graph_utils import deg2rad
 from onescience.models.graphcast.graph_cast_net import GraphCastNet
-from onescience.utils.graphcast.loss import GraphCastLossFunction
+from onescience.modules.utils.graphcast.loss import GraphCastLossFunction
 from apex import optimizers
 
 
