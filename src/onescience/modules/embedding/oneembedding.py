@@ -1,7 +1,6 @@
 from torch import nn
 
-from .panguembedding2d import PanguEmbedding2D
-from .panguembedding3d import PanguEmbedding3D
+from .panguembedding import PanguEmbedding
 from .fourier_pos_embedding import FourierPosEmbedding
 from .fuxiembedding import FuxiEmbedding
 from .fourcastnetembedding import FourCastNetEmbedding
@@ -14,8 +13,7 @@ from .protenixembedding import (
  )
 
 _EMBEDDER_REGISTRY = {
-    "PanguEmbedding2D": PanguEmbedding2D,
-    "PanguEmbedding3D": PanguEmbedding3D,
+    "PanguEmbedding": PanguEmbedding,
     "FourierPosEmbedding": FourierPosEmbedding,
     "FuxiEmbedding": FuxiEmbedding,
     "FourCastNetEmbedding": FourCastNetEmbedding,
@@ -28,6 +26,16 @@ _EMBEDDER_REGISTRY = {
 }
 
 class OneEmbedding(nn.Module):
+    """
+    Embedding 统一入口。
+
+    通过 `style` 从注册表中选择具体 embedding 实现。
+    当前天气相关模型中，常用实现包括：
+
+    - `PanguEmbedding`
+    - `FourCastNetEmbedding`
+    - `FuxiEmbedding`
+    """
 
     def __init__(self, style: str, **kwargs):
         super().__init__()

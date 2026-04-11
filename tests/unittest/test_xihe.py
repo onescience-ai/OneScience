@@ -23,15 +23,17 @@ def main():
     config.depth = 2
     config.out_chans = 94
     config.num_groups = 64
-    config.mask='/root/private_data/hanym/modules/onescience/src/onescience/models/xihe/20210628_zos_ocean_mask.npy'
+    arr = np.random.randn(2041, 4320).astype(np.float32) # 保存数据
+    np.save(f'./20210628_zos_ocean_mask.npy', arr) 
+    config.mask='./20210628_zos_ocean_mask.npy'
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    model = Xihe(config).to()
+    model = Xihe(config).to(device)
    
     # 随机输入
     B, Lat, Lon = 1, config.img_size[0], config.img_size[1]
-    x = torch.randn(B, config.in_chans, Lat, Lon)
+    x = torch.randn(B, config.in_chans, Lat, Lon).to(device)
     y = model(x)
 
     # 期望输出形状： (B, ceil(Lat/ph) * ceil(Lon/pw), embed_dim)

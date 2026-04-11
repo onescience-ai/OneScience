@@ -10,41 +10,74 @@ from onescience.modules.transformer.onetransformer import OneTransformer
 
 class PanguFuser(nn.Module):
     """
-        Pangu-Weather 模型的三维特征融合模块，在给定三维网格上堆叠多层 3D Transformer 块以融合多时刻、多高度和空间信息。
+        Pangu-Weather模型的三维特征融合模块。
+
+        Pangu-Weather在主干编码与解码阶段，使用该模块在给定的三维网格上堆叠多层
+        3D Transformer 块，对 patch token 进行层次化特征交互。
+
+        该模块接收已经完成 patch embedding、并按统一三维网格组织后的 token 序列。
+        在 Pangu 主模型中，这些 token 通常由：
+        - 地表分支的二维 patch 特征
+        - 高空分支的三维 patch 特征
+        沿 PressureLevels 维拼接后得到。
+
+        因此，该模块负责在 `(PressureLevels, Height, Width)` 三维网格上融合：
+        - 不同气压层之间的信息
+        - 局部空间邻域的信息
+        - 多层 Transformer block 逐步建模后的层次特征
 
         Args:
-            dim (int): 输入与输出特征的通道维度
-            input_resolution (tuple[int, int, int]): 三维输入特征的网格尺寸 (T, H, W)
-            depth (int): 3D Transformer 块的层数
-            num_heads (int): 多头自注意力的头数
-            window_size (tuple[int, int, int]): 三维窗口注意力的窗口大小 (Wt, Wh, Ww)
-            drop_path (float | Sequence[float]): DropPath / Stochastic Depth 比例或其序列
-            mlp_ratio (float): 前馈网络隐藏层与特征维度的比例
-            qkv_bias (bool): 是否在 QKV 投影中使用偏置
-            qk_scale (float | None): QK 点积缩放因子
-            drop (float): 特征上的 dropout 比例
-            attn_drop (float): 注意力权重上的 dropout 比例
-            norm_layer (nn.Module): 归一化层类型
+            dim (int):
+                输入与输出 token 的特征维度。
+            input_resolution (tuple[int, int, int]):
+                三维输入特征的网格尺寸 `(PressureLevels, Height, Width)`。
+            depth (int):
+                `EarthTransformer3DBlock` 的堆叠层数。
+            num_heads (int):
+                多头自注意力的头数。
+            window_size (tuple[int, int, int]):
+                三维窗口注意力的窗口大小 `(Pl_window, H_window, W_window)`。
+            drop_path (float | Sequence[float]):
+                DropPath / Stochastic Depth 比例或其序列。
+            mlp_ratio (float):
+                前馈网络隐藏层相对特征维度的放大比例。
+            qkv_bias (bool):
+                是否在 QKV 投影中使用偏置。
+            qk_scale (float | None):
+                QK 点积缩放因子。
+            drop (float):
+                特征上的 dropout 比例。
+            attn_drop (float):
+                注意力权重上的 dropout 比例。
+            norm_layer (nn.Module):
+                归一化层类型。
 
         形状:
-            输入:  x 形状为 (B, T * H * W, dim)，其中 (T, H, W) = input_resolution
-            输出:  x 形状为 (B, T * H * W, dim)，与输入相同
+            输入:
+                `x` 形状为 `(Batch, PressureLevels * Height * Width, dim)`，
+                其中 `(PressureLevels, Height, Width) = input_resolution`
+            输出:
+                `x` 形状为 `(Batch, PressureLevels * Height * Width, dim)`，与输入相同
 
         Example:
-            >>> dim = 256
-            >>> input_resolution = (10, 181, 360)
+            >>> # Pangu-Weather 主干中的第一层特征融合
+            >>> dim = 192
+            >>> input_resolution = (8, 181, 360)
             >>> fuser = PanguFuser(
             ...     dim=dim,
             ...     input_resolution=input_resolution,
-            ...     depth=4,
-            ...     num_heads=8,
+            ...     depth=2,
+            ...     num_heads=6,
             ...     window_size=(2, 6, 12),
             ... )
-            >>> B, T, H, W = 2, 10, 181, 360
-            >>> x = torch.randn(B, T * H * W, dim)
+            >>> Batch = 2
+            >>> PressureLevels = 8
+            >>> Height = 181
+            >>> Width = 360
+            >>> x = torch.randn(Batch, PressureLevels * Height * Width, dim)
             >>> out = fuser(x)
             >>> out.shape
-            torch.Size([2, 10 * 181 * 360, 256])
+            torch.Size([2, 8 * 181 * 360, 192])
     """
     def __init__(
         self,

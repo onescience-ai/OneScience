@@ -1,44 +1,58 @@
 import torch
 from torch import nn
-from torch.nn import functional as F
 from timm.layers.helpers import to_2tuple
 from timm.models.swin_transformer_v2 import SwinTransformerV2Stage
 
-from typing import Sequence
 from onescience.modules.func_utils.fuxi_utils import get_pad2d
 from onescience.modules.sample.onesample import OneSample
 
 
 class FuxiTransformer(nn.Module):
     """
-        FuXi 模型的核心 Transformer 处理模块。
+        Fuxi 模型的二维 trunk 模块。
 
-        采用"下采样 → Swin Transformer V2 → 上采样"的 U 形结构，在低分辨率特征图上
-        进行深层注意力计算以降低计算量，并通过跳跃连接将下采样前的特征与注意力输出拼接
-        后恢复原始分辨率。使用 SwinTransformerV2Stage 作为主干，支持 ZeroPad + Crop
-        处理分辨率与窗口大小不整除的情况。
+        该模块采用：
+
+        - `FuxiDownSample`
+        - `SwinTransformerV2Stage`
+        - `FuxiUpSample`
+
+        构成 U 形主干结构。
+
+        输入首先被下采样到较低分辨率，再在低分辨率网格上做多层
+        `SwinTransformerV2Stage` 计算，最后与下采样输出做通道拼接并上采样
+        回原分辨率。
+
+        当分辨率与窗口大小不整除时，内部会先做 ZeroPad，再在 trunk 输出后做 crop。
 
         Args:
-            embed_dim (int, optional): 输入特征的通道数，默认为 1536。
-            num_groups (int 或 tuple[int, int], optional): GroupNorm 的分组数，
-                传入单个 int 时自动扩展为 2 元组，默认为 32。
-            input_resolution (tuple[int, int], optional): 下采样后的特征图分辨率
-                (lat, lon)，即 SwinTransformerV2Stage 的输入分辨率，
-                默认为 (90, 180)。
-            num_heads (int, optional): Swin Transformer 的注意力头数，默认为 8。
-            window_size (int 或 tuple[int, int], optional): 窗口注意力的窗口大小，
-                传入单个 int 时自动扩展为 2 元组，默认为 7。
-            depth (int, optional): SwinTransformerV2Stage 的 Block 层数，默认为 48。
+            embed_dim (int):
+                输入与输出特征通道数。
+            num_groups (int | tuple[int, int]):
+                下采样与上采样模块中的 `GroupNorm` 分组数。
+            input_resolution (tuple[int, int]):
+                下采样后 trunk 网格尺寸 `(Height, Width)`。
+            num_heads (int):
+                Swin Transformer 的注意力头数。
+            window_size (int | tuple[int, int]):
+                局部窗口大小。
+            depth (int):
+                `SwinTransformerV2Stage` 的 block 层数。
 
         形状:
-            - 输入 x: (B, embed_dim, lat, lon)
-                其中 lat, lon 为下采样前的原始分辨率（约为 input_resolution 的 2 倍）
-            - 输出:   (B, embed_dim, lat, lon)，分辨率与通道数均不变
+            输入:
+                `x` 形状为 `(Batch, embed_dim, Height, Width)`
+            输出:
+                `x` 形状为 `(Batch, embed_dim, Height, Width)`
+
+            补充说明：
+            - 这里的输入 `Height` 与 `Width` 指的是 embedding 后、进入 trunk 前的二维特征图尺寸
+            - `input_resolution` 则是下采样后送入 `SwinTransformerV2Stage` 的尺寸
 
         Examples:
-            >>> # 典型 FuXi 配置
-            >>> # 原始输入分辨率: (180, 360)，下采样后: (90, 180)
-            >>> # depth=48 对应 FuXi 论文中的深层 Swin Transformer 堆叠
+            >>> Batch = 2
+            >>> Height = 180
+            >>> Width = 360
             >>> transformer = FuxiTransformer(
             ...     embed_dim=1536,
             ...     num_groups=32,
@@ -47,54 +61,76 @@ class FuxiTransformer(nn.Module):
             ...     window_size=7,
             ...     depth=48,
             ... )
-            >>> x = torch.randn(2, 1536, 180, 360)  # (B, C, lat, lon)
+            >>> x = torch.randn(Batch, 1536, Height, Width)
             >>> out = transformer(x)
             >>> out.shape
             torch.Size([2, 1536, 180, 360])
     """
 
-    def __init__(self, 
-                 embed_dim=1536,
-                 num_groups=32, 
-                 input_resolution=(90, 180),
-                 num_heads=8, 
-                 window_size=7, 
-                 depth=48):
+    def __init__(
+        self,
+        embed_dim=1536,
+        num_groups=32,
+        input_resolution=(90, 180),
+        num_heads=8,
+        window_size=7,
+        depth=48,
+    ):
         super().__init__()
-        
+
         num_groups = to_2tuple(num_groups)
         window_size = to_2tuple(window_size)
-        padding = get_pad2d(input_resolution, window_size)
-        padding_left, padding_right, padding_top, padding_bottom = padding
-        self.padding = padding
-        self.pad = nn.ZeroPad2d(padding)
-        input_resolution = list(input_resolution)
-        input_resolution[0] = input_resolution[0] + padding_top + padding_bottom
-        input_resolution[1] = input_resolution[1] + padding_left + padding_right
-        self.down = OneSample(style="FuxiDownSample", in_chans=embed_dim, out_chans=embed_dim, num_groups=num_groups[0])
-        self.layer = SwinTransformerV2Stage(embed_dim, embed_dim, input_resolution, depth, num_heads, window_size)
-        self.up = OneSample(style="FuxiUpSample", in_chans=embed_dim*2, out_chans=embed_dim, num_groups=num_groups[0])
+        Padding = get_pad2d(input_resolution, window_size)
+        PaddingLeft, PaddingRight, PaddingTop, PaddingBottom = Padding
+        self.padding = Padding
+        self.pad = nn.ZeroPad2d(Padding)
+
+        PaddedResolution = list(input_resolution)
+        PaddedResolution[0] = PaddedResolution[0] + PaddingTop + PaddingBottom
+        PaddedResolution[1] = PaddedResolution[1] + PaddingLeft + PaddingRight
+
+        self.down = OneSample(
+            style="FuxiDownSample",
+            in_chans=embed_dim,
+            out_chans=embed_dim,
+            num_groups=num_groups[0],
+        )
+        self.layer = SwinTransformerV2Stage(
+            embed_dim,
+            embed_dim,
+            PaddedResolution,
+            depth,
+            num_heads,
+            window_size,
+        )
+        self.up = OneSample(
+            style="FuxiUpSample",
+            in_chans=embed_dim * 2,
+            out_chans=embed_dim,
+            num_groups=num_groups[0],
+        )
 
     def forward(self, x):
-        B, C, Lat, Lon = x.shape
-        padding_left, padding_right, padding_top, padding_bottom = self.padding
+        PaddingLeft, PaddingRight, PaddingTop, PaddingBottom = self.padding
         x = self.down(x)
 
-        shortcut = x
+        Shortcut = x
 
-        # pad
         x = self.pad(x)
-        _, _, pad_lat, pad_lon = x.shape
+        _, _, PaddedHeight, PaddedWidth = x.shape
 
-        x = x.permute(0, 2, 3, 1)  # B Lat Lon C
+        x = x.permute(0, 2, 3, 1)
         x = self.layer(x)
         x = x.permute(0, 3, 1, 2)
 
-        # crop
-        x = x[:, :, padding_top: pad_lat - padding_bottom, padding_left: pad_lon - padding_right]
+        x = x[
+            :,
+            :,
+            PaddingTop : PaddedHeight - PaddingBottom,
+            PaddingLeft : PaddedWidth - PaddingRight,
+        ]
 
-        # concat
-        x = torch.cat([shortcut, x], dim=1)  # B 2*C Lat Lon
+        x = torch.cat([Shortcut, x], dim=1)
 
         x = self.up(x)
         return x

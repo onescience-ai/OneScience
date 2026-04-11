@@ -1,4 +1,3 @@
-import torch
 from torch import nn
 
 from .unet_encoder import UNetEncoder1D, UNetEncoder2D, UNetEncoder3D
@@ -22,6 +21,15 @@ _ENCODER_REGISTRY = {
 }
 
 class OneEncoder(nn.Module):
+    """
+    Encoder 统一入口。
+
+    通过 `style` 从注册表中选择具体编码器实现。
+    当前天气相关模型中，常用实现包括：
+
+    - `FengWuEncoder`
+    """
+
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
@@ -43,4 +51,3 @@ class OneEncoder(nn.Module):
             return super().__getattr__(name)
         except AttributeError:
             return getattr(self.encoder, name)
-

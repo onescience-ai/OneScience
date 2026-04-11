@@ -17,19 +17,31 @@ _FUSER_REGISTRY = {
 }
 
 class OneFuser(nn.Module):
-    """OneFuser module for fusing operations."""
-   
+    """
+    融合模块统一入口。
+
+    通过 `style` 从注册表中选择具体融合实现。
+    当前天气相关模型中，常用实现包括：
+
+    - `PanguFuser`
+    - `FengWuFuser`
+    - `FourCastNetFuser`
+    """
+
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
         if style not in _FUSER_REGISTRY:
             raise NotImplementedError(f"Unknown style: {style}")
-        
-        self.Fuser = _FUSER_REGISTRY[style](**kwargs)
-         
-    def forward(self, x):
-        
-        return self.Fuser(x) 
 
+        self.fuser = _FUSER_REGISTRY[style](**kwargs)
+        self.Fuser = self.fuser
 
-      
+    def forward(self, *args, **kwargs):
+        return self.fuser(*args, **kwargs)
+
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self.fuser, name)

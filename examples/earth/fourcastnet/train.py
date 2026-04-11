@@ -7,7 +7,7 @@ import logging
 import time
 
 from torch.nn.parallel import DistributedDataParallel
-from onescience.models.afno.afnonet import AFNONet
+from onescience.models.fourcastnet import FourCastNet
 from onescience.datapipes.climate import ERA5Datapipe
 from onescience.utils.YParams import YParams
 from onescience.utils.fcn.darcy_loss import LpLoss
@@ -43,7 +43,7 @@ def main():
     val_dataloader, val_sampler = datapipe.val_dataloader()
 
     # Model init
-    model = AFNONet(cfg).to(local_rank)
+    model = FourCastNet(cfg).to(local_rank)
     optimizer = optimizers.FusedAdam(model.parameters(), lr=cfg.lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.2, patience=5, mode='min')
     loss_obj = LpLoss()

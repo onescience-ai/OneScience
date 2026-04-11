@@ -1,57 +1,90 @@
-import torch
 import torch.nn as nn
+
 
 class FourCastNetEmbedding(nn.Module):
     """
         FourCastNet 的 2D Patch Embedding 模块。
 
-        使用 2D 卷积将气象场图像划分为不重叠的 Patch 并投影到嵌入空间，
-        是 FourCastNet 编码器的入口层。与 FuxiEmbedding 的 3D 卷积不同，
-        该模块仅处理单帧二维气象场，输出展平为序列形式供后续 Transformer 使用。
+        FourCastNet 在输入编码阶段，使用该模块将二维气象场切分为不重叠 patch，
+        并将每个 patch 投影到统一的 embedding 特征空间。
+
+        该模块只处理二维输入，不涉及三维 `PressureLevels` 维度。
+        输出为展平后的 patch token 序列，后续会在调用层中恢复成
+        `(PatchGridHeight, PatchGridWidth)` 网格，再送入 AFNO 主干。
 
         Args:
-            img_size (tuple[int, int], optional): 输入气象场的空间分辨率 (lat, lon)，
-                默认为 (720, 1440)。
-            patch_size (tuple[int, int], optional): Patch 大小 (Plat, Plon)，
-                默认为 (8, 8)。
-            in_chans (int, optional): 输入气象变量的通道数，默认为 19。
-            embed_dim (int, optional): Patch 嵌入维度，默认为 768。
+            img_size (tuple[int, int]):
+                输入场空间尺寸 `(Height, Width)`。
+            patch_size (tuple[int, int]):
+                patch 切分尺寸 `(PatchHeight, PatchWidth)`。
+            in_chans (int):
+                输入变量通道数。
+            embed_dim (int):
+                patch embedding 后的输出特征维度。
 
         形状:
-            - 输入 x: (B, C, lat, lon)，其中 C = in_chans
-            - 输出:   (B, num_patches, embed_dim)
-                其中 num_patches = (lat // Plat) * (lon // Plon)
+            输入:
+                `x` 形状为 `(Batch, Channels, Height, Width)`
+            输出:
+                `x` 形状为 `(Batch, NumPatches, embed_dim)`
 
-        Examples:
-            >>> # 典型 FourCastNet 配置
-            >>> # 分辨率 720×1440，Patch 大小 8×8
-            >>> # num_patches = (720//8) * (1440//8) = 90 * 180 = 16200
+            其中：
+            - `PatchGridHeight = Height // PatchHeight`
+            - `PatchGridWidth = Width // PatchWidth`
+            - `NumPatches = PatchGridHeight * PatchGridWidth`
+
+        Example:
+            >>> Batch = 2
+            >>> Channels = 20
+            >>> Height = 720
+            >>> Width = 1440
             >>> embedding = FourCastNetEmbedding(
-            ...     img_size=(720, 1440),
+            ...     img_size=(Height, Width),
             ...     patch_size=(8, 8),
-            ...     in_chans=19,
+            ...     in_chans=Channels,
             ...     embed_dim=768,
             ... )
-            >>> x = torch.randn(2, 19, 720, 1440)  # (B, C, lat, lon)
+            >>> x = torch.randn(Batch, Channels, Height, Width)
             >>> out = embedding(x)
             >>> out.shape
             torch.Size([2, 16200, 768])
     """
-    def __init__(self, 
-                 img_size=(720, 1440), 
-                 patch_size=(8, 8), 
-                 in_chans=19, 
-                 embed_dim=768):
+
+    def __init__(
+        self,
+        img_size=(720, 1440),
+        patch_size=(8, 8),
+        in_chans=19,
+        embed_dim=768,
+    ):
         super().__init__()
-        num_patches = (img_size[1] // patch_size[1]) * (img_size[0] // patch_size[0])
+
+        Height, Width = img_size
+        PatchHeight, PatchWidth = patch_size
+
+        PatchGridHeight = Height // PatchHeight
+        PatchGridWidth = Width // PatchWidth
+        num_patches = PatchGridHeight * PatchGridWidth
+
         self.img_size = img_size
         self.patch_size = patch_size
         self.num_patches = num_patches
-        self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
+        self.proj = nn.Conv2d(
+            in_chans,
+            embed_dim,
+            kernel_size=patch_size,
+            stride=patch_size,
+        )
 
     def forward(self, x):
-        B, C, H, W = x.shape
-        assert H == self.img_size[0] and W == self.img_size[1], f"Input image size ({H}*{W}) doesn't match model ({self.img_size[0]}*{self.img_size[1]})."
+        _, _, Height, Width = x.shape
+        ExpectedHeight, ExpectedWidth = self.img_size
+
+        if Height != ExpectedHeight or Width != ExpectedWidth:
+            raise ValueError(
+                f"Input image size ({Height}*{Width}) does not match "
+                f"configured size ({ExpectedHeight}*{ExpectedWidth})"
+            )
+
         x = self.proj(x).flatten(2).transpose(1, 2)
         return x
-

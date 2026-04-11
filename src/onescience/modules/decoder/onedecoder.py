@@ -1,4 +1,3 @@
-import torch
 from torch import nn
 
 from .unet_decoder import UNetDecoder1D, UNetDecoder2D, UNetDecoder3D
@@ -18,6 +17,15 @@ _DECODER_REGISTRY = {
 }
 
 class OneDecoder(nn.Module):
+    """
+    Decoder 统一入口。
+
+    通过 `style` 从注册表中选择具体解码器实现。
+    当前天气相关模型中，常用实现包括：
+
+    - `FengWuDecoder`
+    """
+
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
@@ -30,9 +38,9 @@ class OneDecoder(nn.Module):
 
     def forward(self, *args, **kwargs):
         return self.decoder(*args, **kwargs)
+
     def __getattr__(self, name):
         try:
             return super().__getattr__(name)
         except AttributeError:
             return getattr(self.decoder, name)
-            
