@@ -7,7 +7,6 @@ import torch.nn as nn
 from dataclasses import dataclass
 from onescience.utils.YParams import YParams
 from onescience.models.meta import ModelMetaData
-from onescience.models.xihe.oceanspecificblock import OceanSpecificBlock
 from onescience.modules import (
     OneEmbedding,
     OneRecovery,
@@ -98,7 +97,10 @@ class Xihe(nn.Module):
 
         self.block1=OneFuser(dim=self.embed_dim,input_resolution=input_resolution,num_local=1,style="XiheFuser")
 
-        self.downsample = OneSample(style="PanguDownSample2D",in_dim=self.embed_dim,input_resolution=(H_out, W_out),output_resolution=(H_out // 2, W_out // 2))
+        self.downsample = OneSample(style="PanguDownSample",
+                                    in_dim=self.embed_dim,
+                                    input_resolution=(H_out, W_out),
+                                    output_resolution=(H_out // 2, W_out // 2))
         
         input_resolution = (1, H_out // 2, W_out // 2)
         self.mask_h_w=input_resolution

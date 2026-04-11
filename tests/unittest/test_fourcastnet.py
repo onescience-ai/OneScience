@@ -4,9 +4,9 @@ import warnings
 
 # 忽略有关 'torch.meshgrid' 的警告
 warnings.filterwarnings("ignore", message=".*torch.meshgrid.*")
-
-model = FourCastNet()
-x = torch.randn(2, 19, 720, 1440)
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = FourCastNet().to(device)
+x = torch.randn(2, 19, 720, 1440).to(device)
 
 out = model(x)
 print('Function: FourCastNet Model Forward')
