@@ -1,0 +1,28 @@
+datapipe:
+  name: "TJ"
+  task: "weather_forecasting"
+
+  dataset:
+    type: "netcdf"
+    data_dir: "./data"
+    stats_dir: "./data/stats"
+    train_years: [2000, 2001]
+    val_years: [2002]
+    test_years: [2003]
+    img_size: [1800, 3600]
+    time_res: 6
+    input_steps: 1
+    output_steps: 1
+    num_steps_per_year: 1460
+    verbose: true
+    cache: false
+    channels:
+      - "10m_u_component_of_wind"
+      - "10m_v_component_of_wind"
+      - "2m_temperature"
+      - "surface_pressure"
+
+  dataloader:
+    batch_size: 2
+    num_workers: 0
+    pin_memory: false
