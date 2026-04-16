@@ -35,7 +35,7 @@ pip install -e .
 
 ## 使用手册
 
-如果你想快速了解OneScience的全部使用方法，可以参考我们的[使用手册](https://download2.sourcefind.cn:6## 模块化科学模型搭建框架5024/9/main/onesicence)。
+如果你想快速了解OneScience的全部使用方法，可以参考我们的[使用手册](https://download2.sourcefind.cn:65024/9/main/onesicence)。
 
 ## 在线试用
 
