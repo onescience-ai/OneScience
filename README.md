@@ -50,13 +50,13 @@ pip install -e .
 |   问题类型  |                     案例                    |                                   数据集                                   |      模型架构      |
 | :-----: | :---------------------------------------: | :---------------------------------------------------------------------: | :------------: |
 |   降尺度   |    [CorrDiff](examples/earth/corrdiff)    |                         ERA5、HRRR                        | Unet、Diffusion |
-|  中期天气预报 | [FourCastNet](examples/earth/fourcastnet) |                                ERA5，TJWeather                             |      AFNO      |
-|  中期天气预报 |   [GraphCast](examples/earth/graphcast)   |                                ERA5，TJWeather                               |       GNN      |
-|  中期天气预报 |   [Pangu](examples/earth/pangu_weather)   |                                ERA5,TJWeather                               |  3DTransformer |
+|  中期天气预报 | [FourCastNet](examples/earth/fourcastnet) |                                ERA5、TJWeather                             |      AFNO      |
+|  中期天气预报 |   [GraphCast](examples/earth/graphcast)   |                                ERA5、TJWeather                               |       GNN      |
+|  中期天气预报 |   [Pangu](examples/earth/pangu_weather)   |                                ERA5、TJWeather                               |  3DTransformer |
 |   短临降雨  |  [NowCastNet](examples/earth/nowcastnet)  |                                   MRMS                                  |       GAN      |
-|  中期天气预报 |      [FengWu](examples/earth/fengwu)      |                                ERA5,TJWeather                             |  3DTransformer |
-| 中长期天气预报 |        [Fuxi](examples/earth/fuxi)        |                                ERA5,TJWeather                               |  3DTransformer |
-| 中短期天气预报 |        [Xihe](examples/earth/xihe)        |                                CMEMS,TJWeather                             |  3DTransformer |
+|  中期天气预报 |      [FengWu](examples/earth/fengwu)      |                                ERA5、TJWeather                             |  3DTransformer |
+| 中长期天气预报 |        [Fuxi](examples/earth/fuxi)        |                                ERA5、TJWeather                               |  3DTransformer |
+| 中短期天气预报 |        [Xihe](examples/earth/xihe)        |                                CMEMS、TJWeather                             |  3DTransformer |
 | 短中期海洋预报 |   [Oceancast](examples/earth/oceancast)   | EMCMS海洋数据、Wave\_Height、Wave\_Period、Wave\_Direction、Wind\_U10、Wind\_V10 |      AFNO      |
 
 **数据集**
