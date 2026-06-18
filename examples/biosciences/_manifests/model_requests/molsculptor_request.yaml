@@ -1,0 +1,28 @@
+model_family: MolSculptor
+inference_mode: molecular_optimization
+runtime:
+  cwd: ${ONESCIENCE_ROOT}/examples/biosciences/molsculptor
+  entrypoint: inference/diff_evo_opt_dual.py
+  device: gpu
+input:
+  smiles: ""
+  initial_molecule_file: ""
+  case_dir: cases/case_ar-gr
+checkpoint:
+  ae_checkpoint: ""
+  diffusion_checkpoint: ""
+parameters:
+  sampling_method: top_p_or_beam_or_diffusion
+  n_candidates: 100
+  atom_padding: 64
+reward:
+  properties: [QED, SA, LogP]
+  docking_enabled: false
+  receptor_pdbqt: ""
+outputs:
+  output_dir: outputs/molsculptor
+  candidate_table: candidates.csv
+validation:
+  check_rdkit_validity: true
+  remove_duplicates: true
+  check_reward_columns: true

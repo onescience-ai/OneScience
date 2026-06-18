@@ -29,9 +29,9 @@ class Hmmalign:
     Raises:
       RuntimeError: If hmmalign binary not found within the path.
     """
-    self.binary_path = binary_path
+    self._binary_path = binary_path
 
-    subprocess_utils.check_binary_exists(path=self.binary_path, name='hmmalign')
+    subprocess_utils.check_binary_exists(path=self._binary_path, name='hmmalign')
 
   def align_sequences(
       self,

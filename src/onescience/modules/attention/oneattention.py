@@ -1,50 +1,59 @@
 from torch import nn
 
-from .earthattention2d import EarthAttention2D
-from .earthattention3d import EarthAttention3D
-from .physicsattention import Physics_Attention_Irregular_Mesh
-from .physicsattention import Physics_Attention_Irregular_Mesh_plus
-from .physicsattention import Physics_Attention_Structured_Mesh_1D
-from .physicsattention import Physics_Attention_Structured_Mesh_2D
-from .physicsattention import Physics_Attention_Structured_Mesh_3D
-from .factattention import FactAttention2D
-from .factattention import FactAttention3D
-from .flashattention import FlashAttention
-from .linearattention import LinearAttention
-from .linearattention import Vanilla_Linear_Attention
-from .multiheadattention import MultiHeadAttention
-from .selfattention import SelfAttention
-from .windowattention import WindowAttention
-from .nystrom_attention import NystromAttention
-from .xihefeaturegroupattention import FeatureGroupingAttention
-from .xihefeatureungroupattention import FeatureUngroupingAttention
-from .protenixattention import (
-    ProtenixAttention,
-    ProtenixAttentionPairBias,
-    ProtenixAttentionPairBiasWithLocalAttn,
-)
+from onescience.modules._lazy import instantiate_registered_style
+
 _ATTENTIONER_REGISTRY = {
-    "EarthAttention2D": EarthAttention2D,
-    "EarthAttention3D": EarthAttention3D,
-    "Physics_Attention_Irregular_Mesh": Physics_Attention_Irregular_Mesh,
-    "Physics_Attention_Irregular_Mesh_plus": Physics_Attention_Irregular_Mesh_plus,
-    "Physics_Attention_Structured_Mesh_1D": Physics_Attention_Structured_Mesh_1D,
-    "Physics_Attention_Structured_Mesh_2D": Physics_Attention_Structured_Mesh_2D,
-    "Physics_Attention_Structured_Mesh_3D": Physics_Attention_Structured_Mesh_3D,
-    "FactAttention2D": FactAttention2D,
-    "FactAttention3D": FactAttention3D,
-    "FlashAttention": FlashAttention,
-    "LinearAttention": LinearAttention,
-    "Vanilla_Linear_Attention": Vanilla_Linear_Attention,
-    "MultiHeadAttention": MultiHeadAttention,
-    "SelfAttention": SelfAttention,
-    "WindowAttention": WindowAttention,
-    "NystromAttention": NystromAttention,
-    "FeatureUngroupingAttention": FeatureUngroupingAttention,
-    "FeatureGroupingAttention": FeatureGroupingAttention,
-    "ProtenixAttention": ProtenixAttention,
-    "ProtenixAttentionPairBias": ProtenixAttentionPairBias,
-    "ProtenixAttentionPairBiasWithLocalAttn": ProtenixAttentionPairBiasWithLocalAttn,
+    "EarthAttention2D": ("onescience.modules.attention.earthattention2d", "EarthAttention2D"),
+    "EarthAttention3D": ("onescience.modules.attention.earthattention3d", "EarthAttention3D"),
+    "Physics_Attention_Irregular_Mesh": (
+        "onescience.modules.attention.physicsattention",
+        "Physics_Attention_Irregular_Mesh",
+    ),
+    "Physics_Attention_Irregular_Mesh_plus": (
+        "onescience.modules.attention.physicsattention",
+        "Physics_Attention_Irregular_Mesh_plus",
+    ),
+    "Physics_Attention_Structured_Mesh_1D": (
+        "onescience.modules.attention.physicsattention",
+        "Physics_Attention_Structured_Mesh_1D",
+    ),
+    "Physics_Attention_Structured_Mesh_2D": (
+        "onescience.modules.attention.physicsattention",
+        "Physics_Attention_Structured_Mesh_2D",
+    ),
+    "Physics_Attention_Structured_Mesh_3D": (
+        "onescience.modules.attention.physicsattention",
+        "Physics_Attention_Structured_Mesh_3D",
+    ),
+    "FactAttention2D": ("onescience.modules.attention.factattention", "FactAttention2D"),
+    "FactAttention3D": ("onescience.modules.attention.factattention", "FactAttention3D"),
+    "FlashAttention": ("onescience.modules.attention.flashattention", "FlashAttention"),
+    "LinearAttention": ("onescience.modules.attention.linearattention", "LinearAttention"),
+    "Vanilla_Linear_Attention": (
+        "onescience.modules.attention.linearattention",
+        "Vanilla_Linear_Attention",
+    ),
+    "MultiHeadAttention": ("onescience.modules.attention.multiheadattention", "MultiHeadAttention"),
+    "SelfAttention": ("onescience.modules.attention.selfattention", "SelfAttention"),
+    "WindowAttention": ("onescience.modules.attention.windowattention", "WindowAttention"),
+    "NystromAttention": ("onescience.modules.attention.nystrom_attention", "NystromAttention"),
+    "FeatureUngroupingAttention": (
+        "onescience.modules.attention.xihefeatureungroupattention",
+        "FeatureUngroupingAttention",
+    ),
+    "FeatureGroupingAttention": (
+        "onescience.modules.attention.xihefeaturegroupattention",
+        "FeatureGroupingAttention",
+    ),
+    "ProtenixAttention": ("onescience.modules.attention.protenixattention", "ProtenixAttention"),
+    "ProtenixAttentionPairBias": (
+        "onescience.modules.attention.protenixattention",
+        "ProtenixAttentionPairBias",
+    ),
+    "ProtenixAttentionPairBiasWithLocalAttn": (
+        "onescience.modules.attention.protenixattention",
+        "ProtenixAttentionPairBiasWithLocalAttn",
+    ),
 }
 
 
@@ -62,12 +71,12 @@ class OneAttention(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _ATTENTIONER_REGISTRY:
-            raise NotImplementedError(
-                f"Unknown style: '{style}'. Available options are: {list(_ATTENTIONER_REGISTRY.keys())}"
-            )
-
-        self.attentioner = _ATTENTIONER_REGISTRY[style](**kwargs)
+        self.attentioner = instantiate_registered_style(
+            style,
+            _ATTENTIONER_REGISTRY,
+            "attention",
+            **kwargs,
+        )
 
     def forward(self, *args, **kwargs):
         return self.attentioner(*args, **kwargs)

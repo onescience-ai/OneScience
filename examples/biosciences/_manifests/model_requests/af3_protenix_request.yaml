@@ -1,0 +1,26 @@
+model_family: Protenix
+inference_mode: biomolecular_complex_structure
+input:
+  json_path: ${ONESCIENCE_ROOT}/examples/biosciences/protenix/infer_datasets/7r6r.json
+  run_data_pipeline: false
+  use_msa: true
+runtime:
+  cwd: ${ONESCIENCE_ROOT}/examples/biosciences/protenix
+  entrypoint: runner/inference_unified.py
+  device: gpu_or_dcu
+  precision: bf16
+checkpoint:
+  path: "${ONESCIENCE_MODELS_DIR}/Protenix/model_v0.5.0.pt"
+parameters:
+  seed: 101
+  num_workers: 8
+  N_cycle: 10
+  N_sample: 5
+  N_step: 200
+  flash_attention_implementation: xla_or_model_default
+outputs:
+  dump_dir: output_unified
+validation:
+  check_confidence: true
+  check_structure_files: true
+  check_chain_and_ligand_counts: true

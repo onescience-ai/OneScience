@@ -1,0 +1,35 @@
+# ============================================================
+# Nanotube L0 evaluation (single DCU)
+# ============================================================
+name: nanotube_eval_l0_1dcu
+
+description: "Evaluate nanotube L0 model with eval_configs.py"
+
+entrypoint:
+  script: eval_configs.py
+  args:
+    configs: "${ONESCIENCE_DATASETS_DIR}/matchem/mace/nanotube/nanotube_large.xyz"
+    model: "${ONESCIENCE_MODELS_DIR}/mace/nanotube_l0_8dcu.model"
+    output: "${ONESCIENCE_DATASETS_DIR}/matchem/mace/nanotube/nanotube_large_eavl.xyz"
+    device: cuda
+    default_dtype: float64
+    batch_size: 2
+    info_prefix: "MACE_"
+  data_files:
+    - "${ONESCIENCE_DATASETS_DIR}/matchem/mace/nanotube/nanotube_large.xyz"
+    - "${ONESCIENCE_MODELS_DIR}/mace/nanotube_l0_8dcu.model"
+
+launch:
+  launcher: python
+  num_nodes: 1
+  num_gpus: 1
+
+env:
+  conda_env: matchem
+  modules:
+    - sghpc-mpi-gcc/26.3
+
+slurm:
+  partition: hpctest01
+  time: "2:00:00"
+  cpus_per_task: 16

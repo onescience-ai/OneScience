@@ -1,0 +1,82 @@
+{
+  "abseil-cpp": {
+    "type": "git",
+    "required": true,
+    "upstream": "https://github.com/abseil/abseil-cpp",
+    "mirror": "https://gitee.com/zhang-yuqi-sudo/abseil-cpp",
+    "tag": "d7aaad83b488fd62bd51c81ecf16cd938532cc0a",
+    "notes": "AF3 top-level dependency"
+  },
+  "pybind11": {
+    "type": "git",
+    "required": true,
+    "upstream": "https://github.com/pybind/pybind11",
+    "mirror": "https://gitee.com/zhang-yuqi-sudo/pybind11",
+    "tag": "2e0815278cb899b20870a67ca8205996ef47e70f",
+    "notes": "AF3 top-level dependency"
+  },
+  "pybind11_abseil": {
+    "type": "git",
+    "required": true,
+    "upstream": "https://github.com/pybind/pybind11_abseil",
+    "mirror": "https://gitee.com/zhang-yuqi-sudo/pybind11_abseil",
+    "tag": "bddf30141f9fec8e577f515313caec45f559d319",
+    "notes": "AF3 top-level dependency"
+  },
+  "libcifpp": {
+    "type": "git",
+    "required": true,
+    "upstream": "https://github.com/PDB-REDO/libcifpp",
+    "mirror": "https://gitee.com/zhang-yuqi-sudo/libcifpp",
+    "tag": "ac98531a2fc8daf21131faa0c3d73766efa46180",
+    "notes": "AF3 top-level dependency; has downstream external sources"
+  },
+  "dssp": {
+    "type": "git",
+    "required": true,
+    "upstream": "https://github.com/PDB-REDO/dssp",
+    "mirror": "https://gitee.com/zhang-yuqi-sudo/dssp",
+    "tag": "57560472b4260dc41f457706bc45fc6ef0bc0f10",
+    "notes": "AF3 top-level dependency; has downstream external sources"
+  },
+  "boost-regex": {
+    "type": "git",
+    "required": true,
+    "upstream": "https://github.com/boostorg/regex",
+    "mirror": "https://gitee.com/zhang-yuqi-sudo/regex",
+    "tag": "<fill-existing-tag-or-commit>",
+    "notes": "Currently observed as actual failing downstream dependency"
+  },
+  "libmcfp": {
+    "type": "git",
+    "required": true,
+    "upstream": "https://github.com/mhekkel/libmcfp",
+    "mirror": "https://gitee.com/zhang-yuqi-sudo/libmcfp",
+    "tag": "<fill-existing-tag-or-commit>",
+    "notes": "Referenced by dssp downstream CMake"
+  },
+  "catch2": {
+    "type": "git",
+    "required": false,
+    "upstream": "https://github.com/catchorg/Catch2.git",
+    "mirror": "https://gitee.com/zhang-yuqi-sudo/Catch2",
+    "tag": "<fill-existing-tag-or-commit>",
+    "notes": "Used by libcifpp/dssp test CMake; lower priority if tests are disabled"
+  },
+  "pcre2": {
+    "type": "archive",
+    "required": true,
+    "upstream": "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.46/pcre2-10.46.tar.gz",
+    "mirror": "https://gitee.com/zhang-yuqi-sudo/pcre2/releases/download/pcre2-10.46/pcre2-10.46.tar.gz",
+    "version": "10.46",
+    "notes": "Downloaded by libcifpp/pcre2-simple/CMakeLists.txt"
+  },
+  "eigen": {
+    "type": "git",
+    "required": true,
+    "upstream": "https://gitlab.com/libeigen/eigen.git",
+    "mirror": "https://gitee.com/zhang-yuqi-sudo/eigen",
+    "tag": "3.4.0",
+    "notes": "Used by libcifpp when Eigen3 is not found on system"
+  }
+}

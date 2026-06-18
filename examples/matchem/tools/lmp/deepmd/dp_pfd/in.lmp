@@ -1,0 +1,76 @@
+#PMNPT
+
+units           metal
+boundary        p p p
+atom_style      atomic
+
+neighbor        1.0 bin
+
+# --- 创建 PMN 钙钛矿结构 (20x20x20, 40000 atoms) ---
+lattice custom 4 a1 1 0 0 a2 0 1 0 a3 0 0 1 &
+    basis 0.0 0.0 0.0 basis 0.5 0.5 0.5 basis 0.5 0.5 0.0 basis 0.5 0.0 0.5 basis 0.0 0.5 0.5
+region box block 0 20 0 20 0 20
+create_box 5 box
+change_box all triclinic
+create_atoms 1 box basis 1 1 basis 2 3 basis 3 5 basis 4 5 basis 5 5
+
+# B位初始为Nb(type 3)，随机替换1/3为Mg(type 2)
+group B type 3
+set group B type/fraction 2 0.333333 12345
+
+#read_data      cub_1.0_40000_aftermc.lmp
+
+group Pb type 1
+group Mg type 2
+group Nb type 3
+group Ti type 4
+group O  type 5
+
+mass            1    207.20000    #Pb
+mass            2    24.305000    #Mg
+mass            3    72.630000    #Nb
+mass            4    47.867000    #Ti
+mass            5    15.999400    #O
+
+pair_style      deepmd  pfd_model_compress.pb
+pair_coeff      * * Pb Mg Nb Ti O
+
+velocity        all create 300 3627941 mom yes rot yes dist gaussian
+
+timestep        0.001
+
+thermo_style    custom step pe ke etotal temp press vol cella cellb cellc cellalpha cellbeta cellgamma
+thermo          1000
+
+variable mystep equal step
+variable mype equal pe
+variable myke equal ke
+variable myetotal equal etotal
+variable mytemp equal temp
+variable mypress equal press
+variable myvol equal vol
+variable mycella equal cella
+variable mycellb equal cellb
+variable mycellc equal cellc
+variable mycellalpha equal cellalpha
+variable mycellbeta equal cellbeta
+variable mycellgamma equal cellgamma
+
+#fix thermoprint all print 100 "${mystep} ${mype} ${myke} ${myetotal} ${mytemp} ${mypress} ${myvol} ${mycella} ${mycellb} ${mycellc} ${mycellalpha} ${mycellbeta} ${mycellgamma}" file thermo.dat screen no
+
+fix 3 Pb addforce   0.0000000000 0.0000000000 0.0000000000
+fix 4 Mg addforce   0.0000000000 0.0000000000 0.0000000000
+fix 5 Nb addforce   0.0000000000 0.0000000000 0.0000000000
+fix 6 Ti addforce   0.0000000000 0.0000000000 0.0000000000
+fix 7 O  addforce   -0.0000000000  -0.0000000000  -0.0000000000
+
+fix             1 all npt temp 300 300 0.1 tri 1.0 1.0 0.5
+#dump            1 all custom 1000 *.dump id type x y z
+run             10000
+#undump          1
+unfix           1
+unfix           3
+unfix           4
+unfix           5
+unfix           6
+unfix           7

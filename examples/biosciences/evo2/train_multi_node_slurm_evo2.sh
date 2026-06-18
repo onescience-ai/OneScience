@@ -1,19 +1,20 @@
 #!/bin/bash
 #SBATCH -J evo2_for_onescience
-#SBATCH -p largedev
-#SBATCH --nodes=4
+#SBATCH -p hpctest07
+#SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=128
 #SBATCH --gres=dcu:8
 #SBATCH -o evo2_%j.out       
 # set -euxo pipefail
 
-module purge
-module load sghpc-mpi-gcc/25.8
 
-source /public/home/sghpc_sdk/Linux_x86_64/25.6/das/conda/etc/profile.d/conda.sh
-# conda init bash
-conda activate onescience-evo2
+module purge
+module load sghpc-mpi-gcc/26.3
+module list
+source ${ROCM_PATH}/cuda/env.sh
+
+conda activate bio
 
 which python
 which hipcc

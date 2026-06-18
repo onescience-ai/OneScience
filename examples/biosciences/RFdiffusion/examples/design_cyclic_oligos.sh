@@ -7,4 +7,6 @@
 # We decay this potential with quadratic form, so that it is applied more strongly initially
 # We specify a total length of 480aa, so each chain is 80 residues long
 
-python ../scripts/run_inference.py --config-name=symmetry inference.symmetry="C6" inference.num_designs=10 inference.output_prefix="example_outputs/C6_oligo" 'potentials.guiding_potentials=["type:olig_contacts,weight_intra:1,weight_inter:0.1"]' potentials.olig_intra_all=True potentials.olig_inter_all=True potentials.guide_scale=2.0 potentials.guide_decay="quadratic" 'contigmap.contigs=[480-480]'
+source ../../../env.sh
+echo "ONESCIENCE_MODELS_DIR: ${ONESCIENCE_MODELS_DIR}"
+python ./scripts/run_inference.py --config-name=symmetry inference.symmetry="C6" inference.num_designs=10 inference.output_prefix="example_outputs/C6_oligo" 'potentials.guiding_potentials=["type:olig_contacts,weight_intra:1,weight_inter:0.1"]' potentials.olig_intra_all=True potentials.olig_inter_all=True potentials.guide_scale=2.0 potentials.guide_decay="quadratic" 'contigmap.contigs=[480-480]'

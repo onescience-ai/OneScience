@@ -14,6 +14,7 @@ from lightning.pytorch import LightningDataModule, LightningModule
 from lightning.pytorch.strategies import FSDPStrategy
 from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
 
+import onescience.models.esm.pretrained as esm_pretrained
 from onescience.models.simplefold.torch.blocks import DiTBlock
 from onescience.utils.simplefold.utils import (
     extras,
@@ -64,7 +65,7 @@ def train(cfg):
 
     log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
 
-    tmp_esm_model, _ = torch.hub.load("facebookresearch/esm:main", "esm2_t6_8M_UR50D")
+    tmp_esm_model, _ = esm_pretrained.esm2_t6_8M_UR50D()
     esm_layer_class = tmp_esm_model.layers[0].__class__
     del tmp_esm_model
 

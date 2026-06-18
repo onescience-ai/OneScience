@@ -1,0 +1,25 @@
+model_family: SimpleFold
+inference_mode: protein_structure_prediction
+input:
+  fasta_path: inputs/query.fasta
+runtime:
+  cwd: ${ONESCIENCE_ROOT}/examples/biosciences/simplefold
+  entrypoint: inference.py
+  device: gpu
+checkpoint:
+  model_scale: simplefold_100M
+  path: ""
+features:
+  esm_model: esm2_3B
+  precomputed_esm: ""
+parameters:
+  num_steps: 500
+  tau: 0.01
+  nsample_per_protein: 1
+  seed: 0
+outputs:
+  output_dir: outputs/simplefold_query
+validation:
+  check_pdb_or_cif: true
+  check_residue_count: true
+  check_confidence: true

@@ -1,9 +1,12 @@
 from torch import nn
 
-from .fourcastnetafno import FourCastNetAFNO2D
+from onescience.modules._lazy import instantiate_registered_style
 
 _AFNO_REGISTRY = {
-    "FourCastNetAFNO2D": FourCastNetAFNO2D,
+    "FourCastNetAFNO2D": (
+        "onescience.modules.afno.fourcastnetafno",
+        "FourCastNetAFNO2D",
+    ),
 }
 
 class OneAFNO(nn.Module):
@@ -19,10 +22,7 @@ class OneAFNO(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _AFNO_REGISTRY:
-            raise NotImplementedError(f"Unknown style: {style}")
-        
-        self.afno = _AFNO_REGISTRY[style](**kwargs)
+        self.afno = instantiate_registered_style(style, _AFNO_REGISTRY, "AFNO", **kwargs)
 
     def forward(self, x):
         return self.afno(x)

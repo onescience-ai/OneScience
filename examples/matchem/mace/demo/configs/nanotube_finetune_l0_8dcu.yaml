@@ -1,0 +1,48 @@
+# ============================================================
+# Nanotube L0 finetuning (8 DCU, single node)
+# ============================================================
+name: nanotube_finetune_l0_8dcu
+
+description: "Finetune from nanotube L0 foundation model"
+
+train_args:
+  foundation_model: "${ONESCIENCE_MODELS_DIR}/mace/nanotube_l0_8dcu.model"
+  train_file: "${ONESCIENCE_DATASETS_DIR}/matchem/mace/nanotube/nanotube_large.xyz"
+  test_file: "${ONESCIENCE_DATASETS_DIR}/matchem/mace/nanotube/nanotube_test.xyz"
+  valid_fraction: 0.60
+  multiheads_finetuning: false
+  E0s: average
+  energy_key: Energy
+  forces_key: forces
+
+  energy_weight: 1.0
+  forces_weight: 1.0
+  lr: 0.01
+  scaling: rms_forces_scaling
+  batch_size: 2
+  max_num_epochs: 10
+  num_samples_pt: 10
+
+  ema: true
+  swa: true
+  ema_decay: 0.99
+  amsgrad: true
+
+  default_dtype: float64
+  device: cuda
+  seed: 345
+
+launch:
+  launcher: torchrun
+  num_nodes: 1
+  num_gpus: 8
+
+env:
+  conda_env: matchem
+  modules:
+    - sghpc-mpi-gcc/26.3
+
+slurm:
+  partition: hpctest01
+  time: "2:00:00"
+  cpus_per_task: 128

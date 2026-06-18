@@ -3,7 +3,7 @@ numpy==1.26.3
 timm>=0.9.12
 xarray>=2023.1.0
 zarr>=2.14.2
-setuptools>=65.5.0
+setuptools>=65.5.0,<70
 pytz>=2023.3
 treelib>=1.2.5
 tqdm>=4.60.0
@@ -62,6 +62,7 @@ chex==0.1.90
 flax==0.10.4
 megatron-core==0.14.0rc2
 tensorflow==2.20.0
+pyranges
 
 # evo2
 fiddle==0.3.0
@@ -104,6 +105,18 @@ ase_db_backends
 clusterscope
 numba
 submitit
+cuequivariance==0.8.0
+pwdata
+scikit-learn-intelex
+pwact
+
+#alphagenome
+alphagenome>=0.1.0
+kagglehub>=0.3.0,<=0.3.3
+orbax-checkpoint>=0.6.0
+pyfaidx>=0.7.0
+jaxtyping>=0.2.0
+einshape>=1.0
 
 #af3
 filelock==3.16.1
@@ -117,4 +130,9 @@ tabulate
 typeguard==2.13.3
 ninja==1.13.0
 
-args
+#openfold
+pdbfixer==1.12.0
+
+# cli
+click>=8.0.0
+

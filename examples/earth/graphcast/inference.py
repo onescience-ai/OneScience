@@ -1,39 +1,35 @@
 import os
 import numpy as np
-import time
+import glob
 import torch
 import sys
-import logging
 import h5py
-import json
 from tqdm import tqdm
-from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR, LambdaLR
-from torch.nn.parallel import DistributedDataParallel
 
-from onescience.models.graphcast.graph_cast_net import GraphCastNet
-from onescience.utils.graphcast.loss import GraphCastLossFunction
 from onescience.utils.YParams import YParams
-from onescience.launch.utils import load_checkpoint, save_checkpoint
 from onescience.datapipes.climate import ERA5Datapipe
-from onescience.utils.graphcast.data_utils import StaticData
-from onescience.utils.graphcast.graph_utils import deg2rad
 from ruamel.yaml.scalarfloat import ScalarFloat
+from onescience.modules.utils.graphcast.data_utils import StaticData
+from onescience.modules.utils.graphcast.graph_utils import deg2rad
+from onescience.models.graphcast.graph_cast_net import GraphCastNet
 
 
 torch.serialization.add_safe_globals([ScalarFloat])
 
 
-def get_stats(cfg):
-    meta_path = os.path.join(cfg.data_dir, 'metadata.json')
-    with open(meta_path, "r") as f:
-        metadata = json.load(f)
-    variables = metadata['variables']
-    channel_indices = [variables.index(v) for v in cfg.channels]
-    mu = np.load(os.path.join(cfg.stats_dir, "global_means.npy"))  # shape: [1, M, 1, 1]
-    std = np.load(os.path.join(cfg.stats_dir, "global_stds.npy"))
+def get_stats(data_dir, channels):
+    """从新版 h5 attrs 中读取变量列表，提取归一化参数"""
+    h5_files = sorted(glob.glob(os.path.join(data_dir, "data", "*.h5")))
+    with h5py.File(h5_files[0], "r") as f:
+        ds = f["fields"]
+        all_variables = [v.decode() if isinstance(v, bytes) else v for v in ds.attrs["variables"]]
+
+    channel_indices = [all_variables.index(v) for v in channels]
+    stats_dir = os.path.join(data_dir, "stats")
+    mu = np.load(os.path.join(stats_dir, "global_means.npy"))   # [1, C, 1, 1]
+    std = np.load(os.path.join(stats_dir, "global_stds.npy"))
     means = mu[:, channel_indices, :, :]
     stds = std[:, channel_indices, :, :]
-        
     return means, stds
 
 
@@ -47,13 +43,19 @@ if __name__ == "__main__":
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
 
-    test_dataset = ERA5Datapipe(params = cfg_data, distributed = False)
-    test_dataloader = test_dataset.test_dataloader()
-    means, stds = get_stats(cfg_data.dataset)
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.test_time,
+        distributed=False,
+        batch_size=1,
+        num_workers=4,
+    )
+    test_dataloader, _ = datapipe.get_dataloader("test")
+    means, stds = get_stats(cfg_data.dataset.data_dir, cfg_data.dataset.channels)
 
     ckpt = torch.load(f"{cfg.checkpoint_dir}/model_finetune_bak.pth", map_location="cuda:0", weights_only=True)
     model_dtype = torch.bfloat16 if cfg.full_bf16 else torch.float32
-    ## DataLoader init
     input_dim_grid_nodes = (len(cfg_data.dataset.channels) + cfg.use_cos_zenith + 4 * cfg.use_time_of_year_index) * (cfg.num_history + 1) + cfg.num_channels_static
     model = GraphCastNet(mesh_level=cfg.mesh_level,
                          multimesh=cfg.multimesh,
@@ -77,32 +79,24 @@ if __name__ == "__main__":
     model = model.to(dtype=model_dtype).to("cuda:0")
     model.load_state_dict(ckpt["model_state_dict"])
 
-    model_dtype = torch.bfloat16 if cfg.full_bf16 else torch.float32
-    model.set_checkpoint_encoder(cfg.checkpoint_encoder)
-    model.set_checkpoint_decoder(cfg.checkpoint_decoder)
-    model = model.to(dtype=model_dtype).to('cuda:0')
     if hasattr(model, "module"):
         latitudes = model.module.latitudes
         longitudes = model.module.longitudes
-        lat_lon_grid = model.module.lat_lon_grid
     else:
         latitudes = model.latitudes
         longitudes = model.longitudes
-        lat_lon_grid = model.lat_lon_grid
     static_data = StaticData(cfg_data.dataset.static_dir, latitudes, longitudes).get().to(device="cuda:0")
 
-    # 4️⃣ 设置为 eval 模式
     model.eval()
     os.makedirs('./result/output/', exist_ok=True)
     print(f"📂 samples will be generated to './result/output/'")
     with torch.no_grad():
-        j = 0
         for data in tqdm(test_dataloader, desc="Inferring testset", unit="batch"):
             invar = data[0].to(device="cuda:0")
             cos_zenith = data[2].to(device="cuda:0")
             in_idx = data[3].item()
             filename = data[4][-1][0]
-            
+
             cos_zenith = torch.squeeze(cos_zenith, dim=2)
             cos_zenith = torch.clamp(cos_zenith, min=0.0) - 1.0 / torch.pi
             day_of_year, time_of_day = divmod(in_idx * cfg.dt, 24)
@@ -118,6 +112,5 @@ if __name__ == "__main__":
             pred_var = model(invar).to(dtype=torch.float32)
             pred_var = pred_var.cpu().numpy()
             pred_var = pred_var * stds + means
-            
+
             np.save(f"result/output/{filename}.npy", pred_var)
-            j += 1

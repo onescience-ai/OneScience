@@ -8,7 +8,7 @@
 # if received directly from Google. Use is subject to terms of use available at
 # https://github.com/google-deepmind/alphafold3/blob/main/WEIGHTS_TERMS_OF_USE.md
 
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.24)
 project(
   "${SKBUILD_PROJECT_NAME}"
   LANGUAGES CXX
@@ -23,49 +23,83 @@ set(ABSL_PROPAGATE_CXX_STD ON)
 # Remove support for scan deps, which is only useful when using C++ modules.
 unset(CMAKE_CXX_SCANDEP_SOURCE)
 
+set(ENV{GIT_CONFIG_PARAMETERS} "'init.defaultRefFormat=files'")
+
 if(DEFINED ENV{ALPHAFOLD3_DEP_DIR})
    set(DEP_BASE_DIR "$ENV{ALPHAFOLD3_DEP_DIR}")
 endif()
 
+function(declare_af3_dependency dep_name local_path_env repo_env tag_env)
+  if(DEFINED ENV{${local_path_env}} AND EXISTS "$ENV{${local_path_env}}")
+    message(STATUS "Using local dependency for ${dep_name}: $ENV{${local_path_env}}")
+    FetchContent_Declare(
+      ${dep_name}
+      SOURCE_DIR $ENV{${local_path_env}}
+      ${ARGN})
+  else()
+    message(STATUS "Fetching remote dependency for ${dep_name}: $ENV{${repo_env}} @ $ENV{${tag_env}}")
+    FetchContent_Declare(
+      ${dep_name}
+      GIT_REPOSITORY $ENV{${repo_env}}
+      GIT_TAG $ENV{${tag_env}}
+      ${ARGN})
+  endif()
+endfunction()
 
-FetchContent_Declare(
+
+declare_af3_dependency(
   abseil-cpp
-  SOURCE_DIR ${DEP_BASE_DIR}/abseil-cpp
+  ABSEIL_LOCAL_PATH
+  ABSEIL_REPO
+  ABSEIL_TAG
   EXCLUDE_FROM_ALL)
 
-FetchContent_Declare(
+declare_af3_dependency(
   pybind11
-  SOURCE_DIR ${DEP_BASE_DIR}/pybind11
+  PYBIND11_LOCAL_PATH
+  PYBIND11_REPO
+  PYBIND11_TAG
   EXCLUDE_FROM_ALL)
 
-FetchContent_Declare(
+declare_af3_dependency(
   pybind11_abseil
-  SOURCE_DIR ${DEP_BASE_DIR}/pybind11_abseil
+  PYBIND11_ABSEIL_LOCAL_PATH
+  PYBIND11_ABSEIL_REPO
+  PYBIND11_ABSEIL_TAG
   EXCLUDE_FROM_ALL)
 
-FetchContent_Declare(
+declare_af3_dependency(
   cifpp
-  SOURCE_DIR ${DEP_BASE_DIR}/libcifpp
-  # Don't `EXCLUDE_FROM_ALL` as necessary for build_data.
-)
+  CIFPP_LOCAL_PATH
+  CIFPP_REPO
+  CIFPP_TAG)
 
-FetchContent_Declare(
+declare_af3_dependency(
   dssp
-  SOURCE_DIR ${DEP_BASE_DIR}/dssp
+  DSSP_LOCAL_PATH
+  DSSP_REPO
+  DSSP_TAG
   EXCLUDE_FROM_ALL)
 
-if(DEFINED ENV{CONDA_PREFIX})
+if(DEFINED ENV{ALPHAFOLD3_INSTALL_PREFIX})
+    set(CMAKE_INSTALL_PREFIX $ENV{ALPHAFOLD3_INSTALL_PREFIX} CACHE PATH "Install prefix" FORCE)
+    message(STATUS "Setting install prefix to AlphaFold3 package directory: $ENV{ALPHAFOLD3_INSTALL_PREFIX}")
+elseif(DEFINED ENV{CONDA_PREFIX})
     set(CMAKE_INSTALL_PREFIX $ENV{CONDA_PREFIX} CACHE PATH "Install prefix" FORCE)
     message(STATUS "Setting install prefix to conda environment: $ENV{CONDA_PREFIX}")
-    
-    # Set CIFPP_DATA_DIR to Python site-packages for better integration
+endif()
+
+if(DEFINED ENV{ALPHAFOLD3_CIFPP_DATA_DIR})
+    set(CIFPP_DATA_DIR "$ENV{ALPHAFOLD3_CIFPP_DATA_DIR}" CACHE PATH "CIFPP data directory" FORCE)
+    message(STATUS "Setting CIFPP_DATA_DIR to ${CIFPP_DATA_DIR}")
+elseif(DEFINED ENV{CONDA_PREFIX})
     execute_process(
         COMMAND python -c "import site; print(site.getsitepackages()[0])"
         OUTPUT_VARIABLE PYTHON_SITE_PACKAGES
         OUTPUT_STRIP_TRAILING_WHITESPACE
         ERROR_QUIET
     )
-    
+
     if(PYTHON_SITE_PACKAGES)
         set(CIFPP_DATA_DIR "${PYTHON_SITE_PACKAGES}/share/libcifpp" CACHE PATH "CIFPP data directory" FORCE)
         message(STATUS "Setting CIFPP_DATA_DIR to Python site-packages: ${CIFPP_DATA_DIR}")
@@ -79,11 +113,27 @@ find_package(
   COMPONENTS Interpreter Development NumPy
   REQUIRED)
 
-include_directories(${PYTHON_INCLUDE_DIRS})
+message(STATUS "AF3 Python3_EXECUTABLE=${Python3_EXECUTABLE}")
+message(STATUS "AF3 Python3_VERSION=${Python3_VERSION}")
+message(STATUS "AF3 Python3_INCLUDE_DIRS=${Python3_INCLUDE_DIRS}")
+message(STATUS "AF3 Python3_SITELIB=${Python3_SITELIB}")
+message(STATUS "AF3 Python3_SITEARCH=${Python3_SITEARCH}")
+message(STATUS "AF3 Python3_NumPy_INCLUDE_DIRS=${Python3_NumPy_INCLUDE_DIRS}")
+
+include_directories(${Python3_INCLUDE_DIRS})
+include_directories(${Python3_NumPy_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 
+# Only compile AF3's own C++ sources.
 file(GLOB_RECURSE cpp_srcs ${CMAKE_CURRENT_SOURCE_DIR}/*.cc)
-list(FILTER cpp_srcs EXCLUDE REGEX ".*\(_test\|_main\|_benchmark\).cc$")
+# Drop any third-party / build-time sources such as benchmarks/tests/examples.
+list(FILTER cpp_srcs EXCLUDE REGEX ".*/_deps/.*")
+list(FILTER cpp_srcs EXCLUDE REGEX ".*/mirror_deps/.*")
+list(FILTER cpp_srcs EXCLUDE REGEX ".*/CMake/install_test_project/.*")
+list(FILTER cpp_srcs EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/test/.*")
+#list(FILTER cpp_srcs EXCLUDE REGEX ".*\\(_test\\|_main\\|_benchmark\\).cc$")
+list(FILTER cpp_srcs EXCLUDE REGEX ".*(_test|_main|_benchmark)\\.cc$")
+message(STATUS "AF3 cpp_srcs after filter: ${cpp_srcs}")
 
 add_compile_definitions(NPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION)
 

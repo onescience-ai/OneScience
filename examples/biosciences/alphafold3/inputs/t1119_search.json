@@ -1,0 +1,19 @@
+{
+  "dialect": "alphafold3",
+  "version": 1,
+  "name": "T1119",
+  "sequences": [
+    {
+      "protein": {
+        "id": "A",
+        "sequence": "QLEDSEVEAVAKGLEEMYANGVTEDNFKNYVKNNFAQQEISSVEEELNVNISDSCVANKIKDEFFAMISISAIVKAAQKKAWKELAVTVLRFAKANGLKTNAIIVAGQLALWAVQCG"
+      }
+    }
+  ],
+  "modelSeeds": [
+    100
+  ],
+  "bondedAtomPairs": null,
+  "userCCD": null
+}
+

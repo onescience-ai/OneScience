@@ -7,5 +7,6 @@
 #   - residues 163-181 (inclusive) on the A chain of the input
 #   - 10-40 residues (randomly sampled)
 # We generate 10 designs
-
-../scripts/run_inference.py inference.output_prefix=example_outputs/design_motifscaffolding inference.input_pdb=input_pdbs/5TPN.pdb 'contigmap.contigs=[10-40/A163-181/10-40]' inference.num_designs=10
+source ../../../env.sh
+echo "ONESCIENCE_MODELS_DIR: ${ONESCIENCE_MODELS_DIR}"
+python ./scripts/run_inference.py inference.output_prefix=example_outputs/design_motifscaffolding inference.input_pdb=input_pdbs/5TPN.pdb 'contigmap.contigs=[10-40/A163-181/10-40]' inference.num_designs=10

@@ -1,11 +1,16 @@
 from torch import nn
 
-from .pangupatchrecovery import PanguPatchRecovery
-from .xihepatchrecovery    import XihePatchRecovery
+from onescience.modules._lazy import instantiate_registered_style
 
 _RECOVERY_REGISTRY = {
-    "PanguPatchRecovery": PanguPatchRecovery,
-    "XihePatchRecovery":XihePatchRecovery,
+    "PanguPatchRecovery": (
+        "onescience.modules.recovery.pangupatchrecovery",
+        "PanguPatchRecovery",
+    ),
+    "XihePatchRecovery": (
+        "onescience.modules.recovery.xihepatchrecovery",
+        "XihePatchRecovery",
+    ),
 }
 
 class OneRecovery(nn.Module):
@@ -21,10 +26,12 @@ class OneRecovery(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _RECOVERY_REGISTRY:
-            raise NotImplementedError(f"Unknown style: {style}")
-
-        self.recovery = _RECOVERY_REGISTRY[style](**kwargs)
+        self.recovery = instantiate_registered_style(
+            style,
+            _RECOVERY_REGISTRY,
+            "recovery",
+            **kwargs,
+        )
         self.Reconvery = self.recovery
 
     def forward(self, *args, **kwargs):

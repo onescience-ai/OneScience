@@ -1,74 +1,50 @@
 # FengWu
 
-**模型简介**
+FengWu（风乌）是上海人工智能实验室联合多所高校发布的全球中期天气预报大模型，基于多模态和多任务深度学习方法，首次实现在高分辨率上对核心大气变量超过 10 天的有效预报。
 
-如何提高天气预报的时效和准确度，一直是业内的重点课题。随着近年来全球气候变化加剧，极端天气频发，各界对天气预报的时效和精度的期待更是与日俱增。2023年4月7日，上海人工智能实验室联合中国科学技术大学、上海交通大学、南京信息工程大学、中国科学院大气物理研究所及上海中心气象台发布全球中期天气预报大模型“风乌”。基于多模态和多任务深度学习方法构建，AI大模型“风乌”首次实现在高分辨率上对核心大气变量进行超过10天的有效预报，并在80%的评估指标上超越模型GraphCast[1]。此外，“风乌”仅需30秒即可生成未来10天全球高精度预报结果，在效率上大幅优于传统模型。
+> 论文：[FengWu: Pushing the Skillful Global Medium-range Weather Forecast beyond 10 Days Lead](https://arxiv.org/abs/2304.02948)
 
-**模型结构**
+## 数据准备
 
-“风乌”采用多模态神经网络和多任务自动均衡权重解决多种大气变量表征和相互影响的问题。其针对的大气变量包括：位势、湿度、纬向风速、经向风速、温度以及地表等。“风乌”将这些大气变量看作多模态信息，使用多模态网络结构可以更好地处理这些信息。
+真实数据的存储格式参照 `../era5_dataset_prepare/README.md`，在 `conf/config.yaml` 中修改：
 
-研究团队从多任务问题的角度出发，自动学习每个大气变量的重要性，使得多个大气变量之间能够更好地协同优化。为了优化“风乌”的多步预测结果，研究团队提出了“缓存回放”（replay buffer）策略，减少自回归预测误差，提高长期预测的性能。
-
-**数据集准备**
-
-数据存储格式参照'../era5_dataset_prepare/README.md'中'Final state'中数据集目录构造及文件存储内容。
-
-用户若没有数据，可根据'../era5_dataset_prepare/README.md'步骤，进行ERA5数据的下载、转换、整合；
-
-用户若自备数据，需按照格式要求整合后，在'conf/config.yaml'中修改相应数据存储路径及划分方式，具体参数含义为：
-
-```
-stats_dir: 存放均值、标准差等文件，用于数据标准化
-static_dir: 存放静态文件，例如陆地掩码等，若模型不需要则跳过
-data_dir: 数据存放路径
-train_ratio: 训练集划分比例，支持(1. 指定年份，例如[2000, 2001]; 2.比例(小数方式)，例如0.6; 3.年份数量，例如15)
-val_ratio: 验证集划分比例，支持(1. 指定年份，例如[2002, 2003]; 2.比例(小数方式)，例如0.3; 3.年份数量，例如3)
-test_ratio: 测试集划分比例，支持(1. 指定年份，例如[2004]; 2.比例(小数方式)，例如0.1; 3.年份数量，例如1)
+```yaml
+data_dir: 存放ERA5年度数据、均值/标准差文件、静态文件，存放方式参考'../era5_dataset_prepare/README.md'
+train_time: [2000, 2001]   # 训练年份
+val_time: [2002]            # 验证年份
+test_time: [2003]           # 测试年份
 ```
 
-用户若使用临时虚拟数据测试模型运行情况或测试机器性能，可通过下述命令得到虚拟数据文件；
+无真实数据时，可生成虚拟数据快速验证流程(若快速验证，则需将conf/config.yaml中max_epoch设为1)：
 
-运行前需仔细确认config中上述3个数据路径，不要覆盖已有数据，程序会自动创建相应文件夹，同时，需要提前根据work_dcu.sh内容激活conda环境以及加载DTK环境。
-```
-python tmp_data_generation.py
-```
-
-**运行**
-
-work_dcu.sh脚本中，包含训练(单机单卡、单机多卡)、推理以及结果验证(包含误差计算及案例可视化)过程。
-
-相关配置请**按照相应平台进行修改**，例如**DTK加载、conda环境激活等**；
-
-激活(即取消注释)相应模块后，通过下述命令运行
-
-```
-bash work_dcu.sh
+```bash
+source ../earth_env.sh
+python fake_data.py
 ```
 
-单机单卡训练时，激活python train.py；
+## 运行
 
-单机多卡训练时，激活torchrun --nproc_per_node=8 --nnodes=1 --rdzv_id=1000 --rdzv_backend=c10d --max_restarts=0 --master_addr="localhost" --master_port=29500 train.py
+```bash
+source ../earth_env.sh
 
-**--nproc_per_node=8**代表当前机器共几个加速卡（默认8个）
+# 1. 训练（二选一）
+python train.py                # 单卡
+torchrun --nproc_per_node=8 --nnodes=1 --rdzv_id=1000 --rdzv_backend=c10d --max_restarts=0 --master_addr="localhost" --master_port=29500 train.py   # 多卡
 
-推理时(单机单卡)，激活python inference.py (结果存放在./result/文件夹下)
+# 2. 推理（结果输出至 ./result/output/）
+python inference.py
 
-结果验证时，激活python result.py，支持通过指定日期及变量进行可视化(需确保'./result/'内包含改日期以及config内包含该变量)。
-
-work_slurm.sh脚本负责集群训练，DTK加载、conda激活等同单机运行脚本，请注意修改相关配置；
-
-请注意，在使用集群训练时，**请确保#SBATCH -o 后的路径存在**，默认为logs，需手动创建文件夹，提交作业方式如下：
-
-```
-sbatch work_slurm.sh
+# 3. 评估 & 可视化（result.py 末尾可指定日期和变量）
+python result.py
 ```
 
-**模型快速部署测试方法**
+## 集群训练
 
-1. 在train.py中训练、验证循环末尾添加添加break快速跳过一轮训练，同时，将config中model.max_epoch设为1实现快速得到模型权重文件；
-2. 在inference中得到几个推理文件后可提前中断；
+```bash
+mkdir -p logs
+sbatch work_slurm.sh    # 提交前检查分区、节点数等配置
+```
 
-**许可证**
+## 许可证
 
-FengWu项目（包括代码和模型参数）在Apache 2.0许可下提供，可免费用于学术研究和商业用途。
+Apache 2.0，可免费用于学术研究和商业用途。

@@ -1,135 +1,115 @@
-import xarray as xr
-import h5py
-import os
-import numpy as np
 import glob
-import json
 import os
-from datetime import datetime, timedelta
+
+import h5py
+import numpy as np
+import xarray as xr
 
 
-def generate_datetimes(year, count):
-    base = datetime(year, 1, 1, 0)
-    return [base + timedelta(hours=6 * i) for i in range(count)]
+NC_ROOT = "./nc"
+TMP_H5_ROOT = "./tmp_h5"
+YEARS = list(range(1979, 2026))
+
+SINGLE_LEVEL_VARIABLES = [
+    "total_precipitation",
+    "10m_u_component_of_wind",
+    "10m_v_component_of_wind",
+    "2m_temperature",
+    "mean_sea_level_pressure",
+    "surface_pressure",
+    "total_column_water_vapour",
+    "sea_surface_temperature",
+]
+PRESSURE_VARIABLES = [
+    "geopotential",
+    "relative_humidity",
+    "specific_humidity",
+    "temperature",
+    "u_component_of_wind",
+    "v_component_of_wind",
+]
+
+SINGLE_LEVEL_NAME_MAP = {
+    "tp": "total_precipitation",
+    "u10": "10m_u_component_of_wind",
+    "v10": "10m_v_component_of_wind",
+    "t2m": "2m_temperature",
+    "msl": "mean_sea_level_pressure",
+    "sp": "surface_pressure",
+    "tcwv": "total_column_water_vapour",
+    "sst": "sea_surface_temperature",
+}
+PRESSURE_NAME_MAP = {
+    "z": "geopotential",
+    "r": "relative_humidity",
+    "q": "specific_humidity",
+    "t": "temperature",
+    "u": "u_component_of_wind",
+    "v": "v_component_of_wind",
+    "w": "vertical_velocity",
+}
 
 
-def save_variable_to_h5(var_name: str, data: np.ndarray, h5_filename: str):
+def _as_time_lat_lon(values, source):
+    data = np.asarray(values)
+    while data.ndim > 3 and 1 in data.shape:
+        data = np.squeeze(data)
+    if data.ndim != 3:
+        raise ValueError(f"{source} must be [T, H, W], got {data.shape}")
+    return data.astype(np.float32, copy=False)
 
-    with h5py.File(h5_filename, 'w') as h5f:
-        h5f.create_dataset('fields', data=data)
-    print(f"✅ Saved {h5_filename}")
+
+def _save_variable(path, data):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with h5py.File(path, "w") as f:
+        f.create_dataset("fields", data=data)
+    print(f"Saved {path}")
 
 
-def process_land_file(nc_path: str, output_dir: str = "."):
-    land_var_map = {
-        'u10': '10m_u_component_of_wind',
-        'v10': '10m_v_component_of_wind',
-        't2m': '2m_temperature',
-        'msl': 'mean_sea_level_pressure',
-        'sp': 'surface_pressure',
-        'tcwv': 'total_column_water_vapour',
-        'tp': 'total_precipitation',
-        'sst': 'sea_surface_temperature'
-    }
-    
+def process_single_level_file(nc_path, output_dir):
     ds = xr.open_dataset(nc_path)
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    for var_name in ds.data_vars:
-        var = ds[var_name]
-        # 判断是否包含 pressure_level
-        filename = f"{land_var_map[var_name]}.h5"
-        save_path = os.path.join(output_dir, filename)
-
-        if os.path.exists(save_path):
-            print(f'{save_path} exists, skipping...')
-        else:
-            print(save_path)
-            save_variable_to_h5(var_name, var.values, save_path)
+    for short_name in ds.data_vars:
+        var_name = SINGLE_LEVEL_NAME_MAP.get(short_name, short_name)
+        if var_name is None or var_name not in SINGLE_LEVEL_VARIABLES:
+            continue
+        data = _as_time_lat_lon(ds[short_name].values, nc_path)
+        _save_variable(os.path.join(output_dir, f"{var_name}.h5"), data)
 
 
-def process_pressure_file(nc_path: str, output_dir: str = "."):
-    pressure_var_map = {
-        'z': 'geopotential',
-        'r': 'relative_humidity',
-        'q': 'specific_humidity',
-        't': 'temperature',
-        'u': 'u_component_of_wind',
-        'v': 'v_component_of_wind',
-        'w': 'vertical_velocity'
-    }
+def process_pressure_file(nc_path, output_dir):
     ds = xr.open_dataset(nc_path)
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    for var_name in ds.data_vars:
-        var = ds[var_name]
-        # 判断是否包含 pressure_level
-        pressure_dim = 'pressure_level'
-        levels = ds[pressure_dim].values
-        for i, level in enumerate(levels):
-            sliced = var.sel({pressure_dim: level})
-            filename = f"{pressure_var_map[var_name]}_{int(level)}.h5"
-            save_path = os.path.join(output_dir, filename)
-            if os.path.exists(save_path):
-                print(f'{save_path} exists, skipping...')
-            else:
-                save_variable_to_h5(var_name, sliced.values, save_path)
+    pressure_dim = "pressure_level"
+    if pressure_dim not in ds.dims:
+        raise ValueError(f"{nc_path} does not contain '{pressure_dim}' dimension")
+
+    for short_name in ds.data_vars:
+        var_name = PRESSURE_NAME_MAP.get(short_name, short_name)
+        if var_name is None or var_name not in PRESSURE_VARIABLES:
+            continue
+
+        for level in ds[pressure_dim].values:
+            data = _as_time_lat_lon(
+                ds[short_name].sel({pressure_dim: level}).values,
+                nc_path,
+            )
+            out_name = f"{var_name}_{int(level)}.h5"
+            _save_variable(os.path.join(output_dir, out_name), data)
 
 
-# 示例调用
+def main():
+    for year in YEARS:
+        year_nc_dir = os.path.join(NC_ROOT, str(year))
+        year_tmp_dir = os.path.join(TMP_H5_ROOT, str(year))
+
+        for var_name in SINGLE_LEVEL_VARIABLES:
+            nc_path = os.path.join(year_nc_dir, f"{var_name}.nc")
+            if os.path.exists(nc_path):
+                process_single_level_file(nc_path, year_tmp_dir)
+
+        for var_name in PRESSURE_VARIABLES:
+            for nc_path in sorted(glob.glob(os.path.join(year_nc_dir, f"{var_name}_pre*.nc"))):
+                process_pressure_file(nc_path, year_tmp_dir)
+
+
 if __name__ == "__main__":
-    base_path = "./"
-    metadata_path = "./metadata.json"
-    new_var_nc = "./nc"      
-    output_dir = "./h5"   
-    var_map = {
-            'u10': '10m_u_component_of_wind',
-            'v10': '10m_v_component_of_wind',
-            't2m': '2m_temperature',
-            'msl': 'mean_sea_level_pressure',
-            'sp': 'surface_pressure',
-            'tcwv': 'total_column_water_vapour',
-            'tp': 'total_precipitation',
-            'sst': 'sea_surface_temperature',
-            'z': 'geopotential',
-            'r': 'relative_humidity',
-            'q': 'specific_humidity',
-            't': 'temperature',
-            'u': 'u_component_of_wind',
-            'v': 'v_component_of_wind',
-            'w': 'vertical_velocity'
-        }
-
-    with open(metadata_path, 'r') as f:
-        metadata = json.load(f)
-    exist_years = metadata['years']
-    variables = metadata['variables']
-
-    pressure_var_list = ['geopotential']
-    # pressure_var_list = ['geopotential', 
-    #                     'relative_humidity', 
-    #                     'specific_humidity', 
-    #                     'temperature', 
-    #                     'u_component_of_wind', 
-    #                     'v_component_of_wind',
-    #                     'vertical_velocity']
-    for var in pressure_var_list:
-        for year in exist_years:
-            output_folder = f"{base_path}/tmp_h5/{year}"
-            for nc_file in glob.glob(f'{new_var_nc}/{year}/{var}*'):
-                process_pressure_file(nc_file, output_folder)
-    
-    land_var_list = ['total_precipitation']
-    # land_var_list = ['10m_u_component_of_wind', 
-    #                 '10m_v_component_of_wind', 
-    #                 '2m_temperature', 
-    #                 'mean_sea_level_pressure', 
-    #                 'surface_pressure', 
-    #                 'total_column_water_vapour',
-    #                 'total_precipitation',
-    #                 'sea_surface_temperature']
-    for var in land_var_list:
-        for year in exist_years:
-            output_folder = f"{base_path}/tmp_h5/{year}"
-            nc_file = f'{new_var_nc}/{year}/{var}.nc' 
-            process_land_file(nc_file, output_folder)
+    main()

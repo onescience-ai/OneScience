@@ -52,7 +52,7 @@ class ERA5Datapipe:
 
         return DataLoader(
             dataset,
-            batch_size=self.batch_size,
+            batch_size=1 if mode == "test" else self.batch_size,
             num_workers=self.num_workers,
             pin_memory=True,
             shuffle=(is_train and not self.distributed),
@@ -85,7 +85,7 @@ class ERA5Dataset(Dataset):
 
 
     def _init_avail_samples(self):
-        h5_files = sorted(glob.glob(os.path.join(self.dataset_dir, "data_merged", "*.h5")))
+        h5_files = sorted(glob.glob(os.path.join(self.dataset_dir, "data", "*.h5")))
         available_years = [int(os.path.basename(f).replace(".h5", "")) for f in h5_files]
 
         missing_years = [y for y in self.used_years if y not in available_years]
@@ -106,7 +106,7 @@ class ERA5Dataset(Dataset):
         # ── 建立索引 ──────────────────────────────────────────
         self.channel_indices = [all_variables.index(v) for v in self.used_variables]
         self.file_map = {
-            y: os.path.join(self.dataset_dir,"data_merged", f"{y}.h5")
+            y: os.path.join(self.dataset_dir,"data", f"{y}.h5")
             for y in self.used_years
         }
         self.samples_per_year = self.T - self.input_steps - self.output_steps + 1

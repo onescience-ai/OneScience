@@ -1,11 +1,9 @@
-import torch
 import torch.nn as nn
 
-# 导入具体的边更新实现
-from .mesh_edge_block import MeshEdgeBlock
+from onescience.modules._lazy import instantiate_registered_style
 
 _EDGE_REGISTRY = {
-    "MeshEdgeBlock": MeshEdgeBlock,
+    "MeshEdgeBlock": ("onescience.modules.edge.mesh_edge_block", "MeshEdgeBlock"),
 }
 
 class OneEdge(nn.Module):
@@ -16,12 +14,7 @@ class OneEdge(nn.Module):
     """
     def __init__(self, style: str, **kwargs):
         super().__init__()
-        if style not in _EDGE_REGISTRY:
-            raise NotImplementedError(
-                f"Unknown edge style: '{style}'. Available: {list(_EDGE_REGISTRY.keys())}"
-            )
-        
-        self.edge_updater = _EDGE_REGISTRY[style](**kwargs)
+        self.edge_updater = instantiate_registered_style(style, _EDGE_REGISTRY, "edge", **kwargs)
 
     def forward(self, *args, **kwargs):
         """

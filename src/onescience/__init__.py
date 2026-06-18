@@ -4,4 +4,4 @@ from .models.meta import ModelMetaData
 from .modules.module import Module
 from . import flax_models
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

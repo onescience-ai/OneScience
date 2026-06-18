@@ -22,7 +22,7 @@ torch.cuda.manual_seed(seed)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 print("Loading Data...")
-data = scipy.io.loadmat('./navier_stokes/cylinder_nektar_wake.mat')
+data = scipy.io.loadmat('./cylinder_nektar_wake.mat')
 
 U_star = data['U_star'] # N x 2 x T
 P_star = data['p_star'] # N x T

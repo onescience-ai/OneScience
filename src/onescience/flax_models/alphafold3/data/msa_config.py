@@ -44,6 +44,8 @@ class JackhmmerConfig:
       max_parallel_shards: If given, the maximum number of shards to search
         against in parallel. If None, one Jackhmmer instance will be run per
         shard. Only applicable if the database is sharded.
+      max_threads: If given, the maximum number of threads used when running
+        sharded databases.
   """
 
   binary_path: str
@@ -55,8 +57,9 @@ class JackhmmerConfig:
   dom_z_value: int | None
   max_sequences: int
   max_parallel_shards: int | None = None
+  max_threads: int | None = None
 
-
+  
 @dataclasses.dataclass(frozen=True, kw_only=True, slots=True)
 class NhmmerConfig:
   """Configuration for a nhmmer run.
@@ -76,6 +79,8 @@ class NhmmerConfig:
       max_parallel_shards: If given, the maximum number of shards to search
         against in parallel. If None, one Nhmmer instance will be run per shard.
         Only applicable if the database is sharded.
+      max_threads: If given, the maximum number of threads used when running
+        sharded databases.        
   """
 
   binary_path: str
@@ -88,7 +93,8 @@ class NhmmerConfig:
   max_sequences: int
   alphabet: str | None
   max_parallel_shards: int | None = None
-
+  max_threads: int | None = None
+  
 
 @dataclasses.dataclass(frozen=True, kw_only=True, slots=True)
 class MmseqsConfig:

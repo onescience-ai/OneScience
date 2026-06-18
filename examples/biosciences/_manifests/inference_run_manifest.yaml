@@ -1,0 +1,35 @@
+run_id: ""
+model_family: ""
+inference_mode: ""
+created_by: onescience.examples.biosciences
+cwd: ""
+entrypoint: ""
+command: ""
+environment:
+  python: ""
+  framework: ""
+  device: ""
+  precision: ""
+  env_vars: {}
+inputs:
+  primary_input: ""
+  protocol: ""
+  auxiliary_inputs: []
+checkpoint:
+  path: ""
+  expected_format: ""
+parameters:
+  seed: null
+  batch_size: null
+  num_samples: null
+  diffusion_steps: null
+  model_specific: {}
+outputs:
+  output_dir: ""
+  expected_suffixes: []
+  required_files: []
+status:
+  preflight: pending
+  run: pending
+  postflight: pending
+notes: ""

@@ -83,10 +83,18 @@ class GraphCastProcessor(nn.Module):
 
         layers = []
         for _ in range(processor_layers):
-            layers.append(OneEdge(style='MeshEdgeBlock'))
+            # layers.append(OneEdge(style='MeshEdgeBlock'))
                 # MeshEdgeBlock(*edge_block_invars))
-            layers.append(OneNode(style='MeshNodeBlock'))
+            # layers.append(OneNode(style='MeshNodeBlock'))
                 # MeshNodeBlock(*node_block_invars))
+            layers.append(OneEdge(style='MeshEdgeBlock', **dict(zip(
+              ['input_dim_nodes','input_dim_edges','output_dim','hidden_dim',
+               'hidden_layers','activation_fn','norm_type','do_concat_trick',
+               'recompute_activation'], edge_block_invars))))
+            layers.append(OneNode(style='MeshNodeBlock', **dict(zip(
+              ['aggregation','input_dim_nodes','input_dim_edges','output_dim',
+               'hidden_dim','hidden_layers','activation_fn','norm_type',
+               'recompute_activation'], node_block_invars))))
 
         self.processor_layers = nn.ModuleList(layers)
         self.num_processor_layers = len(self.processor_layers)

@@ -1,0 +1,29 @@
+model_family: ProteinMPNN
+inference_mode: backbone_to_sequence
+runtime:
+  cwd: ${ONESCIENCE_ROOT}/examples/biosciences/ProteinMPNN
+  entrypoint: protein_mpnn_run.py
+input:
+  pdb_path: inputs/PDB_monomers/pdbs/5L33.pdb
+  pdb_path_chains: "A"
+  parsed_jsonl: ""
+constraints:
+  fixed_positions_jsonl: ""
+  tied_positions_jsonl: ""
+  pssm_jsonl: ""
+  omit_AA_jsonl: ""
+checkpoint:
+  path_to_model_weights: "${ONESCIENCE_MODELS_DIR}/ProteinMPNN/vanilla_model_weights"
+  model_name: v_48_020
+  ca_only: false
+parameters:
+  sampling_temp: "0.1"
+  num_seq_per_target: 8
+  batch_size: 1
+  seed: 0
+outputs:
+  out_folder: outputs/proteinmpnn
+validation:
+  check_fasta_count: true
+  check_fixed_positions: true
+  check_scores: true

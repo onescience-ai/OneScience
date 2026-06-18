@@ -1,0 +1,40 @@
+# ============================================================
+# Nanotube L0 MD inference (single DCU)
+# ============================================================
+name: nanotube_run_md_l0_1dcu
+
+description: "Run MD using trained nanotube L0 model"
+
+entrypoint:
+  script: run_md.py
+  args:
+    init_conf: "${ONESCIENCE_DATASETS_DIR}/matchem/mace/nanotube/nanotube_init.xyz"
+    model: "${ONESCIENCE_MODELS_DIR}/mace/nanotube_l0_8dcu.model"
+    output_xyz: "md_result.xyz"
+    plot_file: "md_plot.png"
+    device: cuda
+    default_dtype: float32
+    temperature_k: 1200
+    time_step_fs: 1.0
+    friction: 0.1
+    save_interval: 10
+    steps: 1000
+    default_dtype: float64
+  data_files:
+    - "${ONESCIENCE_DATASETS_DIR}/matchem/mace/nanotube/nanotube_init.xyz"
+    - "${ONESCIENCE_MODELS_DIR}/mace/nanotube_l0_8dcu.model"
+
+launch:
+  launcher: python
+  num_nodes: 1
+  num_gpus: 1
+
+env:
+  conda_env: matchem
+  modules:
+    - sghpc-mpi-gcc/26.3
+
+slurm:
+  partition: hpctest01
+  time: "2:00:00"
+  cpus_per_task: 16

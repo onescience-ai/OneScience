@@ -14,27 +14,26 @@ from onescience.datapipes.cfd import DeepCFDDatapipe
 from onescience.utils.deepcfd.functions import visualize # 假设此可视化函数保留
 
 def init_model_from_config(model_config_dict):
-    """根据保存的配置字典重建模型"""
+    """根据保存的配置字典重建模型，需与训练时的参数名匹配"""
     model_name = model_config_dict['name']
+    
     if model_name == "UNet":
         from onescience.models.deepcfd.UNet import UNet
         net_class = UNet
     elif model_name == "UNetEx":
         from onescience.models.deepcfd.UNetEx import UNetEx
         net_class = UNetEx
-    elif model_name == "AutoEncoder":
-        from onescience.models.deepcfd.AutoEncoder import AutoEncoder
-        net_class = AutoEncoder
     else:
         raise ValueError(f"Unknown network: {model_name}")
-        
+    
     return net_class(
-        model_config_dict['in_channels'],
-        model_config_dict['out_channels'],
-        filters=model_config_dict['filters'],
-        kernel_size=model_config_dict['kernel_size'],
-        batch_norm=model_config_dict['batch_norm'],
-        weight_norm=model_config_dict['weight_norm']
+        in_channels=model_config_dict['in_channels'],
+        out_channels=model_config_dict['out_channels'],
+        base_channels=model_config_dict['base_channels'], 
+        num_stages=model_config_dict['num_stages'],       
+        bilinear=model_config_dict.get('bilinear', True), 
+        normtype=model_config_dict.get('normtype', 'none'),
+        kernel_size=model_config_dict['kernel_size']
     )
 
 def main():

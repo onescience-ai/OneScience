@@ -16,13 +16,11 @@ datapipe:
   # dataset设定
   dataset:
     type: "hdf5"
-    stats_dir:  "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/stats/"   #'./data/stats/'
-    static_dir: "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/static/"  #'./data/static/' # 
-    data_dir: "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/"   # './data/'
+    data_dir: './data/'
     
-    train_ratio: 15
-    val_ratio: 3
-    test_ratio: 2
+    train_time: [1951, 1952]
+    val_time: [1953]
+    test_time: [1954]
     img_size: [721, 1440]
     verbose: true
     cache: false

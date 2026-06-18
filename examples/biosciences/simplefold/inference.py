@@ -21,6 +21,7 @@ from onescience.models.simplefold.torch.sampler import EMSampler
 from onescience.datapipes.simplefold.processor.protein_processor import ProteinDataProcessor
 from onescience.utils.simplefold.datamodule_utils import process_one_inference_structure
 from onescience.utils.simplefold.esm_utils import _af2_to_esm, esm_registry
+import onescience.models.esm.pretrained as esm_pretrained
 from onescience.utils.simplefold.boltz_utils import process_structure, save_structure
 from onescience.utils.simplefold.fasta_utils import process_fastas, download_fasta_utilities, check_fasta_inputs
 from onescience.datapipes.boltz_data_pipeline.feature.featurizer import BoltzFeaturizer
@@ -48,6 +49,70 @@ ckpt_url_dict = {
 }
 
 plddt_ckpt_url = "https://ml-site.cdn-apple.com/models/simplefold/plddt_module_1.6B.ckpt"
+
+ESM2_MODEL_NAME = "esm2_t36_3B_UR50D"
+DEFAULT_ONESCIENCE_MODELS_DIR = os.getenv(
+    "ONESCIENCE_MODELS_DIR",
+    "/public/share/sugonhpcapp01/onestore/onemodels",
+)
+
+
+def load_local_or_hub_esm2_3b():
+    candidate_paths = []
+
+    esm_model_path = os.getenv("SIMPLEFOLD_ESM2_MODEL_PATH")
+    if esm_model_path:
+        candidate_paths.append(esm_model_path)
+
+    candidate_paths.append(
+        os.path.join(DEFAULT_ONESCIENCE_MODELS_DIR, "esm_models", f"{ESM2_MODEL_NAME}.pt")
+    )
+
+    seen_paths = set()
+    for candidate_path in candidate_paths:
+        if candidate_path in seen_paths:
+            continue
+        seen_paths.add(candidate_path)
+
+        regression_path = (
+            f"{os.path.splitext(candidate_path)[0]}-contact-regression.pt"
+        )
+        if os.path.exists(candidate_path) and os.path.exists(regression_path):
+            print(f"Loading ESM-2 3B weights from local path: {candidate_path}")
+            return esm_pretrained.load_model_and_alphabet(candidate_path)
+
+    print("Local ESM-2 3B weights not found, falling back to hub download.")
+    return esm_registry["esm2_3B"]()
+
+
+DEFAULT_SIMPLEFOLD_AUX_DIR = os.path.join(
+    DEFAULT_ONESCIENCE_MODELS_DIR,
+    "simplefold",
+)
+
+
+def resolve_ccd_path(cache: Path) -> Path:
+    candidate_paths = []
+
+    ccd_path = os.getenv("SIMPLEFOLD_CCD_PATH")
+    if ccd_path:
+        candidate_paths.append(Path(ccd_path))
+
+    candidate_paths.append(Path(DEFAULT_SIMPLEFOLD_AUX_DIR) / "ccd.pkl")
+
+    seen_paths = set()
+    for candidate_path in candidate_paths:
+        resolved_path = str(candidate_path)
+        if resolved_path in seen_paths:
+            continue
+        seen_paths.add(resolved_path)
+
+        if candidate_path.exists():
+            print(f"Using local CCD dictionary: {candidate_path}")
+            return candidate_path
+
+    download_fasta_utilities(cache)
+    return cache / "ccd.pkl"
 
 
 def get_config_path(relative_path):
@@ -181,7 +246,7 @@ def initialize_plddt_module(args, device):
 
 def initialize_esm_model(args, device):
     # load ESM2 model
-    esm_model, esm_dict = esm_registry["esm2_3B"]()
+    esm_model, esm_dict = load_local_or_hub_esm2_3b()
     af2_to_esm = _af2_to_esm(esm_dict)
 
     if args.backend == 'torch':
@@ -302,14 +367,14 @@ def predict_structures_from_fastas(args):
     tokenizer, featurizer, processor, flow, sampler = initialize_others(args, device)
 
     # process fasta files to input format
-    download_fasta_utilities(cache)
+    ccd_path = resolve_ccd_path(cache)
     data = check_fasta_inputs(Path(args.fasta_path))
     if not data:
         raise ValueError("No valid input files found. Please check the input directory.")
     process_fastas(
         data=data,
         out_dir=output_dir,
-        ccd_path=cache / "ccd.pkl",
+        ccd_path=ccd_path,
     )
 
     for struct_file in output_dir.glob("structures/*.npz"):

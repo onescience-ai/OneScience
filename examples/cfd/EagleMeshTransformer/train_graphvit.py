@@ -54,6 +54,8 @@ def setup_logging(rank):
         level=level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
+        stream=sys.stdout,
+        force=True,
     )
     logging.getLogger("torch.distributed").setLevel(logging.WARNING)
     logger = logging.getLogger()
@@ -106,7 +108,16 @@ def validate(
     total_loss, cpt = 0.0, 0
 
     with torch.no_grad():
-        pbar = tqdm(dataloader, desc="Validation", disable=(manager.rank != 0))
+        pbar = tqdm(
+            dataloader,
+            desc="Validation",
+            disable=(manager.rank != 0),
+            dynamic_ncols=True,
+            mininterval=0,
+            miniters=1,
+            leave=True,
+            file=sys.stdout,
+        )
         for x in pbar:
             if not x:
                 continue
@@ -211,6 +222,7 @@ def main():
     logger.info("Starting training...")
     for epoch in range(cfg_train.max_epoch):
         epoch_start_time = time.time()
+        epoch_num = epoch + 1
 
         if manager.world_size > 1:
             train_sampler.set_epoch(epoch)
@@ -222,11 +234,18 @@ def main():
 
         pbar = tqdm(
             train_dataloader,
-            desc=f"Epoch {epoch+1}/{cfg_train.max_epoch} Training",
+            desc=f"Epoch {epoch_num}/{cfg_train.max_epoch} Training",
             disable=(manager.rank != 0),
+            dynamic_ncols=True,
+            mininterval=0,
+            miniters=1,
+            leave=True,
+            file=sys.stdout,
         )
+        total_batches = len(train_dataloader)
 
         for i, x in enumerate(pbar):
+            batch_num = i + 1
             if not x:
                 continue
 
@@ -268,6 +287,13 @@ def main():
 
             train_loss += costs["loss"].item()
             train_cpt += 1
+            if manager.rank == 0:
+                loss = costs["loss"].item()
+                pbar.set_postfix(loss=f"{loss:.6f}")
+                logger.info(
+                    f"Epoch [{epoch_num}/{cfg_train.max_epoch}] "
+                    f"Batch [{batch_num}/{total_batches}] | Loss: {loss:.6f}"
+                )
 
         train_loss /= train_cpt if train_cpt > 0 else 1.0
 

@@ -1,4 +1,5 @@
 import sys
+import os
 import numpy as np
 from math import pow
 # import py3Dmol
@@ -23,7 +24,12 @@ example_sequences = {
 
 simplefold_model = "simplefold_3B" # choose from 100M, 360M, 700M, 1.1B, 1.6B, 3B
 backend = "torch" # choose from ["mlx", "torch"]
-ckpt_dir = "artifacts"
+default_ckpt_dir = (
+    os.path.join(os.environ["ONESCIENCE_MODELS_DIR"], "simplefold")
+    if "ONESCIENCE_MODELS_DIR" in os.environ
+    else "artifacts"
+)
+ckpt_dir = os.getenv("SIMPLEFOLD_CKPT_DIR", default_ckpt_dir)
 output_dir = "artifacts"
 prediction_dir = f"predictions_{simplefold_model}_{backend}"
 # output_name = f"{seq_id}"
@@ -31,22 +37,6 @@ num_steps = 500 # number of inference steps for flow-matching
 tau = 0.05 # stochasticity scale
 plddt = True # whether to use pLDDT confidence module
 nsample_per_protein = 1 # number of samples per protein
-
-# ESM模型离线模式配置
-# offline_mode = False  # 设置为True以使用离线模式
-# esm_model_dir = "/public/home/onescience2025404/zhangyq/ml-simplefold-main/esm_models/esm2_t36_3B_UR50D"  # 离线模式下ESM模型的本地路径
-
-# 如果在计算节点上没有网络，请设置:
-# offline_mode = True
-# esm_model_dir = "/path/to/your/downloaded/esm/models"
-# 
-# 注意: 
-# 1. esm_model_dir 应该指向包含模型文件的目录
-# 2. 支持两种格式:
-#    - ESM原生格式: 包含 {model_name}.pt 文件
-#    - Hugging Face格式: 包含 config.json 和 pytorch_model.bin.index.json 文件
-# 3. 当前配置使用的是Hugging Face格式的模型
-
 
 # initialize the folding model and pLDDT model
 model_wrapper = ModelWrapper(

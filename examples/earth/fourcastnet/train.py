@@ -38,12 +38,23 @@ def main():
     cfg_data = YParams(config_file_path, "datapipe")
     cfg['N_in_channels'] = len(cfg_data.dataset.channels)
     cfg['N_out_channels'] = len(cfg_data.dataset.channels)
-    datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized())
-    train_dataloader, train_sampler = datapipe.train_dataloader()
-    val_dataloader, val_sampler = datapipe.val_dataloader()
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.train_time,
+        distributed=dist.is_initialized()
+    )
+    train_dataloader, train_sampler = datapipe.get_dataloader("train")
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.val_time,
+        distributed=dist.is_initialized()
+    )
+    val_dataloader, val_sampler = datapipe.get_dataloader("valid")
 
     # Model init
-    model = FourCastNet(cfg).to(local_rank)
+    model = FourCastNet().to(local_rank)
     optimizer = optimizers.FusedAdam(model.parameters(), lr=cfg.lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.2, patience=5, mode='min')
     loss_obj = LpLoss()

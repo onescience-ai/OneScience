@@ -41,9 +41,26 @@ def main():
         exit()
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
-    datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized(), pattern='medium', output_steps=2, input_steps=2)
-    train_dataloader, train_sampler = datapipe.train_dataloader()
-    val_dataloader, val_sampler = datapipe.val_dataloader()
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.train_time,
+        pattern='medium',
+        distributed=dist.is_initialized(),
+        output_steps=2,
+        input_steps=2,
+    )
+    train_dataloader, train_sampler = datapipe.get_dataloader("train")
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.val_time,
+        pattern='medium',
+        distributed=dist.is_initialized(),
+        output_steps=2,
+        input_steps=2,
+    )
+    val_dataloader, val_sampler = datapipe.get_dataloader("valid")
 
     ## Model init
     model = Fuxi(img_size=cfg_data.dataset.img_size, 
@@ -122,9 +139,26 @@ def main():
             if num_rollout_steps > 12: # Paper: 2~12 curriculum training schedule, then skip to 20.
                 num_rollout_steps = cfg.medium_num_steps - cfg.short_num_steps
             world_rank == 0 and logger.info(f"⚠️ ⚠️ Switching to {num_rollout_steps}-step rollout!")
-            datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized(), output_steps=num_rollout_steps, input_steps=2)
-            train_dataloader, train_sampler = datapipe.train_dataloader()
-            val_dataloader, val_sampler = datapipe.val_dataloader()
+            datapipe = ERA5Datapipe(
+                dataset_dir=cfg_data.dataset.data_dir,
+                used_variables=cfg_data.dataset.channels,
+                used_years=cfg_data.dataset.train_time,
+                pattern='medium',
+                distributed=dist.is_initialized(),
+                output_steps=num_rollout_steps,
+                input_steps=2,
+            )
+            train_dataloader, train_sampler = datapipe.get_dataloader("train")
+            datapipe = ERA5Datapipe(
+                dataset_dir=cfg_data.dataset.data_dir,
+                used_variables=cfg_data.dataset.channels,
+                used_years=cfg_data.dataset.val_time,
+                pattern='medium',
+                distributed=dist.is_initialized(),
+                output_steps=num_rollout_steps,
+                input_steps=2,
+            )
+            val_dataloader, val_sampler = datapipe.get_dataloader("valid")
         
         if dist.is_initialized():
             train_sampler.set_epoch(epoch)

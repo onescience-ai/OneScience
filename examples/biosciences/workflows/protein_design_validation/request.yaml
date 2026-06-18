@@ -1,0 +1,136 @@
+workflow_family: bio-workflow
+workflow_name: protein-design-structure-validation
+workflow_type: protein_design_to_structure_validation
+
+project:
+  name: ""
+  run_dir: ""
+  onescience_root: "${ONESCIENCE_ROOT:-${HOME}/onescience}"
+  models_root: "/public/share/sugonhpcapp01/onestore/onemodels"
+
+resolved_paths:
+  # Repository paths must be derived from project.onescience_root, never from the caller cwd.
+  rfdiffusion_workdir: "${project.onescience_root}/examples/biosciences/RFdiffusion/scripts"
+  rfdiffusion_entry: "${project.onescience_root}/examples/biosciences/RFdiffusion/scripts/run_inference.py"
+  rfdiffusion_example_1qys_pdb: "${project.onescience_root}/examples/biosciences/RFdiffusion/examples/input_pdbs/1qys.pdb"
+  proteinmpnn_workdir: "${project.onescience_root}/examples/biosciences/ProteinMPNN"
+  proteinmpnn_entry: "${project.onescience_root}/examples/biosciences/ProteinMPNN/protein_mpnn_run.py"
+  simplefold_workdir: "${project.onescience_root}/examples/biosciences"
+  simplefold_setup_script: "${project.onescience_root}/examples/biosciences/workflows/protein_design_validation/tools/setup_esm_torchhub.sh"
+  simplefold_models_dir: "${project.models_root}/simplefold"
+  esm_models_dir: "${project.models_root}/esm_models"
+
+starting_point:
+  type: no_backbone  # no_backbone | backbone_pdb | designed_sequence | complex_validation
+  contig: ""
+  motif_or_target_pdb: ""
+  backbone_pdb_dir: ""
+  fasta_path: ""
+  complex_json: ""
+  design_chains: []
+  fixed_chains: []
+  fixed_positions: {}
+
+pipeline:
+  implementation_style:
+    preferred_files:
+      - "protein_design_pipeline.py"
+      - "submit.slurm"
+    slurm_role: "environment, staged setup, run_dir, log capture, Python exit-code propagation"
+    python_role: "stage orchestration, model commands, artifact checks, summary JSON, failure policy"
+    keep_model_paths_configurable: true
+    write_pipeline_summary_json: true
+  backbone_generation:
+    enabled: true
+    model_family: RFdiffusion
+    mode: unconditional  # unconditional | motif_scaffolding | binder_design | partial_diffusion
+    num_designs: 5
+    deterministic: true
+    output_prefix: "step1_rfdiffusion/samples/design"
+    config_strategy: "write_rf_config_yaml_from_base_config"
+  sequence_design:
+    enabled: true
+    model_family: ProteinMPNN
+    num_seq_per_target: 3
+    sampling_temp: "0.1"
+    batch_size: 1
+    model_name: "v_48_020"
+    per_backbone_output_dir: true
+  structure_validation:
+    enabled: true
+    validator: SimpleFold  # SimpleFold | Protenix | AlphaFold3 | OpenFold
+    simplefold:
+      model_scale: "simplefold_100M"
+      num_steps: 5
+      tau: 0.5
+      nsample_per_protein: 1
+      output_format: pdb
+      plddt: true
+      split_mpnn_fastas_to_single_sequence_inputs: true
+      prepare_offline_cache_in_run_dir: true
+      fail_on_zero_structures: true
+    complex_validator:
+      json_path: ""
+      num_diffusion_samples: null
+      attention_fallback: ""
+
+runtime:
+  env_name: onescience311
+  scheduler: slurm
+  partition: ""
+  device: dcu
+  cpus_per_task: 8
+  memory: 64G
+  walltime: "04:00:00"
+  remote_staging:
+    upload_files: []
+  slurm_environment_setup_commands:
+    - "set -euo pipefail"
+    - "RUN_DIR=\"${RUN_DIR:-$SLURM_SUBMIT_DIR}\""
+    - "export ONESCIENCE_DIR=\"${ONESCIENCE_DIR:-${HOME}/onescience}\""
+    - "export ONESCIENCE_MODELS_DIR=\"${ONESCIENCE_MODELS_DIR:-/public/share/sugonhpcapp01/onestore/onemodels}\""
+    - "SETUP_ESM_SCRIPT=\"${ONESCIENCE_DIR}/examples/biosciences/workflows/protein_design_validation/tools/setup_esm_torchhub.sh\""
+    - "test -d \"$ONESCIENCE_DIR\""
+    - "test -f \"$ONESCIENCE_DIR/examples/biosciences/RFdiffusion/scripts/run_inference.py\""
+    - "test -f \"$ONESCIENCE_DIR/examples/biosciences/ProteinMPNN/protein_mpnn_run.py\""
+    - "test -f \"$SETUP_ESM_SCRIPT\""
+    - "if [[ \"${REQUIRE_RFDIFFUSION_EXAMPLE_1QYS:-0}\" == \"1\" ]]; then test -f \"$ONESCIENCE_DIR/examples/biosciences/RFdiffusion/examples/input_pdbs/1qys.pdb\"; fi"
+    - "conda activate onescience311"
+    - "set +e"
+    - "bash \"$SETUP_ESM_SCRIPT\" 2>&1 | tee \"$RUN_DIR/setup_esm_torchhub.log\""
+    - "setup_status=${PIPESTATUS[0]}"
+    - "set -e"
+    - "if [[ \"$setup_status\" -ne 0 ]]; then echo \"setup_esm_torchhub failed with exit code $setup_status\" >&2; exit \"$setup_status\"; fi"
+
+expected_outputs:
+  backbone_pdbs: "step1_rfdiffusion/samples/*.pdb"
+  rfdiffusion_trb: "step1_rfdiffusion/samples/*.trb"
+  designed_fastas: "step2_proteinmpnn/**/seqs/*.fa"
+  predicted_structures: "step3_simplefold/output/predictions_*/**/*.{pdb,cif}"
+  logs:
+    - "setup_esm_torchhub.log"
+    - "pipeline_full.log"
+    - "step3_simplefold/simplefold_stdout.log"
+    - "step3_simplefold/simplefold_stderr.log"
+  summary_json: "pipeline_summary.json"
+
+validation:
+  require_nonzero_backbones: true
+  require_nonzero_fastas: true
+  require_nonzero_predicted_structures: true
+  require_pipeline_summary_json: true
+  parse_proteinmpnn_scores: true
+  parse_structure_confidence: true
+  optional_reference_structure: ""
+  metrics:
+    - plddt
+    - proteinmpnn_score
+    - rmsd_if_reference_exists
+    - tm_score_if_reference_exists
+
+failure_recovery:
+  preserve_logs: true
+  fail_pipeline_on_step_error: true
+  fail_simplefold_on_zero_structures: true
+  restage_setup_script_before_resubmit: true
+  rerun_slurm_environment_setup_on_resubmit: true

@@ -1,25 +1,22 @@
-import torch
 from torch import nn
 
-from .mesh_graph_mlp import MeshGraphMLP
-from .mesh_graph_mlp import MeshGraphEdgeMLPConcat
-from .mesh_graph_mlp import MeshGraphEdgeMLPSum
-from .MLP import StandardMLP, SimpleMLP, DeepResMLP, RegularizedMLP, LightweightMLP
-from .GMLP import GroupEquivariantMLP2d, GroupEquivariantMLP3d
-from .xihemlp import XiheMlp
+from onescience.modules._lazy import instantiate_registered_style
 
 _MLP_REGISTRY = {
-    "MeshGraphMLP": MeshGraphMLP,
-    "MeshGraphEdgeMLPConcat": MeshGraphEdgeMLPConcat,
-    "MeshGraphEdgeMLPSum": MeshGraphEdgeMLPSum,
-    "StandardMLP": StandardMLP,
-    "SimpleMLP": SimpleMLP,
-    "DeepResMLP": DeepResMLP,
-    "RegularizedMLP": RegularizedMLP,
-    "LightweightMLP": LightweightMLP,
-    "GroupEquivariantMLP2d": GroupEquivariantMLP2d,
-    "GroupEquivariantMLP3d": GroupEquivariantMLP3d,
-    "XiheMlp":XiheMlp,
+    "MeshGraphMLP": ("onescience.modules.mlp.mesh_graph_mlp", "MeshGraphMLP"),
+    "MeshGraphEdgeMLPConcat": (
+        "onescience.modules.mlp.mesh_graph_mlp",
+        "MeshGraphEdgeMLPConcat",
+    ),
+    "MeshGraphEdgeMLPSum": ("onescience.modules.mlp.mesh_graph_mlp", "MeshGraphEdgeMLPSum"),
+    "StandardMLP": ("onescience.modules.mlp.MLP", "StandardMLP"),
+    "SimpleMLP": ("onescience.modules.mlp.MLP", "SimpleMLP"),
+    "DeepResMLP": ("onescience.modules.mlp.MLP", "DeepResMLP"),
+    "RegularizedMLP": ("onescience.modules.mlp.MLP", "RegularizedMLP"),
+    "LightweightMLP": ("onescience.modules.mlp.MLP", "LightweightMLP"),
+    "GroupEquivariantMLP2d": ("onescience.modules.mlp.GMLP", "GroupEquivariantMLP2d"),
+    "GroupEquivariantMLP3d": ("onescience.modules.mlp.GMLP", "GroupEquivariantMLP3d"),
+    "XiheMlp": ("onescience.modules.mlp.xihemlp", "XiheMlp"),
 }
 
 class OneMlp(nn.Module):
@@ -28,11 +25,7 @@ class OneMlp(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _MLP_REGISTRY:
-            raise NotImplementedError(f"Unknown style: {style}")
-        
-        # 使用 **kwargs 动态接收参数，避免硬编码
-        self.mlp = _MLP_REGISTRY[style](**kwargs)
+        self.mlp = instantiate_registered_style(style, _MLP_REGISTRY, "mlp", **kwargs)
         
     def forward(self, *args, **kwargs): 
         return self.mlp(*args, **kwargs)

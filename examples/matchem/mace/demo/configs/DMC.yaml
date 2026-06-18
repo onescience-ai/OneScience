@@ -1,0 +1,64 @@
+# ============================================================
+# DMC 溶剂 XTB 训练配置
+# 入门级示例：单 GPU，小数据集，参数最少
+# ============================================================
+
+# 实验名称（用于输出目录和模型文件命名）
+name: DMC
+
+# 实验描述
+description: "DMC solvent XTB - 单 GPU 入门示例 (200 训练帧)"
+
+# ============================================================
+# train.py 参数
+# 以下所有字段将被转换为 train.py 的命令行参数
+# 例如 model: MACE -> --model=MACE
+#      swa: true  -> --swa (布尔标志)
+# ============================================================
+train_args:
+  # --- 模型配置 ---
+  model: MACE                    # 模型类型
+
+  # --- 数据配置 ---
+  # 路径中的 ${ONESCIENCE_DATASETS_DIR} 会由 env.sh 自动设置
+  train_file: "${ONESCIENCE_DATASETS_DIR}/matchem/mace/DMC/solvent_xtb_train_200.xyz"
+  test_file: "${ONESCIENCE_DATASETS_DIR}/matchem/mace/DMC/solvent_xtb_test.xyz"
+  valid_fraction: 0.10           # 从训练集中划分 10% 作为验证集
+  energy_key: energy_xtb         # XYZ 文件中能量字段名
+  forces_key: forces_xtb         # XYZ 文件中力字段名
+  E0s: average                   # 原子参考能量方式: average / isolated / 显式字典
+
+  # --- 训练超参 ---
+  seed: 123                      # 随机种子
+  device: cuda                   # 设备: cuda / cpu
+  r_max: 4.0                     # 截断半径 (Angstrom)
+  batch_size: 10                 # 训练批大小
+  max_num_epochs: 100            # 最大训练轮数
+  eval_interval: 10              # 每 10 个 epoch 评估并打印一次
+
+  # --- SWA (Stochastic Weight Averaging) ---
+  swa: true                      # 启用 SWA
+
+# ============================================================
+# 启动配置（控制 python / torchrun / srun 的选择）
+# ============================================================
+launch:
+  launcher: python               # 启动方式: python / torchrun (多节点时自动用 srun)
+  num_nodes: 1                   # 节点数
+  num_gpus: 8                    # 申请的 DCU 卡数
+
+# ============================================================
+# 环境配置
+# ============================================================
+env:
+  conda_env: matchem                # conda 环境名
+  modules:
+    - sghpc-mpi-gcc/26.3         # 需要加载的 module
+
+# ============================================================
+# SLURM 配置（仅 --submit 模式使用）
+# ============================================================
+slurm:
+  partition: hpctest01            # SLURM 分区
+  time: "2:00:00"                # 作业时间限制
+  cpus_per_task: 128              # CPU 核心数

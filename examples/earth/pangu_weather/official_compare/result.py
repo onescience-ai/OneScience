@@ -1,9 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import json
 import os
 import sys
+import glob
 import h5py
+from datetime import datetime
 from tqdm import tqdm
 from onescience.utils.fcn.YParams import YParams
 from matplotlib import rcParams
@@ -17,18 +18,35 @@ rcParams['ytick.major.width'] = 0.9
 
 
 def get_metadata(cfg):
-    meta_path = os.path.join(cfg.data_dir, 'metadata.json')
-    with open(meta_path, "r") as f:
-        metadata = json.load(f)
-    variables = metadata['variables']
+    h5_files = sorted(glob.glob(os.path.join(cfg.data_dir, "data", "*.h5")))
+    with h5py.File(h5_files[0], "r") as f:
+        ds = f["fields"]
+        variables = [v.decode() if isinstance(v, bytes) else v for v in ds.attrs["variables"]]
+        time_step = int(ds.attrs["time_step"])
     channel_indices = [variables.index(v) for v in cfg.channels]
 
     total_files = [f for f in os.listdir('./result/output/') if f.endswith('.npy')]
     total_files.sort()
-    return total_files, channel_indices
+    return total_files, channel_indices, time_step
 
 
-def get_result(total_files, channel_indices, clim_mean):
+def filename_to_index(filename, time_step):
+    dt = datetime.strptime(filename, "%Y%m%d%H")
+    year_start = datetime(dt.year, 1, 1)
+    hours = (dt - year_start).total_seconds() / 3600
+    return int(hours / time_step)
+
+
+def group_files_by_year(total_files, time_step):
+    files_by_year = {}
+    for file in total_files:
+        fname = file[:-4]
+        year = fname[:4]
+        files_by_year.setdefault(year, []).append((file, filename_to_index(fname, time_step)))
+    return files_by_year
+
+
+def get_result(total_files, channel_indices, time_step, data_dir, clim_mean):
     channel_rmse = np.zeros(len(channel_indices))
     channel_acc = np.zeros(len(channel_indices))
     clim_mean = clim_mean[0, :, :, :]
@@ -36,18 +54,23 @@ def get_result(total_files, channel_indices, clim_mean):
         numerator = np.zeros(len(channel_indices))
         pred_sq_sum = np.zeros(len(channel_indices))
         label_sq_sum = np.zeros(len(channel_indices))
-        for file in tqdm(total_files, unit="files"):
-            with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file[:-4]}.h5', "r") as f:
-                label = f["fields"][:]  # [N, H, W]
-                label = label[channel_indices]
-            pred = np.load(f'result/output/{file}').squeeze()
-            label_anom = label - clim_mean
-            pred_anom = pred - clim_mean
-            # 累加
-            numerator += np.sum(pred_anom * label_anom, axis=(1, 2))
-            pred_sq_sum += np.sum(pred_anom ** 2, axis=(1, 2))
-            label_sq_sum += np.sum(label_anom ** 2, axis=(1, 2))
-            channel_rmse += np.sqrt(np.mean((label - pred) ** 2, axis=(1, 2)))
+        files_by_year = group_files_by_year(total_files, time_step)
+        with tqdm(total=len(total_files), unit="files") as pbar:
+            for year, year_files in files_by_year.items():
+                with h5py.File(os.path.join(data_dir, 'data', f'{year}.h5'), "r") as f:
+                    fields = f["fields"]
+                    for file, step_idx in year_files:
+                        label = fields[step_idx]
+                        label = label[channel_indices]
+                        pred = np.load(f'result/output/{file}').squeeze()
+                        label_anom = label - clim_mean
+                        pred_anom = pred - clim_mean
+                        # 累加
+                        numerator += np.sum(pred_anom * label_anom, axis=(1, 2))
+                        pred_sq_sum += np.sum(pred_anom ** 2, axis=(1, 2))
+                        label_sq_sum += np.sum(label_anom ** 2, axis=(1, 2))
+                        channel_rmse += np.sqrt(np.mean((label - pred) ** 2, axis=(1, 2)))
+                        pbar.update(1)
         channel_rmse /= len(total_files)
         channel_acc = numerator / (np.sqrt(pred_sq_sum * label_sq_sum) + 1e-8)
         np.save('./result/acc.npy', channel_acc)
@@ -126,25 +149,27 @@ if __name__ == "__main__":
     cfg = YParams(config_file_path, 'model')
     cfg_data = YParams(config_file_path, "datapipe")
 
-    total_files, channel_indices = get_metadata(cfg_data.dataset)
+    data_dir = cfg_data.dataset.data_dir
+    total_files, channel_indices, time_step = get_metadata(cfg_data.dataset)
 
     # Load data
     # Compute RMSE per channel and total
     mu = np.load(os.path.join(cfg_data.dataset.stats_dir, "global_means.npy"))
     clim_mean = mu[:, channel_indices, :, :]
-    get_result(total_files, channel_indices, clim_mean)
+    get_result(total_files, channel_indices, time_step, data_dir, clim_mean)
     show_result()
 
     ##### You can choose the date to plot (must exist in ./result/output/)#####
-    eg_files = ['2020100100']
+    eg_files = [f'{cfg_data.dataset.test_time[0]}010106']
     channel_index = [cfg_data.dataset.channels.index(v) for v in ['2m_temperature', 'geopotential_500', 'temperature_500']]
     
     selected_var = [cfg_data.dataset.channels[int(i)] for i in channel_index]
     print(f"seleted date: {eg_files}")
     print(f"selected channels: {selected_var}")
     for file in eg_files:
-        with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}.h5', "r") as f:
-            label = f["fields"][:]  # [N, H, W]
+        step_idx = filename_to_index(file, time_step)
+        with h5py.File(os.path.join(data_dir, 'data', f'{file[:4]}.h5'), "r") as f:
+            label = f["fields"][step_idx]
             label = label[channel_indices]
         pred = np.load(f'result/output/{file}.npy').squeeze()
         for i in range(len(selected_var)):

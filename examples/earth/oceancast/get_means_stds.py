@@ -1,59 +1,70 @@
-import os
+import glob
+from pathlib import Path
+
 import h5py
 import numpy as np
-import glob
-import sys
 
 from onescience.utils.YParams import YParams
 
-current_path = os.getcwd()
-sys.path.append(current_path)
-config_file_path = os.path.join(current_path, 'conf/oceancast.yaml')
-params = YParams(config_file_path, 'afno_backbone')
-# If forecast wave parameters, use following types
-types = ['Wave_Height', 'Wave_Direction', 'Wave_Period', 'Wind_Strength'] 
 
-# If forecast sea surface parameters, use following types
-# types = ['Ocean_SSH', 'Ocean_SSS', 'Ocean_SST', 'Wind_Strength']
+ROOT_DIR = Path(__file__).resolve().parent
+CFG_DATA = YParams(str(ROOT_DIR / "conf" / "config.yaml"), "datapipe")
+DATASET = CFG_DATA.dataset
+OUTPUT_DIR = ROOT_DIR / DATASET.stats_dir
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-output_dir = 'means_stds'
-os.makedirs(output_dir, exist_ok=True)
-data_dir = params.ocean_data_path
 
-def calculate_global_mean_std(data_sum, count, data_sum_sq):
-    global_mean = data_sum / count
-    global_std = np.sqrt(data_sum_sq / count - global_mean ** 2)
-    return global_mean, global_std
+def base_data_type(data_type):
+    return data_type[:-9] if data_type.endswith("_Forecast") else data_type
+
+
+DATA_TYPES = sorted(
+    {
+        *[
+            base_data_type(item)
+            for item in DATASET.input_types
+            if not base_data_type(item).endswith("Sin") and not base_data_type(item).endswith("Cos")
+        ],
+        *[base_data_type(item) for item in DATASET.output_types],
+    }
+)
+
+
+def data_dir_for(data_type):
+    if data_type.startswith("Wind"):
+        return ROOT_DIR / DATASET.wind_data_dir / data_type
+    return ROOT_DIR / DATASET.ocean_data_dir / data_type
+
+
+def crop_latitude_band(data):
+    if data.shape[-2] == 170:
+        return data[:, :-10]
+    if data.shape[-2] == 180:
+        return data[:, 10:-10]
+    return data
 
 
 def process_data():
-    for data_type in types:
-        print(f'Processing type: {data_type}')
+    for data_type in DATA_TYPES:
+        print(f"Processing type: {data_type}")
         all_data = []
-        if data_type == 'Wind_Strength':
-            files = glob.glob(os.path.join(params.wind_data_path, data_type, '*.h5'))
-        else:
-            files = glob.glob(os.path.join(data_dir, data_type, '*.h5'))
+        files = sorted(glob.glob(str(data_dir_for(data_type) / "*.h5")))
         for file_path in files:
-            with h5py.File(file_path, 'r') as f:
-                dataset_name = list(f.keys())[0]  
-                data = f[dataset_name][:] 
-                if data.shape[-2] == 170:
-                    data = data[:, :-10]
-                if data.shape[-2] == 180:
-                    data = data[:, 10:-10]
-                all_data.append(data[~np.isnan(data)])
+            with h5py.File(file_path, "r") as h5_file:
+                dataset = h5_file[list(h5_file.keys())[0]][:]
+            dataset = crop_latitude_band(dataset)
+            all_data.append(dataset[~np.isnan(dataset)])
 
         all_data = np.concatenate(all_data)
         global_mean = np.nanmean(all_data)
         global_std = np.nanstd(all_data)
-        print(data_type, global_mean, global_std)
-        mean_matrix = np.full((160, 360), global_mean)
-        std_matrix = np.full((160, 360), global_std)
-        np.save(os.path.join(output_dir, f'{data_type}_means.npy'), mean_matrix)
-        np.save(os.path.join(output_dir, f'{data_type}_stds.npy'), std_matrix)
-        print(f'Saved {data_type} mean and std to {output_dir}')
+
+        mean_matrix = np.full(DATASET.img_size, global_mean, dtype=np.float32)
+        std_matrix = np.full(DATASET.img_size, global_std, dtype=np.float32)
+        np.save(OUTPUT_DIR / f"{data_type}_means.npy", mean_matrix)
+        np.save(OUTPUT_DIR / f"{data_type}_stds.npy", std_matrix)
+        print(f"{data_type}: mean={global_mean:.6f}, std={global_std:.6f}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     process_data()

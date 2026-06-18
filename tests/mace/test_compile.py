@@ -9,9 +9,9 @@ import torch.nn.functional as F
 from e3nn import o3
 from torch.testing import assert_close
 
-from onescience.models.mace import data, modules, tools
-from onescience.models.mace.tools import compile as mace_compile
-from onescience.models.mace.tools import torch_geometric
+from onescience.utils.mace import data, modules, tools
+from onescience.utils.mace.tools import compile as mace_compile
+from onescience.utils.mace.tools import torch_geometric
 
 table = tools.AtomicNumberTable([6])
 atomic_energies = np.array([1.0], dtype=float)

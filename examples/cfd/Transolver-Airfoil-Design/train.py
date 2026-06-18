@@ -150,6 +150,7 @@ def main():
 
     loss_weight = cfg_train.loss_weight
     use_weighted_loss = (cfg_train.loss_criterion == 'MSE_weighted')
+    progress_log_interval = float(getattr(cfg_train, "progress_log_interval", 30.0))
 
     # Training Loop
     checkpoint_dir = cfg_train.checkpoint_dir
@@ -167,21 +168,23 @@ def main():
 
         model.train()
         train_loss = train_loss_surf = train_loss_vol = 0.0
+        last_progress_log = time.time()
 
         # [Optimized] Progress Bar Setup
         if manager.rank == 0:
-            # leave=False ensures the bar disappears after the epoch finishes, keeping logs clean
             iterator = tqdm(
                 train_dataloader, 
                 desc=f"Epoch {epoch + 1}/{cfg_train.max_epoch}", 
                 dynamic_ncols=True, 
-                leave=False,
-                disable=not (manager.rank == 0) 
+                file=sys.stdout,
+                leave=True,
+                mininterval=1.0,
+                disable=False,
             )
         else:
             iterator = train_dataloader
 
-        for data in iterator:
+        for batch_idx, data in enumerate(iterator, start=1):
             data = data.to(device)
             optimizer.zero_grad()
             out = model(data)
@@ -205,7 +208,22 @@ def main():
                 iterator.set_postfix({
                     "loss": f"{loss.item():.4f}", 
                     "lr": f"{optimizer.param_groups[0]['lr']:.2e}"
-                })
+                }, refresh=True)
+
+                now = time.time()
+                if (
+                    progress_log_interval > 0
+                    and (
+                        now - last_progress_log >= progress_log_interval
+                        or batch_idx == len(train_dataloader)
+                    )
+                ):
+                    logger.info(
+                        f"Epoch [{epoch + 1}/{cfg_train.max_epoch}] "
+                        f"Batch [{batch_idx}/{len(train_dataloader)}] | "
+                        f"Loss: {loss.item():.6f} | LR: {optimizer.param_groups[0]['lr']:.2e}"
+                    )
+                    last_progress_log = now
 
         train_loss /= len(train_dataloader)
         train_loss_surf /= len(train_dataloader)
@@ -262,6 +280,10 @@ def main():
                     f"Validation loss has not improved for {cfg_train.patience} epochs. Stopping training."
                 )
                 break
+
+    if manager.world_size > 1 and dist.is_available() and dist.is_initialized():
+        dist.barrier()
+        dist.destroy_process_group()
 
     # Testing after training
     if manager.rank == 0:

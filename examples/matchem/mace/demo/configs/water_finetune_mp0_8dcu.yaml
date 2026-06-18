@@ -1,0 +1,97 @@
+# ============================================================
+# Water 8 DCU 微调配置 —— 基于 MACE-MP-0 基础模型
+# 单节点 8 DCU 分布式微调
+# ============================================================
+
+# 实验名称（用于输出目录和模型文件命名）
+name: water_finetune_mp0_8dcu
+
+# 实验描述
+description: "Water 势能面 - 基于 MACE-MP-0 (medium) 微调 - 8 DCU"
+
+# ============================================================
+# train.py 参数
+# 以下所有字段将被转换为 train.py 的命令行参数
+# ============================================================
+train_args:
+  # --- 基础模型配置 ---
+  # 使用 mace-mp-0 medium 预训练模型（自动下载或加载本地缓存）
+  # 可选: small / medium / large / medium-mpa-0 / medium-omat-0 等
+  foundation_model: medium
+
+  # 保留基础模型的所有元素（不仅限于当前数据集出现的元素）
+  # 设置为 true 可防止元素嵌入被截断，有利于泛化
+  foundation_model_elements: true
+
+  # --- 模型配置 ---
+  # 当指定 foundation_model 时，以下参数通常会自动从基础模型继承
+  # 若需覆盖，可取消注释并修改
+  # model: MACE
+  # default_dtype: float64
+  # num_channels: 128
+  # max_L: 1
+  # num_interactions: 2
+  # correlation: 3
+
+  # --- 数据配置 ---
+  train_file: "${ONESCIENCE_DATASETS_DIR}/matchem/mace/water/water_train.xyz"
+  test_file: "${ONESCIENCE_DATASETS_DIR}/matchem/mace/water/water_test.xyz"
+  valid_fraction: 0.05
+  E0s: isolated
+  energy_key: TolEnergy
+  forces_key: force
+
+  # --- 训练超参（微调建议） ---
+  # 微调通常使用较小的学习率和较少的 epoch
+  seed: 123
+  device: cuda
+  r_max: 6.0
+  batch_size: 2
+  valid_batch_size: 4
+
+  # 微调 epoch 数通常较少（基础模型已具备先验知识）
+  max_num_epochs: 50
+
+  # 损失权重
+  forces_weight: 1000
+  energy_weight: 10
+
+  # 学习率相关（微调建议使用较小学习率）
+  lr: 0.001
+  scheduler_patience: 10
+  patience: 20
+  eval_interval: 1
+  error_table: PerAtomMAE
+
+  # --- SWA / EMA ---
+  ema: true
+  swa: true
+  start_swa: 35
+
+  # --- 其他 ---
+  restart_latest: true
+  save_cpu: true
+
+# ============================================================
+# 启动配置
+# ============================================================
+launch:
+  launcher: torchrun
+  num_nodes: 1
+  num_gpus: 8
+
+# ============================================================
+# 环境配置
+# ============================================================
+env:
+  conda_env: matchem
+  modules:
+    - sghpc-mpi-gcc/26.3
+
+# ============================================================
+# SLURM 配置（仅 --submit 模式使用）
+# ============================================================
+slurm:
+  partition: hpctest02
+  time: "4:00:00"
+  cpus_per_task: 128

@@ -1,23 +1,22 @@
 from torch import nn
 
-from .unet_encoder import UNetEncoder1D, UNetEncoder2D, UNetEncoder3D
-from .graphvit_encoder import GraphViTEncoder
-from .mesh_graph_encoder import MeshGraphEncoder
-from .fengwuencoder import FengWuEncoder
-from .protenixencoding import (
-     ProtenixRelativePositionEncoding,
-     ProtenixAtomAttentionEncoder,
-     )
+from onescience.modules._lazy import instantiate_registered_style
 
 _ENCODER_REGISTRY = {
-    "UNetEncoder1D": UNetEncoder1D,
-    "UNetEncoder2D": UNetEncoder2D,
-    "UNetEncoder3D": UNetEncoder3D,
-    "GraphViTEncoder": GraphViTEncoder,
-    "MeshGraphEncoder":MeshGraphEncoder,
-    "FengWuEncoder": FengWuEncoder,
-    "ProtenixRelativePositionEncoding": ProtenixRelativePositionEncoding,
-    "ProtenixAtomAttentionEncoder": ProtenixAtomAttentionEncoder,
+    "UNetEncoder1D": ("onescience.modules.encoder.unet_encoder", "UNetEncoder1D"),
+    "UNetEncoder2D": ("onescience.modules.encoder.unet_encoder", "UNetEncoder2D"),
+    "UNetEncoder3D": ("onescience.modules.encoder.unet_encoder", "UNetEncoder3D"),
+    "GraphViTEncoder": ("onescience.modules.encoder.graphvit_encoder", "GraphViTEncoder"),
+    "MeshGraphEncoder": ("onescience.modules.encoder.mesh_graph_encoder", "MeshGraphEncoder"),
+    "FengWuEncoder": ("onescience.modules.encoder.fengwuencoder", "FengWuEncoder"),
+    "ProtenixRelativePositionEncoding": (
+        "onescience.modules.encoder.protenixencoding",
+        "ProtenixRelativePositionEncoding",
+    ),
+    "ProtenixAtomAttentionEncoder": (
+        "onescience.modules.encoder.protenixencoding",
+        "ProtenixAtomAttentionEncoder",
+    ),
 }
 
 class OneEncoder(nn.Module):
@@ -32,12 +31,7 @@ class OneEncoder(nn.Module):
 
     def __init__(self, style: str, **kwargs):
         super().__init__()
-
-        if style not in _ENCODER_REGISTRY:
-            raise NotImplementedError(
-                f"Unknown style: '{style}'. Available options are: {list(_ENCODER_REGISTRY.keys())}"
-            )
-        self.encoder = _ENCODER_REGISTRY[style](**kwargs)
+        self.encoder = instantiate_registered_style(style, _ENCODER_REGISTRY, "encoder", **kwargs)
 
     def forward(self, *args, **kwargs):
         return self.encoder(*args, **kwargs)

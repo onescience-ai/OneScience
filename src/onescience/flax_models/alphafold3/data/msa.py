@@ -293,6 +293,7 @@ def get_msa_tool(
           e_value=msa_tool_config.e_value,
           z_value=msa_tool_config.z_value,
           max_sequences=msa_tool_config.max_sequences,
+          max_threads=msa_tool_config.max_threads,
       )
     case msa_config.NhmmerConfig():
       return nhmmer.Nhmmer(
@@ -303,6 +304,7 @@ def get_msa_tool(
           n_cpu=msa_tool_config.n_cpu,
           e_value=msa_tool_config.e_value,
           max_sequences=msa_tool_config.max_sequences,
+          max_threads=msa_tool_config.max_threads,
           alphabet=msa_tool_config.alphabet,
       )
     case msa_config.MmseqsConfig():

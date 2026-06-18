@@ -1,17 +1,21 @@
 from torch import nn
 
-from .diffusionmodule import DiffusionModule
-from .protenixdiffusion import (
-     ProtenixDiffusionConditioning,
-     ProtenixDiffusionSchedule,
-     ProtenixDiffusionModule,
-)
+from onescience.modules._lazy import instantiate_registered_style
 
 _DIFFUSION_REGISTRY = {
-    "DiffusionModule": DiffusionModule,
-    "ProtenixDiffusionConditioning": ProtenixDiffusionConditioning,
-    "ProtenixDiffusionSchedule": ProtenixDiffusionSchedule,
-    "ProtenixDiffusionModule": ProtenixDiffusionModule,
+    "DiffusionModule": ("onescience.modules.diffusion.diffusionmodule", "DiffusionModule"),
+    "ProtenixDiffusionConditioning": (
+        "onescience.modules.diffusion.protenixdiffusion",
+        "ProtenixDiffusionConditioning",
+    ),
+    "ProtenixDiffusionSchedule": (
+        "onescience.modules.diffusion.protenixdiffusion",
+        "ProtenixDiffusionSchedule",
+    ),
+    "ProtenixDiffusionModule": (
+        "onescience.modules.diffusion.protenixdiffusion",
+        "ProtenixDiffusionModule",
+    ),
 }
 
 
@@ -29,10 +33,12 @@ class OneDiffusion(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _DIFFUSION_REGISTRY:
-            raise NotImplementedError(f"Unknown style: {style}")
-
-        self.Diffusion = _DIFFUSION_REGISTRY[style](**kwargs)
+        self.Diffusion = instantiate_registered_style(
+            style,
+            _DIFFUSION_REGISTRY,
+            "diffusion",
+            **kwargs,
+        )
 
     def forward(self, *args, **kwargs):
         return self.Diffusion(*args, **kwargs)

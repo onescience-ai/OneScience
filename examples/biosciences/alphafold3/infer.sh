@@ -1,6 +1,5 @@
 #!/bin/bash
-# 加载dtk环境
-module load sghpc-mpi-gcc/25.8
+
 source ../../../env.sh
 
 export TF_CPP_MIN_LOG_LEVEL=0

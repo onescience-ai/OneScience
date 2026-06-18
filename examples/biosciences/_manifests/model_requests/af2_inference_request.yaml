@@ -1,0 +1,23 @@
+model_family: AlphaFold
+inference_mode: monomer
+input:
+  fasta_path: inputs/query.fasta
+  precomputed_msa_dir: ""
+  template_mode: search_or_none
+runtime:
+  cwd: ${ONESCIENCE_ROOT}/examples/biosciences/alphafold
+  entrypoint: run_alphafold.py
+  device: gpu
+  precision: fp32_or_mixed
+parameters:
+  model_preset: monomer
+  db_preset: reduced_dbs
+  max_template_date: "2022-01-01"
+  random_seed: 0
+paths:
+  model_dir: ""
+  data_dir: ""
+  output_dir: outputs/af2_query
+validation:
+  required_outputs: [ranked_pdb, ranking_debug_json, timings_json]
+  check_residue_count: true

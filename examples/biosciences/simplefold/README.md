@@ -34,6 +34,10 @@ https://github.com/apple/ml-simplefold.git
 
 当前提供了一个 Jupyter notebook [`sample.ipynb`](sample.ipynb)，可以直接用于从示例蛋白质序列进行结构推理预测。
 
+## 硬件支持
+
+当前已经支持国产DCU显卡，支持BW1000、K100AI等。当前支持模型权重离线下载，当前默认位置在 $ONESCIENCE_MODELS_DIR/simplefold/, 同时注意相关依赖模型 ESMFOLD权重默认位置在 $ONESCIENCE_MODELS_DIR/esm_models/。如需调整，请更改 inference.py 文件中关于 DEFAULT_ONESCIENCE_MODELS_DIR 以及 load_local_or_hub_esm2_3b 相关设置。
+
 ## 推理
 
 安装 `simplefold` 包后，您可以通过以下命令行从目标 fasta 文件预测蛋白质结构。我们在推理中同时支持 [PyTorch](https://pytorch.org/) 和 [MLX](https://mlx-framework.org/) 后端。

@@ -1,21 +1,21 @@
 from torch import nn
 
-from .pangudownsample import PanguDownSample
-from .panguupsample import PanguUpSample
-from .SpatialGraphDownsample import SpatialGraphDownsample
-from .SpatialGraphUpsample import SpatialGraphUpsample
-from .fuxidownsample import FuxiDownSample
-from .fuxiupsample import FuxiUpSample
-from .xiheupsample import XiheUpSample
+from onescience.modules._lazy import instantiate_registered_style
 
 _SAMPLER_REGISTRY = {
-    "PanguDownSample": PanguDownSample,
-    "PanguUpSample": PanguUpSample,
-    "SpatialGraphDownsample": SpatialGraphDownsample,
-    "SpatialGraphUpsample": SpatialGraphUpsample,
-    "FuxiUpSample": FuxiUpSample,
-    "FuxiDownSample": FuxiDownSample,
-    "XiheUpSample": XiheUpSample,
+    "PanguDownSample": ("onescience.modules.sample.pangudownsample", "PanguDownSample"),
+    "PanguUpSample": ("onescience.modules.sample.panguupsample", "PanguUpSample"),
+    "SpatialGraphDownsample": (
+        "onescience.modules.sample.SpatialGraphDownsample",
+        "SpatialGraphDownsample",
+    ),
+    "SpatialGraphUpsample": (
+        "onescience.modules.sample.SpatialGraphUpsample",
+        "SpatialGraphUpsample",
+    ),
+    "FuxiUpSample": ("onescience.modules.sample.fuxiupsample", "FuxiUpSample"),
+    "FuxiDownSample": ("onescience.modules.sample.fuxidownsample", "FuxiDownSample"),
+    "XiheUpSample": ("onescience.modules.sample.xiheupsample", "XiheUpSample"),
 }
 
 
@@ -35,10 +35,7 @@ class OneSample(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _SAMPLER_REGISTRY:
-            raise NotImplementedError(f"Unknown style: {style}")
-
-        self.sampler = _SAMPLER_REGISTRY[style](**kwargs)
+        self.sampler = instantiate_registered_style(style, _SAMPLER_REGISTRY, "sample", **kwargs)
         self.Sampler = self.sampler
 
     def forward(self, *args, **kwargs):

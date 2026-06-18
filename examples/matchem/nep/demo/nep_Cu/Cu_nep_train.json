@@ -1,0 +1,62 @@
+{
+    "model_type": "NEP",
+    "atom_type": [
+        29
+    ],
+    "seed": 2023,
+    "recover_train": true,
+    "model": {
+        "descriptor": {
+            "cutoff": [
+                6.0,
+                6.0
+            ],
+            "n_max": [
+                4,
+                4
+            ],
+            "basis_size": [
+                12,
+                12
+            ],
+            "l_max": [
+                4,
+                2,
+                1
+            ]
+        },
+        "fitting_net": {
+            "network_size": [
+                40,
+                1
+            ]
+        }
+    },
+    "optimizer": {
+        "optimizer": "ADAM",
+        "epochs": 30,
+        "batch_size": 1,
+        "print_freq": 10,
+        "learning_rate": 0.001,
+        "stop_lr": 3.51e-08,
+        "stop_step": 1000000,
+        "decay_step": 5000,
+        "train_energy": true,
+        "train_force": true,
+        "train_virial": false,
+        "start_pre_fac_force": 1000,
+        "start_pre_fac_etot": 0.02,
+        "start_pre_fac_virial": 50.0,
+        "end_pre_fac_force": 1.0,
+        "end_pre_fac_etot": 1.0,
+        "end_pre_fac_virial": 1.0
+    },
+    "format": "pwmat/movement",
+    "train_data": [
+        "/public/share/sugonhpcapp01/onestore/onedatasets/matchem/matpl/Cu/pwdata/0_300_MOVEMENT",
+        "/public/share/sugonhpcapp01/onestore/onedatasets/matchem/matpl/Cu/pwdata/1_500_MOVEMENT"
+    ],
+    "valid_data": [
+        "/public/share/sugonhpcapp01/onestore/onedatasets/matchem/matpl/Cu/pwdata/valid_movement"
+    ]
+}

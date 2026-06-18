@@ -1,6 +1,6 @@
 from e3nn import o3
 
-from onescience.models.mace.tools import cg
+from onescience.utils.mace.tools import cg
 
 
 def test_U_matrix():

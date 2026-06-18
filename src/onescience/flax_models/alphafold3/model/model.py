@@ -266,31 +266,55 @@ class Model(hk.Module):
         global_config=self.global_config,
     )
 
-    def recycle_body(_, args):
-      prev, key = args
-      key, subkey = jax.random.split(key)
-      embeddings = embedding_module(
-          batch=batch,
-          prev=prev,
-          target_feat=target_feat,
-          key=subkey,
-      )
-      embeddings['pair'] = embeddings['pair'].astype(jnp.float32)
-      embeddings['single'] = embeddings['single'].astype(jnp.float32)
-      return embeddings, key
-
     num_res = batch.num_res
-
-    embeddings = {
-        'pair': jnp.zeros(
-            [num_res, num_res, self.config.evoformer.pair_channel],
-            dtype=jnp.float32,
-        ),
-        'single': jnp.zeros(
-            [num_res, self.config.evoformer.seq_channel], dtype=jnp.float32
-        ),
-        'target_feat': target_feat,
-    }
+    if num_res>=4000:
+      def recycle_body(_, args):
+        prev, key = args
+        key, subkey = jax.random.split(key)
+        embeddings = embedding_module(
+            batch=batch,
+            prev=prev,
+            target_feat=target_feat,
+            key=subkey,
+        )
+        embeddings['pair'] = embeddings['pair'].astype(jnp.bfloat16)
+        embeddings['single'] = embeddings['single'].astype(jnp.bfloat16)
+        return embeddings, key
+      
+      embeddings = {
+          'pair': jnp.zeros(
+              [num_res, num_res, self.config.evoformer.pair_channel],
+              dtype=jnp.bfloat16,
+          ),
+          'single': jnp.zeros(
+              [num_res, self.config.evoformer.seq_channel], dtype=jnp.bfloat16
+          ),
+          'target_feat': target_feat,
+      }
+    else:
+      def recycle_body(_, args):
+        prev, key = args
+        key, subkey = jax.random.split(key)
+        embeddings = embedding_module(
+            batch=batch,
+            prev=prev,
+            target_feat=target_feat,
+            key=subkey,
+        )
+        embeddings['pair'] = embeddings['pair'].astype(jnp.float32)
+        embeddings['single'] = embeddings['single'].astype(jnp.float32)
+        return embeddings, key
+      
+      embeddings = {
+          'pair': jnp.zeros(
+              [num_res, num_res, self.config.evoformer.pair_channel],
+              dtype=jnp.float32,
+          ),
+          'single': jnp.zeros(
+              [num_res, self.config.evoformer.seq_channel], dtype=jnp.float32
+          ),
+          'target_feat': target_feat,
+      }
     if hk.running_init():
       embeddings, _ = recycle_body(None, (embeddings, key))
     else:

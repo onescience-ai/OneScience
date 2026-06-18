@@ -1,0 +1,36 @@
+{
+  "contract_id": "onescience.biosciences.examples",
+  "contract_version": 1,
+  "schema_version": 1,
+  "owner": "onescience",
+  "assets": {
+    "bio_inference": {
+      "contract_version": 1,
+      "manifest_dir": "examples/biosciences/_manifests",
+      "run_manifest": "examples/biosciences/_manifests/inference_run_manifest.yaml",
+      "model_requests_dir": "examples/biosciences/_manifests/model_requests",
+      "model_requests": [
+        "af2_inference_request.yaml",
+        "af3_protenix_request.yaml",
+        "evo2_request.yaml",
+        "molsculptor_request.yaml",
+        "proteinmpnn_request.yaml",
+        "ptdit_protoken_request.yaml",
+        "rfdiffusion_request.yaml",
+        "simplefold_request.yaml"
+      ],
+      "tools": {
+        "manifest_validator": "examples/biosciences/_manifests/tools/validate_bio_inference_manifest.py",
+        "output_checker": "examples/biosciences/_manifests/tools/check_inference_outputs.py"
+      }
+    },
+    "protein_design_validation": {
+      "contract_version": 1,
+      "workflow_dir": "examples/biosciences/workflows/protein_design_validation",
+      "request": "examples/biosciences/workflows/protein_design_validation/request.yaml",
+      "tools": {
+        "simplefold_esm_setup": "examples/biosciences/workflows/protein_design_validation/tools/setup_esm_torchhub.sh"
+      }
+    }
+  }
+}

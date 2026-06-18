@@ -6,5 +6,6 @@
 # We tell RFdiffusion that we're wanting to make a binder to a target, and provide the secondary structure and block adjacency input for these. This may not be necessary
 # We then provide a path to a directory of different scaffolds (we've provided some for you to use, from Cao et al., 2022)
 # We generate 10 designs, and reduce the noise added during inference to 0 (which improves the quality of designs)
-
-../scripts/run_inference.py scaffoldguided.target_path=input_pdbs/insulin_target.pdb inference.output_prefix=example_outputs/design_ppi_scaffolded scaffoldguided.scaffoldguided=True 'ppi.hotspot_res=[A59,A83,A91]' scaffoldguided.target_pdb=True scaffoldguided.target_ss=target_folds/insulin_target_ss.pt scaffoldguided.target_adj=target_folds/insulin_target_adj.pt scaffoldguided.scaffold_dir=./ppi_scaffolds/ inference.num_designs=10 denoiser.noise_scale_ca=0 denoiser.noise_scale_frame=0
+source ../../../env.sh
+echo "ONESCIENCE_MODELS_DIR: ${ONESCIENCE_MODELS_DIR}"
+python ./scripts/run_inference.py scaffoldguided.target_path=input_pdbs/insulin_target.pdb inference.output_prefix=example_outputs/design_ppi_scaffolded scaffoldguided.scaffoldguided=True 'ppi.hotspot_res=[A59,A83,A91]' scaffoldguided.target_pdb=True scaffoldguided.target_ss=target_folds/insulin_target_ss.pt scaffoldguided.target_adj=target_folds/insulin_target_adj.pt scaffoldguided.scaffold_dir=./ppi_scaffolds/ inference.num_designs=10 denoiser.noise_scale_ca=0 denoiser.noise_scale_frame=0

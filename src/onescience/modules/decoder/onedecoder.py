@@ -1,19 +1,18 @@
 from torch import nn
 
-from .unet_decoder import UNetDecoder1D, UNetDecoder2D, UNetDecoder3D
-from .graphvit_decoder import GraphViTDecoder
-from .mesh_graph_decoder import MeshGraphDecoder
-from .fengwudecoder import FengWuDecoder
-from .protenixdecoder import ProtenixAtomAttentionDecoder
+from onescience.modules._lazy import instantiate_registered_style
 
 _DECODER_REGISTRY = {
-    "UNetDecoder1D": UNetDecoder1D,
-    "UNetDecoder2D": UNetDecoder2D,
-    "UNetDecoder3D": UNetDecoder3D,
-    "GraphViTDecoder": GraphViTDecoder,
-    "MeshGraphDecoder": MeshGraphDecoder,
-    "FengWuDecoder": FengWuDecoder,
-    "ProtenixAtomAttentionDecoder": ProtenixAtomAttentionDecoder,
+    "UNetDecoder1D": ("onescience.modules.decoder.unet_decoder", "UNetDecoder1D"),
+    "UNetDecoder2D": ("onescience.modules.decoder.unet_decoder", "UNetDecoder2D"),
+    "UNetDecoder3D": ("onescience.modules.decoder.unet_decoder", "UNetDecoder3D"),
+    "GraphViTDecoder": ("onescience.modules.decoder.graphvit_decoder", "GraphViTDecoder"),
+    "MeshGraphDecoder": ("onescience.modules.decoder.mesh_graph_decoder", "MeshGraphDecoder"),
+    "FengWuDecoder": ("onescience.modules.decoder.fengwudecoder", "FengWuDecoder"),
+    "ProtenixAtomAttentionDecoder": (
+        "onescience.modules.decoder.protenixdecoder",
+        "ProtenixAtomAttentionDecoder",
+    ),
 }
 
 class OneDecoder(nn.Module):
@@ -29,12 +28,7 @@ class OneDecoder(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _DECODER_REGISTRY:
-            raise NotImplementedError(
-                f"Unknown style: '{style}'. Available options are: {list(_DECODER_REGISTRY.keys())}"
-            )
-
-        self.decoder = _DECODER_REGISTRY[style](**kwargs)
+        self.decoder = instantiate_registered_style(style, _DECODER_REGISTRY, "decoder", **kwargs)
 
     def forward(self, *args, **kwargs):
         return self.decoder(*args, **kwargs)

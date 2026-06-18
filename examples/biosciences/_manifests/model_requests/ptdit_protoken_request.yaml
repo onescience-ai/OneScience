@@ -1,0 +1,23 @@
+model_family: PT-DiT
+inference_mode: de_novo_codesign
+runtime:
+  cwd: ${ONESCIENCE_ROOT}/examples/biosciences/pt_dit/example_scripts
+  entrypoint: de_novo_design.py
+  device: jax_multi_device_or_single_device
+inputs:
+  protoken_emb: ../embeddings/protoken_emb.pkl
+  aatype_emb: ../embeddings/aatype_emb.pkl
+checkpoint:
+  pt_dit_params: ../ckpts/PT_DiT_params_2000000.pkl
+  protoken_params: ../ckpts/protoken_params_100000.pkl
+parameters:
+  nres: 256
+  nsample_per_device: 8
+  num_diffusion_timesteps: 500
+  decode_structures: true
+outputs:
+  output_dir: results/de_novo
+validation:
+  check_result_pkl: true
+  check_protoken_indexes: true
+  check_decoded_pdb: true

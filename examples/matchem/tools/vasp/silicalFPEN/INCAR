@@ -1,0 +1,24 @@
+
+PREC = Medium
+ENCUT = 400
+SYSTEM = cristobalite (high) bulk
+NWRITE = 2
+NELM = 40
+NELMIN = 5
+EDIFF = 10e-6
+EDIFFG = -0.050
+NSW = 1
+ISIF = 2
+IBRION = 2
+
+SIGMA = 0.05
+LREAL = .TRUE.
+GGA = 91
+IALGO = 48
+NSIM = 8
+LPLANE = .TRUE.
+LSCALU = .FALSE.
+LCHARG = .FALSE.
+LWAVE = .FALSE.
+NCORE = 1
+

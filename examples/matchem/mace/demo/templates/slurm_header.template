@@ -1,0 +1,9 @@
+#!/bin/bash
+#SBATCH -J {{JOB_NAME}}
+#SBATCH -p {{PARTITION}}
+#SBATCH --nodes={{NODES}}
+#SBATCH --ntasks-per-node={{NTASKS_PER_NODE}}
+#SBATCH --cpus-per-task={{CPUS_PER_TASK}}
+#SBATCH --gres=dcu:{{GPUS_PER_NODE}}
+#SBATCH --output=%j.log
+#SBATCH --time={{TIME}}

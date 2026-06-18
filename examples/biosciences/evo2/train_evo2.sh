@@ -25,7 +25,7 @@ torchrun \
     --devices ${SLURM_GPUS_PER_NODE:-8} \
     --num-nodes ${SLURM_JOB_NUM_NODES} \
     --seq-length 1024 \
-    --micro-batch-size 4 \
+    --micro-batch-size 2 \
     --lr 0.0001 \
     --warmup-steps 5 \
     --max-steps 1000 \
@@ -33,7 +33,8 @@ torchrun \
     --wd 0.01 \
     --activation-checkpoint-recompute-num-layers 1 \
     --val-check-interval 50 \
-    --ckpt-async-save\
+    --limit-val-batches 2 \
+    # --ckpt-async-save\
     # --num-nodes=${SLURM_JOB_NUM_NODES} \
     # --devices=${DEVICES} \
     # --grad-acc-batches $GRAD_ACC_BATCHES \

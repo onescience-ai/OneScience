@@ -1,8 +1,8 @@
 import torch.nn as nn
-from .protenixmsa import ProtenixMSAModule
+from onescience.modules._lazy import instantiate_registered_style
 
 _MSA_REGISTRY = {
-    "ProtenixMSAModule": ProtenixMSAModule,
+    "ProtenixMSAModule": ("onescience.modules.msa.protenixmsa", "ProtenixMSAModule"),
 }
 
 
@@ -11,10 +11,7 @@ class OneMSA(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _MSA_REGISTRY:
-            raise NotImplementedError(f"Unknown style: {style}")
-
-        self.msa = _MSA_REGISTRY[style](**kwargs)
+        self.msa = instantiate_registered_style(style, _MSA_REGISTRY, "msa", **kwargs)
 
     def __getattr__(self, name):
         try:
@@ -24,4 +21,3 @@ class OneMSA(nn.Module):
 
     def forward(self, *args, **kwargs):
         return self.msa(*args, **kwargs)
-

@@ -39,16 +39,29 @@ def main():
 
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
-    datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized())
-    train_dataloader, train_sampler = datapipe.train_dataloader()
-    val_dataloader, val_sampler = datapipe.val_dataloader()
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.train_time,
+        distributed=dist.is_initialized()
+    )
+    train_dataloader, train_sampler = datapipe.get_dataloader("train")
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.val_time,
+        distributed=dist.is_initialized()
+    )
+    val_dataloader, val_sampler = datapipe.get_dataloader("valid")
 
     surface_weights = torch.as_tensor(cfg_data.dataset.weights[:4], device=local_rank, dtype=torch.float32).view(1, -1, 1, 1)
     pressure_weights = torch.as_tensor(cfg_data.dataset.weights[4:], device=local_rank, dtype=torch.float32).view(1, -1, 1, 1)
 
-    land_mask = torch.from_numpy(np.load(os.path.join(cfg_data.dataset.static_dir, "land_mask.npy")).astype(np.float32))
-    soil_type = torch.from_numpy(np.load(os.path.join(cfg_data.dataset.static_dir, "soil_type.npy")).astype(np.float32))
-    topography = torch.from_numpy(np.load(os.path.join(cfg_data.dataset.static_dir, "topography.npy")).astype(np.float32))
+    static_dir = os.path.join(cfg_data.dataset.data_dir, "static")
+    
+    land_mask = torch.from_numpy(np.load(os.path.join(static_dir, "land_mask.npy")).astype(np.float32))
+    soil_type = torch.from_numpy(np.load(os.path.join(static_dir, "soil_type.npy")).astype(np.float32))
+    topography = torch.from_numpy(np.load(os.path.join(static_dir, "topography.npy")).astype(np.float32))
     topography = (topography - topography.mean()) / (topography.std(unbiased=False) + 1e-6)
     surface_mask = torch.stack([land_mask, soil_type, topography], dim=0).to(local_rank)
     surface_mask = surface_mask.unsqueeze(0).repeat(cfg_data.dataloader.batch_size, 1, 1, 1)

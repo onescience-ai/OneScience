@@ -1,28 +1,63 @@
 from torch import nn
 
-from .panguembedding import PanguEmbedding
-from .fourier_pos_embedding import FourierPosEmbedding
-from .fuxiembedding import FuxiEmbedding
-from .fourcastnetembedding import FourCastNetEmbedding
-from .xiheembedding import XiheEmbedding
-from .graphcast_embedder import GraphCastEncoderEmbedder, GraphCastDecoderEmbedder
-from .protenixembedding import (
-     ProtenixFourierEmbedding,
-     ProtenixInputFeatureEmbedder,
-     ProtenixTemplateEmbedder,
- )
+from onescience.modules._lazy import instantiate_registered_style
 
 _EMBEDDER_REGISTRY = {
-    "PanguEmbedding": PanguEmbedding,
-    "FourierPosEmbedding": FourierPosEmbedding,
-    "FuxiEmbedding": FuxiEmbedding,
-    "FourCastNetEmbedding": FourCastNetEmbedding,
-    "XiheEmbedding": XiheEmbedding,
-    "GraphCastEncoderEmbedder": GraphCastEncoderEmbedder,
-    "GraphCastDecoderEmbedder": GraphCastDecoderEmbedder,
-    "ProtenixFourierEmbedding": ProtenixFourierEmbedding,
-    "ProtenixInputFeatureEmbedder": ProtenixInputFeatureEmbedder,
-    "ProtenixTemplateEmbedder": ProtenixTemplateEmbedder,
+    "PanguEmbedding": ("onescience.modules.embedding.panguembedding", "PanguEmbedding"),
+    "FourierPosEmbedding": (
+        "onescience.modules.embedding.fourier_pos_embedding",
+        "FourierPosEmbedding",
+    ),
+    "FuxiEmbedding": ("onescience.modules.embedding.fuxiembedding", "FuxiEmbedding"),
+    "FourCastNetEmbedding": (
+        "onescience.modules.embedding.fourcastnetembedding",
+        "FourCastNetEmbedding",
+    ),
+    "XiheEmbedding": ("onescience.modules.embedding.xiheembedding", "XiheEmbedding"),
+    "GraphCastEncoderEmbedder": (
+        "onescience.modules.embedding.graphcast_embedder",
+        "GraphCastEncoderEmbedder",
+    ),
+    "GraphCastDecoderEmbedder": (
+        "onescience.modules.embedding.graphcast_embedder",
+        "GraphCastDecoderEmbedder",
+    ),
+    "ProtenixFourierEmbedding": (
+        "onescience.modules.embedding.protenixembedding",
+        "ProtenixFourierEmbedding",
+    ),
+    "ProtenixInputFeatureEmbedder": (
+        "onescience.modules.embedding.protenixembedding",
+        "ProtenixInputFeatureEmbedder",
+    ),
+    "ProtenixTemplateEmbedder": (
+        "onescience.modules.embedding.protenixembedding",
+        "ProtenixTemplateEmbedder",
+    ),
+    "AtomTypeEmbedding": (
+        "onescience.modules.embedding.matris_embedding",
+        "AtomTypeEmbedding",
+    ),
+    "EdgeBasisEmbedding": (
+        "onescience.modules.embedding.matris_embedding",
+        "EdgeBasisEmbedding",
+    ),
+    "ThreebodyEmbedding": (
+        "onescience.modules.embedding.matris_embedding",
+        "ThreebodyEmbedding",
+    ),
+    "ThreebodyFourierExpansion": (
+        "onescience.modules.embedding.matris_embedding",
+        "ThreebodyFourierExpansion",
+    ),
+    "three_bodySHExpansion": (
+        "onescience.modules.embedding.matris_embedding",
+        "three_bodySHExpansion",
+    ),
+    "TimeEmbedding": (
+        "onescience.modules.embedding.matris_embedding",
+        "TimeEmbedding",
+    ),
 }
 
 class OneEmbedding(nn.Module):
@@ -40,10 +75,12 @@ class OneEmbedding(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _EMBEDDER_REGISTRY:
-            raise NotImplementedError(f"Unknown style: {style}")
-
-        self.embedder = _EMBEDDER_REGISTRY[style](**kwargs)
+        self.embedder = instantiate_registered_style(
+            style,
+            _EMBEDDER_REGISTRY,
+            "embedding",
+            **kwargs,
+        )
     
     def __getattr__(self, name):
         try:

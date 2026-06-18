@@ -24,7 +24,15 @@ debug
 /src/agent/logs/
 .DS_Store
 *.pth
+*.pt
 *.h5
+*.model
+*.sw?
+*.log
+.venv/
+.claude/
+cc_memory
+**/outputs/
 examples/biosciences/simplefold/artifacts/
 examples/earth/xihe/data/
 label.npy

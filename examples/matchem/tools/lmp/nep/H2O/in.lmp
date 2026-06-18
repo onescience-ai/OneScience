@@ -1,0 +1,46 @@
+# =========================================
+# LAMMPS NEP Benchmark: H2O
+# Potential: NEP (matpl/nep/kk)
+# Elements: O H
+# =========================================
+
+# --- Simulation Parameters ---
+variable        NSTEPS     equal 100
+variable        THERMO     equal 10
+variable        TEMP       equal 300
+variable        TAU_T      equal 0.05
+variable        TSTEP      equal 0.0005
+
+# --- Kokkos Settings ---
+package kokkos neigh full comm device 
+newton on
+
+# --- System Setup ---
+units           metal
+boundary        p p p
+atom_style      atomic
+
+read_data       data.lmp
+replicate       19 19 19
+
+# --- Potential ---
+mass            1 15.999
+mass            2 1.00784
+pair_style      matpl/nep/kk nep.txt
+pair_coeff      * * O H
+
+# --- Neighbor Settings ---
+neighbor        1.0 bin
+neigh_modify    delay 10
+
+# --- Output ---
+thermo          ${THERMO}
+thermo_style    custom step temp pe ke etotal press vol
+
+# --- Dynamics ---
+velocity        all create ${TEMP} 35826 dist gaussian mom yes rot yes
+fix             1 all nvt/kk temp ${TEMP} ${TEMP} ${TAU_T}
+timestep        ${TSTEP}
+
+# --- Run ---
+run             ${NSTEPS}

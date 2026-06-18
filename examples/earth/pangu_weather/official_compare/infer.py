@@ -1,8 +1,9 @@
 import os
-import json
+import glob
 import numpy as np
 import h5py
 import onnxruntime as ort
+from datetime import datetime
 from tqdm import tqdm
 from onescience.utils.YParams import YParams
 from onescience.datapipes.climate import ERA5Datapipe
@@ -11,13 +12,17 @@ from onescience.datapipes.climate import ERA5Datapipe
 
 def data_prepare(date, channels, datapath):
     print('preparing data... ', end=' ')
-    with open(f'{datapath}/metadata.json', "r") as f:
-        metadata = json.load(f)
-
-    variables = metadata['variables']
+    h5_files = sorted(glob.glob(os.path.join(datapath, "data", "*.h5")))
+    with h5py.File(h5_files[0], "r") as f:
+        ds = f["fields"]
+        variables = [v.decode() if isinstance(v, bytes) else v for v in ds.attrs["variables"]]
+        time_step = int(ds.attrs["time_step"])
     channel_indices = [variables.index(v) for v in channels]
-    with h5py.File(f'{datapath}/data/{date[:4]}/{date}.h5', "r") as f:
-        data = f["fields"][:]
+    dt = datetime.strptime(date, "%Y%m%d%H")
+    year_start = datetime(dt.year, 1, 1)
+    step_idx = int(((dt - year_start).total_seconds() / 3600) / time_step)
+    with h5py.File(os.path.join(datapath, "data", f"{date[:4]}.h5"), "r") as f:
+        data = f["fields"][step_idx]
         data = data[channel_indices]
     print('done...')
     return data
@@ -84,15 +89,20 @@ def all_data_infer(dataloader):
 
 if __name__ == "__main__":
     config_file_path = "../conf/config.yaml"
+
     cfg = YParams(config_file_path, "model")
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
-    channels = cfg_data.dataset.channels
-    datapath = cfg_data.dataset.data_dir
-    
-    # data = data_prepare("2019010206", channels, datapath)
-    # single_data_infer(data)
 
-    test_dataset = ERA5Datapipe(params = cfg_data, distributed = False, normalize=False)
-    test_dataloader = test_dataset.test_dataloader()
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.test_time,
+        distributed=False,
+        batch_size=1,
+        num_workers=4,
+        normalize=False
+    )
+    test_dataloader, _ = datapipe.get_dataloader("test")
+
     all_data_infer(test_dataloader)

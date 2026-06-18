@@ -38,9 +38,22 @@ def main():
 
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
-    datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized(), input_steps=2)
-    train_dataloader, train_sampler = datapipe.train_dataloader()
-    val_dataloader, val_sampler = datapipe.val_dataloader()
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.train_time,
+        distributed=dist.is_initialized(),
+        input_steps=2,
+    )
+    train_dataloader, train_sampler = datapipe.get_dataloader("train")
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.val_time,
+        distributed=dist.is_initialized(),
+        input_steps=2,
+    )
+    val_dataloader, val_sampler = datapipe.get_dataloader("valid")
 
     ## Model init
     model = Fuxi(img_size=cfg_data.dataset.img_size, 

@@ -17,12 +17,12 @@ import ase
 import numpy as np
 from tqdm import tqdm
 
-from onescience.models.UMA.common.registry import registry
+from onescience.utils.uma.common.registry import registry
 from onescience.datapipes.materials.custom_stack._utils import rename_data_object_keys
 from onescience.datapipes.materials.custom_stack.core.atomic_data import AtomicData
 from onescience.datapipes.materials.custom_stack.base_dataset import BaseDataset
 from onescience.datapipes.materials.custom_stack.target_metadata_guesser import guess_property_metadata
-from onescience.models.UMA.modules.transforms import DataTransforms
+from onescience.datapipes.materials.uma_transforms import DataTransforms
 
 
 def apply_one_tags(
@@ -200,7 +200,7 @@ class AseReadDataset(AseAtomsDataset):
                     ex. "*/POSCAR", "*.cif", "*.xyz"
                     search recursively with two wildcards: "**/POSCAR" or "**/*.cif"
 
-            a2g_args (dict): Keyword arguments for fairchem.core.preprocessing.AtomsToGraphs()
+            a2g_args (dict): Keyword arguments for onescience.utils.uma.preprocessing.AtomsToGraphs()
                     default options will work for most users
 
                     If you are using this for a training dataset, set
@@ -293,7 +293,7 @@ class AseReadMultiStructureDataset(AseAtomsDataset):
 
                     This will overrule the src and pattern that you specify!
 
-            a2g_args (dict): Keyword arguments for fairchem.core.preprocessing.AtomsToGraphs()
+            a2g_args (dict): Keyword arguments for onescience.utils.uma.preprocessing.AtomsToGraphs()
                     default options will work for most users
 
                     If you are using this for a training dataset, set
@@ -424,7 +424,7 @@ class AseDBDataset(AseAtomsDataset):
             select_args (dict): Keyword arguments for ase.db.select()
                     You can use this to query/filter your database
 
-            a2g_args (dict): Keyword arguments for fairchem.core.preprocessing.AtomsToGraphs()
+            a2g_args (dict): Keyword arguments for onescience.utils.uma.preprocessing.AtomsToGraphs()
                     default options will work for most users
 
                     If you are using this for a training dataset, set

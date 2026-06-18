@@ -89,6 +89,15 @@ _RUN_INFERENCE = flags.DEFINE_bool(
 
 _DEFAULT_MMSEQS_OPTIONS ='--num-iterations 1 --db-load-mode 2 -a --max-seqs 10000 --prefilter-mode 1'
 _DEFAULT_R2MSA_OPTIONS ='--filter-msa 1 --filter-min-enable 1000 --diff 3000 --qid 0.0,0.2,0.4,0.6,0.8,1.0 --qsc 0 --max-seq-id 0.95'
+_AF3_DIR = pathlib.Path(__file__).resolve().parents[3] / 'src' / 'onescience' / 'flax_models' / 'alphafold3'
+_HMMER_BIN_DIR = _AF3_DIR / '_tools' / 'hmmer' / 'bin'
+
+
+def _resolve_af3_tool(binary_name: str) -> str | None:
+  local_binary = _HMMER_BIN_DIR / binary_name
+  if local_binary.exists():
+    return str(local_binary)
+  return shutil.which(binary_name)
 
 
 _USE_MMSEQS = flags.DEFINE_bool(
@@ -116,27 +125,27 @@ _R2MSA_OPTIONS = flags.DEFINE_string(
 # Binary paths.
 _JACKHMMER_BINARY_PATH = flags.DEFINE_string(
     'jackhmmer_binary_path',
-    shutil.which('jackhmmer'),
+    _resolve_af3_tool('jackhmmer'),
     'Path to the Jackhmmer binary.',
 )
 _NHMMER_BINARY_PATH = flags.DEFINE_string(
     'nhmmer_binary_path',
-    shutil.which('nhmmer'),
+    _resolve_af3_tool('nhmmer'),
     'Path to the Nhmmer binary.',
 )
 _HMMALIGN_BINARY_PATH = flags.DEFINE_string(
     'hmmalign_binary_path',
-    shutil.which('hmmalign'),
+    _resolve_af3_tool('hmmalign'),
     'Path to the Hmmalign binary.',
 )
 _HMMSEARCH_BINARY_PATH = flags.DEFINE_string(
     'hmmsearch_binary_path',
-    shutil.which('hmmsearch'),
+    _resolve_af3_tool('hmmsearch'),
     'Path to the Hmmsearch binary.',
 )
 _HMMBUILD_BINARY_PATH = flags.DEFINE_string(
     'hmmbuild_binary_path',
-    shutil.which('hmmbuild'),
+    _resolve_af3_tool('hmmbuild'),
     'Path to the Hmmbuild binary.',
 )
 _MMSEQS_BINARY_PATH = flags.DEFINE_string(
@@ -277,7 +286,13 @@ _MMSEQS_UNIREF90_DATABASE_PATH = flags.DEFINE_string(
     'UniRef90 database path, used for MSA search. ',
 )
 
-
+_JACKHMMER_MAX_THREADS = flags.DEFINE_integer(
+    'jackhmmer_max_threads',
+    None,
+    'Maximum number of threads used when running sharded databases. If unset,'
+    ' defaults to None (no limit).',
+    lower_bound=1,
+)
 # Number of CPUs to use for MSA tools.
 _JACKHMMER_N_CPU = flags.DEFINE_integer(
     'jackhmmer_n_cpu',
@@ -311,7 +326,13 @@ _NHMMER_MAX_PARALLEL_SHARDS = flags.DEFINE_integer(
     ' database is sharded.',
     lower_bound=1,
 )
-
+_NHMMER_MAX_THREADS = flags.DEFINE_integer(
+    'nhmmer_max_threads',
+    None,
+    'Maximum number of threads used when running sharded databases. If unset,'
+    ' defaults to None (no limit).',
+    lower_bound=1,
+)
 # Data pipeline configuration.
 _RESOLVE_MSA_OVERLAPS = flags.DEFINE_bool(
     'resolve_msa_overlaps',
@@ -1058,8 +1079,10 @@ def main(_):
           seqres_database_path=expand_path(_SEQRES_DATABASE_PATH.value),
           jackhmmer_n_cpu=_JACKHMMER_N_CPU.value,
           jackhmmer_max_parallel_shards=_JACKHMMER_MAX_PARALLEL_SHARDS.value,
+          jackhmmer_max_threads=_JACKHMMER_MAX_THREADS.value,
           nhmmer_n_cpu=_NHMMER_N_CPU.value,
           nhmmer_max_parallel_shards=_NHMMER_MAX_PARALLEL_SHARDS.value,
+          nhmmer_max_threads=_NHMMER_MAX_THREADS.value,
           max_template_date=max_template_date,
           use_mmseqs=_USE_MMSEQS.value,
           mmseqs_options=_MMSEQS_OPTIONS.value,

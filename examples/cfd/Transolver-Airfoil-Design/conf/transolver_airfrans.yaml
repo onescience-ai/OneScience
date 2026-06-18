@@ -118,6 +118,7 @@ training:
   lr: 0.001                    # 初始学习率
   gpuid: 0                     # 单卡训练时指定GPU编号
   patience: 50                 # 早停耐心值
+  progress_log_interval: 20     # 训练进度日志输出间隔（秒）
   
   # 损失函数设置
   loss_criterion: 'MSE_weighted'  # 损失函数: 'MSE', 'MAE', 'MSE_weighted'

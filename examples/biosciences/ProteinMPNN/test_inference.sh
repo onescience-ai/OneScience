@@ -1,8 +1,7 @@
 #!/bin/bash
 
+source ../../../env.sh
 set -e
-
-module load sghpc-mpi-gcc/25.8
 
 path_to_PDB="inputs/PDB_monomers/pdbs/5L33.pdb"
 output_dir="outputs/training_test_output"
@@ -21,4 +20,5 @@ python protein_mpnn_run.py \
         --num_seq_per_target 2 \
         --sampling_temp "0.1" \
         --seed 37 \
-        --batch_size 1
+        --batch_size 1 \
+        --path_to_model_weights ${ONESCIENCE_MODELS_DIR}/ProteinMPNN/vanilla_model_weights

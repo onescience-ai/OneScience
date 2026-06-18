@@ -1,5 +1,6 @@
 export ONESCIENCE_DATASETS_DIR="/public/share/sugonhpcapp01/onestore/onedatasets"
 export ONESCIENCE_MODELS_DIR="/public/share/sugonhpcapp01/onestore/onemodels"
+export LD_LIBRARY_PATH="${CONDA_PREFIX:-}/lib:${LD_LIBRARY_PATH:-}"
 export device="gpu" # gpu or dcu
 
 # check datasets path

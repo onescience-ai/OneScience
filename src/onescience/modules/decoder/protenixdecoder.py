@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 
 from onescience.models.openfold.primitives import ProtenixLayerNorm
-from onescience.modules.linear.onelinear import ProtenixLinearNoBias
+from onescience.modules.linear.protenixlinear import ProtenixLinearNoBias
 from onescience.models.protenix.utils import broadcast_token_to_atom
 
 

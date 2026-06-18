@@ -12,7 +12,7 @@ import numpy as np
 import torch
 from torch.utils.data import Sampler
 
-from onescience.models.UMA.common import gp_utils
+from onescience.utils.uma.common import gp_utils
 
 if TYPE_CHECKING:
     from onescience.datapipes.materials.custom_stack.base_dataset import BaseDataset

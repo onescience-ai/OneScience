@@ -1,0 +1,51 @@
+{
+    "model_type": "NEP",
+    "atom_type": ["Ag", "Au"],
+    "seed": 2023,
+    "recover_train": true,
+    "model": {
+        "descriptor": {
+            "cutoff": [6.0, 4.0],
+            "n_max": [16, 12],
+            "basis_size": [12, 8],
+            "l_max": [4, 2, 1]
+        },
+        "fitting_net": {
+            "network_size": [100, 1]
+        }
+    },
+    "optimizer": {
+        "optimizer": "ADAM",
+        "epochs": 30,
+        "batch_size": 128,
+        "print_freq": 10,
+        "learning_rate": 0.001,
+        "stop_lr": 3.51e-08,
+        "stop_step": 1000000,
+        "decay_step": 5000,
+        "train_energy": true,
+        "train_force": true,
+        "train_virial": true,
+        "start_pre_fac_force": 1000,
+        "start_pre_fac_etot": 0.02,
+        "start_pre_fac_virial": 50.0,
+        "end_pre_fac_force": 1.0,
+        "end_pre_fac_etot": 1.0,
+        "end_pre_fac_virial": 1.0,
+        "block_size": 5120,
+        "kalman_lambda": 0.98,
+        "kalman_nue": 0.9987,
+        "pre_fac_force": 2.0,
+        "pre_fac_etot": 1.0,
+        "pre_fac_virial": 1.0,
+        "max_norm": 0.5,
+        "norm_type": 2,
+        "t_0": 1,
+        "t_mult": 2,
+        "verbose": true,
+        "_clip_value": 1.0
+    },
+    "format": "extxyz",
+    "train_data": ["/public/share/sugonhpcapp01/onestore/onedatasets/matchem/matpl/AuAg/AuAg-5762.xyz"],
+    "valid_data": ["/public/share/sugonhpcapp01/onestore/onedatasets/matchem/matpl/AuAg/AuAg-5762.xyz"]
+}

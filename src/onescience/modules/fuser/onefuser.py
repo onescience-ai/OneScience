@@ -1,19 +1,14 @@
 from torch import nn
 
-from .pangufuser import PanguFuser
-from .fengwufuser import FengWuFuser
-from .fourcastnetfuser import FourCastNetFuser
-from .xihelocalsiefuser import XiheLocalSIEFuser
-from .xiheglobalsiefuser import XiheGlobalSIEFuser
-from .xihefuse import XiheFuser
+from onescience.modules._lazy import instantiate_registered_style
 
 _FUSER_REGISTRY = {
-    "PanguFuser": PanguFuser,
-    "FengWuFuser": FengWuFuser,
-    "FourCastNetFuser": FourCastNetFuser,
-    "XiheLocalSIEFuser":XiheLocalSIEFuser,
-    "XiheGlobalSIEFuser":XiheGlobalSIEFuser,
-    "XiheFuser":XiheFuser,
+    "PanguFuser": ("onescience.modules.fuser.pangufuser", "PanguFuser"),
+    "FengWuFuser": ("onescience.modules.fuser.fengwufuser", "FengWuFuser"),
+    "FourCastNetFuser": ("onescience.modules.fuser.fourcastnetfuser", "FourCastNetFuser"),
+    "XiheLocalSIEFuser": ("onescience.modules.fuser.xihelocalsiefuser", "XiheLocalSIEFuser"),
+    "XiheGlobalSIEFuser": ("onescience.modules.fuser.xiheglobalsiefuser", "XiheGlobalSIEFuser"),
+    "XiheFuser": ("onescience.modules.fuser.xihefuse", "XiheFuser"),
 }
 
 class OneFuser(nn.Module):
@@ -31,10 +26,7 @@ class OneFuser(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _FUSER_REGISTRY:
-            raise NotImplementedError(f"Unknown style: {style}")
-
-        self.fuser = _FUSER_REGISTRY[style](**kwargs)
+        self.fuser = instantiate_registered_style(style, _FUSER_REGISTRY, "fuser", **kwargs)
         self.Fuser = self.fuser
 
     def forward(self, *args, **kwargs):

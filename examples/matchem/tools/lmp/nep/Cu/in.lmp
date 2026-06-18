@@ -1,0 +1,47 @@
+# =========================================
+# LAMMPS NEP Benchmark: Cu
+# Potential: NEP (matpl/nep/kk)
+# Elements: Cu
+# =========================================
+
+# --- Simulation Parameters ---
+variable        NSTEPS     equal 100
+variable        THERMO     equal 10
+variable        TEMP       equal 300
+variable        PRES       equal 0
+variable        TAU_T      equal 0.1
+variable        TAU_P      equal 1.0
+variable        TSTEP      equal 0.001
+
+# --- Kokkos Settings ---
+package kokkos neigh half comm device
+newton on
+
+# --- System Setup ---
+units           metal
+boundary        p p p
+atom_style      full
+
+read_data       data.lmp
+replicate       40 10 10
+
+# --- Potential ---
+mass            1 63.546
+pair_style      matpl/nep/kk nep.txt
+pair_coeff      * * Cu
+
+# --- Neighbor Settings ---
+neighbor        1.0 bin
+neigh_modify    every 10 delay 0 check no
+
+# --- Output ---
+thermo          ${THERMO}
+thermo_style    custom step temp pe ke etotal press vol
+
+# --- Dynamics ---
+velocity        all create ${TEMP} 12345 dist gaussian mom yes rot yes
+fix             1 all npt/kk temp ${TEMP} ${TEMP} ${TAU_T} iso ${PRES} ${PRES} ${TAU_P}
+timestep        ${TSTEP}
+
+# --- Run ---
+run             ${NSTEPS}

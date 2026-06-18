@@ -1,0 +1,23 @@
+model_family: RFdiffusion
+inference_mode: motif_scaffolding
+runtime:
+  cwd: ${ONESCIENCE_ROOT}/examples/biosciences/RFdiffusion
+  entrypoint: scripts/run_inference.py
+input:
+  input_pdb: examples/input_pdbs/1qys.pdb
+  contigs: ["10-40/A163-181/10-40"]
+  hotspot_residues: []
+checkpoint:
+  model_directory_path: "${ONESCIENCE_MODELS_DIR}/RFdiffusion/models"
+  ckpt_override_path: ""
+parameters:
+  num_designs: 10
+  output_prefix: outputs/design
+  partial_T: null
+  symmetry: ""
+postprocess:
+  next_step: ProteinMPNN_sequence_design
+validation:
+  require_pdb: true
+  require_trb: true
+  inspect_contig_mapping: true

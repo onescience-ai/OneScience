@@ -1,7 +1,7 @@
 model:
 
     start_epoch: 0
-    max_epoch: 9999
+    max_epoch: 100
     train_lr: 2.5E-4
     finetune_lr: 1E-7
     patch_size: [2, 4, 4]
@@ -12,7 +12,7 @@ model:
     short_num_steps: 20
     medium_num_steps: 40
     long_num_steps: 60
-    finetune_step: 40000
+    finetune_step: 1
     step_change_freq: 1000
     input_steps: 2
     num_blocks: 8
@@ -27,12 +27,10 @@ datapipe:
   # dataset设定
   dataset:
     type: "hdf5"
-    stats_dir: './data/stats/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/stats/"  
-    static_dir: './data/static/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/static/" 
     data_dir: './data/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/" 
-    train_ratio: 15
-    val_ratio: 3
-    test_ratio: 2
+    train_time: [1951, 1952]
+    val_time: [1953]
+    test_time: [1954]
     img_size: [2, 721, 1440]
     verbose: true
     cache: false

@@ -18,7 +18,7 @@ from torch import randperm
 from torch.utils.data import Dataset
 from torch.utils.data import Subset as Subset_
 
-from onescience.models.UMA.common.registry import registry
+from onescience.utils.uma.common.registry import registry
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

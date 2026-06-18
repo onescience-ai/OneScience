@@ -4,19 +4,20 @@ import torch
 import torch.nn.functional
 from e3nn import o3
 
-from onescience.models.mace.data import AtomicData, Configuration
-from onescience.models.mace.modules import (
-    AtomicEnergiesBlock,
-    BesselBasis,
-    PolynomialCutoff,
-    SymmetricContraction,
-    WeightedEnergyForcesLoss,
-    WeightedHuberEnergyForcesStressLoss,
+from onescience.utils.mace.data import AtomicData, Configuration
+from onescience.modules.block.mace_block import AtomicEnergiesBlock
+from onescience.modules.equivariant.mace_symmetric_contraction import SymmetricContraction
+from onescience.modules.func_utils.mace_func_utils import (
     compute_mean_rms_energy_forces,
     compute_statistics,
 )
-from onescience.models.mace.tools import AtomicNumberTable, scatter, to_numpy, torch_geometric
-from onescience.models.mace.tools.scripts_utils import dict_to_array
+from onescience.modules.layer.mace_radial import BesselBasis, PolynomialCutoff
+from onescience.modules.loss.mace_loss import (
+    WeightedEnergyForcesLoss,
+    WeightedHuberEnergyForcesStressLoss,
+)
+from onescience.utils.mace.tools import AtomicNumberTable, scatter, to_numpy, torch_geometric
+from onescience.utils.mace.tools.scripts_utils import dict_to_array
 
 
 @pytest.fixture(name="config")

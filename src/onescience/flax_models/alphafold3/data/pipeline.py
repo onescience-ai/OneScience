@@ -283,8 +283,10 @@ class DataPipelineConfig:
   # Optional configuration for MSA tools.
   jackhmmer_n_cpu: int = 8
   jackhmmer_max_parallel_shards: int | None = None
+  jackhmmer_max_threads: int | None = None
   nhmmer_n_cpu: int = 8
   nhmmer_max_parallel_shards: int | None = None
+  nhmmer_max_threads: int | None = None
   mmseqs_n_cpu: int = 8
 
   max_template_date: datetime.date
@@ -314,6 +316,7 @@ class DataPipeline:
               dom_z_value=data_pipeline_config.uniref90_z_value,
               max_sequences=10_000,
               max_parallel_shards=data_pipeline_config.jackhmmer_max_parallel_shards,
+              max_threads=data_pipeline_config.jackhmmer_max_threads,
           ),
           chain_poly_type=mmcif_names.PROTEIN_CHAIN,
           crop_size=None,
@@ -332,6 +335,7 @@ class DataPipeline:
               dom_z_value=data_pipeline_config.mgnify_z_value,
               max_sequences=5_000,
               max_parallel_shards=data_pipeline_config.jackhmmer_max_parallel_shards,
+              max_threads=data_pipeline_config.jackhmmer_max_threads,
           ),
           chain_poly_type=mmcif_names.PROTEIN_CHAIN,
           crop_size=None,
@@ -352,6 +356,7 @@ class DataPipeline:
               dom_z_value=data_pipeline_config.small_bfd_z_value,
               max_sequences=5_000,
               max_parallel_shards=data_pipeline_config.jackhmmer_max_parallel_shards,
+              max_threads=data_pipeline_config.jackhmmer_max_threads,
           ),
           chain_poly_type=mmcif_names.PROTEIN_CHAIN,
           crop_size=None,
@@ -370,6 +375,7 @@ class DataPipeline:
               dom_z_value=data_pipeline_config.uniprot_cluster_annot_z_value,
               max_sequences=50_000,
               max_parallel_shards=data_pipeline_config.jackhmmer_max_parallel_shards,
+              max_threads=data_pipeline_config.jackhmmer_max_threads,
           ),
           chain_poly_type=mmcif_names.PROTEIN_CHAIN,
           crop_size=None,
@@ -455,6 +461,7 @@ class DataPipeline:
             z_value=data_pipeline_config.ntrna_z_value,
             max_sequences=10_000,
             max_parallel_shards=data_pipeline_config.nhmmer_max_parallel_shards,
+            max_threads=data_pipeline_config.nhmmer_max_threads,
         ),
         chain_poly_type=mmcif_names.RNA_CHAIN,
         crop_size=None,
@@ -474,6 +481,7 @@ class DataPipeline:
             z_value=data_pipeline_config.rfam_z_value,
             max_sequences=10_000,
             max_parallel_shards=data_pipeline_config.nhmmer_max_parallel_shards,
+            max_threads=data_pipeline_config.nhmmer_max_threads,
         ),
         chain_poly_type=mmcif_names.RNA_CHAIN,
         crop_size=None,
@@ -493,6 +501,7 @@ class DataPipeline:
             z_value=data_pipeline_config.rna_central_z_value,
             max_sequences=10_000,
             max_parallel_shards=data_pipeline_config.nhmmer_max_parallel_shards,
+            max_threads=data_pipeline_config.nhmmer_max_threads,
         ),
         chain_poly_type=mmcif_names.RNA_CHAIN,
         crop_size=None,

@@ -41,9 +41,20 @@ def main():
 
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
-    datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized())
-    train_dataloader, train_sampler = datapipe.train_dataloader()
-    val_dataloader, val_sampler = datapipe.val_dataloader()
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.train_time,
+        distributed=dist.is_initialized()
+    )
+    train_dataloader, train_sampler = datapipe.get_dataloader("train")
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.val_time,
+        distributed=dist.is_initialized()
+    )
+    val_dataloader, val_sampler = datapipe.get_dataloader("valid")
 
     ## Model init
     model = Fengwu(img_size=cfg_data.dataset.img_size,
@@ -134,7 +145,7 @@ def main():
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{train_loss / (j+1): .04f}')
             
-                            
+                          
         train_loss /= len(train_dataloader)
 
         model.eval()
@@ -171,7 +182,7 @@ def main():
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{valid_loss / (j+1): .04f}')
-                
+    
 
         valid_loss /= len(val_dataloader)
         is_save_ckp = False

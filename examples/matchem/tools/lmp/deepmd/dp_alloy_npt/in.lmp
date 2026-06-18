@@ -1,0 +1,26 @@
+variable T equal  1500
+units           metal
+boundary        p p p
+atom_style      atomic
+read_data       AlNiCuZr.data
+replicate 2 2 2
+mass            1    26.98 #Al
+mass            2    58.69 #Ni
+mass            3    63.54 #Cu
+mass            4    91.22 #Zr
+pair_style      deepmd   ./AlNiCuZr.pb
+pair_coeff      * * Al Ni Cu Zr
+neighbor            2.0 bin
+neigh_modify    delay 1
+
+timestep 0.002
+thermo 100
+velocity all create ${T} 156849
+thermo_style custom step temp pe etotal press vol 
+fix 1 all npt temp ${T} ${T} 0.01 iso 0.0 0.0 0.1
+reset_timestep 0
+thermo_modify flush yes
+fix nodrift all momentum 1  linear 1 1 1
+fix com_seed all recenter INIT INIT INIT shift all
+
+run 500

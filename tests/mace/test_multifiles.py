@@ -16,7 +16,7 @@ import yaml
 from ase.atoms import Atoms
 from ase.calculators.singlepoint import SinglePointCalculator
 
-from onescience.models.mace.calculators import MACECalculator
+from onescience.utils.mace.calculators import MACECalculator
 
 
 def create_test_atoms(num_atoms=5, seed=42):

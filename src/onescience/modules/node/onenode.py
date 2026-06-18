@@ -1,11 +1,9 @@
-import torch
 import torch.nn as nn
 
-# 导入具体的节点更新实现
-from .mesh_node_block import MeshNodeBlock
+from onescience.modules._lazy import instantiate_registered_style
 
 _NODE_REGISTRY = {
-    "MeshNodeBlock": MeshNodeBlock,
+    "MeshNodeBlock": ("onescience.modules.node.mesh_node_block", "MeshNodeBlock"),
 }
 
 class OneNode(nn.Module):
@@ -16,12 +14,7 @@ class OneNode(nn.Module):
     """
     def __init__(self, style: str, **kwargs):
         super().__init__()
-        if style not in _NODE_REGISTRY:
-            raise NotImplementedError(
-                f"Unknown node style: '{style}'. Available: {list(_NODE_REGISTRY.keys())}"
-            )
-        
-        self.node_updater = _NODE_REGISTRY[style](**kwargs)
+        self.node_updater = instantiate_registered_style(style, _NODE_REGISTRY, "node", **kwargs)
 
     def forward(self, *args, **kwargs):
         """

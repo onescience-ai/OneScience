@@ -9,10 +9,10 @@ import numpy as np
 import pytest
 from ase.atoms import Atoms
 
-from onescience.models.mace.calculators.mace import MACECalculator
-from onescience.models.mace.cli.run_train import run as run_mace_train
-from onescience.models.mace.data.utils import KeySpecification
-from onescience.models.mace.tools import build_default_arg_parser
+from onescience.utils.mace.calculators.mace import MACECalculator
+from onescience.utils.mace.cli.run_train import run as run_mace_train
+from onescience.utils.mace.data.utils import KeySpecification
+from onescience.utils.mace.tools import build_default_arg_parser
 
 run_train = Path(__file__).parent.parent / "mace" / "cli" / "run_train.py"
 

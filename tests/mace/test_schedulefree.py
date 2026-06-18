@@ -7,8 +7,8 @@ import torch
 import torch.nn.functional as F
 from e3nn import o3
 
-from onescience.models.mace import data, modules, tools
-from onescience.models.mace.tools import scripts_utils, torch_geometric
+from onescience.utils.mace import data, modules, tools
+from onescience.utils.mace.tools import scripts_utils, torch_geometric
 
 try:
     import schedulefree

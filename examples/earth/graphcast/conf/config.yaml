@@ -3,7 +3,7 @@ model:
   hidden_dim: 512               
   mesh_level: 6                 
   multimesh: true               
-  num_channels_climate: 69     
+  num_channels_climate: 227
   use_cos_zenith: true         
   use_time_of_year_index: true 
   num_history: 0               
@@ -31,7 +31,7 @@ model:
   use_apex: true             
   patience: 50
   start_epoch: 0
-  max_epoch: 1
+  max_epoch: 9999
   num_val_steps: 8      
   dt: 6.0                
   grad_clip_norm: 32.0  
@@ -52,14 +52,12 @@ datapipe:
   # dataset设定
   dataset:
     type: "hdf5"
-    stats_dir: './data/stats/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/stats/"  
-    static_dir: './data/static/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/static/" 
     data_dir: './data/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/" 
     dataset_metadata_path: './data.json'  # Path to the dataset metadata, containing channel names.
     time_diff_std_path: './time_diff_std.npy'  # Path to the .npy file with standard deviation of normalized per-variable per-pressure level time differences.
-    train_ratio: 15
-    val_ratio: 3
-    test_ratio: 2
+    train_time: [1951, 1952]
+    val_time: [1953]
+    test_time: [1954]
     img_size: [721, 1440]
     verbose: true
     cache: false

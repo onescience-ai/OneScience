@@ -1,0 +1,363 @@
+# ============================================================
+# UMA OC20 微调示例 - 单节点 4 DCU, energy + forces
+# ============================================================
+#
+# 使用前置:
+#   1. 已运行 scripts/create_uma_finetune_dataset.py 转换数据集
+#      (或手动将 ASE-lmdb 格式的 train/ val/ 放到合适路径)
+#   2. 已运行 scripts/convert_model.py 得到可微调的 checkpoint .pt
+#   3. 将 data.dataset_name / elem_refs / normalizer_rmsd 填为数据生成脚本输出的值
+#
+# 运行:
+#   bash run.sh --config configs/oc20_ef_4dcu.yaml              # 直接跑
+#   bash run.sh --config configs/oc20_ef_4dcu.yaml --submit     # sbatch
+#   bash run.sh --config configs/oc20_ef_4dcu.yaml --dry-run    # 预览
+# ============================================================
+
+name: oc20_ef_4dcu
+description: "UMA OC20 finetune - 1 node x 4 DCU (energy+forces)"
+
+# ============================================================
+# 启动配置 (控制 python / torchrun / srun 选择)
+# ============================================================
+launch:
+  launcher: torchrun
+  num_nodes: 1
+  num_gpus: 4
+  omp_num_threads: 1
+
+# ============================================================
+# 环境配置
+# ============================================================
+env:
+  conda_env: uv311_mat
+  modules:
+    - sghpc-mpi-gcc/26.3
+
+# ============================================================
+# SLURM 配置 (仅 --submit 模式使用)
+# ============================================================
+slurm:
+  partition: hpctest01
+  time: "2:00:00"
+  cpus_per_task: 64
+
+# ============================================================
+# ---------- 下面是 hydra 配置内容 (直接传给 train.py) ----------
+# 注意: 本文件的 name/launch/env/slurm/nccl 会被 run.sh 在写出
+# outputs/xxx_ts/hydra_config.yaml 时剥离, 不会进入 hydra 配置。
+# ============================================================
+
+job:
+  device_type: CUDA
+  scheduler:
+    mode: LOCAL                    # 由 run.sh 驱动 torchrun, 不让 train.py submitit
+    ranks_per_node: 4
+    num_nodes: 1
+  debug: True
+  run_dir: ./uma_finetune_runs/
+  run_name: oc20_ef_4dcu
+  # 关闭 wandb 以免缺依赖/未登录时阻塞；需要时改回 WandBSingletonLogger 配置
+  logger: null
+
+max_neighbors: 300
+# NOTE: cosine_lr_scheduler 断言 XOR(epochs, steps)，两者只能一个非 null
+epochs: 1
+steps: null
+batch_size: 2
+lr: 4.0e-4
+weight_decay: 1.0e-3
+evaluate_every_n_steps: 100
+# NOTE: UMA JobConfig.timestamp_id 使用 default_factory, 在 torchrun LOCAL 模式下
+# 各 rank 生成不同时间戳 → DCP 分片落在各自目录, 再读时 rank 0 只看自己目录会
+# FileNotFoundError。置 null 可绕过 (train_runner.py 内 `is not None` 守卫跳过存档)。
+checkpoint_every_n_steps: null
+
+# ============================================================
+# 数据配置 (来自 configs/data/uma_conserving_data_task_energy_force.yaml)
+# 下面 4 项必须由用户填写:
+#   dataset_name    : 例如 "oc20" / "omat" / "omol" (与 base model 预训练任务对应)
+#   elem_refs       : 每元素参考能量列表 (长度 118), 由 create_finetune_dataset.py 生成
+#   normalizer_rmsd : 力的 RMSD 归一化常数, 由 create_finetune_dataset.py 生成
+#   train/val src   : ASE-lmdb 数据目录的绝对/相对路径
+# ============================================================
+data:
+  dataset_name: oc20
+  elem_refs:
+    - -2.338112300549499e-17
+    - -3.397406033745951
+    - -3.552713678800501e-15
+    - -1.4883927423881005e-15
+    - -2.4424906541753444e-15
+    - -6.05474814945516
+    - -8.359419908238154
+    - -8.461445707766968
+    - -4.772501185489789
+    - -4.9960036108132044e-15
+    - -3.552713678800501e-15
+    - -1.505306152902931
+    - 6.217248937900877e-15
+    - -3.5935859953202867
+    - -5.298043899940335
+    - -5.289195691841476
+    - -4.586309292435159
+    - -3.145306223924418
+    - 8.43769498715119e-15
+    - -1.5534031951839165
+    - -2.452149990972268
+    - -6.698950860236158
+    - -7.784447374762749
+    - -8.35172207094275
+    - -8.475443777072595
+    - -7.835952917487167
+    - -7.177746464190568
+    - -6.276117296504732
+    - -4.906667819649391
+    - -2.9770431302950078
+    - -0.6870767989674853
+    - -2.570966565048506
+    - -4.112249499833631
+    - -4.501937385014317
+    - -3.7911090450737395
+    - 0.0
+    - 0.0
+    - -1.404014767200028
+    - -2.3340636233592837
+    - -6.977544301327938
+    - -8.429019781059974
+    - -9.558754587545973
+    - -9.914673095966668
+    - -9.262176302297178
+    - -8.344618489779986
+    - -6.81614547353467
+    - -4.823268946054286
+    - -1.9248732292365998
+    - -0.22855559486612576
+    - -2.0711980156857903
+    - -3.3848661082103417
+    - -3.693940774789746
+    - -3.0317412637444727
+    - 0.0
+    - 4.440892098500626e-16
+    - -1.69210743883596
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - -9.847846174118736
+    - -11.050291739766923
+    - -11.612898250816091
+    - -11.043957156699099
+    - -10.20788381032279
+    - -8.329494152492249
+    - -5.758362379765965
+    - -2.705571683868682
+    - 0.3244215988004441
+    - -1.801036139937328
+    - -2.98927510335205
+    - -3.3414587373794893
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+  normalizer_rmsd: 0.3387841421237734
+
+  train_dataset:
+    splits:
+      train:
+        src: "${ONESCIENCE_DATASETS_DIR}/matchem/oc20/uma_oc20_finetune/train"
+    format: ase_db
+    transforms:
+      common_transform:
+        dataset_name: ${data.dataset_name}
+      stress_reshape_transform:
+        dataset_name: ${data.dataset_name}
+
+  val_dataset:
+    splits:
+      val:
+        src: "${ONESCIENCE_DATASETS_DIR}/matchem/oc20/uma_oc20_finetune/val"
+    format: ase_db
+    transforms:
+      common_transform:
+        dataset_name: ${data.dataset_name}
+      stress_reshape_transform:
+        dataset_name: ${data.dataset_name}
+
+  regress_stress: False
+  pass_through_head_outputs: True
+
+  heads:
+    efs:
+      module: onescience.modules.head.uma_head.MLP_EFS_Head
+
+  tasks_list:
+    - _target_: onescience.utils.uma.units.mlip_unit.mlip_unit.Task
+      name: energy
+      level: system
+      property: energy
+      loss_fn:
+        _target_: onescience.modules.loss.uma_loss.DDPMTLoss
+        loss_fn:
+          _target_: onescience.modules.loss.uma_loss.PerAtomMAELoss
+        coefficient: 20
+      out_spec:
+        dim: [1]
+        dtype: float32
+      normalizer:
+        _target_: onescience.utils.uma.normalization.normalizer.Normalizer
+        mean: 0.0
+        rmsd: ${data.normalizer_rmsd}
+      element_references:
+        _target_: onescience.utils.uma.normalization.element_references.ElementReferences
+        element_references:
+          _target_: torch.DoubleTensor
+          _args_:
+            - ${data.elem_refs}
+      datasets:
+        - ${data.dataset_name}
+      metrics:
+        - mae
+        - per_atom_mae
+    - _target_: onescience.utils.uma.units.mlip_unit.mlip_unit.Task
+      name: forces
+      level: atom
+      property: forces
+      train_on_free_atoms: True
+      eval_on_free_atoms: True
+      loss_fn:
+        _target_: onescience.modules.loss.uma_loss.DDPMTLoss
+        loss_fn:
+          _target_: onescience.modules.loss.uma_loss.L2NormLoss
+        reduction: mean
+        coefficient: 2
+      out_spec:
+        dim: [3]
+        dtype: float32
+      normalizer:
+        _target_: onescience.utils.uma.normalization.normalizer.Normalizer
+        mean: 0.0
+        rmsd: ${data.normalizer_rmsd}
+      datasets:
+        - ${data.dataset_name}
+      metrics:
+        - mae
+        - cosine_similarity
+        - magnitude_error
+
+# ============================================================
+# 数据流与训练 Runner (来自 configs/uma_sm_finetune_template.yaml)
+# ============================================================
+train_dataset:
+  _target_: onescience.datapipes.materials.custom_stack.storage.mt_concat_dataset.create_concat_dataset
+  dataset_configs:
+    finetune_dataset: ${data.train_dataset}
+  combined_dataset_config:
+    sampling:
+      type: temperature
+      temperature: 1.0
+
+train_dataloader:
+  _target_: onescience.datapipes.materials.uma.dataloader_builder.get_dataloader
+  dataset: ${train_dataset}
+  batch_sampler_fn:
+    _target_: onescience.utils.uma.common.data_parallel.BalancedBatchSampler
+    _partial_: True
+    batch_size: ${batch_size}
+    shuffle: True
+    seed: 0
+  num_workers: 0
+  collate_fn:
+    _target_: onescience.utils.uma.units.mlip_unit.mlip_unit.mt_collater_adapter
+    tasks: ${data.tasks_list}
+    exclude_keys: []
+
+val_dataset:
+  _target_: onescience.datapipes.materials.custom_stack.storage.mt_concat_dataset.create_concat_dataset
+  dataset_configs:
+    finetune_dataset: ${data.val_dataset}
+  combined_dataset_config:
+    sampling:
+      type: temperature
+      temperature: 1.0
+
+eval_dataloader:
+  _target_: onescience.datapipes.materials.uma.dataloader_builder.get_dataloader
+  dataset: ${val_dataset}
+  batch_sampler_fn:
+    _target_: onescience.utils.uma.common.data_parallel.BalancedBatchSampler
+    _partial_: True
+    batch_size: ${batch_size}
+    shuffle: False
+    seed: 0
+  num_workers: 0
+  collate_fn:
+    _target_: onescience.utils.uma.units.mlip_unit.mlip_unit.mt_collater_adapter
+    tasks: ${data.tasks_list}
+    exclude_keys: []
+
+runner:
+  _target_: onescience.utils.uma.components.train.train_runner.TrainEvalRunner
+  train_dataloader: ${train_dataloader}
+  eval_dataloader: ${eval_dataloader}
+  train_eval_unit:
+    _target_: onescience.utils.uma.units.mlip_unit.mlip_unit.MLIPTrainEvalUnit
+    job_config: ${job}
+    tasks: ${data.tasks_list}
+    model:
+      _target_: onescience.utils.uma.units.mlip_unit.mlip_unit.initialize_finetuning_model
+      checkpoint_location: "${ONESCIENCE_MODELS_DIR}/UMA/checkpoint/uma-s-1p1_converted.pt"
+      overrides:
+        backbone:
+          otf_graph: True
+          max_neighbors: ${max_neighbors}
+          regress_stress: ${data.regress_stress}
+          always_use_pbc: False
+        pass_through_head_outputs: ${data.pass_through_head_outputs}
+      heads: ${data.heads}
+    optimizer_fn:
+      _target_: torch.optim.AdamW
+      _partial_: true
+      lr: ${lr}
+      weight_decay: ${weight_decay}
+    cosine_lr_scheduler_fn:
+      _target_: onescience.utils.uma.units.mlip_unit.mlip_unit._get_consine_lr_scheduler
+      _partial_: true
+      warmup_factor: 0.2
+      warmup_epochs: 0.01
+      lr_min_factor: 0.01
+      epochs: ${epochs}
+      steps: ${steps}
+    print_every: 10
+    clip_grad_norm: 100
+  max_epochs: ${epochs}
+  max_steps: ${steps}
+  evaluate_every_n_steps: ${evaluate_every_n_steps}
+  callbacks:
+    - _target_: onescience.utils.uma.components.train.train_runner.TrainCheckpointCallback
+      checkpoint_every_n_steps: ${checkpoint_every_n_steps}
+      max_saved_checkpoints: 5
+    - _target_: torchtnt.framework.callbacks.TQDMProgressBar

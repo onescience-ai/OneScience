@@ -1,0 +1,1 @@
+/public/share/sugonhpcapp01/onestore/onemodels/deepmd/AlNiCuZr.pb

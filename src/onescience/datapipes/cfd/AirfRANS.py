@@ -1,6 +1,7 @@
 import json
 import logging
 import random
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union, Tuple
 from onescience.distributed.manager import DistributedManager
@@ -8,6 +9,7 @@ from onescience.distributed.manager import DistributedManager
 import numpy as np
 import pyvista as pv
 import torch
+import torch.distributed as dist
 import torch_geometric.nn as nng
 from torch_geometric.data import Data
 from tqdm import tqdm
@@ -202,19 +204,26 @@ class AirfRANSDataset(BaseDataset):
         """
         stats_dir = Path(self.config.source.stats_dir)
         stats_dir.mkdir(parents=True, exist_ok=True)
-        
+
         mean_in_path = stats_dir / "mean_in.npy"
         std_in_path = stats_dir / "std_in.npy"
         mean_out_path = stats_dir / "mean_out.npy"
         std_out_path = stats_dir / "std_out.npy"
-        
+
         if self._provided_coef_norm:
             if self.dist.rank == 0:
                 self.logger.debug(f"[{self.mode}] Using provided normalization coefficients.")
             self.coef_norm = self._provided_coef_norm
             return
 
-        if mean_in_path.exists() and std_in_path.exists() and mean_out_path.exists() and std_out_path.exists():
+        stats_exist = (
+            mean_in_path.exists()
+            and std_in_path.exists()
+            and mean_out_path.exists()
+            and std_out_path.exists()
+        )
+
+        if stats_exist:
             if self.dist.rank == 0:
                 self.logger.info(f"[{self.mode}] Loading normalization stats from {stats_dir}")
             mean_in = np.load(mean_in_path)
@@ -223,19 +232,36 @@ class AirfRANSDataset(BaseDataset):
             std_out = np.load(std_out_path)
             self.coef_norm = (mean_in, std_in, mean_out, std_out)
         elif self.mode == 'train':
+            distributed_ready = (
+                dist.is_available()
+                and dist.is_initialized()
+                and self.dist.world_size > 1
+            )
+
             if self.dist.rank == 0:
                 self.logger.warning(f"[{self.mode}] Stats not found. Calculating normalization stats on the fly...")
-            self.coef_norm = self._calculate_normalization()
-            # 保存统计数据
-            np.save(mean_in_path, self.coef_norm[0])
-            np.save(std_in_path, self.coef_norm[1])
-            np.save(mean_out_path, self.coef_norm[2])
-            np.save(std_out_path, self.coef_norm[3])
+
+            if not distributed_ready or self.dist.rank == 0:
+                self.coef_norm = self._calculate_normalization()
+                np.save(mean_in_path, self.coef_norm[0])
+                np.save(std_in_path, self.coef_norm[1])
+                np.save(mean_out_path, self.coef_norm[2])
+                np.save(std_out_path, self.coef_norm[3])
+
+            if distributed_ready:
+                dist.barrier()
+                if self.dist.rank != 0:
+                    mean_in = np.load(mean_in_path)
+                    std_in = np.load(std_in_path)
+                    mean_out = np.load(mean_out_path)
+                    std_out = np.load(std_out_path)
+                    self.coef_norm = (mean_in, std_in, mean_out, std_out)
+
             if self.dist.rank == 0:
                 self.logger.info(f"[{self.mode}] Saved normalization stats to {stats_dir}")
         else:
             raise FileNotFoundError(f"[{self.mode}] Normalization stats not found in {stats_dir}, and mode is not 'train'.")
-            
+
     def _calculate_normalization(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         在训练集上计算归一化统计量 (均值和标准差)
@@ -254,7 +280,14 @@ class AirfRANSDataset(BaseDataset):
         # 第一轮遍历：计算均值
         self.logger.info("Calculating mean...")
         # 注意：这里直接使用 _load_single_simulation 加载数据
-        pbar = tqdm(self.data_list_names, desc="Norm (pass 1/2)")
+        pbar = tqdm(
+            self.data_list_names,
+            desc="Norm (pass 1/2)",
+            disable=(self.dist.rank != 0),
+            file=sys.stdout,
+            dynamic_ncols=True,
+            mininterval=1.0,
+        )
         for s in pbar:
             # 临时禁用采样以统计原始网格数据
             # 避免统计结果依赖于特定采样策略
@@ -262,9 +295,9 @@ class AirfRANSDataset(BaseDataset):
             if original_sample_strategy is not None:
                 self.config.data.sampling.sample_strategy = None
                 pbar.set_description(f"Norm (pass 1/2) [Temp force sample=None for stats]")
-            
+
             _, init, target, _ = self._load_single_simulation(s)
-            
+
             if original_sample_strategy is not None:
                 self.config.data.sampling.sample_strategy = original_sample_strategy
 
@@ -284,7 +317,14 @@ class AirfRANSDataset(BaseDataset):
         # 第二轮遍历：计算标准差
         self.logger.info("Calculating std dev...")
         old_length_in = 0 # 重置计数
-        pbar = tqdm(self.data_list_names, desc="Norm (pass 2/2)")
+        pbar = tqdm(
+            self.data_list_names,
+            desc="Norm (pass 2/2)",
+            disable=(self.dist.rank != 0),
+            file=sys.stdout,
+            dynamic_ncols=True,
+            mininterval=1.0,
+        )
         for s in pbar:
             original_sample_strategy = self.config.data.sampling.sample_strategy
             if original_sample_strategy is not None:
@@ -292,10 +332,10 @@ class AirfRANSDataset(BaseDataset):
                 pbar.set_description(f"Norm (pass 2/2) [Temp force sample=None for stats]")
 
             _, init, target, _ = self._load_single_simulation(s)
-            
+
             if original_sample_strategy is not None:
                 self.config.data.sampling.sample_strategy = original_sample_strategy
-            
+
             if std_in is None:
                 old_length_in = init.shape[0] # 使用第一轮记录的长度
                 std_in = ((init - mean_in) ** 2).sum(axis=0, dtype=np.double) / old_length_in
@@ -310,7 +350,7 @@ class AirfRANSDataset(BaseDataset):
         std_out = np.sqrt(std_out).astype(np.single)
 
         return (mean_in, std_in, mean_out, std_out)
-        
+            
     def _load_single_simulation(self, s: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         加载单个模拟文件，返回 (pos, x, y, surf_bool)
@@ -469,7 +509,7 @@ class AirfRANSDataset(BaseDataset):
                 mean_in, std_in, mean_out, std_out = self.coef_norm
                 x = (x - mean_in) / (std_in + 1e-8)
                 y = (y - mean_out) / (std_out + 1e-8)
-                
+
             # 4. 转换为 Tensor
             pos = torch.tensor(pos, dtype=torch.float)
             x = torch.tensor(x, dtype=torch.float)

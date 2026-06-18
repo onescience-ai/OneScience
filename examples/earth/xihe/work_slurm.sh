@@ -17,13 +17,14 @@ module load sghpcdas/25.6
 conda init bash
 source ~/.bashrc
 ##### Activate Conda env #####
-conda activate xiheh
+conda activate onescience311
 ##### Launch DTK #####
 module load sghpc-mpi-gcc/25.8
 ##### Show env #####
 which python
 which hipcc
 ####Launch env ####
+source ../earth_env.sh
 source  ../../../env.sh
 
 ##### Set DCU #####

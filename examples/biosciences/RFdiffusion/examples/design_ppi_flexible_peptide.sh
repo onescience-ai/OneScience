@@ -9,4 +9,6 @@
 # We make 10 designs
 # We mask (diffuse) the structure of the peptide using the inpaint_str flag. This has the effect of having RFdiffusion simultaneously design a binder and predict the structure of the peptide within the complex.
 
-../scripts/run_inference.py inference.output_prefix=example_outputs/design_ppi_flexible_peptide inference.input_pdb=input_pdbs/3IOL.pdb 'contigmap.contigs=[B10-35/0 70-100]' 'ppi.hotspot_res=[B28,B29]' inference.num_designs=10 'contigmap.inpaint_str=[B10-35]'
+source ../../../env.sh
+echo "ONESCIENCE_MODELS_DIR: ${ONESCIENCE_MODELS_DIR}"
+python ./scripts/run_inference.py inference.output_prefix=example_outputs/design_ppi_flexible_peptide inference.input_pdb=input_pdbs/3IOL.pdb 'contigmap.contigs=[B10-35/0 70-100]' 'ppi.hotspot_res=[B28,B29]' inference.num_designs=10 'contigmap.inpaint_str=[B10-35]'

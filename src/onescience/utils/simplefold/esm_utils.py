@@ -9,8 +9,8 @@
 import torch
 import typing as T
 import numpy as np
-from functools import partial
 
+import onescience.models.esm.pretrained as esm_pretrained
 from onescience.utils.simplefold import residue_constants
 
 try:
@@ -18,14 +18,13 @@ try:
 except:
     pass
 
-load_fn = torch.hub.load
 esm_registry = {
-    "esm2_8M": partial(load_fn, "facebookresearch/esm:main", "esm2_t6_8M_UR50D"),
-    "esm2_35M": partial(load_fn, "facebookresearch/esm:main", "esm2_t12_35M_UR50D"),
-    "esm2_150M": partial(load_fn, "facebookresearch/esm:main", "esm2_t30_150M_UR50D"),
-    "esm2_650M": partial(load_fn, "facebookresearch/esm:main", "esm2_t33_650M_UR50D"),
-    "esm2_3B": partial(load_fn, "facebookresearch/esm:main", "esm2_t36_3B_UR50D"),
-    "esm2_15B": partial(load_fn, "facebookresearch/esm:main", "esm2_t48_15B_UR50D"),
+    "esm2_8M": esm_pretrained.esm2_t6_8M_UR50D,
+    "esm2_35M": esm_pretrained.esm2_t12_35M_UR50D,
+    "esm2_150M": esm_pretrained.esm2_t30_150M_UR50D,
+    "esm2_650M": esm_pretrained.esm2_t33_650M_UR50D,
+    "esm2_3B": esm_pretrained.esm2_t36_3B_UR50D,
+    "esm2_15B": esm_pretrained.esm2_t48_15B_UR50D,
 }
 
 

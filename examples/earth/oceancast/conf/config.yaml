@@ -1,0 +1,90 @@
+model:
+  start_epoch: 0
+  max_epoch: 9999
+  lr: 5E-5
+  num_blocks: 8
+  patch_size: [4, 4]
+  patience: 50
+  checkpoint_dir: "./checkpoint/weight"
+
+datapipe:
+  name: "Ocean"
+  task: "ocean_wave_forecasting"
+
+  dataset:
+    type: "hdf5"
+    stats_dir: "./means_stds/"
+    static_dir: "./artifacts/"
+    ocean_data_dir: "./data/"
+    wind_uv_dir: "./data/"
+    wind_data_dir: "./data/"
+
+    train_time: [2000, 2001]
+    val_time: [2002]
+    test_time: [2003]
+    img_size: [160, 360]
+    verbose: true
+    cache: false
+
+    channels: ["Wind_Sin", "Wind_Cos", "Wind_Strength", "Wind_Sin_Forecast", "Wind_Cos_Forecast", "Wind_Strength_Forecast", "Wave_Period", "Wave_Height", "Wave_Direction",
+               "Wind_Sin", "Wind_Cos", "Wind_Strength", "Wind_Sin_Forecast", "Wind_Cos_Forecast", "Wind_Strength_Forecast", "Wave_Period", "Wave_Height", "Wave_Direction",
+               "Wind_Sin", "Wind_Cos", "Wind_Strength", "Wind_Sin_Forecast", "Wind_Cos_Forecast", "Wind_Strength_Forecast", "Wave_Period", "Wave_Height", "Wave_Direction",
+               "Wind_Sin", "Wind_Cos", "Wind_Strength", "Wind_Sin_Forecast", "Wind_Cos_Forecast", "Wind_Strength_Forecast", "Wave_Period", "Wave_Height", "Wave_Direction",
+               "Wind_Sin", "Wind_Cos", "Wind_Strength", "Wind_Sin_Forecast", "Wind_Cos_Forecast", "Wind_Strength_Forecast", "Wave_Period", "Wave_Height", "Wave_Direction",
+               "Wind_Sin", "Wind_Cos", "Wind_Strength", "Wind_Sin_Forecast", "Wind_Cos_Forecast", "Wind_Strength_Forecast", "Wave_Period", "Wave_Height", "Wave_Direction",
+               "Wind_Sin", "Wind_Cos", "Wind_Strength", "Wind_Sin_Forecast", "Wind_Cos_Forecast", "Wind_Strength_Forecast", "Wave_Period", "Wave_Height", "Wave_Direction",
+               "Wind_Sin", "Wind_Cos", "Wind_Strength", "Wind_Sin_Forecast", "Wind_Cos_Forecast", "Wind_Strength_Forecast", "Wave_Period", "Wave_Height", "Wave_Direction"]
+    output_channels: ["Wave_Period", "Wave_Height", "Wave_Direction",
+                      "Wave_Period", "Wave_Height", "Wave_Direction",
+                      "Wave_Period", "Wave_Height", "Wave_Direction",
+                      "Wave_Period", "Wave_Height", "Wave_Direction",
+                      "Wave_Period", "Wave_Height", "Wave_Direction",
+                      "Wave_Period", "Wave_Height", "Wave_Direction",
+                      "Wave_Period", "Wave_Height", "Wave_Direction",
+                      "Wave_Period", "Wave_Height", "Wave_Direction"]
+    variables:
+      - "wind_sin"
+      - "wind_cos"
+      - "wind_strength"
+      - "wind_sin_forecast"
+      - "wind_cos_forecast"
+      - "wind_strength_forecast"
+      - "wave_period"
+      - "wave_height"
+      - "wave_direction"
+    input_types: ["Wind_Sin", "Wind_Cos", "Wind_Strength", "Wind_Sin_Forecast", "Wind_Cos_Forecast", "Wind_Strength_Forecast", "Wave_Period", "Wave_Height", "Wave_Direction"]
+    output_types: ["Wave_Period", "Wave_Height", "Wave_Direction"]
+    history_steps: 8
+    forecast_steps: 8
+    normalization: "zscore"
+    loss: "l2"
+
+  transforms:
+    - type: "Normalize"
+      params:
+        mean: [0.0]
+        std: [1.0]
+        keys: ["input", "target"]
+
+    - type: "ToTensor"
+      params:
+        keys: null
+
+  dataloader:
+    mask_dtype: "float32"
+    batch_size: 5
+    num_workers: 4
+    pin_memory: true
+    drop_last: true
+    shuffle: false
+    prefetch_factor: 2
+    persistent_workers: true
+
+  distributed:
+    enabled: true
+    sampler: "DistributedSampler"
+    rank: 0
+    world_size: 4
+    shuffle: true
+    seed: 42
+    drop_last: true

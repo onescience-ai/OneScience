@@ -128,8 +128,7 @@ class BaseDataset(Dataset, ABC):
             handler.setFormatter(formatter)
             logger.addHandler(handler)
         
-        logger.setLevel(logging.DEBUG if self.config.verbose else logging.INFO)
-        
+        logger.setLevel(logging.DEBUG if self.config.get('verbose', False) else logging.INFO)
         return logger
     
     def _validate_config(self):

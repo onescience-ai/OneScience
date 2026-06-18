@@ -1,0 +1,1 @@
+/public/share/sugonhpcapp01/onestore/onemodels/deepmd/pfd_model_compress.pb

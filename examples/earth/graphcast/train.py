@@ -38,12 +38,24 @@ def main():
 
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
-    datapipe = ERA5Datapipe(params=cfg_data, distributed=dist.is_initialized())
-    train_dataloader, train_sampler = datapipe.train_dataloader()
-    val_dataloader, val_sampler = datapipe.val_dataloader()
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.train_time,
+        distributed=dist.is_initialized(),
+        num_workers=0
+    )
+    train_dataloader, train_sampler = datapipe.get_dataloader("train")
+    datapipe = ERA5Datapipe(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.val_time,
+        distributed=dist.is_initialized(),
+        num_workers=0
+    )
+    val_dataloader, val_sampler = datapipe.get_dataloader("valid")
 
     input_dim_grid_nodes = (len(cfg_data.dataset.channels) + cfg.use_cos_zenith + 4 * cfg.use_time_of_year_index) * (cfg.num_history + 1) + cfg.num_channels_static
-    
     model = GraphCastNet(mesh_level=cfg.mesh_level,
                          multimesh=cfg.multimesh,
                          input_res=tuple(cfg_data.dataset.img_size),
@@ -136,7 +148,6 @@ def main():
         start_time = time.time()
         for j, data in enumerate(train_dataloader):
             invar = data[0].to(device=local_rank)
-            
             outvar = data[1].to(device=local_rank)
             cos_zenith = data[2].to(device=local_rank)
             in_idx = data[3].item()
@@ -218,6 +229,7 @@ def main():
                         best_loss_epoch = epoch
                         world_rank == 0 and save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoch, cfg.checkpoint_dir)
                         is_save_ckp = True
+                    
                 train_loss /= (j+1)
                 if world_rank == 0:
                     logger.info(f"Epoch [{epoch + 1}/{cfg.max_epoch}], "
@@ -228,7 +240,7 @@ def main():
                                 )
                     train_losses = np.append(train_losses, train_loss)
                     np.save(train_loss_file, train_losses)
-                   
+                
 
         if epoch - best_loss_epoch > cfg.patience:
             print(f"Loss has not decrease in {cfg.patience} epochs, stopping training...")

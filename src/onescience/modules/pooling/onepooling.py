@@ -1,11 +1,12 @@
-import torch
 from torch import nn
-from .rnn_cluster_pooling import RNNClusterPooling
+from onescience.modules._lazy import instantiate_registered_style
 
 # 构建统一的池化注册表
 _POOLING_REGISTRY = {
-    "RNNClusterPooling": RNNClusterPooling,
-
+    "RNNClusterPooling": (
+        "onescience.modules.pooling.rnn_cluster_pooling",
+        "RNNClusterPooling",
+    ),
 }
 
 class OnePooling(nn.Module):
@@ -13,13 +14,12 @@ class OnePooling(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _POOLING_REGISTRY:
-            raise NotImplementedError(
-                f"Unknown style: '{style}'. Available options are: {list(_POOLING_REGISTRY.keys())}"
-            )
-        
-        # 实例化具体的池化层
-        self.pooler = _POOLING_REGISTRY[style](**kwargs)
+        self.pooler = instantiate_registered_style(
+            style,
+            _POOLING_REGISTRY,
+            "pooling",
+            **kwargs,
+        )
 
     def forward(self, *args, **kwargs):
         """

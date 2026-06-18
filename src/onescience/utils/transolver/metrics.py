@@ -1,11 +1,13 @@
 import os.path as osp
 import pathlib
+import sys
 
 import numpy as np
 import scipy as sc
 import torch
 import torch.nn as nn
 import torch_geometric.nn as nng
+from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 
 import pyvista as pv
@@ -273,7 +275,15 @@ def get_airfoildatalist(
         )
 
     dataset = []
-    for k, s in enumerate(tqdm(set)):
+    for k, s in enumerate(
+        tqdm(
+            set,
+            desc="Build test data",
+            file=sys.stdout,
+            dynamic_ncols=True,
+            mininterval=1.0,
+        )
+    ):
         # Get the 3D mesh, add the signed distance function and slice it to return in 2D
         internal = pv.read(osp.join(data_path, s, s + "_internal.vtu"))
         aerofoil = pv.read(osp.join(data_path, s, s + "_aerofoil.vtp"))
@@ -514,6 +524,11 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
     with open(osp.join(path_in, 'manifest.json'), 'r') as f:
         manifest = json.load(f)
 
+    if isinstance(models, nn.Module):
+        models = [[models]]
+    elif len(models) > 0 and not isinstance(models[0], (list, tuple)):
+        models = [[model] for model in models]
+
     test_dataset = manifest[s]
     idx = random.sample(range(len(test_dataset)), k=n_test) #随机选取n_test个样本进行可视化
     idx.sort()
@@ -521,10 +536,12 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
     test_dataset_vtk = get_airfoildatalist(test_dataset, sample=None, coef_norm=coef_norm, data_path=path_in)
     test_loader = DataLoader(test_dataset_vtk, shuffle=False)
 
-    if criterion == 'MSE':
+    if criterion in ['MSE', 'MSE_weighted']:
         criterion = nn.MSELoss(reduction='none')
     elif criterion == 'MAE':
         criterion = nn.L1Loss(reduction='none')
+    elif not callable(criterion):
+        raise ValueError(f"Unsupported criterion: {criterion}")
 
     scores_vol = [] #体积内场变量误差
     scores_surf = [] #表面场变量误差
@@ -554,7 +571,15 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
         airfoil = []
         pred_coef = []
 
-        for j, data in enumerate(tqdm(test_loader)):
+        for j, data in enumerate(
+            tqdm(
+                test_loader,
+                desc="Testing",
+                file=sys.stdout,
+                dynamic_ncols=True,
+                mininterval=1.0,
+            )
+        ):
             Uinf, angle = float(test_dataset[j].split('_')[2]), float(test_dataset[j].split('_')[3])
             outs, tim = Infer_test(device, model, hparams, data, coef_norm=coef_norm)
             times.append(tim)
@@ -595,9 +620,9 @@ def Results_test(device, models, hparams, coef_norm, path_in, path_out, n_test=3
                                            aerofoil[n].point_data['wallShearStress']).mean(axis=0)
                 avg_loss_p[n] += rel_err(true_airfoil.point_data['p'], aerofoil[n].point_data['p']).mean(axis=0)
 
-            internals.append(internal)
-            airfoils.append(airfoil)
-            pred_coefs.append(pred_coef)
+        internals.append(internal)
+        airfoils.append(airfoil)
+        pred_coefs.append(pred_coef)
 
         score_var = np.array(avg_loss_per_var) / len(test_loader)
         score = np.array(avg_loss) / len(test_loader)

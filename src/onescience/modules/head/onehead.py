@@ -1,14 +1,15 @@
-import torch
 from torch import nn
-from .maskedmsahead import MaskedMSAHead
-from .unet_head import UNetHead1D, UNetHead2D, UNetHead3D
+from onescience.modules._lazy import instantiate_registered_style
 
 # 构建统一的注册表
 _HEAD_REGISTRY = {
-    "MaskedMSAHead": MaskedMSAHead,
-    "UNetHead1D": UNetHead1D,
-    "UNetHead2D": UNetHead2D,
-    "UNetHead3D": UNetHead3D,
+    "MaskedMSAHead": ("onescience.modules.head.maskedmsahead", "MaskedMSAHead"),
+    "UNetHead1D": ("onescience.modules.head.unet_head", "UNetHead1D"),
+    "UNetHead2D": ("onescience.modules.head.unet_head", "UNetHead2D"),
+    "UNetHead3D": ("onescience.modules.head.unet_head", "UNetHead3D"),
+    "EnergyHead": ("onescience.modules.head.matris_head", "EnergyHead"),
+    "MagmomHead": ("onescience.modules.head.matris_head", "MagmomHead"),
+    "ForceStressHead": ("onescience.modules.head.matris_head", "ForceStressHead"),
 }
 
 class OneHead(nn.Module):
@@ -18,13 +19,7 @@ class OneHead(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _HEAD_REGISTRY:
-            raise NotImplementedError(
-                f"Unknown style: '{style}'. Available options are: {list(_HEAD_REGISTRY.keys())}"
-            )
-        
-        # 实例化具体的预测头层
-        self.head = _HEAD_REGISTRY[style](**kwargs)
+        self.head = instantiate_registered_style(style, _HEAD_REGISTRY, "head", **kwargs)
 
     def forward(self, *args, **kwargs):
         """

@@ -1,26 +1,31 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import json
 import os
 import sys
+import glob
 import h5py
 from tqdm import tqdm
 import os
-import json
 import numpy as np
 import h5py
 import onnxruntime as ort
+from datetime import datetime
 from onescience.utils.YParams import YParams
 
 
 
 def data_prepare(date, channels, datapath):
-    with open(f'{datapath}/metadata.json', "r") as f:
-        metadata = json.load(f)
-    variables = metadata['variables']
+    h5_files = sorted(glob.glob(os.path.join(datapath, "data", "*.h5")))
+    with h5py.File(h5_files[0], "r") as f:
+        ds = f["fields"]
+        variables = [v.decode() if isinstance(v, bytes) else v for v in ds.attrs["variables"]]
+        time_step = int(ds.attrs["time_step"])
     channel_indices = [variables.index(v) for v in channels]
-    with h5py.File(f'{datapath}/data/{date[:4]}/{date}.h5', "r") as f:
-        data = f["fields"][:]
+    dt = datetime.strptime(date, "%Y%m%d%H")
+    year_start = datetime(dt.year, 1, 1)
+    step_idx = int(((dt - year_start).total_seconds() / 3600) / time_step)
+    with h5py.File(os.path.join(datapath, "data", f"{date[:4]}.h5"), "r") as f:
+        data = f["fields"][step_idx]
         data = data[channel_indices]
     print('done...')
     return data
@@ -146,14 +151,14 @@ if __name__ == "__main__":
     channels = cfg_data.dataset.channels
     datapath = cfg_data.dataset.data_dir
 
-    meta_path = os.path.join(datapath, 'metadata.json')
-    with open(meta_path, "r") as f:
-        metadata = json.load(f)
-    variables = metadata['variables']
+    h5_files = sorted(glob.glob(os.path.join(datapath, "data", "*.h5")))
+    with h5py.File(h5_files[0], "r") as f:
+        ds = f["fields"]
+        variables = [v.decode() if isinstance(v, bytes) else v for v in ds.attrs["variables"]]
     channel_indices = [variables.index(v) for v in cfg_data.dataset.channels]
     show_compare(channel_indices)
     plot_rmse_comparison(channel_indices, filename='./result/rmse_comparison.png')
-    date = "2020010212"
+    date = f"{cfg_data.dataset.test_time[0]}010106"
     truth_data = data_prepare(date, channels, datapath)
     pth_pred = np.load(f'../result/output/{date}.npy')[0]
     onnx_pred = np.load(f'./result/output/{date}.npy')

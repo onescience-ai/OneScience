@@ -10,10 +10,10 @@ import torch
 import torch.nn.functional as F
 from e3nn import o3
 
-from onescience.models.mace import data, modules, tools
-from onescience.models.mace.cli.convert_cueq_e3nn import run as run_cueq_to_e3nn
-from onescience.models.mace.cli.convert_e3nn_cueq import run as run_e3nn_to_cueq
-from onescience.models.mace.tools import torch_geometric
+from onescience.utils.mace import data, modules, tools
+from onescience.utils.mace.cli.convert_cueq_e3nn import run as run_cueq_to_e3nn
+from onescience.utils.mace.cli.convert_e3nn_cueq import run as run_e3nn_to_cueq
+from onescience.utils.mace.tools import torch_geometric
 
 try:
     import cuequivariance as cue  # pylint: disable=unused-import

@@ -1,9 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import json
 import os
 import sys
+import glob
 import h5py
+from datetime import datetime
 from tqdm import tqdm
 from onescience.utils.fcn.YParams import YParams
 from matplotlib import rcParams
@@ -16,54 +17,35 @@ rcParams['xtick.major.width'] = 0.9
 rcParams['ytick.major.width'] = 0.9
 
 
-def get_metadata(cfg, mode):
-    meta_path = os.path.join(cfg.data_dir, 'metadata.json')
-    with open(meta_path, "r") as f:
-        metadata = json.load(f)
-    variables = metadata['variables']
-    years = metadata['years']
-    y = sorted(years)
-    error = False
-    # 1. use ratio to select data
-    if isinstance(cfg.train_ratio, float): 
-        if cfg.train_ratio + cfg.val_ratio + cfg.test_ratio > 1:
-            error = True
-        n_train = int(len(y) * cfg.train_ratio)
-        n_val = int(len(y) * cfg.val_ratio)
-        selected_years = y[n_train + n_val:]
-    # 2. use number to select years
-    if isinstance(cfg.train_ratio, int):
-        if cfg.train_ratio + cfg.val_ratio + cfg.test_ratio > len(y):
-            error = True
-        n_train =  cfg.train_ratio
-        n_val = cfg.val_ratio
-        selected_years = y[n_train + n_val:n_train + n_val + cfg.test_ratio]
-    if isinstance(cfg.train_ratio, (list, tuple, set)):
-        cfg.train_ratio = set(cfg.train_ratio)
-        cfg.val_ratio = set(cfg.val_ratio)
-        cfg.test_ratio = set(cfg.test_ratio)
-        if len(cfg.train_ratio)+len(cfg.val_ratio)+len(cfg.test_ratio) > len(y):
-            error = True
-        if cfg.train_ratio.issubset(set(y)) and cfg.val_ratio.issubset(set(y)) and cfg.test_ratio.issubset(set(y)):
-            selected_years = cfg.test_ratio
-        else:
-            error = True
+def get_metadata(data_dir, channels, test_years, mode):
+    """从新版 h5 attrs 中读取变量列表和 time_step"""
+    h5_files = sorted(glob.glob(os.path.join(data_dir, "data", "*.h5")))
+    with h5py.File(h5_files[0], "r") as f:
+        ds = f["fields"]
+        all_variables = [v.decode() if isinstance(v, bytes) else v for v in ds.attrs["variables"]]
+        time_step = int(ds.attrs["time_step"])
 
-    if error:
-        print(f'❌ ❌ Wrong configuration for train/val/test years selection! Please ensure the configuration is correct.')
-        exit()
+    channel_indices = [all_variables.index(v) for v in channels]
 
-
-    channel_indices = [variables.index(v) for v in cfg.channels]
     total_files = []
-    for year in selected_years:
-        files = [f for f in os.listdir(f'./result/{mode}/data/{year}/') if f.endswith('.npy')]
-        total_files.extend(files)
+    for year in test_years:
+        result_dir = f'./result/{mode}/data/{year}/'
+        if os.path.exists(result_dir):
+            files = [f for f in os.listdir(result_dir) if f.endswith('.npy')]
+            total_files.extend(files)
     total_files.sort()
-    return total_files, channel_indices
+    return total_files, channel_indices, time_step
 
 
-def get_result(total_files, channel_indices, clim_mean, mode):
+def filename_to_index(filename, time_step):
+    """将 YYYYMMDDHH 格式的文件名转换为年度 h5 文件中的时间步索引"""
+    dt = datetime.strptime(filename, "%Y%m%d%H")
+    year_start = datetime(dt.year, 1, 1)
+    hours = (dt - year_start).total_seconds() / 3600
+    return int(hours / time_step)
+
+
+def get_result(total_files, channel_indices, time_step, data_dir, clim_mean, mode):
     channel_rmse = np.zeros(len(channel_indices))
     channel_acc = np.zeros(len(channel_indices))
     clim_mean = clim_mean[0, :, :, :]
@@ -72,10 +54,13 @@ def get_result(total_files, channel_indices, clim_mean, mode):
         pred_sq_sum = np.zeros(len(channel_indices))
         label_sq_sum = np.zeros(len(channel_indices))
         for file in tqdm(total_files, unit="files"):
-            with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file[:-4]}.h5', "r") as f:
-                label = f["fields"][:]  # [N, H, W]
+            fname = file[:-4]  # 去掉 .npy
+            year = fname[:4]
+            t_idx = filename_to_index(fname, time_step)
+            with h5py.File(os.path.join(data_dir, 'data', f'{year}.h5'), "r") as f:
+                label = f["fields"][t_idx]  # [C, H, W]
                 label = label[channel_indices]
-            pred = np.load(f'result/{mode}/data/{file[:4]}/{file}').squeeze()
+            pred = np.load(f'result/{mode}/data/{year}/{file}').squeeze()
 
             label_anom = label - clim_mean
             pred_anom = pred - clim_mean
@@ -84,6 +69,7 @@ def get_result(total_files, channel_indices, clim_mean, mode):
             pred_sq_sum += np.sum(pred_anom ** 2, axis=(1, 2))
             label_sq_sum += np.sum(label_anom ** 2, axis=(1, 2))
             channel_rmse += np.sqrt(np.mean((label - pred) ** 2, axis=(1, 2)))
+
         channel_rmse /= len(total_files)
         channel_acc = numerator / (np.sqrt(pred_sq_sum * label_sq_sum) + 1e-8)
         np.save(f'./result/{mode}_acc.npy', channel_acc)
@@ -96,7 +82,7 @@ def show_result(mode):
 
     channels = [cfg_data.dataset.channels[i] for i in range(len(channel_indices))]
     w = 24  # 最长 channel 名宽度
-    
+
     # 表头
     print(f"┌{'─' * (w + 2)}┬{'─' * 14}┬{'─' * 14}┐")
     print(f"│ {'Channel':<{w}} │ {'RMSE':>12} │ {'ACC':>12} │")
@@ -110,82 +96,66 @@ def show_result(mode):
 
 
 def plot(label, pred, var, filename):
-    # 基础设置
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
-    
-    # 坐标轴标签
+
     xtick_labels = ['180°W', '90°W', '0°', '90°E', '180°E']
     ytick_labels = ['90°S', '45°S', '0°', '45°N', '90°N']
     xticks = np.linspace(0, label.shape[-1] - 1, 5)
     yticks = np.linspace(0, label.shape[-2] - 1, 5)
-    
-    # 计算统一色条范围
+
     vmin = min(label.min(), pred.min())
     vmax = max(label.max(), pred.max())
-    
-    # 计算差异和 RMSE
+
     diff = label - pred
     rmse = np.sqrt(np.mean(diff ** 2))
     diff_abs_max = np.abs(diff).max()
-    
-    # 绘图配置
+
     plot_configs = [
         {'data': label, 'title': 'Truth', 'cmap': 'viridis', 'vmin': vmin, 'vmax': vmax},
         {'data': pred,  'title': 'Prediction', 'cmap': 'viridis', 'vmin': vmin, 'vmax': vmax},
         {'data': diff,  'title': f'Difference (RMSE={rmse:.2f})', 'cmap': 'RdBu_r', 'vmin': -diff_abs_max, 'vmax': diff_abs_max},
     ]
-    
-    # 统一绘制
+
     for ax, cfg in zip(axes, plot_configs):
         im = ax.imshow(cfg['data'], cmap=cfg['cmap'], vmin=cfg['vmin'], vmax=cfg['vmax'])
         ax.set_title(cfg['title'], fontsize=12, pad=4)
-        ax.set_xlabel('Longitude')  # 继续增大
+        ax.set_xlabel('Longitude')
         ax.set_ylabel('Latitude')
         ax.set_xticks(xticks)
         ax.set_xticklabels(xtick_labels)
         ax.set_yticks(yticks)
         ax.set_yticklabels(ytick_labels)
-        plt.colorbar(im, ax=ax, orientation='horizontal')# , pad=0.04, aspect=30, shrink=0.85
-    
-    # 总标题 - 降低位置
+        plt.colorbar(im, ax=ax, orientation='horizontal')
+
     fig.suptitle(var, fontsize=14, fontweight='bold', y=0.98)
-    
-    # plt.tight_layout(rect=[0, 0.08, 1, 0.95])  # 底部也留空间
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.close()
 
 
 def plot_loss(train_loss, valid_loss):
-
     mask = ~(np.isnan(train_loss) | np.isnan(valid_loss))
     train_loss = train_loss[mask]
     valid_loss = valid_loss[mask]
 
     fig, ax = plt.subplots(figsize=(5, 3.5))
-    # 配置
     colors = {'train': '#2563EB', 'valid': '#EA580C'}
     epochs = np.arange(1, len(train_loss) + 1)
-    
-    # 绑定曲线
+
     ax.plot(epochs, train_loss, color=colors['train'], linewidth=1.5, label='Train')
     ax.plot(epochs, valid_loss, color=colors['valid'], linewidth=1.5, label='Valid', linestyle='--')
-    # 标注最小值
     min_idx = np.argmin(valid_loss)
-    ax.scatter(epochs[min_idx], valid_loss[min_idx], 
+    ax.scatter(epochs[min_idx], valid_loss[min_idx],
                color=colors['valid'], s=40, zorder=5, edgecolors='white')
-    ax.annotate(f'Best: {valid_loss[min_idx]:.3f}', 
+    ax.annotate(f'Best: {valid_loss[min_idx]:.3f}',
                 xy=(epochs[min_idx], valid_loss[min_idx]),
                 xytext=(10, 10), textcoords='offset points', fontsize=8, color=colors['valid'],
                 arrowprops=dict(arrowstyle='-', color=colors['valid'], lw=0.5))
-    
-    # 坐标轴
+
     ax.set(xlabel='Epoch', ylabel='Loss', xlim=(0, len(train_loss) + 1))
-    
-    # 样式
     ax.legend(frameon=False, loc='upper right')
     ax.grid(True, linestyle='--', alpha=0.3)
     ax.spines[['top', 'right']].set_visible(False)
-    
+
     plt.tight_layout()
     plt.savefig('./result/loss.png', dpi=300, bbox_inches='tight')
     plt.close()
@@ -195,7 +165,7 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: input the mode: : base, short, medium, or long...")
         sys.exit(1)
-    
+
     mode = sys.argv[1]
     if mode not in ['base', 'short', 'medium', 'long']:
         print(f'❌ ❌ Please input the mode: base, short, medium, or long...')
@@ -210,27 +180,33 @@ if __name__ == "__main__":
     train_loss = np.load(f'./data/checkpoints/tr_{mode}_loss.npy')
     valid_loss = np.load(f'./data/checkpoints/va_{mode}_loss.npy')
     plot_loss(train_loss, valid_loss)
-    total_files, channel_indices = get_metadata(cfg_data.dataset, mode)
 
-    # Load data
-    # Compute RMSE per channel and total
-    mu = np.load(os.path.join(cfg_data.dataset.stats_dir, "global_means.npy"))
+    data_dir = cfg_data.dataset.data_dir
+    test_years = cfg_data.dataset.test_time
+    total_files, channel_indices, time_step = get_metadata(data_dir, cfg_data.dataset.channels, test_years, mode)
+
+    # Load data & Compute RMSE/ACC per channel
+    stats_dir = os.path.join(data_dir, "stats")
+    mu = np.load(os.path.join(stats_dir, "global_means.npy"))
     clim_mean = mu[:, channel_indices, :, :]
-    get_result(total_files, channel_indices, clim_mean, mode)
+    get_result(total_files, channel_indices, time_step, data_dir, clim_mean, mode)
     show_result(mode)
 
-    ##### You can choose the date to plot (must exist in ./result/output/)#####
-    eg_files = ['1969100100']
+    ##### 默认绘制 test_time 第一年的第一个时间步，用户可自行指定日期和变量 #####
+    test_year = cfg_data.dataset.test_time[0]
+    eg_files = [f'{test_year}010106']
     channel_index = [cfg_data.dataset.channels.index(v) for v in ['2m_temperature', 'geopotential_500', 'temperature_500']]
-    
+
     selected_var = [cfg_data.dataset.channels[int(i)] for i in channel_index]
     print(f"seleted date: {eg_files}")
     print(f"selected channels: {selected_var}")
     for file in eg_files:
-        with h5py.File(f'{cfg_data.dataset.data_dir}/data/{file[:4]}/{file}.h5', "r") as f:
-            label = f["fields"][:]  # [N, H, W]
+        year = file[:4]
+        t_idx = filename_to_index(file, time_step)
+        with h5py.File(os.path.join(data_dir, 'data', f'{year}.h5'), "r") as f:
+            label = f["fields"][t_idx]  # [C, H, W]
             label = label[channel_indices]
-        pred = np.load(f'result/{mode}/data/{file[:4]}/{file}.npy').squeeze()
+        pred = np.load(f'result/{mode}/data/{year}/{file}.npy').squeeze()
         for i in range(len(selected_var)):
             filename = f'./result/{mode}_{file}_{selected_var[i]}.png'
             plot(label[channel_index[i]], pred[channel_index[i]], selected_var[i], filename)

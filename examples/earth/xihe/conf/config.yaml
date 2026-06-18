@@ -1,7 +1,7 @@
 # ERA5数据集配置示例
 model:
   start_epoch: 0
-  max_epoch: 99999
+  max_epoch: 9999
   lr: 5E-5          #学习率
   
   betas: [0.9, 0.95]
@@ -13,13 +13,13 @@ model:
   patience: 50 
   checkpoint_dir: "./data/checkpoints" #相对路径
 
-  in_chans: 100
-  out_chans: 100
+  in_chans: 96
+  out_chans: 96
   num_groups: 64
   depth: 2
   num_heads:  [6, 12, 12, 6]
   img_size: [2041, 4320]
-  mask: "$ONESCIENCE_DATASETS_DIR/CMEMS/static/20210628_zos_ocean_mask.npy"
+  mask: "./data/land_mask.npy"
   
 
 
@@ -29,18 +29,14 @@ datapipe:
 
   dataset:
     type: "hdf5"
-    stats_dir: "$ONESCIENCE_DATASETS_DIR/CMEMS/stats/" 
-    static_dir: "$ONESCIENCE_DATASETS_DIR/CMEMS/static/" 
-    data_dir: "$ONESCIENCE_DATASETS_DIR/CMEMS/newdata/" #10-14
+    stats_dir: './data/stats/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/stats/"  
+    static_dir: './data/static/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/static/" 
+    data_dir: './data/' # "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/" 
 
     
-    #数据拆分
-    # train_ratio: 0.7
-    # val_ratio: 0.2
-    # test_ratio: 0.1
-    train_ratio: 7
-    val_ratio: 2
-    test_ratio: 1
+    train_time: [2010]
+    val_time: [2013]
+    test_time: [2014]
     img_size: [2041, 4320]
     verbose: true
     cache: false
@@ -60,7 +56,7 @@ datapipe:
       "sea_water_potential_temperature_10",sea_water_salinity_10,"eastward_sea_water_velocity_10","northward_sea_water_velocity_10",
       "sea_water_potential_temperature_11",sea_water_salinity_11,"eastward_sea_water_velocity_11","northward_sea_water_velocity_11",
       "sea_water_potential_temperature_12",sea_water_salinity_12,"eastward_sea_water_velocity_12","northward_sea_water_velocity_12",
-      "sea_surface_height_above_geoid","10m_u_component_of_wind","10m_v_component_of_wind", "sea_surface_temperature",
+      # "sea_surface_height_above_geoid","10m_u_component_of_wind","10m_v_component_of_wind", "sea_surface_temperature",
       "sea_water_potential_temperature_13",sea_water_salinity_13,"eastward_sea_water_velocity_13","northward_sea_water_velocity_13",
       "sea_water_potential_temperature_14",sea_water_salinity_14,"eastward_sea_water_velocity_14","northward_sea_water_velocity_14",
       "sea_water_potential_temperature_15",sea_water_salinity_15,"eastward_sea_water_velocity_15","northward_sea_water_velocity_15",
@@ -90,7 +86,7 @@ datapipe:
              
     
     # 时间配置
-    time_range: ["2010-01-01", "2019-12-31"] 
+    time_range: ["2010-01-01", "2014-12-31"] 
     time_steps: 1
     time_res: 24
     
@@ -143,4 +139,3 @@ datapipe:
     shuffle: true
     seed: 42
     drop_last: true
-

@@ -102,6 +102,9 @@ class AttrDict(dict):
         for k, v in self.items():
             self[k] = self._wrap(v)
 
+    def __setitem__(self, key, value):
+        super().__setitem__(key, self._wrap(value))
+
     def _wrap(self, value):
         if isinstance(value, dict):
             return AttrDict(value)
@@ -172,7 +175,7 @@ class YParams:
 
             # ✅ 同步顶层属性，方便直接访问
             for key, val in config_data.items():
-                setattr(self, key, val)
+                object.__setattr__(self, key, val)
                 if print_params:
                     print(f"{key}: {val}")
 
@@ -184,15 +187,32 @@ class YParams:
 
     def __setitem__(self, key, val):
         self.params[key] = val
-        setattr(self, key, val)
+        object.__setattr__(self, key, self.params[key])
 
     def __contains__(self, key):
         return key in self.params
 
+    def __iter__(self):
+        return iter(self.params)
+
+    def __len__(self):
+        return len(self.params)
+
+    def get(self, key, default=None):
+        return self.params.get(key, default)
+
+    def keys(self):
+        return self.params.keys()
+
+    def items(self):
+        return self.params.items()
+
+    def values(self):
+        return self.params.values()
+
     def update_params(self, config):
         for key, val in config.items():
-            self.params[key] = val
-            setattr(self, key, val)
+            self[key] = val
             
     def to_dict(self):
         return self.params.to_dict()

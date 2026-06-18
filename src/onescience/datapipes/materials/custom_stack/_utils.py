@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from fairchem.core.datasets.atomic_data import AtomicData
+    from onescience.utils.uma.datasets.atomic_data import AtomicData
 
 
 def rename_data_object_keys(

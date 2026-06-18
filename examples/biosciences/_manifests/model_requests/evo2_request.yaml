@@ -1,0 +1,23 @@
+model_family: Evo2
+inference_mode: prompt_generation
+runtime:
+  cwd: ${ONESCIENCE_ROOT}/examples/biosciences/evo2
+  entrypoint: infer.py
+  launcher: python_or_srun
+checkpoint:
+  ckpt_dir: checkpoint/evo2_nemo_7b
+input:
+  prompt: ATGCGT
+  fasta_path: ""
+parameters:
+  seq_length: 8192
+  max_new_tokens: null
+  seed: 0
+  temperature: null
+outputs:
+  output_dir: outputs/evo2
+  save_logits: false
+validation:
+  check_dna_alphabet: true
+  check_token_length: true
+  check_seq_idx_map: false

@@ -1,0 +1,81 @@
+# ============================================================
+# Water 4 DCU 训练配置
+# 单节点 4 DCU 分布式训练
+# ============================================================
+
+# 实验名称（用于输出目录和模型文件命名）
+name: water_4dcu
+
+# 实验描述
+description: "Water 势能面 - 4 DCU 分布式训练"
+
+# ============================================================
+# train.py 参数
+# 以下所有字段将被转换为 train.py 的命令行参数
+# 例如 model: MACE -> --model=MACE
+#      swa: true  -> --swa (布尔标志)
+# ============================================================
+train_args:
+  # --- 模型配置 ---
+  model: MACE                    # 模型类型
+  default_dtype: float64         # 数据精度
+  num_interactions: 2            # 交互层数
+  num_channels: 64               # 通道数
+  max_L: 0                       # 最大角动量
+  correlation: 3                 # 相关阶数
+
+  # --- 数据配置 ---
+  # 路径中的 ${ONESCIENCE_DATASETS_DIR} 会由 env.sh 自动设置
+  train_file: "${ONESCIENCE_DATASETS_DIR}/matchem/mace/water/water_train.xyz"
+  test_file: "${ONESCIENCE_DATASETS_DIR}/matchem/mace/water/water_test.xyz"
+  valid_fraction: 0.05           # 从训练集中划分 5% 作为验证集
+  E0s: isolated                  # 原子参考能量方式: average / isolated / 显式字典
+  energy_key: TolEnergy          # XYZ 文件中能量字段名
+  forces_key: force              # XYZ 文件中力字段名
+
+  # --- 训练超参 ---
+  seed: 123                      # 随机种子
+  device: cuda                   # 设备: cuda / cpu
+  r_max: 6.0                     # 截断半径 (Angstrom)
+  batch_size: 2                  # 训练批大小
+  valid_batch_size: 4            # 验证批大小
+  max_num_epochs: 20            # 最大训练轮数
+  forces_weight: 1000            # 力的损失权重
+  energy_weight: 10              # 能量的损失权重
+  scheduler_patience: 15         # 学习率调度器耐心值
+  patience: 30                   # 早停耐心值
+  eval_interval: 1               # 每 1 个 epoch 评估并打印一次
+  error_table: PerAtomMAE        # 误差表类型
+
+  # --- SWA / EMA ---
+  ema: true                      # 启用 EMA
+  swa: true                      # 启用 SWA
+  start_swa: 15                  # SWA 开始 epoch
+
+  # --- 其他 ---
+  restart_latest: true           # 从最新检查点重启
+  save_cpu: true                  # 保存检查点
+
+# ============================================================
+# 启动配置（控制 python / torchrun / srun 的选择）
+# ============================================================
+launch:
+  launcher: torchrun             # 启动方式: python / torchrun (多节点时自动用 srun)
+  num_nodes: 1                   # 节点数
+  num_gpus: 4                    # 申请的 DCU 卡数
+
+# ============================================================
+# 环境配置
+# ============================================================
+env:
+  conda_env: matchem                # conda 环境名
+  modules:
+    - sghpc-mpi-gcc/26.3         # 需要加载的 module
+
+# ============================================================
+# SLURM 配置（仅 --submit 模式使用）
+# ============================================================
+slurm:
+  partition: hpctest02           # SLURM 分区
+  time: "8:00:00"                # 作业时间限制
+  cpus_per_task: 64             # CPU 核心数

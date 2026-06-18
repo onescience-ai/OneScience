@@ -1,10 +1,16 @@
 from torch import nn
 
-from .protenixpairformer import ProtenixPairformerBlock, ProtenixPairformerStack
+from onescience.modules._lazy import instantiate_registered_style
 
 _PAIRFORMER_REGISTRY = {
-    "ProtenixPairformerBlock": ProtenixPairformerBlock,
-    "ProtenixPairformerStack": ProtenixPairformerStack,
+    "ProtenixPairformerBlock": (
+        "onescience.modules.pairformer.protenixpairformer",
+        "ProtenixPairformerBlock",
+    ),
+    "ProtenixPairformerStack": (
+        "onescience.modules.pairformer.protenixpairformer",
+        "ProtenixPairformerStack",
+    ),
 }
 
 
@@ -14,10 +20,12 @@ class OnePairformer(nn.Module):
     def __init__(self, style: str, **kwargs):
         super().__init__()
 
-        if style not in _PAIRFORMER_REGISTRY:
-            raise NotImplementedError(f"Unknown style: {style}")
-
-        self.Pairformer = _PAIRFORMER_REGISTRY[style](**kwargs)
+        self.Pairformer = instantiate_registered_style(
+            style,
+            _PAIRFORMER_REGISTRY,
+            "pairformer",
+            **kwargs,
+        )
 
     def forward(self, *args, **kwargs):
         return self.Pairformer(*args, **kwargs)

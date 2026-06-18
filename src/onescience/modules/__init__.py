@@ -1,46 +1,43 @@
-from .embedding.oneembedding import OneEmbedding
-from .fuser.onefuser import OneFuser
-from .linear.onelinear import OneLinear
-from .sample.onesample import OneSample
-from .recovery.onerecovery import OneRecovery
-from .attention.oneattention import OneAttention
-from .mlp.onemlp import OneMlp
-from .fourier.onefourier import OneFourier
-from .encoder.oneencoder import OneEncoder
-from .decoder.onedecoder import OneDecoder
-from .head.onehead import OneHead
-from .pooling.onepooling import OnePooling
-from .transformer.onetransformer import OneTransformer
-from .edge.oneedge import OneEdge
-from .node.onenode import OneNode
-from .processor.oneprocessor import OneProcessor
-from .equivariant.oneequivariant  import OneEquivariant
-from .fc.onefc import OneFC
-from .afno.oneafno import OneAFNO
-from .diffusion.onediffusion import OneDiffusion
-from .msa.onemsa import OneMSA
-from .pairformer.onepairformer import OnePairformer
+from importlib import import_module
 
-__all__ = ["OneEmbedding",
-           "OneFuser",
-           "OneSample",
-           "OneRecovery",
-           "OneAttention",
-           "OneMlp",
-           "OneFourier",
-           "OneEncoder",
-           "OneDecoder",
-           "OneHead",
-           "OnePooling",
-           "OneTransformer",
-           "OneEdge",
-           "OneNode",
-           "OneProcessor",
-           "OneEquivariant",
-           "OneFC",
-           "OneAFNO",
-           "OneLinear",
-           "OneDiffusion",
-           "OneMSA",
-           "OnePairformer"]
 
+_ONE_MODULE_EXPORTS = {
+    "OneEmbedding": "onescience.modules.embedding.oneembedding",
+    "OneFuser": "onescience.modules.fuser.onefuser",
+    "OneLinear": "onescience.modules.linear.onelinear",
+    "OneSample": "onescience.modules.sample.onesample",
+    "OneRecovery": "onescience.modules.recovery.onerecovery",
+    "OneAttention": "onescience.modules.attention.oneattention",
+    "OneMlp": "onescience.modules.mlp.onemlp",
+    "OneFourier": "onescience.modules.fourier.onefourier",
+    "OneEncoder": "onescience.modules.encoder.oneencoder",
+    "OneDecoder": "onescience.modules.decoder.onedecoder",
+    "OneHead": "onescience.modules.head.onehead",
+    "OnePooling": "onescience.modules.pooling.onepooling",
+    "OneTransformer": "onescience.modules.transformer.onetransformer",
+    "OneEdge": "onescience.modules.edge.oneedge",
+    "OneNode": "onescience.modules.node.onenode",
+    "OneProcessor": "onescience.modules.processor.oneprocessor",
+    "OneEquivariant": "onescience.modules.equivariant.oneequivariant",
+    "OneFC": "onescience.modules.fc.onefc",
+    "OneAFNO": "onescience.modules.afno.oneafno",
+    "OneDiffusion": "onescience.modules.diffusion.onediffusion",
+    "OneMSA": "onescience.modules.msa.onemsa",
+    "OnePairformer": "onescience.modules.pairformer.onepairformer",
+}
+
+__all__ = list(_ONE_MODULE_EXPORTS.keys())
+
+
+def __getattr__(name):
+    if name not in _ONE_MODULE_EXPORTS:
+        raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+    module = import_module(_ONE_MODULE_EXPORTS[name])
+    value = getattr(module, name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))
