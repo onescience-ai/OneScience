@@ -1,5 +1,16 @@
+"""
+执行引擎。
+
+管理模型任务的调度和执行，支持：
+  - onescience 项目内置模型
+  - 通过 .onescience.json 注册的自定义模型
+  - 任意路径下的模型目录
+  - CFD_Benchmark 兼容模式
+"""
+
 import os
 import re
+import json
 import glob
 import subprocess
 import shutil
@@ -7,6 +18,7 @@ import typing as t
 import click
 from pathlib import Path
 from .registry import model_registry, EXAMPLES_DIR, PROJECT_ROOT, SRC_DIR
+from .config import config
 from ..road import DATASET_PATHS
 
 
@@ -107,7 +119,13 @@ def print_metrics(result: dict):
                 earth_rows.append([name, val])
         if earth_rows:
             click.echo(Formatter.table(earth_headers, earth_rows, align=["<", ">"]))
-BENCHMARK_RESULTS_DIR = PROJECT_ROOT / "benchmark_results"
+    elif domain == "_custom":
+        # 通用模型：显示所有提取到的指标
+        custom_headers = ["指标", "值"]
+        custom_rows = [[k, v] for k, v in metrics.items() if v != "N/A"]
+        if custom_rows:
+            click.echo(Formatter.table(custom_headers, custom_rows, align=["<", ">"]))
+
 
 _CMD_TIMEOUT = 7200
 
@@ -163,6 +181,19 @@ def _extract_metrics(log_text: str, domain: str) -> dict:
         for name, pat in patterns:
             m = re.search(pat, log_text, re.IGNORECASE)
             metrics[name] = m.group(1) if m else "N/A"
+    else:
+        # 通用模型：尝试匹配任何 key: value 形式的指标
+        patterns = [
+            ("RMSE", r"(?:RMSE|rmse)[:\s]+([\d\.eE+-]+)"),
+            ("MAE", r"(?:MAE|mae)[:\s]+([\d\.eE+-]+)"),
+            ("MSE", r"(?:MSE|mse)[:\s]+([\d\.eE+-]+)"),
+            ("ACC", r"(?:ACC|acc)[:\s]+([\d\.eE+-]+)"),
+            ("损失", r"(?:损失|loss|Loss)[:\s]+([\d\.eE+-]+)"),
+            ("准确率", r"(?:准确率|accuracy|Accuracy)[:\s]+([\d\.eE+-]+)"),
+        ]
+        for name, pat in patterns:
+            m = re.search(pat, log_text)
+            metrics[name] = m.group(1) if m else "N/A"
     return metrics
 
 
@@ -170,11 +201,16 @@ def _run_cmd(cmd: t.List[str], cwd: Path, log_path: Path, env: t.Optional[dict] 
     merged_env = os.environ.copy()
     if env:
         merged_env.update(env)
-    src_parent = str(SRC_DIR.parent)
-    existing_pypath = merged_env.get("PYTHONPATH", "")
-    pypath_parts = [p for p in existing_pypath.split(os.pathsep) if p and p != src_parent]
-    pypath_parts.insert(0, src_parent)
-    merged_env["PYTHONPATH"] = os.pathsep.join(pypath_parts)
+
+    # 仅当 onescience 源码目录存在时才注入 PYTHONPATH
+    # 确保自定义项目不受 PYTHONPATH 污染
+    if SRC_DIR.exists():
+        src_parent = str(SRC_DIR.parent)
+        existing_pypath = merged_env.get("PYTHONPATH", "")
+        pypath_parts = [p for p in existing_pypath.split(os.pathsep) if p and p != src_parent]
+        pypath_parts.insert(0, src_parent)
+        merged_env["PYTHONPATH"] = os.pathsep.join(pypath_parts)
+
     try:
         result = subprocess.run(
             cmd, cwd=str(cwd), capture_output=True, text=True, env=merged_env,
@@ -193,7 +229,8 @@ def _run_cmd(cmd: t.List[str], cwd: Path, log_path: Path, env: t.Optional[dict] 
         return {"success": False, "output": str(e), "log_path": log_path}
 
 
-def _run_cfd_benchmark(model_dir: Path, cmd_type: str, sub_model: str, dataset: str, env: dict) -> dict:
+def _run_cfd_benchmark_script(model_dir: Path, cmd_type: str, sub_model: str, dataset: str, env: dict) -> dict:
+    """执行 CFD_Benchmark 模型（兼容旧版）"""
     output = ""
     all_success = True
     dataset_name = dataset if dataset else "airfoil"
@@ -240,17 +277,89 @@ def _run_cfd_benchmark(model_dir: Path, cmd_type: str, sub_model: str, dataset: 
     return {"success": all_success, "output": output}
 
 
+def _run_generic_model(model_dir: Path, cmd_type: str, env: dict, domain: str) -> dict:
+    """通用模型执行器
+
+    扫描模型目录下的脚本，按命令类型选择执行：
+      - train: train.py
+      - infer: inference.py / infer.py
+      - eval:  result.py
+
+    如果标准脚本不存在，fallback 扫描目录下所有 .py 文件。
+    """
+    output = ""
+    all_success = True
+
+    script_map = {
+        "TRAIN": ["train.py"],
+        "INFER": ["inference.py", "infer.py"],
+        "EVAL": ["result.py"],
+        "train": ["train.py", "inference.py", "infer.py", "result.py"],
+        "infer": ["inference.py", "infer.py"],
+        "eval": ["result.py"],
+    }
+    scripts = script_map.get(cmd_type, ["train.py", "inference.py", "result.py"])
+
+    found = False
+    for script in scripts:
+        script_path = model_dir / script
+        if script_path.exists():
+            found = True
+            log_prefix = script.replace(".py", "")
+            log_path = _get_log_path(model_dir, log_prefix)
+            result = _run_cmd(["python", script], model_dir, log_path, env)
+            output += result["output"]
+            all_success = all_success and result["success"]
+            if not result["success"] and cmd_type == "train":
+                break
+
+    # Fallback: 标准脚本都不存在时，扫描目录下所有非 test 的 .py 文件
+    if not found:
+        candidates = sorted(model_dir.glob("*.py"))
+        candidates = [c for c in candidates
+                      if c.name not in ('__init__.py', 'setup.py')
+                      and 'test' not in c.name.lower()]
+        if candidates:
+            found = True
+            script = candidates[0]
+            log_path = _get_log_path(model_dir, script.stem)
+            result = _run_cmd(["python", script.name], model_dir, log_path, env)
+            output += result["output"]
+            all_success = result["success"]
+
+    return {"success": all_success, "output": output, "found_any": found}
+
+
 def run_model(model_alias: str, cmd_type: str, dataset: str) -> dict:
+    """执行模型
+
+    model_alias 支持：
+      - 内置别名 (pangu, fno, mace ...)
+      - 自定义模型名 (来自 .onescience.json)
+      - 完整路径 (绝对或相对路径)
+    """
+    # 解析模型
     info = model_registry.resolve(model_alias)
     if not info:
         return {"success": False, "error": f"未知模型: {model_alias}"}
+
     domain = info["domain"]
     model = info["model"]
     sub_model = info.get("sub_model", "")
-    model_dir = EXAMPLES_DIR / domain / model
+
+    # 获取模型目录
+    model_dir = info.get("model_dir")
+    if not model_dir:
+        if info.get("source") == "builtin":
+            from .registry import DOMAIN_DIR_MAP
+            model_dir = EXAMPLES_DIR / DOMAIN_DIR_MAP.get(domain, domain) / model
+        else:
+            model_dir = Path(model)
+
     if not model_dir.exists():
         return {"success": False, "error": f"模型目录不存在: {model_dir}"}
 
+    # 构建执行环境
     env = {}
     if dataset:
         if "/" in dataset:
@@ -259,18 +368,16 @@ def run_model(model_alias: str, cmd_type: str, dataset: str) -> dict:
         else:
             datasets_dir = os.environ.get("ONESCIENCE_DATASETS_DIR", "")
             if dataset in DATASET_PATHS:
-                dataset_path = str(Path(datasets_dir) / DATASET_PATHS[dataset])
-                env["ONESCIENCE_DATASET_PATH"] = dataset_path
+                ds_path = str(Path(datasets_dir) / DATASET_PATHS[dataset])
+                env["ONESCIENCE_DATASET_PATH"] = ds_path
                 env["ONESCIENCE_DATASETS_DIR"] = datasets_dir
             elif datasets_dir and (Path(datasets_dir) / dataset).exists():
-                dataset_path = str(Path(datasets_dir) / dataset)
-                env["ONESCIENCE_DATASET_PATH"] = dataset_path
+                ds_path = str(Path(datasets_dir) / dataset)
+                env["ONESCIENCE_DATASET_PATH"] = ds_path
                 env["ONESCIENCE_DATASETS_DIR"] = datasets_dir
             env["ONESCIENCE_DATASET"] = dataset
 
-    output = ""
-    all_success = True
-
+    # remock: 重置环境
     if cmd_type == "remock":
         for d in ["result", "results", "checkpoints", "logs", "__pycache__"]:
             p = model_dir / d
@@ -280,6 +387,7 @@ def run_model(model_alias: str, cmd_type: str, dataset: str) -> dict:
             f.unlink()
         return {"success": True, "output": "环境重置完成"}
 
+    # 配置打补丁 (earth 模型特有)
     config_backup = None
     config_path = model_dir / "conf" / "config.yaml"
     if "ONESCIENCE_DATASET_PATH" in env and config_path.exists():
@@ -293,35 +401,33 @@ def run_model(model_alias: str, cmd_type: str, dataset: str) -> dict:
                 config_path.write_text(modified, encoding="utf-8")
 
     try:
-        if model == "CFD_Benchmark":
-            result = _run_cfd_benchmark(model_dir, cmd_type, sub_model, dataset, env)
-            output += result["output"]
-            all_success = all_success and result["success"]
-        elif model.endswith(".sh"):
-            log_path = _get_log_path(model_dir, model.replace(".sh", ""))
-            result = _run_cmd(["bash", str(model_dir)], model_dir.parent, log_path, env)
+        # 按模型类型选择执行方式
+        output = ""
+        all_success = True
+
+        if model_dir.name == "CFD_Benchmark":
+            result = _run_cfd_benchmark_script(model_dir, cmd_type, sub_model, dataset, env)
             output += result["output"]
             all_success = all_success and result["success"]
         else:
-            script_map = {
-                "TRAIN": ["train.py"],
-                "INFER": ["inference.py", "infer.py"],
-                "EVAL": ["result.py"],
-                "train": ["train.py", "inference.py", "infer.py", "result.py"],
-                "infer": ["inference.py", "infer.py"],
-                "eval": ["result.py"],
-            }
-            scripts = script_map.get(cmd_type, ["train.py", "inference.py", "result.py"])
-            for script in scripts:
-                script_path = model_dir / script
-                if script_path.exists():
-                    log_prefix = script.replace(".py", "")
-                    log_path = _get_log_path(model_dir, log_prefix)
-                    result = _run_cmd(["python", script], model_dir, log_path, env)
-                    output += result["output"]
-                    all_success = all_success and result["success"]
-                    if not result["success"] and cmd_type == "train":
-                        break
+            # 通用 Python 模型（优先）
+            result = _run_generic_model(model_dir, cmd_type, env, domain)
+            if result.get("found_any"):
+                output += result["output"]
+                all_success = all_success and result["success"]
+            else:
+                # Fallback: .sh 脚本（无 Python 脚本时才走）
+                sh_scripts = sorted(model_dir.glob("*.sh"))
+                sh_scripts = [s for s in sh_scripts if not s.name.endswith("_execution.log")]
+                if sh_scripts:
+                    for sh_script in sh_scripts:
+                        log_path = _get_log_path(model_dir, sh_script.stem)
+                        result_sh = _run_cmd(["bash", str(sh_script)], model_dir, log_path, env)
+                        output += result_sh["output"]
+                        all_success = all_success and result_sh["success"]
+                else:
+                    output = result.get("output", "") or output
+                    all_success = False if not result.get("found_any") else all_success
 
         metrics = _extract_metrics(output, domain)
         return {
@@ -346,15 +452,33 @@ def collect_results(run_results: t.List[dict]):
         model = r["model"]
         dst = RESULTS_DIR / alias
         dst.mkdir(parents=True, exist_ok=True)
-        model_dir = EXAMPLES_DIR / domain / model
-        if not model_dir.exists():
+
+        # 尝试查找模型目录
+        model_dir = None
+        info = model_registry.resolve(alias)
+        if info and info.get("model_dir") and Path(info["model_dir"]).exists():
+            model_dir = Path(info["model_dir"])
+        else:
+            from .registry import DOMAIN_DIR_MAP
+            candidate = EXAMPLES_DIR / DOMAIN_DIR_MAP.get(domain, domain) / model
+            if candidate.exists():
+                model_dir = candidate
+
+        if not model_dir:
             continue
+
         result_dir = model_dir / "result"
         if result_dir.exists() and result_dir.is_dir():
             shutil.copytree(str(result_dir), str(dst / "result"), dirs_exist_ok=True)
         result_py = model_dir / "result.py"
         if result_py.exists():
             shutil.copy2(str(result_py), str(dst / "result.py"))
+        if r.get("metrics"):
+            metrics_path = dst / "metrics.json"
+            try:
+                metrics_path.write_text(json.dumps(r["metrics"], ensure_ascii=False, indent=2), encoding="utf-8")
+            except Exception:
+                pass
 
 
 def _num(val):
@@ -475,3 +599,54 @@ def print_comparison(results: t.List[dict]):
                 row_parts.append(f" {colored_v:>{col_widths[k]-1}}")
             click.echo("|" + "".join(row_parts) + "|")
         click.echo(sep)
+
+    # 通用模型对比
+    other_results = [r for r in results if r.get("domain") == "_custom" and r.get("metrics")]
+    if other_results:
+        title = "自定义模型对比" if len(other_results) > 1 else "自定义模型结果"
+        click.echo(f"\n{title}:")
+        for r in other_results:
+            m = r["metrics"]
+            click.echo(f"  {r['alias']}:")
+            for k, v in sorted(m.items()):
+                if v != "N/A":
+                    click.echo(f"    {k}: {v}")
+
+
+def load_saved_results(aliases: t.Optional[t.List[str]] = None) -> t.List[dict]:
+    """从 RESULTS_DIR 加载之前保存的模型结果
+
+    Args:
+        aliases: 指定要加载的模型别名列表，为 None 时加载所有已有结果
+
+    Returns:
+        包含 alias / domain / model / metrics 的字典列表
+    """
+    if not RESULTS_DIR.exists():
+        return []
+
+    if aliases:
+        dirs = [RESULTS_DIR / a for a in aliases]
+    else:
+        dirs = sorted(RESULTS_DIR.iterdir())
+
+    results = []
+    for d in dirs:
+        if not d.is_dir():
+            continue
+        alias = d.name
+        metrics_file = d / "metrics.json"
+        if not metrics_file.exists():
+            continue
+        try:
+            metrics = json.loads(metrics_file.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        info = model_registry.resolve(alias)
+        results.append({
+            "alias": alias,
+            "domain": info["domain"] if info else "",
+            "model": info["model"] if info else "",
+            "metrics": metrics,
+        })
+    return results

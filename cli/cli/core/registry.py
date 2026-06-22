@@ -1,12 +1,27 @@
+"""
+模型与模块注册中心。
+
+提供两种模型发现方式：
+  1. ModelRegistry — 旧版别名查找（向后兼容），resolve() 内部已集成 config 的 5 级优先级
+  2. 全局单例 model_registry
+
+模块注册 (ModuleRegistry) 保持不变。
+"""
+
 import os
 import typing as t
 from pathlib import Path
+
+from .config import config, BUILTIN_MODELS_RAW, BUILTIN_DOMAINS, BUILTIN_DOMAIN_DIR_MAP
 
 
 def _find_project_root() -> Path:
     cwd = Path.cwd().resolve()
     for parent in [cwd] + list(cwd.parents):
         if (parent / "setup.py").exists() and (parent / "examples").exists():
+            return parent
+        # 也通过 src/onescience 检测
+        if (parent / "src" / "onescience").exists():
             return parent
     return cwd
 
@@ -17,23 +32,8 @@ SRC_DIR = PROJECT_ROOT / "src" / "onescience"
 MODULES_DIR = SRC_DIR / "modules"
 
 
-DOMAIN_DESCRIPTIONS = {
-    "earth": "气象与气候",
-    "cfd": "计算流体力学",
-    "biosciences": "生物科学",
-    "matchem": "材料化学",
-    "structural": "结构力学",
-}
-
-DOMAIN_DIR_MAP = {
-    "earth": "earth",
-    "cfd": "cfd",
-    "biosciences": "biosciences",
-    "bio": "biosciences",
-    "matchem": "matchem",
-    "MaterialsChemistry": "matchem",
-    "structural": "structural",
-}
+DOMAIN_DESCRIPTIONS = BUILTIN_DOMAINS
+DOMAIN_DIR_MAP = BUILTIN_DOMAIN_DIR_MAP
 
 
 MODULE_TYPE_DESC = {
@@ -63,52 +63,51 @@ MODULE_TYPE_DESC = {
 
 
 class ModelRegistry:
+    """模型注册中心
+
+    向后兼容: 保留原有的 _aliases 和 resolve() 方法，
+    resolve() 内部优先使用 config 的 5 级模型发现，
+    未命中时回退到内置别名。
+    """
+
     def __init__(self):
         self._aliases: dict[str, tuple[str, str, str]] = {}
         self._descriptions: dict[str, str] = {}
         self._load_builtin()
 
     def _load_builtin(self):
-        raw = {
-            "pangu": ("earth", "pangu_weather", "盘古气象大模型，用于天气预报和气候预测"),
-            "fourcastnet": ("earth", "fourcastnet", "FourCastNet，基于傅里叶神经算子的全球天气预报模型"),
-            "fuxi": ("earth", "fuxi", "伏羲气象大模型，高精度短期气候预测"),
-            "corrdiff": ("earth", "corrdiff", "CorrDiff，基于扩散模型的气候预测"),
-            "fengwu": ("earth", "fengwu", "风乌气象大模型，多尺度气象预报"),
-            "graphcast": ("earth", "graphcast", "GraphCast，基于图神经网络的天气预报"),
-            "graphcast_jax": ("earth", "graphcast_jax", "GraphCast JAX版本"),
-            "nowcastnet": ("earth", "nowcastnet", "NowCastNet，短临降水预报模型"),
-            "oceancast": ("earth", "oceancast", "OceanCast，海洋环流预测模型"),
-            "xihe": ("earth", "xihe", "羲和气象大模型，面向极端天气事件预测"),
-            "deepcfd": ("cfd", "DeepCFD", "DeepCFD，基于深度学习的CFD模拟"),
-            "cfd_benchmark": ("cfd", "CFD_Benchmark", "CFD基准测试套件"),
-            "f_fno": ("cfd", "CFD_Benchmark", "F_FNO", "F-FNO，傅里叶神经算子变体"),
-            "fno": ("cfd", "CFD_Benchmark", "FNO", "FNO，傅里叶神经算子"),
-            "factformer": ("cfd", "CFD_Benchmark", "Factformer", "FactFormer，因子分解变换器"),
-            "gfno": ("cfd", "CFD_Benchmark", "GFNO", "GFNO，几何傅里叶神经算子"),
-            "gnot": ("cfd", "CFD_Benchmark", "GNOT", "GNOT，图神经算子"),
-            "galerkin_transformer": ("cfd", "CFD_Benchmark", "Galerkin_Transformer", "Galerkin Transformer，伽辽金变换器"),
-            "lsm": ("cfd", "CFD_Benchmark", "LSM", "LSM，线性稳定性模型"),
-            "mwt": ("cfd", "CFD_Benchmark", "MWT", "MWT，多尺度小波变换器"),
-            "ono": ("cfd", "CFD_Benchmark", "ONO", "ONO，算子神经算子"),
-            "swin": ("cfd", "CFD_Benchmark", "Swin", "Swin Transformer，滑动窗口变换器"),
-            "transformer": ("cfd", "CFD_Benchmark", "Transformer", "Transformer，标准变换器架构"),
-            "transolver": ("cfd", "CFD_Benchmark", "Transolver", "Transolver，变换求解器"),
-            "u_fno": ("cfd", "CFD_Benchmark", "U_FNO", "U-FNO，统一傅里叶神经算子"),
-            "u_no": ("cfd", "CFD_Benchmark", "U_NO", "U-NO，统一神经算子"),
-            "u_net": ("cfd", "CFD_Benchmark", "U_Net", "U-Net，经典图像分割网络"),
-            "evo2": ("biosciences", "evo2", "Evo2，蛋白质进化语言模型"),
-            "mace": ("matchem", "mace", "MACE，材料科学机器学习势"),
-        }
-        for alias, val in raw.items():
-            domain, model_dir = val[0], val[1]
-            desc = val[-1]
-            sub_model = val[2] if len(val) >= 4 else ""
+        """从内置预设加载模型"""
+        for alias, (domain, model_dir, sub_model, desc) in BUILTIN_MODELS_RAW.items():
             self._aliases[alias] = (domain, model_dir, sub_model)
             self._descriptions[alias] = desc
 
     def resolve(self, name: str) -> t.Optional[dict]:
-        name_lower = name.lower()
+        """5 级优先级查找模型
+
+        1. 完整路径 (含 / 或 \\)
+        2. 自定义模型 (config.models)
+        3. 扫描目录 (config.model_roots)
+        4. 当前工作目录
+        5. 内置预设别名
+        6. 目录名自动发现 (向后兼容)
+        """
+        name_lower = name.lower().strip()
+
+        # 级别 1-4: config 驱动
+        result = config.resolve_model(name)
+        if result:
+            # 将 config 返回格式转为 ModelRegistry 格式
+            return {
+                "alias": result["alias"],
+                "domain": result["domain"],
+                "model": result["model"],
+                "sub_model": result.get("sub_model", ""),
+                "description": result.get("description", ""),
+                "model_dir": result.get("model_dir"),
+                "source": result.get("source", "builtin"),
+            }
+
+        # 级别 5: 内置别名
         if name_lower in self._aliases:
             domain, model_dir, sub_model = self._aliases[name_lower]
             return {
@@ -117,13 +116,19 @@ class ModelRegistry:
                 "model": model_dir,
                 "sub_model": sub_model,
                 "description": self._descriptions.get(name_lower, ""),
+                "model_dir": EXAMPLES_DIR / DOMAIN_DIR_MAP.get(domain, domain) / model_dir if EXAMPLES_DIR.exists() else None,
+                "source": "builtin",
             }
+
+        # 级别 6: 目录名自动发现 (旧版兼容)
         found = self._discover_by_name(name_lower)
         if found:
             return found
+
         return None
 
     def _discover_by_name(self, name: str) -> t.Optional[dict]:
+        """在 examples 目录下按名称发现模型（旧版兼容）"""
         if not EXAMPLES_DIR.exists():
             return None
         for domain_dir in EXAMPLES_DIR.iterdir():
@@ -144,53 +149,49 @@ class ModelRegistry:
                         "model": model_dir.name,
                         "sub_model": "",
                         "description": "自动发现的模型",
+                        "model_dir": model_dir,
+                        "source": "discover",
                     }
         return None
 
     def list_models(self, domain: t.Optional[str] = None) -> t.List[dict]:
-        results = []
-        seen = set()
-        for alias, (domain_key, model_dir, sub_model) in self._aliases.items():
-            if domain and domain_key != domain:
-                continue
-            key = f"{domain_key}|{model_dir}|{sub_model}"
-            if key not in seen:
-                seen.add(key)
-                results.append({
-                    "alias": alias,
-                    "model": model_dir,
-                    "domain": domain_key,
-                    "domain_desc": DOMAIN_DESCRIPTIONS.get(domain_key, ""),
-                    "description": self._descriptions.get(alias, ""),
-                    "sub_model": sub_model,
-                })
-        if not EXAMPLES_DIR.exists():
-            return results
-        for domain_dir in EXAMPLES_DIR.iterdir():
-            if not domain_dir.is_dir() or domain_dir.name == "configs":
-                continue
-            domain_key = DOMAIN_DIR_MAP.get(domain_dir.name)
-            if not domain_key or (domain and domain_key != domain):
-                continue
-            for model_dir in domain_dir.iterdir():
-                if not model_dir.is_dir() or model_dir.name == "conf":
+        """列出所有可用模型
+
+        合并内置 + 配置文件自定义 + 扫描目录发现 + 旧版 examples 自动发现
+        """
+        results = config.list_models(domain)
+
+        # 旧版兼容: 扫描 examples 目录下未注册的模型
+        if EXAMPLES_DIR.exists():
+            seen_keys = {f"{r['domain']}|{r['model']}|{r.get('sub_model', '')}" for r in results}
+            for domain_dir in EXAMPLES_DIR.iterdir():
+                if not domain_dir.is_dir() or domain_dir.name == "configs":
                     continue
-                auto_alias = model_dir.name.replace("_", "").lower()
-                key = f"{domain_key}|{model_dir.name}|"
-                if key not in seen:
-                    seen.add(key)
-                    results.append({
-                        "alias": auto_alias,
-                        "model": model_dir.name,
-                        "domain": domain_key,
-                        "domain_desc": DOMAIN_DESCRIPTIONS.get(domain_key, ""),
-                        "description": "自动发现的模型",
-                        "sub_model": "",
-                    })
+                domain_key = DOMAIN_DIR_MAP.get(domain_dir.name)
+                if not domain_key or (domain and domain_key != domain):
+                    continue
+                for model_dir in domain_dir.iterdir():
+                    if not model_dir.is_dir() or model_dir.name == "conf":
+                        continue
+                    key = f"{domain_key}|{model_dir.name}|"
+                    if key not in seen_keys:
+                        seen_keys.add(key)
+                        results.append({
+                            "alias": model_dir.name.lower().replace("_", ""),
+                            "model": model_dir.name,
+                            "domain": domain_key,
+                            "domain_desc": DOMAIN_DESCRIPTIONS.get(domain_key, ""),
+                            "description": "自动发现的模型",
+                            "sub_model": "",
+                            "source": "discover",
+                        })
+
         return results
 
 
 class ModuleRegistry:
+    """模块注册中心（不变）"""
+
     def __init__(self):
         self._modules: t.List[dict] = []
         self._load()
@@ -277,5 +278,6 @@ class ModuleRegistry:
         return self._modules
 
 
+# 全局单例
 model_registry = ModelRegistry()
 module_registry = ModuleRegistry()

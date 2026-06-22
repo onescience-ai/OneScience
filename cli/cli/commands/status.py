@@ -18,7 +18,10 @@ def status(model_aliases):
         info = model_registry.resolve(alias)
         if not info:
             continue
-        model_dir = EXAMPLES_DIR / info["domain"] / info["model"]
+        model_dir = info.get("model_dir")
+        if not model_dir:
+            model_dir = EXAMPLES_DIR / info["domain"] / info["model"]
+        model_dir = Path(model_dir)
         result_dir = RESULTS_DIR / alias
         log_count = len(list(model_dir.glob("*.log"))) + len(list(model_dir.glob("*.log.*")))
         result_count = len(list(result_dir.rglob("*"))) if result_dir.exists() else 0

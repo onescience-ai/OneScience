@@ -49,14 +49,15 @@ def show_config():
                 parts = line[7:].split("=", 1)
                 key = parts[0]
                 val = parts[1].strip("\"'") if len(parts) > 1 else ""
-                click.echo(f"  {key:<25} {val}")
+                click.echo(f"  {key:<30} {val}")
     else:
         click.echo("配置文件不存在")
     click.echo("环境变量:")
-    for key in ["ONESCIENCE_DATASETS_DIR", "ONESCIENCE_MODELS_DIR", "device"]:
+    for key in ["ONESCIENCE_DATASETS_DIR", "ONESCIENCE_MODELS_DIR",
+                "device", "num_nodes", "gpus_per_node", "distributed_backend"]:
         val = os.environ.get(key)
         if val:
-            click.echo(f"  {key:<25} {val}")
+            click.echo(f"  {key:<30} {val}")
     click.echo(f"  项目根目录: {PROJECT_ROOT}")
 
 
@@ -64,7 +65,22 @@ def show_config():
 @click.argument("key")
 @click.argument("value")
 def set_config(key, value):
-    """修改配置项"""
+    """修改配置项
+
+    支持的键:
+
+    路径配置:
+      data_dir / dataset_dir / data_path  → ONESCIENCE_DATASETS_DIR
+      model_dir / model_path              → ONESCIENCE_MODELS_DIR
+
+    设备配置:
+      device                              → 运行设备 (gpu/dcu/cpu)
+
+    分布式配置:
+      num_nodes                           → 节点数量
+      gpus                                → 每节点 GPU 数量
+      distributed_backend                 → 分布式后端 (nccl/gloo/mpi)
+    """
     key_map = {
         "data_dir": "ONESCIENCE_DATASETS_DIR",
         "dataset_dir": "ONESCIENCE_DATASETS_DIR",
@@ -72,6 +88,11 @@ def set_config(key, value):
         "model_dir": "ONESCIENCE_MODELS_DIR",
         "model_path": "ONESCIENCE_MODELS_DIR",
         "device": "device",
+        "num_nodes": "num_nodes",
+        "gpus": "gpus_per_node",
+        "gpus_per_node": "gpus_per_node",
+        "distributed_backend": "distributed_backend",
+        "backend": "distributed_backend",
     }
     env_key = key_map.get(key)
     if not env_key:

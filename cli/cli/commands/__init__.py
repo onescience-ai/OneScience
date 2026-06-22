@@ -11,6 +11,12 @@ from .config import config_group
 from .train import train
 from .infer import infer
 from .eval import eval
+from .compare import compare
+from .pipeline import pipeline
+from .data import data_group
+from .deploy import deploy_group
+from .experiment import experiment_group
+from .env import env_group
 
 
 commands_dict = {
@@ -25,4 +31,10 @@ commands_dict = {
     "train": train,
     "infer": infer,
     "eval": eval,
+    "compare": compare,
+    "pipeline": pipeline,
+    "data": data_group,
+    "deploy": deploy_group,
+    "experiment": experiment_group,
+    "env": env_group,
 }

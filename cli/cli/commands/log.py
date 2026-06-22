@@ -32,7 +32,11 @@ def log(model_aliases, tail, head, search, show_all, log_type, follow, log_date,
         if not info:
             click.secho(f"未知模型: {alias}", fg="red")
             continue
-        model_dir = EXAMPLES_DIR / info["domain"] / info["model"]
+        model_dir = info.get("model_dir")
+        if not model_dir:
+            from ..core.registry import DOMAIN_DIR_MAP
+            model_dir = EXAMPLES_DIR / DOMAIN_DIR_MAP.get(info["domain"], info["domain"]) / info["model"]
+        model_dir = Path(model_dir)
         log_files = _find_log_files(model_dir, log_type, info.get("sub_model", ""), alias)
         if log_date:
             log_files = _filter_by_date(log_files, log_date)
@@ -102,7 +106,11 @@ def _clean_all(model_aliases: str, days: int):
         info = model_registry.resolve(alias)
         if not info:
             continue
-        model_dir = EXAMPLES_DIR / info["domain"] / info["model"]
+        model_dir = info.get("model_dir")
+        if not model_dir:
+            from ..core.registry import DOMAIN_DIR_MAP
+            model_dir = EXAMPLES_DIR / DOMAIN_DIR_MAP.get(info["domain"], info["domain"]) / info["model"]
+        model_dir = Path(model_dir)
         log_files = _find_log_files(model_dir, "all", info.get("sub_model", ""), alias)
         _clean_old_logs(log_files, days, alias)
     click.echo("日志清理完成")
