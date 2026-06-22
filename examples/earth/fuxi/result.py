@@ -163,12 +163,12 @@ def plot_loss(train_loss, valid_loss):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: input the mode: : base, short, medium, or long...")
+        print("Usage: input the mode: : short, medium, or long...")
         sys.exit(1)
 
     mode = sys.argv[1]
-    if mode not in ['base', 'short', 'medium', 'long']:
-        print(f'❌ ❌ Please input the mode: base, short, medium, or long...')
+    if mode not in ['short', 'medium', 'long']:
+        print(f'❌ ❌ Please input the mode: short, medium, or long...')
         exit()
 
     current_path = os.getcwd()
@@ -186,15 +186,16 @@ if __name__ == "__main__":
     total_files, channel_indices, time_step = get_metadata(data_dir, cfg_data.dataset.channels, test_years, mode)
 
     # Load data & Compute RMSE/ACC per channel
-    stats_dir = os.path.join(data_dir, "stats")
-    mu = np.load(os.path.join(stats_dir, "global_means.npy"))
+    h5_files = sorted(glob.glob(os.path.join(data_dir, "data", "*.h5")))
+    with h5py.File(h5_files[0], "r") as f:
+        mu = f["global_means"][:]
     clim_mean = mu[:, channel_indices, :, :]
     get_result(total_files, channel_indices, time_step, data_dir, clim_mean, mode)
     show_result(mode)
 
     ##### 默认绘制 test_time 第一年的第一个时间步，用户可自行指定日期和变量 #####
     test_year = cfg_data.dataset.test_time[0]
-    eg_files = [f'{test_year}010106']
+    eg_files = [f'{test_year}010206']
     channel_index = [cfg_data.dataset.channels.index(v) for v in ['2m_temperature', 'geopotential_500', 'temperature_500']]
 
     selected_var = [cfg_data.dataset.channels[int(i)] for i in channel_index]

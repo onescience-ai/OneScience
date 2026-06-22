@@ -10,16 +10,15 @@ from onescience.utils.YParams import YParams
 
 
 def get_stats(data_dir, channels):
-    """从新版 h5 attrs 中读取变量列表，提取归一化参数"""
+    """从新版 h5 中读取变量列表与归一化参数（均值/标准差）"""
     h5_files = sorted(glob.glob(os.path.join(data_dir, "data", "*.h5")))
     with h5py.File(h5_files[0], "r") as f:
         ds = f["fields"]
         all_variables = [v.decode() if isinstance(v, bytes) else v for v in ds.attrs["variables"]]
+        mu = f["global_means"][:]   # [1, C, 1, 1]
+        std = f["global_stds"][:]
 
     channel_indices = [all_variables.index(v) for v in channels]
-    stats_dir = os.path.join(data_dir, "stats")
-    mu = np.load(os.path.join(stats_dir, "global_means.npy"))   # [1, C, 1, 1]
-    std = np.load(os.path.join(stats_dir, "global_stds.npy"))
     means = mu[:, channel_indices, :, :]
     stds = std[:, channel_indices, :, :]
     return means, stds
@@ -27,12 +26,12 @@ def get_stats(data_dir, channels):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: input the mode: : base, short, medium, or long...")
+        print("Usage: input the mode: : short, medium, or long...")
         sys.exit(1)
 
     mode = sys.argv[1]
-    if mode not in ['base', 'short', 'medium', 'long']:
-        print(f'❌ ❌ Please input the mode: base, short, medium, or long...')
+    if mode not in ['short', 'medium', 'long']:
+        print(f'❌ ❌ Please input the mode: short, medium, or long...')
         exit()
 
     current_path = os.getcwd()
@@ -46,7 +45,7 @@ if __name__ == "__main__":
     cfg_data.dataloader.batch_size = 1
     means, stds = get_stats(cfg_data.dataset.data_dir, cfg_data.dataset.channels)
 
-    if mode == 'base' or mode == 'short':
+    if mode == 'short':
         from onescience.datapipes.climate import ERA5Datapipe
         train_datapipe = ERA5Datapipe(
             dataset_dir=cfg_data.dataset.data_dir,
@@ -128,7 +127,7 @@ if __name__ == "__main__":
 
     model.eval()
     save_path = f'./result/{mode}/data/'
-    if mode != 'base' and mode != 'long':
+    if mode != 'long':
         with torch.no_grad():
             print(f"📂 infer results will be generated to './result/{mode}/data/'")
             for data in tqdm(train_dataloader, desc="Inferring trainset", unit="batch"):

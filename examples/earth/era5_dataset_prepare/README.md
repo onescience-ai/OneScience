@@ -6,21 +6,21 @@ The final dataset layout is:
 
 ```text
 era5_root/
-├── data/
-│   ├── 1979.h5
-│   ├── 1980.h5
-│   └── ...
-└── stats/
-    ├── global_means.npy
-    └── global_stds.npy
+└── data/
+    ├── 1979.h5
+    ├── 1980.h5
+    └── ...
 ```
 
-Each yearly HDF5 file contains:
+Each yearly HDF5 file is self-contained — it stores both the data and the
+normalization statistics:
 
 ```text
 fields: [T, C, H, W]
 fields.attrs["variables"]: channel names
 fields.attrs["time_step"]: hours between samples
+global_means: [1, C, 1, 1]
+global_stds:  [1, C, 1, 1]
 ```
 
 This is the format read by `src/onescience/datapipes/climate/era5.py`.
@@ -132,15 +132,13 @@ Each file stores all variables for one year:
 fields: [T, C, 721, 1440]
 ```
 
-## 5. Calculate Statistics
+## 5. Calculate And Embed Statistics
 
 Edit the top settings in `step_4_stats_calculate.py`:
 
 ```python
 DATA_DIR = "./data"
-OUTPUT_DIR = "./stats"
-TIME_CHUNK_STEPS = 4
-CHANNEL_CHUNK_SIZE = 8
+CHUNK_SIZE = 100
 ```
 
 Then run:
@@ -149,28 +147,29 @@ Then run:
 python step_4_stats_calculate.py
 ```
 
-Output:
+It accumulates the global mean/std across all years (chunked over time to bound
+memory) and writes them back into every yearly HDF5 file as the `global_means` /
+`global_stds` datasets:
 
 ```text
-./stats/global_means.npy
-./stats/global_stds.npy
+{year}.h5 / global_means: [1, C, 1, 1]
+{year}.h5 / global_stds:  [1, C, 1, 1]
 ```
 
-Both arrays have shape:
-
-```text
-[1, C, 1, 1]
-```
+For very large datasets you can parallelize the per-year accumulation on a
+cluster (one job per year computing a partial `sum` / `sum_sq` / `count`, then a
+single reduce + embed). That orchestration is left to your scheduler.
 
 ## 6. Use In Model Config
 
-Set the model config dataset paths to:
+Set the model config dataset path to:
 
 ```yaml
 dataset:
   data_dir: "<era5_root>"
-  stats_dir: "<era5_root>/stats"
 ```
 
-The dataloader reads variables from `fields.attrs["variables"]`, so no
+The dataloader reads variables from `fields.attrs["variables"]` and the
+normalization statistics from the `global_means` / `global_stds` datasets
+inside each yearly HDF5 file, so neither a separate `stats/` directory nor a
 `metadata.json` is required.

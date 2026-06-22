@@ -12,7 +12,7 @@ model:
     short_num_steps: 20
     medium_num_steps: 40
     long_num_steps: 60
-    finetune_step: 1
+    finetune_step: 100
     step_change_freq: 1000
     input_steps: 2
     num_blocks: 8

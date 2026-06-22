@@ -22,5 +22,5 @@ srun -u --mpi=pmix\
     bash -c "
     source ../earth_env.sh
     source ../export_DDP_vars.sh
-    python train_base.py
+    python train_short.py
     "

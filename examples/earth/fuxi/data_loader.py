@@ -110,9 +110,11 @@ class ERA5Dataset(Dataset):
         self.channel_indices = [all_variables.index(v) for v in self.used_variables]
 
     def _init_normalized_files(self):
-        stats_dir = os.path.join(self.dataset_dir, "stats")
-        mu  = np.load(os.path.join(stats_dir, "global_means.npy"))  # [1, C, 1, 1]
-        std = np.load(os.path.join(stats_dir, "global_stds.npy"))
+        # ── 从每年 h5 内嵌的 global_means/global_stds 读取归一化统计量 ──
+        h5_files = sorted(glob.glob(os.path.join(self.dataset_dir, "data", "*.h5")))
+        with h5py.File(h5_files[0], "r") as f:
+            mu  = f["global_means"][:]   # [1, C, 1, 1]
+            std = f["global_stds"][:]
         self.mu = torch.as_tensor(mu[:, self.channel_indices, :, :], dtype=torch.float32)
         self.sd = torch.as_tensor(std[:, self.channel_indices, :, :], dtype=torch.float32)
 

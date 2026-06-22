@@ -35,10 +35,7 @@ def main():
         dist.init_process_group(backend="nccl", init_method="env://")
         local_rank = int(os.environ["LOCAL_RANK"])
         world_rank = dist.get_rank()
-    if not os.path.exists(f"{cfg.checkpoint_dir}/model_base_bak.pth"):
-        if world_rank == 0:
-            print(f'❌❌The Fuxi base model must be trained before this model.')
-        exit()
+
     ## DataLoader init
     cfg_data = YParams(config_file_path, "datapipe")
     datapipe = ERA5Datapipe(
@@ -91,12 +88,7 @@ def main():
         print(f"📂 now params is {total_params}, {total_params / 1e6:.2f}M, {total_params / 1e9:.2f}B")
         print("-" * 50, "\n")
 
-    ## Load model weight if there exist well-trained model 
-
-    if not os.path.exists(f"{cfg.checkpoint_dir}/model_base_bak.pth"):
-        print('⚠️ ⚠️ Please train to get base model first...')
-        exit()
-    
+    ## Load model weight if there exist well-trained model
     if os.path.exists(f"{cfg.checkpoint_dir}/model_short_bak.pth"):
         if world_rank == 0:
             print("\n\n")
@@ -116,12 +108,8 @@ def main():
         if world_rank == 0:
             print("\n\n")
             print("-" * 50)
-            print(f"✅ Load base model and continue to finetune...")
+            print(f"✅ No checkpoint found, training short model from scratch...")
             print("-" * 50, "\n")
-        ckpt = torch.load(f"{cfg.checkpoint_dir}/model_base_bak.pth", map_location=f'cuda:{local_rank}', weights_only=False)
-        model.load_state_dict(ckpt["model_state_dict"])
-        optimizer.load_state_dict(ckpt["optimizer_state_dict"])
-        scheduler.load_state_dict(ckpt["scheduler_state_dict"])
 
 
      ## Distributed model

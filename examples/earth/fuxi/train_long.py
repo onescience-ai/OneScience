@@ -96,7 +96,7 @@ def main():
     ## Load model weight if there exist well-trained model 
     
     if not os.path.exists(f"{cfg.checkpoint_dir}/model_medium_bak.pth"):
-        print('⚠️ ⚠️ Please train to get base model first...')
+        print('⚠️ ⚠️ Please train to get medium model first...')
         exit()
     
     if os.path.exists(f"{cfg.checkpoint_dir}/model_long_bak.pth"):

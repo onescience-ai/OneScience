@@ -12,12 +12,16 @@ DATASET_DIMS = {"T": 10, "H": 721, "W": 1440, "time_step": 6}
 def generate_fake_h5(data_dir, var_names, years, dims):
     """
     为每个年份生成一个空 h5 文件。
-    利用 HDF5 chunked 压缩数据集未写入 chunk 即返回 fill_value=0 的特性，
+    利用 HDF5 chunked 数据集未写入 chunk 即返回 fill_value=0 的特性，
     文件实际只含元数据，极小，但 shape 与真实数据完全一致。
+    均值/标准差也作为数据集内嵌进每年的 h5，与 era5.py 新版读取方式对应。
     """
     os.makedirs(os.path.join(data_dir, "data"), exist_ok=True)
     T, C = dims["T"], len(var_names)
     H, W = dims["H"], dims["W"]
+
+    means = np.zeros((1, C, 1, 1), dtype=np.float32)
+    stds  = np.ones((1, C, 1, 1), dtype=np.float32)
 
     for year in years:
         path = os.path.join(data_dir, "data", f"{year}.h5")
@@ -31,22 +35,12 @@ def generate_fake_h5(data_dir, var_names, years, dims):
             )
             ds.attrs["variables"] = var_names
             ds.attrs["time_step"] = dims["time_step"]
+            f.create_dataset("global_means", data=means)
+            f.create_dataset("global_stds",  data=stds)
 
         size_kb = os.path.getsize(path) / 1024
         print(f"  {year}.h5  shape=({T},{C},{H},{W})  "
               f"logical={T*C*H*W*4/1024**3:.1f}GB  actual={size_kb:.1f}KB")
-
-
-def generate_stats(data_dir, n_vars):
-    """生成全零均值、全一标准差的 stats 文件，避免归一化除零。"""
-    os.makedirs(data_dir, exist_ok=True)
-    shape = (1, n_vars, 1, 1)
-    np.save(os.path.join(data_dir, "global_means.npy"),
-            np.zeros(shape, dtype=np.float32))
-    np.save(os.path.join(data_dir, "global_stds.npy"),
-            np.ones(shape,  dtype=np.float32))
-    print(f"  stats saved → {data_dir}")
-
 
 
 def get_static(data_dir, var, name):
@@ -92,8 +86,6 @@ if __name__ == "__main__":
     atm_vars = cfg_datapipe.dataset.channels
 
     generate_fake_h5(cfg_datapipe.dataset.data_dir, atm_vars, years, DATASET_DIMS)
-    stats_dir = os.path.join(cfg_datapipe.dataset.data_dir, "stats")
-    generate_stats(stats_dir, len(atm_vars))
 
     static_dir = os.path.join(cfg_datapipe.dataset.data_dir, "static")
     get_static(static_dir, 'z', 'geopotential')

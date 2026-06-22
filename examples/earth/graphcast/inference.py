@@ -18,16 +18,15 @@ torch.serialization.add_safe_globals([ScalarFloat])
 
 
 def get_stats(data_dir, channels):
-    """从新版 h5 attrs 中读取变量列表，提取归一化参数"""
+    """从新版 h5 中读取变量列表与归一化参数（均值/标准差）"""
     h5_files = sorted(glob.glob(os.path.join(data_dir, "data", "*.h5")))
     with h5py.File(h5_files[0], "r") as f:
         ds = f["fields"]
         all_variables = [v.decode() if isinstance(v, bytes) else v for v in ds.attrs["variables"]]
+        mu = f["global_means"][:]   # [1, C, 1, 1]
+        std = f["global_stds"][:]
 
     channel_indices = [all_variables.index(v) for v in channels]
-    stats_dir = os.path.join(data_dir, "stats")
-    mu = np.load(os.path.join(stats_dir, "global_means.npy"))   # [1, C, 1, 1]
-    std = np.load(os.path.join(stats_dir, "global_stds.npy"))
     means = mu[:, channel_indices, :, :]
     stds = std[:, channel_indices, :, :]
     return means, stds
