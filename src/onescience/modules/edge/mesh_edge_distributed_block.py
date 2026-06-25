@@ -5,10 +5,11 @@ import torch.nn as nn
 from dgl import DGLGraph
 from torch import Tensor
 
-from onescience.modules.mlp.mesh_graph_mlp import MeshGraphEdgeMLPConcat, MeshGraphEdgeMLPSum
+from onescience.modules.mlp.mesh_graph_distributed_mlp import DistributedMeshGraphEdgeMLPConcat, DistributedMeshGraphEdgeMLPSum
 from onescience.modules.utils.gnnlayer_utils import CuGraphCSC
 
-class MeshEdgeBlock(nn.Module):
+
+class DistributedMeshEdgeBlock(nn.Module):
     """
     用于 GraphCast 或 MeshGraphNet 等模型中的边更新块 (Edge Block)。
 
@@ -65,10 +66,12 @@ class MeshEdgeBlock(nn.Module):
         norm_type: str = "LayerNorm",
         do_concat_trick: bool = False,
         recompute_activation: bool = False,
+        config=None,
     ):
         super().__init__()
+        self.config = config
 
-        MLP = MeshGraphEdgeMLPSum if do_concat_trick else MeshGraphEdgeMLPConcat
+        MLP = DistributedMeshGraphEdgeMLPSum if do_concat_trick else DistributedMeshGraphEdgeMLPConcat
 
         self.edge_mlp = MLP(
             efeat_dim=input_dim_edges,
@@ -80,6 +83,7 @@ class MeshEdgeBlock(nn.Module):
             activation_fn=activation_fn,
             norm_type=norm_type,
             recompute_activation=recompute_activation,
+            config=config,
         )
 
     @torch.jit.ignore()
@@ -89,6 +93,8 @@ class MeshEdgeBlock(nn.Module):
         nfeat: Tensor,
         graph: Union[DGLGraph, CuGraphCSC],
     ) -> Tensor:
+        # print(f"[DistributedMeshEdgeBlock forward] 输入 efeat.shape = {efeat.shape}, nfeat.shape = {nfeat.shape}")
         efeat_new = self.edge_mlp(efeat, nfeat, graph)
         efeat_new = efeat_new + efeat
+        # print(f"[DistributedMeshEdgeBlock forward] 输出 efeat_new.shape = {efeat_new.shape}")
         return efeat_new, nfeat

@@ -1,0 +1,134 @@
+model:
+    
+    start_epoch: 0
+    max_epoch: 9999
+    patch_size: [2, 4, 4]
+    # embed_dim: 192
+    # num_heads: [6, 12, 12, 6]
+    embed_dim: 256
+    num_heads: [8, 8, 8, 8]
+    window_size: [2, 6, 12]
+    patience: 50
+    checkpoint_dir: "./data/checkpoints"
+
+datapipe:
+  name: "ERA5"
+  task: "weather_forecasting"
+
+  # dataset设定
+  dataset:
+    type: "hdf5"
+    stats_dir:  "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/stats/"   #'./data/stats/'
+    static_dir: "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/static/"  #'./data/static/' # 
+    data_dir: "$ONESCIENCE_DATASETS_DIR/ERA5/newh5/"   # './data/'
+    
+    train_time: [1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997]
+    val_time: [1998]
+    test_time: [2000]
+    
+    img_size: [721, 1440]
+    verbose: true
+    cache: false
+    # 气象变量
+    channels:  ['mean_sea_level_pressure', '10m_u_component_of_wind', '10m_v_component_of_wind', '2m_temperature', 
+                
+                'geopotential_1000', 'geopotential_925', 'geopotential_850', 'geopotential_700', 'geopotential_600', 'geopotential_500', 
+                'geopotential_400', 'geopotential_300', 'geopotential_250', 'geopotential_200', 'geopotential_150', 'geopotential_100', 'geopotential_50',
+                
+                'specific_humidity_1000', 'specific_humidity_925', 'specific_humidity_850', 'specific_humidity_700', 'specific_humidity_600',
+                'specific_humidity_500', 'specific_humidity_400', 'specific_humidity_300', 'specific_humidity_250', 'specific_humidity_200', 
+                'specific_humidity_150', 'specific_humidity_100', 'specific_humidity_50', 
+                
+                'temperature_1000', 'temperature_925', 'temperature_850', 'temperature_700', 'temperature_600', 'temperature_500', 'temperature_400', 
+                'temperature_300', 'temperature_250', 'temperature_200','temperature_150', 'temperature_100', 'temperature_50', 
+                
+                'u_component_of_wind_1000', 'u_component_of_wind_925', 'u_component_of_wind_850', 'u_component_of_wind_700', 'u_component_of_wind_600', 
+                'u_component_of_wind_500', 'u_component_of_wind_400', 'u_component_of_wind_300', 'u_component_of_wind_250', 'u_component_of_wind_200', 
+                'u_component_of_wind_150', 'u_component_of_wind_100', 'u_component_of_wind_50', 
+                
+                'v_component_of_wind_1000', 'v_component_of_wind_925', 'v_component_of_wind_850', 'v_component_of_wind_700', 'v_component_of_wind_600', 
+                'v_component_of_wind_500', 'v_component_of_wind_400', 'v_component_of_wind_300', 'v_component_of_wind_250', 'v_component_of_wind_200', 
+                'v_component_of_wind_150', 'v_component_of_wind_100', 'v_component_of_wind_50'
+                ]
+    weights: [  # ---- 4 surface variables ----
+                1.50,  # mean_sea_level_pressure
+                0.77,  # 10m_u_component_of_wind
+                0.66,  # 10m_v_component_of_wind
+                3.00,  # 2m_temperature
+                # ---- 13 geopotential_* (Z) ----
+                3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00, 3.00,
+                # ---- 13 specific_humidity_* (Q) ----
+                0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60, 0.60,
+                # ---- 13 temperature_* (T) ----
+                1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50, 1.50,
+                # ---- 13 u_component_of_wind_* (U) ----
+                0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77, 0.77,
+                # ---- 13 v_component_of_wind_* (V) ----
+                0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54, 0.54,
+            ]
+    variables:
+      - "u10"        # 10m U wind component
+      - "v10"        # 10m V wind component
+      - "t2m"        # 2m temperature
+      - "msl"        # Mean sea level pressure
+      - "z500"       # Geopotential at 500 hPa
+      - "t850"       # Temperature at 850 hPa
+    
+    # 时间配置
+    time_range: ["2000-01-01", "2020-12-31"]
+    time_steps: 1
+    time_res: 6
+    
+    # 空间配置
+    spatial_resolution: [0.25, 0.25]
+    
+    # 采样配置
+    num_samples: -1  # -1 表示使用全部数据
+    shuffle: true
+    random_seed: 42
+    
+    # 领域特定配置
+    extra:
+      levels: [500, 850, 1000]
+      lat_range: [-90, 90]
+      lon_range: [0, 360]
+  
+  # 数据转换配置
+  transforms:
+    - type: "Normalize"
+      params:
+        mean: [0.0, 0.0, 288.0, 101325.0, 50000.0, 270.0]
+        std: [5.0, 5.0, 15.0, 1000.0, 5000.0, 10.0]
+        keys: ["input", "target"]
+    
+    - type: "ToTensor"
+      params:
+        keys: null  # null表示转换所有numpy数组
+  
+  # 其他配置
+
+  # DataLoader配置
+  dataloader:
+    mask_dtype: "float32"
+    batch_size: 1
+    num_workers: 1
+    pin_memory: true
+    drop_last: true
+    shuffle: false  # 使用sampler时设为false
+    prefetch_factor: 2
+    persistent_workers: true
+    
+  # 分布式配置
+  distributed:
+    enabled: true
+    sampler: "DistributedSampler"
+    rank: 0
+    world_size: 4
+    shuffle: true
+    seed: 42
+    drop_last: true
+    
+
+      
+
+

@@ -7,7 +7,7 @@ from torch import Tensor
 from onescience.modules import OneMlp
 from onescience.modules.utils.gnnlayer_utils import CuGraphCSC, aggregate_and_concat
 
-class MeshNodeBlock(nn.Module):
+class DistributedMeshNodeBlock(nn.Module):
     """
     用于 GraphCast 或 MeshGraphNet 等模型中的节点更新块 (Node Block)。
 
@@ -64,12 +64,14 @@ class MeshNodeBlock(nn.Module):
         activation_fn: nn.Module = nn.SiLU(),
         norm_type: str = "LayerNorm",
         recompute_activation: bool = False,
+        config=None,
     ):
         super().__init__()
         self.aggregation = aggregation
+        self.config = config
 
         self.node_mlp = OneMlp(
-            style="MeshGraphMLP",
+            style="MeshGraphDistributedMLP",
             input_dim=input_dim_nodes + input_dim_edges,
             output_dim=output_dim,
             hidden_dim=hidden_dim,
@@ -77,6 +79,7 @@ class MeshNodeBlock(nn.Module):
             activation_fn=activation_fn,
             norm_type=norm_type,
             recompute_activation=recompute_activation,
+            config=config,
         )
 
     @torch.jit.ignore()
@@ -86,6 +89,11 @@ class MeshNodeBlock(nn.Module):
         nfeat: Tensor,
         graph: Union[DGLGraph, CuGraphCSC],
     ) -> Tuple[Tensor, Tensor]:
+        # print(f"[DistributedMeshNodeBlock forward] 输入 efeat.shape = {efeat.shape}, nfeat.shape = {nfeat.shape}")
         cat_feat = aggregate_and_concat(efeat, nfeat, graph, self.aggregation)
+
+        # Transform and add residual connection
         nfeat_new = self.node_mlp(cat_feat) + nfeat
+        # print(f"[DistributedMeshNodeBlock forward] 输出 nfeat_new.shape = {nfeat_new.shape}")
+
         return efeat, nfeat_new

@@ -54,6 +54,10 @@ _TRANSFORMER_REGISTRY = {
         "onescience.modules.transformer.xihelocaltransformer",
         "XihelocalTransformer",
     ),
+    "XiheDistributedLocalTransformer": (
+        "onescience.modules.transformer.xihedistributedlocaltransformer",
+        "XiheDistributedLocalTransformer",
+    ),
     "ProtenixConditionedTransitionBlock": (
         "onescience.modules.transformer.protenixtransformer",
         "ProtenixConditionedTransitionBlock",

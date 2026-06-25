@@ -9,6 +9,7 @@ _MLP_REGISTRY = {
         "MeshGraphEdgeMLPConcat",
     ),
     "MeshGraphEdgeMLPSum": ("onescience.modules.mlp.mesh_graph_mlp", "MeshGraphEdgeMLPSum"),
+    "MeshGraphDistributedMLP": ("onescience.modules.mlp.mesh_graph_distributed_mlp", "MeshGraphDistributedMLP"),
     "StandardMLP": ("onescience.modules.mlp.MLP", "StandardMLP"),
     "SimpleMLP": ("onescience.modules.mlp.MLP", "SimpleMLP"),
     "DeepResMLP": ("onescience.modules.mlp.MLP", "DeepResMLP"),
@@ -17,6 +18,7 @@ _MLP_REGISTRY = {
     "GroupEquivariantMLP2d": ("onescience.modules.mlp.GMLP", "GroupEquivariantMLP2d"),
     "GroupEquivariantMLP3d": ("onescience.modules.mlp.GMLP", "GroupEquivariantMLP3d"),
     "XiheMlp": ("onescience.modules.mlp.xihemlp", "XiheMlp"),
+    "XiheDistributedMlp": ("onescience.modules.mlp.xihedistributedmlp", "XiheDistributedMlp"),
 }
 
 class OneMlp(nn.Module):

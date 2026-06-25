@@ -9,6 +9,9 @@ _FUSER_REGISTRY = {
     "XiheLocalSIEFuser": ("onescience.modules.fuser.xihelocalsiefuser", "XiheLocalSIEFuser"),
     "XiheGlobalSIEFuser": ("onescience.modules.fuser.xiheglobalsiefuser", "XiheGlobalSIEFuser"),
     "XiheFuser": ("onescience.modules.fuser.xihefuse", "XiheFuser"),
+    "XiheDistributedFuser": ("onescience.modules.fuser.xihedistributedfuser", "XiheDistributedFuser"),
+    "XiheDistributedLocalSIEFuser": ("onescience.modules.fuser.xihedistributedlocalsiefuser", "XiheDistributedLocalSIEFuser"),
+    "XiheDistributedGlobalSIEFuser": ("onescience.modules.fuser.xihedistributedglobalsiefuser", "XiheDistributedGlobalSIEFuser"),
 }
 
 class OneFuser(nn.Module):

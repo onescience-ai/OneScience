@@ -13,7 +13,8 @@ from torch.utils.data.distributed import DistributedSampler
 
 # --- OneScience 核心 ---
 from onescience.datapipes.core import BaseDataset 
-from onescience.distributed.manager import DistributedManager
+from onescience.distributed.adapter import create_adapter
+from onescience.distributed.megatron.core import mpu
 
 # --- DGL 库特定导入 ---
 try:
@@ -127,12 +128,14 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
             
         self.length = self.num_samples * (self.num_steps - 1)
         
-        self.dist = DistributedManager()
+        # 创建分布式适配器
+        self.dist = create_adapter()
         
         super().__init__(config)
         
-        if self.dist.rank == 0:
+        if self.dist.is_rank0():
             self.logger.info(f"[{self.mode}] Initializing DeepMind CylinderFlow Dataset (DGL)...")
+            self.logger.info(f"[{self.mode}] Environment: {self.dist.env_type}")
             self.logger.info(f"[{self.mode}] Mode='{self.mode}' (Split='{self.split}')")
             self.logger.info(f"[{self.mode}] Samples={self.num_samples}, Steps={self.num_steps}")
 
@@ -140,7 +143,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         self._load_metadata() # 加载或计算归一化统计数据
         self._init_data()     # 加载和处理 TFRecord 数据
         
-        if self.dist.rank == 0:
+        if self.dist.is_rank0():
             self.logger.info(f"[{self.mode}] Dataset initialized. Total items: {self.length}")
 
     def _init_paths(self):
@@ -153,7 +156,6 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
             
         with open(self.meta_path, 'r') as fp:
             self.meta = json.load(fp)
-            
         self.stats_dir = Path(self.config.source.stats_dir)
         self.stats_dir.mkdir(parents=True, exist_ok=True)
         self.edge_stats_path = self.stats_dir / "edge_stats.json"
@@ -162,19 +164,19 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
     def _load_metadata(self):
         """加载或计算归一化统计数据 (edge_stats, node_stats)"""
         if self._provided_stats:
-            if self.dist.rank == 0:
+            if self.dist.is_rank0():
                 self.logger.debug(f"[{self.mode}] Using provided normalization stats.")
             self.stats = self._provided_stats
             return
 
         if self.mode == 'train':
             if self.edge_stats_path.exists() and self.node_stats_path.exists():
-                if self.dist.rank == 0:
+                if self.dist.is_rank0():
                     self.logger.info(f"[{self.mode}] Loading normalization stats from {self.stats_dir}")
                 self.stats['edge_stats'] = _load_json(self.edge_stats_path)
                 self.stats['node_stats'] = _load_json(self.node_stats_path)
             else:
-                if self.dist.rank == 0:
+                if self.dist.is_rank0():
                     self.logger.warning(f"[{self.mode}] Stats not found. Calculating stats on the fly...")
                 pass 
         else:
@@ -183,7 +185,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
                     f"[{self.mode}] Normalization stats not found in {self.stats_dir}. "
                     "Please run training mode first to generate stats."
                 )
-            if self.dist.rank == 0:
+            if self.dist.is_rank0():
                 self.logger.info(f"[{self.mode}] Loading normalization stats from {self.stats_dir}")
             self.stats['edge_stats'] = _load_json(self.edge_stats_path)
             self.stats['node_stats'] = _load_json(self.node_stats_path)
@@ -198,7 +200,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         noise_mask, self.rollout_mask = [], []
         self.mesh_pos = []
         
-        if self.dist.rank == 0:
+        if self.dist.is_rank0():
              self.logger.debug(f"[{self.mode}] Pass 1/2: Loading graph structure and edge features...")
 
         for i in range(self.num_samples):
@@ -223,7 +225,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         if self.mode == "train" and 'edge_stats' not in self.stats:
             self.stats['edge_stats'] = self._get_edge_stats() 
             _save_json(self.stats['edge_stats'], self.edge_stats_path)
-            if self.dist.rank == 0:
+            if self.dist.is_rank0():
                 self.logger.info(f"[{self.mode}] Saved edge stats to {self.edge_stats_path}")
 
         edge_mean = self.stats['edge_stats']["edge_mean"]
@@ -237,7 +239,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         dataset_iterator_nodes = self._load_tf_data(self.data_path, self.split)
         self.node_features, self.node_targets = [], []
         
-        if self.dist.rank == 0:
+        if self.dist.is_rank0():
              self.logger.debug(f"[{self.mode}] Pass 2/2: Loading node features and targets...")
 
         for i in range(self.num_samples):
@@ -263,7 +265,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
         if self.mode == "train" and 'node_stats' not in self.stats:
             self.stats['node_stats'] = self._get_node_stats()
             _save_json(self.stats['node_stats'], self.node_stats_path)
-            if self.dist.rank == 0:
+            if self.dist.is_rank0():
                 self.logger.info(f"[{self.mode}] Saved node stats to {self.node_stats_path}")
 
         node_stats = self.stats['node_stats']
@@ -334,7 +336,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
 
     def _get_edge_stats(self) -> Dict[str, torch.Tensor]:
         """计算边特征的均值和标准差"""
-        if self.dist.rank == 0:
+        if self.dist.is_rank0():
             self.logger.info(f"[{self.mode}] Calculating edge stats...")
             
         stats = {
@@ -357,7 +359,7 @@ class DeepMind_CylinderFlowDataset(BaseDataset):
 
     def _get_node_stats(self) -> Dict[str, torch.Tensor]:
         """计算节点特征的均值和标准差"""
-        if self.dist.rank == 0:
+        if self.dist.is_rank0():
             self.logger.info(f"[{self.mode}] Calculating node stats...")
         
         stats = {
@@ -547,10 +549,12 @@ class DeepMind_CylinderFlowDatapipe:
     def __init__(self, params: Dict[str, Any], distributed: bool):
         self.params = params
         self.distributed = distributed
-        self.dist = DistributedManager()
+        
+        # 创建分布式适配器
+        self.dist = create_adapter()
         
         # 1. 初始化训练数据集
-        if self.dist.rank == 0:
+        if self.dist.is_rank0():
             logging.info("Initializing Train Dataset (DGL)...")
         self.train_dataset = DeepMind_CylinderFlowDataset(
             config=self.params, 
@@ -561,10 +565,10 @@ class DeepMind_CylinderFlowDatapipe:
         self.stats = self.train_dataset.stats
         
         if self.distributed:
-            torch.distributed.barrier()
+            self.dist.barrier()
             
         # 3. 初始化验证和测试数据集
-        if self.dist.rank == 0:
+        if self.dist.is_rank0():
             logging.info("Initializing Validation Dataset (DGL)...")
         self.val_dataset = DeepMind_CylinderFlowDataset(
             config=self.params, 
@@ -572,7 +576,7 @@ class DeepMind_CylinderFlowDatapipe:
             stats=self.stats
         )
         
-        if self.dist.rank == 0:
+        if self.dist.is_rank0():
             logging.info("Initializing Test Dataset (DGL)...")
         self.test_dataset = DeepMind_CylinderFlowDataset(
             config=self.params, 
@@ -581,7 +585,22 @@ class DeepMind_CylinderFlowDatapipe:
         )
 
     def train_dataloader(self) -> Tuple[GraphDataLoader, Optional[DistributedSampler]]:
-        sampler = DistributedSampler(self.train_dataset, shuffle=True) if self.distributed else None
+        # sampler = DistributedSampler(self.train_dataset, shuffle=True) if self.distributed else None
+        
+        if self.distributed:
+            if self.dist.env_type == "megatron":
+                dp_rank = mpu.get_data_parallel_rank()
+                dp_size = mpu.get_data_parallel_world_size()
+                sampler = DistributedSampler(
+                    self.train_dataset,
+                    num_replicas=dp_size,
+                    rank=dp_rank,
+                    shuffle=True
+                )
+            else:
+                sampler = DistributedSampler(self.train_dataset, shuffle=True)
+        else:
+            sampler = None
         
         data_loader = GraphDataLoader(
             self.train_dataset,
@@ -595,8 +614,23 @@ class DeepMind_CylinderFlowDatapipe:
         return data_loader, sampler
 
     def val_dataloader(self) -> Tuple[GraphDataLoader, Optional[DistributedSampler]]:
-        sampler = DistributedSampler(self.val_dataset, shuffle=False) if self.distributed else None
+        # sampler = DistributedSampler(self.val_dataset, shuffle=False) if self.distributed else None
         
+        if self.distributed:
+            if self.dist.env_type == "megatron":
+                dp_rank = mpu.get_data_parallel_rank()
+                dp_size = mpu.get_data_parallel_world_size()
+                sampler = DistributedSampler(
+                    self.val_dataset,
+                    num_replicas=dp_size,
+                    rank=dp_rank,
+                    shuffle=False
+                )
+            else:
+                sampler = DistributedSampler(self.val_dataset, shuffle=False)
+        else:
+            sampler = None
+
         data_loader = GraphDataLoader(
             self.val_dataset,
             batch_size=self.params.dataloader.batch_size,

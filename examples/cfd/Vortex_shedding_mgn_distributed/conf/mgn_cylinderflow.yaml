@@ -1,0 +1,91 @@
+datapipe:
+  # --- 数据源配置 ---
+  source:
+    # 原始数据集所在的根目录路径（代码中 DeepMind_CylinderFlowDatapipe 会读取此路径） ${ONESCIENCE_DATASETS_DIR}/vortex_shedding_mgn/cylinder_flow
+    data_dir: ${ONESCIENCE_DATASETS_DIR}/vortex_shedding_mgn/cylinder_flow
+    # 统计数据（用于归一化的均值/标准差）的保存或读取路径
+    stats_dir: ${ONESCIENCE_DATASETS_DIR}/vortex_shedding_mgn/cylinder_flow/stats 
+
+  # 是否在数据管道初始化时打印详细信息
+  verbose: True
+  
+  # --- 数据集划分与物理参数 ---
+  data:
+    # 训练集使用的轨迹数量
+    train_samples: 400
+    # 训练集中每条轨迹使用的时间步数（用于切分数据）
+    train_steps: 300
+    
+    # 验证集使用的轨迹数量
+    val_samples: 10
+    # 验证集中每条轨迹使用的时间步数
+    val_steps: 300
+    
+    # 测试集使用的轨迹数量（通常在 inference 阶段使用）
+    test_samples: 10
+    # 测试集中每条轨迹使用的时间步数
+    test_steps: 300
+    
+    # 在训练过程中给输入数据添加的高斯噪声的标准差（用于提高模型鲁棒性，防止过拟合）
+    noise_std: 0.02
+
+  # --- PyTorch DataLoader 配置 ---
+  dataloader:
+    # 训练时的批次大小（batch_size=1 是图神经网络的常见设置）
+    batch_size: 1
+    # DataLoader 加载数据时使用的 CPU 进程数
+    num_workers: 4
+
+model:
+  # 模型名称，代码中通过 cfg.name 读取，用于动态选择参数块
+  name: MeshGraphNet
+  # 存放具体模型超参数的字典
+  specific_params:
+    MeshGraphNet:
+      # 节点的输入特征维度（例如：速度u, 速度v, 压力p, 节点类型等，共6维）
+      num_input_features: 6
+      # 边的输入特征维度（例如：相对坐标差, 距离等，共3维）
+      num_edge_features: 3
+      # 模型的输出特征维度（通常是下一时刻的速度或加速度，共3维）
+      num_output_features: 3
+      
+      # 架构选项：是否将输入特征拼接到 Message Passing 的结果中
+      do_concat_trick: False
+      # Processor 层的梯度检查点分段数（0表示不使用；大于0用于以时间换显存，节省显存占用）
+      num_processor_checkpoint_segments: 0
+      # 是否重计算激活函数
+      # 代码逻辑：如果为 True，代码强制使用 'silu' 激活函数；如果为 False，通常使用 'relu'
+      recompute_activation: False
+      # 注意: 'mlp_activation_fn' 将在训练脚本中根据 recompute_activation 动态设置
+
+training:
+  # 最大训练轮数（Epochs）
+  max_epoch: 25
+  # Adam 优化器的初始学习率
+  lr: 0.0001
+  # 学习率衰减率（代码中使用 LambdaLR: lr = initial_lr * (rate ** step)）
+  lr_decay_rate: 0.9999991 
+
+  # 是否开启混合精度训练（AMP），使用 FP16 加速并节省显存
+  amp: False
+  # 是否使用 TorchScript (JIT) 编译模型（你的代码中有相关逻辑，但 MeshGraphNet 这种图网络通常较难 JIT）
+  jit: False
+  # 模型 Checkpoint（.pth 文件）的保存路径
+  checkpoint_dir: "./checkpoints"
+
+  # 损失函数类型，代码支持 'MSE' (均方误差) 或 'MAE' (L1 Loss)
+  loss_criterion: 'MSE' 
+  # 早停机制（Early Stopping）：如果验证集 Loss 连续 50 个 Epoch 不下降，则停止训练
+  patience: 50 
+  # 日志打印频率：每隔 100 个 Batch 打印一次 Loss 信息
+  log_interval: 1000
+  # 单卡训练时使用的 GPU ID（例如使用 cuda:0）
+  gpuid: 0
+
+inference:
+  # 推理/可视化时关注的物理变量名称
+  viz_vars: ["u", "v", "p"]
+  # 可视化时跳过的帧数（减少生成的图片数量）
+  frame_skip: 10
+  # 帧间隔
+  frame_interval: 1

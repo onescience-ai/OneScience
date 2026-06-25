@@ -4,6 +4,7 @@ from onescience.modules._lazy import instantiate_registered_style
 
 _NODE_REGISTRY = {
     "MeshNodeBlock": ("onescience.modules.node.mesh_node_block", "MeshNodeBlock"),
+    "MeshNodeDistributedBlock": ("onescience.modules.node.mesh_node_distributed_block", "MeshNodeDistributedBlock"),
 }
 
 class OneNode(nn.Module):

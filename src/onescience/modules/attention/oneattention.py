@@ -45,6 +45,14 @@ _ATTENTIONER_REGISTRY = {
         "onescience.modules.attention.xihefeaturegroupattention",
         "FeatureGroupingAttention",
     ),
+    "DistributedFeatureUngroupingAttention": (
+        "onescience.modules.attention.xihedistributedfeatureungroupattention",
+        "DistributedFeatureUngroupingAttention",
+    ),
+    "DistributedFeatureGroupingAttention": (
+        "onescience.modules.attention.xihedistributedfeaturegroupattention",
+        "DistributedFeatureGroupingAttention",
+    ),
     "ProtenixAttention": ("onescience.modules.attention.protenixattention", "ProtenixAttention"),
     "ProtenixAttentionPairBias": (
         "onescience.modules.attention.protenixattention",
