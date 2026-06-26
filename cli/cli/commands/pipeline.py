@@ -66,8 +66,6 @@ def _run_pipeline(steps, on_error):
         else:
             _all_success = False
             err_msg = result.get("error") or result.get("output", "")
-            if len(err_msg) > 200:
-                err_msg = err_msg[:200] + "..."
             click.secho(f"  ✗ {model_alias} 执行失败: {err_msg}", fg="red")
 
             if on_error == "stop":

@@ -29,10 +29,16 @@ def _auto_bootstrap():
 
     if "ONESCIENCE_DATASETS_DIR" not in os.environ:
         from .road import ONESCIENCE_DATASETS_DIR
-        os.environ["ONESCIENCE_DATASETS_DIR"] = ONESCIENCE_DATASETS_DIR
+        from .core.config import _resolve_writable_dir
+        os.environ["ONESCIENCE_DATASETS_DIR"] = _resolve_writable_dir(
+            "datasets_dir", ONESCIENCE_DATASETS_DIR, "datasets"
+        )
     if "ONESCIENCE_MODELS_DIR" not in os.environ:
         from .road import ONESCIENCE_MODELS_DIR
-        os.environ["ONESCIENCE_MODELS_DIR"] = ONESCIENCE_MODELS_DIR
+        from .core.config import _resolve_writable_dir
+        os.environ["ONESCIENCE_MODELS_DIR"] = _resolve_writable_dir(
+            "models_dir", ONESCIENCE_MODELS_DIR, "models"
+        )
 
 
 _auto_bootstrap._done = False

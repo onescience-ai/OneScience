@@ -6,25 +6,75 @@ OneScience CLI 配置系统
   - 自定义配置 (.onescience.json, 项目根目录)
   - 环境切换 (env use)
 
-模型发现优先级 (5 级):
+模型发现优先级 (6 级):
   1. 完整路径 (含 / 或 \\)
   2. 当前环境的自定义模型 (config.models)
   3. 当前环境的扫描目录 (config.model_roots)
   4. 当前工作目录下的同名目录
   5. 内置预设 (built-in)
+  6. ModelScope 自动下载（本地不存在时从 ModelScope 拉取）
 """
 
 import os
 import json
 import typing as t
 from pathlib import Path
+import click
 
 # =========================================================================
 #  内置预设 (built-in preset)
 # =========================================================================
 
 BUILTIN_NAME = "onescience"
-BUILTIN_DATASETS_DIR = "/public/share/sugonhpcapp01/onestore/onedatasets"
+if os.name == "nt":
+    BUILTIN_DATASETS_DIR = str(Path.home() / ".onescience" / "datasets")
+    BUILTIN_MODELS_DIR = str(Path.home() / ".onescience" / "models")
+else:
+    BUILTIN_DATASETS_DIR = "/public/share/sugonhpcapp01/onestore/onedatasets"
+    BUILTIN_MODELS_DIR = "/public/share/sugonhpcapp01/onestore/onemodels"
+
+# 状态缓存文件：记录不可写时自动回退的路径，实现"首次设置，后续直接使用"
+_PATH_CACHE_FILE = Path.home() / ".onescience" / ".path_cache.json"
+
+
+def _resolve_writable_dir(key: str, default_path: str, fallback_base: str) -> str:
+    """检测默认路径是否可写，不可写时自动回退并缓存结果
+
+    优先级:
+      1. 状态缓存文件（持久化上次决定）
+      2. 尝试默认路径是否可写
+      3. 回退到 ~/.onescience/{fallback_base}
+    """
+    cache_dir = _PATH_CACHE_FILE.parent
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. 检查缓存
+    if _PATH_CACHE_FILE.exists():
+        try:
+            cache = json.loads(_PATH_CACHE_FILE.read_text(encoding="utf-8"))
+            if key in cache:
+                return cache[key]
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # 2. 尝试默认路径是否可写
+    try:
+        Path(default_path).mkdir(parents=True, exist_ok=True)
+        # 可写，缓存并返回
+        _PATH_CACHE_FILE.write_text(
+            json.dumps({key: default_path}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        return default_path
+    except OSError:
+        # 3. 不可写，回退到用户目录
+        fallback = str(Path.home() / ".onescience" / fallback_base)
+        Path(fallback).mkdir(parents=True, exist_ok=True)
+        _PATH_CACHE_FILE.write_text(
+            json.dumps({key: fallback}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        return fallback
 
 BUILTIN_DOMAINS: t.Dict[str, str] = {
     "earth": "气象与气候",
@@ -46,6 +96,7 @@ BUILTIN_DOMAIN_DIR_MAP: t.Dict[str, str] = {
 
 BUILTIN_DATASETS: t.Dict[str, str] = {
     "airfoil": "CFD_Benchmark/airfoil",
+    "airfrans": "Transolver-Airfoil-Design/Dataset",
     "darcy": "CFD_Benchmark/darcy",
     "elasticity": "CFD_Benchmark/elasticity",
     "ns": "CFD_Benchmark/ns",
@@ -66,6 +117,69 @@ BUILTIN_DATASETS: t.Dict[str, str] = {
     "pdenneval": "PDENNEval",
     "lagrangian_mgn": "Lagrangian_MGN",
     "topology": "GP_for_TO",
+    "newdataset": "NewModel/data",    
+}
+
+# ModelScope 数据集名称映射（数据集名 → ModelScope 上的数据集名）
+# 当本地不存在时，自动从 ModelScope 拉取
+MODELSCOPE_DATASETS: t.Dict[str, str] = {
+    "airfoil": "airfoil",
+    "airfrans": "airfrans",
+    "darcy": "darcy",
+    "elasticity": "elasticity",
+    "ns": "ns",
+    "pipe": "pipe",
+    "plasticity": "plasticity",
+    "era5": "ERA5",
+    "era5_stats": "ERA5",
+    "era5_static": "ERA5",
+    "cwb": "corrdiff-cwb",
+    "graphcast": "graphcast",
+    "mace": "mace",
+    "evo2": "evo2",
+    "protenix": "protenix",
+    "openfold": "openfold",
+    "matris": "matris",
+    "deepcfd": "DeepCFD",
+    "beno": "BENO",
+    "pdenneval": "PDENNEval",
+    "lagrangian_mgn": "Lagrangian_MGN",
+    "topology": "GP_for_TO",
+}
+
+# ModelScope 模型名称映射（模型别名 → ModelScope 上的模型仓库名）
+# 当本地不存在时，自动从 ModelScope 拉取
+# 地址: https://www.modelscope.cn/organization/OneScience?tab=model
+MODELSCOPE_MODELS: t.Dict[str, str] = {
+    "pangu": "pangu_weather",
+    "fourcastnet": "fourcastnet",
+    "fuxi": "fuxi",
+    "corrdiff": "corrdiff",
+    "fengwu": "fengwu",
+    "graphcast": "graphcast",
+    "graphcast_jax": "graphcast_jax",
+    "nowcastnet": "nowcastnet",
+    "oceancast": "oceancast",
+    "xihe": "xihe",
+    "deepcfd": "DeepCFD",
+    "cfd_benchmark": "CFD_Benchmark",
+    "f_fno": "CFD_Benchmark",
+    "fno": "CFD_Benchmark",
+    "factformer": "CFD_Benchmark",
+    "gfno": "CFD_Benchmark",
+    "gnot": "CFD_Benchmark",
+    "galerkin_transformer": "CFD_Benchmark",
+    "lsm": "CFD_Benchmark",
+    "mwt": "CFD_Benchmark",
+    "ono": "CFD_Benchmark",
+    "swin": "CFD_Benchmark",
+    "transformer": "CFD_Benchmark",
+    "transolver": "CFD_Benchmark",
+    "u_fno": "CFD_Benchmark",
+    "u_no": "CFD_Benchmark",
+    "u_net": "CFD_Benchmark",
+    "evo2": "evo2",
+    "mace": "mace",
 }
 
 # (alias) -> (domain, model_dir, sub_model, description)
@@ -100,6 +214,172 @@ BUILTIN_MODELS_RAW: t.Dict[str, tuple] = {
     "evo2": ("biosciences", "evo2", "", "Evo2"),
     "mace": ("matchem", "mace", "", "MACE"),
 }
+
+# =========================================================================
+#  ModelScope 下载提示
+# =========================================================================
+
+
+def _ensure_modelscope() -> bool:
+    """检查 modelscope CLI 是否可用，不可用时自动安装（仅首次）"""
+    import subprocess, sys
+    try:
+        r = subprocess.run(
+            [sys.executable, "-m", "modelscope", "--help"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if r.returncode != 0:
+            raise FileNotFoundError
+        return True
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        try:
+            r = subprocess.run(
+                [sys.executable, "-m", "pip", "install", "modelscope"],
+                capture_output=True, text=True, timeout=120,
+            )
+            if r.returncode != 0:
+                click.secho(f"modelscope 安装失败: {r.stderr.strip()[:200]}", fg="red")
+                return False
+            return True
+        except Exception as e:
+            click.secho(f"modelscope 安装异常: {e}", fg="red")
+            return False
+
+
+def _auto_download_dataset(name: str, target_dir: Path) -> t.Optional[str]:
+    """数据集本地不存在时，自动从 ModelScope 拉取
+
+    ModelScope 地址: https://www.modelscope.cn/organization/OneScience?tab=dataset
+    使用 modelscope CLI 下载（自动处理 LFS），先检查是否已安装，未安装则自动安装。
+    """
+    import subprocess
+
+    ms_name = MODELSCOPE_DATASETS.get(name, name)
+
+    if target_dir.exists():
+        return str(target_dir)
+
+    target_dir.parent.mkdir(parents=True, exist_ok=True)
+
+    if not _ensure_modelscope():
+        return None
+
+    click.secho(f"正在从 ModelScope 自动下载数据集 '{name}'...", fg="cyan")
+    click.echo(f"  数据集: OneScience/{ms_name}")
+    click.echo(f"  目标: {target_dir}")
+
+    try:
+        r = subprocess.run(
+            ["modelscope", "download", "--dataset", f"OneScience/{ms_name}", "--local_dir", str(target_dir)],
+            timeout=3600,
+        )
+        if r.returncode != 0:
+            if target_dir.exists() and not any(target_dir.iterdir()):
+                target_dir.rmdir()
+            click.secho(f"数据集 '{name}' 从 ModelScope 下载失败（exit code {r.returncode}）", fg="red")
+            return None
+    except Exception as e:
+        if target_dir.exists() and not any(target_dir.iterdir()):
+            target_dir.rmdir()
+        click.secho(f"数据集 '{name}' 下载异常: {e}", fg="red")
+        return None
+
+    click.secho(f"数据集 '{name}' 下载完成", fg="green")
+    return str(target_dir)
+
+
+def _auto_download_model(name: str, target_dir: Path) -> t.Optional[Path]:
+    """模型本地不存在时，自动从 ModelScope 拉取
+
+    ModelScope 地址: https://www.modelscope.cn/organization/OneScience?tab=model
+    使用 modelscope CLI 下载（自动处理 LFS），先检查是否已安装，未安装则自动安装。
+    """
+    import subprocess
+
+    ms_name = MODELSCOPE_MODELS.get(name, name)
+
+    if target_dir.exists():
+        return target_dir
+
+    target_dir.parent.mkdir(parents=True, exist_ok=True)
+
+    if not _ensure_modelscope():
+        return None
+
+    click.secho(f"正在从 ModelScope 自动下载模型 '{name}'...", fg="cyan")
+    click.echo(f"  模型: OneScience/{ms_name}")
+    click.echo(f"  目标: {target_dir}")
+
+    try:
+        r = subprocess.run(
+            ["modelscope", "download", "--model", f"OneScience/{ms_name}", "--local_dir", str(target_dir)],
+            timeout=3600,
+        )
+        if r.returncode != 0:
+            if target_dir.exists() and not any(target_dir.iterdir()):
+                target_dir.rmdir()
+            click.secho(f"模型 '{name}' 从 ModelScope 下载失败（exit code {r.returncode}）", fg="red")
+            return None
+    except Exception as e:
+        if target_dir.exists() and not any(target_dir.iterdir()):
+            target_dir.rmdir()
+        click.secho(f"模型 '{name}' 下载异常: {e}", fg="red")
+        return None
+
+    click.secho(f"模型 '{name}' 下载完成", fg="green")
+    return target_dir
+
+
+def _resolve_lfs_files(target_dir: Path, ms_name: str, resource_type: str = "datasets"):
+    """检测目录中的 LFS 指针文件，并从 ModelScope 下载真实数据
+
+    Args:
+        target_dir: 下载目录
+        ms_name: ModelScope 上的仓库名
+        resource_type: "datasets" 或 "models"
+    """
+    import urllib.request
+
+    base_url = f"https://www.modelscope.cn/{resource_type}/OneScience/{ms_name}/resolve/master"
+    lfs_signature = "version https://git-lfs.github.com/spec/"
+    lfs_failures = 0
+
+    for fpath in target_dir.rglob("*"):
+        if not fpath.is_file() or fpath.name == ".gitattributes":
+            continue
+        # 跳过已存在于 .git 目录中的文件
+        if ".git" in str(fpath.relative_to(target_dir)).split(os.sep):
+            continue
+        try:
+            # 只读取前 200 字节判断是否为 LFS 指针文件
+            with open(fpath, "rb") as f:
+                header = f.read(200).decode("utf-8", errors="ignore")
+            if not header.startswith(lfs_signature):
+                continue
+            # 提取 oid
+            for line in header.split("\n"):
+                if line.startswith("oid sha256:"):
+                    oid = line.split(":")[1].strip()
+                    # 通过 HTTP 下载真实文件
+                    file_rel = str(fpath.relative_to(target_dir)).replace("\\", "/")
+                    file_url = f"{base_url}/{file_rel}"
+                    try:
+                        req = urllib.request.Request(file_url, headers={
+                            "User-Agent": "Mozilla/5.0",
+                            "Accept": "application/octet-stream",
+                        })
+                        with urllib.request.urlopen(req, timeout=3600) as resp:
+                            real_data = resp.read()
+                        fpath.write_bytes(real_data)
+                    except Exception:
+                        lfs_failures += 1
+                    break
+        except Exception:
+            continue
+
+    if lfs_failures > 0:
+        click.secho(f"  警告: {lfs_failures} 个 LFS 文件下载失败，部分大文件可能不完整", fg="yellow")
+
 
 # =========================================================================
 #  配置加载
@@ -186,7 +466,24 @@ class Config:
 
     @property
     def datasets_dir(self) -> str:
-        return self._data.get("datasets_dir", BUILTIN_DATASETS_DIR)
+        env_dir = os.environ.get("ONESCIENCE_DATASETS_DIR")
+        if env_dir:
+            return env_dir
+        config_dir = self._data.get("datasets_dir")
+        if config_dir:
+            return config_dir
+        return _resolve_writable_dir("datasets_dir", BUILTIN_DATASETS_DIR, "datasets")
+
+    @property
+    def models_dir(self) -> str:
+        """模型存储目录（用于 ModelScope 自动下载存放）"""
+        env_dir = os.environ.get("ONESCIENCE_MODELS_DIR")
+        if env_dir:
+            return env_dir
+        config_dir = self._data.get("models_dir")
+        if config_dir:
+            return config_dir
+        return _resolve_writable_dir("models_dir", BUILTIN_MODELS_DIR, "models")
 
     # ---- 领域 ----
 
@@ -204,10 +501,10 @@ class Config:
         merged.update(custom)
         return merged
 
-    # ---- 模型发现（5 级优先级） ----
+    # ---- 模型发现（6 级优先级） ----
 
-    def resolve_model(self, name: str) -> t.Optional[dict]:
-        """5 级优先级查找模型"""
+    def resolve_model(self, name: str) -> dict:
+        """6 级优先级查找模型"""
         name_lower = name.lower().strip()
 
         # 级别 1: 完整路径
@@ -276,17 +573,69 @@ class Config:
                 model_path = project_root / "examples" / BUILTIN_DOMAIN_DIR_MAP.get(domain, domain) / model_dir
             else:
                 model_path = None
+            if model_path and model_path.exists():
+                return {
+                    "alias": name_lower,
+                    "domain": domain,
+                    "model": model_dir,
+                    "sub_model": sub_model,
+                    "description": desc,
+                    "model_dir": model_path,
+                    "source": "builtin",
+                }
+
+            # 级别 6: ModelScope 自动下载（内置模型本地不存在时）
+            if name_lower in MODELSCOPE_MODELS:
+                target = Path(self.models_dir) / model_dir
+                result = _auto_download_model(name_lower, target)
+                if result:
+                    return {
+                        "alias": name_lower,
+                        "domain": domain,
+                        "model": model_dir,
+                        "sub_model": sub_model,
+                        "description": f"从 ModelScope 自动下载: {desc}",
+                        "model_dir": result,
+                        "source": "modelscope",
+                    }
+
+            # 内置模型既不存在也无法下载
             return {
                 "alias": name_lower,
                 "domain": domain,
                 "model": model_dir,
                 "sub_model": sub_model,
                 "description": desc,
-                "model_dir": model_path,
+                "model_dir": None,
                 "source": "builtin",
             }
 
-        return None
+        # 级别 6: ModelScope 自动下载（所有未找到的模型）
+        # 对于未注册的模型名，尝试从 ModelScope 拉取
+        target = Path(self.models_dir) / name_lower
+        result = _auto_download_model(name_lower, target)
+        if result:
+            return {
+                "alias": name_lower,
+                "domain": "_custom",
+                "model": name_lower,
+                "sub_model": "",
+                "description": f"从 ModelScope 自动下载: {name_lower}",
+                "model_dir": result,
+                "source": "modelscope",
+            }
+
+        # 下载失败时返回带有 model_dir=None 的结果，而非 None
+        # 这样 runner 可以展示更清晰的提示信息，而非"未知模型"
+        return {
+            "alias": name_lower,
+            "domain": "_custom",
+            "model": name_lower,
+            "sub_model": "",
+            "description": f"模型不存在且从 ModelScope 下载失败: {name_lower}",
+            "model_dir": None,
+            "source": "modelscope",
+        }
 
     def list_models(self, domain: t.Optional[str] = None) -> t.List[dict]:
         """列出所有可用模型（内置 + 自定义 + 扫描目录发现）"""
@@ -357,7 +706,7 @@ class Config:
         优先级:
           1. 完整路径 (含 / 或 \\)
           2. 当前环境的自定义数据集
-          3. 内置预设数据集
+          3. 内置预设数据集（本地不存在时从 ModelScope 自动下载）
           4. datasets_dir 下的同名子目录
         """
         if "/" in name or "\\" in name:
@@ -374,19 +723,51 @@ class Config:
                     p = (self._file_path.parent / p).resolve()
             if p.exists():
                 return str(p)
-            return str(p)  # 即使不存在也返回路径（用于下载等场景）
+            return None
 
-        # 内置数据集
+        # 内置数据集 — 本地存在直接返回，不存在则自动从 ModelScope 拉取
         if name in BUILTIN_DATASETS:
             p = Path(self.datasets_dir) / BUILTIN_DATASETS[name]
-            if p.exists():
+            if p.exists() and any(p.iterdir()):
                 return str(p)
-            return str(p)
+            # fallback: 检查 data/{name} 子目录（兼容无软链接的目录结构）
+            data_fallback = p.parent / "data" / name
+            if data_fallback.exists() and any(data_fallback.iterdir()):
+                return str(data_fallback)
+            # 空目录则删除后重新下载
+            if p.exists() and not any(p.iterdir()):
+                p.rmdir()
+            # 本地不存在，自动从 ModelScope 拉取
+            rel = BUILTIN_DATASETS[name]
+            if "/" in rel:
+                # 子路径数据集（如 era5_stats → ERA5/stats），先确保父数据集已下载
+                parent_rel = rel.split("/")[0]
+                parent_key = next((k for k, v in BUILTIN_DATASETS.items() if v == parent_rel), name)
+                parent_target = Path(self.datasets_dir) / parent_rel
+                if not parent_target.exists() or not any(parent_target.iterdir()):
+                    _auto_download_dataset(parent_key, parent_target)
+                # 子路径数据集的下载触发在其 resolve 调用中，这里直接返回
+                return str(p) if p.exists() and any(p.iterdir()) else str(p)
+            # 非子路径数据集，直接下载
+            target = p
+            result = _auto_download_dataset(name, target)
+            if result:
+                return result
+            return None
 
         # datasets_dir 下的同名子目录
         p = Path(self.datasets_dir) / name
-        if p.exists():
+        if p.exists() and any(p.iterdir()):
             return str(p)
+        # 空目录则删除后重新触发下载
+        if p.exists() and not any(p.iterdir()):
+            p.rmdir()
+
+        # 未知数据集，尝试从 ModelScope 自动拉取
+        target = Path(self.datasets_dir) / name
+        result = _auto_download_dataset(name, target)
+        if result:
+            return result
 
         return None
 

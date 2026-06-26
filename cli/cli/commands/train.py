@@ -19,7 +19,5 @@ def train(model_alias, dataset):
         click.secho(f"训练完成: {model_alias}", fg="green")
     else:
         err_msg = r.get("error") or r.get("output", "")
-        if len(err_msg) > 200:
-            err_msg = err_msg[:200] + "..."
         click.secho(f"训练失败: {err_msg}", fg="red")
     print_metrics(r)

@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from typing import Dict
 
-from .core.config import config, BUILTIN_DATASETS, BUILTIN_DATASETS_DIR
+from .core.config import config, BUILTIN_DATASETS, BUILTIN_DATASETS_DIR, BUILTIN_MODELS_DIR
 
 
 # 向后兼容: 保留旧版常量，供其他模块直接 import 使用
@@ -22,7 +22,7 @@ ONESCIENCE_DATASETS_DIR = os.environ.get(
 
 ONESCIENCE_MODELS_DIR = os.environ.get(
     "ONESCIENCE_MODELS_DIR",
-    "/public/share/sugonhpcapp01/onestore/onemodels",
+    BUILTIN_MODELS_DIR,
 )
 
 DATASET_PATHS = dict(BUILTIN_DATASETS)

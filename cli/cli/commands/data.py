@@ -2,6 +2,7 @@ import os
 import click
 from pathlib import Path
 from ..road import DATASET_PATHS, ONESCIENCE_DATASETS_DIR, list_available_datasets
+from ..core.config import config
 
 
 DOMAIN_DATASETS = {
@@ -91,12 +92,99 @@ def dataset_info(name):
             click.secho(f"数据集 '{name}' 未找到", fg="red")
 
 
+def _download_from_modelscope(name: str, output_dir: Path, ms_name: str) -> bool:
+    """从 ModelScope 下载数据集
+
+    ModelScope 数据集地址: https://www.modelscope.cn/organization/OneScience?tab=dataset
+    使用 git clone + urllib，只需 git，无需额外 Python 包。
+    """
+    import subprocess
+
+    if output_dir.exists():
+        click.echo(f"  目标目录已存在: {output_dir}")
+        click.echo(f"  如需重新下载，请先删除该目录")
+        return True
+
+    # 检查 git 是否可用
+    try:
+        r = subprocess.run(["git", "--version"], capture_output=True, text=True, timeout=10)
+        if r.returncode != 0:
+            raise FileNotFoundError
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        click.secho("需要安装 git 才能下载数据集", fg="red")
+        click.echo("  请安装: apt install git / yum install git")
+        return False
+
+    click.secho(f"正在从 ModelScope 下载数据集 '{name}'...", fg="cyan")
+    click.echo(f"  数据集: OneScience/{ms_name}")
+    click.echo(f"  目标: {output_dir}")
+    click.echo(f"  注意: 数据集可能较大，下载时间取决于网络状况")
+    click.echo("")
+
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    url = f"https://www.modelscope.cn/datasets/OneScience/{ms_name}.git"
+    try:
+        r = subprocess.run(
+            ["git", "clone", "--depth", "1", url, str(output_dir)],
+            capture_output=True, text=True, timeout=3600,
+        )
+        if r.returncode != 0:
+            stderr = r.stderr.strip()
+            click.secho(f"下载失败: {stderr[:300]}", fg="red")
+            if output_dir.exists() and not list(output_dir.iterdir()):
+                output_dir.rmdir()
+            return False
+
+        # 检测并下载 LFS 指针文件的真实数据
+        from ..core.config import _resolve_lfs_files
+        _resolve_lfs_files(output_dir, ms_name)
+
+        # 删除 .git 目录
+        git_dir = output_dir / ".git"
+        if git_dir.exists():
+            import shutil
+            shutil.rmtree(git_dir)
+
+        click.secho(f"下载完成: {output_dir}", fg="green")
+        return True
+    except subprocess.TimeoutExpired:
+        click.secho("下载超时（3600秒），数据集可能过大", fg="red")
+        return False
+    except Exception as e:
+        click.secho(f"下载异常: {e}", fg="red")
+        return False
+
+
 @data_group.command("download")
 @click.argument("name")
 @click.option("-output", default=None, help="输出目录（默认使用数据集目录）")
 @click.option("-year", default=None, help="指定年份（ERA5 数据集）")
 def download_data(name, output, year):
-    """下载数据集（目前支持 ERA5）"""
+    """下载数据集
+
+    支持从 ModelScope 下载 (https://www.modelscope.cn/organization/OneScience?tab=dataset)
+    需要系统已安装 git。
+    """
+    from ..core.config import MODELSCOPE_DATASETS
+
+    # 确定输出目录
+    if output:
+        output_dir = Path(output)
+    else:
+        from ..core.config import BUILTIN_DATASETS
+        if name in BUILTIN_DATASETS:
+            output_dir = Path(config.datasets_dir) / BUILTIN_DATASETS[name]
+        else:
+            output_dir = Path(config.datasets_dir) / name
+
+    # 尝试从 ModelScope 下载（支持映射表和自动猜测）
+    ms_name = MODELSCOPE_DATASETS.get(name, name)
+    if _download_from_modelscope(name, output_dir, ms_name):
+        click.secho(f"\n数据集已就绪，可使用以下命令执行模型:", fg="green")
+        click.echo(f"  onescience bench -dataset {name} -models ...")
+        return
+
+    # ModelScope 下载失败，尝试旧版 ERA5 脚本（保留向后兼容）
     if name == "era5":
         script_dir = None
         from ..core.registry import PROJECT_ROOT
@@ -105,10 +193,11 @@ def download_data(name, output, year):
             script_dir = candidate
 
         if not script_dir:
-            click.echo("未找到 ERA5 下载脚本（expected at examples/earth/era5_dataset_prepare/）")
+            click.echo("未找到 ERA5 下载脚本")
+            click.echo("也可尝试手动克隆:")
+            click.echo(f"  git clone https://www.modelscope.cn/datasets/OneScience/ERA5.git {output_dir}")
             return
 
-        output_dir = Path(output) if output else script_dir / "data"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         click.secho(f"ERA5 数据下载与准备", fg="green")
@@ -125,9 +214,10 @@ def download_data(name, output, year):
         click.echo(f"  python step_2_data_conversion.py")
         click.echo(f"  python step_3_data_merge.py")
         click.echo(f"  python step_4_stats_calculate.py")
-    else:
-        click.echo(f"数据集 '{name}' 暂不支持自动下载")
-        click.echo(f"当前支持的下载: era5")
+        return
+
+    click.echo(f"数据集 '{name}' 从 ModelScope 下载失败")
+    click.echo(f"ModelScope 数据集地址: https://www.modelscope.cn/organization/OneScience?tab=dataset")
 
 
 @data_group.command("generate")

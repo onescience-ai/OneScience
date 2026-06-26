@@ -20,14 +20,12 @@ def bench(dataset, models):
         click.secho(f"模型领域: {info['domain']}", fg="green")
         click.secho(f"数据集: {dataset}", fg="green")
         click.echo(f"{'=' * 48}")
-        r = run_model(alias, "train", dataset)
+        r = run_model(alias, "bench", dataset)
         results.append(r)
         if r["success"]:
             click.secho(f"模型执行完成: {alias}", fg="green")
         else:
             err_msg = r.get("error") or r.get("output", "")
-            if len(err_msg) > 200:
-                err_msg = err_msg[:200] + "..."
             click.secho(f"模型执行失败: {err_msg}", fg="red")
         print_metrics(r)
         click.echo()

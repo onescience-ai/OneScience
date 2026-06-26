@@ -18,11 +18,59 @@ import typing as t
 import click
 from pathlib import Path
 from .registry import model_registry, EXAMPLES_DIR, PROJECT_ROOT, SRC_DIR
-from .config import config
+from .config import config, MODELSCOPE_MODELS
 from ..road import DATASET_PATHS
 
 
 def _patch_config_values(content: str, patches: t.Dict[str, str]) -> t.Optional[str]:
+    """使用 ruamel.yaml 结构化修改 YAML 配置
+
+    相比纯文本替换方式，结构化方式：
+      - 不受 YAML 注释、空行、多行值的影响
+      - 正确维护 YAML 节点层级关系
+      - 不会意外破坏其他键值对
+    """
+    try:
+        from ruamel.yaml import YAML
+    except ImportError:
+        # 兜底：无 ruamel.yaml 时用旧文本方式
+        return _patch_config_values_text(content, patches)
+
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    data = yaml.load(content)
+
+    modified = False
+    for path_key, value_str in patches.items():
+        parts = path_key.split('.')
+        # 导航到目标节点的父节点
+        parent = data
+        for part in parts[:-1]:
+            if isinstance(parent, dict) and part in parent:
+                parent = parent[part]
+            else:
+                parent = None
+                break
+        if parent is None or not isinstance(parent, dict) or parts[-1] not in parent:
+            continue
+        # 将补丁值解析为 YAML 类型并设置
+        try:
+            parsed = yaml.load(value_str)
+            parent[parts[-1]] = parsed
+            modified = True
+        except Exception:
+            pass
+
+    if modified:
+        from io import StringIO
+        buf = StringIO()
+        yaml.dump(data, buf)
+        return buf.getvalue()
+    return None
+
+
+def _patch_config_values_text(content: str, patches: t.Dict[str, str]) -> t.Optional[str]:
+    """纯文本方式替换 YAML 配置值（兜底方案）"""
     lines = content.split('\n')
     result = []
     indent_stack: t.List[t.Tuple[int, str]] = []
@@ -58,19 +106,53 @@ def _patch_config_values(content: str, patches: t.Dict[str, str]) -> t.Optional[
     return '\n'.join(result) if modified else None
 
 
-def _earth_config_patches(env: dict) -> t.Optional[t.Tuple[str, dict]]:
+_STATIC_FILES = ["land_mask.npy", "soil_type.npy", "topography.npy"]
+
+
+def _ensure_static_files(static_dir: Path) -> None:
+    """确保静态文件存在，缺失时自动生成。
+
+    部分地球模型（pangu 等）需要 land_mask/soil_type/topography
+    三个静态场用于模型输入。如果数据集中没有，这里用随机假数据生成。
+    """
+    if static_dir.exists() and all((static_dir / f).exists() for f in _STATIC_FILES):
+        return
+
+    import numpy as np
+
+    static_dir.mkdir(parents=True, exist_ok=True)
+    shape = (721, 1440)
+    rng = np.random.default_rng(42)
+
+    if not (static_dir / "land_mask.npy").exists():
+        arr = (rng.random(shape) > 0.7).astype(np.float32)
+        np.save(str(static_dir / "land_mask.npy"), arr)
+
+    if not (static_dir / "soil_type.npy").exists():
+        arr = rng.integers(0, 6, size=shape).astype(np.float32)
+        np.save(str(static_dir / "soil_type.npy"), arr)
+
+    if not (static_dir / "topography.npy").exists():
+        arr = rng.normal(500, 1500, size=shape).astype(np.float32)
+        np.save(str(static_dir / "topography.npy"), arr)
+
+    click.secho(f"  ✅ 已自动生成静态文件 ({len(_STATIC_FILES)} 个) 到: {static_dir}", fg="green")
+
+
+def _earth_config_patches(env: dict, config_path: t.Optional[Path] = None) -> t.Optional[t.Tuple[str, dict]]:
     data_dir = env.get("ONESCIENCE_DATASET_PATH", "")
     if not data_dir:
         return None
     patches = {}
     patches["datapipe.dataset.data_dir"] = f"'{data_dir}'"
     patches["datapipe.dataset.stats_dir"] = f"'{data_dir}/stats/'"
-    patches["datapipe.dataset.static_dir"] = f"'{data_dir}/static/'"
+    static_dir_path = Path(data_dir) / "static"
+    patches["datapipe.dataset.static_dir"] = f"'{static_dir_path}/'"
 
-    data_glob = os.path.join(data_dir, "data", "*.h5")
-    h5_files = sorted(glob.glob(data_glob))
-    if h5_files:
-        years = sorted(int(os.path.basename(f).replace(".h5", "")) for f in h5_files)
+    # 始终从实际数据集自动检测可用年份并覆盖 config 中的年份配置
+    # 确保 CLI 能自适应不同环境的数据集，避免 config 硬编码年份与数据不匹配
+    years = _detect_era5_years(data_dir)
+    if years:
         if len(years) >= 3:
             train_years = years[:-2]
             val_years = [years[-2]]
@@ -86,8 +168,68 @@ def _earth_config_patches(env: dict) -> t.Optional[t.Tuple[str, dict]]:
         patches["datapipe.dataset.train_time"] = str(train_years)
         patches["datapipe.dataset.val_time"] = str(val_years)
         patches["datapipe.dataset.test_time"] = str(test_years)
+        click.echo(f"  检测到数据集年份: {years[0]}~{years[-1]} ({len(years)} 年)")
+        click.echo(f"  训练: {train_years}, 验证: {val_years}, 测试: {test_years}")
+        return (data_dir, patches)
+    else:
+        data_glob = os.path.join(data_dir, "data", "*.h5")
+        click.secho(
+            f"⚠️  在数据集目录中未找到 HDF5 数据文件:\n"
+            f"    {data_glob}\n"
+            f"    {os.path.join(data_dir, 'data', '*', '*.h5')}\n"
+            f"    请检查数据集目录结构",
+            fg="yellow",
+        )
+        # 没有检测到数据时不打补丁，保留模型原始 config 配置
+        return None
 
-    return (data_dir, patches)
+
+def _detect_era5_years(data_dir: str) -> t.Optional[t.List[int]]:
+    """检测 ERA5 数据集可用年份，兼容两种格式
+
+    Returns:
+        排序后的年份列表，如果没找到数据返回 None
+    """
+    # 新格式: data/{year}.h5
+    data_glob = os.path.join(data_dir, "data", "*.h5")
+    h5_files = sorted(glob.glob(data_glob))
+    if h5_files:
+        return sorted(int(os.path.basename(f).replace(".h5", "")) for f in h5_files)
+
+    # 旧格式: data/{year}/*.h5 (年份子目录)
+    data_dir_path = os.path.join(data_dir, "data")
+    if os.path.isdir(data_dir_path):
+        year_dirs = sorted([
+            d for d in os.listdir(data_dir_path)
+            if os.path.isdir(os.path.join(data_dir_path, d)) and d.isdigit()
+        ])
+        if year_dirs:
+            years = [int(d) for d in year_dirs]
+            # 验证年份目录里确实有 h5 文件
+            for y in year_dirs[:1]:
+                if glob.glob(os.path.join(data_dir_path, y, "*.h5")):
+                    return years
+            return years
+
+    return None
+
+
+# 通用数据集数据文件后缀列表（用于验证路径是否包含真实数据）
+_DATA_FILE_EXTENSIONS = {'.h5', '.hdf5', '.nc', '.npy', '.npz', '.csv', '.grib', '.grib2', '.zarr', '.mat'}
+
+
+def _validate_dataset_path(path: str) -> bool:
+    """验证数据集路径是否包含可识别的数据文件
+
+    递归查找常见科学数据格式文件，适用于任意数据集类型。
+    """
+    if not path or not os.path.isdir(path):
+        return False
+    for root, dirs, files in os.walk(path):
+        for f in files:
+            if any(f.lower().endswith(ext) for ext in _DATA_FILE_EXTENSIONS):
+                return True
+    return False
 
 
 RESULTS_DIR = PROJECT_ROOT / "model_results"
@@ -197,36 +339,105 @@ def _extract_metrics(log_text: str, domain: str) -> dict:
     return metrics
 
 
+def _retry_with_fixed_static_files(cmd, cwd, log_path, env, failed_output):
+    """检测失败是否因缺失静态文件导致，自动生成后重试。
+
+    完全通用的补救策略：不预判任何模型需要什么文件，
+    只在模型执行报 FileNotFoundError 时按需补齐。
+    """
+    # 在输出中查找静态文件缺失错误
+    # 匹配: FileNotFoundError: ... '.../static/land_mask.npy'
+    match = re.search(
+        r"FileNotFoundError.*?['\"](.+?/static/.*?\.npy)['\"]",
+        failed_output,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+
+    missing_path = Path(match.group(1))
+    static_dir = missing_path.parent
+
+    # 只处理我们能生成的静态文件
+    if missing_path.name not in ("land_mask.npy", "soil_type.npy", "topography.npy"):
+        return None
+
+    click.secho(f"  ⚠ 模型需要静态文件 {missing_path.name}，正在自动生成...", fg="yellow")
+    _ensure_static_files(static_dir)
+
+    # 重试一次
+    click.secho("  ↻ 正在重试...", fg="yellow")
+    try:
+        process = subprocess.Popen(
+            cmd, cwd=str(cwd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            env=env, text=True, bufsize=1,
+        )
+        retry_lines = []
+        for line in iter(process.stdout.readline, ""):
+            retry_lines.append(line)
+        process.wait(timeout=_CMD_TIMEOUT)
+        retry_output = "".join(retry_lines)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_path.write_text(retry_output, encoding="utf-8")
+        if process.returncode != 0:
+            click.secho(f"重试仍失败（exit code {process.returncode}），完整日志: {log_path}", fg="red")
+        return {"success": process.returncode == 0, "output": retry_output, "log_path": log_path}
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
+        click.secho(f"命令执行超时（{_CMD_TIMEOUT}秒）: {' '.join(cmd)}", fg="red")
+        return None
+    except Exception as e:
+        click.secho(str(e), fg="red")
+        return None
+
+
 def _run_cmd(cmd: t.List[str], cwd: Path, log_path: Path, env: t.Optional[dict] = None) -> dict:
     merged_env = os.environ.copy()
     if env:
         merged_env.update(env)
 
-    # 仅当 onescience 源码目录存在时才注入 PYTHONPATH
-    # 确保自定义项目不受 PYTHONPATH 污染
-    if SRC_DIR.exists():
-        src_parent = str(SRC_DIR.parent)
-        existing_pypath = merged_env.get("PYTHONPATH", "")
-        pypath_parts = [p for p in existing_pypath.split(os.pathsep) if p and p != src_parent]
-        pypath_parts.insert(0, src_parent)
-        merged_env["PYTHONPATH"] = os.pathsep.join(pypath_parts)
+    # 自动注入 PyTorch 显存优化环境变量（避免 pipe 模式下的 OOM）
+    if "PYTORCH_HIP_ALLOC_CONF" not in merged_env:
+        merged_env.setdefault("PYTORCH_HIP_ALLOC_CONF", "expandable_segments:True")
+    if "PYTORCH_CUDA_ALLOC_CONF" not in merged_env:
+        merged_env.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
     try:
-        result = subprocess.run(
-            cmd, cwd=str(cwd), capture_output=True, text=True, env=merged_env,
-            timeout=_CMD_TIMEOUT,
+        process = subprocess.Popen(
+            cmd, cwd=str(cwd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            env=merged_env, text=True, bufsize=1,
         )
-        output = result.stdout + result.stderr
+        output_lines = []
+        for line in iter(process.stdout.readline, ""):
+            output_lines.append(line)
+        process.wait(timeout=_CMD_TIMEOUT)
+        output = "".join(output_lines)
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_path.write_text(output, encoding="utf-8")
-        return {"success": result.returncode == 0, "output": output, "log_path": log_path}
+
+        # ── 智能补救：进程失败且因缺失静态文件 → 生成后重试 ─────────
+        if process.returncode != 0:
+            retry = _retry_with_fixed_static_files(cmd, cwd, log_path, merged_env, output)
+            if retry is not None:
+                return retry
+
+        if process.returncode != 0:
+            click.secho(f"命令执行失败（exit code {process.returncode}），完整日志: {log_path}", fg="red")
+
+        return {"success": process.returncode == 0, "output": output, "log_path": log_path}
     except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait()
         msg = f"命令执行超时（{_CMD_TIMEOUT}秒）: {' '.join(cmd)}"
+        click.secho(msg, fg="red")
         log_path.write_text(msg, encoding="utf-8")
         return {"success": False, "output": msg, "log_path": log_path}
     except Exception as e:
-        log_path.write_text(str(e), encoding="utf-8")
-        return {"success": False, "output": str(e), "log_path": log_path}
+        msg = str(e)
+        click.secho(msg, fg="red")
+        log_path.write_text(msg, encoding="utf-8")
+        return {"success": False, "output": msg, "log_path": log_path}
 
 
 def _run_cfd_benchmark_script(model_dir: Path, cmd_type: str, sub_model: str, dataset: str, env: dict) -> dict:
@@ -277,43 +488,203 @@ def _run_cfd_benchmark_script(model_dir: Path, cmd_type: str, sub_model: str, da
     return {"success": all_success, "output": output}
 
 
+# 内建模型特殊配置（模型目录名 → 配置项）
+# 只存储通用引擎无法自动推断的信息：
+#   _variant_order: variant 执行的语义顺序，如 ["short", "medium", "long"]
+# 大部分模型不需要任何配置，通用发现引擎自动接管
+_MODEL_EXECUTION_OVERRIDES = {
+    "fuxi": {
+        "_variant_order": ["short", "medium", "long"],
+    },
+}
+
+
+# ──────────────────────────────────────────────
+# 通用脚本自动发现引擎
+# ──────────────────────────────────────────────
+
+# 始终跳过的非流水线脚本
+_SKIP_SCRIPTS = frozenset({'__init__', 'setup'})
+
+
+def _discover_model_scripts(model_dir: Path) -> dict:
+    """自动发现模型脚本，按命名约定分类。
+
+    规则：
+      - train*.py          → 训练阶段
+      - infer*.py          → 推理阶段
+      - result*.py/eval*.py → 评估阶段
+      - __init__.py/setup.py → 跳过
+
+    Variant 检测：当没有朴素的 train.py 但有 train_{variant}.py 时，
+    认为该模型有多个变体（如 fuxi 的 short/medium/long）。
+
+    Returns:
+        {
+            "train": [...],       # 脚本名（不含 .py）
+            "infer": [...],
+            "eval": [...],
+            "variants": [...],    # 检测到的变体列表
+            "has_plain_train": bool,
+            "has_plain_infer": bool,
+            "has_plain_eval": bool,
+            "pipeline_found": bool,  # 是否存在任何流水线脚本
+        }
+    """
+    result = {
+        "train": [],
+        "infer": [],
+        "eval": [],
+        "variants": [], 
+        "has_plain_train": False,
+        "has_plain_infer": False,
+        "has_plain_eval": False,
+        "pipeline_found": False,
+    }
+
+    for f in model_dir.glob("*.py"):
+        name = f.stem
+        if name in _SKIP_SCRIPTS:
+            continue
+
+        if name.startswith('train'):
+            result["train"].append(name)
+            result["pipeline_found"] = True
+        elif name.startswith('infer'):
+            result["infer"].append(name)
+            result["pipeline_found"] = True
+        elif name.startswith('result') or name.startswith('eval'):
+            result["eval"].append(name)
+            result["pipeline_found"] = True
+
+    result["has_plain_train"] = 'train' in result["train"]
+    result["has_plain_infer"] = any(s in ('inference', 'infer') for s in result["infer"])
+    result["has_plain_eval"] = any(s in ('result', 'eval') for s in result["eval"])
+
+    # Variant 检测：没有朴素 train.py 但有 train_{variant}.py
+    if not result["has_plain_train"]:
+        variants = set()
+        for s in result["train"]:
+            m = re.match(r'train_(.+)', s)
+            if m:
+                variants.add(m.group(1))
+        result["variants"] = sorted(variants)
+
+    return result
+
+
+def _build_execution_plan(scripts: dict, cmd_type: str, variant_order: t.Optional[list] = None) -> list:
+    """从已发现的脚本构建有序执行计划。
+
+    执行顺序策略：
+      bench + variant 模型 → 按变体分组执行（train_{v} → infer {v} → eval {v}）
+      bench + 普通模型    → train → infer → eval 依次执行
+      其他模式            → 只执行对应阶段的脚本
+
+    Args:
+        variant_order: 可选的 variant 语义排序，如 ["short", "medium", "long"]。
+                       未提供时按字母序排列。
+
+    Returns:
+        [(script_name, [args]), ...]  的有序列表
+    """
+    _PHASE_MAP = {
+        "TRAIN": ["train"],
+        "train": ["train"],
+        "bench": ["train", "infer", "eval"],
+        "INFER": ["infer"],
+        "infer": ["infer"],
+        "EVAL": ["eval"],
+        "eval": ["eval"],
+    }
+    phases = _PHASE_MAP.get(cmd_type, ["train", "infer", "eval"])
+
+    plan = []
+    variants = scripts["variants"]
+    if variants:
+        # 优先使用语义顺序，未指定时按字母序
+        if variant_order:
+            variants = [v for v in variant_order if v in variants]
+        # ── Variant 模型 ──────────────────────────────────
+        if cmd_type == "bench":
+            # 按变体分组：train_{v} → infer {v} → eval {v}
+            for variant in variants:
+                train_v = f"train_{variant}"
+                if train_v in scripts["train"]:
+                    plan.append((f"{train_v}.py", []))
+
+                if scripts["has_plain_infer"]:
+                    plain_infer = next(s for s in scripts["infer"] if s in ('inference', 'infer'))
+                    plan.append((f"{plain_infer}.py", [variant]))
+                else:
+                    for s in sorted(scripts["infer"]):
+                        plan.append((f"{s}.py", []))
+
+                if scripts["has_plain_eval"]:
+                    plain_eval = next(s for s in scripts["eval"] if s in ('result', 'eval'))
+                    plan.append((f"{plain_eval}.py", [variant]))
+                else:
+                    for s in sorted(scripts["eval"]):
+                        plan.append((f"{s}.py", []))
+        else:
+            # 非 bench 模式：执行对应阶段的所有脚本
+            for phase in phases:
+                for s in sorted(scripts.get(phase, [])):
+                    plan.append((f"{s}.py", []))
+    else:
+        # ── 普通模型 ──────────────────────────────────────
+        for phase in phases:
+            phase_scripts = scripts.get(phase, [])
+            if phase == "train" and scripts["has_plain_train"]:
+                # 有朴素 train.py 时只用它，跳过 train_* 变体脚本
+                plan.append(("train.py", []))
+            else:
+                for s in sorted(phase_scripts):
+                    plan.append((f"{s}.py", []))
+
+    return plan
+
+
 def _run_generic_model(model_dir: Path, cmd_type: str, env: dict, domain: str) -> dict:
     """通用模型执行器
 
-    扫描模型目录下的脚本，按命令类型选择执行：
-      - train: train.py
-      - infer: inference.py / infer.py
-      - eval:  result.py
+    自动发现模型目录中的流水线脚本，按命名约定分类后执行。
+    支持标准模型（train.py → inference.py → result.py）和
+    variant 模型（train_short/medium/long.py → inference.py {v} → result.py {v}）。
 
-    如果标准脚本不存在，fallback 扫描目录下所有 .py 文件。
+    兜底策略：无流水线脚本时，扫描目录下所有 .py 文件。
     """
+    # 1. 从配置中提取 variant 排序提示
+    model_name = model_dir.name
+    variant_order = None
+    if model_name in _MODEL_EXECUTION_OVERRIDES:
+        variant_order = _MODEL_EXECUTION_OVERRIDES[model_name].get("_variant_order")
+
+    # 2. 自动发现脚本并构建执行计划
+    scripts = _discover_model_scripts(model_dir)
+    plan = _build_execution_plan(scripts, cmd_type, variant_order=variant_order)
+
     output = ""
     all_success = True
-
-    script_map = {
-        "TRAIN": ["train.py"],
-        "INFER": ["inference.py", "infer.py"],
-        "EVAL": ["result.py"],
-        "train": ["train.py", "inference.py", "infer.py", "result.py"],
-        "infer": ["inference.py", "infer.py"],
-        "eval": ["result.py"],
-    }
-    scripts = script_map.get(cmd_type, ["train.py", "inference.py", "result.py"])
-
     found = False
-    for script in scripts:
-        script_path = model_dir / script
-        if script_path.exists():
-            found = True
-            log_prefix = script.replace(".py", "")
-            log_path = _get_log_path(model_dir, log_prefix)
-            result = _run_cmd(["python", script], model_dir, log_path, env)
-            output += result["output"]
-            all_success = all_success and result["success"]
-            if not result["success"] and cmd_type == "train":
-                break
 
-    # Fallback: 标准脚本都不存在时，扫描目录下所有非 test 的 .py 文件
+    for script_name, args in plan:
+        script_path = model_dir / script_name
+        if not script_path.exists():
+            continue
+        found = True
+        log_prefix = script_name.replace(".py", "")
+        if args:
+            log_prefix += "_" + "_".join(args)
+        log_path = _get_log_path(model_dir, log_prefix)
+        cmd = ["python", script_name] + args
+        result = _run_cmd(cmd, model_dir, log_path, env)
+        output += result["output"]
+        all_success = all_success and result["success"]
+        if not result["success"] and cmd_type in ("train", "TRAIN", "bench"):
+            break
+
+    # 3. 兜底：没有流水线脚本时，执行目录下第一个 .py 文件
     if not found:
         candidates = sorted(model_dir.glob("*.py"))
         candidates = [c for c in candidates
@@ -341,7 +712,7 @@ def run_model(model_alias: str, cmd_type: str, dataset: str) -> dict:
     # 解析模型
     info = model_registry.resolve(model_alias)
     if not info:
-        return {"success": False, "error": f"未知模型: {model_alias}"}
+        return {"success": False, "error": f"未知模型: {model_alias}", "alias": model_alias}
 
     domain = info["domain"]
     model = info["model"]
@@ -357,7 +728,26 @@ def run_model(model_alias: str, cmd_type: str, dataset: str) -> dict:
             model_dir = Path(model)
 
     if not model_dir.exists():
-        return {"success": False, "error": f"模型目录不存在: {model_dir}"}
+        hint = ""
+        if info.get("source") == "modelscope":
+            hint = (
+                f"\n  提示: 模型 '{model_alias}' 从 ModelScope 自动下载失败。"
+                f"\n  可能是网络问题（代理不可达或外网不通），请检查网络连接后重试。"
+                f"\n  或使用 'onescience env init' 配置模型扫描路径。"
+            )
+        elif model_alias.lower() in MODELSCOPE_MODELS:
+            ms_name = MODELSCOPE_MODELS[model_alias.lower()]
+            hint = (
+                f"\n  提示: {model_alias} 在 ModelScope 上已有注册，可尝试手动下载:"
+                f"\n    modelscope download --model OneScience/{ms_name} --local_dir {model_dir}"
+                f"\n  或在集群共享目录访问正常时，使用 'onescience env init' 配置模型扫描路径"
+            )
+        else:
+            hint = (
+                f"\n  提示: 请确认模型名称是否正确，或使用完整路径指定模型目录"
+                f"\n  使用 'onescience list models' 查看所有可用模型"
+            )
+        return {"success": False, "error": f"模型目录不存在: {model_dir}{hint}", "alias": model_alias}
 
     # 构建执行环境
     env = {}
@@ -366,16 +756,35 @@ def run_model(model_alias: str, cmd_type: str, dataset: str) -> dict:
             env["ONESCIENCE_DATASET_PATH"] = dataset
             env["ONESCIENCE_DATASET"] = os.path.basename(dataset)
         else:
-            datasets_dir = os.environ.get("ONESCIENCE_DATASETS_DIR", "")
-            if dataset in DATASET_PATHS:
+            # 优先使用 config 解析（自动触发 ModelScope 下载）
+            resolved = config.resolve_dataset(dataset)
+            if resolved:
+                env["ONESCIENCE_DATASET_PATH"] = resolved
+                env["ONESCIENCE_DATASET"] = os.path.basename(resolved)
+                env["ONESCIENCE_DATASETS_DIR"] = config.datasets_dir
+            elif dataset in DATASET_PATHS:
+                datasets_dir = os.environ.get("ONESCIENCE_DATASETS_DIR", config.datasets_dir)
                 ds_path = str(Path(datasets_dir) / DATASET_PATHS[dataset])
                 env["ONESCIENCE_DATASET_PATH"] = ds_path
                 env["ONESCIENCE_DATASETS_DIR"] = datasets_dir
-            elif datasets_dir and (Path(datasets_dir) / dataset).exists():
-                ds_path = str(Path(datasets_dir) / dataset)
-                env["ONESCIENCE_DATASET_PATH"] = ds_path
-                env["ONESCIENCE_DATASETS_DIR"] = datasets_dir
-            env["ONESCIENCE_DATASET"] = dataset
+                env["ONESCIENCE_DATASET"] = dataset
+            else:
+                env["ONESCIENCE_DATASET"] = dataset
+
+    # 验证数据集路径是否包含实际数据文件
+    # 用户明确指定了 dataset 但无法找到有效数据时，直接报错返回
+    if "ONESCIENCE_DATASET_PATH" in env and not _validate_dataset_path(env["ONESCIENCE_DATASET_PATH"]):
+        ds_path = env["ONESCIENCE_DATASET_PATH"]
+        click.secho(
+            f"❌  数据集路径中未找到可识别的数据文件:\n"
+            f"    {ds_path}\n"
+            f"    请通过以下方式设置正确路径:\n"
+            f"      1. 设置环境变量: export ONESCIENCE_DATASETS_DIR=/path/to/datasets\n"
+            f"      2. 在命令中使用完整路径: onescience bench -dataset /path/to/data\n"
+            f"      3. 运行 'onescience config set data_dir /path/to/data'",
+            fg="red",
+        )
+        return {"success": False, "error": f"数据集路径中无有效数据: {ds_path}", "alias": model_alias}
 
     # remock: 重置环境
     if cmd_type == "remock":
@@ -385,13 +794,13 @@ def run_model(model_alias: str, cmd_type: str, dataset: str) -> dict:
                 shutil.rmtree(p)
         for f in model_dir.glob("*_execution.log"):
             f.unlink()
-        return {"success": True, "output": "环境重置完成"}
+        return {"success": True, "output": "环境重置完成", "alias": model_alias}
 
     # 配置打补丁 (earth 模型特有)
     config_backup = None
     config_path = model_dir / "conf" / "config.yaml"
     if "ONESCIENCE_DATASET_PATH" in env and config_path.exists():
-        earth_info = _earth_config_patches(env)
+        earth_info = _earth_config_patches(env, config_path)
         if earth_info is not None:
             _, patches = earth_info
             original = config_path.read_text(encoding="utf-8")
@@ -445,13 +854,25 @@ def run_model(model_alias: str, cmd_type: str, dataset: str) -> dict:
 
 def collect_results(run_results: t.List[dict]):
     for r in run_results:
-        if not r.get("success"):
+        alias = r.get("alias")
+        if not alias:
             continue
-        alias = r["alias"]
-        domain = r["domain"]
-        model = r["model"]
+        domain = r.get("domain", "")
+        model = r.get("model", "")
         dst = RESULTS_DIR / alias
         dst.mkdir(parents=True, exist_ok=True)
+
+        # 即使执行失败也保存 metrics
+        if r.get("metrics"):
+            metrics_path = dst / "metrics.json"
+            try:
+                metrics_path.write_text(json.dumps(r["metrics"], ensure_ascii=False, indent=2), encoding="utf-8")
+            except Exception:
+                pass
+
+        # 结果目录和脚本仅成功时复制
+        if not r.get("success"):
+            continue
 
         # 尝试查找模型目录
         model_dir = None
@@ -473,12 +894,6 @@ def collect_results(run_results: t.List[dict]):
         result_py = model_dir / "result.py"
         if result_py.exists():
             shutil.copy2(str(result_py), str(dst / "result.py"))
-        if r.get("metrics"):
-            metrics_path = dst / "metrics.json"
-            try:
-                metrics_path.write_text(json.dumps(r["metrics"], ensure_ascii=False, indent=2), encoding="utf-8")
-            except Exception:
-                pass
 
 
 def _num(val):
