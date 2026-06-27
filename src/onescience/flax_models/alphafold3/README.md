@@ -16,21 +16,21 @@ The recommended way to install alphafold3 is as part of the complete OneScience 
 # Install OneScience with alphafold3 support
 
 # install jackhmmer
-mkdir ~/hmmer_build ~/hmmer
-wget http://eddylab.org/software/hmmer/hmmer-3.4.tar.gz --directory-prefix ~/hmmer_build
-cd ~/hmmer_build &&  tar zxf hmmer-3.4.tar.gz && rm hmmer-3.4.tar.gz
-patch -p0 < jackhmmer_seq_limit.patch
-cd ~/hmmer-3.4
-./configure --prefix ~/hmmer
-make -j && make install && cd ./easel && make install
-rm -R ~/hmmer_build
+# mkdir ~/hmmer_build ~/hmmer
+# wget http://eddylab.org/software/hmmer/hmmer-3.4.tar.gz --directory-prefix ~/hmmer_build
+# cd ~/hmmer_build &&  tar zxf hmmer-3.4.tar.gz && rm hmmer-3.4.tar.gz
+# patch -p0 < jackhmmer_seq_limit.patch
+# cd ~/hmmer-3.4
+# ./configure --prefix ~/hmmer
+# make -j && make install && cd ./easel && make install
+# rm -R ~/hmmer_build
 
-# install extension
-pip install .[bio] -c constraints.txt
-cp -r /public/onestore/onedatasets/alphafold3/_dep xxx/
-export ALPHAFOLD3_DEP_DIR=/public/onestore/onedatasets/alphafold3/_dep
-cd src/onescience/flax_models/alphafold3/
-python build_extension.py
+# # install extension
+# pip install .[bio] -c constraints.txt
+# cp -r /public/onestore/onedatasets/alphafold3/_dep xxx/
+# export ALPHAFOLD3_DEP_DIR=/public/onestore/onedatasets/alphafold3/_dep
+# cd src/onescience/flax_models/alphafold3/
+# python build_extension.py
 
 # optional create mmseqs2 database (please contact ai4s@sugon.com for mmseqs2 program)
 export mmfasta=/root/public_databases

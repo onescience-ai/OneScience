@@ -1,5 +1,6 @@
 #!/bin/bash
 source ../../../env.sh
+export LD_LIBRARY_PATH=$ROCM_PATH/opencl/lib:$LD_LIBRARY_PATH
 export FASTA_DIR=./monomer/fasta_dir
 export OUTPUT_DIR=./monomer/
 export PRECOMPUTED_ALIGNMENT_DIR=./monomer/alignments

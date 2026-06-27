@@ -268,6 +268,8 @@ bio_requires = [
     "pdbfixer",
     "e3nn",
     "pyranges",
+    "botocore",
+    "boto3",
 ]
 
 matchem_requires = [

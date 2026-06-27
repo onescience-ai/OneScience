@@ -178,9 +178,9 @@ if [[ "$DOMAIN" != "bio" && "$DOMAIN" != "all" ]]; then
     export ONESCIENCE_SKIP_AF3_BUILD=1
 fi
 if [[ "$DOMAIN" == "bio" || "$DOMAIN" == "all" ]]; then
-    export ALPHAFOLD3_TMP_ROOT="$SCRIPT_DIR/af3_build"
-    export ALPHAFOLD3_CIFPP_COMPONENTS=$ALPHAFOLD3_TMP_ROOT/components.cif
-    export ALPHAFOLD3_CIFPP_DATA_DIR=$ALPHAFOLD3_TMP_ROOT
+    export ALPHAFOLD3_TMP_ROOT="${ALPHAFOLD3_TMP_ROOT:-$SCRIPT_DIR/af3_build}"
+    export ALPHAFOLD3_CIFPP_COMPONENTS="${ALPHAFOLD3_CIFPP_COMPONENTS:-$ALPHAFOLD3_TMP_ROOT/components.cif}"
+    export ALPHAFOLD3_CIFPP_DATA_DIR="${ALPHAFOLD3_CIFPP_DATA_DIR:-$ALPHAFOLD3_TMP_ROOT}"
     mkdir -p "$ALPHAFOLD3_TMP_ROOT"
     # wheel 构建阶段跳过 AF3 编译，后置步骤单独编译一次
     export ONESCIENCE_SKIP_AF3_BUILD=1
@@ -192,6 +192,16 @@ uv pip install -c "$CONSTRAINTS_FILE" ".[${EXTRAS_SPEC}]" --system
 # ==========================================
 # 4. 后置环境初始化 (环境完全就绪后执行)
 # ==========================================
+# 如果选用离线依赖包，可预先设置：
+#
+# export ALPHAFOLD3_DEP_DIR=$ONESCIENCE_MODELS_DIR/AlphaFold3/_dep
+# export ALPHAFOLD3_CIFPP_DATA_DIR=$ONESCIENCE_MODELS_DIR/AlphaFold3/_dep/libcifpp/rsrc
+# export ALPHAFOLD3_CIFPP_COMPONENTS=$ONESCIENCE_MODELS_DIR/AlphaFold3/_dep/libcifpp/rsrc/components.cif
+#
+# 注意：
+# - ALPHAFOLD3_CIFPP_DATA_DIR 必须是目录，不是 components.cif 文件路径
+# - 若未设置，则会回退到本地 af3_build，并在缺文件时尝试自动下载
+# 如果没有设置自动下载
 if [[ "$DOMAIN" == "bio" || "$DOMAIN" == "all" ]]; then
     echo ">>> Building AlphaFold3 C++ extensions and data files"
     unset ONESCIENCE_SKIP_AF3_BUILD  # 取消跳过标志，允许编译
