@@ -53,7 +53,8 @@ class MeshGraphNetStage2(nn.Module):
         # Factory function for creating MLP
         def _create_mlp(style, config, **kwargs):
             if style == "MeshGraphDistributedMLP":
-                return _MLP_REGISTRY[style](config=config, **kwargs)
+                # return _MLP_REGISTRY[style](config=config, **kwargs)
+                return OneMlp(style=style, config=config, **kwargs)
             else:
                 return _MLP_REGISTRY[style](**kwargs)
 

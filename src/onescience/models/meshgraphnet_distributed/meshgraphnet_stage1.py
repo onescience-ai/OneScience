@@ -72,13 +72,15 @@ class MeshGraphNetStage1(nn.Module):
         # Factory functions for creating blocks
         def _create_edge_block(style, config, **kwargs):
             if style == "MeshEdgeDistributedBlock":
-                return _EDGE_REGISTRY[style](config=config, **kwargs)
+                # return _EDGE_REGISTRY[style](config=config, **kwargs)
+                return OneEdge(style=style, config=config, **kwargs)
             else:
                 return _EDGE_REGISTRY[style](**kwargs)
 
         def _create_node_block(style, config, **kwargs):
             if style == "MeshNodeDistributedBlock":
-                return _NODE_REGISTRY[style](config=config, **kwargs)
+                # return _NODE_REGISTRY[style](config=config, **kwargs)
+                return OneNode(style=style, config=config, **kwargs)
             else:
                 return _NODE_REGISTRY[style](**kwargs)
 

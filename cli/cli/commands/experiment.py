@@ -1,16 +1,13 @@
 import os
 import click
 from pathlib import Path
-from ..core.registry import model_registry, EXAMPLES_DIR
+from ..core.registry import model_registry, get_model_dir
 from ..core.runner import RESULTS_DIR
 
 
-def _get_model_dir(info: dict) -> Path:
-    """获取模型目录，优先用 info['model_dir']"""
-    model_dir = info.get("model_dir")
-    if model_dir:
-        return Path(model_dir)
-    return EXAMPLES_DIR / info["domain"] / info["model"]
+@click.group("experiment")
+def experiment_group():
+    """实验管理（查看执行记录）"""
 
 
 def _find_wandb_runs(model_dir: Path):
@@ -29,11 +26,6 @@ def _find_lightning_logs(model_dir: Path):
     if logs_dir.exists():
         return sorted(logs_dir.iterdir())
     return []
-
-
-@click.group("experiment")
-def experiment_group():
-    """实验管理（查看执行记录）"""
 
 
 @experiment_group.command("list")
@@ -55,7 +47,7 @@ def list_experiments(model_alias, domain, fmt):
 
     rows = []
     for m in models:
-        model_dir = EXAMPLES_DIR / m["domain"] / m["model"]
+        model_dir = get_model_dir(m)
         alias = m["alias"]
 
         # 检查 saved results
@@ -107,7 +99,7 @@ def experiment_info(model_alias):
         click.secho(f"未知模型: {model_alias}", fg="red")
         return
 
-    model_dir = _get_model_dir(info)
+    model_dir = get_model_dir(info)
     alias = info["alias"]
 
     click.secho(f"实验详情: {alias}", fg="green")

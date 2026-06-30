@@ -28,16 +28,14 @@ def _auto_bootstrap():
         os.environ["device"] = _detect_device()
 
     if "ONESCIENCE_DATASETS_DIR" not in os.environ:
-        from .road import ONESCIENCE_DATASETS_DIR
-        from .core.config import _resolve_writable_dir
+        from .core.config import _resolve_writable_dir, BUILTIN_DATASETS_DIR
         os.environ["ONESCIENCE_DATASETS_DIR"] = _resolve_writable_dir(
-            "datasets_dir", ONESCIENCE_DATASETS_DIR, "datasets"
+            "datasets_dir", BUILTIN_DATASETS_DIR, "datasets"
         )
     if "ONESCIENCE_MODELS_DIR" not in os.environ:
-        from .road import ONESCIENCE_MODELS_DIR
-        from .core.config import _resolve_writable_dir
+        from .core.config import _resolve_writable_dir, BUILTIN_MODELS_DIR
         os.environ["ONESCIENCE_MODELS_DIR"] = _resolve_writable_dir(
-            "models_dir", ONESCIENCE_MODELS_DIR, "models"
+            "models_dir", BUILTIN_MODELS_DIR, "models"
         )
 
 
@@ -50,7 +48,7 @@ class CLI(click.Group):
             return super().main(*args, **kwargs)
         except SystemExit as e:
             from .status_codes import ExitStatus
-            raise SystemExit(e.code if e.code else ExitStatus.ERROR)
+            raise SystemExit(e.code if e.code is not None else ExitStatus.ERROR)
 
 
 @click.group(cls=CLI)

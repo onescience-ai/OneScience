@@ -84,8 +84,9 @@ if __name__ == "__main__":
     else:
         latitudes = model.latitudes
         longitudes = model.longitudes
-    static_data = StaticData(cfg_data.dataset.static_dir, latitudes, longitudes).get().to(device="cuda:0")
-
+    static_dir = os.path.join(cfg_data.dataset.data_dir, "static")
+    
+    static_data = StaticData(static_dir, latitudes, longitudes).get().to(device=local_rank)
     model.eval()
     os.makedirs('./result/output/', exist_ok=True)
     print(f"📂 samples will be generated to './result/output/'")

@@ -1,0 +1,101 @@
+# ============================================================================
+# DiffDock CGModel Dataset Evaluation Configuration
+#
+# IMPORTANT: Update all filesystem paths below to match your environment.
+#
+# Supported dataset values: pdbbind | moad | generalisation
+#
+# External dependencies (optional):
+#   gnina_minimize=true  → requires `gnina` executable on PATH
+#   RMSD computations     → requires `spyrmsd` (pip install spyrmsd)
+# ============================================================================
+
+runtime:
+  run_name: diffdock_eval_example
+  project: diffdock
+  device: auto
+  out_dir: examples/biosciences/diffdock/outputs/evaluate
+  wandb: false
+  num_cpu: null
+  restrict_cpu: false
+
+model:
+  model_dir: examples/biosciences/diffdock/outputs/train/diffdock_cg_example
+  ckpt: best_model.pt
+  old_score_model: false  # must stay false; old_* score-model paths are intentionally not migrated
+  no_model: false
+  force_fixed_center_conv: false
+
+confidence:
+  confidence_model_dir: null
+  confidence_ckpt: best_model.pt
+  old_confidence_model: false  # must stay false; old confidence-model paths are intentionally not migrated
+
+data:
+  dataset: pdbbind  # supported: pdbbind | moad | generalisation; unsupported: pdbsidechain | distillation
+  cache_path: D:/data/diffdock/cache
+  data_dir: D:/data/pdbbind_processed
+  split_path: D:/data/diffdock/splits/timesplit_no_lig_overlap_val
+  split: val
+  limit_complexes: 0
+  num_workers: 1
+  chain_cutoff: null
+  protein_file: protein_processed
+  ligand_file: ligand
+  esm_embeddings_path: null
+  moad_esm_embeddings_sequences_path: null
+  not_knn_only_graph: false
+  include_miscellaneous_atoms: false
+  triple_training: false  # unsupported in the current migration; will fail fast if set true
+  unroll_clusters: false
+  remove_pdbbind: false
+  min_ligand_size: 0
+  max_receptor_size: null
+  remove_promiscuous_targets: null
+  matching_popsize: 40
+  matching_maxiter: 40
+
+sampling:
+  batch_size: 20
+  inference_steps: 20
+  actual_steps: null
+  samples_per_complex: 10
+  no_random: false
+  no_final_step_noise: true
+  ode: false
+  sigma_schedule: expbeta
+  inf_sched_alpha: 1.0
+  inf_sched_beta: 1.0
+  pocket_knowledge: false
+  no_random_pocket: false
+  pocket_tr_max: 3.0
+  pocket_cutoff: 5.0
+  different_schedules: false
+  resample_rdkit: false
+  skip_matching: false
+  initial_noise_std_proportion: -1.0
+  choose_residue: false
+  limit_failures: 5
+  tqdm: true
+  temp_sampling_tr: 1.0
+  temp_psi_tr: 0.0
+  temp_sigma_data_tr: 0.5
+  temp_sampling_rot: 1.0
+  temp_psi_rot: 0.0
+  temp_sigma_data_rot: 0.5
+  temp_sampling_tor: 1.0
+  temp_psi_tor: 0.0
+  temp_sigma_data_tor: 0.5
+
+outputs:
+  save_visualisation: false
+  save_complexes: false
+  complexes_save_path: null
+
+gnina:
+  gnina_minimize: false
+  gnina_path: gnina
+  gnina_full_dock: false
+  save_gnina_metrics: false
+  gnina_autobox_add: 4.0
+  gnina_poses_to_optimize: 1

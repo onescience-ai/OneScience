@@ -22,13 +22,13 @@ class XiheDistributedGlobalSIEFuser(nn.Module):
             dim=dim,
             num_heads=num_heads,
             num_groups=num_groups,
-            style="XiheDistributedFeatureGroupingAttention",
+            style="DistributedFeatureGroupingAttention",
             config=config,
         )
         self.feature_ungrouping = OneAttention(
             dim=dim,
             num_heads=num_heads,
-            style="XiheDistributedFeatureUngroupingAttention",
+            style="DistributedFeatureUngroupingAttention",
             config=config,
         )
 

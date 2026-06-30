@@ -97,36 +97,31 @@ class Xihe_stage0(Module):
         input_resolution = (1, H_out, W_out)
 
         window_size_3d = (1, window_size[0], window_size[1])
-        num_heads_local = num_heads[0]
-
         self.block1 = OneFuser(
             dim=embed_dim,
             input_resolution=input_resolution,
             num_local=1,
             num_global=0,
-            num_heads_local=num_heads_local,
+            num_heads=num_heads[0],
             window_size=window_size_3d,
             style="XiheDistributedFuser",
             config=self.config,
         )
 
         self.downsample = OneSample(
-            style="PanguDownSample2D",
+            style="PanguDownSample",
             in_dim=embed_dim,
             input_resolution=(H_out, W_out),
             output_resolution=(H_out // 2, W_out // 2),
         )
 
         input_resolution_half = (1, H_out // 2, W_out // 2)
-        num_heads_local_half = num_heads[1]
-
         self.block2 = OneFuser(
             dim=2 * embed_dim,
             input_resolution=input_resolution_half,
             num_local=2,
             num_global=1,
-            num_heads_local=num_heads_local_half,
-            num_heads_global=num_heads[1],
+            num_heads=num_heads[1],
             window_size=window_size_3d,
             style="XiheDistributedFuser",
             num_groups=num_groups,
@@ -138,8 +133,7 @@ class Xihe_stage0(Module):
             input_resolution=input_resolution_half,
             num_local=2,
             num_global=1,
-            num_heads_local=num_heads_local_half,
-            num_heads_global=num_heads[1],
+            num_heads=num_heads[1],
             window_size=window_size_3d,
             style="XiheDistributedFuser",
             num_groups=num_groups,
@@ -221,15 +215,12 @@ class Xihe_stage1(Module):
         input_resolution_half = (1, H_out // 2, W_out // 2)
         window_size_3d = (1, window_size[0], window_size[1])
 
-        num_heads_local_half = num_heads[2]
-
         self.block4 = OneFuser(
             dim=2 * embed_dim,
             input_resolution=input_resolution_half,
             num_local=2,
             num_global=1,
-            num_heads_local=num_heads_local_half,
-            num_heads_global=num_heads[2],
+            num_heads=num_heads[2],
             window_size=window_size_3d,
             style="XiheDistributedFuser",
             num_groups=num_groups,
@@ -245,14 +236,12 @@ class Xihe_stage1(Module):
         )
 
         input_resolution_full = (1, H_out, W_out)
-        num_heads_local_full = num_heads[3]
-
         self.block5 = OneFuser(
             dim=embed_dim,
             input_resolution=input_resolution_full,
             num_local=1,
             num_global=0,
-            num_heads_local=num_heads_local_full,
+            num_heads=num_heads[3],
             window_size=window_size_3d,
             style="XiheDistributedFuser",
             config=self.config,

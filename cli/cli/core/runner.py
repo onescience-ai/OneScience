@@ -17,9 +17,8 @@ import shutil
 import typing as t
 import click
 from pathlib import Path
-from .registry import model_registry, EXAMPLES_DIR, PROJECT_ROOT, SRC_DIR
+from .registry import model_registry, EXAMPLES_DIR, PROJECT_ROOT
 from .config import config, MODELSCOPE_MODELS
-from ..road import DATASET_PATHS
 
 
 def _patch_config_values(content: str, patches: t.Dict[str, str]) -> t.Optional[str]:
@@ -139,6 +138,57 @@ def _ensure_static_files(static_dir: Path) -> None:
     click.secho(f"  ✅ 已自动生成静态文件 ({len(_STATIC_FILES)} 个) 到: {static_dir}", fg="green")
 
 
+def _patch_model_configs(model_dir: Path, data_path: str) -> t.Dict[str, str]:
+    """通用配置补丁：将模型配置文件中的数据路径替换为实际数据集路径
+
+    扫描模型目录下的所有 .yaml/.yml 文件（conf/ 目录和模型根目录），
+    自动识别并替换常见的数据路径配置项：
+      - data_path
+      - data_dir
+      - datadir
+
+    不依赖模型领域或配置文件名，适用于所有模型。
+
+    返回: {文件绝对路径: 原始内容}，用于执行后恢复
+    """
+    # 收集所有 yaml 文件（去重）
+    yaml_files: t.List[Path] = []
+    seen: t.Set[str] = set()
+    for pattern in ("*.yaml", "*.yml"):
+        for f in model_dir.glob(pattern):
+            if str(f) not in seen:
+                seen.add(str(f))
+                yaml_files.append(f)
+        conf_dir = model_dir / "conf"
+        if conf_dir.exists():
+            for f in conf_dir.glob(pattern):
+                if str(f) not in seen:
+                    seen.add(str(f))
+                    yaml_files.append(f)
+
+    # 常见数据路径配置项（不区分大小写）
+    path_keys = ["data_path", "data_dir", "datadir"]
+    # 匹配: 可选缩进 + key + 冒号 + 值 + 可选行内注释
+    pattern = re.compile(
+        r'^(\s*)(' + '|'.join(re.escape(k) for k in path_keys) + r')(\s*:\s*).+?(\s*#.*)?$',
+        re.IGNORECASE | re.MULTILINE,
+    )
+
+    backups: t.Dict[str, str] = {}
+    for yaml_file in yaml_files:
+        original = yaml_file.read_text(encoding="utf-8")
+        modified = pattern.sub(
+            lambda m: f'{m.group(1)}{m.group(2)}{m.group(3)}"{data_path}"{m.group(4) or ""}',
+            original,
+        )
+        if modified != original:
+            backups[str(yaml_file)] = original
+            yaml_file.write_text(modified, encoding="utf-8")
+            click.echo(f"  Config: {yaml_file.relative_to(model_dir)} 已注入数据集路径")
+
+    return backups
+
+
 def _earth_config_patches(env: dict, config_path: t.Optional[Path] = None) -> t.Optional[t.Tuple[str, dict]]:
     data_dir = env.get("ONESCIENCE_DATASET_PATH", "")
     if not data_dir:
@@ -194,7 +244,15 @@ def _detect_era5_years(data_dir: str) -> t.Optional[t.List[int]]:
     data_glob = os.path.join(data_dir, "data", "*.h5")
     h5_files = sorted(glob.glob(data_glob))
     if h5_files:
-        return sorted(int(os.path.basename(f).replace(".h5", "")) for f in h5_files)
+        years = []
+        for f in h5_files:
+            try:
+                year = int(os.path.basename(f).replace(".h5", ""))
+                years.append(year)
+            except ValueError:
+                pass
+        if years:
+            return sorted(years)
 
     # 旧格式: data/{year}/*.h5 (年份子目录)
     data_dir_path = os.path.join(data_dir, "data")
@@ -267,9 +325,6 @@ def print_metrics(result: dict):
         custom_rows = [[k, v] for k, v in metrics.items() if v != "N/A"]
         if custom_rows:
             click.echo(Formatter.table(custom_headers, custom_rows, align=["<", ">"]))
-
-
-_CMD_TIMEOUT = 7200
 
 
 def _get_log_path(model_dir: Path, prefix: str) -> Path:
@@ -375,18 +430,13 @@ def _retry_with_fixed_static_files(cmd, cwd, log_path, env, failed_output):
         retry_lines = []
         for line in iter(process.stdout.readline, ""):
             retry_lines.append(line)
-        process.wait(timeout=_CMD_TIMEOUT)
+        process.wait()
         retry_output = "".join(retry_lines)
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_path.write_text(retry_output, encoding="utf-8")
         if process.returncode != 0:
             click.secho(f"重试仍失败（exit code {process.returncode}），完整日志: {log_path}", fg="red")
         return {"success": process.returncode == 0, "output": retry_output, "log_path": log_path}
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait()
-        click.secho(f"命令执行超时（{_CMD_TIMEOUT}秒）: {' '.join(cmd)}", fg="red")
-        return None
     except Exception as e:
         click.secho(str(e), fg="red")
         return None
@@ -399,9 +449,9 @@ def _run_cmd(cmd: t.List[str], cwd: Path, log_path: Path, env: t.Optional[dict] 
 
     # 自动注入 PyTorch 显存优化环境变量（避免 pipe 模式下的 OOM）
     if "PYTORCH_HIP_ALLOC_CONF" not in merged_env:
-        merged_env.setdefault("PYTORCH_HIP_ALLOC_CONF", "expandable_segments:True")
+        merged_env["PYTORCH_HIP_ALLOC_CONF"] = "expandable_segments:True"
     if "PYTORCH_CUDA_ALLOC_CONF" not in merged_env:
-        merged_env.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+        merged_env["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
     try:
         process = subprocess.Popen(
@@ -411,7 +461,8 @@ def _run_cmd(cmd: t.List[str], cwd: Path, log_path: Path, env: t.Optional[dict] 
         output_lines = []
         for line in iter(process.stdout.readline, ""):
             output_lines.append(line)
-        process.wait(timeout=_CMD_TIMEOUT)
+            click.echo(line, nl=False)
+        process.wait()
         output = "".join(output_lines)
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_path.write_text(output, encoding="utf-8")
@@ -426,13 +477,6 @@ def _run_cmd(cmd: t.List[str], cwd: Path, log_path: Path, env: t.Optional[dict] 
             click.secho(f"命令执行失败（exit code {process.returncode}），完整日志: {log_path}", fg="red")
 
         return {"success": process.returncode == 0, "output": output, "log_path": log_path}
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait()
-        msg = f"命令执行超时（{_CMD_TIMEOUT}秒）: {' '.join(cmd)}"
-        click.secho(msg, fg="red")
-        log_path.write_text(msg, encoding="utf-8")
-        return {"success": False, "output": msg, "log_path": log_path}
     except Exception as e:
         msg = str(e)
         click.secho(msg, fg="red")
@@ -753,23 +797,27 @@ def run_model(model_alias: str, cmd_type: str, dataset: str) -> dict:
     env = {}
     if dataset:
         if "/" in dataset:
+            if not os.path.exists(dataset):
+                return {"success": False, "error": f"数据集路径不存在: {dataset}", "alias": model_alias}
             env["ONESCIENCE_DATASET_PATH"] = dataset
             env["ONESCIENCE_DATASET"] = os.path.basename(dataset)
         else:
-            # 优先使用 config 解析（自动触发 ModelScope 下载）
+            # 使用 config 解析数据集（自动触发 ModelScope 下载）
             resolved = config.resolve_dataset(dataset)
             if resolved:
                 env["ONESCIENCE_DATASET_PATH"] = resolved
                 env["ONESCIENCE_DATASET"] = os.path.basename(resolved)
                 env["ONESCIENCE_DATASETS_DIR"] = config.datasets_dir
-            elif dataset in DATASET_PATHS:
-                datasets_dir = os.environ.get("ONESCIENCE_DATASETS_DIR", config.datasets_dir)
-                ds_path = str(Path(datasets_dir) / DATASET_PATHS[dataset])
-                env["ONESCIENCE_DATASET_PATH"] = ds_path
-                env["ONESCIENCE_DATASETS_DIR"] = datasets_dir
-                env["ONESCIENCE_DATASET"] = dataset
             else:
-                env["ONESCIENCE_DATASET"] = dataset
+                hint = (
+                    f"\n  提示: 数据集 '{dataset}' 在本地不存在，也无法从 ModelScope 自动下载。"
+                    f"\n  可尝试以下方式:"
+                    f"\n    1. 设置环境变量 ONESCIENCE_DATASETS_DIR 指向数据集所在目录"
+                    f"\n    2. 使用完整路径: onescience bench -dataset /path/to/{dataset} -models ..."
+                    f"\n    3. 检查网络连接后重试（自动下载需要外网访问 modelscope.cn）"
+                    f"\n    4. 使用 'onescience data download {dataset}' 手动下载"
+                )
+                return {"success": False, "error": f"数据集 '{dataset}' 无法解析{hint}", "alias": model_alias}
 
     # 验证数据集路径是否包含实际数据文件
     # 用户明确指定了 dataset 但无法找到有效数据时，直接报错返回
@@ -796,18 +844,23 @@ def run_model(model_alias: str, cmd_type: str, dataset: str) -> dict:
             f.unlink()
         return {"success": True, "output": "环境重置完成", "alias": model_alias}
 
-    # 配置打补丁 (earth 模型特有)
-    config_backup = None
-    config_path = model_dir / "conf" / "config.yaml"
-    if "ONESCIENCE_DATASET_PATH" in env and config_path.exists():
-        earth_info = _earth_config_patches(env, config_path)
-        if earth_info is not None:
-            _, patches = earth_info
-            original = config_path.read_text(encoding="utf-8")
-            modified = _patch_config_values(original, patches)
-            if modified is not None:
-                config_backup = original
-                config_path.write_text(modified, encoding="utf-8")
+    # 通用配置补丁：将数据集路径注入到模型的所有 YAML 配置文件
+    config_backups: t.Dict[str, str] = {}
+    if "ONESCIENCE_DATASET_PATH" in env:
+        config_backups = _patch_model_configs(model_dir, env["ONESCIENCE_DATASET_PATH"])
+
+    # 特定领域补丁 (earth 模型：ERA5 年份检测、stats/static 路径等)
+    if "ONESCIENCE_DATASET_PATH" in env:
+        config_path = model_dir / "conf" / "config.yaml"
+        if config_path.exists():
+            earth_info = _earth_config_patches(env, config_path)
+            if earth_info is not None:
+                _, patches = earth_info
+                original = config_path.read_text(encoding="utf-8")
+                modified = _patch_config_values(original, patches)
+                if modified is not None:
+                    config_backups[str(config_path)] = original
+                    config_path.write_text(modified, encoding="utf-8")
 
     try:
         # 按模型类型选择执行方式
@@ -848,8 +901,8 @@ def run_model(model_alias: str, cmd_type: str, dataset: str) -> dict:
             "metrics": metrics,
         }
     finally:
-        if config_backup is not None:
-            config_path.write_text(config_backup, encoding="utf-8")
+        for filepath, original in config_backups.items():
+            Path(filepath).write_text(original, encoding="utf-8")
 
 
 def collect_results(run_results: t.List[dict]):
@@ -920,100 +973,64 @@ def _colored(val, lo, hi, reverse=False):
     return val
 
 
+def _render_metrics_table(results: t.List[dict], title: str, keys: t.List[str]):
+    """渲染领域指标对比表格（通用函数，消除 earth/cfd 重复代码）"""
+    if not results:
+        return
+
+    click.echo(f"\n{title}:")
+
+    vals = {k: [] for k in keys}
+    for r in results:
+        m = r["metrics"]
+        for k in keys:
+            n = _num(m.get(k))
+            if n is not None:
+                vals[k].append(n)
+    lo = {k: min(vals[k]) if vals[k] else None for k in keys}
+    hi = {k: max(vals[k]) if vals[k] else None for k in keys}
+
+    col_widths = {}
+    col_widths["模型名称"] = max(len(r["alias"]) for r in results) + 2
+    for k in keys:
+        header_len = len(k)
+        max_val_len = 0
+        for r in results:
+            v = str(r["metrics"].get(k, "N/A"))
+            max_val_len = max(max_val_len, len(v))
+        col_widths[k] = max(header_len, max_val_len) + 2
+
+    all_cols = ["模型名称"] + keys
+    sep = "+" + "+".join("-" * col_widths[col] for col in all_cols) + "+"
+    click.echo(sep)
+
+    hdr_parts = [f" {col:{col_widths[col]-1}}" for col in all_cols]
+    click.echo("|" + "".join(hdr_parts) + "|")
+    click.echo(sep)
+
+    for r in results:
+        m = r["metrics"]
+        row_parts = [f" {r['alias']:{col_widths['模型名称']-1}}"]
+        for k in keys:
+            v = str(m.get(k, "N/A"))
+            colored_v = _colored(v, lo.get(k), hi.get(k))
+            row_parts.append(f" {colored_v:>{col_widths[k]-1}}")
+        click.echo("|" + "".join(row_parts) + "|")
+    click.echo(sep)
+
+
 def print_comparison(results: t.List[dict]):
     if not results:
         return
     earth_results = [r for r in results if r.get("domain") == "earth" and r.get("metrics")]
     if earth_results:
         title = "气象模型对比" if len(earth_results) > 1 else "气象模型结果"
-        click.echo(f"\n{title}:")
-        earth_keys = ["RMSE", "ACC", "CSI", "MAE", "BIAS"]
-
-        vals = {k: [] for k in earth_keys}
-        for r in earth_results:
-            m = r["metrics"]
-            for k in earth_keys:
-                n = _num(m.get(k))
-                if n is not None:
-                    vals[k].append(n)
-        lo = {k: min(vals[k]) if vals[k] else None for k in earth_keys}
-        hi = {k: max(vals[k]) if vals[k] else None for k in earth_keys}
-
-        col_widths = {}
-        col_widths["模型名称"] = max(len(r["alias"]) for r in earth_results) + 2
-        for k in earth_keys:
-            header_len = len(k)
-            max_val_len = 0
-            for r in earth_results:
-                v = str(r["metrics"].get(k, "N/A"))
-                max_val_len = max(max_val_len, len(v))
-            col_widths[k] = max(header_len, max_val_len) + 2
-
-        sep = "+" + "+".join("-" * col_widths[col] for col in ["模型名称"] + earth_keys) + "+"
-        click.echo(sep)
-
-        hdr_parts = []
-        for col in ["模型名称"] + earth_keys:
-            hdr_parts.append(f" {col:{col_widths[col]-1}}")
-        hdr = "|" + "".join(hdr_parts) + "|"
-        click.echo(hdr)
-        click.echo(sep)
-
-        for r in earth_results:
-            m = r["metrics"]
-            row_parts = [f" {r['alias']:{col_widths['模型名称']-1}}"]
-            for k in earth_keys:
-                v = str(m.get(k, "N/A"))
-                colored_v = _colored(v, lo.get(k), hi.get(k))
-                row_parts.append(f" {colored_v:>{col_widths[k]-1}}")
-            click.echo("|" + "".join(row_parts) + "|")
-        click.echo(sep)
+        _render_metrics_table(earth_results, title, ["RMSE", "ACC", "CSI", "MAE", "BIAS"])
 
     cfd_results = [r for r in results if r.get("domain") == "cfd" and r.get("metrics")]
     if cfd_results:
         title = "CFD模型对比" if len(cfd_results) > 1 else "CFD模型结果"
-        click.echo(f"\n{title}:")
-        cfd_keys = ["平均相对误差", "平均绝对误差", "平均MSE", "平均MAE", "平均MaxAE", "平均R²分数"]
-
-        vals = {k: [] for k in cfd_keys}
-        for r in cfd_results:
-            m = r["metrics"]
-            for k in cfd_keys:
-                n = _num(m.get(k))
-                if n is not None:
-                    vals[k].append(n)
-        lo = {k: min(vals[k]) if vals[k] else None for k in cfd_keys}
-        hi = {k: max(vals[k]) if vals[k] else None for k in cfd_keys}
-
-        col_widths = {}
-        col_widths["模型名称"] = max(len(r["alias"]) for r in cfd_results) + 2
-        for k in cfd_keys:
-            header_len = len(k)
-            max_val_len = 0
-            for r in cfd_results:
-                v = str(r["metrics"].get(k, "N/A"))
-                max_val_len = max(max_val_len, len(v))
-            col_widths[k] = max(header_len, max_val_len) + 2
-
-        sep = "+" + "+".join("-" * col_widths[col] for col in ["模型名称"] + cfd_keys) + "+"
-        click.echo(sep)
-
-        hdr_parts = []
-        for col in ["模型名称"] + cfd_keys:
-            hdr_parts.append(f" {col:{col_widths[col]-1}}")
-        hdr = "|" + "".join(hdr_parts) + "|"
-        click.echo(hdr)
-        click.echo(sep)
-
-        for r in cfd_results:
-            m = r["metrics"]
-            row_parts = [f" {r['alias']:{col_widths['模型名称']-1}}"]
-            for k in cfd_keys:
-                v = str(m.get(k, "N/A"))
-                colored_v = _colored(v, lo.get(k), hi.get(k))
-                row_parts.append(f" {colored_v:>{col_widths[k]-1}}")
-            click.echo("|" + "".join(row_parts) + "|")
-        click.echo(sep)
+        _render_metrics_table(cfd_results, title, ["平均相对误差", "平均绝对误差", "平均MSE", "平均MAE", "平均MaxAE", "平均R²分数"])
 
     # 通用模型对比
     other_results = [r for r in results if r.get("domain") == "_custom" and r.get("metrics")]

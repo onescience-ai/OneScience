@@ -1,19 +1,13 @@
 import click
-from pathlib import Path
-from ..core.registry import model_registry, EXAMPLES_DIR
-
-
-def _get_model_dir(info: dict) -> Path:
-    """获取模型目录，优先用 info['model_dir']"""
-    model_dir = info.get("model_dir")
-    if model_dir:
-        return Path(model_dir)
-    return EXAMPLES_DIR / info["domain"] / info["model"]
+from ..core.registry import model_registry, get_model_dir
 
 
 @click.group("deploy")
 def deploy_group():
-    """模型部署（ONNX 导出与推理服务）"""
+    """模型部署（ONNX 导出与推理服务）
+
+    TODO: 当前为使用指南模式，后续需实现自动化导出和服务启动。
+    """
 
 
 @deploy_group.command("export")
@@ -30,7 +24,7 @@ def export_model(model_alias, export_format):
         click.secho(f"未知模型: {model_alias}", fg="red")
         return
 
-    model_dir = _get_model_dir(info)
+    model_dir = get_model_dir(info)
     if not model_dir.exists():
         click.secho(f"模型目录不存在: {model_dir}", fg="red")
         return
@@ -63,7 +57,7 @@ def serve_model(model_alias, port, backend):
         click.secho(f"未知模型: {model_alias}", fg="red")
         return
 
-    model_dir = _get_model_dir(info)
+    model_dir = get_model_dir(info)
     click.secho(f"推理服务: {model_alias}", fg="green")
     click.echo(f"  模型: {info['model']} ({info['domain']})")
     click.echo(f"  目录: {model_dir}")

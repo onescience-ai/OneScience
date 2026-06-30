@@ -5,7 +5,6 @@ import click
 from pathlib import Path
 from datetime import datetime
 from ..core.registry import model_registry, EXAMPLES_DIR
-from ..core.runner import RESULTS_DIR
 
 
 @click.command("log")
@@ -80,10 +79,6 @@ def _find_log_files(model_dir: Path, log_type: str, sub_model: str, alias: str) 
         if d.exists():
             files.extend(d.glob("*.log"))
             files.extend(d.glob("*.log.*"))
-    result_dir = RESULTS_DIR / alias
-    if result_dir.exists():
-        files.extend(result_dir.glob("*.log"))
-        files.extend(result_dir.glob("*.log.*"))
     return list(set(files))
 
 

@@ -45,6 +45,8 @@ def main():
         distributed=dist.is_initialized(),
         output_steps=2,
         input_steps=2,
+        batch_size=cfg_data.dataloader.batch_size,
+        num_workers=cfg_data.dataloader.num_workers
     )
     train_dataloader, train_sampler = datapipe.get_dataloader("train")
     datapipe = ERA5Datapipe(
@@ -54,6 +56,8 @@ def main():
         distributed=dist.is_initialized(),
         output_steps=2,
         input_steps=2,
+        batch_size=cfg_data.dataloader.batch_size,
+        num_workers=cfg_data.dataloader.num_workers
     )
     val_dataloader, val_sampler = datapipe.get_dataloader("valid")
 
@@ -79,7 +83,8 @@ def main():
     best_loss_epoch = 0
     train_losses = np.empty((0,), dtype=np.float32)
     valid_losses = np.empty((0,), dtype=np.float32)
-
+    current_epoch = 0
+		
     ## Get model params count
     if cfg.world_size == 1:
         total_params = sum(p.numel() for p in model.parameters())
@@ -102,6 +107,7 @@ def main():
         scheduler.load_state_dict(ckpt["scheduler_state_dict"])
         best_valid_loss = ckpt["best_valid_loss"]
         best_loss_epoch = ckpt["best_loss_epoch"]
+        current_epoch = ckpt["current_epoch"]
         train_losses = np.load(f"{cfg.checkpoint_dir}/tr_short_loss.npy")
         valid_losses = np.load(f"{cfg.checkpoint_dir}/va_short_loss.npy")
     else:
@@ -118,12 +124,13 @@ def main():
 
     world_rank == 0 and logger.info(f"start training ...")
 
-    for epoch in range(cfg.finetune_step):
-        if epoch % cfg.step_change_freq == 0:
+    for epoch in range(current_epoch, cfg.finetune_step):
+        if epoch > cfg.step_change_freq:
             num_rollout_steps = epoch // cfg.step_change_freq + 2
             if num_rollout_steps > 12: # Paper: 2~12 curriculum training schedule, then skip to 20.
                 num_rollout_steps = cfg.short_num_steps
-            world_rank == 0 and logger.info(f"⚠️ ⚠️ Switching to {num_rollout_steps}-step rollout!")
+            if epoch % cfg.step_change_freq == 0 and world_rank == 0:
+                logger.info(f"⚠️ ⚠️ Switching to {num_rollout_steps}-step rollout!")
             datapipe = ERA5Datapipe(
                 dataset_dir=cfg_data.dataset.data_dir,
                 used_variables=cfg_data.dataset.channels,
@@ -131,6 +138,8 @@ def main():
                 distributed=dist.is_initialized(),
                 output_steps=num_rollout_steps,
                 input_steps=2,
+              	batch_size=cfg_data.dataloader.batch_size,
+                num_workers=cfg_data.dataloader.num_workers
             )
             train_dataloader, train_sampler = datapipe.get_dataloader("train")
             datapipe = ERA5Datapipe(
@@ -140,6 +149,8 @@ def main():
                 distributed=dist.is_initialized(),
                 output_steps=num_rollout_steps,
                 input_steps=2,
+              	batch_size=cfg_data.dataloader.batch_size,
+                num_workers=cfg_data.dataloader.num_workers
             )
             val_dataloader, val_sampler = datapipe.get_dataloader("valid")
         
@@ -174,7 +185,6 @@ def main():
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{train_loss / (j+1): .04f}')
-            
         train_loss /= len(train_dataloader)
 
         model.eval()
@@ -204,13 +214,12 @@ def main():
                             f'[cost {int((time.time()-start_time) // 60):02}:{int((time.time()-start_time) % 60):02}] '
                             f'[{(time.time()-start_time)/(j+1): .02f}s/{cfg_data.dataloader.batch_size}batch] '
                             f'loss:{valid_loss / (j+1): .04f}')
-                
         valid_loss /= len(val_dataloader)
         is_save_ckp = False
         if valid_loss < best_valid_loss:
             best_valid_loss = valid_loss
             best_loss_epoch = epoch
-            world_rank == 0 and save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoch, cfg.checkpoint_dir)
+            world_rank == 0 and save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoch, cfg.checkpoint_dir, epoch)
             is_save_ckp = True
 
         scheduler.step(valid_loss)
@@ -233,13 +242,14 @@ def main():
             exit()
 
 
-def save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path):
+def save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path, epoch):
     model_to_save = model.module if hasattr(model, "module") else model
     state = {"model_state_dict": model_to_save.state_dict(),
              "optimizer_state_dict": optimizer.state_dict(),
              "scheduler_state_dict": scheduler.state_dict(),
              "best_valid_loss": best_valid_loss,
              "best_loss_epoch": best_loss_epoch,
+             "current_epoch": epoch
             }
     torch.save(state, f"{model_path}/model_short.pth")
     ### the weight file saving may interrupted due to DCU queue limit, get a backup to ensure there at least has one model 

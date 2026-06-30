@@ -4,7 +4,7 @@ from onescience.modules._lazy import instantiate_registered_style
 
 _EDGE_REGISTRY = {
     "MeshEdgeBlock": ("onescience.modules.edge.mesh_edge_block", "MeshEdgeBlock"),
-    "MeshEdgeDistributedBlock": ("onescience.modules.edge.mesh_edge_distributed_block", "MeshEdgeDistributedBlock"),
+    "MeshEdgeDistributedBlock": ("onescience.modules.edge.mesh_edge_distributed_block", "DistributedMeshEdgeBlock"),
 }
 
 class OneEdge(nn.Module):

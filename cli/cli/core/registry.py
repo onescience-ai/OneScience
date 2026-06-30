@@ -36,6 +36,18 @@ DOMAIN_DESCRIPTIONS = BUILTIN_DOMAINS
 DOMAIN_DIR_MAP = BUILTIN_DOMAIN_DIR_MAP
 
 
+def _is_model_dir(path: Path) -> bool:
+    """检查目录是否是真正的模型目录（有训练/推理入口脚本）
+
+    仅靠 conf/config.yaml 不足以判断（TJ-Data 等非模型目录也有配置文件），
+    必须存在 Python 入口脚本才认为是模型。
+    """
+    for pattern in ("train*.py", "finetune*.py", "cli*.py", "run*.py"):
+        if list(path.glob(pattern)):
+            return True
+    return False
+
+
 MODULE_TYPE_DESC = {
     "attention": "注意力机制",
     "embedding": "嵌入层",
@@ -60,6 +72,21 @@ MODULE_TYPE_DESC = {
     "msa": "多序列比对",
     "pairformer": "Pairformer",
 }
+
+
+def get_model_dir(info: dict) -> Path:
+    """从模型解析结果中获取模型目录路径
+
+    Args:
+        info: model_registry.resolve() 的返回结果
+
+    Returns:
+        模型目录的 Path 对象
+    """
+    model_dir = info.get("model_dir")
+    if model_dir:
+        return Path(model_dir)
+    return EXAMPLES_DIR / info["domain"] / info["model"]
 
 
 class ModelRegistry:
@@ -138,7 +165,7 @@ class ModelRegistry:
             if not domain_key:
                 continue
             for model_dir in domain_dir.iterdir():
-                if not model_dir.is_dir() or model_dir.name == "conf":
+                if not model_dir.is_dir() or model_dir.name == "conf" or not _is_model_dir(model_dir):
                     continue
                 model_lower = model_dir.name.lower()
                 no_underscore = model_lower.replace("_", "")
@@ -171,7 +198,7 @@ class ModelRegistry:
                 if not domain_key or (domain and domain_key != domain):
                     continue
                 for model_dir in domain_dir.iterdir():
-                    if not model_dir.is_dir() or model_dir.name == "conf":
+                    if not model_dir.is_dir() or model_dir.name == "conf" or not _is_model_dir(model_dir):
                         continue
                     key = f"{domain_key}|{model_dir.name}|"
                     if key not in seen_keys:

@@ -74,17 +74,17 @@ class Pangu(Module):
         # In addition, three constant masks(the topography mask, land-sea mask and soil type mask)
         
         self.patchembed2d = OneEmbedding(
-            style="PanguEmbedding2D",
+            style="PanguEmbedding",
             img_size=img_size,
             patch_size=patch_size[1:],
             embed_dim=embed_dim,
-            in_chans=4 + 3,
+            Variables=7
         )
         self.patchembed3d = OneEmbedding(
-            style="PanguEmbedding3D",
+            style="PanguEmbedding",
             img_size=(13, img_size[0], img_size[1]),
             patch_size=patch_size,
-            in_chans=5,
+            Variables=5,
             embed_dim=embed_dim,
         )
         patched_inp_shape = (
@@ -110,7 +110,7 @@ class Pangu(Module):
             math.ceil(patched_inp_shape[2] / 2),
         )
         self.downsample = OneSample(
-            style="PanguDownSample3D",
+            style="PanguDownSample",
             input_resolution=patched_inp_shape,
             output_resolution=patched_inp_shape_downsample,
             in_dim=embed_dim,
@@ -136,7 +136,7 @@ class Pangu(Module):
             config = config
         )
         self.upsample = OneSample(
-            style="PanguUpSample3D",
+            style="PanguUpSample",
             in_dim=embed_dim * 2,
             out_dim=embed_dim,
             input_resolution=patched_inp_shape_downsample,
@@ -154,14 +154,14 @@ class Pangu(Module):
         )
         # The outputs of the 2nd encoder layer and the 7th decoder layer are concatenated along the channel dimension.
         self.patchrecovery2d = OneRecovery(
-            style="PanguPatchRecovery2D",
+            style="PanguPatchRecovery",
             img_size=img_size,
             patch_size=patch_size[1:],
             in_chans=2 * embed_dim,
             out_chans=4,
         )
         self.patchrecovery3d = OneRecovery(
-            style="PanguPatchRecovery3D",
+            style="PanguPatchRecovery",
             img_size=(13, img_size[0], img_size[1]),
             patch_size=patch_size,
             in_chans=2 * embed_dim,
@@ -272,17 +272,17 @@ class Pangu_stage0(Module):
         # In addition, three constant masks(the topography mask, land-sea mask and soil type mask)
         
         self.patchembed2d = OneEmbedding(
-            style="PanguEmbedding2D",
+            style="PanguEmbedding",
             img_size=img_size,
             patch_size=patch_size[1:],
             embed_dim=embed_dim,
-            in_chans=4 + 3,
+            Variables=7,
         )
         self.patchembed3d = OneEmbedding(
-            style="PanguEmbedding3D",
+            style="PanguEmbedding",
             img_size=(13, img_size[0], img_size[1]),
             patch_size=patch_size,
-            in_chans=5,
+            Variables=5,
             embed_dim=embed_dim,
         )
         patched_inp_shape = (
@@ -308,7 +308,7 @@ class Pangu_stage0(Module):
             math.ceil(patched_inp_shape[2] / 2),
         )
         self.downsample = OneSample(
-            style="PanguDownSample3D",
+            style="PanguDownSample",
             input_resolution=patched_inp_shape,
             output_resolution=patched_inp_shape_downsample,
             in_dim=embed_dim,
@@ -418,17 +418,17 @@ class Pangu_stage1(Module):
         # In addition, three constant masks(the topography mask, land-sea mask and soil type mask)
 
         self.patchembed2d = OneEmbedding(
-            style="PanguEmbedding2D",
+            style="PanguEmbedding",
             img_size=img_size,
             patch_size=patch_size[1:],
             embed_dim=embed_dim,
-            in_chans=4 + 3,
+            Variables=7,
         )
         self.patchembed3d = OneEmbedding(
-            style="PanguEmbedding3D",
+            style="PanguEmbedding",
             img_size=(13, img_size[0], img_size[1]),
             patch_size=patch_size,
-            in_chans=5,
+            Variables=5,
             embed_dim=embed_dim,
         )
         patched_inp_shape = (
@@ -443,7 +443,7 @@ class Pangu_stage1(Module):
             math.ceil(patched_inp_shape[2] / 2),
         )
         self.downsample = OneSample(
-            style="PanguDownSample3D",
+            style="PanguDownSample",
             input_resolution=patched_inp_shape,
             output_resolution=patched_inp_shape_downsample,
             in_dim=embed_dim,
@@ -460,7 +460,7 @@ class Pangu_stage1(Module):
             config = config
         )
         self.upsample = OneSample(
-            style="PanguUpSample3D",
+            style="PanguUpSample",
             in_dim=embed_dim * 2,
             out_dim=embed_dim,
             input_resolution=patched_inp_shape_downsample,
@@ -484,14 +484,14 @@ class Pangu_stage1(Module):
         # The outputs of the 2nd encoder layer and the 7th decoder layer are concatenated along the channel dimension.
 
         self.patchrecovery2d = OneRecovery(
-            style="PanguPatchRecovery2D",
+            style="PanguPatchRecovery",
             img_size=img_size,
             patch_size=patch_size[1:],
             in_chans=2 * embed_dim,
             out_chans=4,
         )
         self.patchrecovery3d = OneRecovery(
-            style="PanguPatchRecovery3D",
+            style="PanguPatchRecovery",
             img_size=(13, img_size[0], img_size[1]),
             patch_size=patch_size,
             in_chans=2 * embed_dim,

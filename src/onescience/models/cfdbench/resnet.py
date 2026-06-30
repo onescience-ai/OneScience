@@ -73,9 +73,11 @@ class ResidualBlock(nn.Module):
         else:
             residual = x
         x = self.conv1(x)
+        x = self.bn1(x)
         x = self.dropout(x)
         x = self.act(x)
         x = self.conv2(x)
+        x = self.bn2(x)
         x += residual
         return x
 

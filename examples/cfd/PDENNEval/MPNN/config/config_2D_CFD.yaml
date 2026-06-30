@@ -1,7 +1,7 @@
 mpnn_config:
   datapipe:
     source:
-      data_dir: "YOUR_DATASET_DIR_PATH"
+      data_dir: "${ONESCIENCE_DATASETS_DIR}/PDENNEval/pdebench_data/"
       file_name: "2D_CFD_Rand_M0.1_Eta0.1_Zeta0.1_periodic_128_Train.hdf5"
     verbose: True
     data:

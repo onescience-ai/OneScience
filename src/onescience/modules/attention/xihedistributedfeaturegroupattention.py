@@ -5,7 +5,7 @@ from onescience.distributed.megatron.core.tensor_parallel.layers import RowParal
 from onescience.distributed.megatron.core.utils import init_method_normal, scaled_init_method_normal
 
 
-class XiheDistributedFeatureGroupingAttention(nn.Module):
+class DistributedFeatureGroupingAttention(nn.Module):
     def __init__(
         self,
         dim,

@@ -33,11 +33,21 @@ def compare(model_aliases, fmt):
         import json
         click.echo(json.dumps(results, ensure_ascii=False, indent=2))
     elif fmt == "csv":
+        # 收集所有指标键名
+        all_metric_keys = []
+        seen = set()
+        for r in results:
+            for k in r.get("metrics", {}):
+                if k not in seen:
+                    seen.add(k)
+                    all_metric_keys.append(k)
+        headers = ["别名"] + all_metric_keys
+        click.echo(",".join(headers))
         for r in results:
             m = r["metrics"]
             line = r["alias"]
-            for k, v in m.items():
-                line += "," + str(v)
+            for k in all_metric_keys:
+                line += "," + str(m.get(k, "N/A"))
             click.echo(line)
     else:
         print_comparison(results)

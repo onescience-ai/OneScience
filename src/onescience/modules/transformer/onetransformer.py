@@ -50,6 +50,10 @@ _TRANSFORMER_REGISTRY = {
         "onescience.modules.transformer.earthtransformer3Dblock",
         "EarthTransformer3DBlock",
     ),
+    "EarthDistributedTransformer3DBlock": (
+        "onescience.modules.transformer.earthdistributedtransformer3Dblock",
+        "EarthDistributedTransformer3DBlock",
+    ),
     "XihelocalTransformer": (
         "onescience.modules.transformer.xihelocaltransformer",
         "XihelocalTransformer",

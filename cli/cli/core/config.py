@@ -37,12 +37,27 @@ else:
 _PATH_CACHE_FILE = Path.home() / ".onescience" / ".path_cache.json"
 
 
+def _update_cache_entry(key: str, value: str) -> None:
+    """更新缓存文件中的单条记录，保留已有其他记录"""
+    cache = {}
+    if _PATH_CACHE_FILE.exists():
+        try:
+            cache = json.loads(_PATH_CACHE_FILE.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            pass
+    cache[key] = value
+    _PATH_CACHE_FILE.write_text(
+        json.dumps(cache, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
 def _resolve_writable_dir(key: str, default_path: str, fallback_base: str) -> str:
     """检测默认路径是否可写，不可写时自动回退并缓存结果
 
     优先级:
       1. 状态缓存文件（持久化上次决定）
-      2. 尝试默认路径是否可写
+      2. 尝试默认路径是否可写或已有数据（只读也可用）
       3. 回退到 ~/.onescience/{fallback_base}
     """
     cache_dir = _PATH_CACHE_FILE.parent
@@ -57,23 +72,23 @@ def _resolve_writable_dir(key: str, default_path: str, fallback_base: str) -> st
         except (json.JSONDecodeError, OSError):
             pass
 
-    # 2. 尝试默认路径是否可写
+    # 2. 检查默认路径是否已有数据（只读场景也使用）
+    default = Path(default_path)
+    if default.exists() and any(default.iterdir()):
+        _update_cache_entry(key, default_path)
+        return default_path
+
+    # 3. 尝试默认路径是否可写
     try:
-        Path(default_path).mkdir(parents=True, exist_ok=True)
+        default.mkdir(parents=True, exist_ok=True)
         # 可写，缓存并返回
-        _PATH_CACHE_FILE.write_text(
-            json.dumps({key: default_path}, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        _update_cache_entry(key, default_path)
         return default_path
     except OSError:
-        # 3. 不可写，回退到用户目录
+        # 4. 不可写，回退到用户目录
         fallback = str(Path.home() / ".onescience" / fallback_base)
         Path(fallback).mkdir(parents=True, exist_ok=True)
-        _PATH_CACHE_FILE.write_text(
-            json.dumps({key: fallback}, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        _update_cache_entry(key, fallback)
         return fallback
 
 BUILTIN_DOMAINS: t.Dict[str, str] = {
@@ -424,6 +439,15 @@ class Config:
         except (json.JSONDecodeError, OSError):
             self._data = {}
 
+    def reload(self):
+        """重新加载配置文件（用于切换环境后更新配置）"""
+        config_file = _find_config_file()
+        if config_file:
+            self._load_file(config_file)
+        else:
+            self._file_path = None
+            self._data = {}
+
     # ---- 基本属性 ----
 
     @property
@@ -746,8 +770,8 @@ class Config:
                 parent_target = Path(self.datasets_dir) / parent_rel
                 if not parent_target.exists() or not any(parent_target.iterdir()):
                     _auto_download_dataset(parent_key, parent_target)
-                # 子路径数据集的下载触发在其 resolve 调用中，这里直接返回
-                return str(p) if p.exists() and any(p.iterdir()) else str(p)
+                # 子路径数据集，下载父数据集后检查子路径是否存在
+                return str(p) if p.exists() and any(p.iterdir()) else None
             # 非子路径数据集，直接下载
             target = p
             result = _auto_download_dataset(name, target)

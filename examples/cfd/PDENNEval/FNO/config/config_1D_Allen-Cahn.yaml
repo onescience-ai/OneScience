@@ -1,7 +1,7 @@
 fno_config:
   datapipe:
     source:
-      data_dir: "YOUR_DATASET_DIR_PATH"
+      data_dir: "${ONESCIENCE_DATASETS_DIR}/PDENNEval/pdebench_data/"
       file_name: "1D_Allen-Cahn_0.0001_5.hdf5"
     verbose: True
     data:

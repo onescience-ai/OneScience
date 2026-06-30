@@ -45,7 +45,6 @@ def _parse_steps(steps_text: str, default_dataset: str):
 def _run_pipeline(steps, on_error):
     """依次执行 pipeline 步骤"""
     results = []
-    _all_success = True
 
     for i, (cmd_type, model_alias, dataset) in enumerate(steps, 1):
         info = model_registry.resolve(model_alias)
@@ -64,7 +63,6 @@ def _run_pipeline(steps, on_error):
         if result["success"]:
             click.secho(f"  ✓ {model_alias} 执行成功", fg="green")
         else:
-            _all_success = False
             err_msg = result.get("error") or result.get("output", "")
             click.secho(f"  ✗ {model_alias} 执行失败: {err_msg}", fg="red")
 
@@ -73,7 +71,7 @@ def _run_pipeline(steps, on_error):
             elif on_error == "skip":
                 click.secho(f"  跳过失败步骤，继续下一步", fg="yellow")
 
-    return results, _all_success
+    return results
 
 
 @click.command("pipeline")
@@ -136,7 +134,7 @@ def pipeline(steps, pipeline_file, default_dataset, on_error, compare):
     click.secho(f"Pipeline 开始 - {len(parsed_steps)} 个步骤, 错误策略: {on_error}", fg="bright_green")
 
     # 依次执行
-    results, _ = _run_pipeline(parsed_steps, on_error)
+    results = _run_pipeline(parsed_steps, on_error)
 
     # 收集结果
     collect_results(results)

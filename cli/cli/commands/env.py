@@ -84,6 +84,7 @@ def use_env(name):
             click.echo(f"配置文件保留在: {config_file}")
         else:
             click.secho(f"已切换到内置预设 (onescience)", fg="green")
+        config.reload()
         return
 
     # 查找配置文件
@@ -102,6 +103,7 @@ def use_env(name):
         )
         click.secho(f"已切换到环境: {name}", fg="green")
         click.echo(f"配置文件: {config_file}")
+        config.reload()
     except Exception as e:
         click.secho(f"切换环境失败: {e}", fg="red")
 

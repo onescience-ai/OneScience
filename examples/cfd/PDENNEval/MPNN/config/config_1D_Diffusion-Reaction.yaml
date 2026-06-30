@@ -53,7 +53,7 @@
 mpnn_config:
   datapipe:
     source:
-      data_dir: "../data/"
+      data_dir: "${ONESCIENCE_DATASETS_DIR}/PDENNEval/pdebench_data/"
       file_name: "ReacDiff_Nu0.5_Rho1.0.hdf5"
     verbose: True
     data:

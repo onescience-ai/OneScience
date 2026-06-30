@@ -13,6 +13,7 @@ class XiheDistributedFuser(nn.Module):
         dim,
         input_resolution,
         num_local,
+        num_heads=None,
         num_heads_local=6,
         num_heads_global=12,
         window_size=(1, 6, 12),
@@ -29,6 +30,9 @@ class XiheDistributedFuser(nn.Module):
         self.dim = dim
         self.num_local = num_local
         self.input_resolution = input_resolution
+        if num_heads is not None:
+            num_heads_local = num_heads
+            num_heads_global = num_heads
 
         self.local_sie_blocks = nn.ModuleList([
             XiheDistributedLocalSIEFuser(

@@ -1,7 +1,7 @@
 pino_config:
   datapipe:
     source:
-      data_dir: "YOUR_DATASET_DIR_PATH"
+      data_dir: "${ONESCIENCE_DATASETS_DIR}/PDENNEval/pdebench_data/"
       file_name: "1D_Cahn-Hilliard_10e-6_0.01.hdf5"
     verbose: True    
     data:

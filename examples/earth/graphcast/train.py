@@ -84,7 +84,10 @@ def main():
         latitudes = model.latitudes
         longitudes = model.longitudes
         lat_lon_grid = model.lat_lon_grid
-    static_data = StaticData(cfg_data.dataset.static_dir, latitudes, longitudes).get().to(device=local_rank)
+    
+    static_dir = os.path.join(cfg_data.dataset.data_dir, "static")
+    
+    static_data = StaticData(static_dir, latitudes, longitudes).get().to(device=local_rank)
     channels_list = [i for i in range(len(cfg_data.dataset.channels))]
     area = torch.abs(torch.cos(deg2rad(lat_lon_grid[:, :, 0])))
     area /= torch.mean(area)

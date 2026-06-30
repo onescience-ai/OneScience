@@ -9,7 +9,7 @@ _MLP_REGISTRY = {
         "MeshGraphEdgeMLPConcat",
     ),
     "MeshGraphEdgeMLPSum": ("onescience.modules.mlp.mesh_graph_mlp", "MeshGraphEdgeMLPSum"),
-    "MeshGraphDistributedMLP": ("onescience.modules.mlp.mesh_graph_distributed_mlp", "MeshGraphDistributedMLP"),
+    "MeshGraphDistributedMLP": ("onescience.modules.mlp.mesh_graph_distributed_mlp", "DistributedMeshGraphMLP"),
     "StandardMLP": ("onescience.modules.mlp.MLP", "StandardMLP"),
     "SimpleMLP": ("onescience.modules.mlp.MLP", "SimpleMLP"),
     "DeepResMLP": ("onescience.modules.mlp.MLP", "DeepResMLP"),

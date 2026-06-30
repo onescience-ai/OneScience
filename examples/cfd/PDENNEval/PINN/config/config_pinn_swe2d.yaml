@@ -10,7 +10,7 @@ seed: '0900'
 # unused arguments
 input_ch: 3
 output_ch: 1
-root_path: '/home/data2/PDEData/2D/shallow-water/'
+root_path: "${ONESCIENCE_DATASETS_DIR}/PDENNEval/pdebench_data/"
 val_num: 1
 if_periodic_bc: False
 aux_params: 0
@@ -18,7 +18,7 @@ aux_params: 0
 
 
 # test
-model_path: '/home/hechangye/PDEBench-main/pdebench/models/2D_rdb_NA_NA.h5_9000_PINN.pt-25000.pt'
+model_path: './2D_rdb_NA_NA.h5_9000_PINN.pt-25000.pt'
 val_batch_idx: 900
 
 dataset:

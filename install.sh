@@ -79,6 +79,11 @@ BIO_WHEELS=(
     # "https://download.sourcefind.cn:65024/file/4/dgl/DAS1.7/dgl-2.2.1+das.opt1.dtk25042-cp311-cp311-manylinux_2_28_x86_64.whl"
     "https://download.sourcefind.cn:65024/file/9/onesicence/dtk-25.04.2/megatron_core-0.15.0-cp311-cp311-linux_x86_64.whl"
     "https://download.sourcefind.cn:65024/file/9/onesicence/dtk-25.04.2/causal_conv1d-1.5.2-cp311-cp311-linux_x86_64.whl"
+    "https://download.sourcefind.cn:65024/directlink/4/fastpt/DAS1.7/fastpt-2.1.1+das.dtk25042-cp311-cp311-linux_x86_64.whl"
+    "https://download.sourcefind.cn:65024/directlink/9/onesicence/dtk-25.04.2/torch_scatter-2.1.0+das.opt1.dtk25043-cp311-cp311-linux_x86_64.whl"
+    "https://download.sourcefind.cn:65024/directlink/9/onesicence/dtk-25.04.2/torch_cluster-1.6.3+das.opt1.dtk25043-cp311-cp311-linux_x86_64.whl"
+    "https://download.sourcefind.cn:65024/file/9/onesicence/dtk-25.04.2/torch_sparse-0.6.18-cp311-cp311-linux_x86_64.whl"
+    "https://download.sourcefind.cn:65024/file/9/onesicence/dtk-25.04.2/torch_spline_conv-1.2.2-cp311-cp311-linux_x86_64.whl"
 )
 
 MATCHEM_WHEELS=(
@@ -224,15 +229,19 @@ if [[ "$DOMAIN" == "bio" || "$DOMAIN" == "all" ]]; then
     fi  
 fi
 
-if [[ "$DOMAIN" == "cfd" || "$DOMAIN" == "all" ]]; then
-    FASTPT_BIN="$CONDA_PREFIX/bin/fastpt"
-    
-    if [[ -f "$FASTPT_BIN" ]]; then
-        echo ">>> Environment ready. Sourcing fastpt: $FASTPT_BIN"
-        source "$FASTPT_BIN" -E || true
-    else
-        echo "Warning: fastpt executable not found after installation."
-    fi
+if [[ "$DOMAIN" == "cfd" || "$DOMAIN" == "matchem" || "$DOMAIN" == "all" ]]; then
+    FASTPT_SITE="$(pip show fastpt | sed -n 's/^Location: //p')"
+    TORCH_SITE="$(pip show torch | sed -n 's/^Location: //p')"
+
+    FASTPT_TORCH_LIB="$FASTPT_SITE/fastpt/torch/lib"
+    TORCH_LIB="$TORCH_SITE/torch/lib"
+
+    [[ -d "$FASTPT_TORCH_LIB" ]]
+    [[ -d "$TORCH_SITE/torch" ]]
+
+    mkdir -p "$TORCH_LIB"
+    cp -a "$FASTPT_TORCH_LIB"/. "$TORCH_LIB"/
 fi
+
 # export LD_LIBRARY_PATH="$CONDA_PREFIX/lib:$LD_LIBRARY_PATH"
 echo ">>> Installation completed successfully!"

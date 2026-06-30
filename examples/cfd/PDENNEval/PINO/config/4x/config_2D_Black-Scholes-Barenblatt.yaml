@@ -1,7 +1,7 @@
 pino_config:
   datapipe:
     source:
-      data_dir: "YOUR_DATASET_DIR_PATH"
+      data_dir: "${ONESCIENCE_DATASETS_DIR}/PDENNEval/pdebench_data/"
       file_name: "2D_Black-Scholes-Barenblatt_r0.05_sigma0.4.hdf5"
     verbose: True    
     data:

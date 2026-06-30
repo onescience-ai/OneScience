@@ -1,7 +1,7 @@
 import os
 import click
 from pathlib import Path
-from ..core.registry import model_registry, module_registry, DOMAIN_DESCRIPTIONS
+from ..core.registry import model_registry, module_registry
 from ..core.formatter import Formatter
 
 
@@ -83,11 +83,12 @@ def list_datasets(fmt, full):
                 except (OSError, PermissionError):
                     click.echo(f"  {d.name:<25}  (无权限)")
         return
-    from ..road import DATASET_PATHS, ONESCIENCE_DATASETS_DIR
+    from ..core.config import BUILTIN_DATASETS, config
+    _datasets_dir = config.datasets_dir
     rows = []
-    for name, path in sorted(DATASET_PATHS.items()):
-        full_path = str(Path(ONESCIENCE_DATASETS_DIR) / path) if ONESCIENCE_DATASETS_DIR else ""
-        exists = os.path.isdir(full_path) if full_path else False
+    for name, path in sorted(BUILTIN_DATASETS.items()):
+        full_path = str(Path(_datasets_dir) / path)
+        exists = os.path.isdir(full_path)
         rows.append([name, path, "✓" if exists else ""])
     headers = ["名称", "相对路径", "本地存在"]
     click.echo(Formatter.format_output(rows, headers, rows, fmt))

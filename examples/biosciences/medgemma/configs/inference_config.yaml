@@ -1,0 +1,52 @@
+# MedGemma 推理配置示例
+# 此文件展示如何配置 MedGemma 进行推理
+
+# 项目设置
+project: "MedGemma"
+run_name: "medgemma_inference_demo"
+base_dir: "./medgemma_output"
+
+# 模型设置
+model:
+  variant: "4b"  # "4b" (多模态) 或 "27b" (仅文本)
+  model_path: "/path/to/medgemma/4b/model"  # 替换为实际模型路径
+  tokenizer_path: null  # null 表示使用 model_path
+  prompt_format: "chat"  # "chat" 或 "instruct"
+  is_multimodal: true  # 4B 支持多模态
+
+# 推理设置
+inference:
+  gpu_memory_utilization: 0.9
+  max_model_len: null  # null 表示使用模型默认值
+  tensor_parallel_size: 1  # GPU 并行数
+  default_max_tokens: 500
+  temperature: 0.7
+  top_p: 0.9
+  top_k: null
+  min_p: null
+  batch_size: 1
+  num_workers: 0
+  use_vllm: true  # 使用 vLLM 加速
+
+# 数据设置
+data:
+  input_json_path: "./input_data.json"  # 输入数据路径
+  input_dir: null
+  image_input_width: 224
+  image_input_height: 224
+  max_parallel_download_workers: 4
+  worker_download_parallelism: "THREAD"
+  use_msa: false
+
+# 输出设置
+output:
+  dump_dir: "./medgemma_predictions"
+  save_predictions: true
+  output_format: "json"  # "json" 或 "jsonl"
+  save_intermediate: false
+
+# 基础设置
+seed: 42
+deterministic: false
+use_wandb: false
+eval_only: true

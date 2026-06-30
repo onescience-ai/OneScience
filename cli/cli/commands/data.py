@@ -1,8 +1,7 @@
 import os
 import click
 from pathlib import Path
-from ..road import DATASET_PATHS, ONESCIENCE_DATASETS_DIR, list_available_datasets
-from ..core.config import config
+from ..core.config import config, BUILTIN_DATASETS
 
 
 DOMAIN_DATASETS = {
@@ -26,19 +25,40 @@ def list_datasets(domain, fmt):
     """列出所有可用数据集"""
     from ..core.formatter import Formatter
 
-    available = list_available_datasets()
+    datasets_dir = config.datasets_dir
+    available = {}
+    for name, rel_path in config.datasets.items():
+        if name in config._data.get("datasets", {}):
+            # 自定义数据集：使用配置的路径
+            p = Path(rel_path)
+            if not p.is_absolute() and config.file_path:
+                p = (config.file_path.parent / p).resolve()
+            if p.exists():
+                available[name] = str(p)
+        else:
+            # 内置数据集
+            full_path = str(Path(datasets_dir) / rel_path)
+            if os.path.isdir(full_path):
+                available[name] = full_path
+    # 扫描目录下未注册的数据集
+    if os.path.isdir(datasets_dir):
+        for entry in sorted(os.listdir(datasets_dir)):
+            entry_path = os.path.join(datasets_dir, entry)
+            if os.path.isdir(entry_path) and entry not in available:
+                available[entry] = entry_path
+
     rows = []
     for name, path in sorted(available.items()):
         if domain:
             domain_list = [d for d, names in DOMAIN_DATASETS.items() if name in names]
             if domain not in domain_list:
                 continue
-        alias_in = name in DATASET_PATHS
+        alias_in = name in BUILTIN_DATASETS
         rows.append([name, path, "注册" if alias_in else "未注册"])
 
     if not rows:
         click.echo("未找到数据集（ONESCIENCE_DATASETS_DIR 目录不可用）")
-        click.echo(f"使用 road.py 中注册的数据集作为参考:")
+        click.echo("使用内置数据集作为参考:")
         for d, names in DOMAIN_DATASETS.items():
             click.echo(f"  [{d}] {', '.join(names)}")
         return
@@ -56,10 +76,9 @@ def list_datasets(domain, fmt):
 @click.argument("name")
 def dataset_info(name):
     """显示数据集详情"""
-    from ..road import get_dataset_path
 
-    if name in DATASET_PATHS:
-        rel_path = DATASET_PATHS[name]
+    if name in BUILTIN_DATASETS:
+        rel_path = BUILTIN_DATASETS[name]
         click.secho(f"数据集: {name}", fg="green")
         click.echo(f"  相对路径: {rel_path}")
         domain = None
@@ -69,26 +88,27 @@ def dataset_info(name):
                 break
         if domain:
             click.echo(f"  所属领域: {domain}")
-        try:
-            full_path = get_dataset_path(name)
+        full_path = config.resolve_dataset(name)
+        if full_path:
             click.echo(f"  完整路径: {full_path}")
             click.echo(f"  本地存在: {'✓' if os.path.isdir(full_path) else '✗'}")
             if os.path.isdir(full_path):
                 items = len(os.listdir(full_path))
                 click.echo(f"  子项数量: {items}")
-        except FileNotFoundError:
-            click.echo(f"  完整路径: {str(Path(ONESCIENCE_DATASETS_DIR) / rel_path)}")
+        else:
+            _datasets_dir = config.datasets_dir
+            click.echo(f"  完整路径: {str(Path(_datasets_dir) / rel_path)}")
             click.echo(f"  本地存在: ✗（数据集目录未挂载）")
     else:
-        try:
-            full_path = get_dataset_path(name)
+        full_path = config.resolve_dataset(name)
+        if full_path:
             click.secho(f"数据集: {name}", fg="green")
             click.echo(f"  完整路径: {full_path}")
             click.echo(f"  类型: 目录（未注册的数据集）")
             if os.path.isdir(full_path):
                 items = len(os.listdir(full_path))
                 click.echo(f"  子项数量: {items}")
-        except FileNotFoundError:
+        else:
             click.secho(f"数据集 '{name}' 未找到", fg="red")
 
 
@@ -224,7 +244,10 @@ def download_data(name, output, year):
 @click.argument("model_alias")
 @click.option("-output", default=None, help="输出目录（默认使用模型目录下的 data/）")
 def generate_fake(model_alias, output):
-    """生成模型的假数据（用于测试运行流程）"""
+    """生成模型的假数据（用于测试运行流程）
+
+    TODO: 当前为指导模式，后续需实现自动化执行 fake_data.py。
+    """
     from ..core.registry import model_registry, EXAMPLES_DIR
 
     info = model_registry.resolve(model_alias)

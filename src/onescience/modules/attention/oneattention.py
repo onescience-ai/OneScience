@@ -5,6 +5,7 @@ from onescience.modules._lazy import instantiate_registered_style
 _ATTENTIONER_REGISTRY = {
     "EarthAttention2D": ("onescience.modules.attention.earthattention2d", "EarthAttention2D"),
     "EarthAttention3D": ("onescience.modules.attention.earthattention3d", "EarthAttention3D"),
+    "EarthDistributedAttention3D": ("onescience.modules.attention.earthdistributedattention3d", "EarthDistributedAttention3D"),
     "Physics_Attention_Irregular_Mesh": (
         "onescience.modules.attention.physicsattention",
         "Physics_Attention_Irregular_Mesh",

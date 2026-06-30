@@ -34,6 +34,7 @@ class XiheDistributedLocalSIEFuser(nn.Module):
                 OneTransformer(
                     dim=dim,
                     input_resolution=input_resolution,
+                    num_heads=num_heads,
                     style="XiheDistributedLocalTransformer",
                     config=config,
                 )

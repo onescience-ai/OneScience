@@ -1,0 +1,150 @@
+# ============================================================================
+# DiffDock CGModel Training Configuration
+#
+# IMPORTANT: Update all filesystem paths below to match your environment.
+#   - cache_path, pdbbind_dir, moad_dir: dataset directories
+#   - split_train, split_val: text files listing complex names (one per line)
+#
+# Supported scope (current migration):
+#   dataset: pdbbind | moad | generalisation
+# Unsupported (will fail fast):
+#   dataset: pdbsidechain | distillation
+#   all_atoms: true  (AAModel not migrated)
+#   triple_training: true
+# ============================================================================
+
+runtime:
+  run_name: diffdock_cg_example
+  log_dir: examples/biosciences/diffdock/outputs/train
+  device: auto
+  seed: 0
+  cudnn_benchmark: false
+  wandb: false
+  project: diffdock
+
+data:
+  dataset: pdbbind  # supported: pdbbind | moad | generalisation
+  cache_path: ./cache
+  pdbbind_dir: ${ONESCIENCE_DATASETS_DIR}/diffdock/PDBBind_processed
+  moad_dir: ${ONESCIENCE_DATASETS_DIR}/diffdock/MOAD_processed
+  split_train: ${ONESCIENCE_DATASETS_DIR}/diffdock/splits/timesplit_no_lig_overlap_train
+  split_val: ${ONESCIENCE_DATASETS_DIR}/diffdock/splits/timesplit_no_lig_overlap_val
+  protein_file: protein_processed
+  limit_complexes: null
+  num_conformers: 1
+  num_workers: 1
+  num_dataloader_workers: 0
+  batch_size: 4
+  pin_memory: false
+  dataloader_drop_last: false
+  remove_hs: true
+  receptor_radius: 30
+  c_alpha_max_neighbors: 10
+  atom_radius: 5
+  atom_max_neighbors: 8
+  chain_cutoff: null
+  max_lig_size: null
+  matching_popsize: 20
+  matching_maxiter: 20
+  matching_tries: 1
+  not_knn_only_graph: false
+  include_miscellaneous_atoms: false
+  all_atoms: false  # must stay false in the current migration; only the CGModel main path is supported
+  triple_training: false  # unsupported in the current migration; will fail fast if set true
+  combined_training: false
+  double_val: false
+  train_multiplicity: 1
+  val_multiplicity: 1
+  max_receptor_size: null
+  remove_promiscuous_targets: null
+  min_ligand_size: 0
+  unroll_clusters: false
+  enforce_timesplit: false
+  crop_beyond: 20
+  moad_esm_embeddings_path: null
+  pdbbind_esm_embeddings_path: null
+  moad_esm_embeddings_sequences_path: null
+  esm_embeddings_model: null
+
+diffusion:
+  no_torsion: false
+  tr_sigma_min: 0.1
+  tr_sigma_max: 30.0
+  rot_sigma_min: 0.1
+  rot_sigma_max: 1.65
+  tor_sigma_min: 0.0314
+  tor_sigma_max: 3.14
+  sampling_alpha: 1.0
+  sampling_beta: 1.0
+  tr_weight: 0.33
+  rot_weight: 0.33
+  tor_weight: 0.33
+  backbone_loss_weight: 0.0
+  sidechain_loss_weight: 0.0
+
+model:
+  # old_score_model is intentionally unsupported in the current migration; training only covers the CGModel main path.
+  num_conv_layers: 2
+  max_radius: 5.0
+  scale_by_sigma: true
+  norm_by_sigma: false
+  ns: 16
+  nv: 4
+  distance_embed_dim: 32
+  cross_distance_embed_dim: 32
+  no_batch_norm: true
+  use_second_order_repr: false
+  cross_max_distance: 80
+  dynamic_max_cross: false
+  dropout: 0.0
+  smooth_edges: false
+  odd_parity: false
+  embedding_type: sinusoidal
+  sigma_embed_dim: 32
+  embedding_scale: 1000
+  no_aminoacid_identities: false
+  sh_lmax: 2
+  no_differentiate_convolutions: false
+  tp_weights_layers: 2
+  num_prot_emb_layers: 0
+  reduce_pseudoscalars: false
+  embed_also_ligand: true
+  depthwise_convolution: false
+  use_old_atom_encoder: false
+
+optimization:
+  n_epochs: 10
+  lr: 0.001
+  w_decay: 0.0
+  scheduler: null
+  scheduler_patience: 20
+  lr_start_factor: 0.001
+  warmup_dur: 4
+  use_ema: true
+  ema_rate: 0.999
+  restart_dir: null
+  restart_ckpt: last_model
+  restart_lr: null
+  pretrain_dir: null
+  pretrain_ckpt: null
+  save_model_freq: null
+
+validation:
+  test_sigma_intervals: false
+  inference_samples: 1
+  val_inference_freq: null
+  train_inference_freq: null
+  inference_steps: 20
+  num_inference_complexes: 20
+  inference_earlystop_metric: valinf_min_rmsds_lt2
+  inference_secondary_metric: null
+  inference_earlystop_goal: max
+
+# ----------------------------------------------------------------------------
+# NOTE: Confidence model training is a separate step after score-model training.
+# Run: python -m onescience.confidence.diffdock.confidence_train
+#            --original_model_dir <this_run_dir>
+#            --data_dir <pdbbind_dir> --split_train <...> --split_val <...>
+# There is no example-level confidence_train script; the module lives at
+# src/onescience/confidence/diffdock/confidence_train.py
+# ----------------------------------------------------------------------------

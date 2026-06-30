@@ -4,6 +4,7 @@ from onescience.modules._lazy import instantiate_registered_style
 
 _FUSER_REGISTRY = {
     "PanguFuser": ("onescience.modules.fuser.pangufuser", "PanguFuser"),
+    "PanguDistributedFuser": ("onescience.modules.fuser.pangudistributedfuser", "PanguDistributedFuser"),
     "FengWuFuser": ("onescience.modules.fuser.fengwufuser", "FengWuFuser"),
     "FourCastNetFuser": ("onescience.modules.fuser.fourcastnetfuser", "FourCastNetFuser"),
     "XiheLocalSIEFuser": ("onescience.modules.fuser.xihelocalsiefuser", "XiheLocalSIEFuser"),

@@ -1,0 +1,13 @@
+defaults:
+  - inference_base
+  - generation: uncond_codes
+  - _self_
+
+run_name_: laproteina_ucond_notri
+ckpt_path: ./store/test_release_diffusion/checkpoints
+ckpt_name: last-EMA.ckpt
+autoencoder_ckpt_path: ./store/test_release_ae/checkpoints/last-EMA.ckpt
+
+generation:
+  dataset:
+    max_nsamples_per_batch: 2  # 原来是 10，改成 2 或 1

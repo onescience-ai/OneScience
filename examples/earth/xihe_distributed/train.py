@@ -51,20 +51,26 @@ def train_valid_test_dataset_provider(train_val_test_num_samples):
     cfg_data = YParams(config_file_path, "datapipe")
     cfg_data.world_size = 1
 
-    train_dataset = CMEMSHDF5Dataset(
-        dataset=cfg_data.dataset,
+    train_dataset = CMEMSDataset(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.train_time,
         mode='train',
         output_steps=1,
         input_steps=1,
     )
-    val_dataset = CMEMSHDF5Dataset(
-        dataset=cfg_data.dataset,
+    val_dataset = CMEMSDataset(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.val_time,
         mode='val',
         output_steps=1,
         input_steps=1,
     )
-    test_dataset = CMEMSHDF5Dataset(
-        dataset=cfg_data.dataset,
+    test_dataset = CMEMSDataset(
+        dataset_dir=cfg_data.dataset.data_dir,
+        used_variables=cfg_data.dataset.channels,
+        used_years=cfg_data.dataset.test_time,
         mode='test',
         output_steps=1,
         input_steps=1,

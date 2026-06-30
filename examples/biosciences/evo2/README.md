@@ -16,6 +16,8 @@ conda create -n your-name python=3.11 -y
 # 下载适配包脚本，自动下载 constraints.txt 中的包
 sh /tools/install_envs_constraints.sh
 pip install -c constraints.txt .[bio]
+注意:  (1) transformers版本为4.56.2，若版本不符合，可通过pip install transformers==4.56.2进行安装
+ (2) 若botocore版本过低，请通过botocore==1.43.36进行版本的升级
 ```
 
 ### 数据集准备

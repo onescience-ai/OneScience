@@ -43,14 +43,18 @@ def main():
         dataset_dir=cfg_data.dataset.data_dir,
         used_variables=cfg_data.dataset.channels,
         used_years=cfg_data.dataset.train_time,
-        distributed=dist.is_initialized()
+        distributed=dist.is_initialized(),
+        batch_size=cfg_data.dataloader.batch_size,
+        num_workers=cfg_data.dataloader.num_workers
     )
     train_dataloader, train_sampler = datapipe.get_dataloader("train")
     datapipe = ERA5Datapipe(
         dataset_dir=cfg_data.dataset.data_dir,
         used_variables=cfg_data.dataset.channels,
         used_years=cfg_data.dataset.val_time,
-        distributed=dist.is_initialized()
+        distributed=dist.is_initialized(),
+        batch_size=cfg_data.dataloader.batch_size,
+        num_workers=cfg_data.dataloader.num_workers
     )
     val_dataloader, val_sampler = datapipe.get_dataloader("valid")
 
@@ -84,6 +88,7 @@ def main():
     best_loss_epoch = 0
     train_losses = np.empty((0,), dtype=np.float32)
     valid_losses = np.empty((0,), dtype=np.float32)
+    current_epoch = 0
 
     ## Get model params count
     if cfg.world_size == 1:
@@ -107,6 +112,7 @@ def main():
         scheduler.load_state_dict(ckpt["scheduler_state_dict"])
         best_valid_loss = ckpt["best_valid_loss"]
         best_loss_epoch = ckpt["best_loss_epoch"]
+        current_epoch = ckpt["current_epoch"]
         train_losses = np.load(train_loss_file)
         valid_losses = np.load(valid_loss_file)
 
@@ -116,7 +122,7 @@ def main():
 
     world_rank == 0 and logger.info(f"start training ...")
 
-    for epoch in range(cfg.max_epoch):
+    for epoch in range(current_epoch, cfg.max_epoch):
         if dist.is_initialized():
             train_sampler.set_epoch(epoch)
             val_sampler.set_epoch(epoch)
@@ -191,7 +197,7 @@ def main():
         if valid_loss < best_valid_loss:
             best_valid_loss = valid_loss
             best_loss_epoch = epoch
-            world_rank == 0 and save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoch, cfg.checkpoint_dir)
+            world_rank == 0 and save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoch, cfg.checkpoint_dir, epoch)
             is_save_ckp = True
 
         scheduler.step()
@@ -214,13 +220,14 @@ def main():
             exit()
 
 
-def save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path):
+def save_checkpoint(model, optimizer, scheduler, best_valid_loss, best_loss_epoch, model_path, epoch):
     model_to_save = model.module if hasattr(model, "module") else model
     state = {"model_state_dict": model_to_save.state_dict(),
              "optimizer_state_dict": optimizer.state_dict(),
              "scheduler_state_dict": scheduler.state_dict(),
              "best_valid_loss": best_valid_loss,
              "best_loss_epoch": best_loss_epoch,
+             "current_epoch": epoch
             }
     torch.save(state, f"{model_path}/model.pth")
     ### the weight file saving may interrupted due to DCU queue limit, get a backup to ensure there at least has one model 

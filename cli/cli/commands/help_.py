@@ -2,18 +2,16 @@ import click
 from ..core.registry import model_registry, DOMAIN_DESCRIPTIONS
 
 
-_GROUPED_ALIASES: dict[str, list[tuple[str, str]]] = {}
-for m in model_registry.list_models():
-    domain_desc = m["domain_desc"]
-    if domain_desc not in _GROUPED_ALIASES:
-        _GROUPED_ALIASES[domain_desc] = []
-    _GROUPED_ALIASES[domain_desc].append((m["alias"], m["model"]))
-
-
 @click.command("help")
 @click.pass_context
 def help_cmd(ctx):
     """显示帮助信息"""
+    _GROUPED_ALIASES: dict[str, list[tuple[str, str]]] = {}
+    for m in model_registry.list_models():
+        domain_desc = m["domain_desc"]
+        if domain_desc not in _GROUPED_ALIASES:
+            _GROUPED_ALIASES[domain_desc] = []
+        _GROUPED_ALIASES[domain_desc].append((m["alias"], m["model"]))
     click.secho("OneScience 命令工具", fg="green")
     click.echo("用法: onescience <command> [options]")
     click.echo("")
@@ -127,7 +125,10 @@ def help_cmd(ctx):
     click.echo("  (也支持直接使用模型目录名)")
     click.echo("")
     click.echo("示例:")
-    click.echo("  onescience bench -dataset era5 -models pangu,fuxi,mace")
+    click.echo("  onescience bench -dataset airfoil -models lsm,u_net")
+    click.echo("  onescience bench --domain earth                   - 自动用默认数据集跑指定领域")
+    click.echo("  onescience bench --domain all                     - 按领域分组自动执行所有模型")
+    click.echo("  onescience bench --dir CFD_Benchmark -dataset airfoil - 按模型目录执行")
     click.echo("  onescience train pangu -dataset era5          - 仅训练模型")
     click.echo("  onescience infer pangu -dataset era5          - 仅执行推理")
     click.echo("  onescience eval pangu -dataset era5           - 仅执行评估")
