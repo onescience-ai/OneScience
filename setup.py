@@ -10,7 +10,6 @@ SRC_DIR = os.path.join(PROJECT_ROOT, "src")
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
-from setuptools import find_packages, setup
 from setuptools.command.build_py import build_py as _build_py
 from setuptools.command.develop import develop as _develop
 
@@ -281,7 +280,6 @@ bio_requires = [
     "cachetools",
     "chardet",
     "charset-normalizer",
-    "click",
     "colorama",
     "cryptography",
     "docutils",
@@ -340,18 +338,16 @@ bio_requires = [
     "graphein",
     "cpdb-protein",
     "MDAnalysis",
-    "ProDy",
     "openbabel-wheel",
     "backports.tarfile",
     "peft",
-    "trl", 
-    #"bitsandbytes",
+    "trl",
     "evaluate",
     "tf-keras",
     "scikit-image",
-	"pyranges",
 	"botocore",
     "boto3",
+    "huggingface-hub",
 ]
 
 matchem_requires = [

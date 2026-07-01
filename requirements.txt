@@ -162,8 +162,11 @@ trl
 evaluate
 tf-keras
 
+#laproteina
+huggingface-hub>=0.34.0,<1.0
+
 #targetdiff
-aiohttp==3.7.4.post0
+aiohttp>=3.9.2,<4
 async-timeout==3.0.1
 attrs==23.1.0
 blinker==1.6.2
@@ -182,7 +185,6 @@ google-auth-oauthlib==1.0.0
 greenlet==2.0.2
 grpcio==1.67.1
 idna==3.4
-joblib==1.2.0
 markdown==3.4.3
 markupsafe==2.1.2
 mmcif-pdbx==2.0.1
