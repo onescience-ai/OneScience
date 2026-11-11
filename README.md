@@ -151,7 +151,7 @@ The shape of output: torch.Size([1, 1, 96, 96, 96])
 |   求解PDE的模型集   |                 [PDENNEval](examples/cfd/PDENNEval)                 |        PDEBench、自生成PDE数据集        |       多种模型集合       |
 |   物理驱动求解PDE   |               [PINNsformer](examples/cfd/pinnsformer)               |                 -                |        PINN        |
 |     不可压流体     |                  [CFDBench](examples/cfd/CFDBench)                  | CFDBench数据集（顶盖驱动方腔流、管道流、坝流、圆柱扰流） |       多种模型集合       |
-|  复杂边界的椭圆偏微分方程 |                      [BENO](examples/cfd/beno)                      |            椭圆偏微分方程数据集            |   Transformer，GNN  |
+|  复杂边界的椭圆偏微分方程 |                      [BENO](examples/cfd/BENO)                      |            椭圆偏微分方程数据集            |   Transformer，GNN  |
 |      圆柱绕流     |            [lagrangian\_mgn](examples/cfd/lagrangian_mgn)           |         DeepMind拉格朗日网格数据集        |         GNN        |
 | 流体模型Benckmark |             [CFD\_Benchmark](examples/cfd/CFD_Benchmark)            |               多种数据集              |       多种模型集合       |
 |       湍流      |      [EagleMeshTransformer](examples/cfd/EagleMeshTransformer)      |  Eagle无人机数据集（110万个二维网格，600个不同场景） |     Transformer    |
@@ -203,7 +203,7 @@ The shape of output: torch.Size([1, 1, 96, 96, 96])
 |        问题类型       |                    案例                    |                          数据集                         |                 模型架构                |
 | :---------------: | :--------------------------------------: | :--------------------------------------------------: | :---------------------------------: |
 |      通用原子尺度模拟     |  [UMA](examples/MaterialsChemistry/UMA)  | 多种第一性原理计算数据集的 大规模聚合(OC20，OMat24，OMol25，ODAC23,OMC25) |             等变图神经网络(GNN)            |
-| 原子间势函数拟合 / 原子尺度模拟 | [MACE](examples/MaterialsChemistry/mace) |                 MPTrj, SPICE, OMat24                 | E(3)-等变图神经网络 (E(3)-Equivariant GNN) |
+| 原子间势函数拟合 / 原子尺度模拟 | [MACE](examples/MaterialsChemistry/MACE) |                 MPTrj, SPICE, OMat24                 | E(3)-等变图神经网络 (E(3)-Equivariant GNN) |
 
 **数据集**
 
